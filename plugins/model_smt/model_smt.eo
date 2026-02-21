@@ -24,60 +24,60 @@
 ;;; SMT value datatype constructors
 
 ; A value denoting a map.
-(declare-parameterized-const $smd_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
-(define $vsm_map ((m $smt_Map)) ($smd_vsm.Map m))
+(declare-parameterized-const $emb_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
+(define $vsm_map ((m $smt_Map)) ($emb_vsm.Map m))
 
 ; A value denoting a sequence.
-(declare-parameterized-const $smd_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
-(define $vsm_seq ((s $smt_Seq)) ($smd_vsm.Seq s))
+(declare-parameterized-const $emb_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
+(define $vsm_seq ((s $smt_Seq)) ($emb_vsm.Seq s))
 
 ; A value denoting a regular language.
-(declare-parameterized-const $smd_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
-(define $vsm_re ((r $smt_builtin_RegLan)) ($smd_vsm.RegLan r))
+(declare-parameterized-const $emb_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
+(define $vsm_re ((r $smt_builtin_RegLan)) ($emb_vsm.RegLan r))
 
 ; A value represented by an SMT-LIB term. This is used for types
 ; where terms are used to denote the values of that type, e.g.
 ; SMT-LIB numerals for Int.
-(declare-parameterized-const $smd_vsm.Term
+(declare-parameterized-const $emb_vsm.Term
   ((t $eo_Term :opaque))
   $smt_Value)
-(define $vsm_term ((t $eo_Term)) ($smd_vsm.Term t))
+(define $vsm_term ((t $eo_Term)) ($emb_vsm.Term t))
 
 ; Apply values (for Herbrand interpretations).
-(declare-parameterized-const $smd_vsm.Apply
+(declare-parameterized-const $emb_vsm.Apply
   ((f $smt_Value :opaque) (a $smt_Value :opaque))
   $smt_Value)
 (define $vsm_apply ((f $smt_Value) (a $smt_Value))
-  ($smd_vsm.Apply f a))
+  ($emb_vsm.Apply f a))
 
 ; Denotes a failure case for values.
-(declare-const $smd_vsm.NotValue $smt_Value)
-(define $vsm_not_value () $smd_vsm.NotValue)
+(declare-const $emb_vsm.NotValue $smt_Value)
+(define $vsm_not_value () $emb_vsm.NotValue)
 
 ;;; SMT map value datatype constructors
 
 ; Constructs a map value where i is mapped to e.
-(declare-parameterized-const $smd_msm.cons
+(declare-parameterized-const $emb_msm.cons
   ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
   $smt_Map)
 (define $msm_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
-  ($smd_msm.cons i e m))
+  ($emb_msm.cons i e m))
 
 ; Constructs a map value where all indices are mapped to e.
-(declare-parameterized-const $smd_msm.default
+(declare-parameterized-const $emb_msm.default
   ((e $smt_Value :opaque))
   $smt_Map)
-(define $msm_default ((e $smt_Value)) ($smd_msm.default e))
+(define $msm_default ((e $smt_Value)) ($emb_msm.default e))
 
 ;;; SMT sequence value datatype constructors
 
-(declare-parameterized-const $smd_ssm.cons
+(declare-parameterized-const $emb_ssm.cons
   ((i $smt_Value :opaque) (s $smt_Seq :opaque))
   $smt_Seq)
-(define $ssm_cons ((i $smt_Value) (s $smt_Seq)) ($smd_ssm.cons i s))
+(define $ssm_cons ((i $smt_Value) (s $smt_Seq)) ($emb_ssm.cons i s))
 
-(declare-parameterized-const $smd_ssm.empty () $smt_Seq)
-(define $ssm_empty () $smd_ssm.empty)
+(declare-parameterized-const $emb_ssm.empty () $smt_Seq)
+(define $ssm_empty () $emb_ssm.empty)
 
 ;;; Generic utilities
 

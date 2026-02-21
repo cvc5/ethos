@@ -72,43 +72,43 @@
 )
 (declare-const $eo_Term Type)
 (define $smt_builtin_teq ((x1 $eo_Term) (x2 $eo_Term)) ($smt_apply_2 "teq" x1 x2))
-(declare-const $smd_Bool $eo_Term)
-(define $eo_Bool () $smd_Bool)
-(declare-parameterized-const $smd_Boolean
+(declare-const $emb_Bool $eo_Term)
+(define $eo_Bool () $emb_Bool)
+(declare-parameterized-const $emb_Boolean
   ((b $smt_builtin_Bool :opaque)) $eo_Term)
 (define $eo_bool ((x $smt_builtin_Bool))
-  ($smd_Boolean x))
-(declare-parameterized-const $smd_Numeral
+  ($emb_Boolean x))
+(declare-parameterized-const $emb_Numeral
   ((n $smt_builtin_Int :opaque)) $eo_Term)
 (define $eo_numeral ((x $smt_builtin_Int))
-  ($smd_Numeral x))
-(declare-parameterized-const $smd_Rational
+  ($emb_Numeral x))
+(declare-parameterized-const $emb_Rational
   ((r $smt_builtin_Rat :opaque)) $eo_Term)
 (define $eo_rational ((x $smt_builtin_Rat))
-  ($smd_Rational x))
-(declare-parameterized-const $smd_String
+  ($emb_Rational x))
+(declare-parameterized-const $emb_String
   ((s $smt_builtin_String :opaque)) $eo_Term)
 (define $eo_string ((x $smt_builtin_String))
-  ($smd_String x))
-(declare-parameterized-const $smd_Binary
+  ($emb_String x))
+(declare-parameterized-const $emb_Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $eo_Term)
 (define $eo_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
-  ($smd_Binary w v))
-(declare-const $smd_Type $eo_Term)
-(define $eo_Type () $smd_Type)
-(declare-const $smd_Stuck $eo_Term)
-(define $eo_stuck () $smd_Stuck)
-(declare-parameterized-const $smd_Apply
+  ($emb_Binary w v))
+(declare-const $emb_Type $eo_Term)
+(define $eo_Type () $emb_Type)
+(declare-const $emb_Stuck $eo_Term)
+(define $eo_stuck () $emb_Stuck)
+(declare-parameterized-const $emb_Apply
   ((f $eo_Term :opaque) (a $eo_Term :opaque))
   $eo_Term)
-(define $eo_apply ((x $eo_Term) (y $eo_Term)) ($smd_Apply x y))
-(declare-parameterized-const $smd_FunType () $eo_Term)
-(define $eo_fun_type () $smd_FunType)
-(declare-parameterized-const $smd_Var
+(define $eo_apply ((x $eo_Term) (y $eo_Term)) ($emb_Apply x y))
+(declare-parameterized-const $emb_FunType () $eo_Term)
+(define $eo_fun_type () $emb_FunType)
+(declare-parameterized-const $emb_Var
   ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
   $eo_Term)
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term))
-  ($smd_Var s T))
+  ($emb_Var s T))
 (define $eo_binary_mod_w ((w $smt_builtin_Int) (n $smt_builtin_Int))
   ($eo_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
 (program $eo_typeof () :signature ($eo_Term) $eo_Term)
@@ -265,28 +265,28 @@
 (declare-const $smt_Value Type)
 (define $smt_builtin_veq ((x1 $smt_Value) (x2 $smt_Value)) ($smt_apply_2 "veq" x1 x2))
 (declare-const $smt_Map Type)
-(declare-parameterized-const $smd_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
-(define $vsm_map ((m $smt_Map)) ($smd_vsm.Map m))
-(declare-parameterized-const $smd_vsm.Term
+(declare-parameterized-const $emb_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
+(define $vsm_map ((m $smt_Map)) ($emb_vsm.Map m))
+(declare-parameterized-const $emb_vsm.Term
   ((t $eo_Term :opaque))
   $smt_Value)
-(define $vsm_term ((t $eo_Term)) ($smd_vsm.Term t))
-(declare-parameterized-const $smd_vsm.Apply
+(define $vsm_term ((t $eo_Term)) ($emb_vsm.Term t))
+(declare-parameterized-const $emb_vsm.Apply
   ((f $smt_Value :opaque) (a $smt_Value :opaque))
   $smt_Value)
 (define $vsm_apply ((f $smt_Value) (a $smt_Value))
-  ($smd_vsm.Apply f a))
-(declare-const $smd_vsm.NotValue $smt_Value)
-(define $vsm_not_value () $smd_vsm.NotValue)
-(declare-parameterized-const $smd_msm.cons
+  ($emb_vsm.Apply f a))
+(declare-const $emb_vsm.NotValue $smt_Value)
+(define $vsm_not_value () $emb_vsm.NotValue)
+(declare-parameterized-const $emb_msm.cons
   ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
   $smt_Map)
 (define $msm_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
-  ($smd_msm.cons i e m))
-(declare-parameterized-const $smd_msm.default
+  ($emb_msm.cons i e m))
+(declare-parameterized-const $emb_msm.default
   ((e $smt_Value :opaque))
   $smt_Map)
-(define $msm_default ((e $smt_Value)) ($smd_msm.default e))
+(define $msm_default ((e $smt_Value)) ($emb_msm.default e))
 (define $vsm_true () ($vsm_term true))
 (define $vsm_false () ($vsm_term false))
 (program $smtx_value_hash () :signature ($smt_Value) $smt_builtin_Int)

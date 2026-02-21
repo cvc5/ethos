@@ -15,116 +15,116 @@
 
 ;;;;;; SMT term constructors
 
-(declare-const $smd_sm.None $smt_Term)
-(define $sm_none () $smd_sm.None)
+(declare-const $emb_sm.None $smt_Term)
+(define $sm_none () $emb_sm.None)
 
 ; the literal types
-(declare-parameterized-const $smd_sm.Boolean
+(declare-parameterized-const $emb_sm.Boolean
   ((b $smt_builtin_Bool :opaque)) $smt_Term)
-(define $sm_bool ((b $smt_builtin_Bool)) ($smd_sm.Boolean b))
+(define $sm_bool ((b $smt_builtin_Bool)) ($emb_sm.Boolean b))
 
-(declare-parameterized-const $smd_sm.Numeral
+(declare-parameterized-const $emb_sm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Term)
-(define $sm_numeral ((n $smt_builtin_Int)) ($smd_sm.Numeral n))
+(define $sm_numeral ((n $smt_builtin_Int)) ($emb_sm.Numeral n))
 ; helpers
 (define $sm_z_zero () ($sm_numeral $smt_builtin_z_zero))
 (define $sm_z_one () ($sm_numeral $smt_builtin_z_one))
 
-(declare-parameterized-const $smd_sm.Rational
+(declare-parameterized-const $emb_sm.Rational
   ((r $smt_builtin_Rat :opaque)) $smt_Term)
-(define $sm_rational ((r $smt_builtin_Rat)) ($smd_sm.Rational r))
+(define $sm_rational ((r $smt_builtin_Rat)) ($emb_sm.Rational r))
 ; helpers
 (define $sm_q_zero () ($sm_rational $smt_builtin_q_zero))
 
-(declare-parameterized-const $smd_sm.String
+(declare-parameterized-const $emb_sm.String
   ((s $smt_builtin_String :opaque)) $smt_Term)
-(define $sm_string ((s $smt_builtin_String)) ($smd_sm.String s))
+(define $sm_string ((s $smt_builtin_String)) ($emb_sm.String s))
 ; helpers
-(define $sm_string_empty () ($smd_sm.String $smt_builtin_str_empty))
-(define $sm_string_c0 () ($smd_sm.String ($smt_apply_0 """0""")))
-(define $sm_string_c9 () ($smd_sm.String ($smt_apply_0 """9""")))
+(define $sm_string_empty () ($emb_sm.String $smt_builtin_str_empty))
+(define $sm_string_c0 () ($emb_sm.String ($smt_apply_0 """0""")))
+(define $sm_string_c9 () ($emb_sm.String ($smt_apply_0 """9""")))
 
-(declare-parameterized-const $smd_sm.Binary
+(declare-parameterized-const $emb_sm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 (define $sm_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
-  ($smd_sm.Binary w v))
+  ($emb_sm.Binary w v))
 ; helpers
 (define $sm_binary_bit_false () ($sm_binary $smt_builtin_z_one $smt_builtin_z_zero))
 (define $sm_binary_bit_true () ($sm_binary $smt_builtin_z_one $smt_builtin_z_one))
 
 ; An application of a Eunoia term
-(declare-parameterized-const $smd_sm.Apply
+(declare-parameterized-const $emb_sm.Apply
   ((f $smt_Term :opaque) (a $smt_Term :opaque))
   $smt_Term)
-(define $sm_apply ((x $smt_Term) (y $smt_Term)) ($smd_sm.Apply x y))
+(define $sm_apply ((x $smt_Term) (y $smt_Term)) ($emb_sm.Apply x y))
 
 ; Represents a SMT-LIB variable in the final deep embedding.
-(declare-parameterized-const $smd_sm.Var
+(declare-parameterized-const $emb_sm.Var
   ((s $smt_builtin_String :opaque) (T $smt_Type :opaque))
   $smt_Term)
 (define $sm_Var ((s $smt_builtin_String) (T $smt_Type))
-  ($smd_sm.Var s T))
+  ($emb_sm.Var s T))
 
 ; exists
-(declare-parameterized-const $smd_sm.exists
+(declare-parameterized-const $emb_sm.exists
   ((v $smt_Term :opaque) (F $smt_Term :opaque))
   $smt_Term)
 (define $sm_exists ((v $smt_Term) (F $smt_Term))
-  ($smd_sm.exists v F))
+  ($emb_sm.exists v F))
 
 ; forall
-(declare-parameterized-const $smd_sm.forall
+(declare-parameterized-const $emb_sm.forall
   ((v $smt_Term :opaque) (F $smt_Term :opaque))
   $smt_Term)
 (define $sm_forall ((v $smt_Term) (F $smt_Term))
-  ($smd_sm.forall v F))
+  ($emb_sm.forall v F))
   
 ; lambda
-(declare-parameterized-const $smd_sm.lambda
+(declare-parameterized-const $emb_sm.lambda
   ((v $smt_Term :opaque) (t $smt_Term :opaque))
   $smt_Term)
 (define $sm_lambda ((v $smt_Term) (t $smt_Term))
-  ($smd_sm.lambda v t))
+  ($emb_sm.lambda v t))
 
 ; all other ordinary term definitions
 $SMT_TERM_CONSTRUCTORS$
 
 ;;;;;; SMT type constructors
 
-(declare-const $smd_tsm.None $smt_Type)
-(define $tsm_none () $smd_tsm.None)
+(declare-const $emb_tsm.None $smt_Type)
+(define $tsm_none () $emb_tsm.None)
 
 ; The Boolean type
-(declare-const $smd_tsm.Bool $smt_Type)
-(define $tsm_Bool () $smd_tsm.Bool)
+(declare-const $emb_tsm.Bool $smt_Type)
+(define $tsm_Bool () $emb_tsm.Bool)
 
 ; The Integer type
-(declare-const $smd_tsm.Int $smt_Type)
-(define $tsm_Int () $smd_tsm.Int)
+(declare-const $emb_tsm.Int $smt_Type)
+(define $tsm_Int () $emb_tsm.Int)
 
 ; The Real type
-(declare-const $smd_tsm.Real $smt_Type)
-(define $tsm_Real () $smd_tsm.Real)
+(declare-const $emb_tsm.Real $smt_Type)
+(define $tsm_Real () $emb_tsm.Real)
 
 ; The String type
-(declare-const $smd_tsm.String $smt_Type)
-(define $tsm_String () $smd_tsm.String)
+(declare-const $emb_tsm.String $smt_Type)
+(define $tsm_String () $emb_tsm.String)
 
 ; The RegLan type
-(declare-const $smd_tsm.RegLan $smt_Type)
-(define $tsm_RegLan () $smd_tsm.RegLan)
+(declare-const $emb_tsm.RegLan $smt_Type)
+(define $tsm_RegLan () $emb_tsm.RegLan)
 
 ; The Bitvector type
-(declare-parameterized-const $smd_tsm.BitVec ((w $smt_builtin_Int :opaque)) $smt_Type)
-(define $tsm_BitVec ((w $smt_builtin_Int)) ($smd_tsm.BitVec w))
+(declare-parameterized-const $emb_tsm.BitVec ((w $smt_builtin_Int :opaque)) $smt_Type)
+(define $tsm_BitVec ((w $smt_builtin_Int)) ($emb_tsm.BitVec w))
 
 ; The Map type
-(declare-parameterized-const $smd_tsm.Map ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
-(define $tsm_Map ((Ti $smt_Type) (Te $smt_Type)) ($smd_tsm.Map Ti Te))
+(declare-parameterized-const $emb_tsm.Map ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
+(define $tsm_Map ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
 
 ; The Sequence type
-(declare-parameterized-const $smd_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
-(define $tsm_Seq ((T $smt_Type)) ($smd_tsm.Seq T))
+(declare-parameterized-const $emb_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
+(define $tsm_Seq ((T $smt_Type)) ($emb_tsm.Seq T))
 
 ; all other ordinary type definitions
 $SMT_TYPE_CONSTRUCTORS$
@@ -149,77 +149,77 @@ $SMT_TYPE_CONSTRUCTORS$
 ;;; SMT value datatype constructors
 
 ; the literal types
-(declare-parameterized-const $smd_vsm.Boolean
+(declare-parameterized-const $emb_vsm.Boolean
   ((b $smt_builtin_Bool :opaque)) $smt_Value)
-(define $vsm_bool ((b $smt_builtin_Bool)) ($smd_vsm.Boolean b))
+(define $vsm_bool ((b $smt_builtin_Bool)) ($emb_vsm.Boolean b))
 
-(declare-parameterized-const $smd_vsm.Numeral
+(declare-parameterized-const $emb_vsm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Value)
-(define $vsm_numeral ((n $smt_builtin_Int)) ($smd_vsm.Numeral n))
+(define $vsm_numeral ((n $smt_builtin_Int)) ($emb_vsm.Numeral n))
 
-(declare-parameterized-const $smd_vsm.Rational
+(declare-parameterized-const $emb_vsm.Rational
   ((r $smt_builtin_Rat :opaque)) $smt_Value)
-(define $vsm_rational ((r $smt_builtin_Rat)) ($smd_vsm.Rational r))
+(define $vsm_rational ((r $smt_builtin_Rat)) ($emb_vsm.Rational r))
 
-(declare-parameterized-const $smd_vsm.String
+(declare-parameterized-const $emb_vsm.String
   ((s $smt_builtin_String :opaque)) $smt_Value)
-(define $vsm_string ((s $smt_builtin_String)) ($smd_vsm.String s))
+(define $vsm_string ((s $smt_builtin_String)) ($emb_vsm.String s))
 
-(declare-parameterized-const $smd_vsm.Binary
+(declare-parameterized-const $emb_vsm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Value)
 (define $vsm_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
-  ($smd_vsm.Binary w v))
+  ($emb_vsm.Binary w v))
 ; helpers
 (define $vsm_binary_mod_w ((w $smt_builtin_Int) (v $smt_builtin_Int))
-  ($smd_vsm.Binary w ($smt_builtin_mod v ($smtx_pow2 w))))
+  ($emb_vsm.Binary w ($smt_builtin_mod v ($smtx_pow2 w))))
   
 ; A value denoting a map.
-(declare-parameterized-const $smd_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
-(define $vsm_map ((m $smt_Map)) ($smd_vsm.Map m))
+(declare-parameterized-const $emb_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
+(define $vsm_map ((m $smt_Map)) ($emb_vsm.Map m))
 
 ; A value denoting a sequence.
-(declare-parameterized-const $smd_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
-(define $vsm_seq ((s $smt_Seq)) ($smd_vsm.Seq s))
+(declare-parameterized-const $emb_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
+(define $vsm_seq ((s $smt_Seq)) ($emb_vsm.Seq s))
 
 ; A value denoting a regular language.
-(declare-parameterized-const $smd_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
-(define $vsm_re ((r $smt_builtin_RegLan)) ($smd_vsm.RegLan r))
+(declare-parameterized-const $emb_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
+(define $vsm_re ((r $smt_builtin_RegLan)) ($emb_vsm.RegLan r))
 
 ; Apply values (for Herbrand interpretations).
-(declare-parameterized-const $smd_vsm.Apply
+(declare-parameterized-const $emb_vsm.Apply
   ((f $smt_Value :opaque) (a $smt_Value :opaque))
   $smt_Value)
 (define $vsm_apply ((f $smt_Value) (a $smt_Value))
-  ($smd_vsm.Apply f a))
+  ($emb_vsm.Apply f a))
 
 ; Denotes a failure case for values.
-(declare-const $smd_vsm.NotValue $smt_Value)
-(define $vsm_not_value () $smd_vsm.NotValue)
+(declare-const $emb_vsm.NotValue $smt_Value)
+(define $vsm_not_value () $emb_vsm.NotValue)
 
 ;;; SMT map value datatype constructors
 
 ; Constructs a map value where i is mapped to e.
-(declare-parameterized-const $smd_msm.cons
+(declare-parameterized-const $emb_msm.cons
   ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
   $smt_Map)
 (define $msm_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
-  ($smd_msm.cons i e m))
+  ($emb_msm.cons i e m))
 
 ; Constructs a map value where all indices are mapped to e.
-(declare-parameterized-const $smd_msm.default
+(declare-parameterized-const $emb_msm.default
   ((T $smt_Type :opaque) (e $smt_Value :opaque))
   $smt_Map)
-(define $msm_default ((T $smt_Type) (e $smt_Value)) ($smd_msm.default T e))
+(define $msm_default ((T $smt_Type) (e $smt_Value)) ($emb_msm.default T e))
 
 ;;; SMT sequence value datatype constructors
 
-(declare-parameterized-const $smd_ssm.cons
+(declare-parameterized-const $emb_ssm.cons
   ((i $smt_Value :opaque) (s $smt_Seq :opaque))
   $smt_Seq)
-(define $ssm_cons ((i $smt_Value) (s $smt_Seq)) ($smd_ssm.cons i s))
+(define $ssm_cons ((i $smt_Value) (s $smt_Seq)) ($emb_ssm.cons i s))
 
-(declare-parameterized-const $smd_ssm.empty ((T $smt_Type :opaque)) $smt_Seq)
-(define $ssm_empty ((T $smt_Type)) ($smd_ssm.empty T))
+(declare-parameterized-const $emb_ssm.empty ((T $smt_Type :opaque)) $smt_Seq)
+(define $ssm_empty ((T $smt_Type)) ($emb_ssm.empty T))
 
 ;;; Generic utilities
 

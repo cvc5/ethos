@@ -7,7 +7,7 @@
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term).
 ; Opaque arguments of a symbol X will be an argument of the constructor eo.X.
-; We introduce datatype constructors for this datatype ($smd_X).
+; We introduce datatype constructors for this datatype ($emb_X).
 ; It is important that we mark their arguments as :opaque, as this
 ; correctly models the pattern matching in the smt-meta later.
 ; Note that these datatypes will be renamed and replaced by their definitions
@@ -27,63 +27,63 @@
 ;;; Eunoia datatype constructors
 
 ; The Boolean type
-(declare-const $smd_Bool $eo_Term)
-(define $eo_Bool () $smd_Bool)
+(declare-const $emb_Bool $eo_Term)
+(define $eo_Bool () $emb_Bool)
 
 ; the literal types
-(declare-parameterized-const $smd_Boolean
+(declare-parameterized-const $emb_Boolean
   ((b $smt_builtin_Bool :opaque)) $eo_Term)
 (define $eo_bool ((x $smt_builtin_Bool))
-  ($smd_Boolean x))
+  ($emb_Boolean x))
 
-(declare-parameterized-const $smd_Numeral
+(declare-parameterized-const $emb_Numeral
   ((n $smt_builtin_Int :opaque)) $eo_Term)
 (define $eo_numeral ((x $smt_builtin_Int))
-  ($smd_Numeral x))
+  ($emb_Numeral x))
 
-(declare-parameterized-const $smd_Rational
+(declare-parameterized-const $emb_Rational
   ((r $smt_builtin_Rat :opaque)) $eo_Term)
 (define $eo_rational ((x $smt_builtin_Rat))
-  ($smd_Rational x))
+  ($emb_Rational x))
 
-(declare-parameterized-const $smd_String
+(declare-parameterized-const $emb_String
   ((s $smt_builtin_String :opaque)) $eo_Term)
 (define $eo_string ((x $smt_builtin_String))
-  ($smd_String x))
+  ($emb_String x))
 
-(declare-parameterized-const $smd_Binary
+(declare-parameterized-const $emb_Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $eo_Term)
 ; define: $eo_binary
 ; note: >
 ;   This should be used in pattern matching only, where it is assume that
 ;   it will match "legal" binary values only.
 (define $eo_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
-  ($smd_Binary w v))
+  ($emb_Binary w v))
 
 ; The type of types
-(declare-const $smd_Type $eo_Term)
-(define $eo_Type () $smd_Type)
+(declare-const $emb_Type $eo_Term)
+(define $eo_Type () $emb_Type)
 
 ; The Eunoia representation of "stuckness".
-(declare-const $smd_Stuck $eo_Term)
-(define $eo_stuck () $smd_Stuck)
+(declare-const $emb_Stuck $eo_Term)
+(define $eo_stuck () $emb_Stuck)
 
 ; An application of a Eunoia term
-(declare-parameterized-const $smd_Apply
+(declare-parameterized-const $emb_Apply
   ((f $eo_Term :opaque) (a $eo_Term :opaque))
   $eo_Term)
-(define $eo_apply ((x $eo_Term) (y $eo_Term)) ($smd_Apply x y))
+(define $eo_apply ((x $eo_Term) (y $eo_Term)) ($emb_Apply x y))
 
 ; Function type, which Eunoia function type reduces to
-(declare-parameterized-const $smd_FunType () $eo_Term)
-(define $eo_fun_type () $smd_FunType)
+(declare-parameterized-const $emb_FunType () $eo_Term)
+(define $eo_fun_type () $emb_FunType)
 
 ; Represents a Eunoia variable in the final deep embedding.
-(declare-parameterized-const $smd_Var
+(declare-parameterized-const $emb_Var
   ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
   $eo_Term)
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term))
-  ($smd_Var s T))
+  ($emb_Var s T))
 
 ;;; External datatype access
 

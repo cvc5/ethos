@@ -21,17 +21,17 @@
 
 ; State
 (declare-const $eo_StateObj Type)
-(declare-parameterized-const $smd_so.assume ((F Bool :opaque)) $eo_StateObj)
-(define $so_assume ((F Bool)) ($smd_so.assume F))
-(declare-parameterized-const $smd_so.proven ((F Bool :opaque)) $eo_StateObj)
-(define $so_proven ((F Bool)) ($smd_so.proven F))
+(declare-parameterized-const $emb_so.assume ((F Bool :opaque)) $eo_StateObj)
+(define $so_assume ((F Bool)) ($emb_so.assume F))
+(declare-parameterized-const $emb_so.proven ((F Bool :opaque)) $eo_StateObj)
+(define $so_proven ((F Bool)) ($emb_so.proven F))
 
 
-(declare-const $smd_s.nil $eo_State)
-(define $s_nil () $smd_s.nil)
-(declare-const $smd_s.cons
-  (-> $eo_StateObj $eo_State $eo_State) :right-assoc-nil $smd_s.nil)
-(define $s_cons ((o $eo_StateObj) (tail $eo_State)) ($smd_s.cons o tail))
+(declare-const $emb_s.nil $eo_State)
+(define $s_nil () $emb_s.nil)
+(declare-const $emb_s.cons
+  (-> $eo_StateObj $eo_State $eo_State) :right-assoc-nil $emb_s.nil)
+(define $s_cons ((o $eo_StateObj) (tail $eo_State)) ($emb_s.cons o tail))
 
 (program $eo_StateObj_proven ((F Bool))
   :signature ($eo_StateObj) Bool
@@ -41,7 +41,7 @@
   )
 )
 (define $eo_State_proven ((s $eo_State) (n $eo_Numeral))
-  ($eo_StateObj_proven (eo::list_nth $smd_s.cons s n)))
+  ($eo_StateObj_proven (eo::list_nth $emb_s.cons s n)))
 
 ; push an assumption to the state
 (define $eo_push_assume ((F Bool) (s $eo_State :list))
@@ -74,22 +74,22 @@
 
 ; Rule constructors
 
-(declare-parameterized-const $smd_cmd.assume ((x Bool :opaque)) $eo_Cmd)
-(define $cmd_assume ((x Bool)) ($smd_cmd.assume x))
-(declare-parameterized-const $smd_cmd.assume-push ((x Bool :opaque)) $eo_Cmd)
-(define $cmd_assume-push ((x Bool)) ($smd_cmd.assume-push x))
-(declare-parameterized-const $smd_cmd.step
+(declare-parameterized-const $emb_cmd.assume ((x Bool :opaque)) $eo_Cmd)
+(define $cmd_assume ((x Bool)) ($emb_cmd.assume x))
+(declare-parameterized-const $emb_cmd.assume-push ((x Bool :opaque)) $eo_Cmd)
+(define $cmd_assume-push ((x Bool)) ($emb_cmd.assume-push x))
+(declare-parameterized-const $emb_cmd.step
   ((r $eo_Rule :opaque) (proven Bool :opaque) (premises $eo_PList :opaque) (args $eo_AList :opaque))
   $eo_Cmd)
 (define $cmd_step
   ((r $eo_Rule) (proven Bool) (premises $eo_PList) (args $eo_AList))
-  ($smd_cmd.step r proven premises args))
-(declare-parameterized-const $smd_cmd.step-pop
+  ($emb_cmd.step r proven premises args))
+(declare-parameterized-const $emb_cmd.step-pop
   ((r $eo_Rule :opaque) (proven Bool :opaque) (premises $eo_PList :opaque) (args $eo_AList :opaque))
   $eo_Cmd)
 (define $cmd_step-pop
   ((r $eo_Rule) (proven Bool) (premises $eo_PList) (args $eo_AList))
-  ($smd_cmd.step-pop r proven premises args))
+  ($emb_cmd.step-pop r proven premises args))
 
 
 $EO_RULE_DEFS$

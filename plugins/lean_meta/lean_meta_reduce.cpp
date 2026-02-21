@@ -195,7 +195,7 @@ std::string LeanMetaReduce::getName(const Expr& e)
 bool LeanMetaReduce::isEmbedCons(const Expr& e)
 {
   std::string sname = getName(e);
-  return (sname.compare(0, 5, "$smd_") == 0);
+  return (sname.compare(0, 5, "$emb_") == 0);
 }
 
 bool LeanMetaReduce::isSmtApplyApp(const Expr& oApp)

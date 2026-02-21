@@ -99,7 +99,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   {
     std::string cname = getName(c);
     // if it is an explicit embedding of a datatype, take the suffix
-    if (cname.compare(0, 5, "$smd_") == 0)
+    if (cname.compare(0, 5, "$emb_") == 0)
     {
       size_t firstDot = cname.find('.');
       if (firstDot == std::string::npos)
@@ -392,7 +392,7 @@ std::string SmtMetaReduce::getName(const Expr& e)
 bool SmtMetaReduce::isEmbedCons(const Expr& e)
 {
   std::string sname = getName(e);
-  return (sname.compare(0, 5, "$smd_") == 0);
+  return (sname.compare(0, 5, "$emb_") == 0);
 }
 
 bool SmtMetaReduce::isSmtApplyApp(const Expr& oApp)
@@ -1237,7 +1237,7 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
     cname = sname;
     return MetaKind::EUNOIA;
   }
-  else if (sname.compare(0, 5, "$smd_") == 0)
+  else if (sname.compare(0, 5, "$emb_") == 0)
   {
     size_t firstDot = sname.find('.');
     if (firstDot == std::string::npos)
@@ -1282,9 +1282,9 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
     }
     std::string sname = getName(parent[0]);
     MetaKind tknew;
-    if (sname.compare(0, 5, "$smd_") == 0)
+    if (sname.compare(0, 5, "$emb_") == 0)
     {
-      // any operator introduced by $smd_ should have accurate type.
+      // any operator introduced by $emb_ should have accurate type.
       Expr op = parent[0];
       Expr tpop = d_tc.getType(op);
       Assert(tpop.getKind() == Kind::FUNCTION_TYPE)
@@ -1467,7 +1467,7 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
     {
       return MetaKind::SMT_TYPE;
     }
-    else if (sname.compare(0, 5, "$smd_") == 0)
+    else if (sname.compare(0, 5, "$emb_") == 0)
     {
       Expr op = child[0];
       Expr tpop = d_tc.getType(op);
@@ -1516,7 +1516,7 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
     Expr htype = d_tc.getType(hd);
     Assert(!htype.isNull()) << "Failed to type check " << hd;
     // Nullary deep embedding constructors
-    if (sname.compare(0, 5, "$smd_") == 0)
+    if (sname.compare(0, 5, "$emb_") == 0)
     {
       MetaKind tknew = getTypeMetaKind(htype);
       Trace("smt-meta") << "...use datatype embedding name for " << htype

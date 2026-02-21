@@ -320,7 +320,7 @@
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term).
 ; Opaque arguments of a symbol X will be an argument of the constructor eo.X.
-; We introduce datatype constructors for this datatype ($smd_X).
+; We introduce datatype constructors for this datatype ($emb_X).
 ; It is important that we mark their arguments as :opaque, as this
 ; correctly models the pattern matching in the smt-meta later.
 ; Note that these datatypes will be renamed and replaced by their definitions
@@ -340,63 +340,63 @@
 ;;; Eunoia datatype constructors
 
 ; The Boolean type
-(declare-const $smd_Bool $eo_Term)
-(define $eo_Bool () $smd_Bool)
+(declare-const $emb_Bool $eo_Term)
+(define $eo_Bool () $emb_Bool)
 
 ; the literal types
-(declare-parameterized-const $smd_Boolean
+(declare-parameterized-const $emb_Boolean
   ((b $smt_builtin_Bool :opaque)) $eo_Term)
 (define $eo_bool ((x $smt_builtin_Bool))
-  ($smd_Boolean x))
+  ($emb_Boolean x))
 
-(declare-parameterized-const $smd_Numeral
+(declare-parameterized-const $emb_Numeral
   ((n $smt_builtin_Int :opaque)) $eo_Term)
 (define $eo_numeral ((x $smt_builtin_Int))
-  ($smd_Numeral x))
+  ($emb_Numeral x))
 
-(declare-parameterized-const $smd_Rational
+(declare-parameterized-const $emb_Rational
   ((r $smt_builtin_Rat :opaque)) $eo_Term)
 (define $eo_rational ((x $smt_builtin_Rat))
-  ($smd_Rational x))
+  ($emb_Rational x))
 
-(declare-parameterized-const $smd_String
+(declare-parameterized-const $emb_String
   ((s $smt_builtin_String :opaque)) $eo_Term)
 (define $eo_string ((x $smt_builtin_String))
-  ($smd_String x))
+  ($emb_String x))
 
-(declare-parameterized-const $smd_Binary
+(declare-parameterized-const $emb_Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $eo_Term)
 ; define: $eo_binary
 ; note: >
 ;   This should be used in pattern matching only, where it is assume that
 ;   it will match "legal" binary values only.
 (define $eo_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
-  ($smd_Binary w v))
+  ($emb_Binary w v))
 
 ; The type of types
-(declare-const $smd_Type $eo_Term)
-(define $eo_Type () $smd_Type)
+(declare-const $emb_Type $eo_Term)
+(define $eo_Type () $emb_Type)
 
 ; The Eunoia representation of "stuckness".
-(declare-const $smd_Stuck $eo_Term)
-(define $eo_stuck () $smd_Stuck)
+(declare-const $emb_Stuck $eo_Term)
+(define $eo_stuck () $emb_Stuck)
 
 ; An application of a Eunoia term
-(declare-parameterized-const $smd_Apply
+(declare-parameterized-const $emb_Apply
   ((f $eo_Term :opaque) (a $eo_Term :opaque))
   $eo_Term)
-(define $eo_apply ((x $eo_Term) (y $eo_Term)) ($smd_Apply x y))
+(define $eo_apply ((x $eo_Term) (y $eo_Term)) ($emb_Apply x y))
 
 ; Function type, which Eunoia function type reduces to
-(declare-parameterized-const $smd_FunType () $eo_Term)
-(define $eo_fun_type () $smd_FunType)
+(declare-parameterized-const $emb_FunType () $eo_Term)
+(define $eo_fun_type () $emb_FunType)
 
 ; Represents a Eunoia variable in the final deep embedding.
-(declare-parameterized-const $smd_Var
+(declare-parameterized-const $emb_Var
   ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
   $eo_Term)
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term))
-  ($smd_Var s T))
+  ($emb_Var s T))
 
 ;;; External datatype access
 
@@ -1127,60 +1127,60 @@
 ;;; SMT value datatype constructors
 
 ; A value denoting a map.
-(declare-parameterized-const $smd_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
-(define $vsm_map ((m $smt_Map)) ($smd_vsm.Map m))
+(declare-parameterized-const $emb_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
+(define $vsm_map ((m $smt_Map)) ($emb_vsm.Map m))
 
 ; A value denoting a sequence.
-(declare-parameterized-const $smd_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
-(define $vsm_seq ((s $smt_Seq)) ($smd_vsm.Seq s))
+(declare-parameterized-const $emb_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
+(define $vsm_seq ((s $smt_Seq)) ($emb_vsm.Seq s))
 
 ; A value denoting a regular language.
-(declare-parameterized-const $smd_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
-(define $vsm_re ((r $smt_builtin_RegLan)) ($smd_vsm.RegLan r))
+(declare-parameterized-const $emb_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
+(define $vsm_re ((r $smt_builtin_RegLan)) ($emb_vsm.RegLan r))
 
 ; A value represented by an SMT-LIB term. This is used for types
 ; where terms are used to denote the values of that type, e.g.
 ; SMT-LIB numerals for Int.
-(declare-parameterized-const $smd_vsm.Term
+(declare-parameterized-const $emb_vsm.Term
   ((t $eo_Term :opaque))
   $smt_Value)
-(define $vsm_term ((t $eo_Term)) ($smd_vsm.Term t))
+(define $vsm_term ((t $eo_Term)) ($emb_vsm.Term t))
 
 ; Apply values (for Herbrand interpretations).
-(declare-parameterized-const $smd_vsm.Apply
+(declare-parameterized-const $emb_vsm.Apply
   ((f $smt_Value :opaque) (a $smt_Value :opaque))
   $smt_Value)
 (define $vsm_apply ((f $smt_Value) (a $smt_Value))
-  ($smd_vsm.Apply f a))
+  ($emb_vsm.Apply f a))
 
 ; Denotes a failure case for values.
-(declare-const $smd_vsm.NotValue $smt_Value)
-(define $vsm_not_value () $smd_vsm.NotValue)
+(declare-const $emb_vsm.NotValue $smt_Value)
+(define $vsm_not_value () $emb_vsm.NotValue)
 
 ;;; SMT map value datatype constructors
 
 ; Constructs a map value where i is mapped to e.
-(declare-parameterized-const $smd_msm.cons
+(declare-parameterized-const $emb_msm.cons
   ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
   $smt_Map)
 (define $msm_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
-  ($smd_msm.cons i e m))
+  ($emb_msm.cons i e m))
 
 ; Constructs a map value where all indices are mapped to e.
-(declare-parameterized-const $smd_msm.default
+(declare-parameterized-const $emb_msm.default
   ((e $smt_Value :opaque))
   $smt_Map)
-(define $msm_default ((e $smt_Value)) ($smd_msm.default e))
+(define $msm_default ((e $smt_Value)) ($emb_msm.default e))
 
 ;;; SMT sequence value datatype constructors
 
-(declare-parameterized-const $smd_ssm.cons
+(declare-parameterized-const $emb_ssm.cons
   ((i $smt_Value :opaque) (s $smt_Seq :opaque))
   $smt_Seq)
-(define $ssm_cons ((i $smt_Value) (s $smt_Seq)) ($smd_ssm.cons i s))
+(define $ssm_cons ((i $smt_Value) (s $smt_Seq)) ($emb_ssm.cons i s))
 
-(declare-parameterized-const $smd_ssm.empty () $smt_Seq)
-(define $ssm_empty () $smd_ssm.empty)
+(declare-parameterized-const $emb_ssm.empty () $smt_Seq)
+(define $ssm_empty () $emb_ssm.empty)
 
 ;;; Generic utilities
 

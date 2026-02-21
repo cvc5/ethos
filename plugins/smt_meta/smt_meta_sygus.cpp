@@ -220,9 +220,14 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   {
     tk = getSmtLibMetaKind(e);
   }
+  else
+  {
+    // otherwise do not consider non-Eunoia terms
+    return;
+  }
   if (tk == MetaKind::EUNOIA)
   {
-    if (cname == "Stuck" || cname == "SmtTerm" || cname == "SmtType")
+    if (cname == "Stuck")
     {
       return;
     }
@@ -436,15 +441,15 @@ MetaKind SmtMetaSygus::getSmtLibMetaKind(const Expr& e) const
   {
     return MetaKind::EUNOIA;
   }
-  else if (sname.compare(0, 5, "$smd_") == 0)
+  else if (sname.compare(0, 5, "$emb_") == 0)
   {
-    if (sname == "$smd_Bool")
+    if (sname == "$emb_Bool")
     {
       return MetaKind::SMT_TYPE;
     }
-    else if (sname == "$smd_Boolean" || sname == "$smd_Numeral"
-             || sname == "$smd_Rational" || sname == "$smd_String"
-             || sname == "$smd_Binary")
+    else if (sname == "$emb_Boolean" || sname == "$emb_Numeral"
+             || sname == "$emb_Rational" || sname == "$emb_String"
+             || sname == "$emb_Binary")
     {
       return MetaKind::SMT;
     }

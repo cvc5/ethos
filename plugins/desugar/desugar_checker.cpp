@@ -30,7 +30,7 @@ DesugarChecker::~DesugarChecker() {}
 void DesugarChecker::finalizeRule(const Expr& v)
 {
   std::stringstream ssr;
-  ssr << "$smd_rule." << v;
+  ssr << "$emb_rule." << v;
   d_rules << "(declare-const " << ssr.str() << " $eo_Rule)" << std::endl;
   AppInfo* ainfo = d_state.getAppInfo(v.getValue());
   Expr tupleVal = ainfo->d_attrConsTerm;

@@ -873,7 +873,7 @@ void ModelSmtNew::printDecl(const std::string& name,
     prefix = "sm";
   }
   std::stringstream cname;
-  cname << "$smd_" << prefix << "." << name;
+  cname << "$emb_" << prefix << "." << name;
   (*out) << "(declare-parameterized-const " << cname.str() << " (";
   std::stringstream macroVarList;
   std::stringstream macroOpqApply;
