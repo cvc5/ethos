@@ -973,7 +973,8 @@ bool LeanMetaReduce::echo(const std::string& msg)
             progArgs << (i > 1 ? " " : "") << "x" << i;
           }
         }
-        d_thms << " : Term)" << " :" << std::endl;
+        d_thms << " : Term)"
+               << " :" << std::endl;
         d_thms << conds.str();
         pcs << "(" << cleanId(eosc) << " " << progArgs.str() << ")";
       }

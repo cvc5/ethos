@@ -228,7 +228,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addRecReduceSym("store", {kT, kT, kT}, "($smtx_map_store e1 e2 e3)");
   // array constants??
   // FIXME: needs to embed type
-  //addReduceSym(
+  // addReduceSym(
   //   "const", {kT, kT}, "($vsm_map ($msm_default ($smtx_model_eval x2)))");
   // strings
   addTypeSym("Seq", {kType});
@@ -292,8 +292,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addReduceSym(
       "re.loop",
       {kInt, kInt, kRegLan},
-      smtGuard(smtValueEq(smtEval("(and (>= x1 0) (>= x2 0))"),
-                          "$vsm_true"),
+      smtGuard(smtValueEq(smtEval("(and (>= x1 0) (>= x2 0))"), "$vsm_true"),
                smtEval(ssReLoopRet.str())));
   // RE operators
   addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
@@ -414,7 +413,8 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
                             "($vsm_binary x2 x3)",
                             ssRLeftRet.str())));
   std::stringstream ssRRightRet;
-  ssRRightRet << "(eo::define ((wm1 " << smtToSmtEmbed("(- ($sm_numeral x2) 1)") << ")) ";
+  ssRRightRet << "(eo::define ((wm1 " << smtToSmtEmbed("(- ($sm_numeral x2) 1)")
+              << ")) ";
   ssRRightRet << smtEval(
       "(rotate_right (- ($sm_numeral x1) 1) (concat (extract 0 0 ($sm_binary "
       "x2 x3)) (extract wm1 1 ($sm_binary x2 x3))))");
@@ -552,7 +552,9 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // builtin
   // one variable at a time, $sm_lambda is hardcoded
   addEunoiaReduceSym(
-      "lambda", {kList, kT}, "($sm_lambda ($eo_to_smt x1) ($eo_to_smt (lambda x2 x3)))");
+      "lambda",
+      {kList, kT},
+      "($sm_lambda ($eo_to_smt x1) ($eo_to_smt (lambda x2 x3)))");
   d_specialCases["lambda"].emplace_back("(lambda $eo_List_nil x1)",
                                         "($eo_to_smt x1)");
   addEunoiaReduceSym("@purify", {kT}, "($eo_to_smt x1)");
@@ -580,10 +582,10 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addEunoiaReduceSym("@strings_stoi_result",
                      {kString, kInt},
                      "($eo_to_smt (str.to_int (str.substr x1 0 x2)))");
-  addEunoiaReduceSym(
-      "@strings_stoi_non_digit",
-      {kString},
-      "($eo_to_smt (str.indexof_re x1 (re.comp (re.range $sm_string_c0 $sm_string_c9)) 0))");
+  addEunoiaReduceSym("@strings_stoi_non_digit",
+                     {kString},
+                     "($eo_to_smt (str.indexof_re x1 (re.comp (re.range "
+                     "$sm_string_c0 $sm_string_c9)) 0))");
   // sequences
   addReduceSym("seq.empty", {kType}, "($smtx_empty_seq x1)");
   d_specialCases["seq.empty"].emplace_back(
@@ -625,11 +627,13 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitSym("bvredor",
             {kBitVec},
             kT,
-            smtEval("(bvnot (bvcomp ($sm_binary x1 x2) ($sm_binary x1 $smt_builtin_z_zero)))"));
+            smtEval("(bvnot (bvcomp ($sm_binary x1 x2) ($sm_binary x1 "
+                    "$smt_builtin_z_zero)))"));
   addLitSym("bvredand",
             {kBitVec},
             kT,
-            smtEval("(bvcomp ($sm_binary x1 x2) (bvnot ($sm_binary x1 $smt_builtin_z_zero)))"));
+            smtEval("(bvcomp ($sm_binary x1 x2) (bvnot ($sm_binary x1 "
+                    "$smt_builtin_z_zero)))"));
   // utility guards for negative widths, which do not evaluate
   addLitSym("@bv", {kInt, kInt}, kT, "($vsm_binary x2 x1)");
   addEunoiaReduceSym(
@@ -643,9 +647,9 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addTypeSym("UnitTuple", {});
   d_symIgnore["Tuple"] = true;
   d_symIgnore["UnitTuple"] = true;
-  //addReduceSym("tuple", {}, "($vsm_apply ($vsm_term tuple) $vsm_not_value)");
-  //addReduceSym("tuple.unit", {}, "($vsm_term tuple.unit)");
-  // FIXME
+  // addReduceSym("tuple", {}, "($vsm_apply ($vsm_term tuple) $vsm_not_value)");
+  // addReduceSym("tuple.unit", {}, "($vsm_term tuple.unit)");
+  //  FIXME
   d_symIgnore["tuple"] = true;
   d_symIgnore["tuple.unit"] = true;
 
@@ -659,7 +663,7 @@ void ModelSmtNew::addTypeSym(const std::string& sym,
                              const std::vector<Kind>& args)
 {
   d_symIgnore[sym] = true;
-  //d_symTypes[sym] = args;
+  // d_symTypes[sym] = args;
 }
 
 void ModelSmtNew::addHardCodeSym(const std::string& sym,
