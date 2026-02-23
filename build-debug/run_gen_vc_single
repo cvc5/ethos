@@ -141,9 +141,9 @@ else
   echo "**** smt_meta: Verify cvc5 parses"
   $CVC5 $VC_OUT --parse-only
   check_status
-  exit 0
+  #exit 0
 
-  BASE_ARGS="--macros-quant --re-first-class --quant-ind"
+  BASE_ARGS="--macros-quant --re-first-class"
   
   echo "**** smt_meta: Run the final verification condition with unsat cores"
   $CVC5 $VC_OUT --dump-unsat-cores $BASE_ARGS #--parse-only

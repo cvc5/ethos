@@ -663,7 +663,7 @@ void ModelSmtNew::addTypeSym(const std::string& sym,
                              const std::vector<Kind>& args)
 {
   d_symIgnore[sym] = true;
-  // d_symTypes[sym] = args;
+  d_symTypes[sym] = args;
 }
 
 void ModelSmtNew::addHardCodeSym(const std::string& sym,
@@ -860,11 +860,20 @@ void ModelSmtNew::printDecl(const std::string& name,
                             Kind ret,
                             size_t nopqArgs)
 {
+  std::stringstream tmp;
   std::ostream* out;
   std::string prefix;
   if (ret == Kind::TYPE)
   {
-    out = &d_smtTypes;
+    // note that if we are a builtin type, we don't need to print the embedding declaration
+    if (name=="Int" || name=="Real" || name=="String" || name=="BitVec" || name=="Seq")
+    {
+      out = &tmp;
+    }
+    else
+    {
+      out = &d_smtTypes;
+    }
     prefix = "tsm";
   }
   else

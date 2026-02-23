@@ -13,6 +13,15 @@
 ; An SMT type.
 (declare-const $smt_Type Type)
 
+; An SMT-LIB value.
+(declare-const $smt_Value Type)
+
+; Assumes that Teq is defined to be equality over $smt_Type
+(define $smt_builtin_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($smt_apply_2 "Teq" x1 x2))
+
+; Assumes that veq is defined to be equality over $smt_Value
+(define $smt_builtin_veq ((x1 $smt_Value) (x2 $smt_Value)) ($smt_apply_2 "veq" x1 x2))
+
 ;;;;;; SMT term constructors
 
 (declare-const $emb_sm.None $smt_Term)
@@ -86,6 +95,10 @@
 (define $sm_lambda ((v $smt_Term) (t $smt_Term))
   ($emb_sm.lambda v t))
 
+; constants, which carry their value in the model
+(declare-parameterized-const $emb_sm.Const ((v $smt_Value :opaque)) $smt_Term)
+(define $sm_Const ((v $smt_Value)) ($emb_sm.Const v))
+
 ; all other ordinary term definitions
 $SMT_TERM_CONSTRUCTORS$
 
@@ -130,15 +143,6 @@ $SMT_TERM_CONSTRUCTORS$
 $SMT_TYPE_CONSTRUCTORS$
 
 ;;;;;; SMT values
-
-; An SMT-LIB value.
-(declare-const $smt_Value Type)
-
-; Assumes that Teq is defined to be equality over $smt_Type
-(define $smt_builtin_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($smt_apply_2 "Teq" x1 x2))
-
-; Assumes that veq is defined to be equality over $smt_Value
-(define $smt_builtin_veq ((x1 $smt_Value) (x2 $smt_Value)) ($smt_apply_2 "veq" x1 x2))
 
 ; The type used to define values for functions, arrays and sets in SMT-LIB.
 (declare-const $smt_Map Type)
@@ -614,7 +618,7 @@ $SMT_EVAL_PROGS$
 ;            it represents a unique SMT-LIB value, i.e. ($vsm_term t) is
 ;            forbidden unless t denotes a value.
 (program $smtx_model_eval
-  ((f $smt_Term) (y $smt_Term) (z $smt_Term) (val $smt_Value) (T $smt_Term)
+  ((f $smt_Term) (y $smt_Term) (v $smt_Value)
   (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
@@ -644,6 +648,7 @@ $SMT_EVAL_CASES$
   ; All interpreted f should be handled in the evaluation cases above.
   (($smtx_model_eval ($sm_apply f y))
     ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval y)))
+  (($smtx_model_eval ($sm_Const v)) v)
   (($smtx_model_eval y)   $vsm_not_value)
   )
 )
