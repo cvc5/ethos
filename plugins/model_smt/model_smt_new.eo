@@ -191,6 +191,13 @@ $SMT_TYPE_CONSTRUCTORS$
 (declare-parameterized-const $emb_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
 (define $vsm_re ((r $smt_builtin_RegLan)) ($emb_vsm.RegLan r))
 
+; A value denoting a lambda.
+(declare-parameterized-const $emb_vsm.Lambda 
+  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque) (t $smt_Term :opaque)) $smt_Value)
+(define $vsm_lambda 
+  ((s $smt_builtin_String) (T $smt_Type) (t $smt_Term)) 
+  ($emb_vsm.Lambda s T t))
+
 ; Apply values (for Herbrand interpretations).
 (declare-parameterized-const $emb_vsm.Apply
   ((f $smt_Value :opaque) (a $smt_Value :opaque))
@@ -383,17 +390,6 @@ $SMT_TYPE_CONSTRUCTORS$
   )
 )
 
-; Converts a $smt_Seq to a (Seq $smt_Value).
-(program $smtx_ssm_seq_to_smt_seq ((v $smt_Value) (vs $smt_Seq) (T $smt_Type))
-  :signature ($smt_Seq) ($smt_builtin_type_1 "Seq" $smt_Value)
-  (
-  (($smtx_ssm_seq_to_smt_seq ($ssm_empty T))
-    ($smt_apply_0 "(as seq.empty (Seq vsm.Value))"))
-  (($smtx_ssm_seq_to_smt_seq ($ssm_cons v vs))
-    ($smt_apply_2 "seq.++" v ($smtx_ssm_seq_to_smt_seq vs)))
-  )
-)
-
 ; Converts a (Seq $smt_Value) to a $smt_Seq
 ;(program $smtx_smt_seq_to_ssm_seq ((s ($smt_builtin_type_1 "Seq" $smt_Value)))
 ;  :signature (($smt_builtin_type_1 "Seq" $smt_Value)) $smt_Seq
@@ -426,6 +422,7 @@ $SMT_TYPE_CONSTRUCTORS$
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Type rules for values
 
+; NOTE: $vsm_lambda is unhandled
 (program $smtx_typeof_value
   ((v $smt_Value)
    (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int)
@@ -455,24 +452,6 @@ $SMT_TYPE_CONSTRUCTORS$
 (program $smtx_model_eval () :signature ($smt_Term) $smt_Value)
 
 ;;; Core
-
-; program: $smtx_model_eval_apply
-; We call ($smtx_model_eval_apply value_f value_i) when
-; evaluating (f i) whose values are value_f and value_i
-; respectively. If value_f is a map value, then we extract
-; the map and call the map lookup routine.
-(program $smtx_model_eval_apply
-  ((m $smt_Map) (i $smt_Value) (f $smt_Value) (v $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  ; If a Herbrand interpretation, apply it to the next value.
-  (($smtx_model_eval_apply ($vsm_apply f v) i)  ($vsm_apply ($vsm_apply f v) i))
-  ; The function evaluated to a map value, call the map lookup.
-  (($smtx_model_eval_apply ($vsm_map m) i)      ($smtx_msm_lookup m i))
-  ; The function did not evaluate to a map value, we fail.
-  (($smtx_model_eval_apply v i)                 $vsm_not_value)
-  )
-)
 
 ; ITE branches to the appropriate child.
 ; return: The evaluation of an ite application.
@@ -655,7 +634,30 @@ $SMT_TYPE_CONSTRUCTORS$
     ($smt_builtin_ite ($smtx_is_var s T z) ($sm_Const v) z))
   )
 )
+; apply 
 
+; program: $smtx_model_eval_apply
+; We call ($smtx_model_eval_apply value_f value_i) when
+; evaluating (f i) whose values are value_f and value_i
+; respectively. If value_f is a map value, then we extract
+; the map and call the map lookup routine.
+(program $smtx_model_eval_apply
+  ((m $smt_Map) (i $smt_Value) (f $smt_Value) (v $smt_Value)
+   (s $smt_builtin_String) (T $smt_Type) (t $smt_Term))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  ; If a Herbrand interpretation, apply it to the next value.
+  (($smtx_model_eval_apply ($vsm_apply f v) i)  ($vsm_apply ($vsm_apply f v) i))
+  ; The function evaluated to a map value, call the map lookup.
+  (($smtx_model_eval_apply ($vsm_map m) i)      ($smtx_msm_lookup m i))
+  ; Lambda case
+  (($smtx_model_eval_apply ($vsm_lambda s T t) i)
+    ; substitutes into body
+    ($smtx_model_eval ($smtx_substitute s T i t)))
+  ; The function did not evaluate to a map value, we fail.
+  (($smtx_model_eval_apply v i)                 $vsm_not_value)
+  )
+)
 ;;; Other model evaluation functions
 
 $SMT_EVAL_PROGS$
@@ -696,8 +698,7 @@ $SMT_EVAL_CASES$
     ($smt_apply_3 "$smtx_model_eval_exists" s T y))
   (($smtx_model_eval ($sm_apply ($sm_forall s T) y))
     ($smt_apply_3 "$smtx_model_eval_forall" s T y))
-  (($smtx_model_eval ($sm_apply ($sm_lambda s T) y))
-    ($smt_apply_3 "$smtx_model_eval_lambda" s T y))
+  (($smtx_model_eval ($sm_apply ($sm_lambda s T) y)) ($vsm_lambda s T y))
   ; Apply case. We evaluate f and y separately and then call the
   ; $smtx_model_eval_apply above. We expect f to be an uninterpreted
   ; function whose model evaluation is an SMT-LIB map in this case.

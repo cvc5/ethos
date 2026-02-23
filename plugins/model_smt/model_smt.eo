@@ -208,7 +208,7 @@
 
 ; Converts a $smt_Seq to a (Seq $smt_Value).
 (program $smtx_ssm_seq_to_smt_seq ((v $smt_Value) (vs $smt_Seq))
-  :signature ($smt_Seq) ($smt_builtin_type_1 "Seq" $smt_Value)
+  :signature ($smt_Seq) ($smt_type_1 "Seq" $smt_Value)
   (
   (($smtx_ssm_seq_to_smt_seq $ssm_empty)
     ($smt_apply_0 "(as seq.empty (Seq vsm.Value))"))

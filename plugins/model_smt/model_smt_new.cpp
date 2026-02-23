@@ -999,7 +999,7 @@ void ModelSmtNew::printEvalCallBase(std::ostream& out,
       // variable lists
       out << " ($eo_List_cons ($eo_Var s T) x" << icount << ")";
     }
-    if (k == Kind::EVAL_CONS)
+    else if (k == Kind::EVAL_CONS)
     {
       // generic list
       out << " ($eo_List_cons x" << icount << " x" << (icount + 1) << ")";
