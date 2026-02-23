@@ -393,7 +393,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   ssAshrRet << "(eo::define ((wm1 " << smtToSmtEmbed("(- ($sm_numeral x1) 1)")
             << ")) ";
   ssAshrRet << smtEval(
-      "(ite (= (extract wm1 wm1 s) $sm_binary_bit_true) (bvlshr s t) (bvnot "
+      "(ite (= (extract wm1 wm1 s) $sm_binary_bit_false) (bvlshr s t) (bvnot "
       "(bvlshr (bvnot s) t)))");
   ssAshrRet << ")";
   addLitSym(

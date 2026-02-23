@@ -27,6 +27,12 @@ std::string metaKindToString(MetaKind k)
     case MetaKind::SMT_SEQ: ss << "SMT_SEQ"; break;
     case MetaKind::PROGRAM: ss << "PROGRAM"; break;
     case MetaKind::PROOF: ss << "PROOF"; break;
+    case MetaKind::DATATYPE: ss << "DATATYPE"; break;
+    case MetaKind::DATATYPE_CONSTRUCTOR: ss << "DATATYPE_CONSTRUCTOR"; break;
+    case MetaKind::CHECKER_STATE: ss << "CHECKER_STATE"; break;
+    case MetaKind::CHECKER_STATE_OBJ: ss << "CHECKER_STATE_OBJ"; break;
+    case MetaKind::CHECKER_CMD: ss << "CHECKER_CMD"; break;
+    case MetaKind::CHECKER_RULE: ss << "CHECKER_RULE"; break;
     case MetaKind::NONE: ss << "NONE"; break;
     default: ss << "?MetaKind"; break;
   }
@@ -43,18 +49,6 @@ std::string metaKindToPrefix(MetaKind k)
     case MetaKind::SMT_VALUE: ss << "vsm."; break;
     case MetaKind::SMT_BUILTIN: ss << "?"; break;
     default: ss << "?MetaKindPrefix_" << metaKindToString(k); break;
-  }
-  return ss.str();
-}
-std::string metaKindToCons(MetaKind k)
-{
-  std::stringstream ss;
-  switch (k)
-  {
-    case MetaKind::SMT: ss << "SmtTerm"; break;
-    case MetaKind::SMT_TYPE: ss << "SmtType"; break;
-    case MetaKind::SMT_VALUE: ss << "SmtValue"; break;
-    default: ss << "?MetaKindCons"; break;
   }
   return ss.str();
 }

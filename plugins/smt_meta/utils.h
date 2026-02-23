@@ -41,12 +41,19 @@ enum class MetaKind
   PROGRAM,
   /** A proof */
   PROOF,
+  // datatypes
+  DATATYPE,
+  DATATYPE_CONSTRUCTOR,
+  // checker
+  CHECKER_STATE,
+  CHECKER_STATE_OBJ,
+  CHECKER_CMD,
+  CHECKER_RULE,
   /** No context */
   NONE
 };
 std::string metaKindToString(MetaKind k);
 std::string metaKindToPrefix(MetaKind k);
-std::string metaKindToCons(MetaKind k);
 
 /** A utility for printing conjunctions */
 class ConjPrint
