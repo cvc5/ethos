@@ -147,6 +147,10 @@ $SMT_TYPE_CONSTRUCTORS$
 
 ;;; SMT value datatype constructors
 
+; Denotes a failure case for values.
+(declare-const $emb_vsm.NotValue $smt_Value)
+(define $vsm_not_value () $emb_vsm.NotValue)
+
 ; the literal types
 (declare-parameterized-const $emb_vsm.Boolean
   ((b $smt_builtin_Bool :opaque)) $smt_Value)
@@ -178,6 +182,10 @@ $SMT_TYPE_CONSTRUCTORS$
 ; helpers
 (define $vsm_binary_mod_w ((w $smt_builtin_Int) (v $smt_builtin_Int))
   ($emb_vsm.Binary w ($smt_builtin_mod v ($smtx_pow2 w))))
+(define $vsm_mk_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
+  ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w)
+    ($vsm_binary_mod_w v w)
+    $vsm_not_value))
   
 ; A value denoting a map.
 (declare-parameterized-const $emb_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
@@ -204,10 +212,6 @@ $SMT_TYPE_CONSTRUCTORS$
   $smt_Value)
 (define $vsm_apply ((f $smt_Value) (a $smt_Value))
   ($emb_vsm.Apply f a))
-
-; Denotes a failure case for values.
-(declare-const $emb_vsm.NotValue $smt_Value)
-(define $vsm_not_value () $emb_vsm.NotValue)
 
 ;;; SMT map value datatype constructors
 
@@ -352,7 +356,7 @@ $SMT_TYPE_CONSTRUCTORS$
 
 ; A set is a mapping to Bool.
 ; The empty set maps all to false.
-(define $tsm_Set ((T $smt_Type)) ($tsm_Map T $tsm_Bool))
+;(define $tsm_Set ((T $smt_Type)) ($tsm_Map T $tsm_Bool))
 (define $smtx_elem_typeof_set ((T $smt_Type)) ($smtx_index_typeof_map T))
 
 (define $msm_empty_set ((T $smt_Type)) ($msm_default T $vsm_false))

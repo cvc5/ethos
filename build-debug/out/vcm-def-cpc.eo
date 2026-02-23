@@ -579,11 +579,11 @@
   :signature (T T) $eo_Term
   (
   (($eo_qdiv ($eo_numeral n1) ($eo_numeral n2))
-    (eo::define ((r1 ($smt_apply_1 "to_real" n1)))
-    (eo::define ((r2 ($smt_apply_1 "to_real" n2)))
+    (eo::define ((rn1 ($smt_apply_1 "to_real" n1)))
+    (eo::define ((rn2 ($smt_apply_1 "to_real" n2)))
     ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       $eo_stuck
-      ($eo_rational ($smt_apply_2 "/" r1 r2))))))
+      ($eo_rational ($smt_apply_2 "/" rn1 rn2))))))
   (($eo_qdiv ($eo_rational r1) ($eo_rational r2))
     ($smt_builtin_ite ($smt_builtin_q_= $smt_builtin_q_zero r2)
       $eo_stuck

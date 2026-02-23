@@ -641,7 +641,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
             smtEval("(bvcomp ($sm_binary x1 x2) (bvnot ($sm_binary x1 "
                     "$smt_builtin_z_zero)))"));
   // utility guards for negative widths, which do not evaluate
-  addLitSym("@bv", {kInt, kInt}, kT, "($vsm_binary x2 x1)");
+  addLitSym("@bv", {kInt, kInt}, kT, "($vsm_mk_binary x2 x1)");
   addEunoiaReduceSym(
       "@bit", {kInt, kBitVec}, "($eo_to_smt (extract x1 x1 x2))");
   addEunoiaReduceSym("@from_bools",
