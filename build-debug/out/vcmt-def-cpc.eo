@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 133
+; #trim-defs: 136
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -289,6 +289,12 @@
 (define $msm_default ((e $smt_Value)) ($emb_msm.default e))
 (define $vsm_true () ($vsm_term true))
 (define $vsm_false () ($vsm_term false))
+(program $mk_vsm_bool ((b $smt_builtin_Bool)) 
+  :signature ($smt_builtin_Bool) $smt_Value
+  (
+  (($mk_vsm_bool b) ($vsm_term ($eo_bool b)))
+  )
+)
 (program $smtx_value_hash () :signature ($smt_Value) $smt_builtin_Int)
 (program $smtx_reverse_value_hash () :signature ($smt_builtin_Int) $smt_Value)
 (program $smtx_msm_lookup
@@ -381,6 +387,9 @@
   (($smtx_model_eval_= t1 t2)             ($vsm_term ($eo_bool ($smt_builtin_veq t1 t2))))
   )
 )
+(program $smtx_typeof_value () :signature ($smt_Value) ($smt_type_0 "tsm.Type"))
+(program $smtx_substitute ()
+  :signature ($smt_builtin_String ($smt_type_0 "tsm.Type") $smt_Value ($smt_type_0 "sm.Term")) ($smt_type_0 "eo.Term"))
 (program $smtx_model_eval_not
   ((x1 $smt_builtin_Bool) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
@@ -441,4 +450,4 @@
   (($eovc_symm F) (eo::define ((_v0 ($eo_prog_symm ($eo_pf F)))) (eo::requires ($eo_typeof F) Bool (eo::requires ($eo_model_sat F) true (eo::requires ($eo_typeof _v0) Bool (eo::requires ($eo_model_unsat _v0) true true))))))
   )
 )
-(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")
+(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply $smtx_typeof_value $smtx_substitute $mk_vsm_bool ")

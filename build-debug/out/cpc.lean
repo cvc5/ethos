@@ -100,6 +100,8 @@ def smt_lit_str_from_code (i : smt_lit_Int) : smt_lit_String :=
     String.singleton (Char.ofNat (Int.toNat i))
   else
     ""
+def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
+  | x, y => decide (x = y)
 
 -- SMT Beyond Eunoia
 
@@ -155,6 +157,8 @@ def smt_lit_str_replace_re_all : smt_lit_String -> smt_lit_RegLan -> smt_lit_Str
 
 /- ----------------------- should move ----------------------- -/
 
+mutual
+
 /- 
 SMT-LIB types.
 -/
@@ -163,9 +167,12 @@ inductive SmtType : Type where
   | Bool : SmtType
   | Int : SmtType
   | Real : SmtType
+  | String : SmtType
+  | RegLan : SmtType
   | BitVec : smt_lit_Int -> SmtType
-  | Char : SmtType
+  | Map : SmtType -> SmtType -> SmtType
   | Seq : SmtType -> SmtType
+  | Char : SmtType
 
 deriving DecidableEq
 
@@ -181,14 +188,15 @@ inductive SmtTerm : Type where
   | Binary : smt_lit_Int -> smt_lit_Int -> SmtTerm
   | Apply : SmtTerm -> SmtTerm -> SmtTerm
   | Var : smt_lit_String -> SmtType -> SmtTerm
+  | exists : smt_lit_String -> SmtType -> SmtTerm
+  | forall : smt_lit_String -> SmtType -> SmtTerm
+  | lambda : smt_lit_String -> SmtType -> SmtTerm
+  | Const : SmtValue -> SmtTerm
   | not : SmtTerm
   | and : SmtTerm
   | eq : SmtTerm
 
 deriving DecidableEq
-
-
-mutual
 
 /- 
 SMT-LIB values.
@@ -200,6 +208,8 @@ inductive SmtValue : Type where
   | String : smt_lit_String -> SmtValue
   | Binary : smt_lit_Int -> smt_lit_Int -> SmtValue
   | Map : SmtMap -> SmtValue
+  | Seq : SmtSeq -> SmtValue
+  | RegLan : smt_lit_RegLan -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
   | NotValue : SmtValue
 
@@ -210,7 +220,7 @@ SMT-LIB map values.
 -/
 inductive SmtMap : Type where
   | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
-  | default : SmtValue -> SmtMap
+  | default : SmtType -> SmtValue -> SmtMap
 deriving DecidableEq
 
 /- 
@@ -218,11 +228,14 @@ SMT-LIB sequence values.
 -/
 inductive SmtSeq : Type where
   | cons : SmtValue -> SmtSeq -> SmtSeq
-  | empty : SmtSeq
+  | empty : SmtType -> SmtSeq
 deriving DecidableEq
 
 end
 
+/- Type equality -/
+def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
+  | x, y => decide (x = y)
 /- Value equality -/
 def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)
@@ -237,7 +250,29 @@ def __smtx_pow2 : smt_lit_Int -> smt_lit_Int
 
 def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
   | (SmtMap.cons j e m), i => (smt_lit_ite (smt_lit_veq j i) e (__smtx_msm_lookup m i))
-  | (SmtMap.default e), i => e
+  | (SmtMap.default T e), i => e
+
+
+def __smtx_typeof_map_value : SmtMap -> SmtType
+  | (SmtMap.cons i e m) => (smt_lit_ite (smt_lit_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e)) (__smtx_typeof_map_value m)) (__smtx_typeof_map_value m) SmtType.None)
+  | (SmtMap.default T e) => (SmtType.Map T (__smtx_typeof_value e))
+
+
+def __smtx_typeof_seq_value : SmtSeq -> SmtType
+  | (SmtSeq.cons v vs) => (smt_lit_ite (smt_lit_Teq (SmtType.Seq (__smtx_typeof_value v)) (__smtx_typeof_seq_value vs)) (__smtx_typeof_seq_value vs) SmtType.None)
+  | (SmtSeq.empty T) => (SmtType.Seq T)
+
+
+def __smtx_typeof_value : SmtValue -> SmtType
+  | (SmtValue.Boolean b) => SmtType.Bool
+  | (SmtValue.Numeral n) => SmtType.Int
+  | (SmtValue.Rational q) => SmtType.Real
+  | (SmtValue.String s) => SmtType.String
+  | (SmtValue.Binary w n) => (smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec w) SmtType.None)
+  | (SmtValue.RegLan r) => SmtType.RegLan
+  | (SmtValue.Map m) => (__smtx_typeof_map_value m)
+  | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
+  | v => SmtType.None
 
 
 def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
@@ -247,24 +282,7 @@ def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Boolean b1), (SmtValue.Boolean b2) => (SmtValue.Boolean (smt_lit_iff b1 b2))
-  | (SmtValue.Boolean b1), t2 => SmtValue.NotValue
-  | t1, (SmtValue.Boolean b2) => SmtValue.NotValue
-  | (SmtValue.Numeral n1), (SmtValue.Numeral n2) => (SmtValue.Boolean (smt_lit_zeq n1 n2))
-  | (SmtValue.Numeral n1), t2 => SmtValue.NotValue
-  | t1, (SmtValue.Numeral n2) => SmtValue.NotValue
-  | (SmtValue.Rational r1), (SmtValue.Rational r2) => (SmtValue.Boolean (smt_lit_qeq r1 r2))
-  | (SmtValue.Rational r1), t2 => SmtValue.NotValue
-  | t1, (SmtValue.Rational r2) => SmtValue.NotValue
-  | (SmtValue.String s1), (SmtValue.String s2) => (SmtValue.Boolean (smt_lit_veq (SmtValue.String s1) (SmtValue.String s2)))
-  | (SmtValue.String s1), t2 => SmtValue.NotValue
-  | t1, (SmtValue.String s2) => SmtValue.NotValue
-  | (SmtValue.Binary w1 n1), (SmtValue.Binary w2 n2) => (smt_lit_ite (smt_lit_zeq w1 w2) (SmtValue.Boolean (smt_lit_veq (SmtValue.Binary w1 n1) (SmtValue.Binary w2 n2))) SmtValue.NotValue)
-  | (SmtValue.Binary w1 n1), t2 => SmtValue.NotValue
-  | t1, (SmtValue.Binary w2 n2) => SmtValue.NotValue
-  | SmtValue.NotValue, t2 => SmtValue.NotValue
-  | t1, SmtValue.NotValue => SmtValue.NotValue
-  | t1, t2 => (SmtValue.Boolean (smt_lit_veq t1 t2))
+  | t1, t2 => (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value t1) (__smtx_typeof_value t2)) (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value t1) SmtType.None) SmtValue.NotValue (SmtValue.Boolean (smt_lit_veq t1 t2))) SmtValue.NotValue)
 
 
 def __smtx_model_eval_not : SmtValue -> SmtValue
@@ -286,7 +304,11 @@ def __smtx_model_eval : SmtTerm -> SmtValue
   | (SmtTerm.Apply SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and x1) x2) => (__smtx_model_eval_and (__smtx_model_eval x1) (__smtx_model_eval x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_model_eval_eq (__smtx_model_eval x1) (__smtx_model_eval x2))
+  | (SmtTerm.Apply (SmtTerm.exists s T) y) => (smt_lit___smtx_model_eval_exists s T y)
+  | (SmtTerm.Apply (SmtTerm.forall s T) y) => (smt_lit___smtx_model_eval_forall s T y)
+  | (SmtTerm.Apply (SmtTerm.lambda s T) y) => (smt_lit___smtx_model_eval_lambda s T y)
   | (SmtTerm.Apply f y) => (__smtx_model_eval_apply (__smtx_model_eval f) (__smtx_model_eval y))
+  | (SmtTerm.Const v) => v
   | y => SmtValue.NotValue
 
 

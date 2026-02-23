@@ -168,6 +168,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   Kind kType = Kind::TYPE;
   Kind kRegLan = Kind::EVAL_TO_STRING;
   Kind kList = Kind::EVAL_CONS;
+  Kind kVarList = Kind::VARIABLE;
   d_kindToEoPrefix[kBool] = "bool";
   d_kindToEoPrefix[kInt] = "numeral";
   d_kindToEoPrefix[kReal] = "rational";
@@ -540,8 +541,8 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // one variable at a time, $sm_exists is hardcoded
   addEunoiaReduceSym(
       "exists",
-      {kList, kT},
-      "($sm_exists ($eo_to_smt x1) ($eo_to_smt (exists x2 x3)))");
+      {kVarList, kT},
+      "($sm_apply ($sm_exists s ($eo_to_smt_type T)) ($eo_to_smt (exists x1 x2)))");
   d_specialCases["exists"].emplace_back("(exists $eo_List_nil x1)",
                                         "($eo_to_smt x1)");
   addEunoiaReduceSym(
@@ -553,8 +554,8 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // one variable at a time, $sm_lambda is hardcoded
   addEunoiaReduceSym(
       "lambda",
-      {kList, kT},
-      "($sm_lambda ($eo_to_smt x1) ($eo_to_smt (lambda x2 x3)))");
+      {kVarList, kT},
+      "($sm_apply ($sm_lambda s ($eo_to_smt_type T)) ($eo_to_smt (lambda x1 x2)))");
   d_specialCases["lambda"].emplace_back("(lambda $eo_List_nil x1)",
                                         "($eo_to_smt x1)");
   addEunoiaReduceSym("@purify", {kT}, "($eo_to_smt x1)");
@@ -986,8 +987,14 @@ void ModelSmtNew::printEvalCallBase(std::ostream& out,
   for (; i <= nargs; i++)
   {
     Kind k = args[i - 1];
+    if (k == Kind::VARIABLE)
+    {
+      // variable lists
+      out << " ($eo_List_cons ($eo_Var s T) x" << icount << ")";
+    }
     if (k == Kind::EVAL_CONS)
     {
+      // generic list
       out << " ($eo_List_cons x" << icount << " x" << (icount + 1) << ")";
       icount++;
     }

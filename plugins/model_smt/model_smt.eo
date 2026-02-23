@@ -83,6 +83,13 @@
 
 (define $vsm_true () ($vsm_term true))
 (define $vsm_false () ($vsm_term false))
+; temporary
+(program $mk_vsm_bool ((b $smt_builtin_Bool)) 
+  :signature ($smt_builtin_Bool) $smt_Value
+  (
+  (($mk_vsm_bool b) ($vsm_term ($eo_bool b)))
+  )
+)
 
 ; define: $smtx_value_hash
 ; note: this is an arbitrary hash for SMT values, defined axiomatically.
@@ -597,6 +604,11 @@
 ; TODO: handle reverse list??
 ;(define $smtx_eval_selector
 
+; compatibility (temp)
+(program $smtx_typeof_value () :signature ($smt_Value) ($smt_type_0 "tsm.Type"))
+(program $smtx_substitute ()
+  :signature ($smt_builtin_String ($smt_type_0 "tsm.Type") $smt_Value ($smt_type_0 "sm.Term")) ($smt_type_0 "eo.Term"))
+  
 ;;; Other model evaluation functions
 
 $SMT_EVAL_PROGS$

@@ -69,7 +69,7 @@ echo "**** smt_meta: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGAR
 ./src/ethos --plugin.desugar-vc $INIT_TRIM >/dev/null
 check_status
 # we will process verification conditions with smt-meta, which has these dependencies.
-DESUGAR_VC_DEPS="\$eo_proven \$smtx_hash \$eo_reverse_hash \$smtx_value_hash \$smtx_reverse_value_hash \$eo_Bool \$eo_Type \$eo_fun_type \$eo_apply \$eo_mk_apply"
+DESUGAR_VC_DEPS="\$eo_proven \$smtx_hash \$eo_reverse_hash \$smtx_value_hash \$smtx_reverse_value_hash \$eo_Bool \$eo_Type \$eo_fun_type \$eo_apply \$eo_mk_apply \$smtx_typeof_value \$smtx_substitute \$mk_vsm_bool"
 sed -i "s/eo-desugar-vc-deps/$DESUGAR_VC_DEPS/g" $STD_DESUGAR_OUT
 sed -i "s/eo-desugar-vc/smt-meta/g" $STD_DESUGAR_OUT
 cp $STD_DESUGAR_OUT $INIT_DESUGAR

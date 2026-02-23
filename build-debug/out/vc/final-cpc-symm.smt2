@@ -16,6 +16,7 @@
 (define-fun qplus ((x Real) (y Real)) Real (+ x y))
 (define-fun qmult ((x Real) (y Real)) Real (* x y))
 (define-fun qneg ((x Real)) Real (- x))
+(define-fun streq ((x String) (y String)) Bool (= x y))
 
 ; tsm.Type:
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
@@ -118,6 +119,11 @@
 (define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))
 (define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))
 
+; forward declarations
+(declare-fun $smtx_model_eval_exists (String tsm.Type sm.Term) vsm.Value)
+(declare-fun $smtx_model_eval_forall (String tsm.Type sm.Term) vsm.Value)
+(declare-fun $smtx_model_eval_lambda (String tsm.Type sm.Term) vsm.Value)
+  
 ;;; Relevant definitions
 
 ; program: $eo_proven
@@ -382,6 +388,11 @@
 ; fwd-decl: $eo_model_unsat
 (declare-fun $eo_model_unsat (eo.Term) eo.Term)
 
+; program: $mk_vsm_bool
+(define-fun $mk_vsm_bool ((x1 Bool)) vsm.Value
+    (vsm.Term (eo.Boolean x1))
+)
+
 ; fwd-decl: $smtx_value_hash
 (declare-fun $smtx_value_hash (vsm.Value) Int)
 
@@ -465,6 +476,12 @@
     (vsm.Term (eo.Boolean (veq x1 x2)))
 ))))))))))))))))))
 
+; fwd-decl: $smtx_typeof_value
+(declare-fun $smtx_typeof_value (vsm.Value) tsm.Type)
+
+; fwd-decl: $smtx_substitute
+(declare-fun $smtx_substitute (String tsm.Type vsm.Value sm.Term) eo.Term)
+
 ; program: $smtx_model_eval_not
 (define-fun $smtx_model_eval_not ((x1 vsm.Value)) vsm.Value
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.Boolean) (vsm.Term.arg1 x1)))
@@ -530,6 +547,29 @@
 (assert (! (forall ((x vsm.Value))
     (! (= ($smtx_reverse_value_hash ($smtx_value_hash x)) x) :pattern (($smtx_value_hash x)))) :named smtx.hash_injective))
 
+(define-fun texists ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+  (exists ((v vsm.Value))
+    (and (= ($smtx_typeof_value v) T)
+         (= ($smtx_model_eval ($smtx_substitute s T v F)) tgt))))
+
+(define-fun tforall ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+  (forall ((v vsm.Value))
+    (=> (= ($smtx_typeof_value v) T)
+        (= ($smtx_model_eval ($smtx_substitute s T v F)) tgt))))
+
+; exists
+(assert (forall ((s String) (T tsm.Type) (F sm.Term))
+  (= ($smtx_model_eval_exists s T F)
+     (ite (texists s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
+     (ite (tforall s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
+       vsm.NotValue)))))
+  
+; forall
+(assert (forall ((s String) (T tsm.Type) (F sm.Term))
+  (= ($smtx_model_eval_exists s T F)
+     (ite (texists s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
+     (ite (tforall s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
+       vsm.NotValue)))))
 
 ;;; The verification condition
 

@@ -100,6 +100,8 @@ def smt_lit_str_from_code (i : smt_lit_Int) : smt_lit_String :=
     String.singleton (Char.ofNat (Int.toNat i))
   else
     ""
+def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
+  | x, y => decide (x = y)
 
 -- SMT Beyond Eunoia
 
@@ -155,6 +157,8 @@ def smt_lit_str_replace_re_all : smt_lit_String -> smt_lit_RegLan -> smt_lit_Str
 
 /- ----------------------- should move ----------------------- -/
 
+mutual
+
 /- 
 SMT-LIB types.
 -/
@@ -169,9 +173,6 @@ inductive SmtTerm : Type where
 $LEAN_SMT_TERM_DEF$
 deriving DecidableEq
 
-
-mutual
-
 /- 
 SMT-LIB values.
 -/
@@ -184,7 +185,7 @@ SMT-LIB map values.
 -/
 inductive SmtMap : Type where
   | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
-  | default : SmtValue -> SmtMap
+  | default : SmtType -> SmtValue -> SmtMap
 deriving DecidableEq
 
 /- 
@@ -192,11 +193,14 @@ SMT-LIB sequence values.
 -/
 inductive SmtSeq : Type where
   | cons : SmtValue -> SmtSeq -> SmtSeq
-  | empty : SmtSeq
+  | empty : SmtType -> SmtSeq
 deriving DecidableEq
 
 end
 
+/- Type equality -/
+def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
+  | x, y => decide (x = y)
 /- Value equality -/
 def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)

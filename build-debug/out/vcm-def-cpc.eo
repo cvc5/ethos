@@ -103,6 +103,7 @@
 ;(define $smt_builtin_q_zero () ($smt_apply_0 "0/1"))
 (define $smt_builtin_q_zero () ($smt_apply_2 "mk_rational" $smt_builtin_z_zero $smt_builtin_z_one))
 (define $smt_builtin_str_empty () ($smt_apply_0 """"""))
+(define $smt_builtin_str_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "streq" x1 x2))
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
 (define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or" b1 b2))
@@ -1186,6 +1187,13 @@
 
 (define $vsm_true () ($vsm_term true))
 (define $vsm_false () ($vsm_term false))
+; temporary
+(program $mk_vsm_bool ((b $smt_builtin_Bool)) 
+  :signature ($smt_builtin_Bool) $smt_Value
+  (
+  (($mk_vsm_bool b) ($vsm_term ($eo_bool b)))
+  )
+)
 
 ; define: $smtx_value_hash
 ; note: this is an arbitrary hash for SMT values, defined axiomatically.
@@ -1700,6 +1708,11 @@
 ; TODO: handle reverse list??
 ;(define $smtx_eval_selector
 
+; compatibility (temp)
+(program $smtx_typeof_value () :signature ($smt_Value) ($smt_type_0 "tsm.Type"))
+(program $smtx_substitute ()
+  :signature ($smt_builtin_String ($smt_type_0 "tsm.Type") $smt_Value ($smt_type_0 "sm.Term")) ($smt_type_0 "eo.Term"))
+  
 ;;; Other model evaluation functions
 
 (program $smtx_model_eval_not
@@ -1779,4 +1792,4 @@
   (($eovc_symm F) (eo::define ((_v0 ($eo_prog_symm ($eo_pf F)))) (eo::requires ($eo_typeof F) Bool (eo::requires ($eo_model_sat F) true (eo::requires ($eo_typeof _v0) Bool (eo::requires ($eo_model_unsat _v0) true true))))))
   )
 )
-(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")
+(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply $smtx_typeof_value $smtx_substitute $mk_vsm_bool ")

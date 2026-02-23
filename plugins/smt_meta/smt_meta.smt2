@@ -16,6 +16,7 @@
 (define-fun qplus ((x Real) (y Real)) Real (+ x y))
 (define-fun qmult ((x Real) (y Real)) Real (* x y))
 (define-fun qneg ((x Real)) Real (- x))
+(define-fun streq ((x String) (y String)) Bool (= x y))
 
 ; tsm.Type:
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
@@ -55,6 +56,11 @@ $SM_TYPE_DECL$
 (define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))
 (define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))
 
+; forward declarations
+(declare-fun $smtx_model_eval_exists (String tsm.Type sm.Term) vsm.Value)
+(declare-fun $smtx_model_eval_forall (String tsm.Type sm.Term) vsm.Value)
+(declare-fun $smtx_model_eval_lambda (String tsm.Type sm.Term) vsm.Value)
+  
 ;;; Relevant definitions
 
 $SM_DEFS$
@@ -68,6 +74,29 @@ $SM_DEFS$
 (assert (! (forall ((x vsm.Value))
     (! (= ($smtx_reverse_value_hash ($smtx_value_hash x)) x) :pattern (($smtx_value_hash x)))) :named smtx.hash_injective))
 
+(define-fun texists ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+  (exists ((v vsm.Value))
+    (and (= ($smtx_typeof_value v) T)
+         (= ($smtx_model_eval ($smtx_substitute s T v F)) tgt))))
+
+(define-fun tforall ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+  (forall ((v vsm.Value))
+    (=> (= ($smtx_typeof_value v) T)
+        (= ($smtx_model_eval ($smtx_substitute s T v F)) tgt))))
+
+; exists
+(assert (forall ((s String) (T tsm.Type) (F sm.Term))
+  (= ($smtx_model_eval_exists s T F)
+     (ite (texists s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
+     (ite (tforall s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
+       vsm.NotValue)))))
+  
+; forall
+(assert (forall ((s String) (T tsm.Type) (F sm.Term))
+  (= ($smtx_model_eval_exists s T F)
+     (ite (texists s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
+     (ite (tforall s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
+       vsm.NotValue)))))
 
 ;;; The verification condition
 
