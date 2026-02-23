@@ -479,9 +479,12 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
     else
     {
       op = "bvsmod";
-      ssRet << "(eo::define ((abs_s " << smtToSmtEmbed("(ite msb_s s (bvneg s))") << ")) ";
-      ssRet << "(eo::define ((abs_t " << smtToSmtEmbed("(ite msb_t t (bvneg t))") << ")) ";
-      ssRet << "(eo::define ((u " << smtToSmtEmbed("(bvurem abs_s abs_t") << "))) ";
+      ssRet << "(eo::define ((abs_s "
+            << smtToSmtEmbed("(ite msb_s s (bvneg s))") << ")) ";
+      ssRet << "(eo::define ((abs_t "
+            << smtToSmtEmbed("(ite msb_t t (bvneg t))") << ")) ";
+      ssRet << "(eo::define ((u " << smtToSmtEmbed("(bvurem abs_s abs_t")
+            << "))) ";
       ssRetEnd << ")))";
       ssTermRet << "(ite (= u ($sm_binary x1 $smt_builtin_z_zero)) u";
       ssTermRet << " (ite (and (not msb_s) (not msb_t)) u";
@@ -539,10 +542,10 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
       "int_to_bv", {kInt, kInt}, kT, "($smtx_model_eval ($sm_binary x1 x2))");
   // Quantifiers
   // one variable at a time, $sm_exists is hardcoded
-  addEunoiaReduceSym(
-      "exists",
-      {kVarList, kT},
-      "($sm_apply ($sm_exists s ($eo_to_smt_type T)) ($eo_to_smt (exists x1 x2)))");
+  addEunoiaReduceSym("exists",
+                     {kVarList, kT},
+                     "($sm_apply ($sm_exists s ($eo_to_smt_type T)) "
+                     "($eo_to_smt (exists x1 x2)))");
   d_specialCases["exists"].emplace_back("(exists $eo_List_nil x1)",
                                         "($eo_to_smt x1)");
   addEunoiaReduceSym(
@@ -552,10 +555,10 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   ///----- non standard extensions and skolems
   // builtin
   // one variable at a time, $sm_lambda is hardcoded
-  addEunoiaReduceSym(
-      "lambda",
-      {kVarList, kT},
-      "($sm_apply ($sm_lambda s ($eo_to_smt_type T)) ($eo_to_smt (lambda x1 x2)))");
+  addEunoiaReduceSym("lambda",
+                     {kVarList, kT},
+                     "($sm_apply ($sm_lambda s ($eo_to_smt_type T)) "
+                     "($eo_to_smt (lambda x1 x2)))");
   d_specialCases["lambda"].emplace_back("(lambda $eo_List_nil x1)",
                                         "($eo_to_smt x1)");
   addEunoiaReduceSym("@purify", {kT}, "($eo_to_smt x1)");
@@ -605,7 +608,9 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
   std::stringstream ssIsEmptyRet;
-  ssIsEmptyRet << "($vsm_bool " << smtValueEq("e1", "($smtx_empty_set ($smtx_typeof_value e1))") << ")";
+  ssIsEmptyRet << "($vsm_bool "
+               << smtValueEq("e1", "($smtx_empty_set ($smtx_typeof_value e1))")
+               << ")";
   addRecReduceSym("set.is_empty", {kT}, ssIsEmptyRet.str());
   addEunoiaReduceSym(
       "set.insert",
@@ -866,8 +871,10 @@ void ModelSmtNew::printDecl(const std::string& name,
   std::string prefix;
   if (ret == Kind::TYPE)
   {
-    // note that if we are a builtin type, we don't need to print the embedding declaration
-    if (name=="Int" || name=="Real" || name=="String" || name=="BitVec" || name=="Seq")
+    // note that if we are a builtin type, we don't need to print the embedding
+    // declaration
+    if (name == "Int" || name == "Real" || name == "String" || name == "BitVec"
+        || name == "Seq")
     {
       out = &tmp;
     }
