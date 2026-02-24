@@ -26,6 +26,8 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
+  d_typeToMetaKind["$smt_Datatype"] = MetaKind::DATATYPE;
+  d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
   d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
   d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
   d_prefixToMetaKind["sm"] = MetaKind::SMT;
@@ -33,6 +35,8 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
   d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
+  d_prefixToMetaKind["dt"] = MetaKind::DATATYPE;
+  d_prefixToMetaKind["dtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}
@@ -74,6 +78,8 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
     case MetaKind::SMT_MAP: os << "SmtMap"; break;
     case MetaKind::SMT_SEQ: os << "SmtSeq"; break;
     case MetaKind::PROOF: os << "Proof"; break;
+    case MetaKind::DATATYPE: os << "SmtDatatype"; break;
+    case MetaKind::DATATYPE_CONSTRUCTOR: os << "SmtDatatypeCons"; break;
     default: return false;
   }
   return true;

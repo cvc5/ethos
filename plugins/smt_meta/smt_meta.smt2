@@ -51,7 +51,7 @@ $SM_TERM_DECL$
 $SM_TYPE_DECL$
   )
   (
-  (dt.unit (dt.unit.arg1 dtc.DatatypeCons))
+  (dt.null)
   (dt.sum (dt.sum.arg1 dtc.DatatypeCons) (dt.sum.arg2 dt.Datatype))
   )
   (

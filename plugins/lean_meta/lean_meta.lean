@@ -196,6 +196,22 @@ inductive SmtSeq : Type where
   | empty : SmtType -> SmtSeq
 deriving DecidableEq
 
+/-
+SMT-LIB datatypes.
+-/
+inductive SmtDatatype : Type where
+  | null : SmtDatatype
+  | sum : SmtDatatypeCons -> SmtDatatype -> SmtDatatype
+deriving DecidableEq
+
+/-
+SMT-LIB datatype constructors.
+-/
+inductive SmtDatatypeCons : Type where
+  | unit : SmtDatatypeCons
+  | cons : SmtType -> SmtDatatypeCons -> SmtDatatypeCons
+deriving DecidableEq
+
 end
 
 /- Type equality -/

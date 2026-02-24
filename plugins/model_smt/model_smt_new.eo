@@ -43,13 +43,11 @@
 (define $dtc_cons ((T $smt_DatatypeCons) (c $smt_DatatypeCons))
   ($emb_dtc.cons T c))
 
-; A datatype having one constructor
-(declare-parameterized-const $emb_dt.unit
-  ((c $smt_DatatypeCons :opaque)) $smt_Datatype)
-(define $dt_unit ((c $smt_DatatypeCons))
-  ($emb_dt.unit c))
+; A datatype having no constructors
+(declare-const $emb_dt.null $smt_Datatype)
+(define $dt_null () $emb_dt.null)
   
-; A datatype having more than one constructor
+; A datatype having at least one constructor
 (declare-parameterized-const $emb_dt.sum
   ((c $smt_DatatypeCons :opaque) (d $smt_Datatype :opaque))
   $smt_Datatype)
@@ -191,10 +189,13 @@ $SMT_TERM_CONSTRUCTORS$
 (declare-parameterized-const $emb_tsm.Map ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
 (define $tsm_Map ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
 
+; The type of partially applied datatype constructors
+(declare-parameterized-const $emb_tsm.DtCons ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
+(define $tsm_DtCons ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.DtCons Ti Te))
+
 ; The Sequence type
 (declare-parameterized-const $emb_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
 (define $tsm_Seq ((T $smt_Type)) ($emb_tsm.Seq T))
-
 
 ; A datatype is a type containing (1) its name, and (2) its structure.
 ; Its name can be understood as a binder under which ($tsm_TypeRef <name>) is
@@ -223,7 +224,7 @@ $SMT_TERM_CONSTRUCTORS$
 ;        ($dt_unit $dtc_unit)))))
 ;   ($tsm_Datatype "List"
 ;      ($dt_sum
-;        ($dtc_cons $tsm_Int ($dtc_cons Tree $dtc_unit))
+;        ($dtc_cons Tree ($dtc_cons ($tsm_TypeRef "List") $dtc_unit))
 ;        ($dt_unit $dtc_unit))))
 (declare-parameterized-const $emb_tsm.Datatype 
   ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)) $smt_Type)
@@ -319,6 +320,26 @@ $SMT_TYPE_CONSTRUCTORS$
   $smt_Value)
 (define $vsm_apply ((f $smt_Value) (a $smt_Value))
   ($emb_vsm.Apply f a))
+  
+; utilities
+(program $vsm_apply_head ((f $smt_Value) (a $smt_Value))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($vsm_apply_head ($vsm_apply f a)) ($vsm_apply_head f))
+  (($vsm_apply_head a)                a)
+  )
+)
+
+(program $vsm_apply_arg_nth ((f $smt_Value) (a $smt_Value) (n $smt_builtin_Int))
+  :signature ($smt_Value $smt_builtin_Int) $smt_Value
+  (
+  (($vsm_apply_arg_nth ($vsm_apply f a) n)
+    ($smt_builtin_ite ($smt_builtin_z_= n $smt_builtin_z_zero)
+      a
+      ($vsm_apply_arg_nth f ($smt_builtin_z_dec n))))
+  (($vsm_apply_arg_nth a n) $vsm_not_value)
+  )
+)
 
 ;;; SMT map value datatype constructors
 
@@ -501,22 +522,6 @@ $SMT_TYPE_CONSTRUCTORS$
   )
 )
 
-; Converts a (Seq $smt_Value) to a $smt_Seq
-;(program $smtx_smt_seq_to_ssm_seq ((s ($smt_builtin_type_1 "Seq" $smt_Value)))
-;  :signature (($smt_builtin_type_1 "Seq" $smt_Value)) $smt_Seq
-;  (
-;  (($smtx_smt_seq_to_ssm_seq s)
-;    (eo::define ((lens ($smt_apply_2 "seq.len" s)))
-;    ($smt_builtin_ite
-;      ($smt_builtin_= lens $smt_builtin_z_zero)
-;      $ssm_empty
-;      ($ssm_cons
-;        ($smt_apply_3 "seq.substr" s $smt_builtin_z_zero $smt_builtin_z_one)
-;        ($smtx_smt_seq_to_ssm_seq
-;          ($smt_apply_3 "seq.substr" s $smt_builtin_z_one lens))))))
-;  )
-;)
-
 ; Returns the type of the map value or tsm_none
 (program $smtx_typeof_seq_value
   ((v $smt_Value) (vs $smt_Seq) (T $smt_Type))
@@ -531,11 +536,55 @@ $SMT_TYPE_CONSTRUCTORS$
   )
 )
 
+;; datatypes
+
+(program $smtx_typeof_dt_cons_value_rec2
+  ((T $smt_Type) (U $smt_Type) (c $smt_DatatypeCons) (d $smt_Datatype))
+  :signature ($smt_Type $smt_DatatypeCons) $smt_Type
+  (
+  (($smtx_typeof_dt_cons_value_rec2 T ($dtc_cons U c))
+    ($tsm_DtCons U ($smtx_typeof_dt_cons_value_rec2 T c)))
+  (($smtx_typeof_dt_cons_value_rec2 T $dtc_unit) T)
+  )
+)
+
+(program $smtx_typeof_dt_cons_value_rec
+  ((T $smt_Type) (n $smt_builtin_Int) (c $smt_DatatypeCons) (d $smt_Datatype))
+  :signature ($smt_Type $smt_Datatype $smt_builtin_Int) $smt_Type
+  (
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) $smt_builtin_z_zero)
+    ($smtx_typeof_dt_cons_value_rec2 T c))
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) n)
+    ($smtx_typeof_dt_cons_value_rec T d ($smt_builtin_z_dec n)))
+  (($smtx_typeof_dt_cons_value_rec T d n) $tsm_none)
+  )
+)
+
+(program $smtx_typeof_dt_cons_value
+  ((T $smt_Type) (n $smt_builtin_Int) (s $smt_builtin_String) (d $smt_Datatype))
+  :signature ($smt_Type $smt_builtin_Int) $smt_Type
+  (
+  (($smtx_typeof_dt_cons_value ($tsm_Datatype s d) n)
+     ($smtx_typeof_dt_cons_value_rec ($tsm_Datatype s d) d n))
+  (($smtx_typeof_dt_cons_value T n) $tsm_none)
+  )
+)
+
+; program: $smtx_typeof_apply_value
+(program $smtx_typeof_apply_value ((T $smt_Type) (U $smt_Type) (V $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  ; can partially apply datatype constructors
+  (($smtx_typeof_apply_value ($tsm_DtCons T U) V)
+    ($smt_builtin_ite ($smt_builtin_Teq T V) U $tsm_none))
+  (($smtx_typeof_apply_value T U) $tsm_none)
+  )
+)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Type rules for values
 
 ; NOTE: $vsm_lambda is unhandled
 (program $smtx_typeof_value
-  ((v $smt_Value)
+  ((v $smt_Value) (f $smt_Value) (T $smt_Type)
    (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int)
    (q $smt_builtin_Real) (s $smt_builtin_String) (r $smt_builtin_RegLan)
    (m $smt_Map) (ss $smt_Seq))
@@ -550,7 +599,8 @@ $SMT_TYPE_CONSTRUCTORS$
   (($smtx_typeof_value ($vsm_re r))       $tsm_RegLan)
   (($smtx_typeof_value ($vsm_map m))      ($smtx_typeof_map_value m))
   (($smtx_typeof_value ($vsm_seq ss))     ($smtx_typeof_seq_value ss))
-  ; TODO: more
+  (($smtx_typeof_value ($vsm_DtCons T n)) ($smtx_typeof_dt_cons_value T n))
+  (($smtx_typeof_value ($vsm_apply f v))  ($smtx_typeof_apply_value ($smtx_typeof_value f) ($smtx_typeof_value v)))
   (($smtx_typeof_value v)                 $tsm_none)
   )
 )
@@ -746,13 +796,36 @@ $SMT_TYPE_CONSTRUCTORS$
   )
 )
 
-; datatypes 
+;;; Datatypes
+
+(program $smtx_model_eval_dt_cons
+  ((T $smt_Type) (n $smt_builtin_Int) (m $smt_builtin_Int) (v1 $smt_Value))
+  :signature ($smt_Type $smt_builtin_Int) $smt_Value
+  (
+  (($smtx_model_eval_dt_cons T n)
+    ; must ensure its type is not none, which implies it is a valid index
+    (eo::define ((vT ($smtx_typeof_dt_cons_value T n)))
+      ($smt_builtin_ite ($smt_builtin_Teq vT $tsm_none)
+        $vsm_not_value
+        ($vsm_DtCons T n))))
+  )
+)
 
 (program $smtx_model_eval_dt_sel
-  ((T $smt_Type) (n $smt_builtin_Int) (m $smt_builtin_Int) (v1 $smt_Value))
+  ((T $smt_Type) (n $smt_builtin_Int) (m $smt_builtin_Int) (v1 $smt_Value)
+   (s $smt_builtin_String) (d $smt_Datatype))
   :signature ($smt_Type $smt_builtin_Int $smt_builtin_Int $smt_Value) $smt_Value
   (
-  (($smtx_model_eval_dt_sel T n m v1) $vsm_not_value)
+  (($smtx_model_eval_dt_sel T n m v1)
+    ; must ensure its type is T
+    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value v1) T)
+      ; check if the head of the apply term is ($vsm_DtCons T n)
+      ($smt_builtin_ite ($smt_builtin_veq ($vsm_apply_head v1) ($vsm_DtCons T n))
+        ($vsm_apply_arg_nth v1 n)
+        ; wrongly applied selector
+        $vsm_not_value)
+      ; ill typed term
+      $vsm_not_value))
   )
 )
 
@@ -760,7 +833,13 @@ $SMT_TYPE_CONSTRUCTORS$
   ((T $smt_Type) (n $smt_builtin_Int) (v1 $smt_Value))
   :signature ($smt_Type $smt_builtin_Int $smt_Value) $smt_Value
   (
-  (($smtx_model_eval_dt_tester T n v1) $vsm_not_value)
+  (($smtx_model_eval_dt_tester T n v1)
+    ; must ensure its type is T
+    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value v1) T)
+      ; check if the head of the apply term is ($vsm_DtCons T n)
+      ($vsm_bool ($smt_builtin_veq ($vsm_apply_head v1) ($vsm_DtCons T n)))
+      ; ill typed term
+      $vsm_not_value))
   )
 )
 
@@ -832,13 +911,13 @@ $SMT_EVAL_PROGS$
   ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
 $SMT_EVAL_CASES$
   ; quantifiers
-  ; these rely on custom defined methods
   (($smtx_model_eval ($sm_apply ($sm_exists s T) x1))
     ($smt_apply_3 "$smtx_model_eval_exists" s T x1))
   (($smtx_model_eval ($sm_apply ($sm_forall s T) x1))
     ($smt_apply_3 "$smtx_model_eval_forall" s T x1))
   (($smtx_model_eval ($sm_apply ($sm_lambda s T) x1)) ($vsm_lambda s T x1))
-  (($smtx_model_eval ($sm_DtCons T n)) ($vsm_DtCons T n)) ; TODO: check legal???
+  ; datatypes
+  (($smtx_model_eval ($sm_DtCons T n)) ($smtx_model_eval_dt_cons T n))
   (($smtx_model_eval ($sm_apply ($sm_DtSel T n m) x1)) 
     ($smtx_model_eval_dt_sel T n m ($smtx_model_eval x1)))
   (($smtx_model_eval ($sm_apply ($sm_DtTester T n) x1))
@@ -851,6 +930,7 @@ $SMT_EVAL_CASES$
   ; All interpreted f should be handled in the evaluation cases above.
   (($smtx_model_eval ($sm_apply f x1))
     ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval x1)))
+  ; Constants, which carry their value.
   (($smtx_model_eval ($sm_Const v)) v)
   (($smtx_model_eval x1)   $vsm_not_value)
   )
@@ -885,6 +965,7 @@ $EO_TO_SMT_TYPE_CASES$
   (($eo_to_smt ($eo_binary w n))  ($sm_binary w n))
   (($eo_to_smt ($eo_Var s T))     ($sm_Var s ($eo_to_smt_type T)))
 $EO_TO_SMT_CASES$
+  ; TODO: maybe a datatype constructor or selector???
   (($eo_to_smt (f y))             ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
   (($eo_to_smt y)                 $sm_none)
   )
