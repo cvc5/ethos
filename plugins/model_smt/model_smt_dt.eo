@@ -31,17 +31,6 @@
 (define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
   ($emb_dt.sum c d))
 
-; get the n^th constructor of a datatype
-(program $smt_datatype_constructor_nth
-  ((c $smt_DatatypeCons) (d $smt_Datatype) (ci $smt_builtin_Int))
-  :signature ($smt_Datatype $smt_builtin_Int) $smt_DatatypeCons
-  (
-  (($smt_datatype_constructor_nth ($dt_unit c) 0) c)
-  (($smt_datatype_constructor_nth ($dt_sum c d) 0) c)
-  (($smt_datatype_constructor_nth ($dt_sum c d) ci) ($smt_datatype_constructor_nth d ($smt_builtin_z_dec ci)))
-  )
-)
-
 ;;-------------------------------
 
 ; A datatype is a type containing (1) its name, and (2) its structure.
@@ -156,8 +145,6 @@
   ; a user-defined datatype
   (($eo_dt_constructors ($tsm_Datatype s d)) 
     ($eo_datatype_constructors_rec ($tsm_Datatype s d) d $smt_builtin_z_zero))
-  ; otherwise a datatype defined in the signature, call auto-gen routine
-  (($eo_dt_constructors T) ($eo_dt_constructors_main T))
   )
 )
 
@@ -175,21 +162,14 @@
 ; program: $eo_dt_selectors
 ; implements: eo::dt_selectors
 (program $eo_dt_selectors
-  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int) (t $eo_Term))
+  ((s $smt_builtin_String) (c $smt_DatatypeCons) (d $smt_Datatype) (n $smt_builtin_Int) (t $eo_Term))
   :signature ($eo_Term) $eo_List
   (
-  ; a user-defined datatype
-  (($eo_dt_selectors ($sm_DtCons ($tsm_Datatype s d) n))
-    ($eo_datatype_cons_selectors_rec 
-      ($tsm_Datatype s d)
-      ($smt_datatype_constructor_nth d n)
-      n $smt_builtin_z_zero))
-  ; otherwise a datatype defined in the signature, call auto-gen routine
-  (($eo_dt_selectors t)                   ($eo_dt_selectors_main t))
+  (($eo_dt_selectors ($eo_DtCons ($tsm_Datatype s ($dt_sum c d)) n))
+    ($smt_builtin_ite ($smt_builtin_z_= n $smt_builtin_z_zero)
+      ($eo_datatype_cons_selectors_rec ($tsm_Datatype s d) c n $smt_builtin_z_zero)
+      ; recurse to datatype tail, subtracting from index
+      ($eo_dt_selectors ($eo_DtCons ($tsm_Datatype s d) ($smt_builtin_z_dec n)))))
   )
 )
 
-
-; model eval cases
-  (($smtx_model_eval 
-  ((
