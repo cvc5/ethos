@@ -170,7 +170,7 @@ class ModelSmtNew : public StdPlugin
                        std::stringstream& progCases,
                        std::stringstream& progParams);
 
-  void printTermInternal(Kind k, const std::string& term, std::ostream& os);
+  void printTermInternal(Kind k, const std::string& term, std::ostream& os, const std::string& guard);
   /** Finalize declaration, main entry point for calling methods above */
   void finalizeDecl(const std::string& name, const Expr& e);
   /** Utilities for determining how to print arguments and returns */
@@ -195,6 +195,7 @@ class ModelSmtNew : public StdPlugin
   /** Special cases, printed prior to symbol */
   std::map<std::string, std::vector<std::pair<std::string, std::string>>>
       d_specialCases;
+  std::map<std::string, std::string> d_evalGuard;
   /**
    * SMT-LIB types.
    */

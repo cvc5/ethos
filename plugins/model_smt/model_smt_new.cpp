@@ -63,10 +63,22 @@ std::string smtZLt(const std::string& c1, const std::string& c2)
   ss << "($smt_builtin_z_< " << c1 << " " << c2 << ")";
   return ss.str();
 }
+std::string smtQEq(const std::string& c1, const std::string& c2)
+{
+  std::stringstream ss;
+  ss << "($smt_builtin_q_= " << c1 << " " << c2 << ")";
+  return ss.str();
+}
 std::string smtValueEq(const std::string& c1, const std::string& c2)
 {
   std::stringstream ss;
   ss << "($smt_builtin_veq " << c1 << " " << c2 << ")";
+  return ss.str();
+}
+std::string smtNot(const std::string& c1)
+{
+  std::stringstream ss;
+  ss << "($smt_builtin_not " << c1<< ")";
   return ss.str();
 }
 std::string smtApp(const std::string& app,
@@ -218,8 +230,11 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // addConstFoldSym("is_int", {kReal}, kBool);
   addTermReduceSym("is_int", {kReal}, "(= (to_real (to_int x1)) x1)");
   addConstFoldSym("/", {kReal, kReal}, kReal);
+  d_evalGuard["/"] = smtNot(smtQEq("x2", "$smt_builtin_q_zero"));
   addConstFoldSym("div", {kInt, kInt}, kInt);
+  d_evalGuard["div"] = smtNot(smtZEq("x2", "$smt_builtin_z_zero"));
   addConstFoldSym("mod", {kInt, kInt}, kInt);
+  d_evalGuard["mod"] = smtNot(smtZEq("x2", "$smt_builtin_z_zero"));
   addConstFoldSym("to_int", {kReal}, kInt);
   addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
@@ -1047,20 +1062,27 @@ void ModelSmtNew::printModelEvalCall(const std::string& name,
 
 void ModelSmtNew::printTermInternal(Kind k,
                                     const std::string& term,
-                                    std::ostream& os)
+                                    std::ostream& os, const std::string& guard)
 {
+  std::stringstream ret;
   if (d_kindToEoPrefix.find(k) != d_kindToEoPrefix.end())
   {
-    os << "($vsm_" << d_kindToEoPrefix[k] << " " << term << ")";
+    ret << "($vsm_" << d_kindToEoPrefix[k] << " " << term << ")";
   }
   else if (k == Kind::EVAL_TO_STRING)
   {
-    os << "($vsm_re " << term << ")";
+    ret << "($vsm_re " << term << ")";
   }
   else
   {
-    os << term;
+    ret << term;
   }
+  std::string rets = ret.str();
+  if (!guard.empty())
+  {
+    rets = smtGuard(guard, rets);
+  }
+  os << rets;
 }
 
 void ModelSmtNew::printConstFold(const std::string& name,
@@ -1125,7 +1147,7 @@ void ModelSmtNew::printConstFold(const std::string& name,
     ssret << retArgs.str() << ")";
     // print the term with the right type
     std::stringstream fssret;
-    printTermInternal(kr, ssret.str(), fssret);
+    printTermInternal(kr, ssret.str(), fssret, d_evalGuard[name]);
     // then print it on cases
     printAuxProgramCase(progName.str(),
                         instArgs,
@@ -1218,7 +1240,7 @@ void ModelSmtNew::printLitReduce(const std::string& name,
   progName << "$smtx_model_eval_" << name;
   // print the term with the right type
   std::stringstream ssret;
-  printTermInternal(ret, reduce, ssret);
+  printTermInternal(ret, reduce, ssret, d_evalGuard[name]);
   // then print it on cases
   printAuxProgramCase(
       progName.str(), args, ssret.str(), paramCount, progCases, progParams);

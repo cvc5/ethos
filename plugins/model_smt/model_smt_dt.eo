@@ -90,8 +90,15 @@
   ((T $smt_Type :opaque) (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
   $smt_Term)
 (define $sm_DtSel ((T $smt_Type) (ci $smt_builtin_Int) (ai $smt_builtin_Int))
-  ($emb_sm.DtSel T ci))
+  ($emb_sm.DtSel T ci ai))
 
+; the selector of the ai^th argument of the ci^th constructor of datatype T.
+(declare-parameterized-const $emb_sm.DtTester
+  ((T $smt_Type :opaque) (ci $smt_builtin_Int :opaque))
+  $smt_Term)
+(define $sm_DtTester ((T $smt_Type) (ci $smt_builtin_Int))
+  ($emb_sm.DtTester T ci))
+  
 ;;-------------------------------
 
 (declare-parameterized-const $emb_Datatype 

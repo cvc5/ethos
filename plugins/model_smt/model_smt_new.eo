@@ -184,7 +184,7 @@ $SMT_TYPE_CONSTRUCTORS$
   ($emb_vsm.Binary w ($smt_builtin_mod v ($smtx_pow2 w))))
 (define $vsm_mk_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
   ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w)
-    ($vsm_binary_mod_w v w)
+    ($vsm_binary_mod_w w v)
     $vsm_not_value))
   
 ; A value denoting a map.
