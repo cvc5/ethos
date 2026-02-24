@@ -78,7 +78,7 @@ std::string smtValueEq(const std::string& c1, const std::string& c2)
 std::string smtNot(const std::string& c1)
 {
   std::stringstream ss;
-  ss << "($smt_builtin_not " << c1<< ")";
+  ss << "($smt_builtin_not " << c1 << ")";
   return ss.str();
 }
 std::string smtApp(const std::string& app,
@@ -1062,7 +1062,8 @@ void ModelSmtNew::printModelEvalCall(const std::string& name,
 
 void ModelSmtNew::printTermInternal(Kind k,
                                     const std::string& term,
-                                    std::ostream& os, const std::string& guard)
+                                    std::ostream& os,
+                                    const std::string& guard)
 {
   std::stringstream ret;
   if (d_kindToEoPrefix.find(k) != d_kindToEoPrefix.end())
