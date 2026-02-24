@@ -202,6 +202,7 @@ deriving DecidableEq
 SMT-LIB values.
 -/
 inductive SmtValue : Type where
+  | NotValue : SmtValue
   | Boolean : smt_lit_Bool -> SmtValue
   | Numeral : smt_lit_Int -> SmtValue
   | Rational : smt_lit_Rat -> SmtValue
@@ -212,7 +213,6 @@ inductive SmtValue : Type where
   | RegLan : smt_lit_RegLan -> SmtValue
   | Lambda : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
-  | NotValue : SmtValue
 
 deriving DecidableEq
 
@@ -240,6 +240,13 @@ def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
 /- Value equality -/
 def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)
+
+/- exists -/
+def smt_lit___smtx_model_eval_exists : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+  | _, _, _ => (SmtValue.Boolean true) -- FIXME
+/- forall -/
+def smt_lit___smtx_model_eval_forall : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+  | _, _, _ => (SmtValue.Boolean true) -- FIXME
 
 /- Definition of SMT-LIB model semantics -/
 

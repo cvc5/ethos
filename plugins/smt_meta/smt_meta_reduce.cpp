@@ -25,6 +25,8 @@ SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s), d_smSygus(s)
   d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
+  d_prefixToMetaKind["dt"] = MetaKind::DATATYPE;
+  d_prefixToMetaKind["dtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
   d_typeToMetaKind["$eo_Type"] = MetaKind::EUNOIA;
   // d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
   d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
@@ -32,6 +34,8 @@ SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s), d_smSygus(s)
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
+  d_typeToMetaKind["$smt_Datatype"] = MetaKind::DATATYPE;
+  d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
   d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
 
   if (StdPlugin::optionSmtMetaSygusGrammar())
@@ -69,6 +73,8 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case MetaKind::SMT_BUILTIN: os << getEmbedName(t); break;
     case MetaKind::SMT_MAP: os << "msm.Map"; break;
     case MetaKind::SMT_SEQ: os << "ssm.Seq"; break;
+    case MetaKind::DATATYPE: os << "dt.Datatype"; break;
+    case MetaKind::DATATYPE_CONSTRUCTOR: os << "dtc.DatatypeCons"; break;
     default: return false;
   }
   return true;

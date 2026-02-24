@@ -38,23 +38,26 @@
   (
   (($smt_datatype_constructor_nth ($dt_unit c) 0) c)
   (($smt_datatype_constructor_nth ($dt_sum c d) 0) c)
-  (($smt_datatype_constructor_nth ($dt_sum c d) n) ($smt_datatype_constructor_nth d ($smt_builtin_z_dec n)))
+  (($smt_datatype_constructor_nth ($dt_sum c d) ci) ($smt_datatype_constructor_nth d ($smt_builtin_z_dec ci)))
   )
 )
 
 ;;-------------------------------
-  
+
 ; A datatype is a type containing (1) its name, and (2) its structure.
 ; Its name can be understood as a binder under which ($tsm_TypeRef <name>) is
 ; a recursive reference to the (most recently bound) instance of a datatype
 ; with the given name.
-; For example, the standard datatype list of integers would be:
+; For example, the recursive datatype for a list of integers:
+; (declare-datatype List ((cons (head Int) (tail List)) (nil)))
+; Would have the following syntax:
 ; ($tsm_Datatype "List"
 ;    ($dt_sum
 ;      ($dtc_cons $tsm_Int ($dtc_cons ($tsm_TypeRef "List") $dtc_unit))
 ;      ($dt_unit $dtc_unit)))
-; Call this type D. The constructors cons/nil for this datatype give an index
-; to the constructor in the list:
+; Note that names of constructors and selectors are not represented.
+; Call the above type D. The constructors cons/nil for this datatype give an
+; index to the constructor in the list:
 ;   ($sm_DtCons D 0), ($sm_DtCons D 1).
 ; The selectors head/tail for this datatype give indices to the constructor
 ; and argument position they refer to:
@@ -92,13 +95,20 @@
 (define $sm_DtSel ((T $smt_Type) (ci $smt_builtin_Int) (ai $smt_builtin_Int))
   ($emb_sm.DtSel T ci ai))
 
-; the selector of the ai^th argument of the ci^th constructor of datatype T.
+; the tester of the ci^th constructor of datatype T.
 (declare-parameterized-const $emb_sm.DtTester
   ((T $smt_Type :opaque) (ci $smt_builtin_Int :opaque))
   $smt_Term)
 (define $sm_DtTester ((T $smt_Type) (ci $smt_builtin_Int))
   ($emb_sm.DtTester T ci))
   
+; the updater of the ai^th argument of the ci^th constructor of datatype T.
+(declare-parameterized-const $emb_sm.DtUpdater
+  ((T $smt_Type :opaque) (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int))
+  $smt_Term)
+(define $sm_DtUpdater ((T $smt_Type) (ci $smt_builtin_Int) (ai $smt_builtin_Int))
+  ($emb_sm.DtUpdater T ci ai))
+
 ;;-------------------------------
 
 (declare-parameterized-const $emb_Datatype 

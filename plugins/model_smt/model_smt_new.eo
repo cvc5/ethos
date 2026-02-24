@@ -22,6 +22,52 @@
 ; Assumes that veq is defined to be equality over $smt_Value
 (define $smt_builtin_veq ((x1 $smt_Value) (x2 $smt_Value)) ($smt_apply_2 "veq" x1 x2))
 
+;;; datatypes
+
+; A datatype constructor
+(declare-const $smt_DatatypeCons Type)
+
+; A datatype
+(declare-const $smt_Datatype Type)
+
+; A constructor having no arguments
+(declare-const $emb_dtc.unit $smt_DatatypeCons)
+(define $dtc_unit () $emb_dtc.unit)
+
+; A constructor having at least one argument
+; It takes the type of that argument and a constructor specifying the remaining
+; arguments.
+(declare-parameterized-const $emb_dtc.cons
+  ((T $smt_Type :opaque) (c $smt_DatatypeCons :opaque))
+  $smt_DatatypeCons)
+(define $dtc_cons ((T $smt_DatatypeCons) (c $smt_DatatypeCons))
+  ($emb_dtc.cons T c))
+
+; A datatype having one constructor
+(declare-parameterized-const $emb_dt.unit
+  ((c $smt_DatatypeCons :opaque)) $smt_Datatype)
+(define $dt_unit ((c $smt_DatatypeCons))
+  ($emb_dt.unit c))
+  
+; A datatype having more than one constructor
+(declare-parameterized-const $emb_dt.sum
+  ((c $smt_DatatypeCons :opaque) (d $smt_Datatype :opaque))
+  $smt_Datatype)
+(define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
+  ($emb_dt.sum c d))
+
+; get the n^th constructor of a datatype
+(program $smt_datatype_constructor_nth
+  ((c $smt_DatatypeCons) (d $smt_Datatype) (ci $smt_builtin_Int))
+  :signature ($smt_Datatype $smt_builtin_Int) $smt_DatatypeCons
+  (
+  (($smt_datatype_constructor_nth ($dt_unit c) 0) c)
+  (($smt_datatype_constructor_nth ($dt_sum c d) 0) c)
+  (($smt_datatype_constructor_nth ($dt_sum c d) ci)
+     ($smt_datatype_constructor_nth d ($smt_builtin_z_dec ci)))
+  )
+)
+
 ;;;;;; SMT term constructors
 
 (declare-const $emb_sm.None $smt_Term)
@@ -90,6 +136,33 @@
   ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
 (define $sm_lambda ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.lambda s T))
 
+; the ci^th constructor of datatype T.
+(declare-parameterized-const $emb_sm.DtCons
+  ((T $smt_Type :opaque) (ci $smt_builtin_Int :opaque)) $smt_Term)
+(define $sm_DtCons ((T $smt_Type) (ci $smt_builtin_Int))
+  ($emb_sm.DtCons T ci))
+
+; the selector of the ai^th argument of the ci^th constructor of datatype T.
+(declare-parameterized-const $emb_sm.DtSel
+  ((T $smt_Type :opaque) (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
+  $smt_Term)
+(define $sm_DtSel ((T $smt_Type) (ci $smt_builtin_Int) (ai $smt_builtin_Int))
+  ($emb_sm.DtSel T ci ai))
+
+; the tester of the ci^th constructor of datatype T.
+(declare-parameterized-const $emb_sm.DtTester
+  ((T $smt_Type :opaque) (ci $smt_builtin_Int :opaque))
+  $smt_Term)
+(define $sm_DtTester ((T $smt_Type) (ci $smt_builtin_Int))
+  ($emb_sm.DtTester T ci))
+  
+; the updater of the ai^th argument of the ci^th constructor of datatype T.
+(declare-parameterized-const $emb_sm.DtUpdater
+  ((T $smt_Type :opaque) (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int))
+  $smt_Term)
+(define $sm_DtUpdater ((T $smt_Type) (ci $smt_builtin_Int) (ai $smt_builtin_Int))
+  ($emb_sm.DtUpdater T ci ai))
+
 ; constants, which carry their value in the model
 (declare-parameterized-const $emb_sm.Const ((v $smt_Value :opaque)) $smt_Term)
 (define $sm_Const ((v $smt_Value)) ($emb_sm.Const v))
@@ -133,6 +206,45 @@ $SMT_TERM_CONSTRUCTORS$
 ; The Sequence type
 (declare-parameterized-const $emb_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
 (define $tsm_Seq ((T $smt_Type)) ($emb_tsm.Seq T))
+
+
+; A datatype is a type containing (1) its name, and (2) its structure.
+; Its name can be understood as a binder under which ($tsm_TypeRef <name>) is
+; a recursive reference to the (most recently bound) instance of a datatype
+; with the given name.
+; For example, the recursive datatype for a list of integers:
+; (declare-datatype List ((cons (head Int) (tail List)) (nil)))
+; Would have the following syntax:
+; ($tsm_Datatype "List"
+;    ($dt_sum
+;      ($dtc_cons $tsm_Int ($dtc_cons ($tsm_TypeRef "List") $dtc_unit))
+;      ($dt_unit $dtc_unit)))
+; Note that names of constructors and selectors are not represented.
+; Call the above type D. The constructors cons/nil for this datatype give an
+; index to the constructor in the list:
+;   ($sm_DtCons D 0), ($sm_DtCons D 1).
+; The selectors head/tail for this datatype give indices to the constructor
+; and argument position they refer to:
+;   ($sm_DtSel D 0 0) ($sm_DtSel D 0 1).
+; Note this also permits mutual recursion, e.g. this is a tree having a
+; constructor that is a list of trees:
+; (eo::define ((Tree
+;    ($tsm_Datatype "Tree"
+;      ($dt_sum 
+;        ($dtc_cons ($tsm_TypeRef "List") $dtc_unit)
+;        ($dt_unit $dtc_unit)))))
+;   ($tsm_Datatype "List"
+;      ($dt_sum
+;        ($dtc_cons $tsm_Int ($dtc_cons Tree $dtc_unit))
+;        ($dt_unit $dtc_unit))))
+(declare-parameterized-const $emb_tsm.Datatype 
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)) $smt_Type)
+(define $tsm_Datatype ((s $smt_builtin_String) (d $smt_Datatype))
+  ($emb_tsm.Datatype s d))
+  
+(declare-parameterized-const $emb_tsm.TypeRef
+  ((s $smt_builtin_String :opaque)) $smt_Type)
+(define $tsm_TypeRef ((s $smt_builtin_String)) ($emb_tsm.TypeRef s))
 
 ; all other ordinary type definitions
 $SMT_TYPE_CONSTRUCTORS$
@@ -674,7 +786,8 @@ $SMT_EVAL_PROGS$
 ;            forbidden unless t denotes a value.
 (program $smtx_model_eval
   ((f $smt_Term) (y $smt_Term) (v $smt_Value) (T $smt_Type)
-  (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
+   (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int)
+   (m $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Term) $smt_Value
@@ -709,6 +822,10 @@ $SMT_EVAL_CASES$
   ; All interpreted f should be handled in the evaluation cases above.
   (($smtx_model_eval ($sm_apply f y))
     ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval y)))
+  (($smtx_model_eval ($sm_DtCons T n)) $vsm_not_value)
+  (($smtx_model_eval ($sm_DtSel T n m)) $vsm_not_value)
+  (($smtx_model_eval ($sm_DtTester T n)) $vsm_not_value)
+  (($smtx_model_eval ($sm_DtUpdater T n m)) $vsm_not_value)
   (($smtx_model_eval ($sm_Const v)) v)
   (($smtx_model_eval y)   $vsm_not_value)
   )
