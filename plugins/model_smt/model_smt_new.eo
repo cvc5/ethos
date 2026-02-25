@@ -950,6 +950,9 @@ $SMT_EVAL_CASES$
 
 ;;;;;;;;;;;;;;;;;;;;;;
 
+; auxiliary definitions for defining $eo_to_smt / $eo_to_smt_type
+$EO_TO_SMT_AUX$
+
 ; helper for CPC Tuple
 ; In $eo_to_smt_type, (Tuple x1 x2) returns
 ;   ($eo_to_smt_type_tuple ($eo_to_smt_type x1) ($eo_to_smt_type x2))
@@ -1017,7 +1020,8 @@ $EO_TO_SMT_TYPE_CASES$
 )
 
 ; In eo_to_smt, (tuple.update x1 x2) returns
-;   ($eo_to_smt_tuple_update ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))
+;   ($eo_to_smt_tuple_update
+;     ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))
 (program $eo_to_smt_tuple_update
   ((T $smt_Type) (d $smt_Datatype) (n $smt_builtin_Int) (t $smt_Term))
   :signature ($smt_Type $smt_Term $smt_Term) $smt_Term
@@ -1028,6 +1032,7 @@ $EO_TO_SMT_TYPE_CASES$
   )
 )
 
+; In eo_to_smt, (is x1) returns ($eo_to_smt_tester ($eo_to_smt x1)).
 (program $eo_to_smt_tester
   ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int) (t $smt_Term))
   :signature ($smt_Term) $smt_Term
@@ -1036,10 +1041,7 @@ $EO_TO_SMT_TYPE_CASES$
   (($eo_to_smt_tester t)                   $sm_none)
   )
 )
-
-; (is x1) returns
-;   ($eo_to_smt_tester ($eo_to_smt x1))
-
+; In eo_to_smt, (update x1) returns ($eo_to_smt_updater ($eo_to_smt x1)).
 (program $eo_to_smt_updater
   ((s $smt_builtin_String) (d $smt_Datatype)
    (n $smt_builtin_Int) (m $smt_builtin_Int) (t $smt_Term))

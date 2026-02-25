@@ -635,6 +635,37 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addEunoiaReduceSym("@witness_string_length",
                      {kType, kInt, kInt},
                      ssWitnessStringLength.str());
+  // re pos unfold
+#if 0
+  std::stringstream ssRePosUnfoldAuxDef;
+  ssRePosUnfoldAuxDef << "(program $eo_to_smt_re_pos_unfold_var_list ((n $smt_builtin_Int))" << std::endl;
+  ssRePosUnfoldAuxDef << "  :signature ($smt_builtin_Int) $eo_List" << std::endl;
+  ssRePosUnfoldAuxDef << "  (($eo_to_smt_re_pos_unfold_var_list n) ($smt_builtin_ite" << std::endl;
+  ssRePosUnfoldAuxDef << ")" << std::endl;
+  ssRePosUnfoldAuxDef << "(program $eo_to_smt_re_pos_unfold_concat ((t String) (l $eo_List))" << std::endl;
+  ssRePosUnfoldAuxDef << "  :signature ($eo_List) $eo_Term" << std::endl;
+  ssRePosUnfoldAuxDef << "  ((($eo_to_smt_re_pos_unfold_concat ($eo_List_cons t l))" << std::endl;
+  ssRePosUnfoldAuxDef << "    (str.++ t ($eo_to_smt_re_pos_unfold_concat l))))" << std::endl;
+  ssRePosUnfoldAuxDef << ")" << std::endl;
+  ssRePosUnfoldAuxDef << "(program $eo_to_smt_re_pos_unfold_mem_conj ((t String) (l $eo_List) (r1 RegLan) (r2 RegLan))" << std::endl;
+  ssRePosUnfoldAuxDef << "  :signature ($eo_List) $eo_Term" << std::endl;
+  ssRePosUnfoldAuxDef << "  (" << std::endl;
+  ssRePosUnfoldAuxDef << "  (($eo_to_smt_re_pos_unfold_mem_conj ($eo_List_cons t l) (re.++ r1 r2))" << std::endl;
+  ssRePosUnfoldAuxDef << "    (and (str.in_re t r1) ($eo_to_smt_re_pos_unfold_concat l r2)))" << std::endl;
+  ssRePosUnfoldAuxDef << "  (($eo_to_smt_re_pos_unfold_mem_conj ($eo_List_cons t l) (str.to_re ""))" << std::endl;
+  ssRePosUnfoldAuxDef << "    true)" << std::endl;
+  ssRePosUnfoldAuxDef << "  )" << std::endl;
+  ssRePosUnfoldAuxDef << ")" << std::endl;
+  ssRePosUnfoldAuxDef << std::endl;
+  ssRePosUnfoldAuxDef << "(define $eo_to_smt_re_pos_unfold_rec_exists ((s String) (R RegLan))" << std::endl;
+  ssRePosUnfoldAuxDef << "  (eo::define ((vl ($eo_to_smt_re_pos_unfold_var_list (eo::list_len re.++ R))))" << std::endl;
+  ssRePosUnfoldAuxDef << "    (forall vl (not" << std::endl;
+  ssRePosUnfoldAuxDef << "      (and (= s ($eo_to_smt_re_pos_unfold_concat vl))" << std::endl;
+  ssRePosUnfoldAuxDef << "      ($eo_to_smt_re_pos_unfold_mem_conj vl R))))))" << std::endl;
+  std::stringstream ssRePosUnfold;
+  addEunoiaReduceSym("@re_unfold_pos_component", {kString, kRegLan, kInt},
+                     "($eo_to_smt (@quantifiers_skolemize ($eo_to_smt_re_pos_unfold_rec_exists x1 x2) x3))");
+#endif
   // sequences
   addReduceSym("seq.empty", {kType}, "($smtx_empty_seq x1)");
   d_specialCases["seq.empty"].emplace_back(
@@ -890,6 +921,12 @@ void ModelSmtNew::finalizeDecl(const std::string& name, const Expr& e)
     {
       printEunoiaReduce(itsc->second[i].first, {}, itsc->second[i].second);
     }
+  }
+  std::map<std::string, std::string>::iterator itax = d_auxDef.find(name);
+  if (itax!=d_auxDef.end())
+  {
+    // append to definitions
+    d_eoToSmtAux << itax->second << std::endl;
   }
   std::map<std::string, std::vector<Kind>>::iterator ith =
       d_symHardCode.find(name);
@@ -1365,6 +1402,7 @@ void ModelSmtNew::finalize()
   // plug in the evaluation cases handled by this plugin
   replace(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
   replace(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());
+  replace(finalSmt, "$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
   replace(finalSmt, "$EO_TO_SMT_CASES$", d_eoToSmt.str());
   replace(finalSmt, "$EO_TO_SMT_TYPE_CASES$", d_eoToSmtType.str());
   replace(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());

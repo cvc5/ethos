@@ -191,6 +191,7 @@ class ModelSmtNew : public StdPlugin
   /** Conversion Eunoia to SMT */
   std::stringstream d_eoToSmt;
   std::stringstream d_eoToSmtType;
+  std::stringstream d_eoToSmtAux;
   /** Term and type constructors */
   std::stringstream d_smtTerms;
   std::stringstream d_smtTypes;
@@ -199,6 +200,8 @@ class ModelSmtNew : public StdPlugin
   /** Special cases, printed prior to symbol */
   std::map<std::string, std::vector<std::pair<std::string, std::string>>>
       d_specialCases;
+  /** Auxiliary definitions on $EO_TO_SMT_AUX$ */
+  std::map<std::string, std::string> d_auxDef;
   std::map<std::string, std::string> d_evalGuard;
   /**
    * SMT-LIB types.
