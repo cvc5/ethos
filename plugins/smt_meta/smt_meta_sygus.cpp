@@ -227,7 +227,8 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   }
   if (tk == MetaKind::EUNOIA)
   {
-    if (cname == "Stuck" || cname=="DtCons" || cname=="DtSel" || cname=="Datatype")
+    if (cname == "Stuck" || cname == "DtCons" || cname == "DtSel"
+        || cname == "Datatype")
     {
       return;
     }
