@@ -135,6 +135,7 @@
 ; forward declarations
 (declare-fun texists (String tsm.Type sm.Term) vsm.Value)
 (declare-fun tforall (String tsm.Type sm.Term) vsm.Value)
+(declare-fun tchoice (String tsm.Type sm.Term) vsm.Value)
 (declare-fun tlambda (String tsm.Type sm.Term) vsm.Value)
   
 ;;; Relevant definitions
@@ -620,6 +621,14 @@
      (ite (texists_total s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
      (ite (tforall_total s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
        vsm.NotValue)))))
+
+; choice
+; If there exists a value making the existential true, we can assume
+; that substituting with choice also makes it true.
+(assert (forall ((s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
+  (=> (texists_total s T F ($mk_vsm_bool true))
+      (= ($smtx_model_eval ($smtx_substitute s T (tchoice s T F) F))
+         ($mk_vsm_bool true)))))
 
 ;;; The verification condition
 

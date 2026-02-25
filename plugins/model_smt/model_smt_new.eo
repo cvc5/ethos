@@ -82,6 +82,11 @@
   ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
 (define $sm_lambda ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.lambda s T))
 
+; choice
+(declare-parameterized-const $emb_sm.choice
+  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
+(define $sm_choice ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.choice s T))
+
 ; the ci^th constructor of datatype ($tsm_Datatype s d).
 (declare-parameterized-const $emb_sm.DtCons
   ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
@@ -790,6 +795,8 @@ $SMT_TYPE_CONSTRUCTORS$
     ($smtx_is_var s1 T1 ($sm_Var s2 T2)))
   (($smtx_is_binder_x s1 T1 ($sm_lambda s2 T2))
     ($smtx_is_var s1 T1 ($sm_Var s2 T2)))
+  (($smtx_is_binder_x s1 T1 ($sm_choice s2 T2))
+    ($smtx_is_var s1 T1 ($sm_Var s2 T2)))
   (($smtx_is_binder_x s1 T1 x) $smt_builtin_false)
   )
 )
@@ -935,6 +942,8 @@ $SMT_EVAL_CASES$
   (($smtx_model_eval ($sm_apply ($sm_forall s T) x1))
     ($smt_apply_3 "texists" s T x1))
   (($smtx_model_eval ($sm_apply ($sm_lambda s T) x1)) ($vsm_lambda s T x1))
+  (($smtx_model_eval ($sm_apply ($sm_choice s T) x1))
+    ($smt_apply_3 "tchoice" s T x1))
   ; datatypes
   (($smtx_model_eval ($sm_DtCons s d n)) ($smtx_model_eval_dt_cons s d n))
   (($smtx_model_eval ($sm_apply ($sm_DtSel s d n m) x1))
