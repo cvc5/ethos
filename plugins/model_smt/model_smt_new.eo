@@ -366,16 +366,6 @@ $SMT_TYPE_CONSTRUCTORS$
 (define $smtx_value_cmp ((a $smt_Value) (b $smt_Value))
   ($smt_builtin_z_<= ($smtx_value_hash a) ($smtx_value_hash b)))
 
-; returns one of (v1,v2), preferring values to non-values
-(program $smtx_value_either ((v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_value_either v1 $vsm_not_value) v1)
-  (($smtx_value_either $vsm_not_value v2) v2)
-  (($smtx_value_either v1 v2)             v1)
-  )
-)
-
 ; forward declaration
 (program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
 
@@ -690,17 +680,6 @@ $SMT_TYPE_CONSTRUCTORS$
   (
   (($smtx_map_store ($vsm_map m) i e) ($vsm_map ($smtx_msm_update m i e)))
   (($smtx_map_store v i e)            $vsm_not_value)
-  )
-)
-
-; Array diff
-; Returns the value where m1 and m2 differ, or $vsm_not_value otherwise.
-(program $smtx_map_diff ((m1 $smt_Map) (m2 $smt_Map))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_map_diff ($vsm_map m1) ($vsm_map m2))
-    ; find an index in the first that conflicts with the second, or vice versa
-    ($smtx_value_either ($smtx_msm_find_diff m1 m2) ($smtx_msm_find_diff m2 m1)))
   )
 )
 

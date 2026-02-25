@@ -589,7 +589,14 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addTermReduceSym(
       "int.ispow2", {kInt}, "(and (>= x1 0) (= x1 (int.pow2 (int.log2 x1))))");
   // arrays
-  addRecReduceSym("@array_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
+  std::stringstream ssArrayDiffVar;
+  ssArrayDiffVar << "($sm_Var $smt_builtin_str_vname T)";
+  std::stringstream ssArrayDiff;
+  ssArrayDiff << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (@array_deq_diff x1 x2)))))";
+  ssArrayDiff << "(eo::define ((i ($sm_Var $smt_builtin_str_vname T)))";
+  ssArrayDiff << "($sm_apply ($sm_choice $smt_builtin_str_vname T) ";
+  ssArrayDiff << smtToSmtEmbed("(not (= (select ($eo_to_smt x1) i) (select ($eo_to_smt x2) i)))") << ")))";
+  addEunoiaReduceSym("@array_deq_diff", {kT, kT}, ssArrayDiff.str());
   // strings
   addConstFoldSym("str.update", {kString, kInt, kString}, kString);
   addConstFoldSym("str.rev", {kString}, kString);
