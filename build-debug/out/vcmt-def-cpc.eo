@@ -205,6 +205,7 @@
   ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int) (t $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
+  
   (($eo_dt_selectors ($eo_DtCons s d n))
     ($eo_datatype_cons_selectors_rec s d n d n $smt_builtin_z_zero))
   

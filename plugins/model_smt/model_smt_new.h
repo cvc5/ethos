@@ -56,7 +56,8 @@ class ModelSmtNew : public StdPlugin
    */
   void addEunoiaReduceSym(const std::string& sym,
                           const std::vector<Kind>& args,
-                          const std::string& retTerm);
+                          const std::string& retTerm,
+                          bool isType = false);
   /**
    * Add function whose evaluation is
    * (eo::define ((e1 ($smt_model_eval x1)))
@@ -225,6 +226,8 @@ class ModelSmtNew : public StdPlugin
    */
   std::map<std::string, std::pair<std::vector<Kind>, std::string>>
       d_eoSymReduce;
+  // subset of those that are types
+  std::unordered_set<std::string> d_eoSymReduceTypes;
   /**
    * SMT-LIB symbols that have a custom evaluation function that we define.
    */

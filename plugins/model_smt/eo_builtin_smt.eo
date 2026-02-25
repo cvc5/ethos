@@ -756,6 +756,7 @@
   ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int) (t $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
+  ; a constructor of a user-defined datatype
   (($eo_dt_selectors ($eo_DtCons s d n))
     ($eo_datatype_cons_selectors_rec s d n d n $smt_builtin_z_zero))
   ; otherwise, a datatype constructor declared in the signature

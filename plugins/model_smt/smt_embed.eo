@@ -63,6 +63,7 @@
 ;(define $smt_builtin_q_zero () ($smt_apply_0 "0/1"))
 (define $smt_builtin_q_zero () ($smt_apply_2 "mk_rational" $smt_builtin_z_zero $smt_builtin_z_one))
 (define $smt_builtin_str_empty () ($smt_apply_0 """"""))
+(define $smt_builtin_str_tuple_name () ($smt_apply_0 """@Tuple"""))
 (define $smt_builtin_str_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "streq" x1 x2))
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))

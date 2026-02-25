@@ -520,6 +520,15 @@ $SMT_TYPE_CONSTRUCTORS$
 
 ;; datatypes
 
+(program $smtx_dtc_concat
+  ((U $smt_Type) (c1 $smt_DatatypeCons) (c2 $smt_DatatypeCons))
+  :signature ($smt_DatatypeCons $smt_DatatypeCons) $smt_DatatypeCons
+  (
+  (($smtx_dtc_concat ($dtc_cons U c1) c2) ($dtc_cons U ($smtx_dtc_concat c1 c2)))
+  (($smtx_dtc_concat $dtc_unit c2)        c2)
+  )
+)
+
 ; Replaces ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
 ; of a datatype constructor.
 ; Note that this assumes there is no nested recursion, i.e. occurrences of
@@ -948,15 +957,20 @@ $SMT_EVAL_CASES$
 ;;;;;;;;;;;;;;;;;;;;;;
 
 ; helper for CPC Tuple
+; In $eo_to_smt_type, (Tuple x1 x2) returns
+;   ($eo_to_smt_type_tuple ($eo_to_smt_type x1) ($eo_to_smt_type x2))
+; and TupleUnit returns
+;   ($tsm_Datatype $smt_builtin_str_tuple_name ($dt_sum $dtc_unit $dt_null)).
 (program $eo_to_smt_type_tuple
   ((U $smt_Type) (T $smt_Type) (s $smt_builtin_String) (c $smt_DatatypeCons))
   :signature ($smt_Type $smt_Type) $smt_Type
   (
-  (($eo_to_smt_type_tuple U ($tsm_Datatype s ($dt_sum c $dt_null)))
-    ($tsm_Datatype s ($dt_sum ($dtc_cons U c) $dt_null)))
+  (($eo_to_smt_type_tuple U ($tsm_Datatype $smt_builtin_str_tuple_name ($dt_sum c $dt_null)))
+    ($tsm_Datatype $smt_builtin_str_tuple_name ($dt_sum ($dtc_cons U c) $dt_null)))
   (($eo_to_smt_type_tuple U T) $tsm_none)
   )
 )
+
 
 (program $eo_to_smt_type 
   ((T Type) (n1 $smt_builtin_Int) (s $smt_builtin_String) (d $smt_Datatype)
@@ -970,6 +984,80 @@ $EO_TO_SMT_TYPE_CASES$
   (($eo_to_smt_type T)                  $tsm_none)
   )
 )
+
+; helper for CPC tuple constructor
+; In eo_to_smt, (tuple x1 x2) returns
+;   ($sm_apply ($smtx_tuple_app_extend x1 ($eo_to_smt_type ($eo_typeof x2))) ($eo_to_smt x2))
+; and tuple.unit returns
+;   ($sm_DtCons $smt_builtin_str_tuple_name ($dt_sum $dtc_unit $dt_null) $smt_builtin_z_zero).
+; Given an application of (tuple a1 ... an), returns the same application
+; but where now tuple is the instance of the tuple constructor that expects
+; another argument of type T.
+(program $smtx_tuple_app_extend
+  ((t $smt_Term) (f $smt_Term) (a $smt_Term) (T $smt_Type) (s $smt_builtin_String) (c $smt_DatatypeCons))
+  :signature ($smt_Term $smt_Type) $smt_Term
+  (
+  (($smtx_tuple_app_extend ($sm_apply f a) T)
+    ($sm_apply ($smtx_tuple_app_extend f T) a))
+  (($smtx_tuple_app_extend ($sm_DtCons $smt_builtin_str_tuple_name ($dt_sum c $dt_null) $smt_builtin_z_zero) T)
+    ; extend the datatype with a new argument, we are still the first constructor
+    ($sm_DtCons
+      $smt_builtin_str_tuple_name
+      ($dt_sum ($smtx_dtc_concat c ($dtc_cons T $dtc_unit)) $dt_null)
+      $smt_builtin_z_zero))
+  (($smtx_tuple_app_extend s T) $sm_none)
+  )
+)
+
+
+; In eo_to_smt, (tuple.select x1 x2) returns
+;   ($eo_to_smt_tuple_select ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))
+(program $eo_to_smt_tuple_select
+  ((T $smt_Type) (d $smt_Datatype) (n $smt_builtin_Int) (t $smt_Term))
+  :signature ($smt_Type $smt_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_tuple_select ($tsm_Datatype $smt_builtin_str_tuple_name d) ($sm_numeral n) t)
+    ($sm_apply ($sm_DtSel $smt_builtin_str_tuple_name d $smt_builtin_z_zero n) t))
+  (($eo_to_smt_tuple_select T n t)                    $sm_none)
+  )
+)
+
+; In eo_to_smt, (tuple.update x1 x2) returns
+;   ($eo_to_smt_tuple_update ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))
+(program $eo_to_smt_tuple_update
+  ((T $smt_Type) (d $smt_Datatype) (n $smt_builtin_Int) (t $smt_Term))
+  :signature ($smt_Type $smt_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_tuple_update ($tsm_Datatype $smt_builtin_str_tuple_name d) ($sm_numeral n) t)
+    ($sm_apply ($sm_DtUpdater $smt_builtin_str_tuple_name d $smt_builtin_z_zero n) t))
+  (($eo_to_smt_tuple_update T n t)                    $sm_none)
+  )
+)
+
+(program $eo_to_smt_tester
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int) (t $smt_Term))
+  :signature ($smt_Term) $smt_Term
+  (
+  (($eo_to_smt_tester ($sm_DtCons s d n))  ($sm_DtTester s d n))
+  (($eo_to_smt_tester t)                   $sm_none)
+  )
+)
+
+; (is x1) returns
+;   ($eo_to_smt_tester ($eo_to_smt x1))
+
+(program $eo_to_smt_updater
+  ((s $smt_builtin_String) (d $smt_Datatype)
+   (n $smt_builtin_Int) (m $smt_builtin_Int) (t $smt_Term))
+  :signature ($smt_Term) $smt_Term
+  (
+  (($eo_to_smt_updater ($sm_DtSel s d n m))  ($sm_DtUpdater s d n m))
+  (($eo_to_smt_updater t)                     $sm_none)
+  )
+)
+
+; (update x1) returns
+;   ($eo_to_smt_updater ($eo_to_smt x1))
 
 (program $eo_to_smt 
   ((b $smt_builtin_Bool) (n $smt_builtin_Int) (m $smt_builtin_Int) (r $smt_builtin_Rat)

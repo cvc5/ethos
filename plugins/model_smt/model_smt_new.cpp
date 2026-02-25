@@ -662,18 +662,16 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addEunoiaReduceSym("@from_bools",
                      {kBool, kBitVec},
                      "($eo_to_smt (concat (ite x1 #b1 #b0) x2))");
-  // tuples
-  // these allow Herbrand interpretations
-  addTypeSym("Tuple", {kType, kType});
-  addTypeSym("UnitTuple", {});
-  d_symIgnore["Tuple"] = true;
-  d_symIgnore["UnitTuple"] = true;
-  // addReduceSym("tuple", {}, "($vsm_apply ($vsm_term tuple) $vsm_not_value)");
-  // addReduceSym("tuple.unit", {}, "($vsm_term tuple.unit)");
-  //  FIXME
-  d_symIgnore["tuple"] = true;
-  d_symIgnore["tuple.unit"] = true;
-
+  // datatypes
+  addEunoiaReduceSym("Tuple", {kT, kT}, "($eo_to_smt_type_tuple ($eo_to_smt_type x1) ($eo_to_smt_type x2))", true);
+  addEunoiaReduceSym("UnitTuple", {}, "($tsm_Datatype $smt_builtin_str_tuple_name ($dt_sum $dtc_unit $dt_null))", true);
+  addEunoiaReduceSym("tuple.select", {kT, kT}, "($eo_to_smt_tuple_select ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))");
+    addEunoiaReduceSym("tuple.update", {kT, kT}, "($eo_to_smt_tuple_update ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))");
+  addEunoiaReduceSym("tuple", {kT, kT}, "($sm_apply ($smtx_tuple_app_extend ($eo_to_smt x1) ($eo_to_smt_type ($eo_typeof x2))) ($eo_to_smt x2))");
+  addEunoiaReduceSym("tuple.unit", {}, "($sm_DtCons $smt_builtin_str_tuple_name ($dt_sum $dtc_unit $dt_null) $smt_builtin_z_zero)");
+  addEunoiaReduceSym("is", {kT}, "($eo_to_smt_tester ($eo_to_smt x1))");
+  addEunoiaReduceSym("update", {kT}, "($eo_to_smt_updater ($eo_to_smt x1))");
+  
   // for alethe
   addTermReduceSym("@cl", {kT, kT}, "(or x1 x2)");
 }
@@ -747,11 +745,16 @@ void ModelSmtNew::addTermReduceSym(const std::string& sym,
 
 void ModelSmtNew::addEunoiaReduceSym(const std::string& sym,
                                      const std::vector<Kind>& args,
-                                     const std::string& retTerm)
+                                     const std::string& retTerm,
+                                     bool isType)
 {
   std::cout << "(echo \"trim-defs-cmd (depends " << sym << " " << retTerm
             << ")\")" << std::endl;
   d_eoSymReduce[sym] = std::pair<std::vector<Kind>, std::string>(args, retTerm);
+  if (isType)
+  {
+    d_eoSymReduceTypes.insert(sym);
+  }
 }
 
 void ModelSmtNew::addReduceSym(const std::string& sym,
@@ -854,7 +857,16 @@ void ModelSmtNew::finalizeDecl(const std::string& name, const Expr& e)
       itost = d_eoSymReduce.find(name);
   if (itost != d_eoSymReduce.end())
   {
-    printEunoiaReduce(name, itost->second.first, itost->second.second);
+    std::vector<Kind>& args = itost->second.first;
+    std::string ret = itost->second.second;
+    if (d_eoSymReduceTypes.find(name)!=d_eoSymReduceTypes.end())
+    {
+      printEvalCallBase(d_eoToSmtType, "$eo_to_smt_type", name, args, ret);
+    }
+    else
+    {
+      printEvalCallBase(d_eoToSmt, "$eo_to_smt", name, args, ret);
+    }
     return;
   }
   std::map<std::string, std::vector<Kind>>::iterator itsty =
