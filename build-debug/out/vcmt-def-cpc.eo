@@ -108,6 +108,12 @@
   $eo_Term)
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term))
   ($emb_Var s T))
+(program $eo_mk_apply ((x1 $eo_Term) (x2 $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_mk_apply x1 x2) ($eo_apply x1 x2))
+  )
+)
 (define $eo_binary_mod_w ((w $smt_builtin_Int) (n $smt_builtin_Int))
   ($eo_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
 (program $eo_typeof () :signature ($eo_Term) $eo_Term)
@@ -117,12 +123,6 @@
   ($smt_builtin_ite ($smt_builtin_teq x1 x2)
     ($smt_builtin_ite ($smt_builtin_is_ok x1) x3 $eo_stuck)
     $eo_stuck))
-(program $eo_mk_apply ((x1 $eo_Term) (x2 $eo_Term))
-  :signature ($eo_Term $eo_Term) $eo_Term
-  (
-  (($eo_mk_apply x1 x2) ($eo_apply x1 x2))
-  )
-)
 (program $eo_len ((T Type) (s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int))
   :signature (T) $eo_Term
   (

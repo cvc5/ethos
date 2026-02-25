@@ -84,15 +84,22 @@
 
 ; the ci^th constructor of datatype ($tsm_Datatype s d).
 (declare-parameterized-const $emb_sm.DtCons
-  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) (ci $smt_builtin_Int :opaque)) $smt_Term)
-(define $sm_DtCons ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int))
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
+   (ci $smt_builtin_Int :opaque)) 
+  $smt_Term)
+(define $sm_DtCons 
+  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int))
   ($emb_sm.DtCons s d ci))
 
-; the selector of the ai^th argument of the ci^th constructor of datatype ($tsm_Datatype s d).
+; The selector of the ai^th argument of the ci^th constructor of datatype
+; ($tsm_Datatype s d).
 (declare-parameterized-const $emb_sm.DtSel
-  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) 
+   (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
   $smt_Term)
-(define $sm_DtSel ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int) (ai $smt_builtin_Int))
+(define $sm_DtSel 
+  ((s $smt_builtin_String) (d $smt_Datatype)
+   (ci $smt_builtin_Int) (ai $smt_builtin_Int))
   ($emb_sm.DtSel s d ci ai))
 
 ; the tester of the ci^th constructor of datatype ($tsm_Datatype s d).
@@ -152,7 +159,9 @@ $SMT_TERM_CONSTRUCTORS$
 (define $tsm_Map ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
 
 ; The type of partially applied datatype constructors
-(declare-parameterized-const $emb_tsm.DtCons ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
+(declare-parameterized-const $emb_tsm.DtCons
+  ((Ti $smt_Type :opaque) (Te $smt_Type :opaque))
+  $smt_Type)
 (define $tsm_DtCons ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.DtCons Ti Te))
 
 ; The Sequence type
@@ -169,26 +178,34 @@ $SMT_TERM_CONSTRUCTORS$
 ; ($tsm_Datatype "List" d)
 ; Where d is the datatype spec:
 ; ($dt_sum
-;   ($dtc_cons $tsm_Int ($dtc_cons ($tsm_TypeRef "List") $dtc_unit))
-;   ($dt_unit $dtc_unit))
-; Note that names of constructors and selectors are not represented.
-; The constructors cons/nil for this datatype give an
-; index to the constructor in the list:
+;   ($dtc_cons $tsm_Int ($dtc_cons ($tsm_TypeRef "List") $dtc_unit)) ; cons
+;   ($dt_sum
+;      $dtc_unit ; nil
+;      $dt_null))
+; Note that names of constructors and selectors are not represented in the AST.
+; To express constructor terms, we give an index, such that cons/nil are terms:
 ;   ($sm_DtCons "List" d 0), ($sm_DtCons "List" d 1).
 ; The selectors head/tail for this datatype give indices to the constructor
 ; and argument position they refer to:
 ;   ($sm_DtSel "List" d 0 0) ($sm_DtSel "List" d 0 1).
-; Note this also permits mutual recursion, e.g. this is a tree having a
-; constructor that is a list of trees:
+; Note this also permits mutual recursion, e.g. for SMT datatype:
+; (declare-datatypes ((List 0) (Tree 0))
+;   (((cons (head Tree) (tail List)) (nil))
+;    ((node (children List)) (leaf))))
+; this is represented as:
 ; (eo::define ((Tree
 ;    ($tsm_Datatype "Tree"
 ;      ($dt_sum 
-;        ($dtc_cons ($tsm_TypeRef "List") $dtc_unit)
-;        ($dt_unit $dtc_unit)))))
+;        ($dtc_cons ($tsm_TypeRef "List") $dtc_unit) ; node
+;        ($dt_sum
+;          $dtc_unit ; leaf
+;          $dt_null)))))
 ;   ($tsm_Datatype "List"
 ;      ($dt_sum
-;        ($dtc_cons Tree ($dtc_cons ($tsm_TypeRef "List") $dtc_unit))
-;        ($dt_unit $dtc_unit))))
+;        ($dtc_cons Tree ($dtc_cons ($tsm_TypeRef "List") $dtc_unit)) ; cons
+;        ($dt_sum 
+;           $dtc_unit ; nil
+;           $dt_null))))
 (declare-parameterized-const $emb_tsm.Datatype 
   ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)) $smt_Type)
 (define $tsm_Datatype ((s $smt_builtin_String) (d $smt_Datatype))
@@ -197,6 +214,7 @@ $SMT_TERM_CONSTRUCTORS$
 (declare-parameterized-const $emb_tsm.TypeRef
   ((s $smt_builtin_String :opaque)) $smt_Type)
 (define $tsm_TypeRef ((s $smt_builtin_String)) ($emb_tsm.TypeRef s))
+; utilites
 
 ; all other ordinary type definitions
 $SMT_TYPE_CONSTRUCTORS$
@@ -243,7 +261,7 @@ $SMT_TYPE_CONSTRUCTORS$
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Value)
 (define $vsm_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
   ($emb_vsm.Binary w v))
-; helpers
+; utilities
 (define $vsm_binary_mod_w ((w $smt_builtin_Int) (v $smt_builtin_Int))
   ($emb_vsm.Binary w ($smt_builtin_mod v ($smtx_pow2 w))))
 (define $vsm_mk_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
@@ -283,7 +301,6 @@ $SMT_TYPE_CONSTRUCTORS$
   $smt_Value)
 (define $vsm_apply ((f $smt_Value) (a $smt_Value))
   ($emb_vsm.Apply f a))
-  
 ; utilities
 (program $vsm_apply_head ((f $smt_Value) (a $smt_Value))
   :signature ($smt_Value) $smt_Value
@@ -292,7 +309,6 @@ $SMT_TYPE_CONSTRUCTORS$
   (($vsm_apply_head a)                a)
   )
 )
-
 (program $vsm_apply_arg_nth ((f $smt_Value) (a $smt_Value) (n $smt_builtin_Int))
   :signature ($smt_Value $smt_builtin_Int) $smt_Value
   (
@@ -501,6 +517,30 @@ $SMT_TYPE_CONSTRUCTORS$
 
 ;; datatypes
 
+(program $smtx_dtc_substitute
+  ((s $smt_builtin_Int) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons))
+  :signature ($smt_builtin_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
+  (
+  (($smtx_dtc_substitute s d ($dtc_cons T c))
+    ($dtc_cons
+      ; if it is a recursive reference to the type we are substituting, replace
+      ($smt_builtin_ite ($smt_builtin_Teq T ($tsm_TypeRef s))
+        ($tsm_Datatype s d)
+        T)
+      ($smtx_dtc_substitute s d c)))
+  (($smtx_dtc_substitute s d $dtc_unit) $dtc_unit)
+  )
+)
+(program $smtx_dt_substitute
+  ((s $smt_builtin_Int) (d $smt_Datatype) (c $smt_DatatypeCons) (d2 $smt_Datatype))
+  :signature ($smt_builtin_String $smt_Datatype $smt_Datatype) $smt_Datatype
+  (
+  (($smtx_dt_substitute s d ($dt_sum c d2))
+    ($dt_sum ($smtx_dtc_substitute s d c) ($smtx_dt_substitute s d d2)))
+  (($smtx_dt_substitute s d $dt_null) $dt_null)
+  )
+)
+
 (program $smtx_typeof_dt_cons_value_rec2
   ((T $smt_Type) (U $smt_Type) (c $smt_DatatypeCons) (d $smt_Datatype))
   :signature ($smt_Type $smt_DatatypeCons) $smt_Type
@@ -525,7 +565,9 @@ $SMT_TYPE_CONSTRUCTORS$
 
 (define $smtx_typeof_dt_cons_value
   ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int))
-  ($smtx_typeof_dt_cons_value_rec ($tsm_Datatype s d) d n))
+  ; substitute ($tsm_TypeRef s) to ($tsm_Datatype s d), which ensures the
+  ; datatype is closed.
+  ($smtx_typeof_dt_cons_value_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) n))
 
 ; program: $smtx_typeof_apply_value
 (program $smtx_typeof_apply_value ((T $smt_Type) (U $smt_Type) (V $smt_Type))

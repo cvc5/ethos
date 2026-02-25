@@ -192,6 +192,14 @@
     (eo.Var x1 x2)
 )
 
+; program: $eo_mk_apply
+(define-fun $eo_mk_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite true
+    (eo.Apply x1 x2)
+    eo.Stuck)))
+
 ; program: $eo_binary_mod_w
 (define-fun $eo_binary_mod_w ((x1 Int) (x2 Int)) eo.Term
     (eo.Binary x1 (mod x2 ($smtx_pow2 x1)))
@@ -201,14 +209,6 @@
 (define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
     (ite (teq x1 x2) (ite (not (teq x1 eo.Stuck)) x3 eo.Stuck) eo.Stuck)
 )
-
-; program: $eo_mk_apply
-(define-fun $eo_mk_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite true
-    (eo.Apply x1 x2)
-    eo.Stuck)))
 
 ; program: $eo_len
 (define-fun $eo_len ((x1 eo.Term)) eo.Term

@@ -85,13 +85,22 @@
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term))
   ($emb_Var s T))
 
-;;; External datatype access
+;;; Utilities
 
 ; return: The embedding of (-> T1 T2).
 ; note: Since the Eunoia function type is an atomic term, this becomes a
 ;       curried apply.
 (define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term))
   ($eo_apply ($eo_apply $eo_fun_type T1) T2))
+
+; note: This definition is only used if we are not eagerly flattening evaluation
+; This ensures that stuckness "propagates" through ordinary constant applications.
+(program $eo_mk_apply ((x1 $eo_Term) (x2 $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_mk_apply x1 x2) ($eo_apply x1 x2))
+  )
+)
 
 ;;; Defining parametric bitvector operators
 
@@ -161,15 +170,6 @@
   ($smt_builtin_ite ($smt_builtin_teq x1 x2)
     ($smt_builtin_ite ($smt_builtin_is_ok x1) x3 $eo_stuck)
     $eo_stuck))
-
-; note: This definition is only used if we are not eagerly flattening evaluation
-; This ensures that stuckness "propagates" through ordinary constant applications.
-(program $eo_mk_apply ((x1 $eo_Term) (x2 $eo_Term))
-  :signature ($eo_Term $eo_Term) $eo_Term
-  (
-  (($eo_mk_apply x1 x2) ($eo_apply x1 x2))
-  )
-)
 
 ;;; Boolean operators
 
