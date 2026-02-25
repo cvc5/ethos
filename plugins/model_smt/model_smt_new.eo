@@ -118,9 +118,11 @@
   ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int) (ai $smt_builtin_Int))
   ($emb_sm.DtUpdater s d ci ai))
 
-; constants, which carry their value in the model
-(declare-parameterized-const $emb_sm.Const ((v $smt_Value :opaque)) $smt_Term)
-(define $sm_Const ((v $smt_Value)) ($emb_sm.Const v))
+; constants, which carry their value and type in the model
+(declare-parameterized-const $emb_sm.Const
+  ((v $smt_Value :opaque) (T $smt_Type :opaque)) $smt_Term)
+(define $sm_Const
+  ((v $smt_Value) (T $smt_Type)) ($emb_sm.Const v T))
 
 ; all other ordinary term definitions
 $SMT_TERM_CONSTRUCTORS$
@@ -807,7 +809,7 @@ $SMT_TYPE_CONSTRUCTORS$
       ($sm_apply ($smtx_substitute s T v f) ($smtx_substitute s T v a))))
   (($smtx_substitute s T v z)
     ; if x is z, we are now the constant with the given interpretation
-    ($smt_builtin_ite ($smtx_is_var s T z) ($sm_Const v) z))
+    ($smt_builtin_ite ($smtx_is_var s T z) ($sm_Const v T) z))
   )
 )
 
@@ -929,9 +931,9 @@ $SMT_EVAL_PROGS$
 $SMT_EVAL_CASES$
   ; quantifiers
   (($smtx_model_eval ($sm_apply ($sm_exists s T) x1))
-    ($smt_apply_3 "$smtx_model_eval_exists" s T x1))
+    ($smt_apply_3 "tforall" s T x1))
   (($smtx_model_eval ($sm_apply ($sm_forall s T) x1))
-    ($smt_apply_3 "$smtx_model_eval_forall" s T x1))
+    ($smt_apply_3 "texists" s T x1))
   (($smtx_model_eval ($sm_apply ($sm_lambda s T) x1)) ($vsm_lambda s T x1))
   ; datatypes
   (($smtx_model_eval ($sm_DtCons s d n)) ($smtx_model_eval_dt_cons s d n))
@@ -947,8 +949,12 @@ $SMT_EVAL_CASES$
   ; All interpreted f should be handled in the evaluation cases above.
   (($smtx_model_eval ($sm_apply f x1))
     ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval x1)))
-  ; Constants, which carry their value.
-  (($smtx_model_eval ($sm_Const v)) v)
+  ; Constants, which carry their value. They additionally guard their value
+  ; to ensure it has type T.
+  (($smtx_model_eval ($sm_Const v T))
+    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value v) T)
+      v
+      $vsm_not_value))
   (($smtx_model_eval x1)   $vsm_not_value)
   )
 )

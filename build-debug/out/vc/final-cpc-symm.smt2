@@ -133,9 +133,9 @@
 (define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))
 
 ; forward declarations
-(declare-fun $smtx_model_eval_exists (String tsm.Type sm.Term) vsm.Value)
-(declare-fun $smtx_model_eval_forall (String tsm.Type sm.Term) vsm.Value)
-(declare-fun $smtx_model_eval_lambda (String tsm.Type sm.Term) vsm.Value)
+(declare-fun texists (String tsm.Type sm.Term) vsm.Value)
+(declare-fun tforall (String tsm.Type sm.Term) vsm.Value)
+(declare-fun tlambda (String tsm.Type sm.Term) vsm.Value)
   
 ;;; Relevant definitions
 
@@ -594,28 +594,31 @@
 (assert (! (forall ((x vsm.Value))
     (! (= ($smtx_reverse_value_hash ($smtx_value_hash x)) x) :pattern (($smtx_value_hash x)))) :named smtx.hash_injective))
 
-(define-fun texists ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+; true iff there exists a value of type T that when substituted into F
+; is evaluated as tgt. Note that we do not check the type of T here,
+; instead $smtx_substitute will generate terms ($sm_Const v T), which
+; only evaluate to v if it is of type T.
+(define-fun texists_total ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (exists ((v vsm.Value))
-    (and (= ($smtx_typeof_value v) T)
-         (= ($smtx_model_eval ($smtx_substitute s T v F)) tgt))))
+    (= ($smtx_model_eval ($smtx_substitute s T v F)) tgt)))
 
-(define-fun tforall ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+; true iff all values of type T when substituted into F are evaluated as tgt.
+(define-fun tforall_total ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (forall ((v vsm.Value))
-    (=> (= ($smtx_typeof_value v) T)
-        (= ($smtx_model_eval ($smtx_substitute s T v F)) tgt))))
+    (= ($smtx_model_eval ($smtx_substitute s T v F)) tgt)))
 
 ; exists
 (assert (forall ((s String) (T tsm.Type) (F sm.Term))
-  (= ($smtx_model_eval_exists s T F)
-     (ite (texists s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
-     (ite (tforall s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
+  (= (texists s T F)
+     (ite (texists_total s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
+     (ite (tforall_total s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
        vsm.NotValue)))))
   
 ; forall
 (assert (forall ((s String) (T tsm.Type) (F sm.Term))
-  (= ($smtx_model_eval_exists s T F)
-     (ite (texists s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
-     (ite (tforall s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
+  (= (tforall s T F)
+     (ite (texists_total s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
+     (ite (tforall_total s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
        vsm.NotValue)))))
 
 ;;; The verification condition
