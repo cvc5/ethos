@@ -474,6 +474,9 @@ $SMT_TYPE_CONSTRUCTORS$
   ($smt_builtin_veq ($smtx_msm_lookup m e) $vsm_true))
 
 ; Helper for computing binary set operators.
+; Takes a flag isInter and maps m1, m2, macc.
+; If isInter is true, then we add to macc elements that are in both m1 and m2.
+; If isInter is false, then we add to macc elements that are in the difference of m1 and m2.
 (program $smtx_mss_op_internal
   ((T $smt_Type) (m1 $smt_Map) (m2 $smt_Map) (acc $smt_Map) (e $smt_Value) (isInter $smt_builtin_Bool))
   :signature ($smt_builtin_Bool $smt_Map $smt_Map $smt_Map) $smt_Map
@@ -517,6 +520,10 @@ $SMT_TYPE_CONSTRUCTORS$
 
 ;; datatypes
 
+; Replaces ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
+; of a datatype constructor.
+; Note that this assumes there is no nested recursion, i.e. occurrences of
+; ($tsm_TypeRef s) that are beneath applications of other types.
 (program $smtx_dtc_substitute
   ((s $smt_builtin_Int) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons))
   :signature ($smt_builtin_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
@@ -531,6 +538,11 @@ $SMT_TYPE_CONSTRUCTORS$
   (($smtx_dtc_substitute s d $dtc_unit) $dtc_unit)
   )
 )
+
+; Substitutes ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
+; of datatype constructors of a datatype.
+; Note that this assumes there is no nested recursion, i.e. occurrences of
+; ($tsm_TypeRef s) that are beneath applications of other types.
 (program $smtx_dt_substitute
   ((s $smt_builtin_Int) (d $smt_Datatype) (c $smt_DatatypeCons) (d2 $smt_Datatype))
   :signature ($smt_builtin_String $smt_Datatype $smt_Datatype) $smt_Datatype
@@ -541,22 +553,13 @@ $SMT_TYPE_CONSTRUCTORS$
   )
 )
 
-(program $smtx_typeof_dt_cons_value_rec2
-  ((T $smt_Type) (U $smt_Type) (c $smt_DatatypeCons) (d $smt_Datatype))
-  :signature ($smt_Type $smt_DatatypeCons) $smt_Type
-  (
-  (($smtx_typeof_dt_cons_value_rec2 T ($dtc_cons U c))
-    ($tsm_DtCons U ($smtx_typeof_dt_cons_value_rec2 T c)))
-  (($smtx_typeof_dt_cons_value_rec2 T $dtc_unit) T)
-  )
-)
-
 (program $smtx_typeof_dt_cons_value_rec
-  ((T $smt_Type) (n $smt_builtin_Int) (c $smt_DatatypeCons) (d $smt_Datatype))
+  ((T $smt_Type) (U $smt_Type) (n $smt_builtin_Int) (c $smt_DatatypeCons) (d $smt_Datatype))
   :signature ($smt_Type $smt_Datatype $smt_builtin_Int) $smt_Type
   (
-  (($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) $smt_builtin_z_zero)
-    ($smtx_typeof_dt_cons_value_rec2 T c))
+  (($smtx_typeof_dt_cons_value_rec T $dt_null $smt_builtin_z_zero) T)
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum ($dtc_cons U c) d) $smt_builtin_z_zero)
+    ($tsm_DtCons U ($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) $smt_builtin_z_zero)))
   (($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) n)
     ($smtx_typeof_dt_cons_value_rec T d ($smt_builtin_z_dec n)))
   (($smtx_typeof_dt_cons_value_rec T d n) $tsm_none)
@@ -566,7 +569,7 @@ $SMT_TYPE_CONSTRUCTORS$
 (define $smtx_typeof_dt_cons_value
   ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int))
   ; substitute ($tsm_TypeRef s) to ($tsm_Datatype s d), which ensures the
-  ; datatype is closed.
+  ; datatype we are processing is closed.
   ($smtx_typeof_dt_cons_value_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) n))
 
 ; program: $smtx_typeof_apply_value
@@ -594,12 +597,16 @@ $SMT_TYPE_CONSTRUCTORS$
   (($smtx_typeof_value ($vsm_rational q)) $tsm_Real)
   (($smtx_typeof_value ($vsm_string s))   $tsm_String)
   (($smtx_typeof_value ($vsm_binary w n))
-    ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w) ($tsm_BitVec w) $tsm_none))
+    ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w) 
+      ($tsm_BitVec w)
+      $tsm_none))
   (($smtx_typeof_value ($vsm_re r))       $tsm_RegLan)
   (($smtx_typeof_value ($vsm_map m))      ($smtx_typeof_map_value m))
   (($smtx_typeof_value ($vsm_seq ss))     ($smtx_typeof_seq_value ss))
-  (($smtx_typeof_value ($vsm_DtCons s d n)) ($smtx_typeof_dt_cons_value s d n))
-  (($smtx_typeof_value ($vsm_apply f v))  ($smtx_typeof_apply_value ($smtx_typeof_value f) ($smtx_typeof_value v)))
+  (($smtx_typeof_value ($vsm_DtCons s d n))
+    ($smtx_typeof_dt_cons_value s d n))
+  (($smtx_typeof_value ($vsm_apply f v))
+    ($smtx_typeof_apply_value ($smtx_typeof_value f) ($smtx_typeof_value v)))
   (($smtx_typeof_value v)                 $tsm_none)
   )
 )
@@ -940,35 +947,49 @@ $SMT_EVAL_CASES$
 
 ;;;;;;;;;;;;;;;;;;;;;;
 
+; helper for CPC Tuple
+(program $eo_to_smt_type_tuple
+  ((U $smt_Type) (T $smt_Type) (s $smt_builtin_String) (c $smt_DatatypeCons))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($eo_to_smt_type_tuple U ($tsm_Datatype s ($dt_sum c $dt_null)))
+    ($tsm_Datatype s ($dt_sum ($dtc_cons U c) $dt_null)))
+  (($eo_to_smt_type_tuple U T) $tsm_none)
+  )
+)
+
 (program $eo_to_smt_type 
-  ((T Type) (n1 $smt_builtin_Int) 
+  ((T Type) (n1 $smt_builtin_Int) (s $smt_builtin_String) (d $smt_Datatype)
   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
   (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
   :signature (Type) $smt_Type
   (
-  (($eo_to_smt_type Bool) $tsm_Bool)
+  (($eo_to_smt_type Bool)               $tsm_Bool)
+  (($eo_to_smt_type ($eo_Datatype s d)) ($tsm_Datatype s d))
 $EO_TO_SMT_TYPE_CASES$
-  (($eo_to_smt_type T)    $tsm_none)
+  (($eo_to_smt_type T)                  $tsm_none)
   )
 )
 
 (program $eo_to_smt 
-  ((b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Rat)
-   (s $smt_builtin_String) (w $smt_builtin_Int)
+  ((b $smt_builtin_Bool) (n $smt_builtin_Int) (m $smt_builtin_Int) (r $smt_builtin_Rat)
+   (s $smt_builtin_String) (w $smt_builtin_Int) (d $smt_Datatype)
    (T Type) (U Type) (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
    (f (-> U T)) (y U) (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
   :signature (T) $smt_Term
   (
-  (($eo_to_smt ($eo_bool b))      ($sm_bool b))
-  (($eo_to_smt ($eo_numeral n))   ($sm_numeral n))
-  (($eo_to_smt ($eo_rational r))  ($sm_rational r))
-  (($eo_to_smt ($eo_string s))    ($sm_string s))
-  (($eo_to_smt ($eo_binary w n))  ($sm_binary w n))
-  (($eo_to_smt ($eo_Var s T))     ($sm_Var s ($eo_to_smt_type T)))
+  (($eo_to_smt ($eo_bool b))        ($sm_bool b))
+  (($eo_to_smt ($eo_numeral n))     ($sm_numeral n))
+  (($eo_to_smt ($eo_rational r))    ($sm_rational r))
+  (($eo_to_smt ($eo_string s))      ($sm_string s))
+  (($eo_to_smt ($eo_binary w n))    ($sm_binary w n))
+  (($eo_to_smt ($eo_Var s T))       ($sm_Var s ($eo_to_smt_type T)))
+  (($eo_to_smt ($eo_DtCons s d n))  ($sm_DtCons s d n))
+  (($eo_to_smt ($eo_DtSel s d n m)) ($sm_DtSel s d n m))
 $EO_TO_SMT_CASES$
   ; TODO: maybe a datatype constructor or selector???
-  (($eo_to_smt (f y))             ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
-  (($eo_to_smt y)                 $sm_none)
+  (($eo_to_smt (f y))               ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
+  (($eo_to_smt y)                   $sm_none)
   )
 )
 

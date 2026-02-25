@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 137
+; #trim-defs: 152
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -58,6 +58,7 @@
 (define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
 (define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
+(define $smt_builtin_z_inc ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_one))
 (define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
 (program $smtx_pow2 ((i $smt_builtin_Int))
   :signature ($smt_builtin_Int) $smt_builtin_Int
@@ -69,6 +70,21 @@
         ($smtx_pow2 ($smt_builtin_z_dec i)))))
   )
 )
+(declare-const $smt_Type Type)
+(declare-const $smt_DatatypeCons Type)
+(declare-const $smt_Datatype Type)
+(declare-const $emb_dtc.unit $smt_DatatypeCons)
+(define $dtc_unit () $emb_dtc.unit)
+(declare-parameterized-const $emb_dtc.cons
+  ((T $smt_Type :opaque) (c $smt_DatatypeCons :opaque))
+  $smt_DatatypeCons)
+(define $dtc_cons ((T $smt_DatatypeCons) (c $smt_DatatypeCons))
+  ($emb_dtc.cons T c))
+(declare-parameterized-const $emb_dt.sum
+  ((c $smt_DatatypeCons :opaque) (d $smt_Datatype :opaque))
+  $smt_Datatype)
+(define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
+  ($emb_dt.sum c d))
 (declare-const $eo_Term Type)
 (define $smt_builtin_teq ((x1 $eo_Term) (x2 $eo_Term)) ($smt_apply_2 "teq" x1 x2))
 (declare-const $emb_Bool $eo_Term)
@@ -108,6 +124,21 @@
   $eo_Term)
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term))
   ($emb_Var s T))
+(declare-parameterized-const $emb_DtCons
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
+   (ci $smt_builtin_Int :opaque))
+  $eo_Term)
+(define $eo_DtCons 
+  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int))
+  ($emb_DtCons s d ci))
+(declare-parameterized-const $emb_DtSel
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
+   (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
+  $eo_Term)
+(define $eo_DtSel 
+  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int)
+   (ai $smt_builtin_Int))
+  ($emb_DtSel s d ci ai))
 (program $eo_mk_apply ((x1 $eo_Term) (x2 $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
@@ -155,10 +186,27 @@
   )
 )
 (program $eo_dt_selectors_main () :signature ($eo_Term) $eo_Term)
-(program $eo_dt_selectors ((t $eo_Term))
+(program $eo_datatype_cons_selectors_rec
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int)
+   (U $smt_Type) (c $smt_DatatypeCons) (d2 $smt_Datatype)
+   (ci $smt_builtin_Int) (ai $smt_builtin_Int))
+  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Int $smt_Datatype $smt_builtin_Int $smt_builtin_Int) $eo_List
+  (
+  (($eo_datatype_cons_selectors_rec s d n ($dt_sum $dtc_unit d2) $smt_builtin_z_zero ai)
+     $eo_List_nil)
+  (($eo_datatype_cons_selectors_rec s d n ($dt_sum ($dtc_cons U c) d2) $smt_builtin_z_zero ai)
+    ($eo_List_cons ($eo_DtSel s d n ai)
+      ($eo_datatype_cons_selectors_rec s d n d2 $smt_builtin_z_zero ($smt_builtin_z_inc ai))))
+  (($eo_datatype_cons_selectors_rec s d n ($dt_sum c d2) ci ai)
+    ($eo_datatype_cons_selectors_rec s d n d2 ($smt_builtin_z_dec ci) ai))
+  )
+)
+(program $eo_dt_selectors 
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int) (t $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
-  
+  (($eo_dt_selectors ($eo_DtCons s d n))
+    ($eo_datatype_cons_selectors_rec s d n d n $smt_builtin_z_zero))
   
   (($eo_dt_selectors t) ($eo_dt_selectors_main t))
   )

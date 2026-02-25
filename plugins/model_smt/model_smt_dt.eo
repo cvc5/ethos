@@ -1,138 +1,61 @@
 
-; A datatype constructor
-(declare-const $smt_DatatypeCons Type)
-
-; A datatype
-(declare-const $smt_Datatype Type)
-
-; A constructor having no arguments
-(declare-const $emb_dtc.unit $smt_DatatypeCons)
-(define $dtc_unit () $emb_dtc.unit)
-
-; A constructor having at least one argument
-; It takes the type of that argument and a constructor specifying the remaining
-; arguments.
-(declare-parameterized-const $emb_dtc.cons
-  ((T $smt_Type :opaque) (c $smt_DatatypeCons :opaque))
-  $smt_DatatypeCons)
-(define $dtc_cons ((T $smt_DatatypeCons) (c $smt_DatatypeCons))
-  ($emb_dtc.cons T c))
-
-; A datatype having one constructor
-(declare-parameterized-const $emb_dt.unit
-  ((c $smt_DatatypeCons :opaque)) $smt_Datatype)
-(define $dt_unit ((c $smt_DatatypeCons))
-  ($emb_dt.unit c))
-  
-; A datatype having more than one constructor
-(declare-parameterized-const $emb_dt.sum
-  ((c $smt_DatatypeCons :opaque) (d $smt_Datatype :opaque))
-  $smt_Datatype)
-(define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
-  ($emb_dt.sum c d))
-
-;;-------------------------------
-
-; A datatype is a type containing (1) its name, and (2) its structure.
-; Its name can be understood as a binder under which ($tsm_TypeRef <name>) is
-; a recursive reference to the (most recently bound) instance of a datatype
-; with the given name.
-; For example, the recursive datatype for a list of integers:
-; (declare-datatype List ((cons (head Int) (tail List)) (nil)))
-; Would have the following syntax:
-; ($tsm_Datatype "List"
-;    ($dt_sum
-;      ($dtc_cons $tsm_Int ($dtc_cons ($tsm_TypeRef "List") $dtc_unit))
-;      ($dt_unit $dtc_unit)))
-; Note that names of constructors and selectors are not represented.
-; Call the above type D. The constructors cons/nil for this datatype give an
-; index to the constructor in the list:
-;   ($sm_DtCons D 0), ($sm_DtCons D 1).
-; The selectors head/tail for this datatype give indices to the constructor
-; and argument position they refer to:
-;   ($sm_DtSel D 0 0) ($sm_DtSel D 0 1).
-; Note this also permits mutual recursion, e.g. this is a tree having a
-; constructor that is a list of trees:
-; (eo::define ((Tree
-;    ($tsm_Datatype "Tree"
-;      ($dt_sum 
-;        ($dtc_cons ($tsm_TypeRef "List") $dtc_unit)
-;        ($dt_unit $dtc_unit)))))
-;   ($tsm_Datatype "List"
-;      ($dt_sum
-;        ($dtc_cons $tsm_Int ($dtc_cons Tree $dtc_unit))
-;        ($dt_unit $dtc_unit))))
-(declare-parameterized-const $emb_tsm.Datatype 
-  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)) $smt_Type)
-(define $tsm_Datatype ((s $smt_builtin_String) (d $smt_Datatype))
-  ($emb_tsm.Datatype s d))
-  
-(declare-parameterized-const $emb_tsm.TypeRef
-  ((s $smt_builtin_String :opaque)) $smt_Type)
-(define $tsm_TypeRef ((s $smt_builtin_String)) ($emb_tsm.TypeRef s))
-
-; the ci^th constructor of datatype T.
-(declare-parameterized-const $emb_sm.DtCons
-  ((T $smt_Type :opaque) (ci $smt_builtin_Int :opaque)) $smt_Term)
-(define $sm_DtCons ((T $smt_Type) (ci $smt_builtin_Int))
-  ($emb_sm.DtCons T ci))
-
-; the selector of the ai^th argument of the ci^th constructor of datatype T.
-(declare-parameterized-const $emb_sm.DtSel
-  ((T $smt_Type :opaque) (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
-  $smt_Term)
-(define $sm_DtSel ((T $smt_Type) (ci $smt_builtin_Int) (ai $smt_builtin_Int))
-  ($emb_sm.DtSel T ci ai))
-
-; the tester of the ci^th constructor of datatype T.
-(declare-parameterized-const $emb_sm.DtTester
-  ((T $smt_Type :opaque) (ci $smt_builtin_Int :opaque))
-  $smt_Term)
-(define $sm_DtTester ((T $smt_Type) (ci $smt_builtin_Int))
-  ($emb_sm.DtTester T ci))
-  
-; the updater of the ai^th argument of the ci^th constructor of datatype T.
-(declare-parameterized-const $emb_sm.DtUpdater
-  ((T $smt_Type :opaque) (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int))
-  $smt_Term)
-(define $sm_DtUpdater ((T $smt_Type) (ci $smt_builtin_Int) (ai $smt_builtin_Int))
-  ($emb_sm.DtUpdater T ci ai))
-
-;;-------------------------------
-
 (declare-parameterized-const $emb_Datatype 
-  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)) $eo_Term)
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque))
+  $eo_Term)
 (define $eo_Datatype ((s $smt_builtin_String) (d $smt_Datatype))
   ($emb_Datatype s d))
   
-(declare-parameterized-const $emb_TypeRef
-  ((s $smt_builtin_String :opaque)) $smt_Type)
-(define $eo_TypeRef ((s $smt_builtin_String)) ($emb_TypeRef s))
+; its type is Type
+; its conversion to smt type is ($tsm_Datatype s d).
 
 ; the ci^th constructor of datatype T.
 (declare-parameterized-const $emb_DtCons
-  ((T $eo_Term :opaque) (ci $smt_builtin_Int :opaque)) $eo_Term)
-(define $eo_DtCons ((T $eo_Term) (ci $smt_builtin_Int))
-  ($emb_DtCons T ci))
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
+   (ci $smt_builtin_Int :opaque))
+  $eo_Term)
+(define $eo_DtCons 
+  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int))
+  ($emb_DtCons s d ci))
+
+  
+  
+(declare-parameterized-const $check_smt_type ((T Type) (S $smt_Type))
+  ($smt_builtin_ite ($smt_builtin_Teq ($eo_to_smt_type T) S)
+    
+; its type is
+(program $eo_typeof_DtCons_rec ()
+  :signature ($smt_builtin_String $smt_Datatype $smt_Datatype $smt_builtin_Int) Type
+  (
+  (($eo_typeof_DtCons_rec s d n 
+  )
+)
+; its conversion to smt term is ($sm_DtCons s d ci).
 
 ; the selector of the ai^th argument of the ci^th constructor of datatype T.
 (declare-parameterized-const $emb_DtSel
-  ((T $eo_Term :opaque) (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
-  $smt_Term)
-(define $eo_DtSel ((T $eo_Term) (ci $smt_builtin_Int) (ai $smt_builtin_Int))
-  ($emb_DtSel T ci))
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
+   (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
+  $eo_Term)
+(define $eo_DtSel 
+  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int)
+   (ai $smt_builtin_Int))
+  ($emb_DtSel s d ci ai))
+
+; its type is
+; its conversion to smt term is ($sm_DtCons s d ci ai).
 
 ;;---------------------------------
 
 (program $eo_datatype_constructors_rec
-  ((c $smt_DatatypeCons) (d $smt_Datatype) (ci $smt_builtin_Int))
-  :signature ($eo_Term $smt_Datatype $smt_builtin_Int) $eo_List
+  ((s $smt_builtin_String) (d $smt_Datatype) (c $smt_DatatypeCons)
+   (d2 $smt_Datatype) (ci $smt_builtin_Int))
+  :signature ($smt_builtin_String $smt_Datatype $smt_Datatype $smt_builtin_Int) $eo_List
   (
-  (($eo_datatype_constructors_rec T ($dt_unit c) ci)
-    ($eo_List_cons ($eo_DtCons T ci) $eo_List_nil))
-  (($eo_datatype_constructors_rec T ($dt_sum c d) ci)
-    ($eo_List_cons ($eo_DtCons T ci) 
-      ($eo_datatype_constructors_rec d ($smt_builtin_z_inc ci))))
+  (($eo_datatype_constructors_rec s d ($dt_unit c) ci)
+    ($eo_List_cons ($eo_DtCons s d ci) $eo_List_nil))
+  (($eo_datatype_constructors_rec s d ($dt_sum c d2) ci)
+    ($eo_List_cons ($eo_DtCons s d ci)
+      ($eo_datatype_constructors_rec s d d2 ($smt_builtin_z_inc ci))))
   )
 )
 
@@ -143,19 +66,24 @@
   :signature ($eo_Term) $eo_List
   (
   ; a user-defined datatype
-  (($eo_dt_constructors ($tsm_Datatype s d)) 
-    ($eo_datatype_constructors_rec ($tsm_Datatype s d) d $smt_builtin_z_zero))
+  (($eo_dt_constructors ($eo_Datatype s d)) 
+    ($eo_datatype_constructors_rec s d d $smt_builtin_z_zero))
   )
 )
 
 (program $eo_datatype_cons_selectors_rec
-  ((T $eo_Term) (U $eo_Term) (c $smt_DatatypeCons) (cs $smt_DatatypeCons))
-  :signature ($eo_Term $smt_DatatypeCons $smt_builtin_Int $smt_builtin_Int) $eo_List
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int)
+   (U $smt_Type) (c $smt_DatatypeCons) (d2 $smt_Datatype))
+  
+  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Int $smt_DatatypeCons $smt_builtin_Int $smt_builtin_Int) $eo_List
   (
-  (($eo_datatype_cons_selectors_rec T $dtc_unit ci ai)   $eo_List_nil)
-  (($eo_datatype_cons_selectors_rec T ($dtc_cons U cs) ci ai)
-    ($eo_List_cons ($eo_DtSel T ci ai)
-      ($eo_datatype_cons_selectors_rec T cs ci ($smt_builtin_z_inc ai))))
+  (($eo_datatype_cons_selectors_rec s d n ($dt_sum $dtc_unit d2) $smt_builtin_z_zero ai)
+     $eo_List_nil)
+  (($eo_datatype_cons_selectors_rec s d n ($dt_sum ($dtc_cons U c) d2) $smt_builtin_z_zero ai)
+    ($eo_List_cons ($eo_DtSel s d n ai)
+      ($eo_datatype_cons_selectors_rec s d n d2 $smt_builtin_z_zero ($smt_builtin_z_inc ai))))
+  (($eo_datatype_cons_selectors_rec s d n ($dt_sum c d2) ci ai)
+    ($eo_datatype_cons_selectors_rec s d n d2 ($smt_builtin_z_dec ci) ai))
   )
 )
 
@@ -165,11 +93,8 @@
   ((s $smt_builtin_String) (c $smt_DatatypeCons) (d $smt_Datatype) (n $smt_builtin_Int) (t $eo_Term))
   :signature ($eo_Term) $eo_List
   (
-  (($eo_dt_selectors ($eo_DtCons ($tsm_Datatype s ($dt_sum c d)) n))
-    ($smt_builtin_ite ($smt_builtin_z_= n $smt_builtin_z_zero)
-      ($eo_datatype_cons_selectors_rec ($tsm_Datatype s d) c n $smt_builtin_z_zero)
-      ; recurse to datatype tail, subtracting from index
-      ($eo_dt_selectors ($eo_DtCons ($tsm_Datatype s d) ($smt_builtin_z_dec n)))))
+  (($eo_dt_selectors ($eo_DtCons s d n))
+    ($eo_datatype_cons_selectors_rec s d n d n $smt_builtin_z_zero))
   )
 )
 

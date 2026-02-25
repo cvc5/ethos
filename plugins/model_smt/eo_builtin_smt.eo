@@ -85,6 +85,31 @@
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term))
   ($emb_Var s T))
 
+(declare-parameterized-const $emb_Datatype 
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque))
+  $eo_Term)
+(define $eo_Datatype ((s $smt_builtin_String) (d $smt_Datatype))
+  ($emb_Datatype s d))
+
+; the ci^th constructor of datatype T.
+(declare-parameterized-const $emb_DtCons
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
+   (ci $smt_builtin_Int :opaque))
+  $eo_Term)
+(define $eo_DtCons 
+  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int))
+  ($emb_DtCons s d ci))
+
+; the selector of the ai^th argument of the ci^th constructor of datatype T.
+(declare-parameterized-const $emb_DtSel
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
+   (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
+  $eo_Term)
+(define $eo_DtSel 
+  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int)
+   (ai $smt_builtin_Int))
+  ($emb_DtSel s d ci ai))
+  
 ;;; Utilities
 
 ; return: The embedding of (-> T1 T2).
@@ -679,12 +704,27 @@
 ; note: This method returns the constructors for all user defined terms.
 (program $eo_dt_constructors_main () :signature ($eo_Term) $eo_Term)
 
+(program $eo_datatype_constructors_rec
+  ((s $smt_builtin_String) (d $smt_Datatype) (c $smt_DatatypeCons)
+   (d2 $smt_Datatype) (ci $smt_builtin_Int))
+  :signature ($smt_builtin_String $smt_Datatype $smt_Datatype $smt_builtin_Int) $eo_List
+  (
+  (($eo_datatype_constructors_rec s d $dt_null ci) $eo_List_nil)
+  (($eo_datatype_constructors_rec s d ($dt_sum c d2) ci)
+    ($eo_List_cons ($eo_DtCons s d ci)
+      ($eo_datatype_constructors_rec s d d2 ($smt_builtin_z_inc ci))))
+  )
+)
+
 ; program: $eo_dt_constructors
 ; implements: eo::dt_constructors
-(program $eo_dt_constructors ((T $eo_Term))
+(program $eo_dt_constructors
+  ((s $smt_builtin_String) (d $smt_Datatype) (T $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
-  ; TODO
+  ; a user-defined datatype
+  (($eo_dt_constructors ($eo_Datatype s d)) 
+    ($eo_datatype_constructors_rec s d d $smt_builtin_z_zero))
   ; otherwise, a datatype declared in the signature
   (($eo_dt_constructors T) ($eo_dt_constructors_main T))
   )
@@ -694,12 +734,30 @@
 ; note: This method returns the constructors for all user defined terms.
 (program $eo_dt_selectors_main () :signature ($eo_Term) $eo_Term)
 
+(program $eo_datatype_cons_selectors_rec
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int)
+   (U $smt_Type) (c $smt_DatatypeCons) (d2 $smt_Datatype)
+   (ci $smt_builtin_Int) (ai $smt_builtin_Int))
+  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Int $smt_Datatype $smt_builtin_Int $smt_builtin_Int) $eo_List
+  (
+  (($eo_datatype_cons_selectors_rec s d n ($dt_sum $dtc_unit d2) $smt_builtin_z_zero ai)
+     $eo_List_nil)
+  (($eo_datatype_cons_selectors_rec s d n ($dt_sum ($dtc_cons U c) d2) $smt_builtin_z_zero ai)
+    ($eo_List_cons ($eo_DtSel s d n ai)
+      ($eo_datatype_cons_selectors_rec s d n d2 $smt_builtin_z_zero ($smt_builtin_z_inc ai))))
+  (($eo_datatype_cons_selectors_rec s d n ($dt_sum c d2) ci ai)
+    ($eo_datatype_cons_selectors_rec s d n d2 ($smt_builtin_z_dec ci) ai))
+  )
+)
+
 ; program: $eo_dt_selectors
 ; implements: eo::dt_selectors
-(program $eo_dt_selectors ((t $eo_Term))
+(program $eo_dt_selectors 
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int) (t $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
-  ; TODO
+  (($eo_dt_selectors ($eo_DtCons s d n))
+    ($eo_datatype_cons_selectors_rec s d n d n $smt_builtin_z_zero))
   ; otherwise, a datatype constructor declared in the signature
   (($eo_dt_selectors t) ($eo_dt_selectors_main t))
   )

@@ -75,6 +75,10 @@
   (eo.FunType)
   ; smt-cons: Var
   (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
+  ; smt-cons: DtCons
+  (eo.DtCons (eo.DtCons.arg1 String) (eo.DtCons.arg2 dt.Datatype) (eo.DtCons.arg3 Int))
+  ; smt-cons: DtSel
+  (eo.DtSel (eo.DtSel.arg1 String) (eo.DtSel.arg2 dt.Datatype) (eo.DtSel.arg3 Int) (eo.DtSel.arg4 Int))
   ; user-decl: not
   (eo.not)
   ; user-decl: and
@@ -192,14 +196,14 @@
     (eo.Var x1 x2)
 )
 
-; program: $eo_binary_mod_w
-(define-fun $eo_binary_mod_w ((x1 Int) (x2 Int)) eo.Term
-    (eo.Binary x1 (mod x2 ($smtx_pow2 x1)))
+; program: $eo_DtCons
+(define-fun $eo_DtCons ((x1 String) (x2 dt.Datatype) (x3 Int)) eo.Term
+    (eo.DtCons x1 x2 x3)
 )
 
-; program: $eo_requires
-(define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
-    (ite (teq x1 x2) (ite (not (teq x1 eo.Stuck)) x3 eo.Stuck) eo.Stuck)
+; program: $eo_DtSel
+(define-fun $eo_DtSel ((x1 String) (x2 dt.Datatype) (x3 Int) (x4 Int)) eo.Term
+    (eo.DtSel x1 x2 x3 x4)
 )
 
 ; program: $eo_mk_apply
@@ -209,6 +213,16 @@
   (ite true
     (eo.Apply x1 x2)
     eo.Stuck)))
+
+; program: $eo_binary_mod_w
+(define-fun $eo_binary_mod_w ((x1 Int) (x2 Int)) eo.Term
+    (eo.Binary x1 (mod x2 ($smtx_pow2 x1)))
+)
+
+; program: $eo_requires
+(define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
+    (ite (teq x1 x2) (ite (not (teq x1 eo.Stuck)) x3 eo.Stuck) eo.Stuck)
+)
 
 ; program: $eo_len
 (define-fun $eo_len ((x1 eo.Term)) eo.Term
@@ -265,13 +279,29 @@
 ; fwd-decl: $eo_dt_selectors_main
 (declare-fun $eo_dt_selectors_main (eo.Term) eo.Term)
 
+; program: $eo_datatype_cons_selectors_rec
+(declare-fun $eo_datatype_cons_selectors_rec (String dt.Datatype Int dt.Datatype Int Int) eo.Term)
+(assert (! (forall ((x1 String) (x2 dt.Datatype) (x3 Int) (x4 dt.Datatype) (x5 Int) (x6 Int))
+  (! (= ($eo_datatype_cons_selectors_rec x1 x2 x3 x4 x5 x6)
+  (ite false
+    eo.Stuck
+  (ite (and ((_ is dt.sum) x4) (= (dt.sum.arg1 x4) dtc.unit) (= x5 0))
+    eo.$eo_List_nil
+  (ite (and ((_ is dt.sum) x4) ((_ is dtc.cons) (dt.sum.arg1 x4)) (= x5 0))
+    ($eo_mk_apply (eo.Apply eo.$eo_List_cons (eo.DtSel x1 x2 x3 x6)) ($eo_datatype_cons_selectors_rec x1 x2 x3 (dt.sum.arg2 x4) 0 (zplus x6 1)))
+  (ite ((_ is dt.sum) x4)
+    ($eo_datatype_cons_selectors_rec x1 x2 x3 (dt.sum.arg2 x4) (zplus x5 (zneg 1)) x6)
+    eo.Stuck))))) :pattern (($eo_datatype_cons_selectors_rec x1 x2 x3 x4 x5 x6)))) :named sm.axiom.$eo_datatype_cons_selectors_rec))
+
 ; program: $eo_dt_selectors
 (define-fun $eo_dt_selectors ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
     eo.Stuck
+  (ite ((_ is eo.DtCons) x1)
+    ($eo_datatype_cons_selectors_rec (eo.DtCons.arg1 x1) (eo.DtCons.arg2 x1) (eo.DtCons.arg3 x1) (eo.DtCons.arg2 x1) (eo.DtCons.arg3 x1) 0)
   (ite true
     ($eo_dt_selectors_main x1)
-    eo.Stuck)))
+    eo.Stuck))))
 
 ; program: $mk_symm
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term
