@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 44
+; #trim-defs: 42
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -26,8 +26,6 @@
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List))
 (program $eo_typeof ((T Type)) :signature (T) Type)
-(program $eo_dt_constructors () :signature (Type) $eo_List)
-(program $eo_dt_selectors ((T Type)) :signature (T) $eo_List)
 ; This file defines the semantics of Eunoia operators that require calling
 ; SMT-LIB like computations.
 
@@ -311,6 +309,52 @@
   (($smtx_binary_extract w n x1 x2) ($smt_builtin_div n ($smtx_pow2 x2)))
   )
 )
+
+;;; Terms, types, datatypes
+
+; An SMT term.
+(declare-const $smt_Term Type)
+
+; An SMT type.
+(declare-const $smt_Type Type)
+
+; A datatype constructor
+(declare-const $smt_DatatypeCons Type)
+
+; A datatype
+(declare-const $smt_Datatype Type)
+
+; utilities
+
+; Assumes that Teq is defined to be equality over $smt_Type
+(define $smt_builtin_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($smt_apply_2 "Teq" x1 x2))
+
+
+;;; Constructors for SMT-LIB datatypes and datatype constructors
+
+; A constructor having no arguments
+(declare-const $emb_dtc.unit $smt_DatatypeCons)
+(define $dtc_unit () $emb_dtc.unit)
+
+; A constructor having at least one argument
+; It takes the type of that argument and a constructor specifying the remaining
+; arguments.
+(declare-parameterized-const $emb_dtc.cons
+  ((T $smt_Type :opaque) (c $smt_DatatypeCons :opaque))
+  $smt_DatatypeCons)
+(define $dtc_cons ((T $smt_DatatypeCons) (c $smt_DatatypeCons))
+  ($emb_dtc.cons T c))
+
+; A datatype having no constructors
+(declare-const $emb_dt.null $smt_Datatype)
+(define $dt_null () $emb_dt.null)
+  
+; A datatype having at least one constructor
+(declare-parameterized-const $emb_dt.sum
+  ((c $smt_DatatypeCons :opaque) (d $smt_Datatype :opaque))
+  $smt_Datatype)
+(define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
+  ($emb_dt.sum c d))
 
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term).
@@ -957,7 +1001,7 @@
 
 ; fwd-decl: $eo_typeof_main
 ; note: This method returns the type for all user defined terms.
-(program $eo_typeof_main () :signature ($eo_Term) Type)
+(program $eo_typeof_main () :signature ($eo_Term) $eo_Term)
 
 ; forward declarations for literal type rules
 (program $eo_lit_type_Numeral ((T Type)) :signature (T) Type)
@@ -972,7 +1016,6 @@
    (s $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
-  ; TODO: auto-generate these?
   (($eo_typeof ($eo_bool b))                 Bool)
   (($eo_typeof ($eo_numeral n))              ($eo_lit_type_Numeral ($eo_numeral n)))
   (($eo_typeof ($eo_rational r))             ($eo_lit_type_Rational ($eo_rational r)))
@@ -981,6 +1024,36 @@
   (($eo_typeof ($eo_Var s T))                T)
   ; otherwise, invoke the routine for user types from the signature.
   (($eo_typeof t)                            ($eo_typeof_main t))
+  )
+)
+
+; fwd-decl: $eo_dt_constructors_main
+; note: This method returns the constructors for all user defined terms.
+(program $eo_dt_constructors_main () :signature ($eo_Term) $eo_Term)
+
+; program: $eo_dt_constructors
+; implements: eo::dt_constructors
+(program $eo_dt_constructors ((T $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  ; TODO
+  ; otherwise, a datatype declared in the signature
+  (($eo_dt_constructors T) ($eo_dt_constructors_main T))
+  )
+)
+
+; fwd-decl: $eo_dt_selectors_main
+; note: This method returns the constructors for all user defined terms.
+(program $eo_dt_selectors_main () :signature ($eo_Term) $eo_Term)
+
+; program: $eo_dt_selectors
+; implements: eo::dt_selectors
+(program $eo_dt_selectors ((t $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  ; TODO
+  ; otherwise, a datatype constructor declared in the signature
+  (($eo_dt_selectors t) ($eo_dt_selectors_main t))
   )
 )
 (declare-const not (-> Bool Bool))
@@ -1081,14 +1154,14 @@
   (($eo_lit_type_String t) (Seq Char))
   )
 )
-(program $eo_dt_constructors
+(program $eo_dt_constructors_main
   ((T Type))
   :signature (Type) $eo_List
   (
 
   )
 )
-(program $eo_dt_selectors ((T Type) (t T))
+(program $eo_dt_selectors_main ((T Type) (t T))
   :signature (T) $eo_List
   (
 

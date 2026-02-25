@@ -8,7 +8,8 @@
 ; 4. Definition of $eo_cons and (a template for) $eo_nil.
 ; 5. Definition of a template of $eo_typeof_main, which is used in
 ;    part to define $eo_typeof.
-; 6. Templates for $eo_dt_constructors and $eo_dt_selectors.
+; 6. Templates for $eo_dt_constructors_main and $eo_dt_selectors_main, which are
+;    used to define $eo_dt_constructors and $eo_dt_selectors.
 ; 7. A placeholder command echo "include eo_builtin_smt" to specify
 ;    where further eo:: builtins should be defined.
 ; 8. Placeholders for defining a test environment for analyzing properties
@@ -17,7 +18,8 @@
 ; by user definitions. This includes:
 ; 1. The literal type definitions (EO_LITERAL_TYPE_DECL).
 ; 2. All user declarations and definitions (EO_DEFS).
-; 3. Cases of $eo_dt_constructors, $eo_dt_selectors, $eo_nil, $eo_typeof_main.
+; 3. Cases of $eo_dt_constructors_main, $eo_dt_selectors_main, $eo_nil,
+;    $eo_typeof_main.
 ; 4. A verification condition (EO_VC).
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; proofs
@@ -487,9 +489,8 @@ $EO_LIT_TYPEOF_DEFS$
 
 ; TODO: meta semantics for arbitrary unknown datatypes?
 
-; program: $eo_dt_constructors
-; implements: eo::dt_constructors
-(program $eo_dt_constructors
+; program: $eo_dt_constructors_main
+(program $eo_dt_constructors_main
   ((T Type)$EO_DT_CONSTRUCTORS_PARAM$)
   :signature (Type) $eo_List
   (
@@ -497,9 +498,8 @@ $EO_DT_CONSTRUCTORS_CASES$
   )
 )
 
-; program: $eo_dt_selectors
-; implements: eo::dt_selectors
-(program $eo_dt_selectors ((T Type) (t T))
+; program: $eo_dt_selectors_main
+(program $eo_dt_selectors_main ((T Type) (t T))
   :signature (T) $eo_List
   (
 $EO_DT_SELECTORS_CASES$
@@ -533,7 +533,7 @@ $EO_NIL_CASES$
 (program $eo_model_unsat () :signature (Bool) Bool)
 
 ; We will include the definition of the above functions here.
-(echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors $eo_dt_selectors $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
+(echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors_main $eo_dt_selectors_main $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 

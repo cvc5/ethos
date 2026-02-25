@@ -649,7 +649,7 @@
 
 ; fwd-decl: $eo_typeof_main
 ; note: This method returns the type for all user defined terms.
-(program $eo_typeof_main () :signature ($eo_Term) Type)
+(program $eo_typeof_main () :signature ($eo_Term) $eo_Term)
 
 ; forward declarations for literal type rules
 (program $eo_lit_type_Numeral ((T Type)) :signature (T) Type)
@@ -664,7 +664,6 @@
    (s $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
-  ; TODO: auto-generate these?
   (($eo_typeof ($eo_bool b))                 Bool)
   (($eo_typeof ($eo_numeral n))              ($eo_lit_type_Numeral ($eo_numeral n)))
   (($eo_typeof ($eo_rational r))             ($eo_lit_type_Rational ($eo_rational r)))
@@ -673,5 +672,35 @@
   (($eo_typeof ($eo_Var s T))                T)
   ; otherwise, invoke the routine for user types from the signature.
   (($eo_typeof t)                            ($eo_typeof_main t))
+  )
+)
+
+; fwd-decl: $eo_dt_constructors_main
+; note: This method returns the constructors for all user defined terms.
+(program $eo_dt_constructors_main () :signature ($eo_Term) $eo_Term)
+
+; program: $eo_dt_constructors
+; implements: eo::dt_constructors
+(program $eo_dt_constructors ((T $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  ; TODO
+  ; otherwise, a datatype declared in the signature
+  (($eo_dt_constructors T) ($eo_dt_constructors_main T))
+  )
+)
+
+; fwd-decl: $eo_dt_selectors_main
+; note: This method returns the constructors for all user defined terms.
+(program $eo_dt_selectors_main () :signature ($eo_Term) $eo_Term)
+
+; program: $eo_dt_selectors
+; implements: eo::dt_selectors
+(program $eo_dt_selectors ((t $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  ; TODO
+  ; otherwise, a datatype constructor declared in the signature
+  (($eo_dt_selectors t) ($eo_dt_selectors_main t))
   )
 )

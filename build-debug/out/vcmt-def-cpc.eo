@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 136
+; #trim-defs: 137
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -22,7 +22,6 @@
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List))
 (program $eo_typeof ((T Type)) :signature (T) Type)
-(program $eo_dt_selectors ((T Type)) :signature (T) $eo_List)
 (declare-const $smt_BuiltinType Type)
 (declare-parameterized-const $smt_type_0
   (($smt_id Type :implicit) (op $smt_id :opaque))
@@ -135,7 +134,7 @@
 )
 (program $smtx_hash ((T Type)) :signature (T) $smt_builtin_Int)
 (program $eo_reverse_hash () :signature ($smt_builtin_Int) $eo_Term)
-(program $eo_typeof_main () :signature ($eo_Term) Type)
+(program $eo_typeof_main () :signature ($eo_Term) $eo_Term)
 (program $eo_lit_type_Numeral ((T Type)) :signature (T) Type)
 (program $eo_lit_type_Rational ((T Type)) :signature (T) Type)
 (program $eo_lit_type_Binary ((T Type)) :signature (T) Type)
@@ -145,7 +144,6 @@
    (s $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
-  
   (($eo_typeof ($eo_bool b))                 Bool)
   (($eo_typeof ($eo_numeral n))              ($eo_lit_type_Numeral ($eo_numeral n)))
   (($eo_typeof ($eo_rational r))             ($eo_lit_type_Rational ($eo_rational r)))
@@ -154,6 +152,15 @@
   (($eo_typeof ($eo_Var s T))                T)
   
   (($eo_typeof t)                            ($eo_typeof_main t))
+  )
+)
+(program $eo_dt_selectors_main () :signature ($eo_Term) $eo_Term)
+(program $eo_dt_selectors ((t $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  
+  
+  (($eo_dt_selectors t) ($eo_dt_selectors_main t))
   )
 )
 (declare-const not (-> Bool Bool))
@@ -254,7 +261,7 @@
   (($eo_lit_type_String t) (Seq Char))
   )
 )
-(program $eo_dt_selectors ((T Type) (t T))
+(program $eo_dt_selectors_main ((T Type) (t T))
   :signature (T) $eo_List
   (
 

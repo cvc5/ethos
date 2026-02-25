@@ -277,3 +277,49 @@
   (($smtx_binary_extract w n x1 x2) ($smt_builtin_div n ($smtx_pow2 x2)))
   )
 )
+
+;;; Terms, types, datatypes
+
+; An SMT term.
+(declare-const $smt_Term Type)
+
+; An SMT type.
+(declare-const $smt_Type Type)
+
+; A datatype constructor
+(declare-const $smt_DatatypeCons Type)
+
+; A datatype
+(declare-const $smt_Datatype Type)
+
+; utilities
+
+; Assumes that Teq is defined to be equality over $smt_Type
+(define $smt_builtin_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($smt_apply_2 "Teq" x1 x2))
+
+
+;;; Constructors for SMT-LIB datatypes and datatype constructors
+
+; A constructor having no arguments
+(declare-const $emb_dtc.unit $smt_DatatypeCons)
+(define $dtc_unit () $emb_dtc.unit)
+
+; A constructor having at least one argument
+; It takes the type of that argument and a constructor specifying the remaining
+; arguments.
+(declare-parameterized-const $emb_dtc.cons
+  ((T $smt_Type :opaque) (c $smt_DatatypeCons :opaque))
+  $smt_DatatypeCons)
+(define $dtc_cons ((T $smt_DatatypeCons) (c $smt_DatatypeCons))
+  ($emb_dtc.cons T c))
+
+; A datatype having no constructors
+(declare-const $emb_dt.null $smt_Datatype)
+(define $dt_null () $emb_dt.null)
+  
+; A datatype having at least one constructor
+(declare-parameterized-const $emb_dt.sum
+  ((c $smt_DatatypeCons :opaque) (d $smt_Datatype :opaque))
+  $smt_Datatype)
+(define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
+  ($emb_dt.sum c d))

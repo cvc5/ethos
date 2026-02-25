@@ -723,7 +723,7 @@ void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
   Expr td = d_tc.getType(d);
   std::stringstream& os = a == Attr::DATATYPE ? d_eoDtCons : d_eoDtSel;
   std::string name = a == Attr::DATATYPE ? "constructors" : "selectors";
-  os << "  (($eo_dt_" << name << " ";
+  os << "  (($eo_dt_" << name << "_main ";
   if (a == Attr::DATATYPE && td.getKind() == Kind::FUNCTION_TYPE)
   {
     os << "(";

@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 44
+; #trim-defs: 42
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -26,8 +26,6 @@
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List))
 (program $eo_typeof ((T Type)) :signature (T) Type)
-(program $eo_dt_constructors () :signature (Type) $eo_List)
-(program $eo_dt_selectors ((T Type)) :signature (T) $eo_List)
 (echo "include eo_builtin_smt :deps $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_typeof ")
 (declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
@@ -127,14 +125,14 @@
   (($eo_lit_type_String t) (Seq Char))
   )
 )
-(program $eo_dt_constructors
+(program $eo_dt_constructors_main
   ((T Type))
   :signature (Type) $eo_List
   (
 
   )
 )
-(program $eo_dt_selectors ((T Type) (t T))
+(program $eo_dt_selectors_main ((T Type) (t T))
   :signature (T) $eo_List
   (
 
@@ -142,7 +140,7 @@
 )
 (program $eo_model_sat () :signature (Bool) Bool)
 (program $eo_model_unsat () :signature (Bool) Bool)
-(echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors $eo_dt_selectors $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
+(echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors_main $eo_dt_selectors_main $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (

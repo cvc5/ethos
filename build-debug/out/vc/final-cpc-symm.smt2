@@ -146,9 +146,6 @@
 ; fwd-decl: $eo_typeof
 (declare-fun $eo_typeof (eo.Term) eo.Term)
 
-; fwd-decl: $eo_dt_selectors
-(declare-fun $eo_dt_selectors (eo.Term) eo.Term)
-
 ; program: $smtx_pow2
 (declare-fun $smtx_pow2 (Int) Int)
 (assert (! (forall ((x1 Int))
@@ -264,6 +261,17 @@
   (ite true
     ($eo_typeof_main x1)
     eo.Stuck))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
+
+; fwd-decl: $eo_dt_selectors_main
+(declare-fun $eo_dt_selectors_main (eo.Term) eo.Term)
+
+; program: $eo_dt_selectors
+(define-fun $eo_dt_selectors ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite true
+    ($eo_dt_selectors_main x1)
+    eo.Stuck)))
 
 ; program: $mk_symm
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term
@@ -384,12 +392,12 @@
     (eo.Apply eo.Seq eo.Char)
     eo.Stuck))) :pattern (($eo_lit_type_String x1)))) :named sm.axiom.$eo_lit_type_String))
 
-; program: $eo_dt_selectors
+; program: $eo_dt_selectors_main
 (assert (! (forall ((x1 eo.Term))
-  (! (= ($eo_dt_selectors x1)
+  (! (= ($eo_dt_selectors_main x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
-    eo.Stuck)) :pattern (($eo_dt_selectors x1)))) :named sm.axiom.$eo_dt_selectors))
+    eo.Stuck)) :pattern (($eo_dt_selectors_main x1)))) :named sm.axiom.$eo_dt_selectors_main))
 
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
