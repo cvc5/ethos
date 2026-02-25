@@ -592,8 +592,8 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   std::stringstream ssArrayDiffVar;
   ssArrayDiffVar << "($sm_Var $smt_builtin_str_vname T)";
   std::stringstream ssArrayDiff;
-  ssArrayDiff << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (@array_deq_diff x1 x2)))))";
-  ssArrayDiff << "(eo::define ((i ($sm_Var $smt_builtin_str_vname T)))";
+  ssArrayDiff << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (@array_deq_diff x1 x2))))) ";
+  ssArrayDiff << "(eo::define ((i ($sm_Var $smt_builtin_str_vname T))) ";
   ssArrayDiff << "($sm_apply ($sm_choice $smt_builtin_str_vname T) ";
   ssArrayDiff << smtToSmtEmbed("(not (= (select ($eo_to_smt x1) i) (select ($eo_to_smt x2) i)))") << ")))";
   addEunoiaReduceSym("@array_deq_diff", {kT, kT}, ssArrayDiff.str());
@@ -612,6 +612,17 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
                      {kString},
                      "($eo_to_smt (str.indexof_re x1 (re.comp (re.range "
                      "$sm_string_c0 $sm_string_c9)) 0))");
+  std::stringstream ssStringsDeqDiff;
+  ssStringsDeqDiff << "(eo::define ((i ($sm_Var $smt_builtin_str_vname $tsm_Int))) ";
+  ssStringsDeqDiff << "($sm_apply ($sm_choice $smt_builtin_str_vname $tsm_Int) ";
+  ssStringsDeqDiff << smtToSmtEmbed("(not (= (str.substr ($eo_to_smt x1) i $sm_z_one) (str.substr ($eo_to_smt x2) i $sm_z_one)))") << "))";
+  addEunoiaReduceSym("@strings_deq_diff", {kT, kT}, ssStringsDeqDiff.str());
+  std::stringstream ssWitnessStringLength;
+  ssWitnessStringLength << "(eo::define ((T ($eo_to_smt_type x1))) ";
+  ssWitnessStringLength << "(eo::define ((i ($sm_Var $smt_builtin_str_vname T))) ";
+  ssWitnessStringLength << "($sm_apply ($sm_choice $smt_builtin_str_vname T) ";
+  ssWitnessStringLength << smtToSmtEmbed("(= (str.len i) ($eo_to_smt x2))") << ")))";
+  addEunoiaReduceSym("@witness_string_length", {kType, kInt, kInt}, ssWitnessStringLength.str());
   // sequences
   addReduceSym("seq.empty", {kType}, "($smtx_empty_seq x1)");
   d_specialCases["seq.empty"].emplace_back(
@@ -628,7 +639,26 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addRecReduceSym("set.union", {kT, kT}, "($smtx_set_union e1 e2)");
   addRecReduceSym("set.member", {kT, kT}, "($smtx_map_select e2 e1)");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
-  addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
+  std::stringstream ssSetsChoose;
+  ssSetsChoose << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (set.choose x1))))) ";
+  ssSetsChoose << "(eo::define ((i ($sm_Var $smt_builtin_str_vname T))) ";
+  ssSetsChoose << "($sm_apply ($sm_choice $smt_builtin_str_vname T) ";
+  ssSetsChoose << smtToSmtEmbed("(set.member i ($eo_to_smt x1))") << ")))";
+  addEunoiaReduceSym("set.choose", {kT, kT}, ssSetsChoose.str());
+  std::stringstream ssSetsIsSingleton;
+  ssSetsIsSingleton << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (set.choose x1))))) ";
+  ssSetsIsSingleton << "(eo::define ((i ($sm_Var $smt_builtin_str_vname T))) ";
+  ssSetsIsSingleton << "($sm_apply ($sm_exists $smt_builtin_str_vname T) ";
+  ssSetsIsSingleton << smtToSmtEmbed("(= ($eo_to_smt x1) (set.singleton i))") << ")))";
+  addEunoiaReduceSym("set.is_singleton", {kT}, ssSetsIsSingleton.str());
+  // more concise?
+  //addEunoiaReduceSym("set.is_singleton", {kT}, "($eo_to_smt (= x1 (set.singleton (set.choose x1))))");
+  std::stringstream ssSetsDiff;
+  ssSetsDiff << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (@sets_deq_diff x1 x2))))) ";
+  ssSetsDiff << "(eo::define ((i ($sm_Var $smt_builtin_str_vname T))) ";
+  ssSetsDiff << "($sm_apply ($sm_choice $smt_builtin_str_vname T) ";
+  ssSetsDiff << smtToSmtEmbed("(not (= (set.member i ($eo_to_smt x1)) (set.member i ($eo_to_smt x2))))") << ")))";
+  addEunoiaReduceSym("@sets_deq_diff", {kT, kT}, ssSetsDiff.str());
   std::stringstream ssIsEmptyRet;
   ssIsEmptyRet << "($vsm_bool "
                << smtValueEq("e1", "($smtx_empty_set ($smtx_typeof_value e1))")
@@ -673,14 +703,14 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addEunoiaReduceSym("Tuple", {kT, kT}, "($eo_to_smt_type_tuple ($eo_to_smt_type x1) ($eo_to_smt_type x2))", true);
   addEunoiaReduceSym("UnitTuple", {}, "($tsm_Datatype $smt_builtin_str_tuple_name ($dt_sum $dtc_unit $dt_null))", true);
   addEunoiaReduceSym("tuple.select", {kT, kT}, "($eo_to_smt_tuple_select ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))");
-    addEunoiaReduceSym("tuple.update", {kT, kT}, "($eo_to_smt_tuple_update ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))");
+  addEunoiaReduceSym("tuple.update", {kT, kT}, "($eo_to_smt_tuple_update ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))");
   addEunoiaReduceSym("tuple", {kT, kT}, "($sm_apply ($smtx_tuple_app_extend ($eo_to_smt x1) ($eo_to_smt_type ($eo_typeof x2))) ($eo_to_smt x2))");
   addEunoiaReduceSym("tuple.unit", {}, "($sm_DtCons $smt_builtin_str_tuple_name ($dt_sum $dtc_unit $dt_null) $smt_builtin_z_zero)");
   addEunoiaReduceSym("is", {kT}, "($eo_to_smt_tester ($eo_to_smt x1))");
   addEunoiaReduceSym("update", {kT}, "($eo_to_smt_updater ($eo_to_smt x1))");
   
   // for alethe
-  addTermReduceSym("@cl", {kT, kT}, "(or x1 x2)");
+  addEunoiaReduceSym("@cl", {kT, kT}, "($eo_to_smt (or x1 x2))");
 }
 
 ModelSmtNew::~ModelSmtNew() {}
