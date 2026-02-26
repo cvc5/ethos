@@ -191,7 +191,7 @@ State::State(Options& opts, Stats& stats)
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
   // Proof is the return type of terms with kind Kind::PROOF, which is an
   // ordinary type (not available in the parser).
-  d_proofType = Expr(mkSymbolInternal(Kind::CONST, "Proof", d_type));
+  d_proofType = Expr(mkSymbolInternal(Kind::CONST, "eo::Proof", d_type));
 }
 
 State::~State() {}
@@ -314,7 +314,7 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   if (d_plugin!=nullptr)
   {
     Assert (!isReference);
-    d_plugin->includeFile(inputPath, isReference, referenceNf);
+    d_plugin->includeFile(inputPath, isSignature, isReference, referenceNf);
   }
   Trace("state") << "Include " << inputPath << std::endl;
   Assert (getAssumptionLevel()==0);
@@ -335,6 +335,12 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
                << " did not preserve assumption scope. The most recent open "
                   "assumption was "
                << d_decls[d_declsSizeCtx.back()] << ".";
+  }
+  if (d_plugin != nullptr)
+  {
+    Assert(!isReference);
+    d_plugin->finalizeIncludeFile(
+        inputPath, isSignature, isReference, referenceNf);
   }
   return true;
 }
@@ -552,13 +558,7 @@ Expr State::mkRequires(const std::vector<Expr>& args, const Expr& ret)
 
 Expr State::mkRequires(const Expr& a1, const Expr& a2, const Expr& ret)
 {
-  if (a1==a2)
-  {
-    // trivially equal to return
-    return ret;
-  }
-  return Expr(mkExprInternal(Kind::EVAL_REQUIRES,
-                             {a1.getValue(), a2.getValue(), ret.getValue()}));
+  return Expr(mkExpr(Kind::EVAL_REQUIRES, {a1, a2, ret}));
 }
 
 Expr State::mkBoolType()
@@ -1382,16 +1382,41 @@ Expr State::getProofRule(const std::string& name) const
   return d_null;
 }
 
-bool State::getProofRuleArguments(std::vector<Expr>& children,
-                                  Expr& rule,
-                                  Expr& proven,
-                                  std::vector<Expr>& premises,
-                                  std::vector<Expr>& args,
-                                  bool isPop)
+void State::notifyAssume(const std::string& name, Expr& proven, bool isPush)
 {
+  if (d_plugin != nullptr)
+  {
+    d_plugin->notifyAssume(name, proven, isPush);
+  }
+  if (isPush)
+  {
+    pushAssumptionScope();
+  }
+}
+
+bool State::notifyStep(const std::string& name,
+                       Expr& rule,
+                       Expr& proven,
+                       std::vector<Expr>& premises,
+                       std::vector<Expr>& args,
+                       bool isPop,
+                       Expr& result,
+                       std::ostream* err)
+{
+  if (d_plugin != nullptr)
+  {
+    // if the plugin handles it, then take its result
+    if (d_plugin->notifyStep(
+            name, rule, proven, premises, args, isPop, result, err))
+    {
+      // successful if the result is non-null and fully evaluated
+      return !result.isNull() && !result.isEvaluatable();
+    }
+  }
   AppInfo* ainfo = getAppInfo(rule.getValue());
   if (ainfo != nullptr)
   {
+    std::vector<Expr> children;
     Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
     Expr tupleVal = ainfo->d_attrConsTerm;
     Assert(tupleVal.getNumChildren() == 4);
@@ -1411,6 +1436,12 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
     {
       if (proven.isNull())
       {
+        if (err)
+        {
+          (*err) << "Rules with :conclusion-explicit require a provided "
+                    "conclusion."
+                 << std::endl;
+        }
         // requires a conclusion to be provided
         return false;
       }
@@ -1433,6 +1464,19 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
     {
       // using step for a rule requiring an assumption, or step-pop for a rule
       // not requiring an assumption.
+      if (err)
+      {
+        if (isPop)
+        {
+          (*err) << "step-pop can only be used on rules with :assumption"
+                 << std::endl;
+        }
+        else
+        {
+          (*err) << "step cannot be used on rules with :assumption"
+                 << std::endl;
+        }
+      }
       return false;
     }
     if (!plCons.isNull())
@@ -1447,6 +1491,10 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
         // should be proofs
         if (e.getKind() != Kind::PROOF)
         {
+          if (err)
+          {
+            (*err) << "Provided premise is not a proof" << std::endl;
+          }
           return false;
         }
         achildren.push_back(e[0]);
@@ -1464,6 +1512,11 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
         }
         else
         {
+          if (err)
+          {
+            (*err) << "Premise list constructor " << plCons
+                   << " has no nil element" << std::endl;
+          }
           return false;
         }
       }
@@ -1480,7 +1533,50 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
       // otherwise ordinary premises
       children.insert(children.end(), premises.begin(), premises.end());
     }
+    if (children.size() > 1)
+    {
+      // evaluate the program app
+      result = d_tc.evaluateProgramApp(children);
+      // if error stream is provided, print details on the failure
+      if (result.isEvaluatable())
+      {
+        if (err)
+        {
+          if (result.getKind() == Kind::APPLY && result[0] == children[0])
+          {
+            // if the failure was that the program failed to apply, then
+            // provide details on expected arguments.
+            Expr prog = getProgram(children[0].getValue());
+            Assert(prog.getNumChildren() == 1 && prog[0].getNumChildren() == 2);
+            std::vector<Expr> eargs;
+            for (size_t i = 1, nchild = prog[0][0].getNumChildren(); i < nchild;
+                 i++)
+            {
+              eargs.push_back(prog[0][0][i]);
+            }
+            (*err) << "Expected args: " << eargs << std::endl;
+            std::vector<Expr> pargs(children.begin() + 1, children.end());
+            (*err) << "Provided args: " << pargs << std::endl;
+          }
+          else
+          {
+            (*err) << "Evaluation failed: " << result << std::endl;
+          }
+        }
+        return false;
+      }
+    }
+    else
+    {
+      // otherwise a nullary rule
+      result = children[0];
+    }
+    Assert(!result.isNull() && !result.isEvaluatable());
     return true;
+  }
+  if (err)
+  {
+    (*err) << "Provided :rule is not recognized as a proof rule" << std::endl;
   }
   return false;
 }
@@ -1620,11 +1716,36 @@ void State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)
 
 void State::defineProgram(const Expr& v, const Expr& prog)
 {
-  markConstructorKind(v, Attr::PROGRAM, prog);
+  if (!prog.isNull())
+  {
+    markConstructorKind(v, Attr::PROGRAM, prog);
+  }
+  // call even if null
   if (d_plugin!=nullptr)
   {
     d_plugin->defineProgram(v, prog);
   }
+}
+
+void State::define(const std::string& name, const Expr& e)
+{
+  if (d_plugin != nullptr)
+  {
+    d_plugin->define(name, e);
+  }
+}
+
+void State::echo(const std::string& msg)
+{
+  if (d_plugin != nullptr)
+  {
+    if (!d_plugin->echo(msg))
+    {
+      // the plugin processed the echo
+      return;
+    }
+  }
+  std::cout << msg << std::endl;
 }
 
 bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)

@@ -108,15 +108,12 @@ bool CmdParser::parseNextCommand()
     case Token::ASSUME:
     case Token::ASSUME_PUSH:
     {
-      if (tok==Token::ASSUME_PUSH)
-      {
-        d_state.pushAssumptionScope();
-      }
       // note we typically expect d_state.getAssumptionLevel() to be zero
       // when using ASSUME, but we do not check for this here.
       std::string name = d_eparser.parseSymbol();
       // parse what is proven
       Expr proven = d_eparser.parseFormula();
+      d_state.notifyAssume(name, proven, (tok == Token::ASSUME_PUSH));
       // bind the assumption to (pf <proven>).
       Expr pt = d_state.mkProof(proven);
       d_eparser.bind(name, pt);
@@ -462,14 +459,28 @@ bool CmdParser::parseNextCommand()
         Expr pet = d_state.mkProof(e);
         progArgs.push_back(pet);
       }
-      Expr ret = d_state.mkProof(conc);
+      Expr ret = conc;
       // include the requirements into the return type
       if (!reqs.empty())
       {
         ret = d_state.mkRequires(reqs, ret);
       }
-      // rules have type Proof, which is not used.
-      Expr pt = d_state.mkProofType();
+      // Ethos desugars proof rules to programs that take premises and
+      // arguments and returns the formula F that is proven. This result is
+      // then wrapped in (eo::pf F) when executing step/step-pop commands.
+      // For example,
+      // (declare-rule contra ((F Bool))
+      //   :premises (F (not F))
+      //   :conclusion false)
+      // is desugared to
+      // (program $eo_prog_contra ((F Bool))
+      //   :signature (Proof Proof) Bool
+      //   ((($eo_prog_contra (eo::pf F) (eo::pf (not F))) false))
+      // ).
+      // Proof rules themselves are a special kind of symbol that maps to their
+      // associated program. The proof rule symbols themselves are given type
+      // Bool, which is not used.
+      Expr pt = d_state.mkBoolType();
       d_state.popScope();
       Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, pt);
       d_eparser.typeCheck(rule);
@@ -478,10 +489,23 @@ bool CmdParser::parseNextCommand()
       {
         // construct the program type based on the arguments we are matching
         std::vector<Expr> progTypes;
-        for (Expr& e : progArgs)
+        Expr type = d_state.mkType();
+        for (size_t i = 0, nargs = progArgs.size(); i < nargs; i++)
         {
-          Expr et = d_tc.getType(e);
-          progTypes.push_back(et);
+          if (progArgs[i].getKind() == Kind::PROOF)
+          {
+            progTypes.push_back(d_state.mkProofType());
+          }
+          else
+          {
+            // Since arguments to proof rules may contain parameters, some
+            // arguments do not type check. Hence, we overapproximate the
+            // type of the program using type variables here.
+            std::stringstream ss;
+            ss << "$eo_arg_" << i;
+            Expr et = d_state.mkSymbol(Kind::PARAM, ss.str(), type);
+            progTypes.push_back(et);
+          }
         }
         pt = d_state.mkProgramType(progTypes, pt);
         std::stringstream ss;
@@ -514,7 +538,7 @@ bool CmdParser::parseNextCommand()
       // we always carry plCons, in case the rule was marked
       // :premise-list as well as :assumption or :conclusion-explicit
       // simulataneously. We will handle all 3 special cases at once in
-      // State::getProofRuleArguments when the rule is applied.
+      // State::notifyStep when the rule is applied.
       d_state.markConstructorKind(rule, Attr::PROOF_RULE, attrVal);
       AttrMap attrs;
       d_eparser.parseAttributeList(Kind::PROOF_RULE, rule, attrs);
@@ -641,6 +665,8 @@ bool CmdParser::parseNextCommand()
       // bind
       Trace("define") << "Define: " << name << " -> " << expr << std::endl;
       d_eparser.bind(name, expr);
+      // also call state
+      d_state.define(name, expr);
     }
     break;
     // (define-sort <symbol> (<symbol>*) <sort>)
@@ -682,11 +708,11 @@ bool CmdParser::parseNextCommand()
       if (tok == Token::STRING_LITERAL)
       {
         std::string msg = d_eparser.parseStr(true);
-        std::cout << msg << std::endl;
+        d_state.echo(msg);
       }
       else
       {
-        std::cout << std::endl;
+        d_state.echo("");
       }
     }
     break;
@@ -823,10 +849,8 @@ bool CmdParser::parseNextCommand()
         program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       }
       d_state.popScope();
-      if (!program.isNull())
-      {
-        d_state.defineProgram(pvar, program);
-      }
+      // call even if null, so that plugins are notified of forward declarations
+      d_state.defineProgram(pvar, program);
       if (pprev.isNull())
       {
         // rebind the program, if new
@@ -899,53 +923,24 @@ bool CmdParser::parseNextCommand()
       {
         args = d_eparser.parseExprList();
       }
-      std::vector<Expr> children;
-      if (!d_state.getProofRuleArguments(
-              children, rule, proven, premises, args, isPop))
+      // compute the conclusion of the proof rule
+      Expr concTerm;
+      if (!d_state.notifyStep(
+              name, rule, proven, premises, args, isPop, concTerm))
       {
-        d_lex.parseError("Failed to get arguments for proof rule");
+        // If we failed, check again now with an error stream. We do this
+        // because allocation of std::stringstream is expensive and this
+        // block of code only executes at most once.
+        std::stringstream sserr;
+        sserr << "A step of rule " << ruleName << " failed to check." << std::endl;
+        bool recheck = d_state.notifyStep(
+            name, rule, proven, premises, args, isPop, concTerm, &sserr);
+        // should fail again
+        AlwaysAssert(!recheck);
+        // print the error
+        d_lex.parseError(sserr.str());
       }
-      // compute the type of applying the rule
-      Expr pfTerm;
-      if (children.size()>1)
-      {
-        // evaluate the program app
-        pfTerm = d_tc.evaluateProgramApp(children);
-      }
-      else
-      {
-        pfTerm = children[0];
-      }
-      // ensure proof type, note this is where "proof checking" happens.
-      if (pfTerm.isEvaluatable())
-      {
-        // error message gives the list of arguments and the proof rule
-        std::stringstream ss;
-        ss << "A step of rule " << ruleName << " failed to check." << std::endl;
-        if (pfTerm.getKind() == Kind::APPLY && pfTerm[0] == children[0])
-        {
-          Expr prog = d_state.getProgram(children[0].getValue());
-          Assert(prog.getNumChildren() == 1 && prog[0].getNumChildren() == 2);
-          std::vector<Expr> eargs;
-          for (size_t i = 1, nchild = prog[0][0].getNumChildren(); i < nchild;
-               i++)
-          {
-            eargs.push_back(prog[0][0][i]);
-          }
-          ss << "Expected args: " << eargs << std::endl;
-          std::vector<Expr> pargs(children.begin() + 1, children.end());
-          ss << "Provided args: " << pargs << std::endl;
-          d_lex.parseError(ss.str());
-        }
-        else
-        {
-          ss << "Evaluation failed: " << pfTerm << std::endl;
-          d_lex.parseError(ss.str());
-        }
-      }
-      Assert (pfTerm.getKind()==Kind::PROOF);
       // Check that the proved term is actually Bool
-      Expr concTerm = pfTerm[0];
       Expr concTermType = d_eparser.typeCheck(concTerm);
       if (concTermType.getKind() != Kind::BOOL_TYPE)
       {
@@ -959,8 +954,8 @@ bool CmdParser::parseNextCommand()
         {
           std::stringstream ss;
           ss << "Unexpected conclusion for rule " << ruleName << ":" << std::endl;
-          ss << "    Proves: " << pfTerm << std::endl;
-          ss << "  Expected: (pf " << proven << ")";
+          ss << "    Proves: " << concTerm << std::endl;
+          ss << "  Expected: " << proven;
           d_lex.parseError(ss.str());
         }
       }
@@ -969,6 +964,8 @@ bool CmdParser::parseNextCommand()
       {
         d_state.popAssumptionScope();
       }
+      // Now wrap the conclusion in the proof constructor.
+      Expr pfTerm = d_state.mkProof(concTerm);
       // bind to variable, note that the definition term is not kept
       d_eparser.bind(name, pfTerm);
       // d_eparser.bind(name, def);
