@@ -681,12 +681,29 @@
 (program $eo_lit_type_Rational ((T Type)) :signature (T) Type)
 (program $eo_lit_type_Binary ((T Type)) :signature (T) Type)
 (program $eo_lit_type_String ((T Type)) :signature (T) Type)
-  
+
+
+;
+;(program $smtx_is_cons_type
+;  ()
+;  :signature (Type $smt_Datatype $smt_builtin_Int Type) $smt_builtin_Bool
+;  (
+;  (($smtx_is_cons_type T ($dt_sum $dtc_unit d) $smt_builtin_z_zero U1)
+;    ($smt_builtin_teq T U1))
+;  (($smtx_is_cons_type T ($dt_sum ($dtc_cons S c) d) $smt_builtin_z_zero (-> U1 U2))
+;    ($smt_builtin_ite ($smt_builtin_Teq ($eo_to_smt_type U1) S)
+;      ($smtx_is_cons_type T ($dt_sum c d) $smt_builtin_z_zero U2)
+;      $smt_builtin_false))
+;  (($smtx_is_cons_type T ($dt_sum c d) n U1)
+;    ($smtx_is_cons_type T d ($smt_builtin_z_dec n) U1))
+;  )
+;)
+
 ; program: $eo_typeof
 ; implements: eo::typeof
 (program $eo_typeof
   ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Rat)
-   (s $smt_builtin_String) (w $smt_builtin_Int))
+   (s $smt_builtin_String) (w $smt_builtin_Int) (d $smt_Datatype))
   :signature ($eo_Term) $eo_Term
   (
   (($eo_typeof ($eo_bool b))                 Bool)
@@ -695,6 +712,11 @@
   (($eo_typeof ($eo_string s))               ($eo_lit_type_String ($eo_string s)))
   (($eo_typeof ($eo_binary w n))             ($eo_lit_type_Binary ($eo_binary w n)))
   (($eo_typeof ($eo_Var s T))                T)
+  (($eo_typeof ($eo_Datatype s d))           Type)
+  ;(($eo_typeof ($eo_DtCons s d n))
+  ;  ($eo_requires ($eo_is_cons_type ($eo_Datatype s d) ($smtx_dt_substitute s d d) n T) true T))
+  ;(($eo_typeof ($eo_DtSel s d n m))
+  ;  ($eo_requires ($eo_is_sel_type ($eo_Datatype s d) ($smtx_dt_substitute s d d) n m T) true T))
   ; otherwise, invoke the routine for user types from the signature.
   (($eo_typeof t)                            ($eo_typeof_main t))
   )

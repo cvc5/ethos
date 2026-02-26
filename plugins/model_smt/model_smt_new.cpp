@@ -45,6 +45,12 @@ std::string smtZAdd(const std::string& c1, const std::string& c2)
   ss << "($smt_builtin_z_+ " << c1 << " " << c2 << ")";
   return ss.str();
 }
+std::string smtZ(uint32_t n)
+{
+  std::stringstream ss;
+  ss << "($sm_numeral ($smt_apply_0 \"" << n << "\"))";
+  return ss.str();
+}
 std::string smtZSub(const std::string& c1, const std::string& c2)
 {
   std::stringstream ss;
@@ -262,9 +268,12 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addConstFoldSym("str.to_code", {kString}, kInt);
   addConstFoldSym("str.from_int", {kInt}, kString);
   addConstFoldSym("str.to_int", {kString}, kInt);
-  addConstFoldSym("str.is_digit", {kString}, kBool);  // TODO: term reduce
+  //addConstFoldSym("str.is_digit", {kString}, kBool);
+  std::stringstream ssIsDigit;
+  ssIsDigit << "(and (<= " << smtZ(48) << " (str.to_code x1)) (<= (str.to_code x1) " << smtZ(57) << "))";
+  addTermReduceSym("str.is_digit", {kString}, ssIsDigit.str());
   addConstFoldSym("str.contains", {kString, kString}, kBool);
-  // addConstFoldSym("str.suffixof", {kString, kString}, kBool); // TODO: term
+  // addConstFoldSym("str.suffixof", {kString, kString}, kBool);
   // reduce
   addTermReduceSym(
       "str.suffixof",
@@ -284,8 +293,10 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addReduceSym("re.all", {}, "($vsm_re ($smt_apply_0 \"re.all\"))");
   addConstFoldSym("str.to_re", {kString}, kRegLan);
   addConstFoldSym("re.*", {kRegLan}, kRegLan);
-  addConstFoldSym("re.+", {kRegLan}, kRegLan);
-  addConstFoldSym("re.opt", {kRegLan}, kRegLan);  // TODO: term reduce
+  //addConstFoldSym("re.+", {kRegLan}, kRegLan);
+  addTermReduceSym("re.+", {kRegLan}, "(re.++ x1 (re.* x1))");
+  //addConstFoldSym("re.opt", {kRegLan}, kRegLan);
+  addTermReduceSym("re.opt", {kRegLan}, "(re.union x1 (str.to_re $sm_string_empty))");
   addConstFoldSym("re.comp", {kRegLan}, kRegLan);
   addConstFoldSym("re.++", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.inter", {kRegLan, kRegLan}, kRegLan);

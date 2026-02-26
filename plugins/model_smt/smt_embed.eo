@@ -325,3 +325,4 @@
   $smt_Datatype)
 (define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
   ($emb_dt.sum c d))
+

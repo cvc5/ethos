@@ -194,11 +194,12 @@ inductive SmtTerm : Type where
   | exists : smt_lit_String -> SmtType -> SmtTerm
   | forall : smt_lit_String -> SmtType -> SmtTerm
   | lambda : smt_lit_String -> SmtType -> SmtTerm
+  | choice : smt_lit_String -> SmtType -> SmtTerm
   | DtCons : smt_lit_String -> SmtDatatype -> smt_lit_Int -> SmtTerm
   | DtSel : smt_lit_String -> SmtDatatype -> smt_lit_Int -> smt_lit_Int -> SmtTerm
   | DtTester : smt_lit_String -> SmtDatatype -> smt_lit_Int -> SmtTerm
   | DtUpdater : smt_lit_String -> SmtDatatype -> smt_lit_Int -> smt_lit_Int -> SmtTerm
-  | Const : SmtValue -> SmtTerm
+  | Const : SmtValue -> SmtType -> SmtTerm
   | not : SmtTerm
   | and : SmtTerm
   | eq : SmtTerm
@@ -266,10 +267,13 @@ def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)
 
 /- exists -/
-def smt_lit___smtx_model_eval_exists : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+def smt_lit_tforall : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME
 /- forall -/
-def smt_lit___smtx_model_eval_forall : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+def smt_lit_texists : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+  | _, _, _ => (SmtValue.Boolean true) -- FIXME
+/- choice -/
+def smt_lit_tchoice : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME
 
 /- Definition of SMT-LIB model semantics -/
@@ -354,12 +358,13 @@ def __smtx_is_binder_x : smt_lit_String -> SmtType -> SmtTerm -> smt_lit_Bool
   | s1, T1, (SmtTerm.exists s2 T2) => (__smtx_is_var s1 T1 (SmtTerm.Var s2 T2))
   | s1, T1, (SmtTerm.forall s2 T2) => (__smtx_is_var s1 T1 (SmtTerm.Var s2 T2))
   | s1, T1, (SmtTerm.lambda s2 T2) => (__smtx_is_var s1 T1 (SmtTerm.Var s2 T2))
+  | s1, T1, (SmtTerm.choice s2 T2) => (__smtx_is_var s1 T1 (SmtTerm.Var s2 T2))
   | s1, T1, x => false
 
 
-def __smtx_substitute : smt_lit_String -> SmtType -> SmtValue -> SmtTerm -> SmtTerm
-  | s, T, v, (SmtTerm.Apply f a) => (smt_lit_ite (__smtx_is_binder_x s T f) (SmtTerm.Apply f a) (SmtTerm.Apply (__smtx_substitute s T v f) (__smtx_substitute s T v a)))
-  | s, T, v, z => (smt_lit_ite (__smtx_is_var s T z) (SmtTerm.Const v) z)
+def __smtx_substitute : smt_lit_String -> SmtType -> SmtTerm -> SmtTerm -> SmtTerm
+  | s, T, u, (SmtTerm.Apply f a) => (smt_lit_ite (__smtx_is_binder_x s T f) (SmtTerm.Apply f a) (SmtTerm.Apply (__smtx_substitute s T u f) (__smtx_substitute s T u a)))
+  | s, T, u, z => (smt_lit_ite (__smtx_is_var s T z) u z)
 
 
 def __smtx_model_eval_dt_cons : smt_lit_String -> SmtDatatype -> smt_lit_Int -> SmtValue
@@ -381,7 +386,7 @@ def __smtx_model_eval_dt_updater : smt_lit_String -> SmtDatatype -> smt_lit_Int 
 def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
   | (SmtValue.Map m), i => (__smtx_msm_lookup m i)
-  | (SmtValue.Lambda s T t), i => (__smtx_model_eval (__smtx_substitute s T i t))
+  | (SmtValue.Lambda s T t), i => (__smtx_model_eval (__smtx_substitute s T (SmtTerm.Const i T) t))
   | v, i => SmtValue.NotValue
 
 
@@ -404,15 +409,16 @@ def __smtx_model_eval : SmtTerm -> SmtValue
   | (SmtTerm.Apply SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and x1) x2) => (__smtx_model_eval_and (__smtx_model_eval x1) (__smtx_model_eval x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_model_eval_eq (__smtx_model_eval x1) (__smtx_model_eval x2))
-  | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (smt_lit___smtx_model_eval_exists s T x1)
-  | (SmtTerm.Apply (SmtTerm.forall s T) x1) => (smt_lit___smtx_model_eval_forall s T x1)
+  | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (smt_lit_tforall s T x1)
+  | (SmtTerm.Apply (SmtTerm.forall s T) x1) => (smt_lit_texists s T x1)
   | (SmtTerm.Apply (SmtTerm.lambda s T) x1) => (SmtValue.Lambda s T x1)
+  | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (smt_lit_tchoice s T x1)
   | (SmtTerm.DtCons s d n) => (__smtx_model_eval_dt_cons s d n)
   | (SmtTerm.Apply (SmtTerm.DtSel s d n m) x1) => (__smtx_model_eval_dt_sel s d n m (__smtx_model_eval x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d n) x1) => (__smtx_model_eval_dt_tester s d n (__smtx_model_eval x1))
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.DtUpdater s d n m) x1) x2) => (__smtx_model_eval_dt_updater s d n m (__smtx_model_eval x1) (__smtx_model_eval x2))
   | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply (__smtx_model_eval f) (__smtx_model_eval x1))
-  | (SmtTerm.Const v) => v
+  | (SmtTerm.Const v T) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value v) T) v SmtValue.NotValue)
   | x1 => SmtValue.NotValue
 
 

@@ -222,10 +222,13 @@ def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)
 
 /- exists -/
-def smt_lit___smtx_model_eval_exists : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+def smt_lit_tforall : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME
 /- forall -/
-def smt_lit___smtx_model_eval_forall : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+def smt_lit_texists : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+  | _, _, _ => (SmtValue.Boolean true) -- FIXME
+/- choice -/
+def smt_lit_tchoice : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME
 
 /- Definition of SMT-LIB model semantics -/

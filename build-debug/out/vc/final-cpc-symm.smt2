@@ -75,6 +75,8 @@
   (eo.FunType)
   ; smt-cons: Var
   (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
+  ; smt-cons: Datatype
+  (eo.Datatype (eo.Datatype.arg1 String) (eo.Datatype.arg2 dt.Datatype))
   ; smt-cons: DtCons
   (eo.DtCons (eo.DtCons.arg1 String) (eo.DtCons.arg2 dt.Datatype) (eo.DtCons.arg3 Int))
   ; smt-cons: DtSel
@@ -197,6 +199,11 @@
     (eo.Var x1 x2)
 )
 
+; program: $eo_Datatype
+(define-fun $eo_Datatype ((x1 String) (x2 dt.Datatype)) eo.Term
+    (eo.Datatype x1 x2)
+)
+
 ; program: $eo_DtCons
 (define-fun $eo_DtCons ((x1 String) (x2 dt.Datatype) (x3 Int)) eo.Term
     (eo.DtCons x1 x2 x3)
@@ -273,9 +280,11 @@
     ($eo_lit_type_Binary (eo.Binary (eo.Binary.arg1 x1) (eo.Binary.arg2 x1)))
   (ite ((_ is eo.Var) x1)
     (eo.Var.arg2 x1)
+  (ite ((_ is eo.Datatype) x1)
+    eo.Type
   (ite true
     ($eo_typeof_main x1)
-    eo.Stuck))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
+    eo.Stuck)))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
 
 ; fwd-decl: $eo_dt_selectors_main
 (declare-fun $eo_dt_selectors_main (eo.Term) eo.Term)

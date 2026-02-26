@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 153
+; #trim-defs: 155
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -124,6 +124,11 @@
   $eo_Term)
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term))
   ($emb_Var s T))
+(declare-parameterized-const $emb_Datatype 
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque))
+  $eo_Term)
+(define $eo_Datatype ((s $smt_builtin_String) (d $smt_Datatype))
+  ($emb_Datatype s d))
 (declare-parameterized-const $emb_DtCons
   ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
    (ci $smt_builtin_Int :opaque))
@@ -172,7 +177,7 @@
 (program $eo_lit_type_String ((T Type)) :signature (T) Type)
 (program $eo_typeof
   ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Rat)
-   (s $smt_builtin_String) (w $smt_builtin_Int))
+   (s $smt_builtin_String) (w $smt_builtin_Int) (d $smt_Datatype))
   :signature ($eo_Term) $eo_Term
   (
   (($eo_typeof ($eo_bool b))                 Bool)
@@ -181,6 +186,11 @@
   (($eo_typeof ($eo_string s))               ($eo_lit_type_String ($eo_string s)))
   (($eo_typeof ($eo_binary w n))             ($eo_lit_type_Binary ($eo_binary w n)))
   (($eo_typeof ($eo_Var s T))                T)
+  (($eo_typeof ($eo_Datatype s d))           Type)
+  
+  
+  
+  
   
   (($eo_typeof t)                            ($eo_typeof_main t))
   )
