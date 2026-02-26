@@ -96,7 +96,7 @@ sed -i "/(include \"smt_embed.eo\")/{
     d
 }" $TMP_OUT
 # now compute the model smt
-./src/ethos --plugin.model-smt $TMP_OUT >/dev/null
+./src/ethos --plugin.model-smt-new $TMP_OUT >/dev/null
 check_status
 # include the model semantics, which was generated above
 sed -i "/(echo \"include eo_model_sat.*/{
