@@ -663,3 +663,10 @@ $SMT_EVAL_CASES$
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end
+
+(program $mk_sm_const ((v $smt_Value) (T $smt_Type))
+  :signature ($smt_Value $smt_Type) $smt_Value
+  (
+  (($mk_sm_const v T) v)
+  )
+)

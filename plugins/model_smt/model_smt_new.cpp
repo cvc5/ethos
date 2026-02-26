@@ -635,6 +635,27 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addEunoiaReduceSym("@witness_string_length",
                      {kType, kInt, kInt},
                      ssWitnessStringLength.str());
+  // curried choice as an auxiliary program
+  std::stringstream ssQuantSkolem;
+  ssQuantSkolem << "(program $eo_to_smt_quantifiers_skolemize" << std::endl;
+  ssQuantSkolem << "  ((s $smt_builtin_String) (T $smt_Type) (F $smt_Term) (n $smt_builtin_Int) (t $smt_Term))" << std::endl;
+  ssQuantSkolem << "  :signature ($smt_Term $smt_Term) $smt_Term" << std::endl;
+  ssQuantSkolem << "  (" << std::endl;
+  ssQuantSkolem << "  (($eo_to_smt_quantifiers_skolemize ($sm_apply ($sm_exists s T) F) $sm_z_zero)" << std::endl;
+  ssQuantSkolem << "     ($sm_apply ($sm_choice s T) F))" << std::endl;
+  ssQuantSkolem << "  (($eo_to_smt_quantifiers_skolemize ($sm_apply ($sm_exists s T) F) ($sm_numeral n))" << std::endl;
+  ssQuantSkolem << "     ($eo_to_smt_quantifiers_skolemize" << std::endl;
+  ssQuantSkolem << "       ($smtx_substitute s T ($eo_to_smt_quantifiers_skolemize ($sm_apply ($sm_exists s T) F) $sm_z_zero) F)" << std::endl;
+  ssQuantSkolem << "       ($sm_numeral ($smt_builtin_z_dec n))))" << std::endl;
+  ssQuantSkolem << "  (($eo_to_smt_quantifiers_skolemize F t) $sm_none)" << std::endl;
+  ssQuantSkolem << "  )" << std::endl;
+  ssQuantSkolem << ")" << std::endl;
+  d_auxDef["@quantifiers_skolemize"] = ssQuantSkolem.str();
+  d_specialCases["@quantifiers_skolemize"].emplace_back(
+    "(@quantifiers_skolemize (forall x1 x2) x3)",
+    "($eo_to_smt_quantifiers_skolemize ($eo_to_smt (exists x1 (not x2))) ($eo_to_smt x3))");
+  d_symIgnore["@quantifiers_skolemize"] = true;
+
   // re pos unfold
 #if 0
   std::stringstream ssRePosUnfoldAuxDef;
@@ -665,6 +686,12 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   std::stringstream ssRePosUnfold;
   addEunoiaReduceSym("@re_unfold_pos_component", {kString, kRegLan, kInt},
                      "($eo_to_smt (@quantifiers_skolemize ($eo_to_smt_re_pos_unfold_rec_exists x1 x2) x3))");
+  std::stringstream ssRePosUnfoldZero;
+  ssRePosUnfoldZero << ($sm_choice
+  d_specialCases["seq.@re_unfold_pos_component"].emplace_back(
+      "(@re_unfold_pos_component x1 (re.++ x2 x3) ($eo_numeral $smt_builtin_z_zero))",
+      ssRePosUnfoldZero.str()
+      );
 #endif
   // sequences
   addReduceSym("seq.empty", {kType}, "($smtx_empty_seq x1)");
@@ -991,7 +1018,7 @@ void ModelSmtNew::finalizeDecl(const std::string& name, const Expr& e)
   }
   if (d_symIgnore.find(name) != d_symIgnore.end())
   {
-    // intentionally ignored
+    // intentionally ignored, or handled as special cases only
     return;
   }
   // This assertion is critical for soundness: if we do not know how to

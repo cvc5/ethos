@@ -576,6 +576,11 @@
     (ite (veq ($smtx_model_eval x1) (vsm.Term (eo.Boolean false))) (eo.Boolean true) (eo.Boolean false))
     eo.Stuck))) :pattern (($eo_model_unsat x1)))) :named sm.axiom.$eo_model_unsat))
 
+; program: $mk_sm_const
+(define-fun $mk_sm_const ((x1 vsm.Value) (x2 tsm.Type)) vsm.Value
+    x1
+)
+
 ; program: $eovc_symm
 (define-fun $eovc_symm ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
@@ -601,12 +606,12 @@
 ; only evaluate to v if it is of type T.
 (define-fun texists_total ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (exists ((v vsm.Value))
-    (= ($smtx_model_eval ($smtx_substitute s T v F)) tgt)))
+    (= ($smtx_model_eval ($smtx_substitute s T ($mk_sm_const v T) F)) tgt)))
 
 ; true iff all values of type T when substituted into F are evaluated as tgt.
 (define-fun tforall_total ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (forall ((v vsm.Value))
-    (= ($smtx_model_eval ($smtx_substitute s T v F)) tgt)))
+    (= ($smtx_model_eval ($smtx_substitute s T ($mk_sm_const v T) F)) tgt)))
 
 ; exists
 (assert (forall ((s String) (T tsm.Type) (F sm.Term))
@@ -627,7 +632,7 @@
 ; that substituting with choice also makes it true.
 (assert (forall ((s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
   (=> (texists_total s T F ($mk_vsm_bool true))
-      (= ($smtx_model_eval ($smtx_substitute s T (tchoice s T F) F))
+      (= ($smtx_model_eval ($smtx_substitute s T ($mk_sm_const (tchoice s T F) T) F))
          ($mk_vsm_bool true)))))
 
 ;;; The verification condition

@@ -244,13 +244,6 @@ $SMT_TYPE_CONSTRUCTORS$
 (declare-parameterized-const $emb_vsm.Boolean
   ((b $smt_builtin_Bool :opaque)) $smt_Value)
 (define $vsm_bool ((b $smt_builtin_Bool)) ($emb_vsm.Boolean b))
-; temporary
-(program $mk_vsm_bool ((b $smt_builtin_Bool)) 
-  :signature ($smt_builtin_Bool) $smt_Value
-  (
-  (($mk_vsm_bool b) ($vsm_bool b))
-  )
-)
 
 (declare-parameterized-const $emb_vsm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Value)
@@ -783,19 +776,20 @@ $SMT_TYPE_CONSTRUCTORS$
 ; Substitution
 ; program: $smtx_substitute
 ; Used to define $smtx_eval_exists_rec.
-; ($smtx_substitute x v t) returns the term where x is replaced by v.
+; ($smtx_substitute s T u t) returns the term t where the
+; variable ($sm_Var s T) is replaced by u.
 (program $smtx_substitute
-  ((s $smt_builtin_String) (T $smt_Type) (v $smt_Term) 
+  ((s $smt_builtin_String) (T $smt_Type) (u $smt_Term)
    (f $smt_Term) (a $smt_Term) (z $smt_Term))
-  :signature ($smt_builtin_String $smt_Type $smt_Value $smt_Term) $smt_Term
+  :signature ($smt_builtin_String $smt_Type $smt_Term $smt_Term) $smt_Term
   (
-  (($smtx_substitute s T v ($sm_apply f a))
+  (($smtx_substitute s T u ($sm_apply f a))
     ($smt_builtin_ite ($smtx_is_binder_x s T f)
       ($sm_apply f a) ; avoid issues with shadowing
-      ($sm_apply ($smtx_substitute s T v f) ($smtx_substitute s T v a))))
-  (($smtx_substitute s T v z)
+      ($sm_apply ($smtx_substitute s T u f) ($smtx_substitute s T u a))))
+  (($smtx_substitute s T u z)
     ; if x is z, we are now the constant with the given interpretation
-    ($smt_builtin_ite ($smtx_is_var s T z) ($sm_Const v T) z))
+    ($smt_builtin_ite ($smtx_is_var s T z) u z))
   )
 )
 
@@ -875,7 +869,7 @@ $SMT_TYPE_CONSTRUCTORS$
   ; Lambda case
   (($smtx_model_eval_apply ($vsm_lambda s T t) i)
     ; substitutes into body
-    ($smtx_model_eval ($smtx_substitute s T i t)))
+    ($smtx_model_eval ($smtx_substitute s T ($sm_Const i T) t)))
   ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )
@@ -1096,3 +1090,17 @@ $EO_TO_SMT_CASES$
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end
+
+; ********** temporary delete once old model is deleted
+(program $mk_vsm_bool ((b $smt_builtin_Bool))
+  :signature ($smt_builtin_Bool) $smt_Value
+  (
+  (($mk_vsm_bool b) ($vsm_bool b))
+  )
+)
+(program $mk_sm_const ((v $smt_Value) (T $smt_Type))
+  :signature ($smt_Value $smt_Type) $smt_Term
+  (
+  (($mk_sm_const v T) ($sm_Const v T))
+  )
+)

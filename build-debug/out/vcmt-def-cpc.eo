@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 152
+; #trim-defs: 153
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -500,10 +500,16 @@
   (($eo_model_unsat F) ($smt_builtin_ite ($smt_builtin_veq ($smtx_model_eval F) $vsm_false) true false))
   )
 )
+(program $mk_sm_const ((v $smt_Value) (T $smt_Type))
+  :signature ($smt_Value $smt_Type) $smt_Value
+  (
+  (($mk_sm_const v T) v)
+  )
+)
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
   (($eovc_symm F) (eo::define ((_v0 ($eo_prog_symm ($eo_pf F)))) (eo::requires ($eo_typeof F) Bool (eo::requires ($eo_model_sat F) true (eo::requires ($eo_typeof _v0) Bool (eo::requires ($eo_model_unsat _v0) true true))))))
   )
 )
-(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply $smtx_typeof_value $smtx_substitute $mk_vsm_bool ")
+(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply $smtx_typeof_value $smtx_substitute $mk_vsm_bool $mk_sm_const ")
