@@ -62,6 +62,8 @@
 (echo "trim-defs-cmd (depends @from_bools ($eo_to_smt (concat (ite x1 #b1 #b0) x2)))")
 (echo "trim-defs-cmd (depends forall (not (exists x1 (not x2))))")
 (echo "trim-defs-cmd (depends lambda ($eo_List_cons x1 x2) $eo_List_nil (lambda x2 x3))")
+(echo "trim-defs-cmd (depends @quantifiers_skolemize (forall x1 x2) (exists x1 (not x2)))")
+(echo "trim-defs-cmd (depends @re_unfold_pos_component (str.substr s (str.len x) (- (str.len s) (str.len x))) (and (= s (str.++ x xrem)) (and (str.in_re x r1) (str.in_re xrem r2))) (re.++ r1 r2))")
 
 ; for alethe
 (echo "trim-defs-cmd (depends @cl (or x1 x2))")

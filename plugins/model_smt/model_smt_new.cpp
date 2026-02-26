@@ -657,42 +657,26 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   d_symIgnore["@quantifiers_skolemize"] = true;
 
   // re pos unfold
-#if 0
-  std::stringstream ssRePosUnfoldAuxDef;
-  ssRePosUnfoldAuxDef << "(program $eo_to_smt_re_pos_unfold_var_list ((n $smt_builtin_Int))" << std::endl;
-  ssRePosUnfoldAuxDef << "  :signature ($smt_builtin_Int) $eo_List" << std::endl;
-  ssRePosUnfoldAuxDef << "  (($eo_to_smt_re_pos_unfold_var_list n) ($smt_builtin_ite" << std::endl;
-  ssRePosUnfoldAuxDef << ")" << std::endl;
-  ssRePosUnfoldAuxDef << "(program $eo_to_smt_re_pos_unfold_concat ((t String) (l $eo_List))" << std::endl;
-  ssRePosUnfoldAuxDef << "  :signature ($eo_List) $eo_Term" << std::endl;
-  ssRePosUnfoldAuxDef << "  ((($eo_to_smt_re_pos_unfold_concat ($eo_List_cons t l))" << std::endl;
-  ssRePosUnfoldAuxDef << "    (str.++ t ($eo_to_smt_re_pos_unfold_concat l))))" << std::endl;
-  ssRePosUnfoldAuxDef << ")" << std::endl;
-  ssRePosUnfoldAuxDef << "(program $eo_to_smt_re_pos_unfold_mem_conj ((t String) (l $eo_List) (r1 RegLan) (r2 RegLan))" << std::endl;
-  ssRePosUnfoldAuxDef << "  :signature ($eo_List) $eo_Term" << std::endl;
-  ssRePosUnfoldAuxDef << "  (" << std::endl;
-  ssRePosUnfoldAuxDef << "  (($eo_to_smt_re_pos_unfold_mem_conj ($eo_List_cons t l) (re.++ r1 r2))" << std::endl;
-  ssRePosUnfoldAuxDef << "    (and (str.in_re t r1) ($eo_to_smt_re_pos_unfold_concat l r2)))" << std::endl;
-  ssRePosUnfoldAuxDef << "  (($eo_to_smt_re_pos_unfold_mem_conj ($eo_List_cons t l) (str.to_re ""))" << std::endl;
-  ssRePosUnfoldAuxDef << "    true)" << std::endl;
-  ssRePosUnfoldAuxDef << "  )" << std::endl;
-  ssRePosUnfoldAuxDef << ")" << std::endl;
-  ssRePosUnfoldAuxDef << std::endl;
-  ssRePosUnfoldAuxDef << "(define $eo_to_smt_re_pos_unfold_rec_exists ((s String) (R RegLan))" << std::endl;
-  ssRePosUnfoldAuxDef << "  (eo::define ((vl ($eo_to_smt_re_pos_unfold_var_list (eo::list_len re.++ R))))" << std::endl;
-  ssRePosUnfoldAuxDef << "    (forall vl (not" << std::endl;
-  ssRePosUnfoldAuxDef << "      (and (= s ($eo_to_smt_re_pos_unfold_concat vl))" << std::endl;
-  ssRePosUnfoldAuxDef << "      ($eo_to_smt_re_pos_unfold_mem_conj vl R))))))" << std::endl;
   std::stringstream ssRePosUnfold;
-  addEunoiaReduceSym("@re_unfold_pos_component", {kString, kRegLan, kInt},
-                     "($eo_to_smt (@quantifiers_skolemize ($eo_to_smt_re_pos_unfold_rec_exists x1 x2) x3))");
-  std::stringstream ssRePosUnfoldZero;
-  ssRePosUnfoldZero << ($sm_choice
-  d_specialCases["seq.@re_unfold_pos_component"].emplace_back(
-      "(@re_unfold_pos_component x1 (re.++ x2 x3) ($eo_numeral $smt_builtin_z_zero))",
-      ssRePosUnfoldZero.str()
-      );
-#endif
+  ssRePosUnfold << "(program $eo_to_smt_re_unfold_pos_component" << std::endl;
+  ssRePosUnfold << "  ((s $smt_Term) (r1 $smt_Term) (r2 $smt_Term) (n $smt_builtin_Int) (t $smt_Term))" << std::endl;
+  ssRePosUnfold << "  :signature ($smt_Term $smt_Term $smt_Term) $smt_Term" << std::endl;
+  ssRePosUnfold << "  (" << std::endl;
+  ssRePosUnfold << "  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) $sm_z_zero)" << std::endl;
+  ssRePosUnfold << "    (eo::define ((x ($sm_Var $smt_builtin_str_vname $tsm_String)))" << std::endl;
+  ssRePosUnfold << "    (eo::define ((xrem " << smtToSmtEmbed("(str.substr s (str.len x) (- (str.len s) (str.len x)))") << "))" << std::endl;
+  ssRePosUnfold << "      ($sm_apply ($sm_choice $smt_builtin_str_vname $tsm_String)" << std::endl;
+  ssRePosUnfold << "        " << smtToSmtEmbed("(and (= s (str.++ x xrem)) (and (str.in_re x r1) (str.in_re xrem r2)))") << "))))" << std::endl;
+  ssRePosUnfold << "  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) ($sm_numeral n))" << std::endl;
+  ssRePosUnfold << "    (eo::define ((k ($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) $sm_z_zero)))" << std::endl;
+  ssRePosUnfold << "      ($eo_to_smt_re_unfold_pos_component" << std::endl;
+  ssRePosUnfold << "        " << smtToSmtEmbed("(str.substr s (str.len k) (- (str.len s) (str.len k)))") << std::endl;
+  ssRePosUnfold << "        r2 ($sm_numeral ($smt_builtin_z_dec n)))))" << std::endl;
+  ssRePosUnfold << "  (($eo_to_smt_re_unfold_pos_component s r1 t) $sm_none)" << std::endl;
+  ssRePosUnfold << "  )" << std::endl;
+  ssRePosUnfold << ")" << std::endl;
+  d_auxDef["@re_unfold_pos_component"] = ssRePosUnfold.str();
+  addEunoiaReduceSym("@re_unfold_pos_component", {kT, kT, kT}, "($eo_to_smt_re_unfold_pos_component ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
   // sequences
   addReduceSym("seq.empty", {kType}, "($smtx_empty_seq x1)");
   d_specialCases["seq.empty"].emplace_back(
