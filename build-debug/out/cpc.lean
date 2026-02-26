@@ -281,7 +281,7 @@ def smt_lit_tchoice : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
 mutual
 
 def __smtx_pow2 : smt_lit_Int -> smt_lit_Int
-  | i => (smt_lit_ite (smt_lit_zleq i 0) 1 (smt_lit_zmult 2 (__smtx_pow2 (smt_lit_zplus i (smt_lit_zneg 1)))))
+  | i => (smt_lit_int_pow2 i)
 
 
 def __vsm_apply_head : SmtValue -> SmtValue
@@ -349,24 +349,6 @@ def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | t1, t2 => (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value t1) (__smtx_typeof_value t2)) (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value t1) SmtType.None) SmtValue.NotValue (SmtValue.Boolean (smt_lit_veq t1 t2))) SmtValue.NotValue)
 
 
-def __smtx_is_var : smt_lit_String -> SmtType -> SmtTerm -> smt_lit_Bool
-  | s1, T1, (SmtTerm.Var s2 T2) => (smt_lit_and (smt_lit_streq s1 s2) (smt_lit_Teq T1 T2))
-  | s1, T1, x => false
-
-
-def __smtx_is_binder_x : smt_lit_String -> SmtType -> SmtTerm -> smt_lit_Bool
-  | s1, T1, (SmtTerm.exists s2 T2) => (__smtx_is_var s1 T1 (SmtTerm.Var s2 T2))
-  | s1, T1, (SmtTerm.forall s2 T2) => (__smtx_is_var s1 T1 (SmtTerm.Var s2 T2))
-  | s1, T1, (SmtTerm.lambda s2 T2) => (__smtx_is_var s1 T1 (SmtTerm.Var s2 T2))
-  | s1, T1, (SmtTerm.choice s2 T2) => (__smtx_is_var s1 T1 (SmtTerm.Var s2 T2))
-  | s1, T1, x => false
-
-
-def __smtx_substitute : smt_lit_String -> SmtType -> SmtTerm -> SmtTerm -> SmtTerm
-  | s, T, u, (SmtTerm.Apply f a) => (smt_lit_ite (__smtx_is_binder_x s T f) (SmtTerm.Apply f a) (SmtTerm.Apply (__smtx_substitute s T u f) (__smtx_substitute s T u a)))
-  | s, T, u, z => (smt_lit_ite (__smtx_is_var s T z) u z)
-
-
 def __smtx_model_eval_dt_cons : smt_lit_String -> SmtDatatype -> smt_lit_Int -> SmtValue
   | s, d, n => (smt_lit_ite (smt_lit_Teq (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) n) SmtType.None) SmtValue.NotValue (SmtValue.DtCons s d n))
 
@@ -386,7 +368,6 @@ def __smtx_model_eval_dt_updater : smt_lit_String -> SmtDatatype -> smt_lit_Int 
 def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
   | (SmtValue.Map m), i => (__smtx_msm_lookup m i)
-  | (SmtValue.Lambda s T t), i => (__smtx_model_eval (__smtx_substitute s T (SmtTerm.Const i T) t))
   | v, i => SmtValue.NotValue
 
 
@@ -635,6 +616,40 @@ def __eo_to_smt : Term -> SmtTerm
 
 
 end
+
+/- Definition of the checker -/
+
+/-
+-/
+inductive CStateObj : Type where
+  | assume : Term -> CStateObj
+  | proven : Term -> CStateObj
+deriving DecidableEq
+
+/-
+-/
+inductive CState : Type where
+  | nil : CState
+  | cons : CStateObj -> CState -> CState
+deriving DecidableEq
+
+/-
+-/
+inductive CRule : Type where
+  | none : CRule
+
+deriving DecidableEq
+
+/-
+-/
+inductive CCmd : Type where
+  | assume : Term -> CCmd
+  | assume_push : Term -> CCmd
+  | step : CRule -> Term -> Term -> Term -> CCmd
+  | step_pop : CRule -> Term -> Term -> Term -> CCmd
+deriving DecidableEq
+
+
 
 /- Definitions for theorems -/
 

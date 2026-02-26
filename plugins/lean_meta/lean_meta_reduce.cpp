@@ -29,6 +29,10 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
   d_typeToMetaKind["$smt_Datatype"] = MetaKind::DATATYPE;
   d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
   d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
+  d_typeToMetaKind["$eo_State"] = MetaKind::CHECKER_STATE;
+  d_typeToMetaKind["$eo_StateObj"] = MetaKind::CHECKER_STATE_OBJ;
+  d_typeToMetaKind["$eo_Rule"] = MetaKind::CHECKER_RULE;
+  d_typeToMetaKind["$eo_Cmd"] = MetaKind::CHECKER_CMD;
   d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
   d_prefixToMetaKind["sm"] = MetaKind::SMT;
   d_prefixToMetaKind["tsm"] = MetaKind::SMT_TYPE;
@@ -37,6 +41,10 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
   d_prefixToMetaKind["dt"] = MetaKind::DATATYPE;
   d_prefixToMetaKind["dtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
+  d_prefixToMetaKind["s"] = MetaKind::CHECKER_STATE;
+  d_prefixToMetaKind["so"] = MetaKind::CHECKER_STATE_OBJ;
+  d_prefixToMetaKind["rule"] = MetaKind::CHECKER_RULE;
+  d_prefixToMetaKind["cmd"] = MetaKind::CHECKER_CMD;
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}
@@ -80,6 +88,10 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
     case MetaKind::PROOF: os << "Proof"; break;
     case MetaKind::DATATYPE: os << "SmtDatatype"; break;
     case MetaKind::DATATYPE_CONSTRUCTOR: os << "SmtDatatypeCons"; break;
+    case MetaKind::CHECKER_STATE: os << "CState"; break;
+    case MetaKind::CHECKER_STATE_OBJ: os << "CStateObj"; break;
+    case MetaKind::CHECKER_RULE: os << "CRule"; break;
+    case MetaKind::CHECKER_CMD: os << "CCmd"; break;
     default: return false;
   }
   return true;
@@ -555,12 +567,15 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   std::stringstream decl;
   std::vector<MetaKind> vctxArgs;
   size_t nargs = vt.getNumChildren();
+  bool isCheckerDef = false;
   for (size_t j = 0; j < nargs; j++)
   {
     vctxArgs.push_back(getTypeMetaKind(vt[j]));
+    isCheckerDef |= isCheckerMetaKind(vctxArgs.back());
   }
   std::ostream* out =
-      vctxArgs.back() == MetaKind::EUNOIA ? &d_defs : &d_smtDefs;
+  isCheckerDef ? &d_eoChecker :
+      (vctxArgs.back() == MetaKind::EUNOIA ? &d_defs : &d_smtDefs);
   // exception: conversion from Eunoia to SMT is printed on defs
   if (vname == "$eo_to_smt" || vname == "$eo_to_smt_type")
   {
@@ -794,6 +809,10 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   {
     out = &d_smtValueDt;
   }
+  else if (tk == MetaKind::CHECKER_RULE)
+  {
+    out = &d_ruleDt;
+  }
   if (out == nullptr)
   {
     Trace("lean-meta") << "Do not include " << e << std::endl;
@@ -849,46 +868,6 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   }
   printMetaTypeKind(tk, *out);
   (*out) << std::endl;
-#if 0
-  // special case for apply
-  if (cnamek == "Apply")
-  {
-    isSmtTerm = true;
-    eoIsObjRet = "(Smt_Term." + cnamek + " y1 y2)";
-  }
-  else if (cnamek == "Binary")
-  {
-    isSmtTerm = true;
-    eoIsObjRet = "(Smt_Term." + cnamek + " x1 x2)";
-  }
-  else if (cnamek == "Boolean" || cnamek == "Numeral" || cnamek == "Rational"
-           || cnamek == "String")
-  {
-    isSmtTerm = true;
-    eoIsObjRet = "(Smt_Term." + cnamek + " x1)";
-  }
-  // if an SMT term
-  if (isSmtTerm)
-  {
-    d_eoIsObj << "| " << cname << "_case : ";
-    if (nopqArgs > 0)
-    {
-      d_eoIsObj << "forall " << ssq.str() << "," << std::endl;
-      d_eoIsObj << sscond.str() << "  ";
-    }
-    d_eoIsObj << "(eo_is_obj ";
-    if (nopqArgs > 0)
-    {
-      d_eoIsObj << "(Term." << cname << " " << eoIsObjCall.str() << ")";
-    }
-    else
-    {
-      d_eoIsObj << "Term." << cname;
-    }
-    d_eoIsObj << " " << eoIsObjRet << ")";
-    d_eoIsObj << std::endl;
-  }
-#endif
 }
 
 void LeanMetaReduce::finalize()
@@ -926,6 +905,13 @@ void LeanMetaReduce::finalize()
   replace(finalLean, "$LEAN_SMT_TERM_DEF$", d_smtDt.str());
   replace(finalLean, "$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str());
   replace(finalLean, "$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str());
+  
+  if (d_ruleDt.str().empty())
+  {
+    d_ruleDt << "  | none : CRule" << std::endl;
+  }
+  replace(finalLean, "$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str());
+  replace(finalLean, "$LEAN_CHECKER_DEFS$", d_eoChecker.str());
 
   std::stringstream sso;
   sso << s_plugin_path << "plugins/lean_meta/lean_meta_gen.lean";
@@ -1034,7 +1020,7 @@ MetaKind LeanMetaReduce::getMetaKind(State& s,
                                      std::string& cname) const
 {
   std::string sname = getName(e);
-  if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term")
+  if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term" || sname=="$eo_Cmd" || sname=="$eo_Rule" || sname=="$eo_State" || sname=="$eo_StateObj" || sname=="$eo_NullBool")
   {
     // internal-only symbol, e.g. one used for defining the deep embedding
     cname = sname;

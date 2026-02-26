@@ -118,13 +118,15 @@ void DesugarChecker::finalizeRule(const Expr& v)
     if (npremises > 0)
     {
       Assert(npremises <= 8);
-      d_ruleInvokes << "($eo_plist_cons";
+      std::string ret = "$eo_plist_nil";
       for (size_t i = 0; i < npremises; i++)
       {
-        d_ruleInvokes << " n" << (i + 1);
-        invokeArgs << " ($eo_pf ($eo_State_proven S n" << (i + 1) << "))";
+        std::stringstream nextRet;
+        nextRet << "($eo_plist_cons n" << (i + 1) << " " << ret << ")";
+        ret = nextRet.str();
+        invokeArgs << " ($eo_pf ($eo_State_proven_nth S n" << (i + 1) << "))";
       }
-      d_ruleInvokes << ")";
+      d_ruleInvokes << ret << " ";
     }
     else
     {
@@ -152,6 +154,20 @@ void DesugarChecker::printTerm(const Expr& e, std::ostream& os)
 
 void DesugarChecker::finalizeChecker(const std::string& finalEo)
 {
+  std::stringstream ssoec;
+  ssoec << s_plugin_path << "plugins/desugar/eo_desugar_checker_gen.eo";
+  std::cout << "Write checker-defs    " << ssoec.str() << std::endl;
+  std::ofstream outec(ssoec.str());
+  // include signature
+  outec << finalEo;
+  // then include the checker definition
+  output(outec);
+  outec << std::endl;
+}
+
+void DesugarChecker::output(std::ostream& out)
+{
+  out << ";; ------------ checker" << std::endl;
   // auto-generate the checker as well
   std::stringstream ssiec;
   ssiec << s_plugin_path << "plugins/desugar/eo_desugar_checker.eo";
@@ -161,16 +177,8 @@ void DesugarChecker::finalizeChecker(const std::string& finalEo)
   std::string finalCheckEo = ssec.str();
   replace(finalCheckEo, "$EO_RULE_DEFS$", d_rules.str());
   replace(finalCheckEo, "$EO_RULE_INVOKE$", d_ruleInvokes.str());
-
-  std::stringstream ssoec;
-  ssoec << s_plugin_path << "plugins/desugar/eo_desugar_checker_gen.eo";
-  std::cout << "Write checker-defs    " << ssoec.str() << std::endl;
-  std::ofstream outec(ssoec.str());
-  // include signature
-  outec << finalEo;
-  // then include the checker definition
-  outec << finalCheckEo;
-  outec << std::endl;
+  out << finalCheckEo;
+  out << ";; ------------ checker end" << std::endl;
 }
-
+  
 }  // namespace ethos

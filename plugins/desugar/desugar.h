@@ -122,6 +122,7 @@ class Desugar : public StdPlugin
   Expr d_true;
   /** Are we generating programs that are VC targets */
   bool d_genVcs;
+  bool d_genChecker;
 
   /** Declares processed for lit types */
   std::unordered_set<Kind> d_ltKindProcessed;

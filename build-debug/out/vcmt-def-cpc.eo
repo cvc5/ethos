@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 257
+; #trim-defs: 256
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -49,26 +49,25 @@
 (define $smt_builtin_ite ((W Type :implicit) (b $smt_builtin_Bool) (x1 W) (x2 W)) ($smt_apply_3 "ite" b x1 x2))
 (define $smt_builtin_z_zero () ($smt_apply_0 "0"))
 (define $smt_builtin_z_one () ($smt_apply_0 "1"))
-(define $smt_builtin_z_two () ($smt_apply_0 "2"))
 (define $smt_builtin_str_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "streq" x1 x2))
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
 (define $smt_builtin_z_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zeq" x1 x2))
 (define $smt_builtin_z_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zleq" x1 x2))
 (define $smt_builtin_z_+ ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zplus" x1 x2))
-(define $smt_builtin_z_* ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zmult" x1 x2))
 (define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
+(define $smt_builtin_z_pow2 ((W Type :implicit) (x1 W)) ($smt_apply_1 "int.pow2" x1))
 (define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
 (define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
 (program $smtx_pow2 ((i $smt_builtin_Int))
   :signature ($smt_builtin_Int) $smt_builtin_Int
   (
-  (($smtx_pow2 i)
-    ($smt_builtin_ite ($smt_builtin_z_<= i $smt_builtin_z_zero)
-      $smt_builtin_z_one
-      ($smt_builtin_z_* $smt_builtin_z_two
-        ($smtx_pow2 ($smt_builtin_z_dec i)))))
+  (($smtx_pow2 i) ($smt_builtin_z_pow2 i))
+
+
+
+
   )
 )
 (declare-const $smt_Term Type)
@@ -705,9 +704,9 @@
   
   (($smtx_model_eval_apply ($vsm_map m) i)      ($smtx_msm_lookup m i))
   
-  (($smtx_model_eval_apply ($vsm_lambda s T t) i)
+  
     
-    ($smtx_model_eval ($smtx_substitute s T ($sm_Const i T) t)))
+    
   
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )

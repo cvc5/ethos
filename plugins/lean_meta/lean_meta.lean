@@ -317,6 +317,39 @@ $LEAN_DEFS$
 
 end
 
+/- Definition of the checker -/
+
+/-
+-/
+inductive CStateObj : Type where
+  | assume : Term -> CStateObj
+  | proven : Term -> CStateObj
+deriving DecidableEq
+
+/-
+-/
+inductive CState : Type where
+  | nil : CState
+  | cons : CStateObj -> CState -> CState
+deriving DecidableEq
+
+/-
+-/
+inductive CRule : Type where
+$LEAN_CHECKER_RULE_DEF$
+deriving DecidableEq
+
+/-
+-/
+inductive CCmd : Type where
+  | assume : Term -> CCmd
+  | assume_push : Term -> CCmd
+  | step : CRule -> Term -> Term -> Term -> CCmd
+  | step_pop : CRule -> Term -> Term -> Term -> CCmd
+deriving DecidableEq
+
+$LEAN_CHECKER_DEFS$
+
 /- Definitions for theorems -/
 
 /-

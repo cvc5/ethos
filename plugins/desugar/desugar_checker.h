@@ -30,6 +30,7 @@ class DesugarChecker : public StdPlugin
   void finalizeRule(const Expr& v);
   void finalizeChecker(const std::string& finalEo);
 
+  void output(std::ostream& out);
  private:
   void printTerm(const Expr& e, std::ostream& os);
   Expr d_true;

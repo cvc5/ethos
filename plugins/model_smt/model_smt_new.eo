@@ -867,9 +867,9 @@ $SMT_TYPE_CONSTRUCTORS$
   ; The function evaluated to a map value, call the map lookup.
   (($smtx_model_eval_apply ($vsm_map m) i)      ($smtx_msm_lookup m i))
   ; Lambda case
-  (($smtx_model_eval_apply ($vsm_lambda s T t) i)
+  ;(($smtx_model_eval_apply ($vsm_lambda s T t) i)
     ; substitutes into body
-    ($smtx_model_eval ($smtx_substitute s T ($sm_Const i T) t)))
+    ;($smtx_model_eval ($smtx_substitute s T ($sm_Const i T) t)))
   ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )

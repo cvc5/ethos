@@ -112,6 +112,7 @@
 (define $smt_builtin_z_* ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zmult" x1 x2))
 (define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
 (define $smt_builtin_z_- ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_z_+ x1 ($smt_builtin_z_neg x2)))
+(define $smt_builtin_z_pow2 ((W Type :implicit) (x1 W)) ($smt_apply_1 "int.pow2" x1))
 ; Real operators
 ; These assume qleq, qlt, qplus, qmult, qneg are defined as <=, <, +, *, -
 (define $smt_builtin_q_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qeq" x1 x2))
@@ -146,11 +147,11 @@
 (program $smtx_pow2 ((i $smt_builtin_Int))
   :signature ($smt_builtin_Int) $smt_builtin_Int
   (
-  (($smtx_pow2 i)
-    ($smt_builtin_ite ($smt_builtin_z_<= i $smt_builtin_z_zero)
-      $smt_builtin_z_one
-      ($smt_builtin_z_* $smt_builtin_z_two
-        ($smtx_pow2 ($smt_builtin_z_dec i)))))
+  (($smtx_pow2 i) ($smt_builtin_z_pow2 i))
+;    ($smt_builtin_ite ($smt_builtin_z_<= i $smt_builtin_z_zero)
+;      $smt_builtin_z_one
+;      ($smt_builtin_z_* $smt_builtin_z_two
+;        ($smtx_pow2 ($smt_builtin_z_dec i)))))
   )
 )
 
@@ -2130,9 +2131,9 @@
   ; The function evaluated to a map value, call the map lookup.
   (($smtx_model_eval_apply ($vsm_map m) i)      ($smtx_msm_lookup m i))
   ; Lambda case
-  (($smtx_model_eval_apply ($vsm_lambda s T t) i)
+  ;(($smtx_model_eval_apply ($vsm_lambda s T t) i)
     ; substitutes into body
-    ($smtx_model_eval ($smtx_substitute s T ($sm_Const i T) t)))
+    ;($smtx_model_eval ($smtx_substitute s T ($sm_Const i T) t)))
   ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )

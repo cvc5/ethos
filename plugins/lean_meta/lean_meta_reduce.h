@@ -105,11 +105,14 @@ class LeanMetaReduce : public StdPlugin
   std::stringstream d_embedTermDt;
   /** Eunoia to object inductive predicate */
   std::stringstream d_eoIsObj;
+  /** */
+  std::stringstream d_eoChecker;
   /** SMT definitions */
   std::stringstream d_smtDefs;
   std::stringstream d_smtDt;
   std::stringstream d_smtTypeDt;
   std::stringstream d_smtValueDt;
+  std::stringstream d_ruleDt;
   /** Declares seen */
   std::set<Expr> d_declSeen;
   /** List of program definitions */

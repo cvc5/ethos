@@ -237,11 +237,9 @@
 (declare-fun $eo_typeof (eo.Term) eo.Term)
 
 ; program: $smtx_pow2
-(declare-fun $smtx_pow2 (Int) Int)
-(assert (! (forall ((x1 Int))
-  (! (= ($smtx_pow2 x1)
-    (ite (zleq x1 0) 1 (zmult 2 ($smtx_pow2 (zplus x1 (zneg 1)))))
-) :pattern (($smtx_pow2 x1)))) :named sm.axiom.$smtx_pow2))
+(define-fun $smtx_pow2 ((x1 Int)) Int
+    (int.pow2 x1)
+)
 
 (define-fun $eo_Bool () eo.Term eo.Bool)
 ; program: $eo_bool
@@ -670,10 +668,8 @@
     (vsm.Apply (vsm.Apply (vsm.Apply.arg1 x1) (vsm.Apply.arg2 x1)) x2)
   (ite ((_ is vsm.Map) x1)
     ($smtx_msm_lookup (vsm.Map.arg1 x1) x2)
-  (ite ((_ is vsm.Lambda) x1)
-    ($smtx_model_eval ($smtx_substitute (vsm.Lambda.arg1 x1) (vsm.Lambda.arg2 x1) (sm.Const x2 (vsm.Lambda.arg2 x1)) (vsm.Lambda.arg3 x1)))
     vsm.NotValue
-))))
+)))
 
 ; program: $smtx_model_eval_not
 (define-fun $smtx_model_eval_not ((x1 vsm.Value)) vsm.Value

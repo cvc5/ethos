@@ -38,6 +38,7 @@ Desugar::Desugar(State& s)
   d_overloadSanVisited[pft] =
       d_state.mkSymbol(Kind::CONST, "$eo_Proof", s.mkType());
   d_genVcs = d_state.getOptions().d_pluginDesugarGenVc;
+  d_genChecker = !d_genVcs;
   if (d_genVcs)
   {
     d_eoVc << ";; verification conditions" << std::endl << std::endl;
@@ -858,6 +859,17 @@ void Desugar::finalize()
   replace(finalEo, "$EO_DT_CONSTRUCTORS_PARAM$", d_eoDtConsParam.str());
   replace(finalEo, "$EO_DT_CONSTRUCTORS_CASES$", d_eoDtCons.str());
   replace(finalEo, "$EO_DT_SELECTORS_CASES$", d_eoDtSel.str());
+  if (false && d_genChecker)
+  {
+    std::stringstream ssChecker;
+    d_dchecker.output(ssChecker);
+    replace(finalEo, "$EO_CHECKER$", ssChecker.str());
+  }
+  else
+  {
+    d_dchecker.finalizeChecker(finalEo);
+    replace(finalEo, "$EO_CHECKER$", "");
+  }
   // Verification conditions for *all* proof rules are ready now
   // TODO: make this manual?
   replace(finalEo, "$EO_VC$", d_eoVc.str());
@@ -870,8 +882,6 @@ void Desugar::finalize()
 
   // output steps if applicable
   d_dproof.output(oute);
-
-  d_dchecker.finalizeChecker(finalEo);
 }
 
 void Desugar::notifyAssume(const std::string& name, Expr& proven, bool isPush)

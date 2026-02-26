@@ -54,6 +54,7 @@ enum class MetaKind
 };
 std::string metaKindToString(MetaKind k);
 std::string metaKindToPrefix(MetaKind k);
+bool isCheckerMetaKind(MetaKind k);
 
 /** A utility for printing conjunctions */
 class ConjPrint
