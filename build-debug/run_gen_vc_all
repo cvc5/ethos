@@ -604,3 +604,5 @@ check_status
 ./run_gen_vc_single $INPUT re-range-refl
 ./run_gen_vc_single $INPUT re-range-emp
 ./run_gen_vc_single $INPUT re-star-union-char
+# ./run_gen_vc_single $INPUT arith-mod-over-mod-1
+# ./run_gen_vc_single $INPUT arith-mod-over-mod-mult
