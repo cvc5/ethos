@@ -52,7 +52,7 @@ public:
   /**
    * Include file, if not already done so.
    * @param s Specifies the path and name of the file to include.
-   * @param isReference Whether the given file was marked as a signature file.
+   * @param isSignature Whether the given file was marked as a signature file.
    * @param isReference Whether the given file was marked as a reference file.
    * @param referenceNf The method for normalizing the reference file, if one
    * exists.

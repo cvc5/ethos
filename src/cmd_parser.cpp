@@ -465,7 +465,21 @@ bool CmdParser::parseNextCommand()
       {
         ret = d_state.mkRequires(reqs, ret);
       }
-      // rules have type Proof, which is not used.
+      // Ethos desugars proof rules to programs that take premises and
+      // arguments and returns the formula F that is proven. This result is
+      // then wrapped in (eo::pf F) when executing step/step-pop commands.
+      // For example,
+      // (declare-rule contra ((F Bool))
+      //   :premises (F (not F))
+      //   :conclusion false)
+      // is desugared to
+      // (program $eo_prog_contra ((F Bool))
+      //   :signature (Proof Proof) Bool
+      //   ((($eo_prog_contra (eo::pf F) (eo::pf (not F))) false))
+      // ).
+      // Proof rules themselves are a special kind of symbol that maps to their
+      // associated program. The proof rule symbols themselves are given type
+      // Bool, which is not used.
       Expr pt = d_state.mkBoolType();
       d_state.popScope();
       Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, pt);
@@ -484,6 +498,9 @@ bool CmdParser::parseNextCommand()
           }
           else
           {
+            // Since arguments to proof rules may contain parameters, some
+            // arguments do not type check. Hence, we overapproximate the
+            // type of the program using type variables here.
             std::stringstream ss;
             ss << "$eo_arg_" << i;
             Expr et = d_state.mkSymbol(Kind::PARAM, ss.str(), type);
@@ -828,7 +845,7 @@ bool CmdParser::parseNextCommand()
         program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       }
       d_state.popScope();
-      // call even if null
+      // call even if null, so that plugins are notified of forward declarations
       d_state.defineProgram(pvar, program);
       if (pprev.isNull())
       {
@@ -911,6 +928,7 @@ bool CmdParser::parseNextCommand()
         // because allocation of std::stringstream is expensive and this
         // block of code only executes at most once.
         std::stringstream sserr;
+        sserr << "A step of rule " << ruleName << " failed to check." << std::endl;
         bool recheck = d_state.notifyStep(
             name, rule, proven, premises, args, isPop, concTerm, &sserr);
         // should fail again
@@ -933,7 +951,7 @@ bool CmdParser::parseNextCommand()
           std::stringstream ss;
           ss << "Unexpected conclusion for rule " << ruleName << ":" << std::endl;
           ss << "    Proves: " << concTerm << std::endl;
-          ss << "  Expected: (pf " << proven << ")";
+          ss << "  Expected: " << proven;
           d_lex.parseError(ss.str());
         }
       }
