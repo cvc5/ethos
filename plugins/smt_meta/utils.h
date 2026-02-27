@@ -65,7 +65,7 @@ class ConjPrint
   ConjPrint();
   void push(const std::string& str);
   void printConjunction(std::ostream& os, bool isDisj = false);
-  bool empty() const { return d_npush==0; }
+  bool empty() const { return d_npush == 0; }
   std::stringstream d_ss;
   size_t d_npush;
 };

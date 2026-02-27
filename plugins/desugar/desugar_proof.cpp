@@ -43,7 +43,6 @@ void DesugarProof::notifyAssume(const std::string& name,
   printTerm(proven, d_cmds);
   d_cmds << "))";
 
-
   d_eoPfSteps << "(define $eo_p_" << name << " () ";
   printTerm(proven, d_eoPfSteps);
   // d_eoPfSteps << " :type Bool";
@@ -59,10 +58,9 @@ bool DesugarProof::notifyStep(const std::string& name,
                               Expr& result,
                               std::ostream* err)
 {
-
   if (isPop)
   {
-    Assert (!d_timestampScope.empty());
+    Assert(!d_timestampScope.empty());
     d_currTimestamp = d_timestampScope.back();
     d_timestampScope.pop_back();
   }
@@ -76,11 +74,11 @@ bool DesugarProof::notifyStep(const std::string& name,
     plCons = tupleVal[0];
   }
   // is assume is part of the checker compilation
-  //bool isAssume = tupleVal[1] == d_true;
+  // bool isAssume = tupleVal[1] == d_true;
   bool isConcExplicit = tupleVal[2] == d_true;
 
   d_cmds << "(define $eo_p_" << name << " () ($cmd_" << rule;
-  for (size_t i=0, nargs = args.size(); i<nargs; i++)
+  for (size_t i = 0, nargs = args.size(); i < nargs; i++)
   {
     d_cmds << " ";
     printTerm(args[i], d_cmds);
@@ -93,18 +91,19 @@ bool DesugarProof::notifyStep(const std::string& name,
   if (!plCons.isNull())
   {
     std::string ret = "$eo_plist_nil";
-    for (size_t i=0, npremises=premises.size(); i<npremises; i++)
+    for (size_t i = 0, npremises = premises.size(); i < npremises; i++)
     {
-      size_t ii = (npremises-(i+1));
+      size_t ii = (npremises - (i + 1));
       std::stringstream nextRet;
-      nextRet << "($eo_plist_cons " << getTimestampIndex(premises[ii]) << ret << ")";
+      nextRet << "($eo_plist_cons " << getTimestampIndex(premises[ii]) << ret
+              << ")";
       ret = nextRet.str();
     }
     d_cmds << " " << ret;
   }
   else
   {
-    for (size_t i=0, npremises=premises.size(); i<npremises; i++)
+    for (size_t i = 0, npremises = premises.size(); i < npremises; i++)
     {
       d_cmds << " " << getTimestampIndex(premises[i]);
     }
@@ -222,14 +221,14 @@ bool DesugarProof::notifyStep(const std::string& name,
 size_t DesugarProof::getTimestampIndex(const Expr& e)
 {
   std::map<Expr, size_t>::iterator it = d_timestamp.find(e);
-  Assert (it!=d_timestamp.end());
-  Assert (it->second<d_currTimestamp);
+  Assert(it != d_timestamp.end());
+  Assert(it->second < d_currTimestamp);
   return d_currTimestamp - it->second;
 }
 
 void DesugarProof::bind(const std::string& name, const Expr& e)
 {
-  if (e.getKind()==Kind::PROOF)
+  if (e.getKind() == Kind::PROOF)
   {
     d_timestamp[e[0]] = d_currTimestamp;
     d_currTimestamp++;

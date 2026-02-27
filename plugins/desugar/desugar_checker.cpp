@@ -39,7 +39,6 @@ void DesugarChecker::finalizeRule(const Expr& v)
   std::stringstream progPat;
   std::stringstream progRet;
 
-
   AppInfo* ainfo = d_state.getAppInfo(v.getValue());
   Expr tupleVal = ainfo->d_attrConsTerm;
   Assert(tupleVal.getNumChildren() == 4);
@@ -50,7 +49,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
   }
   bool isAssume = tupleVal[1] == d_true;
   // conclusion explicit is compiled away when desugaring proof
-  //bool isConcExplicit = tupleVal[2] == d_true;
+  // bool isConcExplicit = tupleVal[2] == d_true;
   Expr rprog = tupleVal[3];
   std::stringstream argList;
   Expr rprogType = rprog.getType();
@@ -77,12 +76,14 @@ void DesugarChecker::finalizeRule(const Expr& v)
   Assert(nargs <= 10);
   for (size_t i = 1; i <= nargs; i++)
   {
-    embArg << " (T" << i << " Type :implicit) (x" << i << " T" << i << " :opaque)";
+    embArg << " (T" << i << " Type :implicit) (x" << i << " T" << i
+           << " :opaque)";
     macroArg << " (T" << i << " Type :implicit) (x" << i << " T" << i << ")";
     macroRet << " x" << i;
     invokePat << " a" << i;
     invokeRet << " a" << i;
-    progParamList << " (T" << i << " Type :implicit) (a" << i << " T" << i << ")";
+    progParamList << " (T" << i << " Type :implicit) (a" << i << " T" << i
+                  << ")";
     progSig << " T" << i;
     progPat << " a" << i;
     progRet << " a" << i;
@@ -128,7 +129,8 @@ void DesugarChecker::finalizeRule(const Expr& v)
 
   std::stringstream ssr;
   ssr << "$cmd_" << v;
-  d_rules << "(declare-parameterized-const $emb_cmd." << v << " (" << embArg.str() << ") $eo_Cmd)" << std::endl;
+  d_rules << "(declare-parameterized-const $emb_cmd." << v << " ("
+          << embArg.str() << ") $eo_Cmd)" << std::endl;
   d_rules << "(define " << ssr.str() << " (" << macroArg.str() << ") ";
   if (!macroRet.str().empty())
   {
@@ -138,21 +140,31 @@ void DesugarChecker::finalizeRule(const Expr& v)
   {
     d_rules << "$emb_cmd." << v << std::endl;
   }
-  d_ruleInvokes << "  (($eo_invoke_cmd S ($cmd_" << v << invokePat.str() << ")) ";
+  d_ruleInvokes << "  (($eo_invoke_cmd S ($cmd_" << v << invokePat.str()
+                << ")) ";
   if (isAssume)
   {
-    d_ruleInvokes << "($eo_invoke_cmd_pop_" << v << " S" << invokeRet.str() << "))" << std::endl;
+    d_ruleInvokes << "($eo_invoke_cmd_pop_" << v << " S" << invokeRet.str()
+                  << "))" << std::endl;
     std::stringstream pname;
     pname << "$eo_invoke_cmd_pop_" << v;
     d_ruleInvokesDefs << "(program " << pname.str() << std::endl;
-    d_ruleInvokesDefs << "  ((assume F) (s $eo_State) (so $eo_StateObj)" << progParamList.str() << ")" << std::endl;
-    d_ruleInvokesDefs << "  :signature ($eo_State" << progSig.str() << ") $eo_State" << std::endl;
+    d_ruleInvokesDefs << "  ((assume F) (s $eo_State) (so $eo_StateObj)"
+                      << progParamList.str() << ")" << std::endl;
+    d_ruleInvokesDefs << "  :signature ($eo_State" << progSig.str()
+                      << ") $eo_State" << std::endl;
     d_ruleInvokesDefs << "  (" << std::endl;
-    d_ruleInvokesDefs << "  ((" << pname.str() << " ($s_cons ($so_assume_push F) s)" << progPat.str() << ")" << std::endl;
-    d_ruleInvokesDefs << "     ($eo_push_proven (" << rprog << progRet.str() << ") s))" << std::endl;
-    d_ruleInvokesDefs << "  ((" << pname.str() << " ($s_cons so s)" << progPat.str() << ") " << std::endl;
-    d_ruleInvokesDefs << "     (" << pname.str() << " s" << progPat.str() << "))" << std::endl;
-    d_ruleInvokesDefs << "  ((" << pname.str() << " s" << progPat.str() << ") $s_fail)" << std::endl;
+    d_ruleInvokesDefs << "  ((" << pname.str()
+                      << " ($s_cons ($so_assume_push F) s)" << progPat.str()
+                      << ")" << std::endl;
+    d_ruleInvokesDefs << "     ($eo_push_proven (" << rprog << progRet.str()
+                      << ") s))" << std::endl;
+    d_ruleInvokesDefs << "  ((" << pname.str() << " ($s_cons so s)"
+                      << progPat.str() << ") " << std::endl;
+    d_ruleInvokesDefs << "     (" << pname.str() << " s" << progPat.str()
+                      << "))" << std::endl;
+    d_ruleInvokesDefs << "  ((" << pname.str() << " s" << progPat.str()
+                      << ") $s_fail)" << std::endl;
     d_ruleInvokesDefs << "  )" << std::endl;
     d_ruleInvokesDefs << ")" << std::endl;
   }
@@ -205,5 +217,5 @@ void DesugarChecker::output(std::ostream& out)
   out << finalCheckEo;
   out << ";; ------------ checker end" << std::endl;
 }
-  
+
 }  // namespace ethos

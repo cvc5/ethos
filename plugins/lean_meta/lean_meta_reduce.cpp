@@ -579,8 +579,9 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     isCheckerDef |= isCheckerMetaKind(vctxArgs.back());
   }
   std::ostream* out =
-  isCheckerDef ? &d_eoChecker :
-      (vctxArgs.back() == MetaKind::EUNOIA ? &d_defs : &d_smtDefs);
+      isCheckerDef
+          ? &d_eoChecker
+          : (vctxArgs.back() == MetaKind::EUNOIA ? &d_defs : &d_smtDefs);
   // exception: conversion from Eunoia to SMT is printed on defs
   if (vname == "$eo_to_smt" || vname == "$eo_to_smt_type")
   {
@@ -910,7 +911,7 @@ void LeanMetaReduce::finalize()
   replace(finalLean, "$LEAN_SMT_TERM_DEF$", d_smtDt.str());
   replace(finalLean, "$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str());
   replace(finalLean, "$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str());
-  
+
   if (d_ruleDt.str().empty())
   {
     d_ruleDt << "  | none : CRule" << std::endl;
@@ -1025,7 +1026,10 @@ MetaKind LeanMetaReduce::getMetaKind(State& s,
                                      std::string& cname) const
 {
   std::string sname = getName(e);
-  if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term" || sname=="$eo_Cmd" || sname=="$eo_State" || sname=="$eo_StateObj" || sname=="$eo_Index" || sname=="$eo_CmdList" || sname=="$eo_IndexList")
+  if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term"
+      || sname == "$eo_Cmd" || sname == "$eo_State" || sname == "$eo_StateObj"
+      || sname == "$eo_Index" || sname == "$eo_CmdList"
+      || sname == "$eo_IndexList")
   {
     // internal-only symbol, e.g. one used for defining the deep embedding
     cname = sname;
