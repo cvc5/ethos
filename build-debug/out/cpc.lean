@@ -155,6 +155,15 @@ def smt_lit_str_replace_re : smt_lit_String -> smt_lit_RegLan -> smt_lit_String 
 def smt_lit_str_replace_re_all : smt_lit_String -> smt_lit_RegLan -> smt_lit_String -> smt_lit_String
   | _, _, _ => "" -- FIXME
 
+-- Partial semantics
+
+def smt_lit_qdiv_by_zero : smt_lit_Rat -> smt_lit_Rat
+  | x => x -- FIXME
+def smt_lit_zdiv_by_zero : smt_lit_Int -> smt_lit_Int
+  | x => x -- FIXME
+def smt_lit_zmod_by_zero : smt_lit_Int -> smt_lit_Int
+  | x => x -- FIXME
+
 /- ----------------------- should move ----------------------- -/
 
 mutual
@@ -703,13 +712,11 @@ def __eo_StateObj_proven : CStateObj -> Term
   | (CStateObj.assume F) => F
   | (CStateObj.assume_push F) => F
   | (CStateObj.proven F) => F
-  | _ => Term.Stuck
 
 
 def __eo_state_proven_nth : CState -> CIndex -> Term
   | (CState.cons so s), (Term.Numeral 0) => (__eo_StateObj_proven so)
   | (CState.cons so s), n => (__eo_state_proven_nth s (__eo_add n (Term.Numeral (-1 : eo_lit_Int))))
-  | _, _ => Term.Stuck
 
 
 def __eo_state_is_closed : CState -> Term
@@ -732,9 +739,14 @@ def __eo_push_proven : Term -> CState -> CState
   | F, s => (__eo_push_proven_check (__eo_is_ok F) F s)
 
 
+def __eo_invoke_cmd_check_proven : CState -> Term -> CState
+  | (CState.cons (CStateObj.proven F) S), proven => (__eo_push_proven_check (__eo_eq F proven) F S)
+  | S, proven => CState.fail
+
+
 def __eo_invoke_cmd : CState -> CCmd -> CState
   | S, (CCmd.assume_push proven) => (__eo_push_assume proven S)
-  | S, (CCmd.check_proven proven) => (__eo_ite (__eo_eq (__eo_state_proven_nth S (Term.Numeral 0)) proven) S CState.fail)
+  | S, (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
   | S, (CCmd.symm n1) => (__eo_push_proven (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1))) S)
 
 
@@ -758,6 +770,13 @@ def __eo_is_refutation : Term -> CCmdList -> Term
 
 
 /- Definitions for theorems -/
+
+/- Definition of refutation -/
+
+inductive eo_is_refutation : Term -> CCmdList -> Prop
+  | intro (F : Term) (c : CCmdList) : 
+    (__eo_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation_prop F c)
+
 
 /-
 A definition of terms in the object language.
@@ -802,6 +821,13 @@ by
   sorry
 
 
+
+/- correctness theorem for the checker -/
+theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
+  (eo_is_refutation F pf) ->
+  (Not (eo_interprets F true)) :=
+by
+  sorry
 
 /- ---------------------------------------------- -/
 

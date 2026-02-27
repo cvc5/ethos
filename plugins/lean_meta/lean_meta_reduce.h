@@ -103,8 +103,10 @@ class LeanMetaReduce : public StdPlugin
   std::stringstream d_thms;
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
-  /** Eunoia to object inductive predicate */
+  /** Eunoia to object inductive prop */
   std::stringstream d_eoIsObj;
+  /** Eunoia is refutation prop */
+  std::stringstream d_eoIsRef;
   /** */
   std::stringstream d_eoChecker;
   /** SMT definitions */

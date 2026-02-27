@@ -682,7 +682,8 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   if (!wasDefault)
   {
     // should be a datatype with stuck
-    if (retk == MetaKind::EUNOIA || retk == MetaKind::PROOF)
+    // checker definitions we ensure are total
+    if (!isCheckerDef && (retk == MetaKind::EUNOIA || retk == MetaKind::PROOF))
     {
       cases << "  | ";
       for (size_t j = 1; j < nargs; j++)
@@ -900,11 +901,15 @@ void LeanMetaReduce::finalize()
   // is obj is trivial, call the method
   d_eoIsObj << "  | intro (x : Term) : eo_is_obj x (__eo_to_smt x)"
             << std::endl;
+  // refutation is if the method returns true
+  d_eoIsRef << "  | intro (F : Term) (c : CCmdList) : " << std::endl;
+  d_eoIsRef << "    (__eo_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation F c)" << std::endl;
 
   replace(finalLean, "$LEAN_DEFS$", d_defs.str());
   replace(finalLean, "$LEAN_THMS$", d_thms.str());
   replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
   replace(finalLean, "$LEAN_EO_IS_OBJ_DEF$", d_eoIsObj.str());
+  replace(finalLean, "$LEAN_EO_IS_REFUTATION_DEF$", d_eoIsRef.str());
 
   // smt layer
   replace(finalLean, "$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str());

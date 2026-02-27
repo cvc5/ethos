@@ -155,6 +155,15 @@ def smt_lit_str_replace_re : smt_lit_String -> smt_lit_RegLan -> smt_lit_String 
 def smt_lit_str_replace_re_all : smt_lit_String -> smt_lit_RegLan -> smt_lit_String -> smt_lit_String
   | _, _, _ => "" -- FIXME
 
+-- Partial semantics
+
+def smt_lit_qdiv_by_zero : smt_lit_Rat -> smt_lit_Rat
+  | x => x -- FIXME
+def smt_lit_zdiv_by_zero : smt_lit_Int -> smt_lit_Int
+  | x => x -- FIXME
+def smt_lit_zmod_by_zero : smt_lit_Int -> smt_lit_Int
+  | x => x -- FIXME
+
 /- ----------------------- should move ----------------------- -/
 
 mutual
@@ -362,6 +371,11 @@ $LEAN_CHECKER_DEFS$
 
 /- Definitions for theorems -/
 
+/- Definition of refutation -/
+
+inductive eo_is_refutation : Term -> CCmdList -> Prop
+$LEAN_EO_IS_REFUTATION_DEF$
+
 /-
 A definition of terms in the object language.
 This is to be defined externally.
@@ -397,6 +411,13 @@ def eo_interprets (t : Term) (b : Bool) : Prop :=
 /- The theorem statements -/
 
 $LEAN_THMS$
+
+/- correctness theorem for the checker -/
+theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
+  (eo_is_refutation F pf) ->
+  (Not (eo_interprets F true)) :=
+by
+  sorry
 
 /- ---------------------------------------------- -/
 

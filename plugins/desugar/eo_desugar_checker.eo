@@ -113,7 +113,17 @@ $EO_CMD_DEFS$
 
 $EO_INVOKE_DEFS$
 
-(program $eo_invoke_cmd 
+(program $eo_invoke_cmd_check_proven ((S $eo_State) (F Bool) (proven Bool))
+  :signature ($eo_State Bool) $eo_State
+  (
+  (($eo_invoke_cmd_check_proven ($s_cons ($so_proven F) S) proven)
+     ; check that it is equal to proven, push again
+     ($eo_push_proven_check (eo::eq F proven) F S))
+  (($eo_invoke_cmd_check_proven S proven) $s_fail)
+  )
+)
+
+(program $eo_invoke_cmd
   ((proven Bool) (premises $eo_IndexList) (S $eo_State)
   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
   (T6 Type) (T7 Type) (T8 Type) (T9 Type) (T10 Type)
@@ -122,9 +132,8 @@ $EO_INVOKE_DEFS$
   (n5 $eo_Numeral) (n6 $eo_Numeral) (n7 $eo_Numeral) (n8 $eo_Numeral))
   :signature ($eo_State $eo_Cmd) $eo_State
   (
-  (($eo_invoke_cmd S ($cmd_assume_push proven))      ($eo_push_assume proven S))
-  (($eo_invoke_cmd S ($cmd_check_proven proven))
-    (eo::ite (eo::eq ($eo_state_proven_nth S 0) proven) S $s_fail))
+  (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume proven S))
+  (($eo_invoke_cmd S ($cmd_check_proven proven)) ($eo_invoke_cmd_check_proven S proven))
 $EO_INVOKE$
   )
 )

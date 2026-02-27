@@ -17,6 +17,9 @@
 (define-fun qmult ((x Real) (y Real)) Real (* x y))
 (define-fun qneg ((x Real)) Real (- x))
 (define-fun streq ((x String) (y String)) Bool (= x y))
+(define-fun qdiv_by_zero ((x Real)) Real (/ x 0.0))
+(define-fun zdiv_by_zero ((x Int)) Int (div x 0))
+(define-fun zmod_by_zero ((x Int)) Int (mod x 0))
 
 ; tsm.Type:
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.

@@ -1454,6 +1454,15 @@
 ; Note that names of constructors and selectors are not represented in the AST.
 ; To express constructor terms, we give an index, such that cons/nil are terms:
 ;   ($sm_DtCons "List" d 0), ($sm_DtCons "List" d 1).
+; The types of these constructors are:
+;   ($sm_DtCons "List" d 0) : (-> $tsm_Int ($tsm_Datatype "List" d) ($tsm_Datatype "List" d))
+;   ($sm_DtCons "List" d 1) : ($tsm_Datatype "List" d)
+; The list (1,2) is the term:
+; ($sm_apply 
+;    ($sm_apply ($sm_DtCons "List" d 0) ($sm_numeral 1))
+;    ($sm_apply
+;       ($sm_apply ($sm_DtCons "List" d 0) ($sm_numeral 2)) 
+;       ($sm_DtCons "List" d 1)))
 ; The selectors head/tail for this datatype give indices to the constructor
 ; and argument position they refer to:
 ;   ($sm_DtSel "List" d 0 0) ($sm_DtSel "List" d 0 1).

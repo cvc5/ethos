@@ -237,37 +237,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     // Trace("smt-meta") << "  patMatch: " << tcur << " / " << currTerm << " / "
     //           << metaKindToString(parent) << " / kind " << ck
     //           << std::endl;
-    // Trace("smt-meta") << "  atk: " << tcur << std::endl;
-    MetaKind child = getMetaKindReturn(tcur, parent);
-    // Trace("smt-meta") << "  atk: " << tcur << " is " << metaKindToString(atk)
-    //           << std::endl;
-    //  if the Eunoia term is an SMT term, change the context
-    //  and use the eo.SmtTerm selector
-    if (parent != child)
-    {
-#if 0
-      if (parent == MetaKind::EUNOIA
-          && (child == MetaKind::SMT || child == MetaKind::SMT_TYPE
-              || child == MetaKind::SMT_VALUE))
-      {
-        std::string cons = metaKindToCons(child);
-        std::stringstream tester;
-        tester << "((_ is eo." << cons << ") " << currTerm << ")";
-        print.push(tester.str());
-        std::stringstream sssn;
-        sssn << "(eo." << cons << ".arg1 " << currTerm << ")";
-        currTerm = sssn.str();
-        // our context is now updated
-        parent = child;
-      }
-      else
-      {
-        Assert(false) << "Unhandled context change " << metaKindToString(parent)
-                      << " / " << metaKindToString(child) << " in " << tcur
-                      << " within " << c;
-      }
-#endif
-    }
     if (ck == Kind::APPLY)
     {
       if (isProgram(tcur[0]))
@@ -278,13 +247,13 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       // Determine if this is a Eunoia internal term, or an
       // SMT term eagerly here
       // Use the appropriate prefix
-      cname << metaKindToPrefix(parent) << "Apply";
+      cname << "eo.Apply";
       printArgs = true;
     }
     else if (ck == Kind::FUNCTION_TYPE)
     {
       // we handle function in a special case below.
-      cname << metaKindToPrefix(parent) << "Apply";
+      cname << "eo.Apply";
       printArgs = true;
     }
     else if (ck == Kind::APPLY_OPAQUE)
@@ -312,7 +281,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       std::stringstream tester;
       tester << "((_ is " << cname.str() << ") " << currTerm << ")";
       print.push(tester.str());
-      std::vector<MetaKind> targs = getMetaKindArgs(tcur, parent);
       for (size_t i = printArgStart, nchild = tcur.getNumChildren(); i < nchild;
            i++)
       {
@@ -331,12 +299,12 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
           print.push(testerf.str());
           std::stringstream ssNext2;
           ssNext2 << "(eo.Apply.arg2 " << ssNext.str() << ")";
-          visit.emplace_back(tcur[i], ssNext2.str(), targs[i]);
+          visit.emplace_back(tcur[i], ssNext2.str(), MetaKind::EUNOIA);
         }
         else
         {
           // the next type is "reset"
-          visit.emplace_back(tcur[i], ssNext.str(), targs[i]);
+          visit.emplace_back(tcur[i], ssNext.str(), MetaKind::EUNOIA);
         }
       }
     }
@@ -354,14 +322,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       }
       else
       {
-        MetaKind prev = ctx.d_tctx[tcur];
-        if (prev != parent)
-        {
-          Assert(false) << "Variable " << tcur << " matched in two contexts "
-                        << metaKindToString(parent) << " and "
-                        << metaKindToString(prev) << ", within " << c
-                        << ", (= " << currTerm << " " << it->second << ")";
-        }
         // two occurrences of the same variable in a pattern
         // turns into an equality
         std::stringstream eq;
@@ -625,8 +585,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       Assert(false) << "Unhandled kind in print term " << ck << " " << recTerm
                     << " / " << metaKindToString(parent) << std::endl;
     }
-    // otherwise, the new context depends on the types of the children
-    std::vector<MetaKind> targs = getMetaKindArgs(recTerm, parent);
     // push in reverse order
     size_t nchild = recTerm.getNumChildren();
     for (size_t i = cstart; i < nchild; i++)
@@ -638,7 +596,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       size_t ii = cstart + (nchild - i) - 1;
       Expr rc = recTerm[ii];
-      MetaKind ctxRec = targs[ii];
+      MetaKind ctxRec = MetaKind::EUNOIA;
       visit.emplace_back(rc, ctxRec);
     }
   } while (!visit.empty());
@@ -1279,138 +1237,6 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
   return MetaKind::SMT;
 }
 
-MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
-                                       size_t i,
-                                       MetaKind parentCtx)
-{
-  // This method should rely on the parent only!!!
-  MetaKind tk = MetaKind::NONE;
-  Kind k = parent.getKind();
-  if (k == Kind::APPLY_OPAQUE)
-  {
-    // the head of the opaque is NONE
-    if (i == 0)
-    {
-      return tk;
-    }
-    std::string sname = getName(parent[0]);
-    MetaKind tknew;
-    if (sname.compare(0, 5, "$emb_") == 0)
-    {
-      // any operator introduced by $emb_ should have accurate type.
-      Expr op = parent[0];
-      Expr tpop = d_tc.getType(op);
-      Assert(tpop.getKind() == Kind::FUNCTION_TYPE)
-          << "Not function " << parent;
-      std::pair<std::vector<Expr>, Expr> ftype = tpop.getFunctionType();
-      Assert(i <= ftype.first.size())
-          << "Bad index " << (i - 1) << " / " << tpop << " from " << parent;
-      Trace("smt-meta") << "Get type meta kind for " << ftype.first[i - 1]
-                        << std::endl;
-      Expr atype = ftype.first[i - 1];
-      if (atype.getKind() == Kind::QUOTE_TYPE)
-      {
-        Expr qt = atype[0];
-        atype = d_tc.getType(qt);
-      }
-      Trace("smt-meta") << "...process to " << atype << std::endl;
-      tknew = getTypeMetaKind(atype);
-      Assert(tknew != MetaKind::NONE);
-      return tknew;
-    }
-    if (sname.compare(0, 11, "$smt_apply_") == 0)
-    {
-      if (i == 1)
-      {
-        // SMT-LIB identifier
-        tk = MetaKind::NONE;
-      }
-      else
-      {
-        std::string esname = getEmbedName(parent);
-        if (esname == "teq")
-        {
-          tk = MetaKind::EUNOIA;
-        }
-        else if (esname == "veq")
-        {
-          tk = MetaKind::SMT_VALUE;
-        }
-        else if (esname == "Teq")
-        {
-          tk = MetaKind::SMT_TYPE;
-        }
-        else if (esname == "ite")
-        {
-          // the condition is stored at position 2, after op and deep
-          // embedding the branches have no context.
-          // TODO: maybe they should have SMT context???
-          tk = i == 2 ? MetaKind::SMT_BUILTIN : MetaKind::NONE;
-        }
-        else if (esname.compare(0, 3, "$eo") == 0)
-        {
-          // special case: if we are specifying that we should be applying
-          // an $eo function, we are Eunoia. This only is used when desugaring
-          // proof steps currently.
-          tk = MetaKind::EUNOIA;
-        }
-        else
-        {
-          tk = MetaKind::SMT_BUILTIN;
-        }
-      }
-    }
-    else if (sname.compare(0, 10, "$smt_type_") == 0)
-    {
-      tk = MetaKind::SMT_TYPE;
-    }
-    else
-    {
-      tk = MetaKind::EUNOIA;
-    }
-  }
-  else if (k == Kind::APPLY)
-  {
-    if (isProgramApp(parent))
-    {
-      if (i == 0)
-      {
-        // the program head has no context
-        return MetaKind::NONE;
-      }
-      // if program app, depends on the type of the program
-      Expr p = parent[0];
-      Expr ptype = d_tc.getType(p);
-      Assert(ptype.getKind() == Kind::PROGRAM_TYPE);
-      // convert the type to a metakind
-      Assert(i < ptype.getNumChildren())
-          << "Asking for child " << i << " of " << parent
-          << ", not enough types " << ptype;
-      // assume Eunoia if the type is not one of the expected corner cases
-      tk = getTypeMetaKind(ptype[i - 1]);
-    }
-    else
-    {
-      // the application case depends on the meta-kind of the head term
-      tk = getMetaKindReturn(parent, parentCtx);
-    }
-  }
-  else if (k == Kind::FUNCTION_TYPE)
-  {
-    tk = MetaKind::EUNOIA;
-  }
-  else if (isLiteralOp(k))
-  {
-    // all remaining builtins assume Eunoia arguments
-    tk = MetaKind::EUNOIA;
-  }
-  else
-  {
-    Assert(false) << "Unknown apply term kind for getMetaKindArg: " << k;
-  }
-  return tk;
-}
-
 bool SmtMetaReduce::isProgramApp(const Expr& app)
 {
   return (app.getKind() == Kind::APPLY
@@ -1569,23 +1395,6 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
     Assert(false) << "Unknown apply term kind for getMetaKindReturn: " << k;
   }
   return MetaKind::NONE;
-}
-
-std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent,
-                                                     MetaKind parentCtx)
-{
-  std::vector<MetaKind> args;
-  Trace("smt-meta") << "  MetaArg: " << parent << " / " << parent.getKind()
-                    << " / " << metaKindToString(parentCtx) << std::endl;
-  for (size_t i = 0, nchild = parent.getNumChildren(); i < nchild; i++)
-  {
-    MetaKind ctx = getMetaKindArg(parent, i, parentCtx);
-    Trace("smt-meta") << "    MetaArgChild: " << metaKindToString(ctx)
-                      << " for " << parent[i] << std::endl;
-    args.push_back(ctx);
-  }
-  Trace("smt-meta") << "  MetaArg: end" << std::endl;
-  return args;
 }
 
 }  // namespace ethos
