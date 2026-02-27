@@ -156,25 +156,27 @@ $EO_INVOKE$
 )
 
 (program $eo_invoke_cmd_list_assuming
-  ((as $eo_List) (cs $eo_CmdList) (S $eo_State) (F Bool))
-  :signature ($eo_State $eo_List $eo_CmdList) $eo_State
+  ((as Bool) (cs $eo_CmdList) (S $eo_State) (F Bool))
+  :signature ($eo_State Bool $eo_CmdList) $eo_State
   (
-  (($eo_invoke_cmd_list_assuming S ($eo_List_cons F as) cs)
+  (($eo_invoke_cmd_list_assuming S (and F as) cs)
     ($eo_invoke_cmd_list_assuming ($s_cons ($so_assume F) S) as cs))
-  (($eo_invoke_cmd_list_assuming S $eo_List_nil cs)
+  (($eo_invoke_cmd_list_assuming S true cs)
     ($eo_invoke_cmd_list S cs))
   (($eo_invoke_cmd_list_assuming S as cs) $s_fail)
   )
 )
 
 ; Main entry point:
-; - as is a list of formulas to assume
+; - as is a conjunction of formulas to assume.
+;   Note that this should always be an and-list, which will be interpreted
+;   as the top-level assertions.
 ; - cs is a command list to invoke. Note the indices of premises should take
 ; into account the size of as.
-(program $eo_is_refutation ((as $eo_List) (cs $eo_CmdList))
-  :signature ($eo_List $eo_CmdList) $eo_Result
+(program $eo_checker_is_refutation ((as Bool) (cs $eo_CmdList))
+  :signature (Bool $eo_CmdList) $eo_Result
   (
-  (($eo_is_refutation as cs)
+  (($eo_checker_is_refutation as cs)
     (eo::define ((s ($eo_invoke_cmd_list_assuming $s_nil as cs)))
       (eo::and ($eo_state_is_closed s) (eo::eq ($eo_state_proven_nth s 0) false))))
   )

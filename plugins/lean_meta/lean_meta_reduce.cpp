@@ -903,7 +903,7 @@ void LeanMetaReduce::finalize()
             << std::endl;
   // refutation is if the method returns true
   d_eoIsRef << "  | intro (F : Term) (c : CCmdList) : " << std::endl;
-  d_eoIsRef << "    (__eo_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation F c)" << std::endl;
+  d_eoIsRef << "    (__eo_checker_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation F c)" << std::endl;
 
   replace(finalLean, "$LEAN_DEFS$", d_defs.str());
   replace(finalLean, "$LEAN_THMS$", d_thms.str());

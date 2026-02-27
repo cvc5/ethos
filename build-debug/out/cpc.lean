@@ -485,9 +485,6 @@ inductive Term : Type where
   | BitVec : Term
   | Char : Term
   | Seq : Term
-  | __eo_List : Term
-  | __eo_List_nil : Term
-  | __eo_List_cons : Term
   | Bool : Term
   | Boolean : eo_lit_Bool -> Term
   | Numeral : eo_lit_Int -> Term
@@ -757,12 +754,12 @@ def __eo_invoke_cmd_list : CState -> CCmdList -> CState
 
 
 def __eo_invoke_cmd_list_assuming : CState -> Term -> CCmdList -> CState
-  | S, (Term.Apply (Term.Apply Term.__eo_List_cons F) as), cs => (__eo_invoke_cmd_list_assuming (CState.cons (CStateObj.assume F) S) as cs)
-  | S, Term.__eo_List_nil, cs => (__eo_invoke_cmd_list S cs)
+  | S, (Term.Apply (Term.Apply Term.and F) as), cs => (__eo_invoke_cmd_list_assuming (CState.cons (CStateObj.assume F) S) as cs)
+  | S, (Term.Boolean true), cs => (__eo_invoke_cmd_list S cs)
   | S, as, cs => CState.fail
 
 
-def __eo_is_refutation : Term -> CCmdList -> Term
+def __eo_checker_is_refutation : Term -> CCmdList -> Term
   | Term.Stuck , _  => Term.Stuck
   | as, cs => (__eo_and (__eo_state_is_closed (__eo_invoke_cmd_list_assuming CState.nil as cs)) (__eo_eq (__eo_state_proven_nth (__eo_invoke_cmd_list_assuming CState.nil as cs) (Term.Numeral 0)) (Term.Boolean false)))
 
@@ -775,7 +772,7 @@ def __eo_is_refutation : Term -> CCmdList -> Term
 
 inductive eo_is_refutation : Term -> CCmdList -> Prop
   | intro (F : Term) (c : CCmdList) : 
-    (__eo_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation_prop F c)
+    (__eo_checker_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation F c)
 
 
 /-
