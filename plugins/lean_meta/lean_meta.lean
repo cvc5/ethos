@@ -319,10 +319,21 @@ end
 
 /- Definition of the checker -/
 
+/- FIXME: make Int -/
+abbrev CIndex := Term
+
+/-
+-/
+inductive CIndexList : Type where
+  | nil : CIndexList
+  | cons : CIndex -> CIndexList -> CIndexList
+deriving DecidableEq
+
 /-
 -/
 inductive CStateObj : Type where
   | assume : Term -> CStateObj
+  | assume_push : Term -> CStateObj
   | proven : Term -> CStateObj
 deriving DecidableEq
 
@@ -331,21 +342,20 @@ deriving DecidableEq
 inductive CState : Type where
   | nil : CState
   | cons : CStateObj -> CState -> CState
-deriving DecidableEq
-
-/-
--/
-inductive CRule : Type where
-$LEAN_CHECKER_RULE_DEF$
+  | fail : CState
 deriving DecidableEq
 
 /-
 -/
 inductive CCmd : Type where
-  | assume : Term -> CCmd
-  | assume_push : Term -> CCmd
-  | step : CRule -> Term -> Term -> Term -> CCmd
-  | step_pop : CRule -> Term -> Term -> Term -> CCmd
+$LEAN_CHECKER_RULE_DEF$
+deriving DecidableEq
+
+/-
+-/
+inductive CCmdList : Type where
+  | nil : CCmdList
+  | cons : CCmd -> CCmdList -> CCmdList
 deriving DecidableEq
 
 $LEAN_CHECKER_DEFS$

@@ -859,7 +859,7 @@ void Desugar::finalize()
   replace(finalEo, "$EO_DT_CONSTRUCTORS_PARAM$", d_eoDtConsParam.str());
   replace(finalEo, "$EO_DT_CONSTRUCTORS_CASES$", d_eoDtCons.str());
   replace(finalEo, "$EO_DT_SELECTORS_CASES$", d_eoDtSel.str());
-  if (false && d_genChecker)
+  if (d_genChecker)
   {
     std::stringstream ssChecker;
     d_dchecker.output(ssChecker);

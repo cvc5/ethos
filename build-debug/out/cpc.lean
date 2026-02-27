@@ -284,6 +284,14 @@ def __smtx_pow2 : smt_lit_Int -> smt_lit_Int
   | i => (smt_lit_int_pow2 i)
 
 
+def __smtx_bit : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
+  | x, i => (smt_lit_zeq 1 (smt_lit_mod (smt_lit_div x (__smtx_pow2 i)) 2))
+
+
+def __smtx_binary_and_rec : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
+  | w, n1, n2 => (smt_lit_zplus (smt_lit_ite (smt_lit_zeq w 0) 0 (__smtx_binary_and_rec (smt_lit_zplus w (smt_lit_zneg 1)) n1 n2)) (smt_lit_zmult (__smtx_pow2 w) (smt_lit_ite (smt_lit_and (__smtx_bit n1 w) (__smtx_bit n2 w)) 1 0)))
+
+
 def __vsm_apply_head : SmtValue -> SmtValue
   | (SmtValue.Apply f a) => (__vsm_apply_head f)
   | a => a
@@ -468,6 +476,9 @@ inductive Term : Type where
   | BitVec : Term
   | Char : Term
   | Seq : Term
+  | __eo_List : Term
+  | __eo_List_nil : Term
+  | __eo_List_cons : Term
   | Bool : Term
   | Boolean : eo_lit_Bool -> Term
   | Numeral : eo_lit_Int -> Term
@@ -510,6 +521,7 @@ def __eo_proven : Proof -> Term
   | _ => Term.Stuck
 
 
+def __eo_Numeral : Term := Term.Int
 def __eo_Bool : Term := Term.Bool
 def __eo_bool : smt_lit_Bool -> Term
   | x => (Term.Boolean x)
@@ -560,12 +572,37 @@ def __eo_mk_apply : Term -> Term -> Term
   | x1, x2 => (Term.Apply x1 x2)
 
 
+def __eo_binary_mod_w : smt_lit_Int -> smt_lit_Int -> Term
+  | w, n => (Term.Binary w (eo_lit_mod n (__smtx_pow2 w)))
+
+
+def __eo_is_ok : Term -> Term
+  | x => (Term.Boolean (eo_lit_not (eo_lit_teq x Term.Stuck)))
+
+
 def __eo_ite : Term -> Term -> Term -> Term
   | x1, x2, x3 => (eo_lit_ite (eo_lit_teq x1 (Term.Boolean true)) x2 (eo_lit_ite (eo_lit_teq x1 (Term.Boolean false)) x3 Term.Stuck))
 
 
 def __eo_requires : Term -> Term -> Term -> Term
   | x1, x2, x3 => (eo_lit_ite (eo_lit_teq x1 x2) (eo_lit_ite (eo_lit_not (eo_lit_teq x1 Term.Stuck)) x3 Term.Stuck) Term.Stuck)
+
+
+def __eo_and : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (eo_lit_and b1 b2))
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_ite (eo_lit_zeq w1 0) 0 (__smtx_binary_and_rec (eo_lit_zplus w1 (eo_lit_zneg 1)) n1 n2)) (__smtx_pow2 w1))) Term.Stuck) Term.Stuck)
+  | _, _ => Term.Stuck
+
+
+def __eo_add : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Numeral n1), (Term.Numeral n2) => (Term.Numeral (eo_lit_zplus n1 n2))
+  | (Term.Rational r1), (Term.Rational r2) => (Term.Rational (eo_lit_qplus r1 r2))
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_zplus n1 n2) (__smtx_pow2 w1))) Term.Stuck) Term.Stuck)
+  | _, _ => Term.Stuck
 
 
 def __eo_eq : Term -> Term -> Term
@@ -613,16 +650,28 @@ def __eo_to_smt : Term -> SmtTerm
   | y => SmtTerm.None
 
 
+def __eo_Result : Term := Term.Bool
 
 
 end
 
 /- Definition of the checker -/
 
+/- FIXME: make Int -/
+abbrev CIndex := Term
+
+/-
+-/
+inductive CIndexList : Type where
+  | nil : CIndexList
+  | cons : CIndex -> CIndexList -> CIndexList
+deriving DecidableEq
+
 /-
 -/
 inductive CStateObj : Type where
   | assume : Term -> CStateObj
+  | assume_push : Term -> CStateObj
   | proven : Term -> CStateObj
 deriving DecidableEq
 
@@ -631,23 +680,80 @@ deriving DecidableEq
 inductive CState : Type where
   | nil : CState
   | cons : CStateObj -> CState -> CState
-deriving DecidableEq
-
-/-
--/
-inductive CRule : Type where
-  | none : CRule
-
+  | fail : CState
 deriving DecidableEq
 
 /-
 -/
 inductive CCmd : Type where
-  | assume : Term -> CCmd
   | assume_push : Term -> CCmd
-  | step : CRule -> Term -> Term -> Term -> CCmd
-  | step_pop : CRule -> Term -> Term -> Term -> CCmd
+  | check_proven : Term -> CCmd
+  | symm : CIndex -> CCmd
+
 deriving DecidableEq
+
+/-
+-/
+inductive CCmdList : Type where
+  | nil : CCmdList
+  | cons : CCmd -> CCmdList -> CCmdList
+deriving DecidableEq
+
+def __eo_StateObj_proven : CStateObj -> Term
+  | (CStateObj.assume F) => F
+  | (CStateObj.assume_push F) => F
+  | (CStateObj.proven F) => F
+  | _ => Term.Stuck
+
+
+def __eo_state_proven_nth : CState -> CIndex -> Term
+  | (CState.cons so s), (Term.Numeral 0) => (__eo_StateObj_proven so)
+  | (CState.cons so s), n => (__eo_state_proven_nth s (__eo_add n (Term.Numeral (-1 : eo_lit_Int))))
+  | _, _ => Term.Stuck
+
+
+def __eo_state_is_closed : CState -> Term
+  | (CState.cons (CStateObj.assume_push F) s) => (Term.Boolean false)
+  | (CState.cons so s) => (__eo_state_is_closed s)
+  | CState.nil => (Term.Boolean true)
+  | s => (Term.Boolean false)
+
+
+def __eo_push_assume : Term -> CState -> CState
+  | F, s => (CState.cons (CStateObj.assume_push F) s)
+
+
+def __eo_push_proven_check : Term -> Term -> CState -> CState
+  | (Term.Boolean true), F, s => (CState.cons (CStateObj.proven F) s)
+  | b, F, s => CState.fail
+
+
+def __eo_push_proven : Term -> CState -> CState
+  | F, s => (__eo_push_proven_check (__eo_is_ok F) F s)
+
+
+def __eo_invoke_cmd : CState -> CCmd -> CState
+  | S, (CCmd.assume_push proven) => (__eo_push_assume proven S)
+  | S, (CCmd.check_proven proven) => (__eo_ite (__eo_eq (__eo_state_proven_nth S (Term.Numeral 0)) proven) S CState.fail)
+  | S, (CCmd.symm n1) => (__eo_push_proven (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1))) S)
+
+
+def __eo_invoke_cmd_list : CState -> CCmdList -> CState
+  | CState.fail, cmds => CState.fail
+  | S, CCmdList.nil => S
+  | S, (CCmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
+
+
+def __eo_invoke_cmd_list_assuming : CState -> Term -> CCmdList -> CState
+  | S, (Term.Apply (Term.Apply Term.__eo_List_cons F) as), cs => (__eo_invoke_cmd_list_assuming (CState.cons (CStateObj.assume F) S) as cs)
+  | S, Term.__eo_List_nil, cs => (__eo_invoke_cmd_list S cs)
+  | S, as, cs => CState.fail
+
+
+def __eo_is_refutation : Term -> CCmdList -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | as, cs => (__eo_and (__eo_state_is_closed (__eo_invoke_cmd_list_assuming CState.nil as cs)) (__eo_eq (__eo_state_proven_nth (__eo_invoke_cmd_list_assuming CState.nil as cs) (Term.Numeral 0)) (Term.Boolean false)))
+
 
 
 

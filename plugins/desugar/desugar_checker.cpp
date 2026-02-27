@@ -118,7 +118,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
       macroArg << " (n" << i << " $eo_Index)";
       macroRet << " n" << i;
       invokePat << " n" << i;
-      invokeRet << " ($eo_pf ($eo_State_proven_nth S n" << (i + 1) << "))";
+      invokeRet << " ($eo_pf ($eo_state_proven_nth S n" << i << "))";
       progParamList << " (p" << i << " $eo_Proof)";
       progSig << " $eo_Proof";
       progPat << " p" << i;
@@ -148,7 +148,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
     d_ruleInvokesDefs << "  ((assume F) (s $eo_State) (so $eo_StateObj)" << progParamList.str() << ")" << std::endl;
     d_ruleInvokesDefs << "  :signature ($eo_State" << progSig.str() << ") $eo_State" << std::endl;
     d_ruleInvokesDefs << "  (" << std::endl;
-    d_ruleInvokesDefs << "  ((" << pname.str() << " ($s_cons ($so_assume F) s)" << progPat.str() << ")" << std::endl;
+    d_ruleInvokesDefs << "  ((" << pname.str() << " ($s_cons ($so_assume_push F) s)" << progPat.str() << ")" << std::endl;
     d_ruleInvokesDefs << "     ($eo_push_proven (" << rprog << progRet.str() << ") s))" << std::endl;
     d_ruleInvokesDefs << "  ((" << pname.str() << " ($s_cons so s)" << progPat.str() << ") " << std::endl;
     d_ruleInvokesDefs << "     (" << pname.str() << " s" << progPat.str() << "))" << std::endl;

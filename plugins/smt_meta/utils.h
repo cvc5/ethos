@@ -48,7 +48,9 @@ enum class MetaKind
   CHECKER_STATE,
   CHECKER_STATE_OBJ,
   CHECKER_CMD,
-  CHECKER_RULE,
+  CHECKER_CMD_LIST,
+  CHECKER_INDEX,
+  CHECKER_INDEX_LIST,
   /** No context */
   NONE
 };

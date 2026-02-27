@@ -31,8 +31,10 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
   d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
   d_typeToMetaKind["$eo_State"] = MetaKind::CHECKER_STATE;
   d_typeToMetaKind["$eo_StateObj"] = MetaKind::CHECKER_STATE_OBJ;
-  d_typeToMetaKind["$eo_Rule"] = MetaKind::CHECKER_RULE;
+  d_typeToMetaKind["$eo_Index"] = MetaKind::CHECKER_INDEX;
+  d_typeToMetaKind["$eo_IndexList"] = MetaKind::CHECKER_INDEX_LIST;
   d_typeToMetaKind["$eo_Cmd"] = MetaKind::CHECKER_CMD;
+  d_typeToMetaKind["$eo_CmdList"] = MetaKind::CHECKER_CMD_LIST;
   d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
   d_prefixToMetaKind["sm"] = MetaKind::SMT;
   d_prefixToMetaKind["tsm"] = MetaKind::SMT_TYPE;
@@ -43,8 +45,9 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
   d_prefixToMetaKind["dtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
   d_prefixToMetaKind["s"] = MetaKind::CHECKER_STATE;
   d_prefixToMetaKind["so"] = MetaKind::CHECKER_STATE_OBJ;
-  d_prefixToMetaKind["rule"] = MetaKind::CHECKER_RULE;
   d_prefixToMetaKind["cmd"] = MetaKind::CHECKER_CMD;
+  d_prefixToMetaKind["cmdl"] = MetaKind::CHECKER_CMD_LIST;
+  d_prefixToMetaKind["indl"] = MetaKind::CHECKER_INDEX_LIST;
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}
@@ -90,8 +93,9 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
     case MetaKind::DATATYPE_CONSTRUCTOR: os << "SmtDatatypeCons"; break;
     case MetaKind::CHECKER_STATE: os << "CState"; break;
     case MetaKind::CHECKER_STATE_OBJ: os << "CStateObj"; break;
-    case MetaKind::CHECKER_RULE: os << "CRule"; break;
+    case MetaKind::CHECKER_INDEX: os << "CIndex"; break;
     case MetaKind::CHECKER_CMD: os << "CCmd"; break;
+    case MetaKind::CHECKER_CMD_LIST: os << "CCmdList"; break;
     default: return false;
   }
   return true;
@@ -567,6 +571,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   std::stringstream decl;
   std::vector<MetaKind> vctxArgs;
   size_t nargs = vt.getNumChildren();
+  // determine which output stream to print on
   bool isCheckerDef = false;
   for (size_t j = 0; j < nargs; j++)
   {
@@ -809,7 +814,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   {
     out = &d_smtValueDt;
   }
-  else if (tk == MetaKind::CHECKER_RULE)
+  else if (tk == MetaKind::CHECKER_CMD)
   {
     out = &d_ruleDt;
   }
@@ -1020,7 +1025,7 @@ MetaKind LeanMetaReduce::getMetaKind(State& s,
                                      std::string& cname) const
 {
   std::string sname = getName(e);
-  if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term" || sname=="$eo_Cmd" || sname=="$eo_Rule" || sname=="$eo_State" || sname=="$eo_StateObj" || sname=="$eo_NullBool")
+  if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term" || sname=="$eo_Cmd" || sname=="$eo_State" || sname=="$eo_StateObj" || sname=="$eo_Index" || sname=="$eo_CmdList" || sname=="$eo_IndexList")
   {
     // internal-only symbol, e.g. one used for defining the deep embedding
     cname = sname;

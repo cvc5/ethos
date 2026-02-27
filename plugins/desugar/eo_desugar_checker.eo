@@ -1,7 +1,15 @@
 ;;; utilities
 
-; placeholder
+; placeholders
 (declare-const $eo_Index Type)
+
+(declare-const $eo_IndexList Type)
+(declare-const $emb_indl.nil $eo_IndexList)
+(declare-parameterized-const $emb_indl.cons
+  ((i $eo_Index :opaque) (il $eo_IndexList :opaque)) $eo_IndexList)
+
+; for bool??
+(define $eo_Result () Bool)
 
 ;;; Types
 
@@ -17,7 +25,8 @@
 (declare-const $eo_StateObj Type)
 (declare-parameterized-const $emb_so.assume ((F Bool :opaque)) $eo_StateObj)
 (define $so_assume ((F Bool)) ($emb_so.assume F))
-; TODO: add assume-push?
+(declare-parameterized-const $emb_so.assume_push ((F Bool :opaque)) $eo_StateObj)
+(define $so_assume_push ((F Bool)) ($emb_so.assume_push F))
 (declare-parameterized-const $emb_so.proven ((F Bool :opaque)) $eo_StateObj)
 (define $so_proven ((F Bool)) ($emb_so.proven F))
 
@@ -34,42 +43,68 @@
   :signature ($eo_StateObj) Bool
   (
   (($eo_StateObj_proven ($so_assume F)) F)
+  (($eo_StateObj_proven ($so_assume_push F)) F)
   (($eo_StateObj_proven ($so_proven F)) F)
   )
 )
 
-; forward declare (to be implemented natively)
-(program $eo_State_proven_nth ()
-  :signature ($eo_State $eo_Index) Bool)
+(program $eo_state_proven_nth ((so $eo_StateObj) (s $eo_State) (n $eo_Index))
+  :signature ($eo_State $eo_Index) Bool
+  (
+  (($eo_state_proven_nth ($s_cons so s) 0) ($eo_StateObj_proven so))
+  (($eo_state_proven_nth ($s_cons so s) n) ($eo_state_proven_nth s (eo::add n -1)))
+  )
+)
+
+(program $eo_state_is_closed ((so $eo_StateObj) (s $eo_State) (F Bool))
+  :signature ($eo_State) $eo_Result
+  (
+  (($eo_state_is_closed ($s_cons ($so_assume_push F) s)) false)
+  (($eo_state_is_closed ($s_cons so s)) ($eo_state_is_closed s))
+  (($eo_state_is_closed $s_nil) true)
+  (($eo_state_is_closed s) false)
+  )
+)
 
 ; push an assumption to the state
-(define $eo_push_assume ((F Bool) (s $eo_State))
-  ($s_cons ($so_assume F) s))
+(program $eo_push_assume ((F Bool) (s $eo_State))
+  :signature (Bool $eo_State) $eo_State
+  (
+  (($eo_push_assume F s) ($s_cons ($so_assume_push F) s))
+  )
+)
 ; push a formula F proven by a step to the state
 ; note we check ok, but don't check type Bool currently
-(define $eo_push_proven ((F Bool) (proven Bool) (s $eo_State))
-  (eo::ite (eo::is_ok F) ($s_cons ($so_proven F) s) $s_fail))
-
-(declare-const $eo_PList Type)
-(declare-const $eo_plist_nil $eo_PList)
-(declare-const $eo_plist_cons (-> $eo_Index $eo_PList $eo_PList))
+(program $eo_push_proven_check ((F Bool) (s $eo_State) (b Bool))
+  :signature (Bool Bool $eo_State) $eo_State
+  (
+  (($eo_push_proven_check true F s)   ($s_cons ($so_proven F) s))
+  (($eo_push_proven_check b F s)      $s_fail)
+  )
+)
+(program $eo_push_proven ((F Bool) (s $eo_State))
+  :signature (Bool $eo_State) $eo_State
+  (
+  (($eo_push_proven F s)  ($eo_push_proven_check (eo::is_ok F) F s))
+  )
+)
 
 ; constructs a formula based on a premise list constructor f, a premise list
 ; and the current state.
 (program $eo_mk_premise_list
-  ((f (-> Bool Bool Bool)) (n $eo_Index) (pl $eo_PList :list) (S $eo_State))
-  :signature ((-> Bool Bool Bool) $eo_PList $eo_State) Bool
+  ((f (-> Bool Bool Bool)) (n $eo_Index) (pl $eo_IndexList :list) (S $eo_State))
+  :signature ((-> Bool Bool Bool) $eo_IndexList $eo_State) Bool
   (
-  (($eo_mk_premise_list f $eo_plist_nil S)          (eo::nil f Bool))
-  (($eo_mk_premise_list f ($eo_plist_cons n pl) S)  
-     (eo::cons f ($eo_State_proven_nth S n) ($eo_mk_premise_list f pl S)))
+  (($eo_mk_premise_list f $emb_indl.nil S)          (eo::nil f Bool))
+  (($eo_mk_premise_list f ($emb_indl.cons n pl) S)  
+     (eo::cons f ($eo_state_proven_nth S n) ($eo_mk_premise_list f pl S)))
   )
 )
 
 ; Command constructors
 
-(declare-parameterized-const $emb_cmd.assume ((x Bool :opaque)) $eo_Cmd)
-(define $cmd_assume ((x Bool)) ($emb_cmd.assume x))
+; note that assume is not a command, instead formulas are input to 
+; $eo_is_refutation which create a list of assumes as preamble.
 (declare-parameterized-const $emb_cmd.assume_push ((x Bool :opaque)) $eo_Cmd)
 (define $cmd_assume_push ((x Bool)) ($emb_cmd.assume_push x))
 (declare-parameterized-const $emb_cmd.check_proven ((x Bool :opaque)) $eo_Cmd)
@@ -79,7 +114,7 @@ $EO_CMD_DEFS$
 $EO_INVOKE_DEFS$
 
 (program $eo_invoke_cmd 
-  ((proven Bool) (premises $eo_PList) (S $eo_State)
+  ((proven Bool) (premises $eo_IndexList) (S $eo_State)
   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
   (T6 Type) (T7 Type) (T8 Type) (T9 Type) (T10 Type)
   (a1 T1) (a2 T2) (a3 T3) (a4 T4) (a5 T5) (a6 T6) (a7 T7) (a8 T8) (a9 T9) (a10 T10)
@@ -87,22 +122,51 @@ $EO_INVOKE_DEFS$
   (n5 $eo_Numeral) (n6 $eo_Numeral) (n7 $eo_Numeral) (n8 $eo_Numeral))
   :signature ($eo_State $eo_Cmd) $eo_State
   (
-  ; note that assume / assume_push are identical.
-  ; in practice they are only different since the former is intended to mirror
-  ; the user assertions in an smt2 script and the latter is not.
-  (($eo_invoke_cmd S ($cmd_assume proven))           ($eo_push_assume proven S))
   (($eo_invoke_cmd S ($cmd_assume_push proven))      ($eo_push_assume proven S))
+  (($eo_invoke_cmd S ($cmd_check_proven proven))
+    (eo::ite (eo::eq ($eo_state_proven_nth S 0) proven) S $s_fail))
 $EO_INVOKE$
   )
 )
 
+(declare-const $eo_CmdList Type)
+(declare-const $emb_cmdl.nil $eo_CmdList)
+(declare-parameterized-const $emb_cmdl.cons
+  ((c $eo_Cmd :opaque) (cl $eo_CmdList :opaque)) $eo_CmdList)
+
 ; Invoke a list of commands
-(program $eo_invoke_cmd_list ((S $eo_State) (c $eo_Cmd) (cmds $eo_List))
-  :signature ($eo_State $eo_List) $eo_State
+(program $eo_invoke_cmd_list ((S $eo_State) (c $eo_Cmd) (cmds $eo_CmdList))
+  :signature ($eo_State $eo_CmdList) $eo_State
   (
   (($eo_invoke_cmd_list $s_fail cmds) $s_fail)
-  (($eo_invoke_cmd_list S $eo_List_nil) S)
-  (($eo_invoke_cmd_list S ($eo_List_cons c cmds))
-     ($eo_invoke_cmd_list ($eo_invoke_cmd s c) cmds))
+  (($eo_invoke_cmd_list S $emb_cmdl.nil) S)
+  (($eo_invoke_cmd_list S ($emb_cmdl.cons c cmds))
+     ($eo_invoke_cmd_list ($eo_invoke_cmd S c) cmds))
+  ;(($eo_invoke_cmd_list S cmds) $s_fail)
+  )
+)
+
+(program $eo_invoke_cmd_list_assuming
+  ((as $eo_List) (cs $eo_CmdList) (S $eo_State) (F Bool))
+  :signature ($eo_State $eo_List $eo_CmdList) $eo_State
+  (
+  (($eo_invoke_cmd_list_assuming S ($eo_List_cons F as) cs)
+    ($eo_invoke_cmd_list_assuming ($s_cons ($so_assume F) S) as cs))
+  (($eo_invoke_cmd_list_assuming S $eo_List_nil cs)
+    ($eo_invoke_cmd_list S cs))
+  (($eo_invoke_cmd_list_assuming S as cs) $s_fail)
+  )
+)
+
+; Main entry point:
+; - as is a list of formulas to assume
+; - cs is a command list to invoke. Note the indices of premises should take
+; into account the size of as.
+(program $eo_is_refutation ((as $eo_List) (cs $eo_CmdList))
+  :signature ($eo_List $eo_CmdList) $eo_Result
+  (
+  (($eo_is_refutation as cs)
+    (eo::define ((s ($eo_invoke_cmd_list_assuming $s_nil as cs)))
+      (eo::and ($eo_state_is_closed s) (eo::eq ($eo_state_proven_nth s 0) false))))
   )
 )
