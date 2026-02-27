@@ -78,6 +78,7 @@ def smt_lit_str_substr (s : smt_lit_String) (i n : smt_lit_Int) : smt_lit_String
     let start : Nat := Int.toNat i
     let take  : Nat := Int.toNat (min n (len - i))
     String.Pos.Raw.extract s ⟨start⟩ ⟨start + take⟩
+/-
 def smt_lit_str_indexof_rec (s t : smt_lit_String) (i len : Nat) : smt_lit_Int :=
   if (i+len)>(smt_lit_str_len s) then
     -1
@@ -91,6 +92,9 @@ def smt_lit_str_indexof (s t : smt_lit_String) (i : smt_lit_Int) : smt_lit_Int :
     -1
   else
     (smt_lit_str_indexof_rec s t (Int.toNat i) (Int.toNat (smt_lit_str_len t)))
+-/
+def smt_lit_str_indexof : smt_lit_String -> smt_lit_String -> smt_lit_Int -> smt_lit_Int
+  | _, _, _ => 0 -- FIXME
 def smt_lit_str_to_code (s : smt_lit_String) : smt_lit_Int :=
   match s.toList with
   | [c] => Int.ofNat c.toNat
@@ -105,8 +109,11 @@ def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
 
 -- SMT Beyond Eunoia
 
-def smt_lit_int_pow2 : smt_lit_Int -> smt_lit_Int
-  | _ => 0 -- FIXME
+def smt_lit_int_pow2 (n : smt_lit_Int) : smt_lit_Int :=
+  if n < 0 then
+    0
+  else
+    2 ^ (Int.toNat n)
 def smt_lit_int_log2 : smt_lit_Int -> smt_lit_Int
   | _ => 0 -- FIXME
 
@@ -173,21 +180,21 @@ SMT-LIB types.
 -/
 inductive SmtType : Type where
 $LEAN_SMT_TYPE_DEF$
-deriving DecidableEq
+deriving Repr, DecidableEq
 
 /- 
 SMT-LIB terms.
 -/
 inductive SmtTerm : Type where
 $LEAN_SMT_TERM_DEF$
-deriving DecidableEq
+deriving Repr, DecidableEq
 
 /- 
 SMT-LIB values.
 -/
 inductive SmtValue : Type where
 $LEAN_SMT_VALUE_DEF$
-deriving DecidableEq
+deriving Repr, DecidableEq
 
 /-
 SMT-LIB map values.
@@ -195,7 +202,7 @@ SMT-LIB map values.
 inductive SmtMap : Type where
   | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
   | default : SmtType -> SmtValue -> SmtMap
-deriving DecidableEq
+deriving Repr, DecidableEq
 
 /- 
 SMT-LIB sequence values.
@@ -203,7 +210,7 @@ SMT-LIB sequence values.
 inductive SmtSeq : Type where
   | cons : SmtValue -> SmtSeq -> SmtSeq
   | empty : SmtType -> SmtSeq
-deriving DecidableEq
+deriving Repr, DecidableEq
 
 /-
 SMT-LIB datatypes.
@@ -211,7 +218,7 @@ SMT-LIB datatypes.
 inductive SmtDatatype : Type where
   | null : SmtDatatype
   | sum : SmtDatatypeCons -> SmtDatatype -> SmtDatatype
-deriving DecidableEq
+deriving Repr, DecidableEq
 
 /-
 SMT-LIB datatype constructors.
@@ -219,7 +226,7 @@ SMT-LIB datatype constructors.
 inductive SmtDatatypeCons : Type where
   | unit : SmtDatatypeCons
   | cons : SmtType -> SmtDatatypeCons -> SmtDatatypeCons
-deriving DecidableEq
+deriving Repr, DecidableEq
 
 end
 
@@ -294,7 +301,6 @@ abbrev eo_lit_to_real  := smt_lit_to_real
 abbrev eo_lit_str_len  := smt_lit_str_len
 abbrev eo_lit_str_concat  := smt_lit_str_concat
 abbrev eo_lit_str_substr := smt_lit_str_substr
-abbrev eo_lit_str_indexof_rec := smt_lit_str_indexof_rec
 abbrev eo_lit_str_indexof := smt_lit_str_indexof
 abbrev eo_lit_str_to_code := smt_lit_str_to_code
 abbrev eo_lit_str_from_code := smt_lit_str_from_code
@@ -303,7 +309,7 @@ abbrev eo_lit_str_from_code := smt_lit_str_from_code
 
 inductive Term : Type where
 $LEAN_TERM_DEF$
-deriving DecidableEq
+deriving Repr, DecidableEq
   
 /- Term equality -/
 def eo_lit_teq : Term -> Term -> eo_lit_Bool
@@ -336,7 +342,7 @@ abbrev CIndex := Term
 inductive CIndexList : Type where
   | nil : CIndexList
   | cons : CIndex -> CIndexList -> CIndexList
-deriving DecidableEq
+deriving Repr, DecidableEq
 
 /-
 -/
@@ -344,7 +350,7 @@ inductive CStateObj : Type where
   | assume : Term -> CStateObj
   | assume_push : Term -> CStateObj
   | proven : Term -> CStateObj
-deriving DecidableEq
+deriving Repr, DecidableEq
 
 /-
 -/
@@ -352,20 +358,20 @@ inductive CState : Type where
   | nil : CState
   | cons : CStateObj -> CState -> CState
   | fail : CState
-deriving DecidableEq
+deriving Repr, DecidableEq
 
 /-
 -/
 inductive CCmd : Type where
 $LEAN_CHECKER_RULE_DEF$
-deriving DecidableEq
+deriving Repr, DecidableEq
 
 /-
 -/
 inductive CCmdList : Type where
   | nil : CCmdList
   | cons : CCmd -> CCmdList -> CCmdList
-deriving DecidableEq
+deriving Repr, DecidableEq
 
 $LEAN_CHECKER_DEFS$
 

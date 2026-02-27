@@ -13,7 +13,8 @@ STD_SMODEL_DEPS=../plugins/model_smt/term_reduce_deps.eo
 # the name of a EO signature
 INPUT=$1
 # should be the name of a constant or proof rule in $INPUT
-TARGET=$2
+shift
+TARGET=$@
 # trim out
 INIT_TRIM=$OUT_DIR/trim-cpc.eo
 INIT_DESUGAR=$OUT_DIR/trim-d-cpc.eo
@@ -55,7 +56,7 @@ rm -f $TMP_TRIM_OUT
 echo "********* Generating Lean for $TARGET in $INPUT *********"
 
 # trim dependencies with respect to the proof rule
-echo "**** lean_meta: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
+echo "**** lean_meta: Run ethos + trim-defs on $INPUT and \"$TARGET\" to $INIT_TRIM"
 trim_defs $INPUT $TARGET >/dev/null
 check_status
 cp $STD_TRIM_OUT $INIT_TRIM
@@ -64,7 +65,7 @@ echo "**** lean_meta: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGA
 ./src/ethos --plugin.desugar $INIT_TRIM >/dev/null
 check_status
 # we will process proof rules with lean-meta, which has these dependencies.
-DESUGAR_DEPS="\$eo_proven \$smtx_hash \$eo_reverse_hash \$eo_Bool \$eo_Type \$eo_fun_type \$eo_apply \$eo_mk_apply \$eo_eq \$eo_ite \$eo_requires \$eo_to_smt \$smtx_model_eval \$eo_checker_is_refutation and"
+DESUGAR_DEPS="\$eo_proven \$smtx_hash \$eo_reverse_hash \$eo_Bool \$eo_Type \$eo_fun_type \$eo_apply \$eo_mk_apply \$eo_eq \$eo_ite \$eo_requires \$eo_to_smt \$smtx_model_eval \$eo_checker_is_refutation and \$eo_UConst"
 sed -i "s/eo-desugar-deps/$DESUGAR_DEPS/g" $STD_DESUGAR_OUT
 sed -i "s/eo-desugar/lean-meta/g" $STD_DESUGAR_OUT
 cp $STD_DESUGAR_OUT $INIT_DESUGAR
@@ -72,7 +73,8 @@ cp $STD_DESUGAR_OUT $INIT_DESUGAR
 # trim dependencies with respect to the verification Eunoia program
 # note the dependencies are further managed by echo commands with :deps
 echo "**** lean_meta: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
-trim_defs $INIT_DESUGAR "\$eo_prog_$TARGET" >/dev/null
+TARGET_PROGS=$(sed 's/\([^[:space:]]\+\)/\$eo_prog_\1/g' <<< "$TARGET")
+trim_defs $INIT_DESUGAR $TARGET_PROGS >/dev/null
 check_status
 cp $STD_TRIM_OUT $VC_DEF_DESUGAR
 
@@ -103,7 +105,7 @@ rm -f $TMP_OUT
 
 # trim again, where we require keeping the verification condition
 echo "**** lean_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
-trim_defs $VCM_DEF_DESUGAR "\$eo_prog_$TARGET" >/dev/null
+trim_defs $VCM_DEF_DESUGAR $TARGET_PROGS >/dev/null
 check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 

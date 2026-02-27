@@ -40,7 +40,7 @@ def smt_lit_div : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | x, y => x/y
 def smt_lit_mod : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | x, y => x%y
-  
+
 -- Rational arithmetic
 def smt_lit_mk_rational : smt_lit_Int -> smt_lit_Int -> smt_lit_Rat
   | x, y => x/y
@@ -58,7 +58,7 @@ def smt_lit_qlt : smt_lit_Rat -> smt_lit_Rat -> smt_lit_Bool
   | x, y => decide (x < y)
 def smt_lit_qdiv : smt_lit_Rat -> smt_lit_Rat -> smt_lit_Rat
   | x, y => x/y
-  
+
 -- Conversions
 def smt_lit_to_int : smt_lit_Rat -> smt_lit_Int
   | x => (Rat.floor x)
@@ -84,7 +84,7 @@ def smt_lit_str_indexof_rec (s t : smt_lit_String) (i len : Nat) : smt_lit_Int :
     -1
   else if String.Pos.Raw.substrEq s ⟨i⟩ t ⟨0⟩ len then
     i
-  else 
+  else
     smt_lit_str_indexof_rec s t (i+1) len
 decreasing_by sorry  -- FIXME
 def smt_lit_str_indexof (s t : smt_lit_String) (i : smt_lit_Int) : smt_lit_Int :=
@@ -109,11 +109,8 @@ def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
 
 -- SMT Beyond Eunoia
 
-def smt_lit_int_pow2 (n : smt_lit_Int) : smt_lit_Int :=
-  if n < 0 then
-    0
-  else
-    2 ^ (Int.toNat n)
+def smt_lit_int_pow2 : smt_lit_Int -> smt_lit_Int
+  | _ => 0 -- FIXME
 def smt_lit_int_log2 : smt_lit_Int -> smt_lit_Int
   | _ => 0 -- FIXME
 
@@ -175,7 +172,7 @@ def smt_lit_zmod_by_zero : smt_lit_Int -> smt_lit_Int
 
 mutual
 
-/- 
+/-
 SMT-LIB types.
 -/
 inductive SmtType : Type where
@@ -195,7 +192,7 @@ inductive SmtType : Type where
 
 deriving Repr, DecidableEq
 
-/- 
+/-
 SMT-LIB terms.
 -/
 inductive SmtTerm : Type where
@@ -222,7 +219,7 @@ inductive SmtTerm : Type where
 
 deriving Repr, DecidableEq
 
-/- 
+/-
 SMT-LIB values.
 -/
 inductive SmtValue : Type where
@@ -249,7 +246,7 @@ inductive SmtMap : Type where
   | default : SmtType -> SmtValue -> SmtMap
 deriving Repr, DecidableEq
 
-/- 
+/-
 SMT-LIB sequence values.
 -/
 inductive SmtSeq : Type where
@@ -305,8 +302,7 @@ def __smtx_bit : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
 
 
 def __smtx_binary_and_rec : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
-  | w, n1, n2 => (smt_lit_zplus (smt_lit_ite (smt_lit_zeq w 0) 0 (__smtx_binary_and_rec (smt_lit_zplus w (smt_lit_zneg 1)) n1 n2)) (smt_lit_zmult (__smtx_pow2 w) (smt_lit_ite (smt_lit_and (__smtx_bit n1 w) (__smtx_bit n2 w)) 1 0)))
-
+  | w, n1, n2 => 0 -- FIXME
 
 def __vsm_apply_head : SmtValue -> SmtValue
   | (SmtValue.Apply f a) => (__vsm_apply_head f)
@@ -440,7 +436,7 @@ inductive smt_interprets : SmtTerm -> Bool -> Prop
       smt_interprets t false
 
 /- ---------------------------------------------- -/
-  
+
 
 /- Eunoia literal evaluation defined -/
 
@@ -511,7 +507,7 @@ inductive Term : Type where
   | eq : Term
 
 deriving Repr, DecidableEq
-  
+
 /- Term equality -/
 def eo_lit_teq : Term -> Term -> eo_lit_Bool
   | x, y => decide (x = y)
@@ -731,7 +727,7 @@ def __eo_StateObj_proven : CStateObj -> Term
 def __eo_state_proven_nth : CState -> CIndex -> Term
   | (CState.cons so s), (Term.Numeral 0) => (__eo_StateObj_proven so)
   | (CState.cons so s), n => (__eo_state_proven_nth s (__eo_add n (Term.Numeral (-1 : eo_lit_Int))))
-
+  | _, _ => Term.Stuck
 
 def __eo_state_is_closed : CState -> Term
   | (CState.cons (CStateObj.assume_push F) s) => (Term.Boolean false)
@@ -782,14 +778,35 @@ def __eo_checker_is_refutation : Term -> CCmdList -> Term
   | as, cs => (__eo_and (__eo_state_is_closed (__eo_invoke_cmd_list_assuming CState.nil as cs)) (__eo_eq (__eo_state_proven_nth (__eo_invoke_cmd_list_assuming CState.nil as cs) (Term.Numeral 0)) (Term.Boolean false)))
 
 
+#eval!
+let t1 := (Term.UConst 1 Term.Int);
+let t2 := (Term.UConst 2 Term.Int);
+(__eo_invoke_cmd_list_assuming CState.nil
+(Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t2) t1))
+(Term.Apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t1) t2)))
+(Term.Boolean true)))
+(CCmdList.cons (CCmd.symm (Term.Numeral 0))
+(CCmdList.cons (CCmd.contra (Term.Numeral 0) (Term.Numeral 2))
+CCmdList.nil)))
 
+#eval!
+let t1 := (Term.UConst 1 Term.Int);
+let t2 := (Term.UConst 2 Term.Int);
+(__eo_checker_is_refutation
+(Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t2) t1))
+(Term.Apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t1) t2)))
+(Term.Boolean true)))
+(CCmdList.cons (CCmd.symm (Term.Numeral 0))
+(CCmdList.cons (CCmd.contra (Term.Numeral 1) (Term.Numeral 2))
+CCmdList.nil))
+)
 
 /- Definitions for theorems -/
 
 /- Definition of refutation -/
 
 inductive eo_is_refutation : Term -> CCmdList -> Prop
-  | intro (F : Term) (c : CCmdList) : 
+  | intro (F : Term) (c : CCmdList) :
     (__eo_checker_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation F c)
 
 

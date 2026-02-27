@@ -13,7 +13,7 @@
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
 #INPUT="../../cvc5-ajr/proofs/eo/alethe/alethe.eo"
 # should be the name of a constant or proof rule in $INPUT
-TARGET=$1
+TARGET=$@
 
 function check_status()
 {
@@ -29,5 +29,5 @@ echo "**** Compile ethos"
 make -j4
 check_status
 
-./run_gen_lean_single $INPUT $TARGET
+./run_gen_lean_single $INPUT $@
 

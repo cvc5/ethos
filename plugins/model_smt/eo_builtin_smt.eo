@@ -110,6 +110,14 @@
    (ai $smt_builtin_Int))
   ($emb_DtSel s d ci ai))
   
+; (temporary) uninterpreted constants
+(declare-parameterized-const $emb_UConst
+  ((n $smt_builtin_Int :opaque) (T $eo_Term :opaque))
+  $eo_Term)
+(define $eo_UConst
+  ((n $smt_builtin_Int :opaque) (T $eo_Term :opaque))
+  ($emb_UConst n T))
+  
 ;;; Utilities
 
 ; return: The embedding of (-> T1 T2).
