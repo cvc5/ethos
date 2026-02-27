@@ -300,14 +300,6 @@ def __smtx_pow2 : smt_lit_Int -> smt_lit_Int
   | i => (smt_lit_int_pow2 i)
 
 
-def __smtx_bit : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
-  | x, i => (smt_lit_zeq 1 (smt_lit_mod (smt_lit_div x (__smtx_pow2 i)) 2))
-
-
-def __smtx_binary_and_rec : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
-  | w, n1, n2 => (smt_lit_zplus (smt_lit_ite (smt_lit_zeq w 0) 0 (__smtx_binary_and_rec (smt_lit_zplus w (smt_lit_zneg 1)) n1 n2)) (smt_lit_zmult (__smtx_pow2 w) (smt_lit_ite (smt_lit_and (__smtx_bit n1 w) (__smtx_bit n2 w)) 1 0)))
-
-
 def __vsm_apply_head : SmtValue -> SmtValue
   | (SmtValue.Apply f a) => (__vsm_apply_head f)
   | a => a
@@ -605,14 +597,6 @@ def __eo_requires : Term -> Term -> Term -> Term
   | x1, x2, x3 => (eo_lit_ite (eo_lit_teq x1 x2) (eo_lit_ite (eo_lit_not (eo_lit_teq x1 Term.Stuck)) x3 Term.Stuck) Term.Stuck)
 
 
-def __eo_and : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (eo_lit_and b1 b2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_ite (eo_lit_zeq w1 0) 0 (__smtx_binary_and_rec (eo_lit_zplus w1 (eo_lit_zneg 1)) n1 n2)) (__smtx_pow2 w1))) Term.Stuck) Term.Stuck)
-  | _, _ => Term.Stuck
-
-
 def __eo_add : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -779,7 +763,7 @@ def __eo_invoke_cmd_list_assuming : CState -> Term -> CCmdList -> CState
 
 def __eo_checker_is_refutation : Term -> CCmdList -> Term
   | Term.Stuck , _  => Term.Stuck
-  | as, cs => (__eo_and (__eo_state_is_closed (__eo_invoke_cmd_list_assuming CState.nil as cs)) (__eo_eq (__eo_state_proven_nth (__eo_invoke_cmd_list_assuming CState.nil as cs) (Term.Numeral 0)) (Term.Boolean false)))
+  | as, cs => (__eo_state_is_closed (__eo_invoke_cmd_check_proven (__eo_invoke_cmd_list_assuming CState.nil as cs) (Term.Boolean false)))
 
 
 

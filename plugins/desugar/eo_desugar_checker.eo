@@ -73,8 +73,7 @@
   (($eo_push_assume F s) ($s_cons ($so_assume_push F) s))
   )
 )
-; push a formula F proven by a step to the state
-; note we check ok, but don't check type Bool currently
+; push a formula F proven by a step to the state if the given check was true
 (program $eo_push_proven_check ((F Bool) (s $eo_State) (b Bool))
   :signature (Bool Bool $eo_State) $eo_State
   (
@@ -82,6 +81,8 @@
   (($eo_push_proven_check b F s)      $s_fail)
   )
 )
+; push a formula F proven by a step to the state
+; note we check ok, but don't check type Bool currently
 (program $eo_push_proven ((F Bool) (s $eo_State))
   :signature (Bool $eo_State) $eo_State
   (
@@ -178,6 +179,6 @@ $EO_INVOKE$
   (
   (($eo_checker_is_refutation as cs)
     (eo::define ((s ($eo_invoke_cmd_list_assuming $s_nil as cs)))
-      (eo::and ($eo_state_is_closed s) (eo::eq ($eo_state_proven_nth s 0) false))))
+      ($eo_state_is_closed ($eo_invoke_cmd_check_proven s false))))
   )
 )
