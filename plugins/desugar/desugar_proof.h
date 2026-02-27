@@ -43,6 +43,8 @@ class DesugarProof : public StdPlugin
                   bool isPop,
                   Expr& result,
                   std::ostream* err) override;
+  /** bind */
+  void bind(const std::string& name, const Expr& e) override;
 
  private:
   void printTerm(const Expr& e, std::ostream& os);
@@ -52,6 +54,13 @@ class DesugarProof : public StdPlugin
   Desugar* d_desugar;
   // the proof steps
   std::stringstream d_eoPfSteps;
+  // NEW
+  // timestamps of proof steps
+  size_t getTimestampIndex(const Expr& e);
+  std::map<Expr, size_t> d_timestamp;
+  size_t d_currTimestamp;
+  std::vector<size_t> d_timestampScope;
+  std::stringstream d_cmds;
 };
 
 }  // namespace ethos

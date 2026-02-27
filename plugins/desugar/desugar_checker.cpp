@@ -29,9 +29,17 @@ DesugarChecker::~DesugarChecker() {}
 
 void DesugarChecker::finalizeRule(const Expr& v)
 {
-  std::stringstream ssr;
-  ssr << "$emb_rule." << v;
-  d_rules << "(declare-const " << ssr.str() << " $eo_Rule)" << std::endl;
+  std::stringstream embArg;
+  std::stringstream macroArg;
+  std::stringstream macroRet;
+  std::stringstream invokePat;
+  std::stringstream invokeRet;
+  std::stringstream progParamList;
+  std::stringstream progSig;
+  std::stringstream progPat;
+  std::stringstream progRet;
+
+
   AppInfo* ainfo = d_state.getAppInfo(v.getValue());
   Expr tupleVal = ainfo->d_attrConsTerm;
   Assert(tupleVal.getNumChildren() == 4);
@@ -41,7 +49,8 @@ void DesugarChecker::finalizeRule(const Expr& v)
     plCons = tupleVal[0];
   }
   bool isAssume = tupleVal[1] == d_true;
-  bool isConcExplicit = tupleVal[2] == d_true;
+  // conclusion explicit is compiled away when desugaring proof
+  //bool isConcExplicit = tupleVal[2] == d_true;
   Expr rprog = tupleVal[3];
   std::stringstream argList;
   Expr rprogType = rprog.getType();
@@ -64,87 +73,102 @@ void DesugarChecker::finalizeRule(const Expr& v)
       }
     }
   }
-  d_ruleInvokes << "  (($eo_invoke_step " << ssr.str() << " proven ";
-  // if it is not an assume rule, we must not have provided an assumption
-  d_ruleInvokes << (isAssume ? "assump " : "$eo_NullBool ");
-  std::stringstream invokeArgs;
-  // subtract an ordinary argument if conclusion explicit
-  if (isConcExplicit)
-  {
-    Assert(nargs > 0);
-    nargs--;
-  }
   // first, pass the ordinary arguments
-  if (nargs > 0)
+  Assert(nargs <= 10);
+  for (size_t i = 1; i <= nargs; i++)
   {
-    Assert(nargs <= 10);
-    d_ruleInvokes << "($eo_alist_cons";
-    for (size_t i = 0; i < nargs; i++)
-    {
-      d_ruleInvokes << " a" << (i + 1);
-      invokeArgs << " a" << (i + 1);
-    }
-    d_ruleInvokes << ") ";
-  }
-  else
-  {
-    d_ruleInvokes << "$eo_alist_nil ";
-  }
-  if (isConcExplicit)
-  {
-    invokeArgs << " proven";
-    ret << "(eo::requires (eo::eq proven $eo_NullBool) false ";
-    retEnd << ")";
+    embArg << " (T" << i << " Type :implicit) (x" << i << " T" << i << " :opaque)";
+    macroArg << " (T" << i << " Type :implicit) (x" << i << " T" << i << ")";
+    macroRet << " x" << i;
+    invokePat << " a" << i;
+    invokeRet << " a" << i;
+    progParamList << " (T" << i << " Type :implicit) (a" << i << " T" << i << ")";
+    progSig << " T" << i;
+    progPat << " a" << i;
+    progRet << " a" << i;
   }
   // then, pass the assumption
   if (isAssume)
   {
     Assert(npremises > 0);
     npremises--;
-    invokeArgs << " ($eo_pf assump)";
-    ret << "(eo::requires (eo::eq assump $eo_NullBool) false ";
-    retEnd << ")";
+    progRet << " ($eo_pf assume)";
   }
   // then the premises
   if (!plCons.isNull())
   {
     // combine the premises if :premise-list
     Assert(npremises == 1);
-    d_ruleInvokes << "premises ";
-    invokeArgs << " ($eo_pf ($eo_mk_premise_list " << plCons << " premises S))";
+    embArg << " (premises $eo_PList :opaque)";
+    macroArg << " (premises $eo_PList)";
+    macroRet << " premises";
+    invokePat << " premises";
+    invokeRet << " ($eo_pf ($eo_mk_premise_list " << plCons << " premises S))";
+    progParamList << " (pl $eo_Proof)";
+    progSig << " $eo_Proof";
+    progPat << " pl";
+    progRet << " pl";
   }
   else
   {
-    if (npremises > 0)
+    Assert(npremises <= 8);
+    for (size_t i = 1; i <= npremises; i++)
     {
-      Assert(npremises <= 8);
-      std::string ret = "$eo_plist_nil";
-      for (size_t i = 0; i < npremises; i++)
-      {
-        std::stringstream nextRet;
-        nextRet << "($eo_plist_cons n" << (i + 1) << " " << ret << ")";
-        ret = nextRet.str();
-        invokeArgs << " ($eo_pf ($eo_State_proven_nth S n" << (i + 1) << "))";
-      }
-      d_ruleInvokes << ret << " ";
+      embArg << " (n" << i << " $eo_Index :opaque)";
+      macroArg << " (n" << i << " $eo_Index)";
+      macroRet << " n" << i;
+      invokePat << " n" << i;
+      invokeRet << " ($eo_pf ($eo_State_proven_nth S n" << (i + 1) << "))";
+      progParamList << " (p" << i << " $eo_Proof)";
+      progSig << " $eo_Proof";
+      progPat << " p" << i;
+      progRet << " p" << i;
+    }
+  }
+
+  std::stringstream ssr;
+  ssr << "$cmd_" << v;
+  d_rules << "(declare-parameterized-const $emb_cmd." << v << " (" << embArg.str() << ") $eo_Cmd)" << std::endl;
+  d_rules << "(define " << ssr.str() << " (" << macroArg.str() << ") ";
+  if (!macroRet.str().empty())
+  {
+    d_rules << "($emb_cmd." << v << macroRet.str() << "))" << std::endl;
+  }
+  else
+  {
+    d_rules << "$emb_cmd." << v << std::endl;
+  }
+  d_ruleInvokes << "  (($eo_invoke_cmd S ($cmd_" << v << invokePat.str() << ")) ";
+  if (isAssume)
+  {
+    d_ruleInvokes << "($eo_invoke_cmd_pop_" << v << " S" << invokeRet.str() << "))" << std::endl;
+    std::stringstream pname;
+    pname << "$eo_invoke_cmd_pop_" << v;
+    d_ruleInvokesDefs << "(program " << pname.str() << std::endl;
+    d_ruleInvokesDefs << "  ((assume F) (s $eo_State) (so $eo_StateObj)" << progParamList.str() << ")" << std::endl;
+    d_ruleInvokesDefs << "  :signature ($eo_State" << progSig.str() << ") $eo_State" << std::endl;
+    d_ruleInvokesDefs << "  (" << std::endl;
+    d_ruleInvokesDefs << "  ((" << pname.str() << " ($s_cons ($so_assume F) s)" << progPat.str() << ")" << std::endl;
+    d_ruleInvokesDefs << "     ($eo_push_proven (" << rprog << progRet.str() << ") s))" << std::endl;
+    d_ruleInvokesDefs << "  ((" << pname.str() << " ($s_cons so s)" << progPat.str() << ") " << std::endl;
+    d_ruleInvokesDefs << "     (" << pname.str() << " s" << progPat.str() << "))" << std::endl;
+    d_ruleInvokesDefs << "  ((" << pname.str() << " s" << progPat.str() << ") $s_fail)" << std::endl;
+    d_ruleInvokesDefs << "  )" << std::endl;
+    d_ruleInvokesDefs << ")" << std::endl;
+  }
+  else
+  {
+    d_ruleInvokes << "($eo_push_proven ";
+    if (!invokeRet.str().empty())
+    {
+      d_ruleInvokes << "(" << rprog << invokeRet.str() << ")";
     }
     else
     {
-      d_ruleInvokes << "$eo_plist_nil ";
+      d_ruleInvokes << rprog;
     }
+    d_ruleInvokes << " S))" << std::endl;
   }
-  d_ruleInvokes << "S) ";
-  if (invokeArgs.str().empty())
-  {
-    Assert(npremises == 0 && nargs == 0);
-    ret << rprog;
-  }
-  else
-  {
-    ret << "(" << rprog << invokeArgs.str() << ")";
-  }
-  ret << retEnd.str();
-  d_ruleInvokes << ret.str() << ")" << std::endl;
 }
 
 void DesugarChecker::printTerm(const Expr& e, std::ostream& os)
@@ -175,8 +199,9 @@ void DesugarChecker::output(std::ostream& out)
   std::ostringstream ssec;
   ssec << inec.rdbuf();
   std::string finalCheckEo = ssec.str();
-  replace(finalCheckEo, "$EO_RULE_DEFS$", d_rules.str());
-  replace(finalCheckEo, "$EO_RULE_INVOKE$", d_ruleInvokes.str());
+  replace(finalCheckEo, "$EO_CMD_DEFS$", d_rules.str());
+  replace(finalCheckEo, "$EO_INVOKE$", d_ruleInvokes.str());
+  replace(finalCheckEo, "$EO_INVOKE_DEFS$", d_ruleInvokesDefs.str());
   out << finalCheckEo;
   out << ";; ------------ checker end" << std::endl;
 }

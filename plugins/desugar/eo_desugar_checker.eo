@@ -1,18 +1,12 @@
 ;;; utilities
 
-; Indicates that a formula was not given
-(declare-const $eo_NullBool Bool)
-
 ; placeholder
-;(declare-const $eo_Numeral Type)
+(declare-const $eo_Index Type)
 
 ;;; Types
 
 ; A Eunoia command
 (declare-const $eo_Cmd Type)
-
-; A Eunoia proof rule
-(declare-const $eo_Rule Type)
 
 ; The state
 (declare-const $eo_State Type)
@@ -23,12 +17,15 @@
 (declare-const $eo_StateObj Type)
 (declare-parameterized-const $emb_so.assume ((F Bool :opaque)) $eo_StateObj)
 (define $so_assume ((F Bool)) ($emb_so.assume F))
+; TODO: add assume-push?
 (declare-parameterized-const $emb_so.proven ((F Bool :opaque)) $eo_StateObj)
 (define $so_proven ((F Bool)) ($emb_so.proven F))
 
 
 (declare-const $emb_s.nil $eo_State)
 (define $s_nil () $emb_s.nil)
+(declare-const $emb_s.fail $eo_State)
+(define $s_fail () $emb_s.fail)
 (declare-parameterized-const $emb_s.cons
   ((so $eo_StateObj :opaque) (s $eo_State :opaque)) $eo_State)
 (define $s_cons ((o $eo_StateObj) (tail $eo_State)) ($emb_s.cons o tail))
@@ -41,36 +38,27 @@
   )
 )
 
-(program $eo_State_proven_nth ((T Type) (so $eo_StateObj) (s $eo_State) (n T))
-  :signature ($eo_State T) Bool
-  (
-  (($eo_State_proven_nth ($s_cons so s) n) ($eo_StateObj_proven so))
-  (($eo_State_proven_nth ($s_cons so s) n) ($eo_State_proven_nth s n))
-  )
-)
+; forward declare (to be implemented natively)
+(program $eo_State_proven_nth ()
+  :signature ($eo_State $eo_Index) Bool)
 
 ; push an assumption to the state
-(define $eo_push_assume ((F Bool) (s $eo_State :list))
+(define $eo_push_assume ((F Bool) (s $eo_State))
   ($s_cons ($so_assume F) s))
 ; push a formula F proven by a step to the state
-(define $eo_push_proven ((F Bool) (proven Bool) (s $eo_State :list))
-  (eo::define ((newState ($s_cons ($so_proven F) s)))
-    (eo::ite (eo::eq proven $eo_NullBool) ; models checking proven if provided
-      newState
-      (eo::requires F proven newState))))
+; note we check ok, but don't check type Bool currently
+(define $eo_push_proven ((F Bool) (proven Bool) (s $eo_State))
+  (eo::ite (eo::is_ok F) ($s_cons ($so_proven F) s) $s_fail))
 
-(define $eo_PList () $eo_List)
-(define $eo_plist_nil () $eo_List_nil)
-(define $eo_plist_cons () $eo_List_cons)
-(define $eo_AList () $eo_List)
-(define $eo_alist_nil () $eo_List_nil)
-(define $eo_alist_cons () $eo_List_cons)
+(declare-const $eo_PList Type)
+(declare-const $eo_plist_nil $eo_PList)
+(declare-const $eo_plist_cons (-> $eo_Index $eo_PList $eo_PList))
 
 ; constructs a formula based on a premise list constructor f, a premise list
 ; and the current state.
 (program $eo_mk_premise_list
-  ((f (-> Bool Bool Bool)) (n $eo_Numeral) (pl $eo_PList :list) (S $eo_State))
-  :signature ((-> Bool Bool Bool) $eo_PList $eo_StateObj) Bool
+  ((f (-> Bool Bool Bool)) (n $eo_Index) (pl $eo_PList :list) (S $eo_State))
+  :signature ((-> Bool Bool Bool) $eo_PList $eo_State) Bool
   (
   (($eo_mk_premise_list f $eo_plist_nil S)          (eo::nil f Bool))
   (($eo_mk_premise_list f ($eo_plist_cons n pl) S)  
@@ -78,101 +66,43 @@
   )
 )
 
-; Rule constructors
+; Command constructors
 
 (declare-parameterized-const $emb_cmd.assume ((x Bool :opaque)) $eo_Cmd)
 (define $cmd_assume ((x Bool)) ($emb_cmd.assume x))
 (declare-parameterized-const $emb_cmd.assume_push ((x Bool :opaque)) $eo_Cmd)
 (define $cmd_assume_push ((x Bool)) ($emb_cmd.assume_push x))
-(declare-parameterized-const $emb_cmd.step
-  ((r $eo_Rule :opaque) (proven Bool :opaque) (premises $eo_PList :opaque) (args $eo_AList :opaque))
-  $eo_Cmd)
-(define $cmd_step
-  ((r $eo_Rule) (proven Bool) (premises $eo_PList) (args $eo_AList))
-  ($emb_cmd.step r proven premises args))
-(declare-parameterized-const $emb_cmd.step_pop
-  ((r $eo_Rule :opaque) (proven Bool :opaque) (premises $eo_PList :opaque) (args $eo_AList :opaque))
-  $eo_Cmd)
-(define $cmd_step_pop
-  ((r $eo_Rule) (proven Bool) (premises $eo_PList) (args $eo_AList))
-  ($emb_cmd.step_pop r proven premises args))
+(declare-parameterized-const $emb_cmd.check_proven ((x Bool :opaque)) $eo_Cmd)
+(define $cmd_check_proven ((x Bool)) ($emb_cmd.check_proven x))
+$EO_CMD_DEFS$
 
+$EO_INVOKE_DEFS$
 
-$EO_RULE_DEFS$
-
-; rule, provided proven, assumption, premise list, arg list
-(program $eo_invoke_step
-  ((proven Bool) (assump Bool) (premises $eo_PList) (S $eo_State)
+(program $eo_invoke_cmd 
+  ((proven Bool) (premises $eo_PList) (S $eo_State)
   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
   (T6 Type) (T7 Type) (T8 Type) (T9 Type) (T10 Type)
   (a1 T1) (a2 T2) (a3 T3) (a4 T4) (a5 T5) (a6 T6) (a7 T7) (a8 T8) (a9 T9) (a10 T10)
   (n1 $eo_Numeral) (n2 $eo_Numeral) (n3 $eo_Numeral) (n4 $eo_Numeral)
   (n5 $eo_Numeral) (n6 $eo_Numeral) (n7 $eo_Numeral) (n8 $eo_Numeral))
-  :signature ($eo_Rule Bool Bool $eo_AList $eo_PList $eo_State) $eo_State
-  (
-$EO_RULE_INVOKE$
-  )
-)
-
-; 
-(program $eo_invoke_step_pop_rec
-  ((S $eo_State) (tail $eo_State :list) (F Bool) (so $eo_StateObj)
-   (r $eo_Rule) (proven Bool) (args $eo_AList) (premises $eo_PList))
-  :signature ($eo_Rule Bool $eo_AList $eo_PList $eo_State $eo_State) $eo_State
-  (
-  (($eo_invoke_step_pop_rec r proven args premises S ($s_cons ($so_assume F) tail))
-    ; we found the assume to pop, pass F as the assumption and add the proven
-    ; formula to the tail of the state.
-    ($eo_push_proven ($eo_invoke_step r proven F args premises S) proven tail))
-  (($eo_invoke_step_pop_rec r proven args premises S ($s_cons so tail))
-    ; pop the state object so, we remember the current state S.
-    ($eo_invoke_step_pop_rec r proven args premises S tail))
-  ; otherwise stuck if nil
-  )
-)
-
-(program $eo_invoke_cmd 
-  ((S $eo_State) (F Bool)
-   (r $eo_Rule) (proven Bool) (premises $eo_PList) (args $eo_AList))
-  :signature ($eo_Cmd $eo_State) $eo_State
+  :signature ($eo_State $eo_Cmd) $eo_State
   (
   ; note that assume / assume_push are identical.
   ; in practice they are only different since the former is intended to mirror
   ; the user assertions in an smt2 script and the latter is not.
-  (($eo_invoke_cmd ($cmd_assume F) S)           ($eo_push_assume F S))
-  (($eo_invoke_cmd ($cmd_assume_push F) S)      ($eo_push_assume F S))
-  (($eo_invoke_cmd ($cmd_step r proven premises args) S)    
-     ($eo_push_proven ($eo_invoke_step r proven $eo_NullBool args premises S) proven S))
-  (($eo_invoke_cmd ($cmd_step_pop r proven premises args) S)
-     ($eo_invoke_step_pop_rec r proven args premises S S))
+  (($eo_invoke_cmd S ($cmd_assume proven))           ($eo_push_assume proven S))
+  (($eo_invoke_cmd S ($cmd_assume_push proven))      ($eo_push_assume proven S))
+$EO_INVOKE$
   )
 )
 
 ; Invoke a list of commands
 (program $eo_invoke_cmd_list ((S $eo_State) (c $eo_Cmd) (cmds $eo_List))
-  :signature ($eo_List $eo_State) $eo_State
+  :signature ($eo_State $eo_List) $eo_State
   (
+  (($eo_invoke_cmd_list $s_fail cmds) $s_fail)
   (($eo_invoke_cmd_list S $eo_List_nil) S)
   (($eo_invoke_cmd_list S ($eo_List_cons c cmds))
-     ($eo_invoke_cmd_list ($eo_invoke_cmd c S) cmds))
+     ($eo_invoke_cmd_list ($eo_invoke_cmd s c) cmds))
   )
 )
-
-;;;; soundness specification
-
-; placeholder
-;(declare-parameterized-const $eo_interprets ((F Bool) (val Bool)) Bool)
-
-; specifies whether state is sound
-;(program $eo_State_is_sound_rec ((ret Bool) (tail $eo_State :list) (F Bool))
-;  :signature ($eo_State Bool) Bool
-;  (
-;  (($eo_State_is_sound_rec $s_nil ret) ret)
-;  (($eo_State_is_sound_rec ($s_cons ($so_assume F) tail) ret)
-;    (eo::ite ($eo_interprets F false) true ($eo_State_is_sound_rec tail)))
-;  (($eo_State_is_sound_rec ($s_cons ($so_proven F) tail) ret)
-;    ($eo_State_is_sound_rec tail (eo::ite ret (eo::not ($eo_interprets F false)) ret)))
-;  )
-;)
-
-;(define $eo_State_is_sound ((s $eo_State)) ($eo_State_is_sound_rec s true))
