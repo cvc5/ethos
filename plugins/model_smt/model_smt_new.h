@@ -173,8 +173,7 @@ class ModelSmtNew : public StdPlugin
 
   void printTermInternal(Kind k,
                          const std::string& term,
-                         std::ostream& os,
-                         const std::string& guard);
+                         std::ostream& os);
   /** Finalize declaration, main entry point for calling methods above */
   void finalizeDecl(const std::string& name, const Expr& e);
   /** Utilities for determining how to print arguments and returns */
@@ -202,7 +201,6 @@ class ModelSmtNew : public StdPlugin
       d_specialCases;
   /** Auxiliary definitions on $EO_TO_SMT_AUX$ */
   std::map<std::string, std::string> d_auxDef;
-  std::map<std::string, std::string> d_evalGuard;
   /**
    * SMT-LIB types.
    */

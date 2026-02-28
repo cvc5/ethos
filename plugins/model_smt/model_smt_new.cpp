@@ -87,6 +87,13 @@ std::string smtNot(const std::string& c1)
   ss << "($smt_builtin_not " << c1 << ")";
   return ss.str();
 }
+std::string smtApp1(const std::string& app,
+                   const std::string& c1)
+{
+  std::stringstream ss;
+  ss << "($smt_apply_1 \"" << app << "\" " << c1 << ")";
+  return ss.str();
+}
 std::string smtApp(const std::string& app,
                    const std::string& c1,
                    const std::string& c2)
@@ -236,11 +243,8 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // addConstFoldSym("is_int", {kReal}, kBool);
   addTermReduceSym("is_int", {kReal}, "(= (to_real (to_int x1)) x1)");
   addConstFoldSym("/", {kReal, kReal}, kReal);
-  d_evalGuard["/"] = smtNot(smtQEq("x2", "$smt_builtin_q_zero"));
   addConstFoldSym("div", {kInt, kInt}, kInt);
-  d_evalGuard["div"] = smtNot(smtZEq("x2", "$smt_builtin_z_zero"));
   addConstFoldSym("mod", {kInt, kInt}, kInt);
-  d_evalGuard["mod"] = smtNot(smtZEq("x2", "$smt_builtin_z_zero"));
   addConstFoldSym("to_int", {kReal}, kInt);
   addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
@@ -1250,8 +1254,7 @@ void ModelSmtNew::printModelEvalCall(const std::string& name,
 
 void ModelSmtNew::printTermInternal(Kind k,
                                     const std::string& term,
-                                    std::ostream& os,
-                                    const std::string& guard)
+                                    std::ostream& os)
 {
   std::stringstream ret;
   if (d_kindToEoPrefix.find(k) != d_kindToEoPrefix.end())
@@ -1266,12 +1269,7 @@ void ModelSmtNew::printTermInternal(Kind k,
   {
     ret << term;
   }
-  std::string rets = ret.str();
-  if (!guard.empty())
-  {
-    rets = smtGuard(guard, rets);
-  }
-  os << rets;
+  os << ret.str();
 }
 
 void ModelSmtNew::printConstFold(const std::string& name,
@@ -1334,9 +1332,16 @@ void ModelSmtNew::printConstFold(const std::string& name,
       ssret << "($smt_apply_" << args.size() << " \"" << opName.str() << "\"";
     }
     ssret << retArgs.str() << ")";
+    std::string ssrets = ssret.str();
+    // partial cases are hard coded here
+    if (name=="/" || name=="div" || name=="mod")
+    {
+      std::string guard = name=="/" ? smtQEq("x2", "$smt_builtin_q_zero") : smtZEq("x2", "$smt_builtin_z_zero");
+      ssrets = smtIte(guard, smtApp1(name + "_by_zero", "x1"), ssrets);
+    }
     // print the term with the right type
     std::stringstream fssret;
-    printTermInternal(kr, ssret.str(), fssret, d_evalGuard[name]);
+    printTermInternal(kr, ssrets, fssret);
     // then print it on cases
     printAuxProgramCase(progName.str(),
                         instArgs,
@@ -1429,7 +1434,7 @@ void ModelSmtNew::printLitReduce(const std::string& name,
   progName << "$smtx_model_eval_" << name;
   // print the term with the right type
   std::stringstream ssret;
-  printTermInternal(ret, reduce, ssret, d_evalGuard[name]);
+  printTermInternal(ret, reduce, ssret);
   // then print it on cases
   printAuxProgramCase(
       progName.str(), args, ssret.str(), paramCount, progCases, progParams);

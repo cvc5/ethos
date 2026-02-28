@@ -17,9 +17,9 @@
 (define-fun qmult ((x Real) (y Real)) Real (* x y))
 (define-fun qneg ((x Real)) Real (- x))
 (define-fun streq ((x String) (y String)) Bool (= x y))
-(define-fun qdiv_by_zero ((x Real)) Real (/ x 0.0))
-(define-fun zdiv_by_zero ((x Int)) Int (div x 0))
-(define-fun zmod_by_zero ((x Int)) Int (mod x 0))
+(define-fun /_by_zero ((x Real)) Real (/ x 0.0))
+(define-fun div_by_zero ((x Int)) Int (div x 0))
+(define-fun mod_by_zero ((x Int)) Int (mod x 0))
 
 ; tsm.Type:
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
@@ -193,8 +193,8 @@
   (tsm.BitVec (tsm.BitVec.arg1 Int))
   ; smt-cons: Map
   (tsm.Map (tsm.Map.arg1 tsm.Type) (tsm.Map.arg2 tsm.Type))
-  ; smt-cons: DtCons
-  (tsm.DtCons (tsm.DtCons.arg1 tsm.Type) (tsm.DtCons.arg2 tsm.Type))
+  ; smt-cons: DtConsType
+  (tsm.DtConsType (tsm.DtConsType.arg1 tsm.Type) (tsm.DtConsType.arg2 tsm.Type))
   ; smt-cons: Seq
   (tsm.Seq (tsm.Seq.arg1 tsm.Type))
   ; smt-cons: Datatype
@@ -569,7 +569,7 @@
   (ite (and (= x2 dt.null) (= x3 0))
     x1
   (ite (and ((_ is dt.sum) x2) ((_ is dtc.cons) (dt.sum.arg1 x2)) (= x3 0))
-    (tsm.DtCons (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_value_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) 0))
+    (tsm.DtConsType (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_value_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) 0))
   (ite ((_ is dt.sum) x2)
     ($smtx_typeof_dt_cons_value_rec x1 (dt.sum.arg2 x2) (zplus x3 (zneg 1)))
     tsm.None
@@ -577,8 +577,8 @@
 
 ; program: $smtx_typeof_apply_value
 (define-fun $smtx_typeof_apply_value ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
-  (ite ((_ is tsm.DtCons) x1)
-    (ite (Teq (tsm.DtCons.arg1 x1) x2) (tsm.DtCons.arg2 x1) tsm.None)
+  (ite ((_ is tsm.DtConsType) x1)
+    (ite (Teq (tsm.DtConsType.arg1 x1) x2) (tsm.DtConsType.arg2 x1) tsm.None)
     tsm.None
 ))
 

@@ -166,10 +166,10 @@ $SMT_TERM_CONSTRUCTORS$
 (define $tsm_Map ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
 
 ; The type of partially applied datatype constructors
-(declare-parameterized-const $emb_tsm.DtCons
+(declare-parameterized-const $emb_tsm.DtConsType
   ((Ti $smt_Type :opaque) (Te $smt_Type :opaque))
   $smt_Type)
-(define $tsm_DtCons ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.DtCons Ti Te))
+(define $tsm_DtConsType ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.DtConsType Ti Te))
 
 ; The Sequence type
 (declare-parameterized-const $emb_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
@@ -230,7 +230,6 @@ $SMT_TERM_CONSTRUCTORS$
 (declare-parameterized-const $emb_tsm.TypeRef
   ((s $smt_builtin_String :opaque)) $smt_Type)
 (define $tsm_TypeRef ((s $smt_builtin_String)) ($emb_tsm.TypeRef s))
-; utilites
 
 ; all other ordinary type definitions
 $SMT_TYPE_CONSTRUCTORS$
@@ -567,7 +566,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (
   (($smtx_typeof_dt_cons_value_rec T $dt_null $smt_builtin_z_zero) T)
   (($smtx_typeof_dt_cons_value_rec T ($dt_sum ($dtc_cons U c) d) $smt_builtin_z_zero)
-    ($tsm_DtCons U ($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) $smt_builtin_z_zero)))
+    ($tsm_DtConsType U ($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) $smt_builtin_z_zero)))
   (($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) n)
     ($smtx_typeof_dt_cons_value_rec T d ($smt_builtin_z_dec n)))
   (($smtx_typeof_dt_cons_value_rec T d n) $tsm_none)
@@ -585,7 +584,7 @@ $SMT_TYPE_CONSTRUCTORS$
   :signature ($smt_Type $smt_Type) $smt_Type
   (
   ; can partially apply datatype constructors
-  (($smtx_typeof_apply_value ($tsm_DtCons T U) V)
+  (($smtx_typeof_apply_value ($tsm_DtConsType T U) V)
     ($smt_builtin_ite ($smt_builtin_Teq T V) U $tsm_none))
   (($smtx_typeof_apply_value T U) $tsm_none)
   )
@@ -652,6 +651,8 @@ $SMT_TYPE_CONSTRUCTORS$
 (program $smtx_model_eval_= ((t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
+  ; TODO: maps, lambdas should invoke extensionality
+  ;(($smtx_model_eval_= ($vsm_lambda s1 T1 t1) t2)
   (($smtx_model_eval_= t1 t2)
     (eo::define ((T1 ($smtx_typeof_value t1)))
     (eo::define ((T2 ($smtx_typeof_value t2)))
@@ -751,6 +752,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (($smtx_seq_nth v1 v2) $vsm_not_value)
   )
 )
+
 ;;; Quantifiers
 
 (program $smtx_is_var
