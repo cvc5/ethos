@@ -187,7 +187,7 @@ inductive SmtType : Type where
   | RegLan : SmtType
   | BitVec : smt_lit_Int -> SmtType
   | Map : SmtType -> SmtType -> SmtType
-  | DtCons : SmtType -> SmtType -> SmtType
+  | DtConsType : SmtType -> SmtType -> SmtType
   | Seq : SmtType -> SmtType
   | Datatype : smt_lit_String -> SmtDatatype -> SmtType
   | TypeRef : smt_lit_String -> SmtType
@@ -337,13 +337,13 @@ def __smtx_dt_substitute : smt_lit_String -> SmtDatatype -> SmtDatatype -> SmtDa
 
 def __smtx_typeof_dt_cons_value_rec : SmtType -> SmtDatatype -> smt_lit_Int -> SmtType
   | T, SmtDatatype.null, 0 => T
-  | T, (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), 0 => (SmtType.DtCons U (__smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) 0))
+  | T, (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), 0 => (SmtType.DtConsType U (__smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) 0))
   | T, (SmtDatatype.sum c d), n => (__smtx_typeof_dt_cons_value_rec T d (smt_lit_zplus n (smt_lit_zneg 1)))
   | T, d, n => SmtType.None
 
 
 def __smtx_typeof_apply_value : SmtType -> SmtType -> SmtType
-  | (SmtType.DtCons T U), V => (smt_lit_ite (smt_lit_Teq T V) U SmtType.None)
+  | (SmtType.DtConsType T U), V => (smt_lit_ite (smt_lit_Teq T V) U SmtType.None)
   | T, U => SmtType.None
 
 

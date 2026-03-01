@@ -91,16 +91,12 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     os << "eo.Type";
     return;
   }
-  std::string name;
-  MetaKind child = getMetaKindReturn(c, parent);
-  if (child == MetaKind::PROGRAM)
+  if (k == Kind::PROGRAM_CONST)
   {
     // programs always print verbatim
     os << c;
     return;
   }
-  bool isSmtBuiltin = (parent == MetaKind::SMT_BUILTIN);
-  std::stringstream osEnd;
   if (k == Kind::CONST)
   {
     std::string cname = getName(c);
@@ -116,28 +112,16 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     else
     {
-      os << metaKindToPrefix(child) << cname;
+      MetaKind k = getMetaKind(d_state, c, cname);
+      os << metaKindToPrefix(k) << cname;
     }
   }
   else if (k == Kind::BOOL_TYPE)
   {
-    // Bool is embedded as an SMT type, we have to wrap it explicitly here.
-    // if (parent == MetaKind::EUNOIA)
-    //{
-    //  os << "(eo.SmtType ";
-    //  osEnd << ")";
-    //}
     os << "eo.Bool";
   }
   else
   {
-    // Boolean constants are embedded as an SMT type, we have to wrap it
-    // explicitly here.
-    // if (parent == MetaKind::EUNOIA)
-    //{
-    //  os << "(eo.SmtTerm ";
-    //  osEnd << ")";
-    //}
     const Literal* l = c.getValue()->asLiteral();
     if (l == nullptr)
     {
@@ -146,20 +130,11 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     if (k == Kind::BOOLEAN)
     {
-      if (!isSmtBuiltin)
-      {
-        os << "(eo.Boolean ";
-        osEnd << ")";
-      }
-      os << (l->d_bool ? "true" : "false");
+      os << "(eo.Boolean " << (l->d_bool ? "true" : "false") << ")";
     }
     else if (k == Kind::NUMERAL)
     {
-      if (!isSmtBuiltin)
-      {
-        os << "(eo.Numeral ";
-        osEnd << ")";
-      }
+      os << "(eo.Numeral ";
       const Integer& ci = l->d_int;
       if (ci.sgn() == -1)
       {
@@ -170,42 +145,28 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
       {
         os << ci.toString();
       }
+      os << ")";
     }
     else if (k == Kind::RATIONAL)
     {
-      if (!isSmtBuiltin)
-      {
-        os << "(eo.Rational ";
-        osEnd << ")";
-      }
-      os << c;
+      os << "(eo.Rational " << c << ")";
     }
     else if (k == Kind::BINARY)
     {
-      if (!isSmtBuiltin)
-      {
-        os << "(eo.Binary ";
-        osEnd << ")";
-      }
+      os << "(eo.Binary ";
       const BitVector& bv = l->d_bv;
       const Integer& bvi = bv.getValue();
-      os << bv.getSize() << " " << bvi.toString();
+      os << bv.getSize() << " " << bvi.toString() << ")";
     }
     else if (k == Kind::STRING)
     {
-      if (!isSmtBuiltin)
-      {
-        os << "(eo.String ";
-        osEnd << ")";
-      }
-      os << c;
+      os << "(eo.String " << c << ")";
     }
     else
     {
       Assert(false) << "Unknown atomic term literal kind " << k;
     }
   }
-  os << osEnd.str();
 }
 
 bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
@@ -239,10 +200,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     //           << std::endl;
     if (ck == Kind::APPLY)
     {
-      if (isProgram(tcur[0]))
-      {
-        Assert(false) << "Cannot match on program " << tcur[0];
-      }
+      Assert(tcur[0].getKind()!=Kind::PROGRAM) << "Cannot match on program " << tcur[0];
       Assert(tcur.getNumChildren() == 2);
       // Determine if this is a Eunoia internal term, or an
       // SMT term eagerly here
@@ -440,29 +398,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     // otherwise, we check for a change of context and insert a cast if
     // necessary compute the child context
     Kind ck = recTerm.getKind();
-    MetaKind child = MetaKind::NONE;
-    if (ck == Kind::PARAM)
-    {
-      // If a parameter, it depends on the context in which it was matched,
-      // which was stored as part of the selector context.
-      // TODO: maybe it is just call getMetaKindReturn here??
-      ittc = ctx.d_tctx.find(recTerm);
-      // Assert(ittc != ctx.d_tctx.end()) << "Cannot find context " << recTerm;
-      if (ittc != ctx.d_tctx.end())
-      {
-        child = ittc->second;
-      }
-    }
-    else
-    {
-      child = getMetaKindReturn(recTerm, parent);
-    }
-    Assert(child != MetaKind::NONE)
-        << "Failed to get child context for " << recTerm;
-    // Trace("smt-meta") << "print: " << recTerm << " (" << ck << "), "
-    //           << metaKindToString(parent) << " / "
-    //           << metaKindToString(child) << std::endl;
-    // We now should only care about the child context!!!
 
     // if we are printing the head of the term
     if (ck == Kind::PARAM)
@@ -497,7 +432,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // programs print as themselves
       if (!isProgramApp(recTerm))
       {
-        Assert(child == MetaKind::EUNOIA);
         if (StdPlugin::optionFlattenEval() || !recTerm.isEvaluatable())
         {
           // Note that we use eo.Apply unguarded. In particular, the
@@ -1152,17 +1086,6 @@ bool SmtMetaReduce::echo(const std::string& msg)
   return true;
 }
 
-bool SmtMetaReduce::isProgram(const Expr& t)
-{
-  return (t.getKind() == Kind::PROGRAM_CONST);
-}
-
-bool SmtMetaReduce::isSmtLibExpression(MetaKind ctx)
-{
-  return ctx == MetaKind::SMT || ctx == MetaKind::SMT_TYPE
-         || ctx == MetaKind::SMT_VALUE;
-}
-
 MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
                                         MetaKind elseKind) const
 {
@@ -1222,19 +1145,6 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
   }
   cname = sname;
   return MetaKind::EUNOIA;
-  // If not a distinguished symbol, it may be an SMT-LIB term or a type.
-  // Check the type of e.
-  Expr c = e;
-  Expr tc = s.getTypeChecker().getType(c);
-  while (tc.getKind() == Kind::FUNCTION_TYPE)
-  {
-    tc = tc[tc.getNumChildren() - 1];
-  }
-  if (tc.getKind() == Kind::TYPE)
-  {
-    return MetaKind::SMT_TYPE;
-  }
-  return MetaKind::SMT;
 }
 
 bool SmtMetaReduce::isProgramApp(const Expr& app)
@@ -1243,158 +1153,5 @@ bool SmtMetaReduce::isProgramApp(const Expr& app)
           && app[0].getKind() == Kind::PROGRAM_CONST);
 }
 
-MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
-{
-  Assert(!child.isNull()) << "null term for meta kind";
-  Expr hd = child;
-  Kind k = hd.getKind();
-  if (hd.getKind() == Kind::APPLY)
-  {
-    // check for programs
-    if (isProgramApp(hd))
-    {
-      // if program app, depends on the type of the program
-      Expr p = hd[0];
-      Expr ptype = d_tc.getType(p);
-      Assert(ptype.getKind() == Kind::PROGRAM_TYPE);
-      // convert the type to a metakind
-      return getTypeMetaKind(ptype[ptype.getNumChildren() - 1]);
-    }
-    // all other apply is Eunoia
-    return MetaKind::EUNOIA;
-  }
-  else if (k == Kind::APPLY_OPAQUE)
-  {
-    std::string sname = getName(child[0]);
-    if (sname.compare(0, 11, "$smt_apply_") == 0)
-    {
-      std::string esname = getEmbedName(child);
-      if (esname == "=")
-      {
-        // builtin equality returns an SMT-LIB builtin
-        MetaKind tk = MetaKind::SMT_BUILTIN;
-        MetaKind k1 = getMetaKindReturn(child[2], parentCtx);
-        MetaKind k2 = getMetaKindReturn(child[3], parentCtx);
-        Assert(k1 == MetaKind::EUNOIA || k2 == MetaKind::EUNOIA || k1 == k2)
-            << "Equal sides have incompatible meta types " << child << " "
-            << metaKindToString(k1) << " " << metaKindToString(k2);
-        return tk;
-      }
-      if (esname == "ite")
-      {
-        Assert(child.getNumChildren() == 5);
-        MetaKind tk = getMetaKindReturn(child[3], parentCtx);
-        MetaKind k2 = getMetaKindReturn(child[4], parentCtx);
-        Assert(tk == k2) << "ITE branches have different meta types " << child
-                         << " " << metaKindToString(tk) << " and "
-                         << metaKindToString(k2);
-        return tk;
-      }
-      else if (esname.compare(0, 3, "$eo") == 0)
-      {
-        // special case: if we are specifying that we should be applying
-        // an $eo function, we are Eunoia. This only is used when desugaring
-        // proof steps currently.
-        return MetaKind::EUNOIA;
-      }
-      else
-      {
-        return MetaKind::SMT_BUILTIN;
-      }
-    }
-    else if (sname.compare(0, 10, "$smt_type_") == 0)
-    {
-      return MetaKind::SMT_TYPE;
-    }
-    else if (sname.compare(0, 5, "$emb_") == 0)
-    {
-      Expr op = child[0];
-      Expr tpop = d_tc.getType(op);
-      std::pair<std::vector<Expr>, Expr> ftype = tpop.getFunctionType();
-      MetaKind tknew = getTypeMetaKind(ftype.second);
-      Assert(tknew != MetaKind::NONE);
-      return tknew;
-    }
-    else
-    {
-      // an opaque application of a user symbol, it depends on
-      // its classification via getMetaKind
-      std::string tmp;
-      return getMetaKind(d_state, child[0], tmp);
-    }
-  }
-  else if (k == Kind::BOOL_TYPE)
-  {
-    // the Bool type is Eunoia Bool. use ($smt.type_0 "Bool") for builtin
-    // SMT-LIB Bool
-    return MetaKind::EUNOIA;
-  }
-  else if (isLiteral(k))
-  {
-    // TODO: is this right?? whereas Boolean is implicitly SMT?
-    return MetaKind::EUNOIA;
-  }
-  else if (k == Kind::PROGRAM_CONST)
-  {
-    return MetaKind::PROGRAM;
-  }
-  else if (k == Kind::FUNCTION_TYPE || k == Kind::TYPE)
-  {
-    // for now, function type is assumed to be Eunoia.
-    // likely HO smt would change this.
-    return MetaKind::EUNOIA;
-  }
-  else if (isLiteralOp(k))
-  {
-    return MetaKind::EUNOIA;
-  }
-  else if (hd.getNumChildren() == 0)
-  {
-    Trace("smt-meta") << "getMetaKindReturn: atomic term " << hd << std::endl;
-    std::string sname = getName(hd);
-    Expr htype = d_tc.getType(hd);
-    Assert(!htype.isNull()) << "Failed to type check " << hd;
-    // Nullary deep embedding constructors
-    if (sname.compare(0, 5, "$emb_") == 0)
-    {
-      MetaKind tknew = getTypeMetaKind(htype);
-      Trace("smt-meta") << "...use datatype embedding name for " << htype
-                        << ", got " << metaKindToString(tknew) << std::endl;
-      Assert(tknew != MetaKind::NONE);
-      return tknew;
-    }
-    MetaKind tk = getTypeMetaKind(htype);
-    Trace("smt-meta") << "...type for atomic term " << hd << " (" << k
-                      << ") is " << htype << ", thus context is "
-                      << metaKindToString(tk) << std::endl;
-    // if it is a Eunoia constant, it depends on the naming
-    // convention
-    if (k == Kind::CONST && tk == MetaKind::EUNOIA)
-    {
-      // otherwise, use the meta kind utility.
-      std::string cnameTmp;
-      tk = getMetaKind(d_state, hd, cnameTmp);
-      Trace("smt-meta") << "...change to meta-kind " << metaKindToString(tk)
-                        << std::endl;
-      // Trace("smt-meta") << "...evaluate meta-kind side condition returns " <<
-      // mm
-      //           << ", which is " << metaKindToString(tk) <<
-      //           std::endl;
-    }
-    // if somehow failed?
-    if (tk == MetaKind::NONE && parentCtx != MetaKind::NONE)
-    {
-      Trace("smt-meta") << "...change parent?" << std::endl;
-      // otherwise just use the parent type????
-      tk = parentCtx;
-    }
-    return tk;
-  }
-  else
-  {
-    Assert(false) << "Unknown apply term kind for getMetaKindReturn: " << k;
-  }
-  return MetaKind::NONE;
-}
 
 }  // namespace ethos

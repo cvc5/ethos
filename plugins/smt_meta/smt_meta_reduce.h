@@ -118,15 +118,9 @@ class SmtMetaReduce : public StdPlugin
   std::map<std::pair<Expr, size_t>, MetaKind> d_metaKindArg;
   /** Declares seen */
   std::set<Expr> d_declSeen;
-  /** */
-  bool isSmtLibExpression(MetaKind ctx);
   /**
    */
   bool isProgramApp(const Expr& app);
-  /**
-   * Get the meta-kind returned by a child.
-   */
-  MetaKind getMetaKindReturn(const Expr& child, MetaKind parentCtx);
   /************* sygus *********/
   SmtMetaSygus d_smSygus;
 };

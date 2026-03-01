@@ -109,7 +109,6 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
     os << "Term.Type";
     return;
   }
-  std::string name;
   if (c.getKind() == Kind::PROGRAM_CONST)
   {
     // programs always print verbatim
@@ -118,7 +117,6 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
     os << cleanId(ss.str());
     return;
   }
-  std::stringstream osEnd;
   if (k == Kind::CONST)
   {
     std::string cname;
@@ -150,14 +148,11 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
     }
     if (k == Kind::BOOLEAN)
     {
-      os << "(Term.Boolean ";
-      osEnd << ")";
-      os << (l->d_bool ? "true" : "false");
+      os << "(Term.Boolean " << (l->d_bool ? "true" : "false") << ")";
     }
     else if (k == Kind::NUMERAL)
     {
       os << "(Term.Numeral ";
-      osEnd << ")";
       const Integer& ci = l->d_int;
       if (ci.sgn() == -1)
       {
@@ -168,11 +163,11 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
       {
         os << ci.toString();
       }
+      os << ")";
     }
     else if (k == Kind::RATIONAL)
     {
       os << "(Term.Rational ";
-      osEnd << ")";
       std::stringstream ss;
       ss << c;
       bool isNeg = (l->d_rat.sgn() == -1);
@@ -181,27 +176,24 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
       rstr = replace_all(rstr, "/", " ");
       rstr = replace_all(rstr, "-", "");
       os << "(eo_lit_mk_rational " << rstr << ")";
-      os << (isNeg ? ")" : "");
+      os << (isNeg ? ")" : "") << ")";
     }
     else if (k == Kind::BINARY)
     {
       os << "(Term.Binary ";
-      osEnd << ")";
       const BitVector& bv = l->d_bv;
       const Integer& bvi = bv.getValue();
-      os << bv.getSize() << " " << bvi.toString();
+      os << bv.getSize() << " " << bvi.toString() << ")";
     }
     else if (k == Kind::STRING)
     {
-      os << "(Term.String " << c;
-      osEnd << ")";
+      os << "(Term.String " << c << ")";
     }
     else
     {
       Assert(false) << "Unknown atomic term literal kind " << k;
     }
   }
-  os << osEnd.str();
 }
 
 std::string LeanMetaReduce::getName(const Expr& e)
