@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 256
+; #trim-defs: 258
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -503,6 +503,13 @@
   (($smtx_typeof_map_value ($msm_default T e))  ($tsm_Map T ($smtx_typeof_value e)))
   )
 )
+(program $smtx_index_typeof_map ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_index_typeof_map ($tsm_Map T U)) T)
+  (($smtx_index_typeof_map T) $tsm_none)
+  )
+)
 (program $smtx_typeof_seq_value
   ((v $smt_Value) (vs $smt_Seq) (T $smt_Type))
   :signature ($smt_Seq) $smt_Type
@@ -605,6 +612,19 @@
         $vsm_not_value))))
   )
 )
+(program $smtx_map_select
+  ((v $smt_Value) (i $smt_Value) (m $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_map_select ($vsm_map m) i)
+    
+    ($smt_builtin_ite
+      ($smt_builtin_Teq ($smtx_index_typeof_map ($smtx_typeof_map_value m)) ($smtx_typeof_value i))
+      ($smtx_msm_lookup m i)
+      $vsm_not_value))
+  (($smtx_map_select v i)            $vsm_not_value)
+  )
+)
 (program $smtx_is_var
   ((x $smt_Term) (s1 $smt_builtin_String) (T1 $smt_Type)
    (s2 $smt_builtin_String) (T2 $smt_Type))
@@ -704,7 +724,7 @@
   
   (($smtx_model_eval_apply ($vsm_apply f v) i)  ($vsm_apply ($vsm_apply f v) i))
   
-  (($smtx_model_eval_apply ($vsm_map m) i)      ($smtx_msm_lookup m i))
+  (($smtx_model_eval_apply ($vsm_map m) i) ($smtx_map_select ($vsm_map m) i))
   
   
     

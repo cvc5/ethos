@@ -228,17 +228,22 @@ Things handled at this stage:
     becomes the nullary constructor:
       (eo.And)
 
+Not handled:
+- Well foundedness of all Eunoia programs. This can lead to spurious unsoundess in the Smt_Meta step.
+
 === Lean_Meta
 
 Compiles *.eo to *.lean.
 Similar to Smt_Meta, implements a policy that interprets opaque arguments as
 constructor arguments and distinguished names for Eunoia types and operators
 to indicate native Lean types and operators.
+Note that Lean will complain about Eunoia programs that it cannot show are
+terminating at this stage.
 
 Relies on:
 - lean_meta.lean template, 270 LOC Lean
 - lean_meta_reduce.cpp (ethos plugin), 1011 LOC C++
-- (Optional) linear_patterns.cpp (ethos plugin), 162 LOC C++
+- linear_patterns.cpp (ethos plugin), 162 LOC C++
   - Linearizes patterns in Eunoia programs
 
 Things handled at this stage:
@@ -246,23 +251,9 @@ Things handled at this stage:
 
 ===
 
-Not handled:
-- Well foundedness of all Eunoia programs. This can lead to spurious unsoundess in the Smt_Meta step.
-  - TODO: well foundedness as a Eunoia program
-- Modelling of assume-push/step-pop.
-- TODO: modelling of :conclusion-explicit, :assumption.
-- TODO: unconstrained semantics of datatype constructors and selectors
-- TODO: axiom for type enumeration.
-- TODO: we could construct another intermediate *.eo where all types are
-  replaced by those in the deep embedding.
-
-===
-
 Future research:
 - Fuzz Ethos to make sure it is syncronized with desugaring semantics.
-- Lean_Meta or Isabelle_Meta plugin, either:
-  - A reimplementation of the above meta-prover in Lean.
-  - Use cvc5 to prove meta-theorems and replay them for each proof rule.
+- Isabelle_Meta plugin
 - Parametric bitvectors in cvc5 to prove VCs.
 - Logos: reimplementation of ethos whose native language is desugared *.eo. It should be formally verified to incorporate some stages of the above pipeline.
 - Telos: an SMT solver API to run cvc5 -> proof API -> ethos/logos.

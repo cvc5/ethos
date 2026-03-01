@@ -122,6 +122,10 @@ $SM_DEFS$
       (= ($smtx_model_eval ($smtx_substitute s T ($mk_sm_const (tchoice s T F) T) F))
          ($mk_vsm_bool true)))))
 
+; whether two values are extensionally equal
+(define-fun t_ext_equal ((v1 vsm.Value) (v2 vsm.Value)) Bool
+  (forall ((i vsm.Value)) (= ($smtx_model_eval_apply v1 i) ($smtx_model_eval_apply v2 i))))
+
 ;;; The verification condition
 
 $SMT_VC$

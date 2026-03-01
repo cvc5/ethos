@@ -411,22 +411,6 @@ $SMT_TYPE_CONSTRUCTORS$
   )
 )
 
-; Returns the first index of m1 that is mapped to a different value in m2.
-; If no such value exists, return $vsm_not_value.
-(program $smtx_msm_find_diff
-  ((T $smt_Type) (i $smt_Value) (e $smt_Value) (m1 $smt_Map) (m2 $smt_Map))
-  :signature ($smt_Map $smt_Map) $smt_Value
-  (
-  (($smtx_msm_find_diff ($msm_default T e) m2)  $vsm_not_value)
-  (($smtx_msm_find_diff ($msm_cons i e m1) m2)
-    ; Lookup the current index, if it different, return this index.
-    ($smt_builtin_ite
-      ($smt_builtin_veq ($smtx_msm_lookup m2 i) e)
-      ($smtx_msm_find_diff m1 m2)
-      i))
-  )
-)
-
 ; Returns the type of the map value or tsm_none
 (program $smtx_typeof_map_value
   ((i $smt_Value) (e $smt_Value) (m $smt_Map) (T $smt_Type))
@@ -448,6 +432,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (($smtx_index_typeof_map T) $tsm_none)
   )
 )
+
 (program $smtx_elem_typeof_map ((T $smt_Type) (U $smt_Type))
   :signature ($smt_Type) $smt_Type
   (
@@ -671,8 +656,13 @@ $SMT_TYPE_CONSTRUCTORS$
   ((v $smt_Value) (i $smt_Value) (m $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_map_select ($vsm_map m) i) ($smtx_msm_lookup m i))
-  (($smtx_map_select v i)              $vsm_not_value)
+  (($smtx_map_select ($vsm_map m) i)
+    ; must ensure type is correct
+    ($smt_builtin_ite
+      ($smt_builtin_Teq ($smtx_index_typeof_map ($smtx_typeof_map_value m)) ($smtx_typeof_value i))
+      ($smtx_msm_lookup m i)
+      $vsm_not_value))
+  (($smtx_map_select v i)            $vsm_not_value)
   )
 )
 
@@ -876,7 +866,7 @@ $SMT_TYPE_CONSTRUCTORS$
   ; If a Herbrand interpretation, apply it to the next value.
   (($smtx_model_eval_apply ($vsm_apply f v) i)  ($vsm_apply ($vsm_apply f v) i))
   ; The function evaluated to a map value, call the map lookup.
-  (($smtx_model_eval_apply ($vsm_map m) i)      ($smtx_msm_lookup m i))
+  (($smtx_model_eval_apply ($vsm_map m) i) ($smtx_map_select ($vsm_map m) i))
   ; Lambda case
   ;(($smtx_model_eval_apply ($vsm_lambda s T t) i)
     ; substitutes into body

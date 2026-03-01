@@ -535,6 +535,13 @@
     (tsm.Map (msm.default.arg1 x1) ($smtx_typeof_value (msm.default.arg2 x1)))
 )) :pattern (($smtx_typeof_map_value x1)))) :named sm.axiom.$smtx_typeof_map_value))
 
+; program: $smtx_index_typeof_map
+(define-fun $smtx_index_typeof_map ((x1 tsm.Type)) tsm.Type
+  (ite ((_ is tsm.Map) x1)
+    (tsm.Map.arg1 x1)
+    tsm.None
+))
+
 ; program: $smtx_typeof_seq_value
 (declare-fun $smtx_typeof_seq_value (ssm.Seq) tsm.Type)
 (assert (! (forall ((x1 ssm.Seq))
@@ -616,6 +623,13 @@
     (ite (Teq ($smtx_typeof_value x1) ($smtx_typeof_value x2)) (ite (Teq ($smtx_typeof_value x1) tsm.None) vsm.NotValue (vsm.Boolean (veq x1 x2))) vsm.NotValue)
 )
 
+; program: $smtx_map_select
+(define-fun $smtx_map_select ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
+  (ite ((_ is vsm.Map) x1)
+    (ite (Teq ($smtx_index_typeof_map ($smtx_typeof_map_value (vsm.Map.arg1 x1))) ($smtx_typeof_value x2)) ($smtx_msm_lookup (vsm.Map.arg1 x1) x2) vsm.NotValue)
+    vsm.NotValue
+))
+
 ; program: $smtx_is_var
 (define-fun $smtx_is_var ((x1 String) (x2 tsm.Type) (x3 sm.Term)) Bool
   (ite ((_ is sm.Var) x3)
@@ -670,7 +684,7 @@
   (ite ((_ is vsm.Apply) x1)
     (vsm.Apply (vsm.Apply (vsm.Apply.arg1 x1) (vsm.Apply.arg2 x1)) x2)
   (ite ((_ is vsm.Map) x1)
-    ($smtx_msm_lookup (vsm.Map.arg1 x1) x2)
+    ($smtx_map_select (vsm.Map (vsm.Map.arg1 x1)) x2)
     vsm.NotValue
 )))
 
@@ -863,6 +877,10 @@
   (=> (texists_total s T F ($mk_vsm_bool true))
       (= ($smtx_model_eval ($smtx_substitute s T ($mk_sm_const (tchoice s T F) T) F))
          ($mk_vsm_bool true)))))
+
+; whether two values are extensionally equal
+(define-fun t_ext_equal ((v1 vsm.Value) (v2 vsm.Value)) Bool
+  (forall ((i vsm.Value)) (= ($smtx_model_eval_apply v1 i) ($smtx_model_eval_apply v2 i))))
 
 ;;; The verification condition
 
