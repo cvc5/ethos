@@ -421,6 +421,16 @@ This is to be defined externally.
 -/
 abbrev obj_interprets := smt_interprets
 
+
+/-
+Definitions for eo_is_obj
+-/
+mutual
+
+$LEAN_EO_IS_OBJ_DEFS$
+
+end 
+
 /-
 An inductive predicate defining the correspondence between Eunoia terms
 and terms in the object language.
@@ -429,7 +439,7 @@ This is to be custom defined in the Eunoia-to-Lean compiler based on the
 target definition of Object_Term.
 -/
 inductive eo_is_obj : Term -> Object_Term -> Prop
-$LEAN_EO_IS_OBJ_DEF$
+$LEAN_EO_IS_OBJ$
 
 /-
 A predicate defining when a Eunoia term corresponds to an object term that

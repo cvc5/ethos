@@ -594,7 +594,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   // exception: conversion from Eunoia to SMT is printed on defs
   if (vname == "$eo_to_smt" || vname == "$eo_to_smt_type" || vname=="$eo_to_smt_datatype" || vname=="$eo_to_smt_datatype_cons")
   {
-    out = &d_defs;
+    out = &d_eoIsObjDefs;
   }
   // Trace("lean-meta") << "Type is " << vt << std::endl;
   decl << "def " << cleanId(vname) << " : ";
@@ -917,7 +917,8 @@ void LeanMetaReduce::finalize()
   replace(finalLean, "$LEAN_DEFS$", d_defs.str());
   replace(finalLean, "$LEAN_THMS$", d_thms.str());
   replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
-  replace(finalLean, "$LEAN_EO_IS_OBJ_DEF$", d_eoIsObj.str());
+  replace(finalLean, "$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str());
+  replace(finalLean, "$LEAN_EO_IS_OBJ$", d_eoIsObj.str());
   replace(finalLean, "$LEAN_EO_IS_REFUTATION_DEF$", d_eoIsRef.str());
 
   // smt layer

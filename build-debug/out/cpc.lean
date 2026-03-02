@@ -665,43 +665,6 @@ def __eo_prog_symm : Proof -> Term
   | _ => Term.Stuck
 
 
-def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
-  | DatatypeCons.unit => SmtDatatypeCons.unit
-  | (DatatypeCons.cons U c) => (SmtDatatypeCons.cons (__eo_to_smt_type U) (__eo_to_smt_datatype_cons c))
-
-
-def __eo_to_smt_datatype : Datatype -> SmtDatatype
-  | (Datatype.sum c d) => (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
-  | Datatype.null => SmtDatatype.null
-
-
-def __eo_to_smt_type : Term -> SmtType
-  | Term.Bool => SmtType.Bool
-  | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
-  | Term.Int => SmtType.Int
-  | Term.Real => SmtType.Real
-  | (Term.Apply Term.BitVec (Term.Numeral n1)) => (SmtType.BitVec n1)
-  | Term.Char => SmtType.Char
-  | (Term.Apply Term.Seq x1) => (SmtType.Seq (__eo_to_smt_type x1))
-  | T => SmtType.None
-
-
-def __eo_to_smt : Term -> SmtTerm
-  | (Term.Boolean b) => (SmtTerm.Boolean b)
-  | (Term.Numeral n) => (SmtTerm.Numeral n)
-  | (Term.Rational r) => (SmtTerm.Rational r)
-  | (Term.String s) => (SmtTerm.String s)
-  | (Term.Binary w n) => (SmtTerm.Binary w n)
-  | (Term.Var s T) => (SmtTerm.Var s (__eo_to_smt_type T))
-  | (Term.DtCons s d n) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) n)
-  | (Term.DtSel s d n m) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) n m)
-  | (Term.Apply Term.not x1) => (SmtTerm.Apply SmtTerm.not (__eo_to_smt x1))
-  | (Term.Apply (Term.Apply Term.and x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt x1)) (__eo_to_smt x2))
-  | (Term.Apply (Term.Apply Term.eq x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x1)) (__eo_to_smt x2))
-  | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
-  | y => SmtTerm.None
-
-
 def __eo_Result : Term := Term.Bool
 
 
@@ -836,6 +799,53 @@ such that (s,b) is true if s evaluates to b.
 This is to be defined externally.
 -/
 abbrev obj_interprets := smt_interprets
+
+
+/-
+Definitions for eo_is_obj
+-/
+mutual
+
+def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
+  | DatatypeCons.unit => SmtDatatypeCons.unit
+  | (DatatypeCons.cons U c) => (SmtDatatypeCons.cons (__eo_to_smt_type U) (__eo_to_smt_datatype_cons c))
+
+
+def __eo_to_smt_datatype : Datatype -> SmtDatatype
+  | (Datatype.sum c d) => (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
+  | Datatype.null => SmtDatatype.null
+
+
+def __eo_to_smt_type : Term -> SmtType
+  | Term.Bool => SmtType.Bool
+  | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
+  | Term.Int => SmtType.Int
+  | Term.Real => SmtType.Real
+  | (Term.Apply Term.BitVec (Term.Numeral n1)) => (SmtType.BitVec n1)
+  | Term.Char => SmtType.Char
+  | (Term.Apply Term.Seq x1) => (SmtType.Seq (__eo_to_smt_type x1))
+  | T => SmtType.None
+
+
+def __eo_to_smt : Term -> SmtTerm
+  | (Term.Boolean b) => (SmtTerm.Boolean b)
+  | (Term.Numeral n) => (SmtTerm.Numeral n)
+  | (Term.Rational r) => (SmtTerm.Rational r)
+  | (Term.String s) => (SmtTerm.String s)
+  | (Term.Binary w n) => (SmtTerm.Binary w n)
+  | (Term.Var s T) => (SmtTerm.Var s (__eo_to_smt_type T))
+  | (Term.DtCons s d n) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) n)
+  | (Term.DtSel s d n m) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) n m)
+  | (Term.Apply Term.not x1) => (SmtTerm.Apply SmtTerm.not (__eo_to_smt x1))
+  | (Term.Apply (Term.Apply Term.and x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply Term.eq x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
+  | y => SmtTerm.None
+
+
+
+
+end 
 
 /-
 An inductive predicate defining the correspondence between Eunoia terms
