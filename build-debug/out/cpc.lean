@@ -154,6 +154,8 @@ def smt_lit_re_concat : smt_lit_RegLan -> smt_lit_RegLan -> smt_lit_RegLan
   | _, _ => "" -- FIXME
 def smt_lit_re_inter : smt_lit_RegLan -> smt_lit_RegLan -> smt_lit_RegLan
   | _, _ => "" -- FIXME
+def smt_lit_re_diff : smt_lit_RegLan -> smt_lit_RegLan -> smt_lit_RegLan
+  | _, _ => "" -- FIXME
 def smt_lit_re_union : smt_lit_RegLan -> smt_lit_RegLan -> smt_lit_RegLan
   | _, _ => "" -- FIXME
 def smt_lit_re_range : smt_lit_String -> smt_lit_String -> smt_lit_RegLan
@@ -166,6 +168,9 @@ def smt_lit_str_replace_re : smt_lit_String -> smt_lit_RegLan -> smt_lit_String 
   | _, _, _ => "" -- FIXME
 def smt_lit_str_replace_re_all : smt_lit_String -> smt_lit_RegLan -> smt_lit_String -> smt_lit_String
   | _, _, _ => "" -- FIXME
+def smt_lit_re_allchar : smt_lit_RegLan := "" --FIXME
+def smt_lit_re_none : smt_lit_RegLan := "" --FIXME
+def smt_lit_re_all : smt_lit_RegLan := "" --FIXME
 
 -- Partial semantics
 

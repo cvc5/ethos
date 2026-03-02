@@ -151,20 +151,20 @@
 
 ; program: $smtx_binary_and_rec
 ; note: Helper for $smtx_binary_and below.
-(program $smtx_binary_and_rec ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
-  :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
-  (
-  (($smtx_binary_and_rec w n1 n2)
-      ($smt_builtin_z_+
-        ($smt_builtin_ite ($smt_builtin_z_= w $smt_builtin_z_zero)
-          $smt_builtin_z_zero
-          ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2))
-        ($smt_builtin_z_* ($smtx_pow2 w)
-            ($smt_builtin_ite ($smt_builtin_and ($smtx_bit n1 w) ($smtx_bit n2 w)) 
-              $smt_builtin_z_one 
-              $smt_builtin_z_zero))))
-  )
-)
+;(program $smtx_binary_and_rec ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+;  :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
+;  (
+;  (($smtx_binary_and_rec w n1 n2)
+;      ($smt_builtin_z_+
+;        ($smt_builtin_ite ($smt_builtin_z_= w $smt_builtin_z_zero)
+;          $smt_builtin_z_zero
+;          ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2))
+;        ($smt_builtin_z_* ($smtx_pow2 w)
+;            ($smt_builtin_ite ($smt_builtin_and ($smtx_bit n1 w) ($smtx_bit n2 w)) 
+;              $smt_builtin_z_one 
+;              $smt_builtin_z_zero))))
+;  )
+;)
 
 ; program: $smtx_binary_and
 ; return: >

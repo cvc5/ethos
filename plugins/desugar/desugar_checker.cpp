@@ -126,28 +126,31 @@ void DesugarChecker::finalizeRule(const Expr& v)
       progRet << " p" << i;
     }
   }
-
+  std::stringstream ssv;
+  ssv << v;
+  std::string vname = ssv.str();
+  vname = replace_all(vname, "-", "_");
   std::stringstream ssr;
-  ssr << "$cmd_" << v;
-  d_rules << "(declare-parameterized-const $emb_cmd." << v << " ("
+  ssr << "$cmd_" << vname;
+  d_rules << "(declare-parameterized-const $emb_cmd." << vname << " ("
           << embArg.str() << ") $eo_Cmd)" << std::endl;
   d_rules << "(define " << ssr.str() << " (" << macroArg.str() << ") ";
   if (!macroRet.str().empty())
   {
-    d_rules << "($emb_cmd." << v << macroRet.str() << "))" << std::endl;
+    d_rules << "($emb_cmd." << vname << macroRet.str() << "))" << std::endl;
   }
   else
   {
-    d_rules << "$emb_cmd." << v << ")" << std::endl;
+    d_rules << "$emb_cmd." << vname << ")" << std::endl;
   }
-  d_ruleInvokes << "  (($eo_invoke_cmd S ($cmd_" << v << invokePat.str()
+  d_ruleInvokes << "  (($eo_invoke_cmd S ($cmd_" << vname << invokePat.str()
                 << ")) ";
   if (isAssume)
   {
-    d_ruleInvokes << "($eo_invoke_cmd_pop_" << v << " S" << invokeRet.str()
+    d_ruleInvokes << "($eo_invoke_cmd_pop_" << vname << " S" << invokeRet.str()
                   << "))" << std::endl;
     std::stringstream pname;
-    pname << "$eo_invoke_cmd_pop_" << v;
+    pname << "$eo_invoke_cmd_pop_" << vname;
     d_ruleInvokesDefs << "(program " << pname.str() << std::endl;
     d_ruleInvokesDefs << "  ((A Bool) (s $eo_State) (so $eo_StateObj)"
                       << progParamList.str() << ")" << std::endl;

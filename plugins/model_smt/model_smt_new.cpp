@@ -541,9 +541,9 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
     std::string intOp = i == 0 ? "+" : "*";
     std::string bvOp = i == 0 ? "bvsaddo" : "bvsmulo";
     std::stringstream ssRet;
-    ssRet << "(eo::define ((sret ($smt_apply_2 \"" << intOp << "\"";
+    ssRet << "(eo::define ((sret ($smt_builtin_z_" << intOp;
     ssRet << " ($smtx_binary_uts x1 x2) ($smtx_binary_uts x3 x4)))) ";
-    ssRet << "(eo::define ((p2wm1 ($smtx_pow2 ($smt_apply_2 \"-\" x1 "
+    ssRet << "(eo::define ((p2wm1 ($smtx_pow2 ($smt_builtin_z_- x1 "
              "$smt_builtin_z_one)))) ";
     ssRet << " ($smt_builtin_or " << smtZLeq("p2wm1", "sret");
     ssRet << " " << smtZLt("sret", "($smt_builtin_z_neg p2wm1)");
@@ -838,7 +838,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
                      "x2)) ($eo_to_smt x1) ($eo_to_smt x2))");
   addEunoiaReduceSym("tuple",
                      {kT, kT},
-                     "($sm_apply ($smtx_tuple_app_extend ($eo_to_smt x1) "
+                     "($sm_apply ($eo_to_smt_tuple_app_extend ($eo_to_smt x1) "
                      "($eo_to_smt_type ($eo_typeof x2))) ($eo_to_smt x2))");
   addEunoiaReduceSym("tuple.unit",
                      {},

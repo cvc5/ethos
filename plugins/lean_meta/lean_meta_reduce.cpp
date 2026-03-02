@@ -255,7 +255,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   std::string smtStr = cleanSmtId(l->d_str.toString());
   // literals don't need smt_
   if (is_integer(smtStr) || smtStr == "true" || smtStr == "false"
-      || smtStr == "\"\"")
+      || (!smtStr.empty() && smtStr.compare(0,1, "\"")==0))
   {
     return smtStr;
   }
@@ -593,7 +593,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     out = &d_defs;
   }
   // exception: conversion from Eunoia to SMT is printed on defs
-  if (vname == "$eo_to_smt" || vname == "$eo_to_smt_type" || vname=="$eo_to_smt_datatype" || vname=="$eo_to_smt_datatype_cons")
+  if (vname.compare(0, 10, "$eo_to_smt")==0)
   {
     out = &d_eoIsObjDefs;
   }

@@ -183,20 +183,20 @@
 
 ; program: $smtx_binary_and_rec
 ; note: Helper for $smtx_binary_and below.
-(program $smtx_binary_and_rec ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
-  :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
-  (
-  (($smtx_binary_and_rec w n1 n2)
-      ($smt_builtin_z_+
-        ($smt_builtin_ite ($smt_builtin_z_= w $smt_builtin_z_zero)
-          $smt_builtin_z_zero
-          ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2))
-        ($smt_builtin_z_* ($smtx_pow2 w)
-            ($smt_builtin_ite ($smt_builtin_and ($smtx_bit n1 w) ($smtx_bit n2 w)) 
-              $smt_builtin_z_one 
-              $smt_builtin_z_zero))))
-  )
-)
+;(program $smtx_binary_and_rec ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+;  :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
+;  (
+;  (($smtx_binary_and_rec w n1 n2)
+;      ($smt_builtin_z_+
+;        ($smt_builtin_ite ($smt_builtin_z_= w $smt_builtin_z_zero)
+;          $smt_builtin_z_zero
+;          ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2))
+;        ($smt_builtin_z_* ($smtx_pow2 w)
+;            ($smt_builtin_ite ($smt_builtin_and ($smtx_bit n1 w) ($smtx_bit n2 w)) 
+;              $smt_builtin_z_one 
+;              $smt_builtin_z_zero))))
+;  )
+;)
 
 ; program: $smtx_binary_and
 ; return: >
@@ -1817,11 +1817,13 @@
 ; If isInter is true, then we add to macc elements that are in both m1 and m2.
 ; If isInter is false, then we add to macc elements that are in the difference of m1 and m2.
 (program $smtx_mss_op_internal
-  ((T $smt_Type) (m1 $smt_Map) (m2 $smt_Map) (acc $smt_Map) (e $smt_Value) (isInter $smt_builtin_Bool))
+  ((T $smt_Type) (m1 $smt_Map) (m2 $smt_Map) (acc $smt_Map) (e $smt_Value)
+   (efalse $smt_Value) (etrue $smt_Value) (isInter $smt_builtin_Bool))
   :signature ($smt_builtin_Bool $smt_Map $smt_Map $smt_Map) $smt_Map
   (
-  (($smtx_mss_op_internal isInter ($msm_empty_set T) m2 acc) acc)
-  (($smtx_mss_op_internal isInter ($smtx_mss_insert e m1) m2 acc)
+  ; note we don't insist on true/false here, to ensure the function is total
+  (($smtx_mss_op_internal isInter ($msm_default T efalse) m2 acc) acc)
+  (($smtx_mss_op_internal isInter ($msm_cons e etrue m1) m2 acc)
     ($smtx_mss_op_internal isInter m1 m2
       ($smt_builtin_ite
         ($smt_builtin_iff ($smtx_mss_member e m2) isInter)
@@ -2379,25 +2381,25 @@
 
 ; helper for CPC tuple constructor
 ; In eo_to_smt, (tuple x1 x2) returns
-;   ($sm_apply ($smtx_tuple_app_extend x1 ($eo_to_smt_type ($eo_typeof x2))) ($eo_to_smt x2))
+;   ($sm_apply ($eo_to_smt_tuple_app_extend x1 ($eo_to_smt_type ($eo_typeof x2))) ($eo_to_smt x2))
 ; and tuple.unit returns
 ;   ($sm_DtCons $smt_builtin_str_tuple_name ($dt_sum $dtc_unit $dt_null) $smt_builtin_z_zero).
 ; Given an application of (tuple a1 ... an), returns the same application
 ; but where now tuple is the instance of the tuple constructor that expects
 ; another argument of type T.
-(program $smtx_tuple_app_extend
+(program $eo_to_smt_tuple_app_extend
   ((t $smt_Term) (f $smt_Term) (a $smt_Term) (T $smt_Type) (s $smt_builtin_String) (c $smt_DatatypeCons))
   :signature ($smt_Term $smt_Type) $smt_Term
   (
-  (($smtx_tuple_app_extend ($sm_apply f a) T)
-    ($sm_apply ($smtx_tuple_app_extend f T) a))
-  (($smtx_tuple_app_extend ($sm_DtCons $smt_builtin_str_tuple_name ($dt_sum c $dt_null) $smt_builtin_z_zero) T)
+  (($eo_to_smt_tuple_app_extend ($sm_apply f a) T)
+    ($sm_apply ($eo_to_smt_tuple_app_extend f T) a))
+  (($eo_to_smt_tuple_app_extend ($sm_DtCons $smt_builtin_str_tuple_name ($dt_sum c $dt_null) $smt_builtin_z_zero) T)
     ; extend the datatype with a new argument, we are still the first constructor
     ($sm_DtCons
       $smt_builtin_str_tuple_name
       ($dt_sum ($smtx_dtc_concat c ($dtc_cons T $dtc_unit)) $dt_null)
       $smt_builtin_z_zero))
-  (($smtx_tuple_app_extend s T) $sm_none)
+  (($eo_to_smt_tuple_app_extend s T) $sm_none)
   )
 )
 
