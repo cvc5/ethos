@@ -286,7 +286,10 @@ def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
 /- Value equality -/
 def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)
-
+/- Used for ordering values -/
+def __smtx_value_hash : SmtValue -> smt_lit_Int
+  | _ => 0 -- FIXME
+  
 /- exists -/
 def smt_lit_tforall : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME
@@ -631,6 +634,14 @@ def __eo_ite : Term -> Term -> Term -> Term
 
 def __eo_requires : Term -> Term -> Term -> Term
   | x1, x2, x3 => (eo_lit_ite (eo_lit_teq x1 x2) (eo_lit_ite (eo_lit_not (eo_lit_teq x1 Term.Stuck)) x3 Term.Stuck) Term.Stuck)
+
+
+def __eo_and : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (eo_lit_and b1 b2))
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_ite (eo_lit_zeq w1 0) 0 (eo_lit_piand w1 n1 n2)) (__smtx_pow2 w1))) Term.Stuck) Term.Stuck)
+  | _, _ => Term.Stuck
 
 
 def __eo_add : Term -> Term -> Term

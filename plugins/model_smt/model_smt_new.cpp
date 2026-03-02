@@ -622,9 +622,10 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addConstFoldSym("str.rev", {kString}, kString);
   addConstFoldSym("str.to_lower", {kString}, kString);
   addConstFoldSym("str.to_upper", {kString}, kString);
-  addEunoiaReduceSym("@strings_itos_result",
-                     {kInt, kInt},
-                     "($eo_to_smt (str.from_int (mod x1 (^ 10 x2))))");
+  // FIXME
+  //addEunoiaReduceSym("@strings_itos_result",
+  //                   {kInt, kInt},
+  //                   "($eo_to_smt (str.from_int (mod x1 (^ 10 x2))))");
   addEunoiaReduceSym("@strings_stoi_result",
                      {kString, kInt},
                      "($eo_to_smt (str.to_int (str.substr x1 0 x2)))");
@@ -848,6 +849,15 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
 
   // for alethe
   addEunoiaReduceSym("@cl", {kT, kT}, "($eo_to_smt (or x1 x2))");
+  
+  // FIXME: unhandled
+  d_symIgnore["@strings_num_occur"] = true;
+  d_symIgnore["@strings_num_occur_re"] = true;
+  d_symIgnore["@strings_occur_index"] = true;
+  d_symIgnore["@strings_occur_index_re"] = true;
+  d_symIgnore["@strings_replace_all_result"] = true;
+  d_symIgnore["@const"] = true;
+  d_symIgnore["@strings_itos_result"] = true;
 }
 
 ModelSmtNew::~ModelSmtNew() {}

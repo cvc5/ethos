@@ -100,6 +100,7 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
     case MetaKind::CHECKER_STATE: os << "CState"; break;
     case MetaKind::CHECKER_STATE_OBJ: os << "CStateObj"; break;
     case MetaKind::CHECKER_INDEX: os << "CIndex"; break;
+    case MetaKind::CHECKER_INDEX_LIST: os << "CIndexList"; break;
     case MetaKind::CHECKER_CMD: os << "CCmd"; break;
     case MetaKind::CHECKER_CMD_LIST: os << "CCmdList"; break;
     default: return false;

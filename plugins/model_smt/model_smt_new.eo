@@ -439,16 +439,19 @@ $SMT_TYPE_CONSTRUCTORS$
   ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value $smt_Value) $smt_Map
   (
-  ; we overwrite if same index
-  (($smtx_msm_update ($msm_cons i e1 m) i e2) ($msm_cons i e2 m))
-  ; otherwise, we check the hash to retain sortedness
-  (($smtx_msm_update ($msm_cons j e1 m) i e2) ($smt_builtin_ite ($smtx_value_cmp j i)
-                                                ($msm_cons i e2 ($msm_cons j e1 m))
-                                                ($msm_cons j e1 ($smtx_msm_update m i e2))))
-  ; we are redundant wrt the default value
-  (($smtx_msm_update ($msm_default T e1) i e1)  ($msm_default T e1))
-  ; ensures totality, we are a non-redundant update of the default map
-  (($smtx_msm_update m i e2)                    ($msm_cons i e2 m))
+  (($smtx_msm_update ($msm_cons j e1 m) i e2) 
+    ($smt_builtin_ite ($smt_builtin_veq j i)
+      ; we overwrite if same index
+      ($msm_cons i e2 m)
+      ; otherwise, we check the hash to retain sortedness
+      ($smt_builtin_ite ($smtx_value_cmp j i)
+        ($msm_cons i e2 ($msm_cons j e1 m))
+        ($msm_cons j e1 ($smtx_msm_update m i e2)))))
+  (($smtx_msm_update ($msm_default T e1) i e2)
+    ($smt_builtin_ite ($smt_builtin_veq e1 e2)
+      ; we are redundant wrt the default value
+      ($msm_default T e1)
+      ($msm_cons i e2 ($msm_default T e1))))
   )
 )
 

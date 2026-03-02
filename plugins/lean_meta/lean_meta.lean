@@ -241,7 +241,10 @@ def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
 /- Value equality -/
 def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)
-
+/- Used for ordering values -/
+def __smtx_value_hash : SmtValue -> smt_lit_Int
+  | _ => 0 -- FIXME
+  
 /- exists -/
 def smt_lit_tforall : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME

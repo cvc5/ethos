@@ -82,7 +82,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
     macroRet << " x" << i;
     invokePat << " a" << i;
     invokeRet << " a" << i;
-    progParamList << " (T" << i << " Type :implicit) (a" << i << " T" << i
+    progParamList << " (T" << i << " Type) (a" << i << " T" << i
                   << ")";
     progSig << " T" << i;
     progPat << " a" << i;
@@ -93,15 +93,15 @@ void DesugarChecker::finalizeRule(const Expr& v)
   {
     Assert(npremises > 0);
     npremises--;
-    progRet << " ($eo_pf assume)";
+    progRet << " ($eo_pf A)";
   }
   // then the premises
   if (!plCons.isNull())
   {
     // combine the premises if :premise-list
     Assert(npremises == 1);
-    embArg << " (premises $eo_PList :opaque)";
-    macroArg << " (premises $eo_PList)";
+    embArg << " (premises $eo_IndexList :opaque)";
+    macroArg << " (premises $eo_IndexList)";
     macroRet << " premises";
     invokePat << " premises";
     invokeRet << " ($eo_pf ($eo_mk_premise_list " << plCons << " premises S))";
@@ -138,7 +138,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
   }
   else
   {
-    d_rules << "$emb_cmd." << v << std::endl;
+    d_rules << "$emb_cmd." << v << ")" << std::endl;
   }
   d_ruleInvokes << "  (($eo_invoke_cmd S ($cmd_" << v << invokePat.str()
                 << ")) ";
@@ -149,13 +149,13 @@ void DesugarChecker::finalizeRule(const Expr& v)
     std::stringstream pname;
     pname << "$eo_invoke_cmd_pop_" << v;
     d_ruleInvokesDefs << "(program " << pname.str() << std::endl;
-    d_ruleInvokesDefs << "  ((assume F) (s $eo_State) (so $eo_StateObj)"
+    d_ruleInvokesDefs << "  ((A Bool) (s $eo_State) (so $eo_StateObj)"
                       << progParamList.str() << ")" << std::endl;
     d_ruleInvokesDefs << "  :signature ($eo_State" << progSig.str()
                       << ") $eo_State" << std::endl;
     d_ruleInvokesDefs << "  (" << std::endl;
     d_ruleInvokesDefs << "  ((" << pname.str()
-                      << " ($s_cons ($so_assume_push F) s)" << progPat.str()
+                      << " ($s_cons ($so_assume_push A) s)" << progPat.str()
                       << ")" << std::endl;
     d_ruleInvokesDefs << "     ($eo_push_proven (" << rprog << progRet.str()
                       << ") s))" << std::endl;
