@@ -307,14 +307,34 @@ abbrev eo_lit_str_from_code := smt_lit_str_from_code
 
 /- Term definition -/
 
+mutual
+
 inductive Term : Type where
 $LEAN_TERM_DEF$
 deriving Repr, DecidableEq
-  
+
+/-
+Eunoia datatypes.
+-/
+inductive Datatype : Type where
+  | null : Datatype
+  | sum : DatatypeCons -> Datatype -> Datatype
+deriving Repr, DecidableEq
+
+/-
+Eunoia datatype constructors.
+-/
+inductive DatatypeCons : Type where
+  | unit : DatatypeCons
+  | cons : Term -> DatatypeCons -> DatatypeCons
+deriving Repr, DecidableEq
+
+end
+
 /- Term equality -/
 def eo_lit_teq : Term -> Term -> eo_lit_Bool
   | x, y => decide (x = y)
-
+  
 /- Used for defining hash -/
 def __smtx_hash : Term -> eo_lit_Int
   | _ => 0 -- FIXME

@@ -33,7 +33,9 @@
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
 (declare-datatypes
-  ((eo.Term 0) (vsm.Value 0) (msm.Map 0) (ssm.Seq 0) (sm.Term 0) (tsm.Type 0) (dt.Datatype 0) (dtc.DatatypeCons 0))
+  ((eo.Term 0)  (edt.Datatype 0) (edtc.DatatypeCons 0)
+   (vsm.Value 0) (msm.Map 0) (ssm.Seq 0) (sm.Term 0) (tsm.Type 0)
+   (dt.Datatype 0) (dtc.DatatypeCons 0))
   (
   (
   ; user-decl: $eo_Proof
@@ -78,12 +80,16 @@
   (eo.FunType)
   ; smt-cons: Var
   (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
-  ; smt-cons: Datatype
-  (eo.Datatype (eo.Datatype.arg1 String) (eo.Datatype.arg2 dt.Datatype))
+  ; smt-cons: DatatypeType
+  (eo.DatatypeType (eo.DatatypeType.arg1 String) (eo.DatatypeType.arg2 edt.Datatype))
+  ; smt-cons: DatatypeTypeRef
+  (eo.DatatypeTypeRef (eo.DatatypeTypeRef.arg1 String))
   ; smt-cons: DtCons
-  (eo.DtCons (eo.DtCons.arg1 String) (eo.DtCons.arg2 dt.Datatype) (eo.DtCons.arg3 Int))
+  (eo.DtCons (eo.DtCons.arg1 String) (eo.DtCons.arg2 edt.Datatype) (eo.DtCons.arg3 Int))
   ; smt-cons: DtSel
-  (eo.DtSel (eo.DtSel.arg1 String) (eo.DtSel.arg2 dt.Datatype) (eo.DtSel.arg3 Int) (eo.DtSel.arg4 Int))
+  (eo.DtSel (eo.DtSel.arg1 String) (eo.DtSel.arg2 edt.Datatype) (eo.DtSel.arg3 Int) (eo.DtSel.arg4 Int))
+  ; smt-cons: UConst
+  (eo.UConst (eo.UConst.arg1 Int) (eo.UConst.arg2 eo.Term))
   ; user-decl: not
   (eo.not)
   ; user-decl: and
@@ -91,6 +97,14 @@
   ; user-decl: =
   (eo.=)
 
+  )
+  (
+  (edt.null)
+  (edt.sum (edt.sum.arg1 edtc.DatatypeCons) (edt.sum.arg2 edt.Datatype))
+  )
+  (
+  (edtc.unit)
+  (edtc.cons (edtc.cons.arg1 eo.Term) (edtc.cons.arg2 edtc.DatatypeCons))
   )
   (
   ; smt-cons: NotValue
@@ -283,19 +297,29 @@
     (eo.Var x1 x2)
 )
 
-; program: $eo_Datatype
-(define-fun $eo_Datatype ((x1 String) (x2 dt.Datatype)) eo.Term
-    (eo.Datatype x1 x2)
+; program: $eo_DatatypeType
+(define-fun $eo_DatatypeType ((x1 String) (x2 edt.Datatype)) eo.Term
+    (eo.DatatypeType x1 x2)
+)
+
+; program: $eo_DatatypeTypeRef
+(define-fun $eo_DatatypeTypeRef ((x1 String)) eo.Term
+    (eo.DatatypeTypeRef x1)
 )
 
 ; program: $eo_DtCons
-(define-fun $eo_DtCons ((x1 String) (x2 dt.Datatype) (x3 Int)) eo.Term
+(define-fun $eo_DtCons ((x1 String) (x2 edt.Datatype) (x3 Int)) eo.Term
     (eo.DtCons x1 x2 x3)
 )
 
 ; program: $eo_DtSel
-(define-fun $eo_DtSel ((x1 String) (x2 dt.Datatype) (x3 Int) (x4 Int)) eo.Term
+(define-fun $eo_DtSel ((x1 String) (x2 edt.Datatype) (x3 Int) (x4 Int)) eo.Term
     (eo.DtSel x1 x2 x3 x4)
+)
+
+; program: $eo_UConst
+(define-fun $eo_UConst ((x1 Int) (x2 eo.Term)) eo.Term
+    (eo.UConst x1 x2)
 )
 
 ; program: $eo_mk_apply
@@ -342,6 +366,52 @@
 ; fwd-decl: $eo_lit_type_String
 (declare-fun $eo_lit_type_String (eo.Term) eo.Term)
 
+; program: $eo_dtc_substitute
+(declare-fun $eo_dtc_substitute (String edt.Datatype edtc.DatatypeCons) edtc.DatatypeCons)
+(assert (! (forall ((x1 String) (x2 edt.Datatype) (x3 edtc.DatatypeCons))
+  (! (= ($eo_dtc_substitute x1 x2 x3)
+  (ite ((_ is edtc.cons) x3)
+    (edtc.cons (ite (teq (edtc.cons.arg1 x3) (eo.DatatypeTypeRef x1)) (eo.DatatypeType x1 x2) (edtc.cons.arg1 x3)) ($eo_dtc_substitute x1 x2 (edtc.cons.arg2 x3)))
+    edtc.unit
+)) :pattern (($eo_dtc_substitute x1 x2 x3)))) :named sm.axiom.$eo_dtc_substitute))
+
+; program: $eo_dt_substitute
+(declare-fun $eo_dt_substitute (String edt.Datatype edt.Datatype) edt.Datatype)
+(assert (! (forall ((x1 String) (x2 edt.Datatype) (x3 edt.Datatype))
+  (! (= ($eo_dt_substitute x1 x2 x3)
+  (ite ((_ is edt.sum) x3)
+    (edt.sum ($eo_dtc_substitute x1 x2 (edt.sum.arg1 x3)) ($eo_dt_substitute x1 x2 (edt.sum.arg2 x3)))
+    edt.null
+)) :pattern (($eo_dt_substitute x1 x2 x3)))) :named sm.axiom.$eo_dt_substitute))
+
+; program: $eo_typeof_dt_cons_rec
+(declare-fun $eo_typeof_dt_cons_rec (eo.Term edt.Datatype Int) eo.Term)
+(assert (! (forall ((x1 eo.Term) (x2 edt.Datatype) (x3 Int))
+  (! (= ($eo_typeof_dt_cons_rec x1 x2 x3)
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite (and ((_ is edt.sum) x2) (= (edt.sum.arg1 x2) edtc.unit) (= x3 0))
+    x1
+  (ite (and ((_ is edt.sum) x2) ((_ is edtc.cons) (edt.sum.arg1 x2)) (= x3 0))
+    (eo.Apply (eo.Apply eo.FunType (edtc.cons.arg1 (edt.sum.arg1 x2))) ($eo_typeof_dt_cons_rec x1 (edt.sum (edtc.cons.arg2 (edt.sum.arg1 x2)) (edt.sum.arg2 x2)) 0))
+  (ite ((_ is edt.sum) x2)
+    ($eo_typeof_dt_cons_rec x1 (edt.sum.arg2 x2) (zplus x3 (zneg 1)))
+    eo.Stuck))))) :pattern (($eo_typeof_dt_cons_rec x1 x2 x3)))) :named sm.axiom.$eo_typeof_dt_cons_rec))
+
+; program: $eo_typeof_dt_sel_return
+(declare-fun $eo_typeof_dt_sel_return (edt.Datatype Int Int) eo.Term)
+(assert (! (forall ((x1 edt.Datatype) (x2 Int) (x3 Int))
+  (! (= ($eo_typeof_dt_sel_return x1 x2 x3)
+  (ite false
+    eo.Stuck
+  (ite (and ((_ is edt.sum) x1) ((_ is edtc.cons) (edt.sum.arg1 x1)) (= x2 0) (= x3 0))
+    (edtc.cons.arg1 (edt.sum.arg1 x1))
+  (ite (and ((_ is edt.sum) x1) ((_ is edtc.cons) (edt.sum.arg1 x1)) (= x2 0))
+    ($eo_typeof_dt_sel_return (edt.sum (edtc.cons.arg2 (edt.sum.arg1 x1)) (edt.sum.arg2 x1)) 0 (zplus x3 (zneg 1)))
+  (ite ((_ is edt.sum) x1)
+    ($eo_typeof_dt_sel_return (edt.sum.arg2 x1) (zplus x2 (zneg 1)) x3)
+    eo.Stuck))))) :pattern (($eo_typeof_dt_sel_return x1 x2 x3)))) :named sm.axiom.$eo_typeof_dt_sel_return))
+
 ; program: $eo_typeof
 (assert (! (forall ((x1 eo.Term))
   (! (= ($eo_typeof x1)
@@ -359,11 +429,17 @@
     ($eo_lit_type_Binary (eo.Binary (eo.Binary.arg1 x1) (eo.Binary.arg2 x1)))
   (ite ((_ is eo.Var) x1)
     (eo.Var.arg2 x1)
-  (ite ((_ is eo.Datatype) x1)
+  (ite ((_ is eo.DatatypeType) x1)
     eo.Type
+  (ite ((_ is eo.DtCons) x1)
+    ($eo_typeof_dt_cons_rec (eo.DatatypeType (eo.DtCons.arg1 x1) (eo.DtCons.arg2 x1)) ($eo_dt_substitute (eo.DtCons.arg1 x1) (eo.DtCons.arg2 x1) (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1))
+  (ite ((_ is eo.DtSel) x1)
+    (eo.Apply (eo.Apply eo.FunType (eo.DatatypeType (eo.DtSel.arg1 x1) (eo.DtSel.arg2 x1))) ($eo_typeof_dt_sel_return ($eo_dt_substitute (eo.DtSel.arg1 x1) (eo.DtSel.arg2 x1) (eo.DtSel.arg2 x1)) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1)))
+  (ite ((_ is eo.UConst) x1)
+    (eo.UConst.arg2 x1)
   (ite true
     ($eo_typeof_main x1)
-    eo.Stuck)))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
+    eo.Stuck))))))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
 
 ; program: $mk_symm
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term
@@ -744,14 +820,34 @@
     vsm.NotValue
 ))))))))))))))))))) :pattern (($smtx_model_eval x1)))) :named sm.axiom.$smtx_model_eval))
 
-; program: $eo_to_smt_type
+; fwd-decl: $eo_to_smt_type
 (declare-fun $eo_to_smt_type (eo.Term) tsm.Type)
+
+; program: $eo_to_smt_datatype_cons
+(declare-fun $eo_to_smt_datatype_cons (edtc.DatatypeCons) dtc.DatatypeCons)
+(assert (! (forall ((x1 edtc.DatatypeCons))
+  (! (= ($eo_to_smt_datatype_cons x1)
+  (ite (= x1 edtc.unit)
+    dtc.unit
+    (dtc.cons ($eo_to_smt_type (edtc.cons.arg1 x1)) ($eo_to_smt_datatype_cons (edtc.cons.arg2 x1)))
+)) :pattern (($eo_to_smt_datatype_cons x1)))) :named sm.axiom.$eo_to_smt_datatype_cons))
+
+; program: $eo_to_smt_datatype
+(declare-fun $eo_to_smt_datatype (edt.Datatype) dt.Datatype)
+(assert (! (forall ((x1 edt.Datatype))
+  (! (= ($eo_to_smt_datatype x1)
+  (ite ((_ is edt.sum) x1)
+    (dt.sum ($eo_to_smt_datatype_cons (edt.sum.arg1 x1)) ($eo_to_smt_datatype (edt.sum.arg2 x1)))
+    dt.null
+)) :pattern (($eo_to_smt_datatype x1)))) :named sm.axiom.$eo_to_smt_datatype))
+
+; program: $eo_to_smt_type
 (assert (! (forall ((x1 eo.Term))
   (! (= ($eo_to_smt_type x1)
   (ite (= x1 eo.Bool)
     tsm.Bool
-  (ite ((_ is eo.Datatype) x1)
-    (tsm.Datatype (eo.Datatype.arg1 x1) (eo.Datatype.arg2 x1))
+  (ite ((_ is eo.DatatypeType) x1)
+    (tsm.Datatype (eo.DatatypeType.arg1 x1) ($eo_to_smt_datatype (eo.DatatypeType.arg2 x1)))
   (ite (= x1 eo.Int)
     tsm.Int
   (ite (= x1 eo.Real)
@@ -782,9 +878,9 @@
   (ite ((_ is eo.Var) x1)
     (sm.Var (eo.Var.arg1 x1) ($eo_to_smt_type (eo.Var.arg2 x1)))
   (ite ((_ is eo.DtCons) x1)
-    (sm.DtCons (eo.DtCons.arg1 x1) (eo.DtCons.arg2 x1) (eo.DtCons.arg3 x1))
+    (sm.DtCons (eo.DtCons.arg1 x1) ($eo_to_smt_datatype (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1))
   (ite ((_ is eo.DtSel) x1)
-    (sm.DtSel (eo.DtSel.arg1 x1) (eo.DtSel.arg2 x1) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1))
+    (sm.DtSel (eo.DtSel.arg1 x1) ($eo_to_smt_datatype (eo.DtSel.arg2 x1)) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1))
   (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.not))
     (sm.Apply sm.not ($eo_to_smt (eo.Apply.arg2 x1)))
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) (= (eo.Apply.arg1 (eo.Apply.arg1 x1)) eo.and))

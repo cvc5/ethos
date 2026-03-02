@@ -25,6 +25,9 @@ enum class MetaKind
 {
   /** A context in which the deep embedding of the term is a Eunoia term */
   EUNOIA,
+  /** A Eunoia datatype / datatype constructor */
+  DATATYPE,
+  DATATYPE_CONSTRUCTOR,
   /** A context in which the deep embedding of the term is an SMT-LIB term */
   SMT,
   /** A context in which the deep embedding of the term is an SMT-LIB type */
@@ -42,8 +45,8 @@ enum class MetaKind
   /** A proof */
   PROOF,
   // datatypes
-  DATATYPE,
-  DATATYPE_CONSTRUCTOR,
+  SMT_DATATYPE,
+  SMT_DATATYPE_CONSTRUCTOR,
   // checker
   CHECKER_STATE,
   CHECKER_STATE_OBJ,

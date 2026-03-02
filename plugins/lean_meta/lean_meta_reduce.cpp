@@ -21,13 +21,15 @@ namespace ethos {
 LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
 {
   d_typeToMetaKind["$eo_Term"] = MetaKind::EUNOIA;
+  d_typeToMetaKind["$eo_Datatype"] = MetaKind::DATATYPE;
+  d_typeToMetaKind["$eo_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
   d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
-  d_typeToMetaKind["$smt_Datatype"] = MetaKind::DATATYPE;
-  d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
+  d_typeToMetaKind["$smt_Datatype"] = MetaKind::SMT_DATATYPE;
+  d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
   d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
   d_typeToMetaKind["$eo_State"] = MetaKind::CHECKER_STATE;
   d_typeToMetaKind["$eo_StateObj"] = MetaKind::CHECKER_STATE_OBJ;
@@ -36,13 +38,15 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
   d_typeToMetaKind["$eo_Cmd"] = MetaKind::CHECKER_CMD;
   d_typeToMetaKind["$eo_CmdList"] = MetaKind::CHECKER_CMD_LIST;
   d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
+  d_prefixToMetaKind["edt"] = MetaKind::DATATYPE;
+  d_prefixToMetaKind["edtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
   d_prefixToMetaKind["sm"] = MetaKind::SMT;
   d_prefixToMetaKind["tsm"] = MetaKind::SMT_TYPE;
   d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
-  d_prefixToMetaKind["dt"] = MetaKind::DATATYPE;
-  d_prefixToMetaKind["dtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
+  d_prefixToMetaKind["dt"] = MetaKind::SMT_DATATYPE;
+  d_prefixToMetaKind["dtc"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
   d_prefixToMetaKind["s"] = MetaKind::CHECKER_STATE;
   d_prefixToMetaKind["so"] = MetaKind::CHECKER_STATE_OBJ;
   d_prefixToMetaKind["cmd"] = MetaKind::CHECKER_CMD;
@@ -83,14 +87,16 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
   switch (k)
   {
     case MetaKind::EUNOIA: os << "Term"; break;
+    case MetaKind::DATATYPE: os << "Datatype"; break;
+    case MetaKind::DATATYPE_CONSTRUCTOR: os << "DatatypeCons"; break;
     case MetaKind::SMT_TYPE: os << "SmtType"; break;
     case MetaKind::SMT: os << "SmtTerm"; break;
     case MetaKind::SMT_VALUE: os << "SmtValue"; break;
     case MetaKind::SMT_MAP: os << "SmtMap"; break;
     case MetaKind::SMT_SEQ: os << "SmtSeq"; break;
     case MetaKind::PROOF: os << "Proof"; break;
-    case MetaKind::DATATYPE: os << "SmtDatatype"; break;
-    case MetaKind::DATATYPE_CONSTRUCTOR: os << "SmtDatatypeCons"; break;
+    case MetaKind::SMT_DATATYPE: os << "SmtDatatype"; break;
+    case MetaKind::SMT_DATATYPE_CONSTRUCTOR: os << "SmtDatatypeCons"; break;
     case MetaKind::CHECKER_STATE: os << "CState"; break;
     case MetaKind::CHECKER_STATE_OBJ: os << "CStateObj"; break;
     case MetaKind::CHECKER_INDEX: os << "CIndex"; break;
@@ -575,7 +581,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
           ? &d_eoChecker
           : (vctxArgs.back() == MetaKind::EUNOIA ? &d_defs : &d_smtDefs);
   // exception: conversion from Eunoia to SMT is printed on defs
-  if (vname == "$eo_to_smt" || vname == "$eo_to_smt_type")
+  if (vname == "$eo_to_smt" || vname == "$eo_to_smt_type" || vname=="$eo_to_smt_datatype" || vname=="$eo_to_smt_datatype_cons")
   {
     out = &d_defs;
   }
@@ -1024,6 +1030,7 @@ MetaKind LeanMetaReduce::getMetaKind(State& s,
 {
   std::string sname = getName(e);
   if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term"
+      || sname == "$eo_Datatype" || sname == "$eo_DatatypeCons"
       || sname == "$eo_Cmd" || sname == "$eo_State" || sname == "$eo_StateObj"
       || sname == "$eo_Index" || sname == "$eo_CmdList"
       || sname == "$eo_IndexList")

@@ -320,6 +320,11 @@ def __smtx_typeof_map_value : SmtMap -> SmtType
   | (SmtMap.default T e) => (SmtType.Map T (__smtx_typeof_value e))
 
 
+def __smtx_index_typeof_map : SmtType -> SmtType
+  | (SmtType.Map T U) => T
+  | T => SmtType.None
+
+
 def __smtx_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.cons v vs) => (smt_lit_ite (smt_lit_Teq (SmtType.Seq (__smtx_typeof_value v)) (__smtx_typeof_seq_value vs)) (__smtx_typeof_seq_value vs) SmtType.None)
   | (SmtSeq.empty T) => (SmtType.Seq T)
@@ -365,6 +370,11 @@ def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | t1, t2 => (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value t1) (__smtx_typeof_value t2)) (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value t1) SmtType.None) SmtValue.NotValue (SmtValue.Boolean (smt_lit_veq t1 t2))) SmtValue.NotValue)
 
 
+def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Map m), i => (smt_lit_ite (smt_lit_Teq (__smtx_index_typeof_map (__smtx_typeof_map_value m)) (__smtx_typeof_value i)) (__smtx_msm_lookup m i) SmtValue.NotValue)
+  | v, i => SmtValue.NotValue
+
+
 def __smtx_model_eval_dt_cons : smt_lit_String -> SmtDatatype -> smt_lit_Int -> SmtValue
   | s, d, n => (smt_lit_ite (smt_lit_Teq (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) n) SmtType.None) SmtValue.NotValue (SmtValue.DtCons s d n))
 
@@ -383,7 +393,7 @@ def __smtx_model_eval_dt_updater : smt_lit_String -> SmtDatatype -> smt_lit_Int 
 
 def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
-  | (SmtValue.Map m), i => (__smtx_msm_lookup m i)
+  | (SmtValue.Map m), i => (__smtx_map_select (SmtValue.Map m) i)
   | v, i => SmtValue.NotValue
 
 
@@ -475,6 +485,8 @@ abbrev eo_lit_str_from_code := smt_lit_str_from_code
 
 /- Term definition -/
 
+mutual
+
 inductive Term : Type where
   | __eo_Proof : Term
   | __eo_pf : Term -> Term
@@ -494,20 +506,38 @@ inductive Term : Type where
   | Apply : Term -> Term -> Term
   | FunType : Term
   | Var : eo_lit_String -> Term -> Term
-  | Datatype : eo_lit_String -> SmtDatatype -> Term
-  | DtCons : eo_lit_String -> SmtDatatype -> eo_lit_Int -> Term
-  | DtSel : eo_lit_String -> SmtDatatype -> eo_lit_Int -> eo_lit_Int -> Term
+  | DatatypeType : eo_lit_String -> Datatype -> Term
+  | DtCons : eo_lit_String -> Datatype -> eo_lit_Int -> Term
+  | DtSel : eo_lit_String -> Datatype -> eo_lit_Int -> eo_lit_Int -> Term
   | UConst : eo_lit_Int -> Term -> Term
   | not : Term
   | and : Term
   | eq : Term
 
 deriving Repr, DecidableEq
-  
+
+/-
+Eunoia datatypes.
+-/
+inductive Datatype : Type where
+  | null : Datatype
+  | sum : DatatypeCons -> Datatype -> Datatype
+deriving Repr, DecidableEq
+
+/-
+Eunoia datatype constructors.
+-/
+inductive DatatypeCons : Type where
+  | unit : DatatypeCons
+  | cons : Term -> DatatypeCons -> DatatypeCons
+deriving Repr, DecidableEq
+
+end
+
 /- Term equality -/
 def eo_lit_teq : Term -> Term -> eo_lit_Bool
   | x, y => decide (x = y)
-
+  
 /- Used for defining hash -/
 def __smtx_hash : Term -> eo_lit_Int
   | _ => 0 -- FIXME
@@ -559,15 +589,15 @@ def __eo_Var : smt_lit_String -> Term -> Term
   | s, T => (Term.Var s T)
 
 
-def __eo_Datatype : smt_lit_String -> SmtDatatype -> Term
-  | s, d => (Term.Datatype s d)
+def __eo_DatatypeType : smt_lit_String -> Datatype -> Term
+  | s, d => (Term.DatatypeType s d)
 
 
-def __eo_DtCons : smt_lit_String -> SmtDatatype -> smt_lit_Int -> Term
+def __eo_DtCons : smt_lit_String -> Datatype -> smt_lit_Int -> Term
   | s, d, ci => (Term.DtCons s d ci)
 
 
-def __eo_DtSel : smt_lit_String -> SmtDatatype -> smt_lit_Int -> smt_lit_Int -> Term
+def __eo_DtSel : smt_lit_String -> Datatype -> smt_lit_Int -> smt_lit_Int -> Term
   | s, d, ci, ai => (Term.DtSel s d ci ai)
 
 
@@ -629,9 +659,19 @@ def __eo_prog_symm : Proof -> Term
   | _ => Term.Stuck
 
 
+def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
+  | DatatypeCons.unit => SmtDatatypeCons.unit
+  | (DatatypeCons.cons U c) => (SmtDatatypeCons.cons (__eo_to_smt_type U) (__eo_to_smt_datatype_cons c))
+
+
+def __eo_to_smt_datatype : Datatype -> SmtDatatype
+  | (Datatype.sum c d) => (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
+  | Datatype.null => SmtDatatype.null
+
+
 def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
-  | (Term.Datatype s d) => (SmtType.Datatype s d)
+  | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
   | Term.Int => SmtType.Int
   | Term.Real => SmtType.Real
   | (Term.Apply Term.BitVec (Term.Numeral n1)) => (SmtType.BitVec n1)
@@ -647,8 +687,8 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.String s) => (SmtTerm.String s)
   | (Term.Binary w n) => (SmtTerm.Binary w n)
   | (Term.Var s T) => (SmtTerm.Var s (__eo_to_smt_type T))
-  | (Term.DtCons s d n) => (SmtTerm.DtCons s d n)
-  | (Term.DtSel s d n m) => (SmtTerm.DtSel s d n m)
+  | (Term.DtCons s d n) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) n)
+  | (Term.DtSel s d n m) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) n m)
   | (Term.Apply Term.not x1) => (SmtTerm.Apply SmtTerm.not (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.and x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.eq x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x1)) (__eo_to_smt x2))

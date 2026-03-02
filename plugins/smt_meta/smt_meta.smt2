@@ -33,10 +33,20 @@
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
 (declare-datatypes
-  ((eo.Term 0) (vsm.Value 0) (msm.Map 0) (ssm.Seq 0) (sm.Term 0) (tsm.Type 0) (dt.Datatype 0) (dtc.DatatypeCons 0))
+  ((eo.Term 0)  (edt.Datatype 0) (edtc.DatatypeCons 0)
+   (vsm.Value 0) (msm.Map 0) (ssm.Seq 0) (sm.Term 0) (tsm.Type 0)
+   (dt.Datatype 0) (dtc.DatatypeCons 0))
   (
   (
 $SM_EO_TERM_DECL$
+  )
+  (
+  (edt.null)
+  (edt.sum (edt.sum.arg1 edtc.DatatypeCons) (edt.sum.arg2 edt.Datatype))
+  )
+  (
+  (edtc.unit)
+  (edtc.cons (edtc.cons.arg1 eo.Term) (edtc.cons.arg2 edtc.DatatypeCons))
   )
   (
 $SM_VALUE_DECL$

@@ -314,52 +314,6 @@
   )
 )
 
-;;; Terms, types, datatypes
-
-; An SMT term.
-(declare-const $smt_Term Type)
-
-; An SMT type.
-(declare-const $smt_Type Type)
-
-; A datatype constructor
-(declare-const $smt_DatatypeCons Type)
-
-; A datatype
-(declare-const $smt_Datatype Type)
-
-; utilities
-
-; Assumes that Teq is defined to be equality over $smt_Type
-(define $smt_builtin_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($smt_apply_2 "Teq" x1 x2))
-
-
-;;; Constructors for SMT-LIB datatypes and datatype constructors
-
-; A constructor having no arguments
-(declare-const $emb_dtc.unit $smt_DatatypeCons)
-(define $dtc_unit () $emb_dtc.unit)
-
-; A constructor having at least one argument
-; It takes the type of that argument and a constructor specifying the remaining
-; arguments.
-(declare-parameterized-const $emb_dtc.cons
-  ((T $smt_Type :opaque) (c $smt_DatatypeCons :opaque))
-  $smt_DatatypeCons)
-(define $dtc_cons ((T $smt_DatatypeCons) (c $smt_DatatypeCons))
-  ($emb_dtc.cons T c))
-
-; A datatype having no constructors
-(declare-const $emb_dt.null $smt_Datatype)
-(define $dt_null () $emb_dt.null)
-  
-; A datatype having at least one constructor
-(declare-parameterized-const $emb_dt.sum
-  ((c $smt_DatatypeCons :opaque) (d $smt_Datatype :opaque))
-  $smt_Datatype)
-(define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
-  ($emb_dt.sum c d))
-
 
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term).
@@ -377,9 +331,14 @@
 ; A Eunoia term.
 ; This will be replaced by the datatype eo.Term in the final encoding.
 (declare-const $eo_Term Type)
-
 ; Assumes that teq is defined to be equality over eo.Term
 (define $smt_builtin_teq ((x1 $eo_Term) (x2 $eo_Term)) ($smt_apply_2 "teq" x1 x2))
+
+; A datatype constructor
+(declare-const $eo_DatatypeCons Type)
+
+; A datatype
+(declare-const $eo_Datatype Type)
 
 ;;; Eunoia datatype constructors
 
@@ -442,28 +401,34 @@
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term))
   ($emb_Var s T))
 
-(declare-parameterized-const $emb_Datatype 
-  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque))
+(declare-parameterized-const $emb_DatatypeType
+  ((s $smt_builtin_String :opaque) (d $eo_Datatype :opaque))
   $eo_Term)
-(define $eo_Datatype ((s $smt_builtin_String) (d $smt_Datatype))
-  ($emb_Datatype s d))
+(define $eo_DatatypeType ((s $smt_builtin_String) (d $eo_Datatype))
+  ($emb_DatatypeType s d))
+
+(declare-parameterized-const $emb_DatatypeTypeRef 
+  ((s $smt_builtin_String :opaque))
+  $eo_Term)
+(define $eo_DatatypeTypeRef ((s $smt_builtin_String))
+  ($emb_DatatypeTypeRef s))
 
 ; the ci^th constructor of datatype T.
 (declare-parameterized-const $emb_DtCons
-  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
+  ((s $smt_builtin_String :opaque) (d $eo_Datatype :opaque)
    (ci $smt_builtin_Int :opaque))
   $eo_Term)
 (define $eo_DtCons 
-  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int))
+  ((s $smt_builtin_String) (d $eo_Datatype) (ci $smt_builtin_Int))
   ($emb_DtCons s d ci))
 
 ; the selector of the ai^th argument of the ci^th constructor of datatype T.
 (declare-parameterized-const $emb_DtSel
-  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
+  ((s $smt_builtin_String :opaque) (d $eo_Datatype :opaque)
    (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
   $eo_Term)
 (define $eo_DtSel 
-  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int)
+  ((s $smt_builtin_String) (d $eo_Datatype) (ci $smt_builtin_Int)
    (ai $smt_builtin_Int))
   ($emb_DtSel s d ci ai))
   
@@ -472,9 +437,35 @@
   ((n $smt_builtin_Int :opaque) (T $eo_Term :opaque))
   $eo_Term)
 (define $eo_UConst
-  ((n $smt_builtin_Int :opaque) (T $eo_Term :opaque))
+  ((n $smt_builtin_Int) (T $eo_Term))
   ($emb_UConst n T))
+
+;;; Constructors for SMT-LIB datatypes and datatype constructors
+
+; A constructor having no arguments
+(declare-const $emb_edtc.unit $eo_DatatypeCons)
+(define $edtc_unit () $emb_edtc.unit)
+
+; A constructor having at least one argument
+; It takes the type of that argument and a constructor specifying the remaining
+; arguments.
+(declare-parameterized-const $emb_edtc.cons
+  ((T $eo_Term :opaque) (c $eo_DatatypeCons :opaque))
+  $eo_DatatypeCons)
+(define $edtc_cons ((T $eo_Term) (c $eo_DatatypeCons))
+  ($emb_edtc.cons T c))
+
+; A datatype having no constructors
+(declare-const $emb_edt.null $eo_Datatype)
+(define $edt_null () $emb_edt.null)
   
+; A datatype having at least one constructor
+(declare-parameterized-const $emb_edt.sum
+  ((c $eo_DatatypeCons :opaque) (d $eo_Datatype :opaque))
+  $eo_Datatype)
+(define $edt_sum ((c $eo_DatatypeCons) (d $eo_Datatype))
+  ($emb_edt.sum c d))
+
 ;;; Utilities
 
 ; return: The embedding of (-> T1 T2).
@@ -1048,27 +1039,71 @@
 (program $eo_lit_type_String ((T Type)) :signature (T) Type)
 
 
-;
-;(program $smtx_is_cons_type
-;  ()
-;  :signature (Type $smt_Datatype $smt_builtin_Int Type) $smt_builtin_Bool
-;  (
-;  (($smtx_is_cons_type T ($dt_sum $dtc_unit d) $smt_builtin_z_zero U1)
-;    ($smt_builtin_teq T U1))
-;  (($smtx_is_cons_type T ($dt_sum ($dtc_cons S c) d) $smt_builtin_z_zero (-> U1 U2))
-;    ($smt_builtin_ite ($smt_builtin_Teq ($eo_to_smt_type U1) S)
-;      ($smtx_is_cons_type T ($dt_sum c d) $smt_builtin_z_zero U2)
-;      $smt_builtin_false))
-;  (($smtx_is_cons_type T ($dt_sum c d) n U1)
-;    ($smtx_is_cons_type T d ($smt_builtin_z_dec n) U1))
-;  )
-;)
+
+; Replaces ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
+; of a datatype constructor.
+; Note that this assumes there is no nested recursion, i.e. occurrences of
+; ($eo_DatatypeTypeRef s) that are beneath applications of other types.
+(program $eo_dtc_substitute
+  ((s $smt_builtin_String) (d $eo_Datatype) (T $eo_Term) (c $eo_DatatypeCons))
+  :signature ($smt_builtin_String $eo_Datatype $eo_DatatypeCons) $eo_DatatypeCons
+  (
+  (($eo_dtc_substitute s d ($edtc_cons T c))
+    ($edtc_cons
+      ; if it is a recursive reference to the type we are substituting, replace
+      ($smt_builtin_ite ($smt_builtin_teq T ($eo_DatatypeTypeRef s))
+        ($eo_DatatypeType s d)
+        T)
+      ($eo_dtc_substitute s d c)))
+  (($eo_dtc_substitute s d $edtc_unit) $edtc_unit)
+  )
+)
+
+; Substitutes ($eo_TypeRef s) by ($eo_Datatype s d) in all arguments
+; of datatype constructors of a datatype.
+; Note that this assumes there is no nested recursion, i.e. occurrences of
+; ($tsm_TypeRef s) that are beneath applications of other types.
+(program $eo_dt_substitute
+  ((s $smt_builtin_Int) (d $eo_Datatype) (c $eo_DatatypeCons) (d2 $eo_Datatype))
+  :signature ($smt_builtin_String $eo_Datatype $eo_Datatype) $eo_Datatype
+  (
+  (($eo_dt_substitute s d ($edt_sum c d2))
+    ($edt_sum ($eo_dtc_substitute s d c) ($eo_dt_substitute s d d2)))
+  (($eo_dt_substitute s d $edt_null) $edt_null)
+  )
+)
+
+(program $eo_typeof_dt_cons_rec
+  ((T $eo_Term) (U $eo_Term) (d $eo_Datatype) (c $eo_DatatypeCons) (n $smt_builtin_Int))
+  :signature ($eo_Term $eo_Datatype $smt_builtin_Int) $eo_Term
+  (
+  (($eo_typeof_dt_cons_rec T ($edt_sum $edtc_unit d) $smt_builtin_z_zero) T)
+  (($eo_typeof_dt_cons_rec T ($edt_sum ($edtc_cons U c) d) $smt_builtin_z_zero)
+    (-> U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $smt_builtin_z_zero)))
+  (($eo_typeof_dt_cons_rec T ($edt_sum c d) n)
+    ($eo_typeof_dt_cons_rec T d ($smt_builtin_z_dec n)))
+  )
+)
+  
+(program $eo_typeof_dt_sel_return
+  ((d $eo_Datatype) (c $eo_DatatypeCons) (T $eo_Term) (n $smt_builtin_Int) (m $smt_builtin_Int))
+  :signature ($eo_Datatype $smt_builtin_Int $smt_builtin_Int) $eo_Term
+  (
+  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_z_zero $smt_builtin_z_zero)
+    T)
+  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_z_zero m)
+    ($eo_typeof_dt_sel_return ($edt_sum c d) $smt_builtin_z_zero ($smt_builtin_z_dec m)))
+  (($eo_typeof_dt_sel_return ($edt_sum c d) n m)
+    ($eo_typeof_dt_sel_return d ($smt_builtin_z_dec n) m))
+  )
+)
 
 ; program: $eo_typeof
 ; implements: eo::typeof
 (program $eo_typeof
-  ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Rat)
-   (s $smt_builtin_String) (w $smt_builtin_Int) (d $smt_Datatype))
+  ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int)
+   (m $smt_builtin_Int) (w $smt_builtin_Int) (r $smt_builtin_Rat)
+   (s $smt_builtin_String) (d $eo_Datatype))
   :signature ($eo_Term) $eo_Term
   (
   (($eo_typeof ($eo_bool b))                 Bool)
@@ -1077,11 +1112,13 @@
   (($eo_typeof ($eo_string s))               ($eo_lit_type_String ($eo_string s)))
   (($eo_typeof ($eo_binary w n))             ($eo_lit_type_Binary ($eo_binary w n)))
   (($eo_typeof ($eo_Var s T))                T)
-  (($eo_typeof ($eo_Datatype s d))           Type)
-  ;(($eo_typeof ($eo_DtCons s d n))
-  ;  ($eo_requires ($eo_is_cons_type ($eo_Datatype s d) ($smtx_dt_substitute s d d) n T) true T))
-  ;(($eo_typeof ($eo_DtSel s d n m))
-  ;  ($eo_requires ($eo_is_sel_type ($eo_Datatype s d) ($smtx_dt_substitute s d d) n m T) true T))
+  (($eo_typeof ($eo_DatatypeType s d))       Type)
+  (($eo_typeof ($eo_DtCons s d n))
+    ($eo_typeof_dt_cons_rec ($eo_DatatypeType s d) ($eo_dt_substitute s d d) n))
+  (($eo_typeof ($eo_DtSel s d n m))
+    ; TODO: ensure types, well-foundedness of d??
+    (-> ($eo_DatatypeType s d) ($eo_typeof_dt_sel_return ($eo_dt_substitute s d d) n m)))
+  (($eo_typeof ($eo_UConst n T))             T)
   ; otherwise, invoke the routine for user types from the signature.
   (($eo_typeof t)                            ($eo_typeof_main t))
   )
@@ -1092,12 +1129,12 @@
 (program $eo_dt_constructors_main () :signature ($eo_Term) $eo_Term)
 
 (program $eo_datatype_constructors_rec
-  ((s $smt_builtin_String) (d $smt_Datatype) (c $smt_DatatypeCons)
-   (d2 $smt_Datatype) (ci $smt_builtin_Int))
-  :signature ($smt_builtin_String $smt_Datatype $smt_Datatype $smt_builtin_Int) $eo_List
+  ((s $smt_builtin_String) (d $eo_Datatype) (c $eo_DatatypeCons)
+   (d2 $eo_Datatype) (ci $smt_builtin_Int))
+  :signature ($smt_builtin_String $eo_Datatype $eo_Datatype $smt_builtin_Int) $eo_List
   (
-  (($eo_datatype_constructors_rec s d $dt_null ci) $eo_List_nil)
-  (($eo_datatype_constructors_rec s d ($dt_sum c d2) ci)
+  (($eo_datatype_constructors_rec s d $edt_null ci) $eo_List_nil)
+  (($eo_datatype_constructors_rec s d ($edt_sum c d2) ci)
     ($eo_List_cons ($eo_DtCons s d ci)
       ($eo_datatype_constructors_rec s d d2 ($smt_builtin_z_inc ci))))
   )
@@ -1106,11 +1143,11 @@
 ; program: $eo_dt_constructors
 ; implements: eo::dt_constructors
 (program $eo_dt_constructors
-  ((s $smt_builtin_String) (d $smt_Datatype) (T $eo_Term))
+  ((s $smt_builtin_String) (d $eo_Datatype) (T $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
   ; a user-defined datatype
-  (($eo_dt_constructors ($eo_Datatype s d)) 
+  (($eo_dt_constructors ($eo_DatatypeType s d)) 
     ($eo_datatype_constructors_rec s d d $smt_builtin_z_zero))
   ; otherwise, a datatype declared in the signature
   (($eo_dt_constructors T) ($eo_dt_constructors_main T))
@@ -1122,17 +1159,17 @@
 (program $eo_dt_selectors_main () :signature ($eo_Term) $eo_Term)
 
 (program $eo_datatype_cons_selectors_rec
-  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int)
-   (U $smt_Type) (c $smt_DatatypeCons) (d2 $smt_Datatype)
+  ((s $smt_builtin_String) (d $eo_Datatype) (n $smt_builtin_Int)
+   (U $eo_Term) (c $eo_DatatypeCons) (d2 $eo_Datatype)
    (ci $smt_builtin_Int) (ai $smt_builtin_Int))
-  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Int $smt_Datatype $smt_builtin_Int $smt_builtin_Int) $eo_List
+  :signature ($smt_builtin_String $eo_Datatype $smt_builtin_Int $eo_Datatype $smt_builtin_Int $smt_builtin_Int) $eo_List
   (
-  (($eo_datatype_cons_selectors_rec s d n ($dt_sum $dtc_unit d2) $smt_builtin_z_zero ai)
+  (($eo_datatype_cons_selectors_rec s d n ($edt_sum $edtc_unit d2) $smt_builtin_z_zero ai)
      $eo_List_nil)
-  (($eo_datatype_cons_selectors_rec s d n ($dt_sum ($dtc_cons U c) d2) $smt_builtin_z_zero ai)
+  (($eo_datatype_cons_selectors_rec s d n ($edt_sum ($edtc_cons U c) d2) $smt_builtin_z_zero ai)
     ($eo_List_cons ($eo_DtSel s d n ai)
       ($eo_datatype_cons_selectors_rec s d n d2 $smt_builtin_z_zero ($smt_builtin_z_inc ai))))
-  (($eo_datatype_cons_selectors_rec s d n ($dt_sum c d2) ci ai)
+  (($eo_datatype_cons_selectors_rec s d n ($edt_sum c d2) ci ai)
     ($eo_datatype_cons_selectors_rec s d n d2 ($smt_builtin_z_dec ci) ai))
   )
 )
@@ -1140,7 +1177,7 @@
 ; program: $eo_dt_selectors
 ; implements: eo::dt_selectors
 (program $eo_dt_selectors 
-  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int) (t $eo_Term))
+  ((s $smt_builtin_String) (d $eo_Datatype) (n $smt_builtin_Int) (t $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
   ; a constructor of a user-defined datatype
@@ -1272,9 +1309,23 @@
 
 ;;;;;; SMT terms
 
+; An SMT term.
+(declare-const $smt_Term Type)
+
+; An SMT type.
+(declare-const $smt_Type Type)
+; utilities
+; Assumes that Teq is defined to be equality over $smt_Type
+(define $smt_builtin_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($smt_apply_2 "Teq" x1 x2))
+
+; A datatype constructor
+(declare-const $smt_DatatypeCons Type)
+
+; A datatype
+(declare-const $smt_Datatype Type)
+
 ; An SMT-LIB value.
 (declare-const $smt_Value Type)
-
 ; utilities
 ; Assumes that veq is defined to be equality over $smt_Value
 (define $smt_builtin_veq ((x1 $smt_Value) (x2 $smt_Value)) ($smt_apply_2 "veq" x1 x2))
@@ -1626,6 +1677,33 @@
 (declare-parameterized-const $emb_ssm.empty ((T $smt_Type :opaque)) $smt_Seq)
 (define $ssm_empty ((T $smt_Type)) ($emb_ssm.empty T))
 
+
+;;; Constructors for SMT-LIB datatypes and datatype constructors
+
+; A constructor having no arguments
+(declare-const $emb_dtc.unit $smt_DatatypeCons)
+(define $dtc_unit () $emb_dtc.unit)
+
+; A constructor having at least one argument
+; It takes the type of that argument and a constructor specifying the remaining
+; arguments.
+(declare-parameterized-const $emb_dtc.cons
+  ((T $smt_Type :opaque) (c $smt_DatatypeCons :opaque))
+  $smt_DatatypeCons)
+(define $dtc_cons ((T $smt_Type) (c $smt_DatatypeCons))
+  ($emb_dtc.cons T c))
+
+; A datatype having no constructors
+(declare-const $emb_dt.null $smt_Datatype)
+(define $dt_null () $emb_dt.null)
+  
+; A datatype having at least one constructor
+(declare-parameterized-const $emb_dt.sum
+  ((c $smt_DatatypeCons :opaque) (d $smt_Datatype :opaque))
+  $smt_Datatype)
+(define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
+  ($emb_dt.sum c d))
+
 ;;; Generic utilities
 
 (define $vsm_true () ($vsm_bool $smt_builtin_true))
@@ -1790,7 +1868,7 @@
 ; Note that this assumes there is no nested recursion, i.e. occurrences of
 ; ($tsm_TypeRef s) that are beneath applications of other types.
 (program $smtx_dtc_substitute
-  ((s $smt_builtin_Int) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons))
+  ((s $smt_builtin_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons))
   :signature ($smt_builtin_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
   (
   (($smtx_dtc_substitute s d ($dtc_cons T c))
@@ -1809,7 +1887,7 @@
 ; Note that this assumes there is no nested recursion, i.e. occurrences of
 ; ($tsm_TypeRef s) that are beneath applications of other types.
 (program $smtx_dt_substitute
-  ((s $smt_builtin_Int) (d $smt_Datatype) (c $smt_DatatypeCons) (d2 $smt_Datatype))
+  ((s $smt_builtin_String) (d $smt_Datatype) (c $smt_DatatypeCons) (d2 $smt_Datatype))
   :signature ($smt_builtin_String $smt_Datatype $smt_Datatype) $smt_Datatype
   (
   (($smtx_dt_substitute s d ($dt_sum c d2))
@@ -2255,22 +2333,42 @@
   )
 )
 
+; forward declaration
+(program $eo_to_smt_type () :signature (Type) $smt_Type)
+
+(program $eo_to_smt_datatype_cons ((U $eo_Term) (c $eo_DatatypeCons))
+  :signature ($eo_DatatypeCons) $smt_DatatypeCons
+  (
+  (($eo_to_smt_datatype_cons $edtc_unit) $dtc_unit)
+  (($eo_to_smt_datatype_cons ($edtc_cons U c))
+    ($dtc_cons ($eo_to_smt_type U) ($eo_to_smt_datatype_cons c)))
+  )
+)
+
+(program $eo_to_smt_datatype ((c $eo_DatatypeCons) (d $eo_Datatype))
+  :signature ($eo_Datatype) $smt_Datatype
+  (
+  (($eo_to_smt_datatype ($edt_sum c d)) 
+    ($dt_sum ($eo_to_smt_datatype_cons c) ($eo_to_smt_datatype d)))
+  (($eo_to_smt_datatype $edt_null) $dt_null)
+  )
+)
 
 (program $eo_to_smt_type 
-  ((T Type) (n1 $smt_builtin_Int) (s $smt_builtin_String) (d $smt_Datatype)
+  ((T Type) (n1 $smt_builtin_Int) (s $smt_builtin_String) (d $eo_Datatype)
   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
   (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
   :signature (Type) $smt_Type
   (
-  (($eo_to_smt_type Bool)               $tsm_Bool)
-  (($eo_to_smt_type ($eo_Datatype s d)) ($tsm_Datatype s d))
+  (($eo_to_smt_type Bool)                   $tsm_Bool)
+  (($eo_to_smt_type ($eo_DatatypeType s d)) ($tsm_Datatype s ($eo_to_smt_datatype d)))
   (($eo_to_smt_type Int) $tsm_Int)
   (($eo_to_smt_type Real) $tsm_Real)
   (($eo_to_smt_type (BitVec ($eo_numeral n1))) ($tsm_BitVec n1))
   (($eo_to_smt_type Char) $tsm_Char)
   (($eo_to_smt_type (Seq x1)) ($tsm_Seq ($eo_to_smt_type x1)))
 
-  (($eo_to_smt_type T)                  $tsm_none)
+  (($eo_to_smt_type T)                      $tsm_none)
   )
 )
 
@@ -2349,7 +2447,7 @@
 
 (program $eo_to_smt 
   ((b $smt_builtin_Bool) (n $smt_builtin_Int) (m $smt_builtin_Int) (r $smt_builtin_Rat)
-   (s $smt_builtin_String) (w $smt_builtin_Int) (d $smt_Datatype)
+   (s $smt_builtin_String) (w $smt_builtin_Int) (d $eo_Datatype)
    (T Type) (U Type) (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
    (f (-> U T)) (y U) (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
   :signature (T) $smt_Term
@@ -2360,8 +2458,8 @@
   (($eo_to_smt ($eo_string s))      ($sm_string s))
   (($eo_to_smt ($eo_binary w n))    ($sm_binary w n))
   (($eo_to_smt ($eo_Var s T))       ($sm_Var s ($eo_to_smt_type T)))
-  (($eo_to_smt ($eo_DtCons s d n))  ($sm_DtCons s d n))
-  (($eo_to_smt ($eo_DtSel s d n m)) ($sm_DtSel s d n m))
+  (($eo_to_smt ($eo_DtCons s d n))  ($sm_DtCons s ($eo_to_smt_datatype d) n))
+  (($eo_to_smt ($eo_DtSel s d n m)) ($sm_DtSel s ($eo_to_smt_datatype d) n m))
   (($eo_to_smt (not x1)) ($sm_not ($eo_to_smt x1)))
   (($eo_to_smt (and x1 x2)) ($sm_and ($eo_to_smt x1) ($eo_to_smt x2)))
   (($eo_to_smt (= x1 x2)) ($sm_= ($eo_to_smt x1) ($eo_to_smt x2)))

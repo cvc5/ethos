@@ -20,22 +20,25 @@ namespace ethos {
 SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s), d_smSygus(s)
 {
   d_prefixToMetaKind["eo"] = MetaKind::EUNOIA;
+  d_prefixToMetaKind["edt"] = MetaKind::DATATYPE;
+  d_prefixToMetaKind["edtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
   d_prefixToMetaKind["sm"] = MetaKind::SMT;
   d_prefixToMetaKind["tsm"] = MetaKind::SMT_TYPE;
   d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
-  d_prefixToMetaKind["dt"] = MetaKind::DATATYPE;
-  d_prefixToMetaKind["dtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
-  d_typeToMetaKind["$eo_Type"] = MetaKind::EUNOIA;
+  d_prefixToMetaKind["dt"] = MetaKind::SMT_DATATYPE;
+  d_prefixToMetaKind["dtc"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
+  d_typeToMetaKind["$eo_Datatype"] = MetaKind::DATATYPE;
+  d_typeToMetaKind["$eo_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
   // d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
   d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
   d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
-  d_typeToMetaKind["$smt_Datatype"] = MetaKind::DATATYPE;
-  d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
+  d_typeToMetaKind["$smt_Datatype"] = MetaKind::SMT_DATATYPE;
+  d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
   d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
 
   if (StdPlugin::optionSmtMetaSygusGrammar())
@@ -67,14 +70,16 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
   switch (tk)
   {
     case MetaKind::EUNOIA: os << "eo.Term"; break;
+    case MetaKind::DATATYPE: os << "edt.Datatype"; break;
+    case MetaKind::DATATYPE_CONSTRUCTOR: os << "edtc.DatatypeCons"; break;
     case MetaKind::SMT: os << "sm.Term"; break;
     case MetaKind::SMT_TYPE: os << "tsm.Type"; break;
     case MetaKind::SMT_VALUE: os << "vsm.Value"; break;
     case MetaKind::SMT_BUILTIN: os << getEmbedName(t); break;
     case MetaKind::SMT_MAP: os << "msm.Map"; break;
     case MetaKind::SMT_SEQ: os << "ssm.Seq"; break;
-    case MetaKind::DATATYPE: os << "dt.Datatype"; break;
-    case MetaKind::DATATYPE_CONSTRUCTOR: os << "dtc.DatatypeCons"; break;
+    case MetaKind::SMT_DATATYPE: os << "dt.Datatype"; break;
+    case MetaKind::SMT_DATATYPE_CONSTRUCTOR: os << "dtc.DatatypeCons"; break;
     default: return false;
   }
   return true;
@@ -1117,7 +1122,7 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
                                     std::string& cname) const
 {
   std::string sname = getName(e);
-  if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term")
+  if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term" || sname=="$eo_Datatype" || sname=="$eo_DatatypeCons")
   {
     // internal-only symbol, e.g. one used for defining the deep embedding
     cname = sname;
