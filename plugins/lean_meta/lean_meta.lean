@@ -190,21 +190,21 @@ SMT-LIB types.
 -/
 inductive SmtType : Type where
 $LEAN_SMT_TYPE_DEF$
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 /- 
 SMT-LIB terms.
 -/
 inductive SmtTerm : Type where
 $LEAN_SMT_TERM_DEF$
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 /- 
 SMT-LIB values.
 -/
 inductive SmtValue : Type where
 $LEAN_SMT_VALUE_DEF$
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 /-
 SMT-LIB map values.
@@ -212,7 +212,7 @@ SMT-LIB map values.
 inductive SmtMap : Type where
   | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
   | default : SmtType -> SmtValue -> SmtMap
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 /- 
 SMT-LIB sequence values.
@@ -220,7 +220,7 @@ SMT-LIB sequence values.
 inductive SmtSeq : Type where
   | cons : SmtValue -> SmtSeq -> SmtSeq
   | empty : SmtType -> SmtSeq
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 /-
 SMT-LIB datatypes.
@@ -228,7 +228,7 @@ SMT-LIB datatypes.
 inductive SmtDatatype : Type where
   | null : SmtDatatype
   | sum : SmtDatatypeCons -> SmtDatatype -> SmtDatatype
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 /-
 SMT-LIB datatype constructors.
@@ -236,7 +236,7 @@ SMT-LIB datatype constructors.
 inductive SmtDatatypeCons : Type where
   | unit : SmtDatatypeCons
   | cons : SmtType -> SmtDatatypeCons -> SmtDatatypeCons
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 end
 
@@ -281,43 +281,53 @@ inductive smt_interprets : SmtTerm -> Bool -> Prop
 
 /- Eunoia literal evaluation defined -/
 
-abbrev eo_lit_Bool := smt_lit_Bool
-abbrev eo_lit_Int := smt_lit_Int
-abbrev eo_lit_Rat := smt_lit_Rat
-abbrev eo_lit_String := smt_lit_String
+abbrev eo_lit_Bool := SmtEval.smt_lit_Bool
+abbrev eo_lit_Int := SmtEval.smt_lit_Int
+abbrev eo_lit_Rat := SmtEval.smt_lit_Rat
+abbrev eo_lit_String := SmtEval.smt_lit_String
 
 def eo_lit_ite {T : Type} (c : eo_lit_Bool) (t e : T) : T :=
   if c then t else e
-abbrev eo_lit_not  := smt_lit_not
-abbrev eo_lit_and  := smt_lit_and
-abbrev eo_lit_iff  := smt_lit_iff
-abbrev eo_lit_or  := smt_lit_or
-abbrev eo_lit_xor  := smt_lit_xor
-abbrev eo_lit_zplus  := smt_lit_zplus
-abbrev eo_lit_zmult  := smt_lit_zmult
-abbrev eo_lit_zneg  := smt_lit_zneg
-abbrev eo_lit_zeq  := smt_lit_zeq
-abbrev eo_lit_zleq  := smt_lit_zleq
-abbrev eo_lit_zlt  := smt_lit_zlt
-abbrev eo_lit_div  := smt_lit_div
-abbrev eo_lit_mod  := smt_lit_mod
-abbrev eo_lit_mk_rational  := smt_lit_mk_rational
-abbrev eo_lit_qplus  := smt_lit_qplus
-abbrev eo_lit_qmult  := smt_lit_qmult
-abbrev eo_lit_qneg  := smt_lit_qneg
-abbrev eo_lit_qeq  := smt_lit_qeq
-abbrev eo_lit_qleq  := smt_lit_qleq
-abbrev eo_lit_qlt  := smt_lit_qlt
-abbrev eo_lit_qdiv  := smt_lit_qdiv
-abbrev eo_lit_to_int  := smt_lit_to_int
-abbrev eo_lit_to_real  := smt_lit_to_real
-abbrev eo_lit_str_len  := smt_lit_str_len
-abbrev eo_lit_str_concat  := smt_lit_str_concat
-abbrev eo_lit_str_substr := smt_lit_str_substr
-abbrev eo_lit_str_indexof := smt_lit_str_indexof
-abbrev eo_lit_str_to_code := smt_lit_str_to_code
-abbrev eo_lit_str_from_code := smt_lit_str_from_code
-abbrev eo_lit_piand := smt_lit_piand
+abbrev eo_lit_not := SmtEval.smt_lit_not
+abbrev eo_lit_and := SmtEval.smt_lit_and
+abbrev eo_lit_iff := SmtEval.smt_lit_iff
+abbrev eo_lit_or := SmtEval.smt_lit_or
+abbrev eo_lit_xor := SmtEval.smt_lit_xor
+abbrev eo_lit_zplus := SmtEval.smt_lit_zplus
+abbrev eo_lit_zmult := SmtEval.smt_lit_zmult
+abbrev eo_lit_zneg := SmtEval.smt_lit_zneg
+abbrev eo_lit_zeq := SmtEval.smt_lit_zeq
+abbrev eo_lit_zleq := SmtEval.smt_lit_zleq
+abbrev eo_lit_zlt := SmtEval.smt_lit_zlt
+abbrev eo_lit_div := SmtEval.smt_lit_div
+abbrev eo_lit_mod := SmtEval.smt_lit_mod
+abbrev eo_lit_mk_rational := SmtEval.smt_lit_mk_rational
+abbrev eo_lit_qplus := SmtEval.smt_lit_qplus
+abbrev eo_lit_qmult := SmtEval.smt_lit_qmult
+abbrev eo_lit_qneg := SmtEval.smt_lit_qneg
+abbrev eo_lit_qeq := SmtEval.smt_lit_qeq
+abbrev eo_lit_qleq := SmtEval.smt_lit_qleq
+abbrev eo_lit_qlt := SmtEval.smt_lit_qlt
+abbrev eo_lit_qdiv := SmtEval.smt_lit_qdiv
+abbrev eo_lit_to_int := SmtEval.smt_lit_to_int
+abbrev eo_lit_to_real := SmtEval.smt_lit_to_real
+abbrev eo_lit_str_len := SmtEval.smt_lit_str_len
+abbrev eo_lit_str_concat := SmtEval.smt_lit_str_concat
+abbrev eo_lit_str_substr := SmtEval.smt_lit_str_substr
+abbrev eo_lit_str_indexof := SmtEval.smt_lit_str_indexof
+abbrev eo_lit_str_to_code := SmtEval.smt_lit_str_to_code
+abbrev eo_lit_str_from_code := SmtEval.smt_lit_str_from_code
+abbrev eo_lit_piand := SmtEval.smt_lit_piand
+
+abbrev __smtx_bit := SmtEval.__smtx_bit
+abbrev __smtx_msb := SmtEval.__smtx_msb
+abbrev __smtx_binary_or := SmtEval.__smtx_binary_or
+abbrev __smtx_binary_xor := SmtEval.__smtx_binary_xor
+abbrev __smtx_binary_not := SmtEval.__smtx_binary_not
+abbrev __smtx_binary_max := SmtEval.__smtx_binary_max
+abbrev __smtx_binary_uts := SmtEval.__smtx_binary_uts
+abbrev __smtx_binary_concat := SmtEval.__smtx_binary_concat
+abbrev __smtx_binary_extract := SmtEval.__smtx_binary_extract
 
 /- Term definition -/
 
@@ -325,7 +335,7 @@ mutual
 
 inductive Term : Type where
 $LEAN_TERM_DEF$
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 /-
 Eunoia datatypes.
@@ -333,7 +343,7 @@ Eunoia datatypes.
 inductive Datatype : Type where
   | null : Datatype
   | sum : DatatypeCons -> Datatype -> Datatype
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 /-
 Eunoia datatype constructors.
@@ -341,7 +351,7 @@ Eunoia datatype constructors.
 inductive DatatypeCons : Type where
   | unit : DatatypeCons
   | cons : Term -> DatatypeCons -> DatatypeCons
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 end
 
@@ -376,7 +386,7 @@ abbrev CIndex := Term
 inductive CIndexList : Type where
   | nil : CIndexList
   | cons : CIndex -> CIndexList -> CIndexList
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 /-
 -/
@@ -384,7 +394,7 @@ inductive CStateObj : Type where
   | assume : Term -> CStateObj
   | assume_push : Term -> CStateObj
   | proven : Term -> CStateObj
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 /-
 -/
@@ -392,20 +402,20 @@ inductive CState : Type where
   | nil : CState
   | cons : CStateObj -> CState -> CState
   | fail : CState
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 /-
 -/
 inductive CCmd : Type where
 $LEAN_CHECKER_RULE_DEF$
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 /-
 -/
 inductive CCmdList : Type where
   | nil : CCmdList
   | cons : CCmd -> CCmdList -> CCmdList
-deriving Repr, DecidableEq
+deriving Repr, DecidableEq, Inhabited
 
 $LEAN_CHECKER_DEFS$
 

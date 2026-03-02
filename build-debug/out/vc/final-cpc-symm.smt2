@@ -88,6 +88,8 @@
   (eo.DtCons (eo.DtCons.arg1 String) (eo.DtCons.arg2 edt.Datatype) (eo.DtCons.arg3 Int))
   ; smt-cons: DtSel
   (eo.DtSel (eo.DtSel.arg1 String) (eo.DtSel.arg2 edt.Datatype) (eo.DtSel.arg3 Int) (eo.DtSel.arg4 Int))
+  ; smt-cons: USort
+  (eo.USort (eo.USort.arg1 Int))
   ; smt-cons: UConst
   (eo.UConst (eo.UConst.arg1 Int) (eo.UConst.arg2 eo.Term))
   ; user-decl: not
@@ -317,6 +319,11 @@
     (eo.DtSel x1 x2 x3 x4)
 )
 
+; program: $eo_USort
+(define-fun $eo_USort ((x1 Int)) eo.Term
+    (eo.USort x1)
+)
+
 ; program: $eo_UConst
 (define-fun $eo_UConst ((x1 Int) (x2 eo.Term)) eo.Term
     (eo.UConst x1 x2)
@@ -435,11 +442,13 @@
     ($eo_typeof_dt_cons_rec (eo.DatatypeType (eo.DtCons.arg1 x1) (eo.DtCons.arg2 x1)) ($eo_dt_substitute (eo.DtCons.arg1 x1) (eo.DtCons.arg2 x1) (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1))
   (ite ((_ is eo.DtSel) x1)
     (eo.Apply (eo.Apply eo.FunType (eo.DatatypeType (eo.DtSel.arg1 x1) (eo.DtSel.arg2 x1))) ($eo_typeof_dt_sel_return ($eo_dt_substitute (eo.DtSel.arg1 x1) (eo.DtSel.arg2 x1) (eo.DtSel.arg2 x1)) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1)))
+  (ite ((_ is eo.USort) x1)
+    eo.Type
   (ite ((_ is eo.UConst) x1)
     (eo.UConst.arg2 x1)
   (ite true
     ($eo_typeof_main x1)
-    eo.Stuck))))))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
+    eo.Stuck)))))))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
 
 ; program: $mk_symm
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term

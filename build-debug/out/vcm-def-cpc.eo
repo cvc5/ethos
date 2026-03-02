@@ -434,6 +434,10 @@
    (ai $smt_builtin_Int))
   ($emb_DtSel s d ci ai))
   
+; (temporary) uninterpreted sorts
+(declare-parameterized-const $emb_USort ((n $smt_builtin_Int :opaque)) $eo_Term)
+(define $eo_USort ((n $smt_builtin_Int)) ($emb_USort n))
+  
 ; (temporary) uninterpreted constants
 (declare-parameterized-const $emb_UConst
   ((n $smt_builtin_Int :opaque) (T $eo_Term :opaque))
@@ -1120,6 +1124,7 @@
   (($eo_typeof ($eo_DtSel s d n m))
     ; TODO: ensure types, well-foundedness of d??
     (-> ($eo_DatatypeType s d) ($eo_typeof_dt_sel_return ($eo_dt_substitute s d d) n m)))
+  (($eo_typeof ($eo_USort n))                Type)
   (($eo_typeof ($eo_UConst n T))             T)
   ; otherwise, invoke the routine for user types from the signature.
   (($eo_typeof t)                            ($eo_typeof_main t))

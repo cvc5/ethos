@@ -462,6 +462,9 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   std::stringstream ssRepeatRet;
   ssRepeatRet << "(concat";
   ssRepeatRet << " (repeat (- ($sm_numeral x1) 1) ($sm_binary x2 x3))";
+  // TODO: maybe easier for termination?
+  //ssRepeatRet << " ($sm_Const ($smtx_model_eval_repeat ($vsm_numeral ($smt_builtin_z_dec x1))
+  //                        ($vsm_binary x2 x3)) ($tsm_BitVec x2))";
   ssRepeatRet << " ($sm_binary x2 x3))";
   addLitSym("repeat",
             {kInt, kBitVec},

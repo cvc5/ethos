@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 279
+; #trim-defs: 281
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -136,6 +136,8 @@
   ((s $smt_builtin_String) (d $eo_Datatype) (ci $smt_builtin_Int)
    (ai $smt_builtin_Int))
   ($emb_DtSel s d ci ai))
+(declare-parameterized-const $emb_USort ((n $smt_builtin_Int :opaque)) $eo_Term)
+(define $eo_USort ((n $smt_builtin_Int)) ($emb_USort n))
 (declare-parameterized-const $emb_UConst
   ((n $smt_builtin_Int :opaque) (T $eo_Term :opaque))
   $eo_Term)
@@ -249,6 +251,7 @@
   (($eo_typeof ($eo_DtSel s d n m))
     
     (-> ($eo_DatatypeType s d) ($eo_typeof_dt_sel_return ($eo_dt_substitute s d d) n m)))
+  (($eo_typeof ($eo_USort n))                Type)
   (($eo_typeof ($eo_UConst n T))             T)
   
   (($eo_typeof t)                            ($eo_typeof_main t))
