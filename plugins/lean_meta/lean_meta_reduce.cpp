@@ -259,7 +259,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
     return smtStr;
   }
   std::stringstream ss;
-  ss << (ctx == MetaKind::EUNOIA ? "eo_lit_" : "smt_lit_") << smtStr;
+  ss << (isSmtMetaKind(ctx) ? "smt_lit_" : "eo_lit_") << smtStr;
   return ss.str();
 }
 
@@ -555,7 +555,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     MetaKind vctx = getTypeMetaKind(vt);
     std::ostream* out = vctx == MetaKind::EUNOIA ? &d_defs : &d_smtDefs;
     (*out) << "def " << cleanId(vname) << " : ";
-    printMetaType(vt, *out);
+    printMetaType(vt, *out, vctx);
     (*out) << " := ";
     printEmbTerm(prog, *out);
     (*out) << std::endl;
@@ -576,10 +576,21 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     vctxArgs.push_back(getTypeMetaKind(vt[j]));
     isCheckerDef |= isCheckerMetaKind(vctxArgs.back());
   }
-  std::ostream* out =
-      isCheckerDef
-          ? &d_eoChecker
-          : (vctxArgs.back() == MetaKind::EUNOIA ? &d_defs : &d_smtDefs);
+  std::ostream* out = nullptr;
+  MetaKind tmk = MetaKind::EUNOIA;
+  if (isCheckerDef)
+  {
+    out = &d_eoChecker;
+  }
+  else if (isSmtMetaKind(vctxArgs.back()))
+  {
+    out = &d_smtDefs;
+    tmk = MetaKind::SMT_TYPE;
+  }
+  else
+  {
+    out = &d_defs;
+  }
   // exception: conversion from Eunoia to SMT is printed on defs
   if (vname == "$eo_to_smt" || vname == "$eo_to_smt_type" || vname=="$eo_to_smt_datatype" || vname=="$eo_to_smt_datatype_cons")
   {
@@ -594,11 +605,11 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     std::stringstream argType;
     Trace("lean-meta") << "Print meta type " << vt[i - 1] << std::endl;
-    printMetaType(vt[i - 1], argType);
+    printMetaType(vt[i - 1], argType, tmk);
     decl << argType.str() << " -> ";
   }
   std::stringstream retType;
-  printMetaType(vt[nargs - 1], retType);
+  printMetaType(vt[nargs - 1], retType, tmk);
   decl << retType.str() << std::endl;
   // Trace("lean-meta") << "DECLARE " << decl.str() << std::endl;
   Trace("lean-meta") << "*** FINALIZE " << v << std::endl;

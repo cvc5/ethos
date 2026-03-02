@@ -107,6 +107,11 @@ def smt_lit_str_from_code (i : smt_lit_Int) : smt_lit_String :=
 def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
   | x, y => decide (x = y)
 
+-- Binary
+
+def smt_lit_piand : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
+  | _, _, _ => 0 -- FIXME
+
 -- SMT Beyond Eunoia
 
 def smt_lit_int_pow2 (n : smt_lit_Int) : smt_lit_Int :=
@@ -166,9 +171,9 @@ def smt_lit_str_replace_re_all : smt_lit_String -> smt_lit_RegLan -> smt_lit_Str
 
 def smt_lit_qdiv_by_zero : smt_lit_Rat -> smt_lit_Rat
   | x => x -- FIXME
-def smt_lit_zdiv_by_zero : smt_lit_Int -> smt_lit_Int
+def smt_lit_div_by_zero : smt_lit_Int -> smt_lit_Int
   | x => x -- FIXME
-def smt_lit_zmod_by_zero : smt_lit_Int -> smt_lit_Int
+def smt_lit_mod_by_zero : smt_lit_Int -> smt_lit_Int
   | x => x -- FIXME
 
 /- ----------------------- should move ----------------------- -/
@@ -304,6 +309,7 @@ abbrev eo_lit_str_substr := smt_lit_str_substr
 abbrev eo_lit_str_indexof := smt_lit_str_indexof
 abbrev eo_lit_str_to_code := smt_lit_str_to_code
 abbrev eo_lit_str_from_code := smt_lit_str_from_code
+abbrev eo_lit_piand := smt_lit_piand
 
 /- Term definition -/
 

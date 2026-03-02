@@ -53,6 +53,8 @@
   (
   (($eo_state_proven_nth ($s_cons so s) 0) ($eo_StateObj_proven so))
   (($eo_state_proven_nth ($s_cons so s) n) ($eo_state_proven_nth s (eo::add n -1)))
+  ; otherwise just return true
+  (($eo_state_proven_nth s n) true)
   )
 )
 

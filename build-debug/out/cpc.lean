@@ -107,6 +107,11 @@ def smt_lit_str_from_code (i : smt_lit_Int) : smt_lit_String :=
 def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
   | x, y => decide (x = y)
 
+-- Binary
+
+def smt_lit_piand : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
+  | _, _, _ => 0 -- FIXME
+
 -- SMT Beyond Eunoia
 
 def smt_lit_int_pow2 (n : smt_lit_Int) : smt_lit_Int :=
@@ -166,9 +171,9 @@ def smt_lit_str_replace_re_all : smt_lit_String -> smt_lit_RegLan -> smt_lit_Str
 
 def smt_lit_qdiv_by_zero : smt_lit_Rat -> smt_lit_Rat
   | x => x -- FIXME
-def smt_lit_zdiv_by_zero : smt_lit_Int -> smt_lit_Int
+def smt_lit_div_by_zero : smt_lit_Int -> smt_lit_Int
   | x => x -- FIXME
-def smt_lit_zmod_by_zero : smt_lit_Int -> smt_lit_Int
+def smt_lit_mod_by_zero : smt_lit_Int -> smt_lit_Int
   | x => x -- FIXME
 
 /- ----------------------- should move ----------------------- -/
@@ -482,6 +487,7 @@ abbrev eo_lit_str_substr := smt_lit_str_substr
 abbrev eo_lit_str_indexof := smt_lit_str_indexof
 abbrev eo_lit_str_to_code := smt_lit_str_to_code
 abbrev eo_lit_str_from_code := smt_lit_str_from_code
+abbrev eo_lit_piand := smt_lit_piand
 
 /- Term definition -/
 
@@ -558,23 +564,23 @@ def __eo_proven : Proof -> Term
 
 def __eo_Numeral : Term := Term.Int
 def __eo_Bool : Term := Term.Bool
-def __eo_bool : smt_lit_Bool -> Term
+def __eo_bool : eo_lit_Bool -> Term
   | x => (Term.Boolean x)
 
 
-def __eo_numeral : smt_lit_Int -> Term
+def __eo_numeral : eo_lit_Int -> Term
   | x => (Term.Numeral x)
 
 
-def __eo_rational : smt_lit_Rat -> Term
+def __eo_rational : eo_lit_Rat -> Term
   | x => (Term.Rational x)
 
 
-def __eo_string : smt_lit_String -> Term
+def __eo_string : eo_lit_String -> Term
   | x => (Term.String x)
 
 
-def __eo_binary : smt_lit_Int -> smt_lit_Int -> Term
+def __eo_binary : eo_lit_Int -> eo_lit_Int -> Term
   | w, v => (Term.Binary w v)
 
 
@@ -585,23 +591,23 @@ def __eo_apply : Term -> Term -> Term
 
 
 def __eo_fun_type : Term := Term.FunType
-def __eo_Var : smt_lit_String -> Term -> Term
+def __eo_Var : eo_lit_String -> Term -> Term
   | s, T => (Term.Var s T)
 
 
-def __eo_DatatypeType : smt_lit_String -> Datatype -> Term
+def __eo_DatatypeType : eo_lit_String -> Datatype -> Term
   | s, d => (Term.DatatypeType s d)
 
 
-def __eo_DtCons : smt_lit_String -> Datatype -> smt_lit_Int -> Term
+def __eo_DtCons : eo_lit_String -> Datatype -> eo_lit_Int -> Term
   | s, d, ci => (Term.DtCons s d ci)
 
 
-def __eo_DtSel : smt_lit_String -> Datatype -> smt_lit_Int -> smt_lit_Int -> Term
+def __eo_DtSel : eo_lit_String -> Datatype -> eo_lit_Int -> eo_lit_Int -> Term
   | s, d, ci, ai => (Term.DtSel s d ci ai)
 
 
-def __eo_UConst : smt_lit_Int -> Term -> Term
+def __eo_UConst : eo_lit_Int -> Term -> Term
   | n, T => (Term.UConst n T)
 
 
@@ -611,7 +617,7 @@ def __eo_mk_apply : Term -> Term -> Term
   | x1, x2 => (Term.Apply x1 x2)
 
 
-def __eo_binary_mod_w : smt_lit_Int -> smt_lit_Int -> Term
+def __eo_binary_mod_w : eo_lit_Int -> eo_lit_Int -> Term
   | w, n => (Term.Binary w (eo_lit_mod n (__smtx_pow2 w)))
 
 
@@ -755,6 +761,7 @@ def __eo_StateObj_proven : CStateObj -> Term
 def __eo_state_proven_nth : CState -> CIndex -> Term
   | (CState.cons so s), (Term.Numeral 0) => (__eo_StateObj_proven so)
   | (CState.cons so s), n => (__eo_state_proven_nth s (__eo_add n (Term.Numeral (-1 : eo_lit_Int))))
+  | s, n => (Term.Boolean true)
 
 
 def __eo_state_is_closed : CState -> Term
