@@ -14,7 +14,6 @@
 
 #include "../plugins/desugar/desugar.h"
 #include "../plugins/lean_meta/lean_meta_reduce.h"
-#include "../plugins/model_smt/model_smt.h"
 #include "../plugins/model_smt/model_smt_new.h"
 #include "../plugins/smt_meta/smt_meta_reduce.h"
 #include "../plugins/trim_defs/trim_defs.h"
@@ -152,7 +151,6 @@ int main( int argc, char* argv[] )
   State s(opts, stats);
   std::unique_ptr<SmtMetaReduce> pluginSmr;
   std::unique_ptr<LeanMetaReduce> pluginLmr;
-  std::unique_ptr<ModelSmt> pluginMsmt;
   std::unique_ptr<mnew::ModelSmtNew> pluginMsmtNew;
   std::unique_ptr<Desugar> pluginDs;
   std::unique_ptr<TrimDefs> pluginTds;
@@ -178,11 +176,6 @@ int main( int argc, char* argv[] )
     plugin = pluginTds.get();
   }
   else if (opts.d_pluginModelSmt)
-  {
-    pluginMsmt.reset(new ModelSmt(s));
-    plugin = pluginMsmt.get();
-  }
-  else if (opts.d_pluginModelSmtNew)
   {
     pluginMsmtNew.reset(new mnew::ModelSmtNew(s));
     plugin = pluginMsmtNew.get();

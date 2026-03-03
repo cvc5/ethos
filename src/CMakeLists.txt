@@ -9,7 +9,6 @@ add_executable(ethos ${ethos_SRC}
 ../plugins/desugar/desugar_proof.cpp
 ../plugins/desugar/desugar_checker.cpp
 ../plugins/trim_defs/trim_defs.cpp
-../plugins/model_smt/model_smt.cpp
 ../plugins/model_smt/model_smt_new.cpp
 ../plugins/flatten_eval/flatten_eval.cpp
 ../plugins/linear_patterns/linear_patterns.cpp
