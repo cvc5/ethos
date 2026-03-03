@@ -88,6 +88,8 @@
   (eo.DtCons (eo.DtCons.arg1 String) (eo.DtCons.arg2 edt.Datatype) (eo.DtCons.arg3 Int))
   ; smt-cons: DtSel
   (eo.DtSel (eo.DtSel.arg1 String) (eo.DtSel.arg2 edt.Datatype) (eo.DtSel.arg3 Int) (eo.DtSel.arg4 Int))
+  ; smt-cons: USort
+  (eo.USort (eo.USort.arg1 Int))
   ; smt-cons: UConst
   (eo.UConst (eo.UConst.arg1 Int) (eo.UConst.arg2 eo.Term))
   ; user-decl: not
@@ -258,70 +260,6 @@
     (int.pow2 x1)
 )
 
-(define-fun $eo_Bool () eo.Term eo.Bool)
-; program: $eo_bool
-(define-fun $eo_bool ((x1 Bool)) eo.Term
-    (eo.Boolean x1)
-)
-
-; program: $eo_numeral
-(define-fun $eo_numeral ((x1 Int)) eo.Term
-    (eo.Numeral x1)
-)
-
-; program: $eo_rational
-(define-fun $eo_rational ((x1 Rat)) eo.Term
-    (eo.Rational x1)
-)
-
-; program: $eo_string
-(define-fun $eo_string ((x1 String)) eo.Term
-    (eo.String x1)
-)
-
-; program: $eo_binary
-(define-fun $eo_binary ((x1 Int) (x2 Int)) eo.Term
-    (eo.Binary x1 x2)
-)
-
-(define-fun $eo_Type () eo.Term eo.Type)
-(define-fun $eo_stuck () eo.Term eo.Stuck)
-; program: $eo_apply
-(define-fun $eo_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
-    (eo.Apply x1 x2)
-)
-
-(define-fun $eo_fun_type () eo.Term eo.FunType)
-; program: $eo_Var
-(define-fun $eo_Var ((x1 String) (x2 eo.Term)) eo.Term
-    (eo.Var x1 x2)
-)
-
-; program: $eo_DatatypeType
-(define-fun $eo_DatatypeType ((x1 String) (x2 edt.Datatype)) eo.Term
-    (eo.DatatypeType x1 x2)
-)
-
-; program: $eo_DatatypeTypeRef
-(define-fun $eo_DatatypeTypeRef ((x1 String)) eo.Term
-    (eo.DatatypeTypeRef x1)
-)
-
-; program: $eo_DtCons
-(define-fun $eo_DtCons ((x1 String) (x2 edt.Datatype) (x3 Int)) eo.Term
-    (eo.DtCons x1 x2 x3)
-)
-
-; program: $eo_DtSel
-(define-fun $eo_DtSel ((x1 String) (x2 edt.Datatype) (x3 Int) (x4 Int)) eo.Term
-    (eo.DtSel x1 x2 x3 x4)
-)
-
-; program: $eo_UConst
-(define-fun $eo_UConst ((x1 Int) (x2 eo.Term)) eo.Term
-    (eo.UConst x1 x2)
-)
-
 ; program: $eo_mk_apply
 (define-fun $eo_mk_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
@@ -435,11 +373,13 @@
     ($eo_typeof_dt_cons_rec (eo.DatatypeType (eo.DtCons.arg1 x1) (eo.DtCons.arg2 x1)) ($eo_dt_substitute (eo.DtCons.arg1 x1) (eo.DtCons.arg2 x1) (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1))
   (ite ((_ is eo.DtSel) x1)
     (eo.Apply (eo.Apply eo.FunType (eo.DatatypeType (eo.DtSel.arg1 x1) (eo.DtSel.arg2 x1))) ($eo_typeof_dt_sel_return ($eo_dt_substitute (eo.DtSel.arg1 x1) (eo.DtSel.arg2 x1) (eo.DtSel.arg2 x1)) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1)))
+  (ite ((_ is eo.USort) x1)
+    eo.Type
   (ite ((_ is eo.UConst) x1)
     (eo.UConst.arg2 x1)
   (ite true
     ($eo_typeof_main x1)
-    eo.Stuck))))))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
+    eo.Stuck)))))))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
 
 ; program: $mk_symm
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term
@@ -910,16 +850,6 @@
     (ite (veq ($smtx_model_eval ($eo_to_smt x1)) (vsm.Boolean false)) (eo.Boolean true) (eo.Boolean false))
     eo.Stuck))) :pattern (($eo_model_unsat x1)))) :named sm.axiom.$eo_model_unsat))
 
-; program: $mk_vsm_bool
-(define-fun $mk_vsm_bool ((x1 Bool)) vsm.Value
-    (vsm.Boolean x1)
-)
-
-; program: $mk_sm_const
-(define-fun $mk_sm_const ((x1 vsm.Value) (x2 tsm.Type)) sm.Term
-    (sm.Const x1 x2)
-)
-
 ; program: $eovc_symm
 (define-fun $eovc_symm ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
@@ -945,34 +875,34 @@
 ; only evaluate to v if it is of type T.
 (define-fun texists_total ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (exists ((v vsm.Value))
-    (= ($smtx_model_eval ($smtx_substitute s T ($mk_sm_const v T) F)) tgt)))
+    (= ($smtx_model_eval ($smtx_substitute s T (sm.Const v T) F)) tgt)))
 
 ; true iff all values of type T when substituted into F are evaluated as tgt.
 (define-fun tforall_total ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (forall ((v vsm.Value))
-    (= ($smtx_model_eval ($smtx_substitute s T ($mk_sm_const v T) F)) tgt)))
+    (= ($smtx_model_eval ($smtx_substitute s T (sm.Const v T) F)) tgt)))
 
 ; exists
 (assert (forall ((s String) (T tsm.Type) (F sm.Term))
   (= (texists s T F)
-     (ite (texists_total s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
-     (ite (tforall_total s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
+     (ite (texists_total s T F (vsm.Boolean true)) (vsm.Boolean true)
+     (ite (tforall_total s T F (vsm.Boolean false)) (vsm.Boolean false)
        vsm.NotValue)))))
   
 ; forall
 (assert (forall ((s String) (T tsm.Type) (F sm.Term))
   (= (tforall s T F)
-     (ite (texists_total s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
-     (ite (tforall_total s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
+     (ite (texists_total s T F (vsm.Boolean false)) (vsm.Boolean false)
+     (ite (tforall_total s T F (vsm.Boolean true)) (vsm.Boolean true)
        vsm.NotValue)))))
 
 ; choice
 ; If there exists a value making the existential true, we can assume
 ; that substituting with choice also makes it true.
 (assert (forall ((s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
-  (=> (texists_total s T F ($mk_vsm_bool true))
-      (= ($smtx_model_eval ($smtx_substitute s T ($mk_sm_const (tchoice s T F) T) F))
-         ($mk_vsm_bool true)))))
+  (=> (texists_total s T F (vsm.Boolean true))
+      (= ($smtx_model_eval ($smtx_substitute s T (sm.Const (tchoice s T F) T) F))
+         (vsm.Boolean true)))))
 
 ; whether two values are extensionally equal
 (define-fun t_ext_equal ((v1 vsm.Value) (v2 vsm.Value)) Bool
@@ -984,7 +914,7 @@
 (synth-fun arg_F () eo.Term
   ((G_Start eo.Term) (G_eo.Term eo.Term) (G_Bool Bool) (G_Int Int) (G_RegLan RegLan) (G_Int_C Int) (G_Rat Rat) (G_String String) (T_Type eo.Term) (T_$eo_Proof eo.Term) (T_SmtType eo.Term) (T_Fun eo.Term) (T_Int eo.Term) (T_$eo_List eo.Term) (T_SmtTerm eo.Term) (T_Bool eo.Term) (T_Real eo.Term) (T_Seq eo.Term) (T_BitVec eo.Term)) (
   (G_Start eo.Term (T_Bool))
-  (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_String G_eo.Term) (eo.UConst G_Int G_eo.Term) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_$eo_Proof T_Int T_Real T_BitVec T_Seq T_$eo_List T_Type T_$eo_Proof T_SmtType T_Fun T_Int T_$eo_List T_SmtTerm T_Bool T_Real T_Seq T_BitVec ))
+  (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_String G_eo.Term) (eo.USort G_Int) (eo.UConst G_Int G_eo.Term) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_$eo_Proof T_Int T_Real T_BitVec T_Seq T_$eo_List T_Type T_$eo_Proof T_SmtType T_Fun T_Int T_$eo_List T_SmtTerm T_Bool T_Real T_Seq T_BitVec ))
   (G_Bool Bool (true false))
   (G_Int Int (0 (- G_Int_C) G_Int_C))
   (G_RegLan RegLan (re.all re.none (str.to_re G_String) (re.union G_RegLan G_RegLan)))

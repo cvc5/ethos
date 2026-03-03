@@ -554,7 +554,12 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   if (prog.getKind() != Kind::PROGRAM)
   {
     MetaKind vctx = getTypeMetaKind(vt);
-    std::ostream* out = vctx == MetaKind::EUNOIA ? &d_defs : &d_smtDefs;
+    std::ostream* out = &d_smtDefs;
+    if (vctx==MetaKind::EUNOIA)
+    {
+      out = &d_defs;
+      (*out) << "partial ";
+    }
     (*out) << "def " << cleanId(vname) << " : ";
     printMetaType(vt, *out, vctx);
     (*out) << " := ";
@@ -596,7 +601,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     decl << "partial ";
   }
   // exception: conversion from Eunoia to SMT is printed on defs
-  if (vname.compare(0, 10, "$eo_to_smt")==0)
+  if (vname.compare(0, 10, "$eo_to_smt")==0 || vname.compare(0, 9, "$eo_model")==0)
   {
     out = &d_eoIsObjDefs;
   }
@@ -631,12 +636,23 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       macroStartArg++;
     }
   }
+  // whether we should do an ITE output instead of a match
+  // this is to speed up the Lean C compiler
+  //bool optIte = (ncases>=10 && macroStartArg+1==nargs);
+  bool optIte = false;
+  if (optIte)
+  {
+    decl << "(__input : ";
+    printMetaType(vt[macroStartArg - 1], decl, tmk);
+    decl << ")";
+  }
   // Trace("lean-meta") << "Type is " << vt << std::endl;
   decl << " : ";
   Assert(vt.getKind() == Kind::PROGRAM_TYPE)
       << "bad type " << vt << " for " << v;
   Assert(nargs > 1);
-  for (size_t i = macroStartArg; i < nargs; i++)
+  size_t typeStart = macroStartArg + (optIte ? 1 : 0);
+  for (size_t i = typeStart; i < nargs; i++)
   {
     Trace("lean-meta") << "Print meta type " << vt[i - 1] << std::endl;
     printMetaType(vt[i - 1], decl, tmk);
@@ -647,8 +663,9 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   decl << retType.str();
   // Trace("lean-meta") << "DECLARE " << decl.str() << std::endl;
   Trace("lean-meta") << "*** FINALIZE " << v << std::endl;
-  if (macroStartArg==vt.getNumChildren())
+  if (!optIte && macroStartArg==vt.getNumChildren())
   {
+    // no cases necessary, just a macro
     Assert (vprog.getNumChildren()==1);
     decl << " :=" << std::endl;
     decl << "  ";
@@ -660,10 +677,10 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   decl << std::endl;
   // compile the pattern matching
   std::stringstream cases;
-  std::stringstream casesEnd;
-  // whether we should do an ITE output instead of a match
-  // this is to speed up the Lean C compiler
-  bool optIte = (ncases>=10 && macroStartArg+1==nargs);
+  if (optIte)
+  {
+    cases << "  ";
+  }
   // If the return type does not have meta-kind Eunoia, then it cannot get
   // stuck. We ensure that all programs over such types are total.
   // We also are not a Eunoia program if we called this method via a define
@@ -680,6 +697,12 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
         continue;
       }
       Assert (i>=macroStartArg);
+      if (optIte)
+      {
+        cases << "if let Term.Stuck := _input then Term.Stuck" << std::endl;
+        cases << "  else ";
+        continue;
+      }
       cases << "  | ";
       for (size_t j = macroStartArg; j < nargs; j++)
       {
@@ -699,19 +722,16 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       cases << " => Term.Stuck" << std::endl;
     }
   }
-  SelectorCtx ctx;
   bool wasDefault = false;
   for (size_t i = 0; i < ncases; i++)
   {
     const Expr& c = vprog[i];
     const Expr& hd = c[0];
     const Expr& body = c[1];
-    ctx.clear();
     std::stringstream currCase;
-    ConjPrint print;
-    cases << "  | ";
     Assert(hd.getNumChildren() == nargs);
     wasDefault = true;
+    cases << (optIte ? "if let " : "  | ");
     for (size_t j = macroStartArg, nhdchild = hd.getNumChildren(); j < nhdchild; j++)
     {
       if (j > macroStartArg)
@@ -731,10 +751,18 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
         wasDefault = false;
       }
     }
-    cases << " => ";
+    std::stringstream ssret;
     MetaKind bodyInitCtx = vctxArgs[nargs - 1];
-    printEmbTerm(body, cases, bodyInitCtx);
-    cases << std::endl;
+    printEmbTerm(body, ssret, bodyInitCtx);
+    if (optIte)
+    {
+      cases << " := __input then " << ssret.str() << std::endl;
+      cases << "  else";
+    }
+    else
+    {
+      cases << " => " << ssret.str() << std::endl;
+    }
   }
   if (!wasDefault)
   {
@@ -757,8 +785,6 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   // axiom
   (*out) << decl.str();
   (*out) << cases.str();
-  // FIXME
-  //(*out) << "decreasing_by sorry" << std::endl;
   (*out) << std::endl;
   (*out) << std::endl;
   // if it corresponds to a proof rule, print a Lean theorem
