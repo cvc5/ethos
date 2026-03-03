@@ -638,8 +638,8 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   }
   // whether we should do an ITE output instead of a match
   // this is to speed up the Lean C compiler
-  //bool optIte = (ncases>=10 && macroStartArg+1==nargs);
-  bool optIte = false;
+  bool optIte = false; // (ncases>=10 && macroStartArg+1==nargs);
+  //bool optIte = false;
   if (optIte)
   {
     decl << "(__input : ";
@@ -674,7 +674,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     (*out) << decl.str() << std::endl << std::endl;
     return;
   }
-  decl << std::endl;
+  decl << (optIte ? " :=" : "") << std::endl;
   // compile the pattern matching
   std::stringstream cases;
   if (optIte)
@@ -699,7 +699,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       Assert (i>=macroStartArg);
       if (optIte)
       {
-        cases << "if let Term.Stuck := _input then Term.Stuck" << std::endl;
+        cases << "if let Term.Stuck := __input then Term.Stuck" << std::endl;
         cases << "  else ";
         continue;
       }
@@ -731,19 +731,19 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     std::stringstream currCase;
     Assert(hd.getNumChildren() == nargs);
     wasDefault = true;
-    cases << (optIte ? "if let " : "  | ");
+    std::stringstream patMatch;
     for (size_t j = macroStartArg, nhdchild = hd.getNumChildren(); j < nhdchild; j++)
     {
       if (j > macroStartArg)
       {
-        cases << ", ";
+        patMatch << ", ";
       }
       // Print the pattern matching predicate for this argument, all
       // concatenated together.
       // Initial context depends on the kind of the argument type of the
       // program.
       MetaKind ctxPatMatch = vctxArgs[j - 1];
-      printEmbTerm(hd[j], cases, ctxPatMatch);
+      printEmbTerm(hd[j], patMatch, ctxPatMatch);
       // note this further assumes variables are unique as they are required
       // to be unique at this point
       if (hd[j].getKind() != Kind::PARAM)
@@ -756,19 +756,30 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     printEmbTerm(body, ssret, bodyInitCtx);
     if (optIte)
     {
-      cases << " := __input then " << ssret.str() << std::endl;
-      cases << "  else";
+      if (wasDefault)
+      {
+        cases << "let " << patMatch.str() << " := __input; " << ssret.str() << std::endl;
+      }
+      else
+      {
+        cases << "if let " << patMatch.str() << " := __input then " << ssret.str() << std::endl;
+        cases << "  else ";
+      }
     }
     else
     {
-      cases << " => " << ssret.str() << std::endl;
+      cases << "  | " << patMatch.str() << " => " << ssret.str() << std::endl;
     }
   }
   if (!wasDefault)
   {
+    if (optIte)
+    {
+      cases << retType.str() << ".Stuck" << std::endl;
+    }
     // should be a datatype with stuck
     // checker definitions we ensure are total
-    if (!isCheckerDef && (retk == MetaKind::EUNOIA || retk == MetaKind::PROOF))
+    else if (!isCheckerDef && (retk == MetaKind::EUNOIA || retk == MetaKind::PROOF))
     {
       cases << "  | ";
       for (size_t j = macroStartArg; j < nargs; j++)

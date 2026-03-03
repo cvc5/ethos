@@ -178,7 +178,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
     d_ruleInvokesDefs << "     (" << pname.str() << " s" << progPat.str()
                       << "))" << std::endl;
     d_ruleInvokesDefs << "  ((" << pname.str() << " s" << progPat.str()
-                      << ") $s_fail)" << std::endl;
+                      << ") $s_stuck)" << std::endl;
     d_ruleInvokesDefs << "  )" << std::endl;
     d_ruleInvokesDefs << ")" << std::endl;
   }
