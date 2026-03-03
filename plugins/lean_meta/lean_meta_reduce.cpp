@@ -563,6 +563,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     return;
   }
   Expr vprog = prog;
+  size_t ncases = vprog.getNumChildren();
   Trace("lean-meta") << "*** Setting up program " << v << " / "
                      << !prog.isNull() << std::endl;
   // (*out) << "/- " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
@@ -597,23 +598,64 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     out = &d_eoIsObjDefs;
   }
+  decl << "def " << cleanId(vname);
+  size_t macroStartArg = 1;
+  bool macroSuccess = true;
+  while (macroSuccess && macroStartArg<vt.getNumChildren())
+  {
+    Trace("lean-meta") << "...check if argument " << macroStartArg << " is macro" << std::endl;
+    if (vctxArgs[macroStartArg - 1] == MetaKind::EUNOIA)
+    {
+      macroSuccess = false;
+      break;
+    }
+    Expr v;
+    for (size_t i = 0; i < ncases; i++)
+    {
+      Expr vn = vprog[i][0][macroStartArg];
+      if ((v.isNull() && vn.getKind()==Kind::PARAM) || v==vn)
+      {
+        v = vn;
+        continue;
+      }
+      macroSuccess = false;
+      break;
+    }
+    if (macroSuccess)
+    {
+      decl << " (" << v << " : ";
+      printMetaType(vt[macroStartArg - 1], decl, tmk);
+      decl << ")";
+      macroStartArg++;
+    }
+  }
   // Trace("lean-meta") << "Type is " << vt << std::endl;
-  decl << "def " << cleanId(vname) << " : ";
+  decl << " : ";
   Assert(vt.getKind() == Kind::PROGRAM_TYPE)
       << "bad type " << vt << " for " << v;
   Assert(nargs > 1);
-  for (size_t i = 1; i < nargs; i++)
+  for (size_t i = macroStartArg; i < nargs; i++)
   {
-    std::stringstream argType;
     Trace("lean-meta") << "Print meta type " << vt[i - 1] << std::endl;
-    printMetaType(vt[i - 1], argType, tmk);
-    decl << argType.str() << " -> ";
+    printMetaType(vt[i - 1], decl, tmk);
+    decl << " -> ";
   }
   std::stringstream retType;
   printMetaType(vt[nargs - 1], retType, tmk);
-  decl << retType.str() << std::endl;
+  decl << retType.str();
   // Trace("lean-meta") << "DECLARE " << decl.str() << std::endl;
   Trace("lean-meta") << "*** FINALIZE " << v << std::endl;
+  if (macroStartArg==vt.getNumChildren())
+  {
+    Assert (vprog.getNumChildren()==1);
+    decl << " :=" << std::endl;
+    decl << "  ";
+    MetaKind bodyInitCtx = vctxArgs[nargs - 1];
+    printEmbTerm(vprog[0][1], decl, bodyInitCtx);
+    (*out) << decl.str() << std::endl << std::endl;
+    return;
+  }
+  decl << std::endl;
   // compile the pattern matching
   std::stringstream cases;
   std::stringstream casesEnd;
@@ -626,14 +668,15 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   // start with stuck case, if not a SMT program
   if (isEunoiaProgram)
   {
-    for (size_t i = 1; i < nargs; i++)
+    for (size_t i = macroStartArg; i < nargs; i++)
     {
-      if (getTypeMetaKind(vt[i - 1]) != MetaKind::EUNOIA)
+      if (vctxArgs[i - 1] != MetaKind::EUNOIA)
       {
         continue;
       }
+      Assert (i>=macroStartArg);
       cases << "  | ";
-      for (size_t j = 1; j < nargs; j++)
+      for (size_t j = macroStartArg; j < nargs; j++)
       {
         if (j > 1)
         {
@@ -651,7 +694,6 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       cases << " => Term.Stuck" << std::endl;
     }
   }
-  size_t ncases = vprog.getNumChildren();
   SelectorCtx ctx;
   bool wasDefault = false;
   for (size_t i = 0; i < ncases; i++)
@@ -665,9 +707,9 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     cases << "  | ";
     Assert(hd.getNumChildren() == nargs);
     wasDefault = true;
-    for (size_t j = 1, nhdchild = hd.getNumChildren(); j < nhdchild; j++)
+    for (size_t j = macroStartArg, nhdchild = hd.getNumChildren(); j < nhdchild; j++)
     {
-      if (j > 1)
+      if (j > macroStartArg)
       {
         cases << ", ";
       }
