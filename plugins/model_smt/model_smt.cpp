@@ -7,7 +7,7 @@
  * directory for licensing information.
  ******************************************************************************/
 
-#include "model_smt_new.h"
+#include "model_smt.h"
 
 #include <fstream>
 #include <sstream>
@@ -16,7 +16,6 @@
 #include "state.h"
 
 namespace ethos {
-namespace mnew {
 
 std::string sApply(const std::string& op, const std::string& args)
 {
@@ -119,7 +118,7 @@ std::string smtGuard(const std::string& guard, const std::string& val)
  * Makes s and t be in the context of the return term, used to specify the
  * return term of binary operations on bitvectors.
  */
-std::string ModelSmtNew::smtBinaryBinReturn(const std::string& term)
+std::string ModelSmt::smtBinaryBinReturn(const std::string& term)
 {
   std::stringstream ss;
   ss << "(eo::define ((s ($sm_binary x1 x2))) ";
@@ -128,7 +127,7 @@ std::string ModelSmtNew::smtBinaryBinReturn(const std::string& term)
   return ss.str();
 }
 
-std::string ModelSmtNew::smtToSmtEmbed(const std::string& s)
+std::string ModelSmt::smtToSmtEmbed(const std::string& s)
 {
   std::string out;
   out.reserve(s.size());  // baseline; may grow
@@ -159,7 +158,7 @@ std::string ModelSmtNew::smtToSmtEmbed(const std::string& s)
   return out;
 }
 
-std::string ModelSmtNew::smtEval(const std::string& s)
+std::string ModelSmt::smtEval(const std::string& s)
 {
   std::stringstream ss;
   ss << "($smtx_model_eval " << smtToSmtEmbed(s) << ")";
@@ -174,7 +173,7 @@ std::string eoDefine(const std::string& x,
   return ss.str();
 }
 
-ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
+ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 {
   // This constructor is the main source of the specification of the semantics
   // of all possible operators defined in a Eunoia signature. For example, if
@@ -863,29 +862,29 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   d_symIgnore["@strings_itos_result"] = true;
 }
 
-ModelSmtNew::~ModelSmtNew() {}
+ModelSmt::~ModelSmt() {}
 
-void ModelSmtNew::addTypeSym(const std::string& sym,
+void ModelSmt::addTypeSym(const std::string& sym,
                              const std::vector<Kind>& args)
 {
   d_symIgnore[sym] = true;
   d_symTypes[sym] = args;
 }
 
-void ModelSmtNew::addHardCodeSym(const std::string& sym,
+void ModelSmt::addHardCodeSym(const std::string& sym,
                                  const std::vector<Kind>& args)
 {
   d_symHardCode[sym] = args;
 }
 
-void ModelSmtNew::addConstFoldSym(const std::string& sym,
+void ModelSmt::addConstFoldSym(const std::string& sym,
                                   const std::vector<Kind>& args,
                                   Kind ret)
 {
   d_symConstFold[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
 
-void ModelSmtNew::addQuantifier(const std::string& sym,
+void ModelSmt::addQuantifier(const std::string& sym,
                                 const std::vector<Kind>& args)
 {
   // always call hard-coded method, without pre-evaluation
@@ -894,7 +893,7 @@ void ModelSmtNew::addQuantifier(const std::string& sym,
   addReduceSym(sym, args, ret.str());
 }
 
-void ModelSmtNew::addLitBinSym(const std::string& sym,
+void ModelSmt::addLitBinSym(const std::string& sym,
                                const std::vector<Kind>& args,
                                const std::string& retWidth,
                                const std::string& retNum,
@@ -911,7 +910,7 @@ void ModelSmtNew::addLitBinSym(const std::string& sym,
   addLitSym(sym, args, Kind::ANY, ssres);
 }
 
-void ModelSmtNew::addLitSym(const std::string& sym,
+void ModelSmt::addLitSym(const std::string& sym,
                             const std::vector<Kind>& args,
                             Kind ret,
                             const std::string& retTerm)
@@ -920,7 +919,7 @@ void ModelSmtNew::addLitSym(const std::string& sym,
       std::tuple<std::vector<Kind>, Kind, std::string>(args, ret, retTerm);
 }
 
-void ModelSmtNew::addTermReduceSym(const std::string& sym,
+void ModelSmt::addTermReduceSym(const std::string& sym,
                                    const std::vector<Kind>& args,
                                    const std::string& retTerm)
 {
@@ -930,7 +929,7 @@ void ModelSmtNew::addTermReduceSym(const std::string& sym,
   addReduceSym(sym, args, smtEval(retTerm));
 }
 
-void ModelSmtNew::addEunoiaReduceSym(const std::string& sym,
+void ModelSmt::addEunoiaReduceSym(const std::string& sym,
                                      const std::vector<Kind>& args,
                                      const std::string& retTerm,
                                      bool isType)
@@ -944,14 +943,14 @@ void ModelSmtNew::addEunoiaReduceSym(const std::string& sym,
   }
 }
 
-void ModelSmtNew::addReduceSym(const std::string& sym,
+void ModelSmt::addReduceSym(const std::string& sym,
                                const std::vector<Kind>& args,
                                const std::string& retTerm)
 {
   d_symReduce[sym] = std::pair<std::vector<Kind>, std::string>(args, retTerm);
 }
 
-void ModelSmtNew::addRecReduceSym(const std::string& sym,
+void ModelSmt::addRecReduceSym(const std::string& sym,
                                   const std::vector<Kind>& args,
                                   const std::string& retTerm)
 {
@@ -966,7 +965,7 @@ void ModelSmtNew::addRecReduceSym(const std::string& sym,
   addReduceSym(sym, args, ss.str());
 }
 
-void ModelSmtNew::bind(const std::string& name, const Expr& e)
+void ModelSmt::bind(const std::string& name, const Expr& e)
 {
   if (e.getKind() != Kind::CONST)
   {
@@ -980,7 +979,7 @@ void ModelSmtNew::bind(const std::string& name, const Expr& e)
   d_declSeen.emplace_back(name, e);
 }
 
-void ModelSmtNew::finalizeDecl(const std::string& name, const Expr& e)
+void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
 {
   size_t nopqArgs = 0;
   Attr attr = d_state.getConstructorKind(e.getValue());
@@ -1081,7 +1080,7 @@ void ModelSmtNew::finalizeDecl(const std::string& name, const Expr& e)
   Assert(false) << "No model semantics found for " << name;
 }
 
-void ModelSmtNew::printDecl(const std::string& name,
+void ModelSmt::printDecl(const std::string& name,
                             const std::vector<Kind>& args,
                             Kind ret,
                             size_t nopqArgs)
@@ -1195,7 +1194,7 @@ void ModelSmtNew::printDecl(const std::string& name,
   }
 }
 
-void ModelSmtNew::printEvalCallBase(std::ostream& out,
+void ModelSmt::printEvalCallBase(std::ostream& out,
                                     const std::string& mname,
                                     const std::string& name,
                                     const std::vector<Kind>& args,
@@ -1234,7 +1233,7 @@ void ModelSmtNew::printEvalCallBase(std::ostream& out,
   out << ")) " << ret << ")" << std::endl;
 }
 
-void ModelSmtNew::printModelEvalCallBase(const std::string& name,
+void ModelSmt::printModelEvalCallBase(const std::string& name,
                                          const std::vector<Kind>& args,
                                          const std::string& ret)
 {
@@ -1243,7 +1242,7 @@ void ModelSmtNew::printModelEvalCallBase(const std::string& name,
   printEvalCallBase(d_eval, "$smtx_model_eval", ss.str(), args, ret);
 }
 
-void ModelSmtNew::printEunoiaReduce(const std::string& name,
+void ModelSmt::printEunoiaReduce(const std::string& name,
                                     const std::vector<Kind>& args,
                                     const std::string& ret)
 {
@@ -1252,7 +1251,7 @@ void ModelSmtNew::printEunoiaReduce(const std::string& name,
   printEvalCallBase(d_eoToSmt, "$eo_to_smt", name, args, ret);
 }
 
-void ModelSmtNew::printModelEvalCall(const std::string& name,
+void ModelSmt::printModelEvalCall(const std::string& name,
                                      const std::vector<Kind>& args)
 {
   std::stringstream callArgs;
@@ -1265,7 +1264,7 @@ void ModelSmtNew::printModelEvalCall(const std::string& name,
   printModelEvalCallBase(name, args, callArgs.str());
 }
 
-void ModelSmtNew::printTermInternal(Kind k,
+void ModelSmt::printTermInternal(Kind k,
                                     const std::string& term,
                                     std::ostream& os)
 {
@@ -1285,7 +1284,7 @@ void ModelSmtNew::printTermInternal(Kind k,
   os << ret.str();
 }
 
-void ModelSmtNew::printConstFold(const std::string& name,
+void ModelSmt::printConstFold(const std::string& name,
                                  const std::vector<Kind>& args,
                                  Kind kret)
 {
@@ -1366,7 +1365,7 @@ void ModelSmtNew::printConstFold(const std::string& name,
   printAuxProgram(progName.str(), args, progCases, progParams);
 }
 
-void ModelSmtNew::printAuxProgram(const std::string& name,
+void ModelSmt::printAuxProgram(const std::string& name,
                                   const std::vector<Kind>& args,
                                   std::stringstream& progCases,
                                   std::stringstream& progParams)
@@ -1395,7 +1394,7 @@ void ModelSmtNew::printAuxProgram(const std::string& name,
   d_modelEvalProgs << "  )" << std::endl << ")" << std::endl;
 }
 
-void ModelSmtNew::printAuxProgramCase(const std::string& name,
+void ModelSmt::printAuxProgramCase(const std::string& name,
                                       const std::vector<Kind>& args,
                                       const std::string& ret,
                                       size_t& paramCount,
@@ -1435,7 +1434,7 @@ void ModelSmtNew::printAuxProgramCase(const std::string& name,
   progCases << ret << ")" << std::endl;
 }
 
-void ModelSmtNew::printLitReduce(const std::string& name,
+void ModelSmt::printLitReduce(const std::string& name,
                                  const std::vector<Kind>& args,
                                  Kind ret,
                                  const std::string& reduce)
@@ -1454,7 +1453,7 @@ void ModelSmtNew::printLitReduce(const std::string& name,
   printAuxProgram(progName.str(), args, progCases, progParams);
 }
 
-void ModelSmtNew::finalize()
+void ModelSmt::finalize()
 {
   for (std::pair<std::string, Expr>& d : d_declSeen)
   {
@@ -1475,7 +1474,7 @@ void ModelSmtNew::finalize()
 
   // now, go back and compile *.eo for the proof rules
   std::stringstream ssis;
-  ssis << s_plugin_path << "plugins/model_smt/model_smt_new.eo";
+  ssis << s_plugin_path << "plugins/model_smt/model_smt.eo";
   std::ifstream ins(ssis.str());
   std::ostringstream sss;
   sss << ins.rdbuf();
@@ -1496,5 +1495,4 @@ void ModelSmtNew::finalize()
   oute << finalSmt;
 }
 
-}  // namespace mnew
 }  // namespace ethos

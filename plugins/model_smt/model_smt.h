@@ -6,8 +6,8 @@
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
  ******************************************************************************/
-#ifndef PLUGIN_MODEL_SMT_NEW_H
-#define PLUGIN_MODEL_SMT_NEW_H
+#ifndef PLUGIN_MODEL_SMT_H
+#define PLUGIN_MODEL_SMT_H
 
 #include <map>
 #include <sstream>
@@ -16,16 +16,15 @@
 #include "../std_plugin.h"
 
 namespace ethos {
-namespace mnew {
 
 /**
  * Used to generate a *.eo file that defines SMT-LIB model semantics.
  */
-class ModelSmtNew : public StdPlugin
+class ModelSmt : public StdPlugin
 {
  public:
-  ModelSmtNew(State& s);
-  ~ModelSmtNew();
+  ModelSmt(State& s);
+  ~ModelSmt();
   /** */
   void bind(const std::string& name, const Expr& e) override;
   /** Finalize */
@@ -244,7 +243,6 @@ class ModelSmtNew : public StdPlugin
                               const std::string& ret);
 };
 
-}  // namespace mnew
 }  // namespace ethos
 
 #endif
