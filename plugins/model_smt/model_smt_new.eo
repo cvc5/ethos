@@ -56,8 +56,6 @@
 (define $sm_string ((s $smt_builtin_String)) ($emb_sm.String s))
 ; helpers
 (define $sm_string_empty () ($emb_sm.String $smt_builtin_str_empty))
-(define $sm_string_c0 () ($emb_sm.String ($smt_apply_0 """0""")))
-(define $sm_string_c9 () ($emb_sm.String ($smt_apply_0 """9""")))
 
 (declare-parameterized-const $emb_sm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
@@ -1158,16 +1156,3 @@ $EO_TO_SMT_CASES$
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end
 
-; ********** temporary delete once old model is deleted
-(program $mk_vsm_bool ((b $smt_builtin_Bool))
-  :signature ($smt_builtin_Bool) $smt_Value
-  (
-  (($mk_vsm_bool b) ($vsm_bool b))
-  )
-)
-(program $mk_sm_const ((v $smt_Value) (T $smt_Type))
-  :signature ($smt_Value $smt_Type) $smt_Term
-  (
-  (($mk_sm_const v T) ($sm_Const v T))
-  )
-)

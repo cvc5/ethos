@@ -147,8 +147,15 @@ void DesugarChecker::finalizeRule(const Expr& v)
   {
     d_rules << "$emb_cmd." << vname << ")" << std::endl;
   }
-  d_ruleInvokes << "  (($eo_invoke_cmd S ($cmd_" << vname << invokePat.str()
-                << ")) ";
+  d_ruleInvokes << "  (($eo_invoke_cmd S ";
+  if (invokePat.str().empty())
+  {
+    d_ruleInvokes << "$cmd_" << vname << ")";
+  }
+  else 
+  {
+    d_ruleInvokes << "($cmd_" << vname << invokePat.str()<< ")) ";
+  }
   if (isAssume)
   {
     d_ruleInvokes << "($eo_invoke_cmd_pop_" << vname << " S" << invokeRet.str()

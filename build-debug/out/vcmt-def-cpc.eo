@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 281
+; #trim-defs: 279
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -955,18 +955,6 @@
   :signature (Bool) Bool
   (
   (($eo_model_unsat F) ($smt_builtin_ite ($smt_builtin_veq ($smtx_model_eval ($eo_to_smt F)) $vsm_false) true false))
-  )
-)
-(program $mk_vsm_bool ((b $smt_builtin_Bool))
-  :signature ($smt_builtin_Bool) $smt_Value
-  (
-  (($mk_vsm_bool b) ($vsm_bool b))
-  )
-)
-(program $mk_sm_const ((v $smt_Value) (T $smt_Type))
-  :signature ($smt_Value $smt_Type) $smt_Term
-  (
-  (($mk_sm_const v T) ($sm_Const v T))
   )
 )
 (program $eovc_symm ((F Bool))

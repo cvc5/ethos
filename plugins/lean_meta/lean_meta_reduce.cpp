@@ -592,6 +592,8 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   else
   {
     out = &d_defs;
+    // FIXME
+    decl << "partial ";
   }
   // exception: conversion from Eunoia to SMT is printed on defs
   if (vname.compare(0, 10, "$eo_to_smt")==0)
@@ -659,6 +661,9 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   // compile the pattern matching
   std::stringstream cases;
   std::stringstream casesEnd;
+  // whether we should do an ITE output instead of a match
+  // this is to speed up the Lean C compiler
+  bool optIte = (ncases>=10 && macroStartArg+1==nargs);
   // If the return type does not have meta-kind Eunoia, then it cannot get
   // stuck. We ensure that all programs over such types are total.
   // We also are not a Eunoia program if we called this method via a define
@@ -738,9 +743,9 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     if (!isCheckerDef && (retk == MetaKind::EUNOIA || retk == MetaKind::PROOF))
     {
       cases << "  | ";
-      for (size_t j = 1; j < nargs; j++)
+      for (size_t j = macroStartArg; j < nargs; j++)
       {
-        if (j > 1)
+        if (j > macroStartArg)
         {
           cases << ", ";
         }

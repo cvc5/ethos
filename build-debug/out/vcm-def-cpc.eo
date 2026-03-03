@@ -97,6 +97,8 @@
 (define $smt_builtin_str_empty () ($smt_apply_0 """"""))
 (define $smt_builtin_str_tuple_name () ($smt_apply_0 """@Tuple"""))
 (define $smt_builtin_str_vname () ($smt_apply_0 """@x"""))
+(define $smt_builtin_str_c0 () ($smt_apply_0 """0"""))
+(define $smt_builtin_str_c9 () ($smt_apply_0 """9"""))
 (define $smt_builtin_str_= ((x1 $smt_builtin_String) (x2 $smt_builtin_String)) ($smt_apply_2 "streq" x1 x2))
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
@@ -1140,10 +1142,11 @@
    (d2 $eo_Datatype) (ci $smt_builtin_Int))
   :signature ($smt_builtin_String $eo_Datatype $eo_Datatype $smt_builtin_Int) $eo_List
   (
-  (($eo_datatype_constructors_rec s d $edt_null ci) $eo_List_nil)
   (($eo_datatype_constructors_rec s d ($edt_sum c d2) ci)
     ($eo_List_cons ($eot_DtCons s d ci)
       ($eo_datatype_constructors_rec s d d2 ($smt_builtin_z_inc ci))))
+  ; assumes d2 is $edt_null
+  (($eo_datatype_constructors_rec s d d2 ci) $eo_List_nil)
   )
 )
 
@@ -1365,8 +1368,6 @@
 (define $sm_string ((s $smt_builtin_String)) ($emb_sm.String s))
 ; helpers
 (define $sm_string_empty () ($emb_sm.String $smt_builtin_str_empty))
-(define $sm_string_c0 () ($emb_sm.String ($smt_apply_0 """0""")))
-(define $sm_string_c9 () ($emb_sm.String ($smt_apply_0 """9""")))
 
 (declare-parameterized-const $emb_sm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
@@ -2502,19 +2503,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end
 
-; ********** temporary delete once old model is deleted
-(program $mk_vsm_bool ((b $smt_builtin_Bool))
-  :signature ($smt_builtin_Bool) $smt_Value
-  (
-  (($mk_vsm_bool b) ($vsm_bool b))
-  )
-)
-(program $mk_sm_const ((v $smt_Value) (T $smt_Type))
-  :signature ($smt_Value $smt_Type) $smt_Term
-  (
-  (($mk_sm_const v T) ($sm_Const v T))
-  )
-)
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (

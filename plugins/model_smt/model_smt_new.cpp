@@ -635,7 +635,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addEunoiaReduceSym("@strings_stoi_non_digit",
                      {kString},
                      "($eo_to_smt (str.indexof_re x1 (re.comp (re.range "
-                     "$sm_string_c0 $sm_string_c9)) 0))");
+                     "($eot_string $smt_builtin_str_c0) ($eot_string $smt_builtin_str_c9))) 0))");
   std::stringstream ssStringsDeqDiff;
   ssStringsDeqDiff
       << "(eo::define ((i ($sm_Var $smt_builtin_str_vname $tsm_Int))) ";
@@ -1217,7 +1217,7 @@ void ModelSmtNew::printEvalCallBase(std::ostream& out,
     if (k == Kind::VARIABLE)
     {
       // variable lists
-      out << " ($eo_List_cons ($eo_Var s T) x" << icount << ")";
+      out << " ($eo_List_cons ($eot_Var s T) x" << icount << ")";
     }
     else if (k == Kind::EVAL_CONS)
     {

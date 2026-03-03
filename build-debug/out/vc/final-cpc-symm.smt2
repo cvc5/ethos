@@ -850,16 +850,6 @@
     (ite (veq ($smtx_model_eval ($eo_to_smt x1)) (vsm.Boolean false)) (eo.Boolean true) (eo.Boolean false))
     eo.Stuck))) :pattern (($eo_model_unsat x1)))) :named sm.axiom.$eo_model_unsat))
 
-; program: $mk_vsm_bool
-(define-fun $mk_vsm_bool ((x1 Bool)) vsm.Value
-    (vsm.Boolean x1)
-)
-
-; program: $mk_sm_const
-(define-fun $mk_sm_const ((x1 vsm.Value) (x2 tsm.Type)) sm.Term
-    (sm.Const x1 x2)
-)
-
 ; program: $eovc_symm
 (define-fun $eovc_symm ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
@@ -885,34 +875,34 @@
 ; only evaluate to v if it is of type T.
 (define-fun texists_total ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (exists ((v vsm.Value))
-    (= ($smtx_model_eval ($smtx_substitute s T ($mk_sm_const v T) F)) tgt)))
+    (= ($smtx_model_eval ($smtx_substitute s T (sm.Const v T) F)) tgt)))
 
 ; true iff all values of type T when substituted into F are evaluated as tgt.
 (define-fun tforall_total ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (forall ((v vsm.Value))
-    (= ($smtx_model_eval ($smtx_substitute s T ($mk_sm_const v T) F)) tgt)))
+    (= ($smtx_model_eval ($smtx_substitute s T (sm.Const v T) F)) tgt)))
 
 ; exists
 (assert (forall ((s String) (T tsm.Type) (F sm.Term))
   (= (texists s T F)
-     (ite (texists_total s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
-     (ite (tforall_total s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
+     (ite (texists_total s T F (vsm.Boolean true)) (vsm.Boolean true)
+     (ite (tforall_total s T F (vsm.Boolean false)) (vsm.Boolean false)
        vsm.NotValue)))))
   
 ; forall
 (assert (forall ((s String) (T tsm.Type) (F sm.Term))
   (= (tforall s T F)
-     (ite (texists_total s T F ($mk_vsm_bool false)) ($mk_vsm_bool false)
-     (ite (tforall_total s T F ($mk_vsm_bool true)) ($mk_vsm_bool true)
+     (ite (texists_total s T F (vsm.Boolean false)) (vsm.Boolean false)
+     (ite (tforall_total s T F (vsm.Boolean true)) (vsm.Boolean true)
        vsm.NotValue)))))
 
 ; choice
 ; If there exists a value making the existential true, we can assume
 ; that substituting with choice also makes it true.
 (assert (forall ((s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
-  (=> (texists_total s T F ($mk_vsm_bool true))
-      (= ($smtx_model_eval ($smtx_substitute s T ($mk_sm_const (tchoice s T F) T) F))
-         ($mk_vsm_bool true)))))
+  (=> (texists_total s T F (vsm.Boolean true))
+      (= ($smtx_model_eval ($smtx_substitute s T (sm.Const (tchoice s T F) T) F))
+         (vsm.Boolean true)))))
 
 ; whether two values are extensionally equal
 (define-fun t_ext_equal ((v1 vsm.Value) (v2 vsm.Value)) Bool

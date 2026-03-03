@@ -827,10 +827,11 @@
    (d2 $eo_Datatype) (ci $smt_builtin_Int))
   :signature ($smt_builtin_String $eo_Datatype $eo_Datatype $smt_builtin_Int) $eo_List
   (
-  (($eo_datatype_constructors_rec s d $edt_null ci) $eo_List_nil)
   (($eo_datatype_constructors_rec s d ($edt_sum c d2) ci)
     ($eo_List_cons ($eot_DtCons s d ci)
       ($eo_datatype_constructors_rec s d d2 ($smt_builtin_z_inc ci))))
+  ; assumes d2 is $edt_null
+  (($eo_datatype_constructors_rec s d d2 ci) $eo_List_nil)
   )
 )
 
