@@ -527,6 +527,7 @@ inductive Term : Type where
   | DatatypeType : eo_lit_String -> Datatype -> Term
   | DtCons : eo_lit_String -> Datatype -> eo_lit_Int -> Term
   | DtSel : eo_lit_String -> Datatype -> eo_lit_Int -> eo_lit_Int -> Term
+  | USort : eo_lit_Int -> Term
   | UConst : eo_lit_Int -> Term -> Term
   | not : Term
   | and : Term
@@ -569,52 +570,7 @@ inductive Proof : Type where
 
 mutual
 
-def __eo_proven : Proof -> Term
-  | (Proof.pf F) => F
-  | _ => Term.Stuck
-
-
 def __eo_Numeral : Term := Term.Int
-def __eo_Bool : Term := Term.Bool
-def __eo_bool (x : eo_lit_Bool) : Term :=
-  (Term.Boolean x)
-
-def __eo_numeral (x : eo_lit_Int) : Term :=
-  (Term.Numeral x)
-
-def __eo_rational (x : eo_lit_Rat) : Term :=
-  (Term.Rational x)
-
-def __eo_string (x : eo_lit_String) : Term :=
-  (Term.String x)
-
-def __eo_binary (w : eo_lit_Int) (v : eo_lit_Int) : Term :=
-  (Term.Binary w v)
-
-def __eo_Type : Term := Term.Type
-def __eo_stuck : Term := Term.Stuck
-def __eo_apply : Term -> Term -> Term
-  | x, y => (Term.Apply x y)
-
-
-def __eo_fun_type : Term := Term.FunType
-def __eo_Var (s : eo_lit_String) : Term -> Term
-  | T => (Term.Var s T)
-
-
-def __eo_DatatypeType (s : eo_lit_String) (d : Datatype) : Term :=
-  (Term.DatatypeType s d)
-
-def __eo_DtCons (s : eo_lit_String) (d : Datatype) (ci : eo_lit_Int) : Term :=
-  (Term.DtCons s d ci)
-
-def __eo_DtSel (s : eo_lit_String) (d : Datatype) (ci : eo_lit_Int) (ai : eo_lit_Int) : Term :=
-  (Term.DtSel s d ci ai)
-
-def __eo_UConst (n : eo_lit_Int) : Term -> Term
-  | T => (Term.UConst n T)
-
-
 def __eo_mk_apply : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck

@@ -1141,7 +1141,7 @@ void ModelSmtNew::printDecl(const std::string& name,
       // integer index on types are opaque (i.e. BitVec)
       stmp << "$smt_builtin_Int :opaque";
       macroOpqApply << " x" << (i + 1);
-      eoToSmtPatArgs << " ($eo_numeral n" << (i + 1) << ")";
+      eoToSmtPatArgs << " ($eot_numeral n" << (i + 1) << ")";
       eoToSmtRetArgs << " n" << (i + 1);
     }
     else if (ret != Kind::TYPE)

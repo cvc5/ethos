@@ -1036,8 +1036,8 @@ $EO_TO_SMT_AUX$
   (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
   :signature (Type) $smt_Type
   (
-  (($eo_to_smt_type Bool)                   $tsm_Bool)
-  (($eo_to_smt_type ($eo_DatatypeType s d)) ($tsm_Datatype s ($eo_to_smt_datatype d)))
+  (($eo_to_smt_type Bool)                     $tsm_Bool)
+  (($eo_to_smt_type ($eot_DatatypeType s d))  ($tsm_Datatype s ($eo_to_smt_datatype d)))
 $EO_TO_SMT_TYPE_CASES$
   (($eo_to_smt_type T)                      $tsm_none)
   )
@@ -1123,14 +1123,14 @@ $EO_TO_SMT_TYPE_CASES$
    (f (-> U T)) (y U) (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
   :signature (T) $smt_Term
   (
-  (($eo_to_smt ($eo_bool b))        ($sm_bool b))
-  (($eo_to_smt ($eo_numeral n))     ($sm_numeral n))
-  (($eo_to_smt ($eo_rational r))    ($sm_rational r))
-  (($eo_to_smt ($eo_string s))      ($sm_string s))
-  (($eo_to_smt ($eo_binary w n))    ($sm_binary w n))
-  (($eo_to_smt ($eo_Var s T))       ($sm_Var s ($eo_to_smt_type T)))
-  (($eo_to_smt ($eo_DtCons s d n))  ($sm_DtCons s ($eo_to_smt_datatype d) n))
-  (($eo_to_smt ($eo_DtSel s d n m)) ($sm_DtSel s ($eo_to_smt_datatype d) n m))
+  (($eo_to_smt ($eot_bool b))        ($sm_bool b))
+  (($eo_to_smt ($eot_numeral n))     ($sm_numeral n))
+  (($eo_to_smt ($eot_rational r))    ($sm_rational r))
+  (($eo_to_smt ($eot_string s))      ($sm_string s))
+  (($eo_to_smt ($eot_binary w n))    ($sm_binary w n))
+  (($eo_to_smt ($eot_Var s T))       ($sm_Var s ($eo_to_smt_type T)))
+  (($eo_to_smt ($eot_DtCons s d n))  ($sm_DtCons s ($eo_to_smt_datatype d) n))
+  (($eo_to_smt ($eot_DtSel s d n m)) ($sm_DtSel s ($eo_to_smt_datatype d) n m))
 $EO_TO_SMT_CASES$
   ; TODO: maybe a datatype constructor or selector???
   (($eo_to_smt (f y))               ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
