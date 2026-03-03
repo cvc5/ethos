@@ -9,6 +9,9 @@
 # rule. If the generated *.smt2 is unsat, then the proof rule is shown to be
 # sound by this toolchain.
 
+# Example: (for haniel.smt2)
+# ./run_gen_lean "symm and_elim chain_m_resolution cong scope process_scope implies_elim resolution reordering cnf_and_pos cnf_and_neg"
+
 # The name of a EO signature
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
 #INPUT="../../cvc5-ajr/proofs/eo/alethe/alethe.eo"

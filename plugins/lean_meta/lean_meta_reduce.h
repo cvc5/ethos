@@ -90,6 +90,10 @@ class LeanMetaReduce : public StdPlugin
   void finalizeDecl(const Expr& e);
   static bool isProgram(const Expr& t);
   static bool isSmtApplyApp(const Expr& oApp);
+  void finalizeStandalone();
+  void finalizeChecker();
+  void finalizeSmtModel();
+  void finalizeSpec();
   /**
    * ctx impacts __eo_lit vs. __smt_lit
    */

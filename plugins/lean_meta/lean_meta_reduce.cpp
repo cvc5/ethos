@@ -929,59 +929,110 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   (*out) << std::endl;
 }
 
-void LeanMetaReduce::finalize()
+void LeanMetaReduce::finalizeStandalone()
 {
-  finalizePrograms();
-  auto replace = [](std::string& txt,
-                    const std::string& tag,
-                    const std::string& replacement) {
-    auto pos = txt.find(tag);
-    if (pos != std::string::npos)
-    {
-      txt.replace(pos, tag.length(), replacement);
-    }
-  };
-
   // make the final Lean encoding
+  // plugins/lean_meta/lean_meta.lean is the standalone test
   std::stringstream ssi;
   ssi << s_plugin_path << "plugins/lean_meta/lean_meta.lean";
   std::ifstream in(ssi.str());
   std::ostringstream ss;
   ss << in.rdbuf();
   std::string finalLean = ss.str();
+  replace(finalLean, "$LEAN_DEFS$", d_defs.str());
+  replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
+  replace(finalLean, "$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str());
+  replace(finalLean, "$LEAN_CHECKER_DEFS$", d_eoChecker.str());
+  std::stringstream sso;
+  sso << s_plugin_path << "plugins/lean_meta/lean_meta_gen.lean";
+  Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
+  std::ofstream out(sso.str());
+  out << finalLean;
+}
 
+void LeanMetaReduce::finalizeChecker()
+{
+  // make the final Lean encoding
+  // plugins/lean_meta/lean_meta.lean is the standalone test
+  std::stringstream ssi;
+  ssi << s_plugin_path << "plugins/lean_meta/lean_meta_checker.lean";
+  std::ifstream in(ssi.str());
+  std::ostringstream ss;
+  ss << in.rdbuf();
+  std::string finalLean = ss.str();
+  replace(finalLean, "$LEAN_DEFS$", d_defs.str());
+  replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
+  replace(finalLean, "$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str());
+  replace(finalLean, "$LEAN_CHECKER_DEFS$", d_eoChecker.str());
+  std::stringstream sso;
+  sso << s_plugin_path << "plugins/lean_meta/lean_meta_checker_gen.lean";
+  Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
+  std::ofstream out(sso.str());
+  out << finalLean;
+}
+
+void LeanMetaReduce::finalizeSmtModel()
+{
+  // make the final Lean encoding
+  // plugins/lean_meta/lean_meta.lean is the standalone test
+  std::stringstream ssi;
+  ssi << s_plugin_path << "plugins/lean_meta/lean_meta_smt_model.lean";
+  std::ifstream in(ssi.str());
+  std::ostringstream ss;
+  ss << in.rdbuf();
+  std::string finalLean = ss.str();
+  // smt layer
+  replace(finalLean, "$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str());
+  replace(finalLean, "$LEAN_SMT_TERM_DEF$", d_smtDt.str());
+  replace(finalLean, "$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str());
+  replace(finalLean, "$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str());
+  std::stringstream sso;
+  sso << s_plugin_path << "plugins/lean_meta/lean_meta_smt_model_gen.lean";
+  Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
+  std::ofstream out(sso.str());
+  out << finalLean;
+}
+
+void LeanMetaReduce::finalizeSpec()
+{
+  // make the final Lean encoding
+  // plugins/lean_meta/lean_meta.lean is the standalone test
+  std::stringstream ssi;
+  ssi << s_plugin_path << "plugins/lean_meta/lean_meta_spec.lean";
+  std::ifstream in(ssi.str());
+  std::ostringstream ss;
+  ss << in.rdbuf();
+  std::string finalLean = ss.str();
+  replace(finalLean, "$LEAN_THMS$", d_thms.str());
+  replace(finalLean, "$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str());
+  replace(finalLean, "$LEAN_EO_IS_OBJ$", d_eoIsObj.str());
+  replace(finalLean, "$LEAN_EO_IS_REFUTATION_DEF$", d_eoIsRef.str());
+  std::stringstream sso;
+  sso << s_plugin_path << "plugins/lean_meta/lean_meta_spec_gen.lean";
+  Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
+  std::ofstream out(sso.str());
+  out << finalLean;
+}
+
+void LeanMetaReduce::finalize()
+{
+  finalizePrograms();
   // is obj is trivial, call the method
   d_eoIsObj << "  | intro (x : Term) : eo_is_obj x (__eo_to_smt x)"
             << std::endl;
   // refutation is if the method returns true
   d_eoIsRef << "  | intro (F : Term) (c : CCmdList) : " << std::endl;
   d_eoIsRef << "    (__eo_checker_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation F c)" << std::endl;
-
-  replace(finalLean, "$LEAN_DEFS$", d_defs.str());
-  replace(finalLean, "$LEAN_THMS$", d_thms.str());
-  replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
-  replace(finalLean, "$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str());
-  replace(finalLean, "$LEAN_EO_IS_OBJ$", d_eoIsObj.str());
-  replace(finalLean, "$LEAN_EO_IS_REFUTATION_DEF$", d_eoIsRef.str());
-
-  // smt layer
-  replace(finalLean, "$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str());
-  replace(finalLean, "$LEAN_SMT_TERM_DEF$", d_smtDt.str());
-  replace(finalLean, "$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str());
-  replace(finalLean, "$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str());
-
+    
   if (d_ruleDt.str().empty())
   {
     d_ruleDt << "  | none : CRule" << std::endl;
   }
-  replace(finalLean, "$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str());
-  replace(finalLean, "$LEAN_CHECKER_DEFS$", d_eoChecker.str());
-
-  std::stringstream sso;
-  sso << s_plugin_path << "plugins/lean_meta/lean_meta_gen.lean";
-  Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
-  std::ofstream out(sso.str());
-  out << finalLean;
+  finalizeStandalone();
+  // versions that split
+  finalizeChecker();
+  finalizeSmtModel();
+  finalizeSpec();
 }
 
 bool LeanMetaReduce::echo(const std::string& msg)

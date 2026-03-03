@@ -1,0 +1,153 @@
+import Cpc.SmtEval
+
+set_option linter.unusedVariables false
+set_option maxHeartbeats 1000000
+
+namespace Eo
+
+
+/- Eunoia literal evaluation defined -/
+
+abbrev eo_lit_Bool := SmtEval.smt_lit_Bool
+abbrev eo_lit_Int := SmtEval.smt_lit_Int
+abbrev eo_lit_Rat := SmtEval.smt_lit_Rat
+abbrev eo_lit_String := SmtEval.smt_lit_String
+
+partial def eo_lit_ite {T : Type} (c : eo_lit_Bool) (t e : T) : T :=
+  if c then t else e
+abbrev eo_lit_not := SmtEval.smt_lit_not
+abbrev eo_lit_and := SmtEval.smt_lit_and
+abbrev eo_lit_iff := SmtEval.smt_lit_iff
+abbrev eo_lit_or := SmtEval.smt_lit_or
+abbrev eo_lit_xor := SmtEval.smt_lit_xor
+abbrev eo_lit_zplus := SmtEval.smt_lit_zplus
+abbrev eo_lit_zmult := SmtEval.smt_lit_zmult
+abbrev eo_lit_zneg := SmtEval.smt_lit_zneg
+abbrev eo_lit_zeq := SmtEval.smt_lit_zeq
+abbrev eo_lit_zleq := SmtEval.smt_lit_zleq
+abbrev eo_lit_zlt := SmtEval.smt_lit_zlt
+abbrev eo_lit_div := SmtEval.smt_lit_div
+abbrev eo_lit_mod := SmtEval.smt_lit_mod
+abbrev eo_lit_int_pow2 := SmtEval.smt_lit_int_pow2
+abbrev eo_lit_piand := SmtEval.smt_lit_piand
+abbrev eo_lit_mk_rational := SmtEval.smt_lit_mk_rational
+abbrev eo_lit_qplus := SmtEval.smt_lit_qplus
+abbrev eo_lit_qmult := SmtEval.smt_lit_qmult
+abbrev eo_lit_qneg := SmtEval.smt_lit_qneg
+abbrev eo_lit_qeq := SmtEval.smt_lit_qeq
+abbrev eo_lit_qleq := SmtEval.smt_lit_qleq
+abbrev eo_lit_qlt := SmtEval.smt_lit_qlt
+abbrev eo_lit_qdiv := SmtEval.smt_lit_qdiv
+abbrev eo_lit_to_int := SmtEval.smt_lit_to_int
+abbrev eo_lit_to_real := SmtEval.smt_lit_to_real
+abbrev eo_lit_str_len := SmtEval.smt_lit_str_len
+abbrev eo_lit_str_concat := SmtEval.smt_lit_str_concat
+abbrev eo_lit_str_substr := SmtEval.smt_lit_str_substr
+abbrev eo_lit_str_indexof := SmtEval.smt_lit_str_indexof
+abbrev eo_lit_str_to_code := SmtEval.smt_lit_str_to_code
+abbrev eo_lit_str_from_code := SmtEval.smt_lit_str_from_code
+
+abbrev __smtx_pow2 := SmtEval.__smtx_pow2
+abbrev __smtx_bit := SmtEval.__smtx_bit
+abbrev __smtx_msb := SmtEval.__smtx_msb
+abbrev __smtx_binary_or := SmtEval.__smtx_binary_or
+abbrev __smtx_binary_xor := SmtEval.__smtx_binary_xor
+abbrev __smtx_binary_not := SmtEval.__smtx_binary_not
+abbrev __smtx_binary_max := SmtEval.__smtx_binary_max
+abbrev __smtx_binary_uts := SmtEval.__smtx_binary_uts
+abbrev __smtx_binary_concat := SmtEval.__smtx_binary_concat
+abbrev __smtx_binary_extract := SmtEval.__smtx_binary_extract
+
+
+/- Term definition -/
+
+mutual
+
+inductive Term : Type where
+$LEAN_TERM_DEF$
+deriving Repr, DecidableEq, Inhabited
+
+/-
+Eunoia datatypes.
+-/
+inductive Datatype : Type where
+  | null : Datatype
+  | sum : DatatypeCons -> Datatype -> Datatype
+deriving Repr, DecidableEq, Inhabited
+
+/-
+Eunoia datatype constructors.
+-/
+inductive DatatypeCons : Type where
+  | unit : DatatypeCons
+  | cons : Term -> DatatypeCons -> DatatypeCons
+deriving Repr, DecidableEq, Inhabited
+
+end
+
+/- Term equality -/
+def eo_lit_teq : Term -> Term -> eo_lit_Bool
+  | x, y => decide (x = y)
+  
+/- Used for defining hash -/
+def __smtx_hash : Term -> eo_lit_Int
+  | _ => 0 -- FIXME
+
+/- Proofs -/
+inductive Proof : Type where
+  | pf : Term -> Proof
+  | Stuck : Proof
+
+/- Definition of Eunoia signature -/
+
+mutual
+
+$LEAN_DEFS$
+
+end
+
+/- Definition of the checker -/
+
+/- FIXME: make Int -/
+abbrev CIndex := Term
+
+/-
+-/
+inductive CIndexList : Type where
+  | nil : CIndexList
+  | cons : CIndex -> CIndexList -> CIndexList
+deriving Repr, DecidableEq, Inhabited
+
+/-
+-/
+inductive CStateObj : Type where
+  | assume : Term -> CStateObj
+  | assume_push : Term -> CStateObj
+  | proven : Term -> CStateObj
+deriving Repr, DecidableEq, Inhabited
+
+/-
+-/
+inductive CState : Type where
+  | nil : CState
+  | cons : CStateObj -> CState -> CState
+  | fail : CState
+deriving Repr, DecidableEq, Inhabited
+
+/-
+-/
+inductive CCmd : Type where
+$LEAN_CHECKER_RULE_DEF$
+deriving Repr, DecidableEq, Inhabited
+
+/-
+-/
+inductive CCmdList : Type where
+  | nil : CCmdList
+  | cons : CCmd -> CCmdList -> CCmdList
+deriving Repr, DecidableEq, Inhabited
+
+$LEAN_CHECKER_DEFS$
+
+
+end Eo

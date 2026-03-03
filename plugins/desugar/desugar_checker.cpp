@@ -72,6 +72,12 @@ void DesugarChecker::finalizeRule(const Expr& v)
       }
     }
   }
+  // assumption is an ordinary argument
+  if (isAssume)
+  {
+    Assert(nargs > 0);
+    nargs--;
+  }
   // first, pass the ordinary arguments
   Assert(nargs <= 10);
   for (size_t i = 1; i <= nargs; i++)
@@ -91,9 +97,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
   // then, pass the assumption
   if (isAssume)
   {
-    Assert(npremises > 0);
-    npremises--;
-    progRet << " ($eo_pf A)";
+    progRet << " A";
   }
   // then the premises
   if (!plCons.isNull())
