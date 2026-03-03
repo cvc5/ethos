@@ -205,7 +205,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     //           << std::endl;
     if (ck == Kind::APPLY)
     {
-      Assert(tcur[0].getKind()!=Kind::PROGRAM) << "Cannot match on program " << tcur[0];
+      Assert(tcur[0].getKind() != Kind::PROGRAM)
+          << "Cannot match on program " << tcur[0];
       Assert(tcur.getNumChildren() == 2);
       // Determine if this is a Eunoia internal term, or an
       // SMT term eagerly here
@@ -1122,7 +1123,8 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
                                     std::string& cname) const
 {
   std::string sname = getName(e);
-  if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term" || sname=="$eo_Datatype" || sname=="$eo_DatatypeCons")
+  if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term"
+      || sname == "$eo_Datatype" || sname == "$eo_DatatypeCons")
   {
     // internal-only symbol, e.g. one used for defining the deep embedding
     cname = sname;
@@ -1157,6 +1159,5 @@ bool SmtMetaReduce::isProgramApp(const Expr& app)
   return (app.getKind() == Kind::APPLY
           && app[0].getKind() == Kind::PROGRAM_CONST);
 }
-
 
 }  // namespace ethos

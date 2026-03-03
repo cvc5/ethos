@@ -30,7 +30,9 @@ std::string metaKindToString(MetaKind k)
     case MetaKind::SMT_MAP: ss << "SMT_MAP"; break;
     case MetaKind::SMT_SEQ: ss << "SMT_SEQ"; break;
     case MetaKind::SMT_DATATYPE: ss << "SMT_DATATYPE"; break;
-    case MetaKind::SMT_DATATYPE_CONSTRUCTOR: ss << "SMT_DATATYPE_CONSTRUCTOR"; break;
+    case MetaKind::SMT_DATATYPE_CONSTRUCTOR:
+      ss << "SMT_DATATYPE_CONSTRUCTOR";
+      break;
     case MetaKind::CHECKER_STATE: ss << "CHECKER_STATE"; break;
     case MetaKind::CHECKER_STATE_OBJ: ss << "CHECKER_STATE_OBJ"; break;
     case MetaKind::CHECKER_CMD: ss << "CHECKER_CMD"; break;
@@ -62,14 +64,11 @@ std::string metaKindToPrefix(MetaKind k)
 }
 bool isSmtMetaKind(MetaKind k)
 {
-  return k == MetaKind::SMT_BUILTIN || 
-  k == MetaKind::SMT
-  || k == MetaKind::SMT_TYPE
-|| k == MetaKind::SMT_VALUE
-|| k == MetaKind::SMT_MAP
-|| k == MetaKind::SMT_SEQ
-|| k == MetaKind::SMT_DATATYPE
-|| k == MetaKind::SMT_DATATYPE_CONSTRUCTOR;
+  return k == MetaKind::SMT_BUILTIN || k == MetaKind::SMT
+         || k == MetaKind::SMT_TYPE || k == MetaKind::SMT_VALUE
+         || k == MetaKind::SMT_MAP || k == MetaKind::SMT_SEQ
+         || k == MetaKind::SMT_DATATYPE
+         || k == MetaKind::SMT_DATATYPE_CONSTRUCTOR;
 }
 bool isCheckerMetaKind(MetaKind k)
 {

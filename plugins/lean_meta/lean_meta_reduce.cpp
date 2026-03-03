@@ -255,7 +255,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   std::string smtStr = cleanSmtId(l->d_str.toString());
   // literals don't need smt_
   if (is_integer(smtStr) || smtStr == "true" || smtStr == "false"
-      || (!smtStr.empty() && smtStr.compare(0,1, "\"")==0))
+      || (!smtStr.empty() && smtStr.compare(0, 1, "\"") == 0))
   {
     return smtStr;
   }
@@ -555,7 +555,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     MetaKind vctx = getTypeMetaKind(vt);
     std::ostream* out = &d_smtDefs;
-    if (vctx==MetaKind::EUNOIA)
+    if (vctx == MetaKind::EUNOIA)
     {
       out = &d_defs;
       (*out) << "partial ";
@@ -601,16 +601,18 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     decl << "partial ";
   }
   // exception: conversion from Eunoia to SMT is printed on defs
-  if (vname.compare(0, 10, "$eo_to_smt")==0 || vname.compare(0, 9, "$eo_model")==0)
+  if (vname.compare(0, 10, "$eo_to_smt") == 0
+      || vname.compare(0, 9, "$eo_model") == 0)
   {
     out = &d_eoIsObjDefs;
   }
   decl << "def " << cleanId(vname);
   size_t macroStartArg = 1;
   bool macroSuccess = true;
-  while (macroSuccess && macroStartArg<vt.getNumChildren())
+  while (macroSuccess && macroStartArg < vt.getNumChildren())
   {
-    Trace("lean-meta") << "...check if argument " << macroStartArg << " is macro" << std::endl;
+    Trace("lean-meta") << "...check if argument " << macroStartArg
+                       << " is macro" << std::endl;
     if (vctxArgs[macroStartArg - 1] == MetaKind::EUNOIA)
     {
       macroSuccess = false;
@@ -620,7 +622,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     for (size_t i = 0; i < ncases; i++)
     {
       Expr vn = vprog[i][0][macroStartArg];
-      if ((v.isNull() && vn.getKind()==Kind::PARAM) || v==vn)
+      if ((v.isNull() && vn.getKind() == Kind::PARAM) || v == vn)
       {
         v = vn;
         continue;
@@ -638,8 +640,8 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   }
   // whether we should do an ITE output instead of a match
   // this is to speed up the Lean C compiler
-  bool optIte = false; // (ncases>=10 && macroStartArg+1==nargs);
-  //bool optIte = false;
+  bool optIte = false;  // (ncases>=10 && macroStartArg+1==nargs);
+  // bool optIte = false;
   if (optIte)
   {
     decl << "(__input : ";
@@ -663,10 +665,10 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   decl << retType.str();
   // Trace("lean-meta") << "DECLARE " << decl.str() << std::endl;
   Trace("lean-meta") << "*** FINALIZE " << v << std::endl;
-  if (!optIte && macroStartArg==vt.getNumChildren())
+  if (!optIte && macroStartArg == vt.getNumChildren())
   {
     // no cases necessary, just a macro
-    Assert (vprog.getNumChildren()==1);
+    Assert(vprog.getNumChildren() == 1);
     decl << " :=" << std::endl;
     decl << "  ";
     MetaKind bodyInitCtx = vctxArgs[nargs - 1];
@@ -696,7 +698,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       {
         continue;
       }
-      Assert (i>=macroStartArg);
+      Assert(i >= macroStartArg);
       if (optIte)
       {
         cases << "if let Term.Stuck := __input then Term.Stuck" << std::endl;
@@ -732,7 +734,8 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     Assert(hd.getNumChildren() == nargs);
     wasDefault = true;
     std::stringstream patMatch;
-    for (size_t j = macroStartArg, nhdchild = hd.getNumChildren(); j < nhdchild; j++)
+    for (size_t j = macroStartArg, nhdchild = hd.getNumChildren(); j < nhdchild;
+         j++)
     {
       if (j > macroStartArg)
       {
@@ -758,11 +761,13 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     {
       if (wasDefault)
       {
-        cases << "let " << patMatch.str() << " := __input; " << ssret.str() << std::endl;
+        cases << "let " << patMatch.str() << " := __input; " << ssret.str()
+              << std::endl;
       }
       else
       {
-        cases << "if let " << patMatch.str() << " := __input then " << ssret.str() << std::endl;
+        cases << "if let " << patMatch.str() << " := __input then "
+              << ssret.str() << std::endl;
         cases << "  else ";
       }
     }
@@ -779,7 +784,8 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     }
     // should be a datatype with stuck
     // checker definitions we ensure are total
-    else if (!isCheckerDef && (retk == MetaKind::EUNOIA || retk == MetaKind::PROOF))
+    else if (!isCheckerDef
+             && (retk == MetaKind::EUNOIA || retk == MetaKind::PROOF))
     {
       cases << "  | ";
       for (size_t j = macroStartArg; j < nargs; j++)
@@ -1064,8 +1070,10 @@ void LeanMetaReduce::finalize()
             << std::endl;
   // refutation is if the method returns true
   d_eoIsRef << "  | intro (F : Term) (c : CCmdList) : " << std::endl;
-  d_eoIsRef << "    (__eo_checker_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation F c)" << std::endl;
-    
+  d_eoIsRef << "    (__eo_checker_is_refutation F c) = (Term.Boolean true) -> "
+               "(eo_is_refutation F c)"
+            << std::endl;
+
   if (d_ruleDt.str().empty())
   {
     d_ruleDt << "  | none : CRule" << std::endl;

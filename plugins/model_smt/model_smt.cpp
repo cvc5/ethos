@@ -86,8 +86,7 @@ std::string smtNot(const std::string& c1)
   ss << "($smt_builtin_not " << c1 << ")";
   return ss.str();
 }
-std::string smtApp1(const std::string& app,
-                   const std::string& c1)
+std::string smtApp1(const std::string& app, const std::string& c1)
 {
   std::stringstream ss;
   ss << "($smt_apply_1 \"" << app << "\" " << c1 << ")";
@@ -462,7 +461,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssRepeatRet << "(concat";
   ssRepeatRet << " (repeat (- ($sm_numeral x1) 1) ($sm_binary x2 x3))";
   // TODO: maybe easier for termination?
-  //ssRepeatRet << " ($sm_Const ($smtx_model_eval_repeat ($vsm_numeral ($smt_builtin_z_dec x1))
+  // ssRepeatRet << " ($sm_Const ($smtx_model_eval_repeat ($vsm_numeral
+  // ($smt_builtin_z_dec x1))
   //                        ($vsm_binary x2 x3)) ($tsm_BitVec x2))";
   ssRepeatRet << " ($sm_binary x2 x3))";
   addLitSym("repeat",
@@ -625,7 +625,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.to_lower", {kString}, kString);
   addConstFoldSym("str.to_upper", {kString}, kString);
   // FIXME
-  //addEunoiaReduceSym("@strings_itos_result",
+  // addEunoiaReduceSym("@strings_itos_result",
   //                   {kInt, kInt},
   //                   "($eo_to_smt (str.from_int (mod x1 (^ 10 x2))))");
   addEunoiaReduceSym("@strings_stoi_result",
@@ -634,7 +634,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym("@strings_stoi_non_digit",
                      {kString},
                      "($eo_to_smt (str.indexof_re x1 (re.comp (re.range "
-                     "($eot_string $smt_builtin_str_c0) ($eot_string $smt_builtin_str_c9))) 0))");
+                     "($eot_string $smt_builtin_str_c0) ($eot_string "
+                     "$smt_builtin_str_c9))) 0))");
   std::stringstream ssStringsDeqDiff;
   ssStringsDeqDiff
       << "(eo::define ((i ($sm_Var $smt_builtin_str_vname $tsm_Int))) ";
@@ -851,7 +852,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 
   // for alethe
   addEunoiaReduceSym("@cl", {kT, kT}, "($eo_to_smt (or x1 x2))");
-  
+
   // FIXME: unhandled
   d_symIgnore["@strings_num_occur"] = true;
   d_symIgnore["@strings_num_occur_re"] = true;
@@ -864,28 +865,27 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 
 ModelSmt::~ModelSmt() {}
 
-void ModelSmt::addTypeSym(const std::string& sym,
-                             const std::vector<Kind>& args)
+void ModelSmt::addTypeSym(const std::string& sym, const std::vector<Kind>& args)
 {
   d_symIgnore[sym] = true;
   d_symTypes[sym] = args;
 }
 
 void ModelSmt::addHardCodeSym(const std::string& sym,
-                                 const std::vector<Kind>& args)
+                              const std::vector<Kind>& args)
 {
   d_symHardCode[sym] = args;
 }
 
 void ModelSmt::addConstFoldSym(const std::string& sym,
-                                  const std::vector<Kind>& args,
-                                  Kind ret)
+                               const std::vector<Kind>& args,
+                               Kind ret)
 {
   d_symConstFold[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
 
 void ModelSmt::addQuantifier(const std::string& sym,
-                                const std::vector<Kind>& args)
+                             const std::vector<Kind>& args)
 {
   // always call hard-coded method, without pre-evaluation
   std::stringstream ret;
@@ -894,10 +894,10 @@ void ModelSmt::addQuantifier(const std::string& sym,
 }
 
 void ModelSmt::addLitBinSym(const std::string& sym,
-                               const std::vector<Kind>& args,
-                               const std::string& retWidth,
-                               const std::string& retNum,
-                               bool reqSameWidth)
+                            const std::vector<Kind>& args,
+                            const std::string& retWidth,
+                            const std::string& retNum,
+                            bool reqSameWidth)
 {
   std::stringstream ssr;
   ssr << "($vsm_binary_mod_w " << retWidth << " " << retNum << ")";
@@ -911,17 +911,17 @@ void ModelSmt::addLitBinSym(const std::string& sym,
 }
 
 void ModelSmt::addLitSym(const std::string& sym,
-                            const std::vector<Kind>& args,
-                            Kind ret,
-                            const std::string& retTerm)
+                         const std::vector<Kind>& args,
+                         Kind ret,
+                         const std::string& retTerm)
 {
   d_symLitReduce[sym] =
       std::tuple<std::vector<Kind>, Kind, std::string>(args, ret, retTerm);
 }
 
 void ModelSmt::addTermReduceSym(const std::string& sym,
-                                   const std::vector<Kind>& args,
-                                   const std::string& retTerm)
+                                const std::vector<Kind>& args,
+                                const std::string& retTerm)
 {
   std::cout << "(echo \"trim-defs-cmd (depends " << sym << " " << retTerm
             << ")\")" << std::endl;
@@ -930,9 +930,9 @@ void ModelSmt::addTermReduceSym(const std::string& sym,
 }
 
 void ModelSmt::addEunoiaReduceSym(const std::string& sym,
-                                     const std::vector<Kind>& args,
-                                     const std::string& retTerm,
-                                     bool isType)
+                                  const std::vector<Kind>& args,
+                                  const std::string& retTerm,
+                                  bool isType)
 {
   std::cout << "(echo \"trim-defs-cmd (depends " << sym << " " << retTerm
             << ")\")" << std::endl;
@@ -944,15 +944,15 @@ void ModelSmt::addEunoiaReduceSym(const std::string& sym,
 }
 
 void ModelSmt::addReduceSym(const std::string& sym,
-                               const std::vector<Kind>& args,
-                               const std::string& retTerm)
+                            const std::vector<Kind>& args,
+                            const std::string& retTerm)
 {
   d_symReduce[sym] = std::pair<std::vector<Kind>, std::string>(args, retTerm);
 }
 
 void ModelSmt::addRecReduceSym(const std::string& sym,
-                                  const std::vector<Kind>& args,
-                                  const std::string& retTerm)
+                               const std::vector<Kind>& args,
+                               const std::string& retTerm)
 {
   std::stringstream ss;
   std::stringstream ssend;
@@ -1081,9 +1081,9 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
 }
 
 void ModelSmt::printDecl(const std::string& name,
-                            const std::vector<Kind>& args,
-                            Kind ret,
-                            size_t nopqArgs)
+                         const std::vector<Kind>& args,
+                         Kind ret,
+                         size_t nopqArgs)
 {
   std::stringstream tmp;
   std::ostream* out;
@@ -1195,10 +1195,10 @@ void ModelSmt::printDecl(const std::string& name,
 }
 
 void ModelSmt::printEvalCallBase(std::ostream& out,
-                                    const std::string& mname,
-                                    const std::string& name,
-                                    const std::vector<Kind>& args,
-                                    const std::string& ret)
+                                 const std::string& mname,
+                                 const std::string& name,
+                                 const std::vector<Kind>& args,
+                                 const std::string& ret)
 {
   out << "  ((" << mname << " ";
   if (args.empty())
@@ -1234,8 +1234,8 @@ void ModelSmt::printEvalCallBase(std::ostream& out,
 }
 
 void ModelSmt::printModelEvalCallBase(const std::string& name,
-                                         const std::vector<Kind>& args,
-                                         const std::string& ret)
+                                      const std::vector<Kind>& args,
+                                      const std::string& ret)
 {
   std::stringstream ss;
   ss << "$sm_" << name;
@@ -1243,8 +1243,8 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
 }
 
 void ModelSmt::printEunoiaReduce(const std::string& name,
-                                    const std::vector<Kind>& args,
-                                    const std::string& ret)
+                                 const std::vector<Kind>& args,
+                                 const std::string& ret)
 {
   // std::stringstream ss;
   // ss << "($eo_to_smt " << ret << ")";
@@ -1252,7 +1252,7 @@ void ModelSmt::printEunoiaReduce(const std::string& name,
 }
 
 void ModelSmt::printModelEvalCall(const std::string& name,
-                                     const std::vector<Kind>& args)
+                                  const std::vector<Kind>& args)
 {
   std::stringstream callArgs;
   callArgs << "($smtx_model_eval_" << name;
@@ -1265,8 +1265,8 @@ void ModelSmt::printModelEvalCall(const std::string& name,
 }
 
 void ModelSmt::printTermInternal(Kind k,
-                                    const std::string& term,
-                                    std::ostream& os)
+                                 const std::string& term,
+                                 std::ostream& os)
 {
   std::stringstream ret;
   if (d_kindToEoPrefix.find(k) != d_kindToEoPrefix.end())
@@ -1285,8 +1285,8 @@ void ModelSmt::printTermInternal(Kind k,
 }
 
 void ModelSmt::printConstFold(const std::string& name,
-                                 const std::vector<Kind>& args,
-                                 Kind kret)
+                              const std::vector<Kind>& args,
+                              Kind kret)
 {
   bool isOverloadArith = (args.size() > 0 && args[0] == Kind::PARAM);
   std::vector<Kind> argSchemas;
@@ -1346,9 +1346,10 @@ void ModelSmt::printConstFold(const std::string& name,
     ssret << retArgs.str() << ")";
     std::string ssrets = ssret.str();
     // partial cases are hard coded here
-    if (name=="/" || name=="div" || name=="mod")
+    if (name == "/" || name == "div" || name == "mod")
     {
-      std::string guard = name=="/" ? smtQEq("x2", "$smt_builtin_q_zero") : smtZEq("x2", "$smt_builtin_z_zero");
+      std::string guard = name == "/" ? smtQEq("x2", "$smt_builtin_q_zero")
+                                      : smtZEq("x2", "$smt_builtin_z_zero");
       ssrets = smtIte(guard, smtApp1(name + "_by_zero", "x1"), ssrets);
     }
     // print the term with the right type
@@ -1366,9 +1367,9 @@ void ModelSmt::printConstFold(const std::string& name,
 }
 
 void ModelSmt::printAuxProgram(const std::string& name,
-                                  const std::vector<Kind>& args,
-                                  std::stringstream& progCases,
-                                  std::stringstream& progParams)
+                               const std::vector<Kind>& args,
+                               std::stringstream& progCases,
+                               std::stringstream& progParams)
 {
   std::stringstream progSig;
   progSig << "(";
@@ -1395,11 +1396,11 @@ void ModelSmt::printAuxProgram(const std::string& name,
 }
 
 void ModelSmt::printAuxProgramCase(const std::string& name,
-                                      const std::vector<Kind>& args,
-                                      const std::string& ret,
-                                      size_t& paramCount,
-                                      std::ostream& progCases,
-                                      std::ostream& progParams)
+                                   const std::vector<Kind>& args,
+                                   const std::string& ret,
+                                   size_t& paramCount,
+                                   std::ostream& progCases,
+                                   std::ostream& progParams)
 {
   progCases << "  ((" << name;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
@@ -1435,9 +1436,9 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
 }
 
 void ModelSmt::printLitReduce(const std::string& name,
-                                 const std::vector<Kind>& args,
-                                 Kind ret,
-                                 const std::string& reduce)
+                              const std::vector<Kind>& args,
+                              Kind ret,
+                              const std::string& reduce)
 {
   std::stringstream progName;
   std::stringstream progCases;

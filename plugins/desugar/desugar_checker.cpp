@@ -88,8 +88,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
     macroRet << " x" << i;
     invokePat << " a" << i;
     invokeRet << " a" << i;
-    progParamList << " (T" << i << " Type) (a" << i << " T" << i
-                  << ")";
+    progParamList << " (T" << i << " Type) (a" << i << " T" << i << ")";
     progSig << " T" << i;
     progPat << " a" << i;
     progRet << " a" << i;
@@ -152,9 +151,9 @@ void DesugarChecker::finalizeRule(const Expr& v)
   {
     d_ruleInvokes << "$cmd_" << vname << ")";
   }
-  else 
+  else
   {
-    d_ruleInvokes << "($cmd_" << vname << invokePat.str()<< ")) ";
+    d_ruleInvokes << "($cmd_" << vname << invokePat.str() << ")) ";
   }
   if (isAssume)
   {
