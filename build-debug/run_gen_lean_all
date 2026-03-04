@@ -38,30 +38,26 @@ DESUGAR_DEPS="\$smtx_hash \$eo_reverse_hash \$eot_Bool \$eot_Type \$eot_fun_type
 sed -i "s/eo-desugar-deps/$DESUGAR_DEPS/g" $STD_DESUGAR_OUT
 sed -i "s/eo-desugar/lean-meta/g" $STD_DESUGAR_OUT
 cp $STD_DESUGAR_OUT $INIT_DESUGAR
-
-echo "**** lean_meta: Run ethos + model-smt on $INIT_DESUGAR to generate $VCM_DEF_DESUGAR"
-# make a copy of the current file, the current step will be included into it
-TMP_OUT=$(mktemp)
-cp $INIT_DESUGAR $TMP_OUT
 # Replace the command "(echo "include eo_builtin_smt")" with the premble as defined in Eunoia.
 # This file is not a template, but has a fixed definition.
 sed -i "/(include \"eo_builtin_smt.eo\")/{
-    r ../plugins/model_smt/eo_builtin_smt.eo
+    r ../plugins/desugar/eo_builtin_smt.eo
     d
-}" $TMP_OUT
+}" $INIT_DESUGAR
 sed -i "/(include \"smt_embed.eo\")/{
-    r ../plugins/model_smt/smt_embed.eo
+    r ../plugins/desugar/smt_embed.eo
     d
-}" $TMP_OUT
-./src/ethos --plugin.model-smt $TMP_OUT >/dev/null
+}" $INIT_DESUGAR
+
+echo "**** lean_meta: Run ethos + model-smt on $INIT_DESUGAR to generate $VCM_DEF_DESUGAR"
+./src/ethos --plugin.model-smt $INIT_DESUGAR >/dev/null
 check_status
+cp $INIT_DESUGAR $VCM_DEF_DESUGAR
 # include the model semantics, which was generated above
 sed -i "/(echo \"include eo_model_sat.*/{
     r ../plugins/model_smt/model_smt_gen.eo
     d
-}" $TMP_OUT
-mv $TMP_OUT $VCM_DEF_DESUGAR
-rm -f $TMP_OUT
+}" $VCM_DEF_DESUGAR
 
 echo "**** lean_meta: Verify ethos parses"
 ./src/ethos $VCM_DEF_DESUGAR >/dev/null

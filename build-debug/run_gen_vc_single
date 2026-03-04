@@ -75,11 +75,11 @@ cp $STD_DESUGAR_OUT $INIT_DESUGAR
 # Replace the command "(echo "include eo_builtin_smt")" with the premble as defined in Eunoia.
 # This file is not a template, but has a fixed definition.
 sed -i "/(include \"eo_builtin_smt.eo\")/{
-    r ../plugins/model_smt/eo_builtin_smt.eo
+    r ../plugins/desugar/eo_builtin_smt.eo
     d
 }" $INIT_DESUGAR
 sed -i "/(include \"smt_embed.eo\")/{
-    r ../plugins/model_smt/smt_embed.eo
+    r ../plugins/desugar/smt_embed.eo
     d
 }" $INIT_DESUGAR
 

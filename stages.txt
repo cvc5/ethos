@@ -86,6 +86,13 @@ This side condition is the target for verification in the Smt_Meta step below.
 
 Relies on:
 - eo_desugar.eo template, 304 LOC EO
+- smt_embed.eo, 192 LOC EO
+  - Defines infrastructure for references to native SMT types.
+  - Defines operations on pairs of integers to mimic parameteric bitvector operations.
+  - Defines SMT datatypes and datatype constructors.
+- eo_builtin_smt.eo, 487 LOC EO
+  - Defines the SMT-like builtins of Eunoia
+  - Declares all terms in the SMT-LIB deep embedding
 - desugar.cpp (ethos plugin), 1078 LOC C++
 - (Optional) trim_defs.cpp (ethos plugin), 305 LOC C++
   - Slices the signature, preserves S-expressions.
@@ -134,13 +141,6 @@ Compiles *.eo to *.eo.
 Includes a definition of $eo_model_sat, which defines SMT-LIB model semantics.
 
 Relies on:
-- smt_embed.eo, 192 LOC EO
-  - Defines infrastructure for references to native SMT types.
-  - Defines operations on pairs of integers to mimic parameteric bitvector operations.
-  - Defines SMT datatypes and datatype constructors.
-- eo_builtin_smt.eo, 487 LOC EO
-  - Defines the SMT-like builtins of Eunoia
-  - Declares all terms in the SMT-LIB deep embedding
 - model_smt.eo, 709 LOC EO
   - Model semantics $eo_model_sat
 - model_smt.cpp (ethos plugin), 1437 LOC C++
