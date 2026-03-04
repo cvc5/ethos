@@ -1,0 +1,130 @@
+import Cpc.SmtModel
+import Cpc.Logos
+
+set_option linter.unusedVariables false
+
+namespace EoCorrect
+
+abbrev Term := Eo.Term
+abbrev CCmdList := Eo.CCmdList
+abbrev SmtType := SmtModel.SmtType
+abbrev SmtTerm := SmtModel.SmtTerm
+
+/- Definitions for theorems -/
+
+/- Definition of refutation -/
+
+inductive eo_is_refutation : Term -> CCmdList -> Prop
+  | intro (F : Term) (c : CCmdList) : 
+    (__eo_checker_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation F c)
+
+
+/-
+A definition of terms in the object language.
+This is to be defined externally.
+-/
+abbrev Object_Term := SmtTerm
+
+/-
+A predicate defining a relation on terms in the object language and Booleans
+such that (s,b) is true if s evaluates to b.
+This is to be defined externally.
+-/
+abbrev obj_interprets := smt_interprets
+
+
+/-
+Definitions for eo_is_obj
+-/
+mutual
+
+def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
+  | DatatypeCons.unit => SmtDatatypeCons.unit
+  | (DatatypeCons.cons U c) => (SmtDatatypeCons.cons (__eo_to_smt_type U) (__eo_to_smt_datatype_cons c))
+
+
+def __eo_to_smt_datatype : Datatype -> SmtDatatype
+  | (Datatype.sum c d) => (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
+  | Datatype.null => SmtDatatype.null
+
+
+def __eo_to_smt_type : Term -> SmtType
+  | Term.Bool => SmtType.Bool
+  | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
+  | Term.Int => SmtType.Int
+  | Term.Real => SmtType.Real
+  | (Term.Apply Term.BitVec (Term.Numeral n1)) => (SmtType.BitVec n1)
+  | Term.Char => SmtType.Char
+  | (Term.Apply Term.Seq x1) => (SmtType.Seq (__eo_to_smt_type x1))
+  | T => SmtType.None
+
+
+def __eo_to_smt : Term -> SmtTerm
+  | (Term.Boolean b) => (SmtTerm.Boolean b)
+  | (Term.Numeral n) => (SmtTerm.Numeral n)
+  | (Term.Rational r) => (SmtTerm.Rational r)
+  | (Term.String s) => (SmtTerm.String s)
+  | (Term.Binary w n) => (SmtTerm.Binary w n)
+  | (Term.Var s T) => (SmtTerm.Var s (__eo_to_smt_type T))
+  | (Term.DtCons s d n) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) n)
+  | (Term.DtSel s d n m) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) n m)
+  | (Term.Apply Term.not x1) => (SmtTerm.Apply SmtTerm.not (__eo_to_smt x1))
+  | (Term.Apply (Term.Apply Term.and x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply Term.eq x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
+  | y => SmtTerm.None
+
+
+
+
+end 
+
+/-
+An inductive predicate defining the correspondence between Eunoia terms
+and terms in the object language.
+(t,s) is true if the Eunoia term represents a term s in the object language.
+This is to be custom defined in the Eunoia-to-Lean compiler based on the
+target definition of Object_Term.
+-/
+inductive eo_is_obj : Term -> Object_Term -> Prop
+  | intro (x : Term) : eo_is_obj x (__eo_to_smt x)
+
+
+/-
+A predicate defining when a Eunoia term corresponds to an object term that
+evaluates to true or false.
+(t,b) is true if t is a Eunoia term corresponding to an object term that
+evaluates to b.
+-/
+def eo_interprets (t : Term) (b : Bool) : Prop :=
+  exists (s : Object_Term), (eo_is_obj t s) /\ (obj_interprets s b)
+
+/- The theorem statements -/
+
+/- correctness theorem for __eo_prog_contra -/
+theorem correct___eo_prog_contra (x1 x2 : Term) :
+  (eo_interprets x1 true) ->
+  (eo_interprets x2 true) ->
+  (Not (eo_interprets (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) false)) :=
+by
+  sorry
+
+/- correctness theorem for __eo_prog_symm -/
+theorem correct___eo_prog_symm (x1 : Term) :
+  (eo_interprets x1 true) ->
+  (Not (eo_interprets (__eo_prog_symm (Proof.pf x1)) false)) :=
+by
+  sorry
+
+
+
+/- correctness theorem for the checker -/
+theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
+  (eo_is_refutation F pf) ->
+  (Not (eo_interprets F true)) :=
+by
+  sorry
+
+/- ---------------------------------------------- -/
+
+end EoCorrect
