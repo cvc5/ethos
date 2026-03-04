@@ -22,6 +22,9 @@
 (declare-const $eo_Term Type)
 ; Assumes that teq is defined to be equality over eo.Term
 (define $smt_builtin_teq ((x1 $eo_Term) (x2 $eo_Term)) ($smt_apply_2 "teq" x1 x2))
+; Assumes that thash is defined to be an arbitary function (-> eo.Term Int)
+(define $smt_builtin_thash ((x1 $eo_Term)) ($smt_apply_1 "thash" x1))
+(define $smt_builtin_tcmp ((x1 $eo_Term) (x2 $eo_Term)) ($smt_apply_2 "tcmp" x1 x2))
 
 ; A datatype constructor
 (declare-const $eo_DatatypeCons Type)
@@ -661,7 +664,7 @@
 (program $eo_hash ((T Type) (t T))
   :signature (T) $eo_Term
   (
-  (($eo_hash t) ($eot_numeral ($smtx_hash t)))
+  (($eo_hash t) ($eot_numeral ($smt_builtin_thash t)))
   )
 )
 
@@ -690,8 +693,12 @@
 ; on this ordering.
 ; define: $eo_cmp
 ; implements: eo::cmp
-(define $eo_cmp ((a $eo_Term) (b $eo_Term))
-  ($eo_is_neg ($eo_add ($eo_hash b) ($eo_neg ($eo_hash a)))))
+(program $eo_cmp ((a $eo_Term) (b $eo_Term))
+  :signature ($eo_Term $eo_Term) Bool
+  (
+  (($eo_cmp a b) ($eot_bool ($smt_builtin_tcmp a b)))
+  )
+)
 
 ;;; since eo_typeof depends on literal predicates, typeof is only now ready.
 

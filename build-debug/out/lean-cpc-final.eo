@@ -862,9 +862,10 @@
   )
 )
 (program $eo_invoke_cmd
-  ((proven Bool) (premises $eo_IndexList) (S $eo_State) (args $eo_ArgList))
+  ((proven Bool) (premises $eo_IndexList) (S $eo_State) (args $eo_ArgList) (c $eo_Cmd))
   :signature ($eo_State $eo_Cmd) $eo_State
   (
+  (($eo_invoke_cmd $s_stuck c) $s_stuck)
   (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume proven S))
   (($eo_invoke_cmd S ($cmd_check_proven proven)) ($eo_invoke_cmd_check_proven S proven))
   (($eo_invoke_cmd S ($cmd_step $emb_r.contra premises args)) ($eo_push_proven ($eo_prog_contra ($eo_pf ($eo_state_proven_nth S ($eo_premise_nth premises ($smt_apply_0 "0")))) ($eo_pf ($eo_state_proven_nth S ($eo_premise_nth premises ($smt_apply_0 "1"))))) S))
@@ -879,7 +880,6 @@
 (program $eo_invoke_cmd_list ((S $eo_State) (c $eo_Cmd) (cmds $eo_CmdList))
   :signature ($eo_State $eo_CmdList) $eo_State
   (
-  (($eo_invoke_cmd_list $s_stuck cmds) $s_stuck)
   (($eo_invoke_cmd_list S $emb_cmdl.nil) S)
   (($eo_invoke_cmd_list S ($emb_cmdl.cons c cmds))
      ($eo_invoke_cmd_list ($eo_invoke_cmd S c) cmds))

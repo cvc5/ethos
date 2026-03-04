@@ -118,13 +118,13 @@ def eo_lit_teq : Term -> Term -> eo_lit_Bool
   | x, y => decide (x = y)
 
 /- Term less than, based on arbitrary ordering -/
-def eo_lit_tlt (a b : Term) : eo_lit_Bool :=
+def eo_lit_tcmp (a b : Term) : eo_lit_Bool :=
   match compare a b with
   | Ordering.lt => true
   | _ => false
 
 /- Used for defining hash -/
-def __smtx_hash : Term -> eo_lit_Int
+def eo_lit_thash : Term -> eo_lit_Int
   | _ => 0 -- FIXME
 
 /- Proofs -/
@@ -292,17 +292,17 @@ def __eo_invoke_cmd_check_proven : CState -> Term -> CState
   | S, proven => CState.Stuck
 
 
-def __eo_invoke_cmd (S : CState) : CCmd -> CState
-  | (CCmd.assume_push proven) => (__eo_push_assume proven S)
-  | (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
-  | (CCmd.step CRule.contra premises args) => (__eo_push_proven (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
-  | (CCmd.step CRule.symm premises args) => (__eo_push_proven (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+def __eo_invoke_cmd : CState -> CCmd -> CState
+  | CState.Stuck, c => CState.Stuck
+  | S, (CCmd.assume_push proven) => (__eo_push_assume proven S)
+  | S, (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
+  | S, (CCmd.step CRule.contra premises args) => (__eo_push_proven (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | S, (CCmd.step CRule.symm premises args) => (__eo_push_proven (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
 
 
-def __eo_invoke_cmd_list : CState -> CCmdList -> CState
-  | CState.Stuck, cmds => CState.Stuck
-  | S, CCmdList.nil => S
-  | S, (CCmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
+def __eo_invoke_cmd_list (S : CState) : CCmdList -> CState
+  | CCmdList.nil => S
+  | (CCmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
 
 
 def __eo_invoke_cmd_list_assuming (S : CState) : Term -> CCmdList -> CState

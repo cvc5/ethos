@@ -236,6 +236,14 @@
 (define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))
 (define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))
 
+(declare-fun thash (eo.Term) Int)
+(declare-fun trevhash (Int) eo.Term)
+; axiom for hash
+; note: this implies that thash is injective, which implies $eo_hash is injective.
+(assert (! (forall ((x eo.Term))
+    (! (= (trevhash (thash x)) x) :pattern ((thash x)))) :named eo.hash_injective))
+(define-fun tcmp ((a eo.Term) (b eo.Term)) Bool (< (thash a) (thash b)))
+
 ; forward declarations
 (declare-fun texists (String tsm.Type sm.Term) vsm.Value)
 (declare-fun tforall (String tsm.Type sm.Term) vsm.Value)
@@ -862,12 +870,9 @@
 
 ;;; Meta-level properties of models
 
-; axiom for hash
-; note: this implies that $smtx_hash is injective, which implies $eo_hash is injective.
-(assert (! (forall ((x eo.Term))
-    (! (= ($eo_reverse_hash ($smtx_hash x)) x) :pattern (($smtx_hash x)))) :named eo.hash_injective))
 (assert (! (forall ((x vsm.Value))
     (! (= ($smtx_reverse_value_hash ($smtx_value_hash x)) x) :pattern (($smtx_value_hash x)))) :named smtx.hash_injective))
+
 
 ; true iff there exists a value of type T that when substituted into F
 ; is evaluated as tgt. Note that we do not check the type of T here,
@@ -905,6 +910,7 @@
          (vsm.Boolean true)))))
 
 ; whether two values are extensionally equal
+; FIXME: 3 valued?
 (define-fun t_ext_equal ((v1 vsm.Value) (v2 vsm.Value)) Bool
   (forall ((i vsm.Value)) (= ($smtx_model_eval_apply v1 i) ($smtx_model_eval_apply v2 i))))
 

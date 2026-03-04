@@ -677,7 +677,6 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     Assert(vprog.getNumChildren() == 1);
     decl << " :=" << std::endl;
     decl << "  ";
-    MetaKind bodyInitCtx = vctxArgs[nargs - 1];
     printEmbTerm(vprog[0][1], decl, tmk);
     (*out) << decl.str() << std::endl << std::endl;
     return;
@@ -766,7 +765,6 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       // concatenated together.
       // Initial context depends on the kind of the argument type of the
       // program.
-      MetaKind ctxPatMatch = vctxArgs[j - 1];
       printEmbTerm(hd[j], patMatch, tmk);
       // note this further assumes variables are unique as they are required
       // to be unique at this point
@@ -776,7 +774,6 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       }
     }
     std::stringstream ssret;
-    MetaKind bodyInitCtx = vctxArgs[nargs - 1];
     printEmbTerm(body, ssret, tmk);
     if (optIte)
     {

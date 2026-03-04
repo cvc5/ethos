@@ -93,13 +93,13 @@ def eo_lit_teq : Term -> Term -> eo_lit_Bool
   | x, y => decide (x = y)
 
 /- Term less than, based on arbitrary ordering -/
-def eo_lit_tlt (a b : Term) : eo_lit_Bool :=
+def eo_lit_tcmp (a b : Term) : eo_lit_Bool :=
   match compare a b with
   | Ordering.lt => true
   | _ => false
 
 /- Used for defining hash -/
-def __smtx_hash : Term -> eo_lit_Int
+def eo_lit_thash : Term -> eo_lit_Int
   | _ => 0 -- FIXME
 
 /- Proofs -/

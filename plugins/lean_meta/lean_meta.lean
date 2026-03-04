@@ -82,14 +82,13 @@ def smt_lit_str_substr (s : smt_lit_String) (i n : smt_lit_Int) : smt_lit_String
     let start : Nat := Int.toNat i
     let take  : Nat := Int.toNat (min n (len - i))
     String.Pos.Raw.extract s ⟨start⟩ ⟨start + take⟩
-def smt_lit_str_indexof_rec (s t : smt_lit_String) (i len : Nat) : smt_lit_Int :=
+partial def smt_lit_str_indexof_rec (s t : smt_lit_String) (i len : Nat) : smt_lit_Int :=
   if (i+len)>(smt_lit_str_len s) then
     -1
   else if String.Pos.Raw.substrEq s ⟨i⟩ t ⟨0⟩ len then
     i
   else
     smt_lit_str_indexof_rec s t (i+1) len
-decreasing_by sorry  -- FIXME
 def smt_lit_str_indexof (s t : smt_lit_String) (i : smt_lit_Int) : smt_lit_Int :=
   if i < 0 then
     -1
@@ -237,13 +236,13 @@ def eo_lit_teq : Term -> Term -> eo_lit_Bool
   | x, y => decide (x = y)
 
 /- Term less than, based on arbitrary ordering -/
-def eo_lit_tlt (a b : Term) : eo_lit_Bool :=
+def eo_lit_tcmp (a b : Term) : eo_lit_Bool :=
   match compare a b with
   | Ordering.lt => true
   | _ => false
 
 /- Used for defining hash -/
-def __smtx_hash : Term -> eo_lit_Int
+def eo_lit_thash : Term -> eo_lit_Int
   | _ => 0 -- FIXME
 
 /- Proofs -/
