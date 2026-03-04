@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 290
+; #trim-defs: 291
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -881,12 +881,17 @@
   (($eo_invoke_cmd_list_assuming S as cs) $s_stuck)
   )
 )
+(program $eo_state_is_refutation ((s $eo_State))
+  :signature ($eo_State) $eoT_Result
+  (
+  (($eo_state_is_refutation s) ($eo_state_is_closed ($eo_invoke_cmd_check_proven s false)))
+  )
+)
 (program $eo_checker_is_refutation ((as Bool) (cs $eo_CmdList))
   :signature (Bool $eo_CmdList) $eoT_Result
   (
   (($eo_checker_is_refutation as cs)
-    (eo::define ((s ($eo_invoke_cmd_list_assuming $s_nil as cs)))
-      ($eo_state_is_closed ($eo_invoke_cmd_check_proven s false))))
+    ($eo_state_is_refutation ($eo_invoke_cmd_list_assuming $s_nil as cs)))
   )
 )
 (echo "lean-meta $eo_prog_contra :deps $smtx_hash $eo_reverse_hash $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and $eot_UConst $eot_USort ")

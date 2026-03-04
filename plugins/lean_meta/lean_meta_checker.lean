@@ -58,14 +58,17 @@ abbrev __smtx_binary_uts := SmtEval.__smtx_binary_uts
 abbrev __smtx_binary_concat := SmtEval.__smtx_binary_concat
 abbrev __smtx_binary_extract := SmtEval.__smtx_binary_extract
 
-
-/- Term definition -/
+instance : Ord Rat where
+  compare a b :=
+    -- compare a.num / a.den vs b.num / b.den by cross-multiplication
+    compare (a.num * Int.ofNat b.den) (b.num * Int.ofNat a.den)
 
 mutual
 
+/- Term definition -/
 inductive Term : Type where
 $LEAN_TERM_DEF$
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
 Eunoia datatypes.
@@ -88,7 +91,13 @@ end
 /- Term equality -/
 def eo_lit_teq : Term -> Term -> eo_lit_Bool
   | x, y => decide (x = y)
-  
+
+/- Term less than, based on arbitrary ordering -/
+def eo_lit_tlt (a b : Term) : eo_lit_Bool :=
+  match compare a b with
+  | Ordering.lt => true
+  | _ => false
+
 /- Used for defining hash -/
 def __smtx_hash : Term -> eo_lit_Int
   | _ => 0 -- FIXME

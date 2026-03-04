@@ -170,6 +170,13 @@ $EO_INVOKE$
   )
 )
 
+(program $eo_state_is_refutation ((s $eo_State))
+  :signature ($eo_State) $eoT_Result
+  (
+  (($eo_state_is_refutation s) ($eo_state_is_closed ($eo_invoke_cmd_check_proven s false)))
+  )
+)
+  
 ; Main entry point:
 ; - as is a conjunction of formulas to assume.
 ;   Note that this should always be an and-list, which will be interpreted
@@ -180,7 +187,6 @@ $EO_INVOKE$
   :signature (Bool $eo_CmdList) $eoT_Result
   (
   (($eo_checker_is_refutation as cs)
-    (eo::define ((s ($eo_invoke_cmd_list_assuming $s_nil as cs)))
-      ($eo_state_is_closed ($eo_invoke_cmd_check_proven s false))))
+    ($eo_state_is_refutation ($eo_invoke_cmd_list_assuming $s_nil as cs)))
   )
 )
