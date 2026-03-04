@@ -698,6 +698,21 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       {
         continue;
       }
+      // optimization: check if we only match against non-parameter terms.
+      // in this case, there is no need to check stuckness
+      bool matchesParam = false;
+      for (size_t j = 0; j < ncases; j++)
+      {
+        if (vprog[j][0][i].getKind()==Kind::PARAM)
+        {
+          matchesParam = true;
+          break;
+        }
+      }
+      if (!matchesParam)
+      {
+        continue;
+      }
       Assert(i >= macroStartArg);
       if (optIte)
       {
