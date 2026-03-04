@@ -709,7 +709,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       bool matchesParam = false;
       for (size_t j = 0; j < ncases; j++)
       {
-        if (vprog[j][0][i].getKind()==Kind::PARAM)
+        if (vprog[j][0][i].getKind() == Kind::PARAM)
         {
           matchesParam = true;
           break;
@@ -1212,7 +1212,8 @@ MetaKind LeanMetaReduce::getMetaKind(State& s,
                                      std::string& cname) const
 {
   std::string sname = getName(e);
-  if (sname.compare(0, 5, "$smt_") == 0 || d_typeToMetaKind.find(sname)!=d_typeToMetaKind.end()
+  if (sname.compare(0, 5, "$smt_") == 0
+      || d_typeToMetaKind.find(sname) != d_typeToMetaKind.end()
       || sname == "$eo_Datatype" || sname == "$eo_DatatypeCons")
   {
     // internal-only symbol, e.g. one used for defining the deep embedding

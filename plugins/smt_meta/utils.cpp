@@ -74,10 +74,11 @@ bool isSmtMetaKind(MetaKind k)
 }
 bool isCheckerMetaKind(MetaKind k)
 {
-  return k == MetaKind::CHECKER_RULE || k == MetaKind::CHECKER_STATE || k == MetaKind::CHECKER_STATE_OBJ
-         || k == MetaKind::CHECKER_CMD || k == MetaKind::CHECKER_INDEX
-         || k == MetaKind::CHECKER_CMD_LIST
-         || k == MetaKind::CHECKER_INDEX_LIST || k == MetaKind::CHECKER_ARG_LIST;
+  return k == MetaKind::CHECKER_RULE || k == MetaKind::CHECKER_STATE
+         || k == MetaKind::CHECKER_STATE_OBJ || k == MetaKind::CHECKER_CMD
+         || k == MetaKind::CHECKER_INDEX || k == MetaKind::CHECKER_CMD_LIST
+         || k == MetaKind::CHECKER_INDEX_LIST
+         || k == MetaKind::CHECKER_ARG_LIST;
 }
 
 ConjPrint::ConjPrint() : d_npush(0) {}

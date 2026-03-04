@@ -93,7 +93,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
            << " :opaque)";
     macroArg << " (T" << i << " Type :implicit) (x" << i << " T" << i << ")";
     macroRet << " x" << i;
-    invokeRet << " ($eo_arg_nth args " << smtIndex(i-1) << ")";
+    invokeRet << " ($eo_arg_nth args " << smtIndex(i - 1) << ")";
     progParamList << " (T" << i << " Type) (a" << i << " T" << i << ")";
     progSig << " T" << i;
     progPat << " a" << i;
@@ -127,7 +127,8 @@ void DesugarChecker::finalizeRule(const Expr& v)
       embArg << " (n" << i << " $eoT_Index :opaque)";
       macroArg << " (n" << i << " $eoT_Index)";
       macroRet << " n" << i;
-      invokeRet << " ($eo_pf ($eo_state_proven_nth S ($eo_premise_nth premises " << smtIndex(i-1) << ")))";
+      invokeRet << " ($eo_pf ($eo_state_proven_nth S ($eo_premise_nth premises "
+                << smtIndex(i - 1) << ")))";
       progParamList << " (p" << i << " $eo_Proof)";
       progSig << " $eo_Proof";
       progPat << " p" << i;
@@ -141,7 +142,8 @@ void DesugarChecker::finalizeRule(const Expr& v)
   std::stringstream ssr;
   ssr << "$rule_" << vname;
   d_rules << "(declare-const $emb_r." << vname << " $eo_Rule)" << std::endl;
-  d_ruleInvokes << "  (($eo_invoke_cmd S ($cmd_step $emb_r." << vname << " premises args)) ";
+  d_ruleInvokes << "  (($eo_invoke_cmd S ($cmd_step $emb_r." << vname
+                << " premises args)) ";
   if (isAssume)
   {
     d_ruleInvokes << "($eo_invoke_cmd_pop_" << vname << " S" << invokeRet.str()
