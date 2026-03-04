@@ -21,11 +21,10 @@ TARGET=$2
 # trim out
 INIT_TRIM=$OUT_DIR/trim-cpc.eo
 INIT_DESUGAR=$OUT_DIR/trim-d-cpc.eo
-VC_DEF_DESUGAR=$OUT_DIR/vc-def-cpc.eo
 VCM_DEF_DESUGAR=$OUT_DIR/vcm-def-cpc.eo
 VCMT_DEF_DESUGAR=$OUT_DIR/vcmt-def-cpc.eo
 VC_OUT=$OUT_DIR/vc/final-cpc-$TARGET.smt2
-SYGUS_OUT=$OUT_DIR/vc/final-cpc-$TARGET.sy
+SYGUS_OUT=$OUT_DIR/sygus/final-cpc-$TARGET.sy
 function check_status()
 {
 status=$?
@@ -73,38 +72,27 @@ DESUGAR_VC_DEPS="\$eo_proven \$smtx_hash \$eo_reverse_hash \$smtx_value_hash \$s
 sed -i "s/eo-desugar-vc-deps/$DESUGAR_VC_DEPS/g" $STD_DESUGAR_OUT
 sed -i "s/eo-desugar-vc/smt-meta/g" $STD_DESUGAR_OUT
 cp $STD_DESUGAR_OUT $INIT_DESUGAR
-
-# trim dependencies with respect to the verification Eunoia program
-# note the dependencies are further managed by echo commands with :deps
-echo "**** smt_meta: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
-trim_defs $INIT_DESUGAR "\$eovc_$TARGET" >/dev/null
-check_status
-cp $STD_TRIM_OUT $VC_DEF_DESUGAR
-
-echo "**** smt_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
-# make a copy of the current file, the current step will be included into it
-TMP_OUT=$(mktemp)
-cp $VC_DEF_DESUGAR $TMP_OUT
 # Replace the command "(echo "include eo_builtin_smt")" with the premble as defined in Eunoia.
 # This file is not a template, but has a fixed definition.
-sed -i "/(echo \"include eo_builtin_smt.*/{
+sed -i "/(include \"eo_builtin_smt.eo\")/{
     r ../plugins/model_smt/eo_builtin_smt.eo
     d
-}" $TMP_OUT
+}" $INIT_DESUGAR
 sed -i "/(include \"smt_embed.eo\")/{
     r ../plugins/model_smt/smt_embed.eo
     d
-}" $TMP_OUT
+}" $INIT_DESUGAR
+
+echo "**** smt_meta: Run ethos + model-smt on $INIT_DESUGAR to generate $VCM_DEF_DESUGAR"
 # now compute the model smt
-./src/ethos --plugin.model-smt $TMP_OUT >/dev/null
+./src/ethos --plugin.model-smt $INIT_DESUGAR >/dev/null
 check_status
+cp $INIT_DESUGAR $VCM_DEF_DESUGAR
 # include the model semantics, which was generated above
 sed -i "/(echo \"include eo_model_sat.*/{
     r ../plugins/model_smt/model_smt_gen.eo
     d
-}" $TMP_OUT
-mv $TMP_OUT $VCM_DEF_DESUGAR
-rm -f $TMP_OUT
+}" $VCM_DEF_DESUGAR
 
 # trim again, where we require keeping the verification condition
 echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
@@ -157,7 +145,6 @@ fi
 # clear temporary files
 #rm -f $INIT_TRIM
 #rm -f $INIT_DESUGAR
-#rm -f $VC_DEF_DESUGAR
 #rm -f $VCM_DEF_DESUGAR
 #rm -f $VCMT_DEF_DESUGAR
 rm -f $STD_TRIM_OUT

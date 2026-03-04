@@ -72,7 +72,7 @@ cp $STD_DESUGAR_OUT $INIT_DESUGAR
 
 # Replace the command "(echo "include eo_builtin_smt")" with the premble as defined in Eunoia.
 # This file is not a template, but has a fixed definition.
-sed -i "/(echo \"include eo_builtin_smt.*/{
+sed -i "/(include \"eo_builtin_smt.eo\")/{
     r ../plugins/model_smt/eo_builtin_smt.eo
     d
 }" $INIT_DESUGAR
@@ -83,19 +83,16 @@ sed -i "/(include \"smt_embed.eo\")/{
 
 
 echo "**** lean_meta: Run ethos + model-smt on $INIT_DESUGAR to generate $VCM_DEF_DESUGAR"
-# make a copy of the current file, the current step will be included into it
-TMP_OUT=$(mktemp)
-cp $INIT_DESUGAR $TMP_OUT
 # now compute the model smt
-./src/ethos --plugin.model-smt $TMP_OUT >/dev/null
+./src/ethos --plugin.model-smt $INIT_DESUGAR >/dev/null
 check_status
+# make a copy of the current file, the current step will be included into it
+cp $INIT_DESUGAR $VCM_DEF_DESUGAR
 # include the model semantics, which was generated above
 sed -i "/(echo \"include eo_model_sat.*/{
     r ../plugins/model_smt/model_smt_gen.eo
     d
-}" $TMP_OUT
-mv $TMP_OUT $VCM_DEF_DESUGAR
-rm -f $TMP_OUT
+}" $VCM_DEF_DESUGAR
 
 # trim again, where we require keeping the verification condition
 echo "**** lean_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"

@@ -12,10 +12,8 @@ STD_LEAN_SPEC_OUT=../plugins/lean_meta/lean_meta_spec_gen.lean
 # the name of a EO signature
 # INPUT = $1
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
-INIT_DESUGAR=$OUT_DIR/trim-d-cpc.eo
-VCM_DEF_DESUGAR=$OUT_DIR/vcm-def-cpc.eo
-MODEL_DEF_DESUGAR=$OUT_DIR/model-def-cpc.eo
-LEAN_OUT=$OUT_DIR/cpc.lean
+INIT_DESUGAR=$OUT_DIR/lean-cpc-desugar.eo
+VCM_DEF_DESUGAR=$OUT_DIR/lean-cpc-final.eo
 function check_status()
 {
 status=$?
@@ -47,7 +45,7 @@ TMP_OUT=$(mktemp)
 cp $INIT_DESUGAR $TMP_OUT
 # Replace the command "(echo "include eo_builtin_smt")" with the premble as defined in Eunoia.
 # This file is not a template, but has a fixed definition.
-sed -i "/(echo \"include eo_builtin_smt.*/{
+sed -i "/(include \"eo_builtin_smt.eo\")/{
     r ../plugins/model_smt/eo_builtin_smt.eo
     d
 }" $TMP_OUT
@@ -69,7 +67,7 @@ echo "**** lean_meta: Verify ethos parses"
 ./src/ethos $VCM_DEF_DESUGAR >/dev/null
 check_status
 
-echo "**** lean_meta: Generate Lean from $VCM_DEF_DESUGAR to $LEAN_OUT"
+echo "**** lean_meta: Generate Lean from $VCM_DEF_DESUGAR to $OUT_DIR/lean/*.lean"
 ./src/ethos --plugin.lean-meta $VCM_DEF_DESUGAR >/dev/null
 check_status
 cp $STD_LEAN_CHECKER_OUT $OUT_DIR/lean/Logos.lean

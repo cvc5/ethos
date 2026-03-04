@@ -2,6 +2,7 @@
 
 ; placeholders
 (declare-const $eo_Index Type)
+;(define $eo_Index () $smt_builtin_Int)
 
 (declare-const $eo_IndexList Type)
 (declare-const $emb_indl.nil $eo_IndexList)
@@ -10,6 +11,7 @@
 
 ; for bool??
 (define $eo_Result () Bool)
+;(define $eo_Result () $smt_builtin_Bool)
 
 ;;; Types
 
@@ -114,8 +116,6 @@
 (define $cmd_check_proven ((x Bool)) ($emb_cmd.check_proven x))
 $EO_CMD_DEFS$
 
-$EO_INVOKE_DEFS$
-
 (program $eo_invoke_cmd_check_proven ((S $eo_State) (F Bool) (proven Bool))
   :signature ($eo_State Bool) $eo_State
   (
@@ -125,6 +125,8 @@ $EO_INVOKE_DEFS$
   (($eo_invoke_cmd_check_proven S proven) $s_stuck)
   )
 )
+
+$EO_INVOKE_DEFS$
 
 (program $eo_invoke_cmd
   ((proven Bool) (premises $eo_IndexList) (S $eo_State)
