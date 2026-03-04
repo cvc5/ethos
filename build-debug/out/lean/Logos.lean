@@ -1,7 +1,7 @@
 import Cpc.SmtEval
 
 set_option linter.unusedVariables false
-set_option maxHeartbeats 1000000
+set_option maxHeartbeats 10000000
 
 namespace Eo
 
@@ -67,7 +67,6 @@ mutual
 
 /- Term definition -/
 inductive Term : Type where
-  | __eo_Proof : Term
   | __eo_pf : Term -> Term
   | Int : Term
   | Real : Term
@@ -137,7 +136,6 @@ inductive Proof : Type where
 
 mutual
 
-partial def __eo_Numeral : Term := Term.Int
 partial def __eo_mk_apply : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -204,10 +202,18 @@ deriving Repr, Inhabited
 
 /-
 -/
+inductive CArgList : Type where
+  | nil : CArgList
+  | cons : Term -> CArgList -> CArgList
+deriving Repr, Inhabited
+
+/-
+-/
 inductive CStateObj : Type where
   | assume : Term -> CStateObj
   | assume_push : Term -> CStateObj
   | proven : Term -> CStateObj
+  | Stuck : CStateObj
 deriving Repr, Inhabited
 
 /-
@@ -220,11 +226,18 @@ deriving Repr, Inhabited
 
 /-
 -/
+inductive CRule : Type where
+  | contra : CRule
+  | symm : CRule
+
+deriving Repr, Inhabited
+
+/-
+-/
 inductive CCmd : Type where
   | assume_push : Term -> CCmd
   | check_proven : Term -> CCmd
-  | contra : eo_lit_Int -> eo_lit_Int -> CCmd
-  | symm : eo_lit_Int -> CCmd
+  | step : CRule -> CIndexList -> CArgList -> CCmd
 
 deriving Repr, Inhabited
 
@@ -239,12 +252,19 @@ def __eo_StateObj_proven : CStateObj -> Term
   | (CStateObj.assume F) => F
   | (CStateObj.assume_push F) => F
   | (CStateObj.proven F) => F
+  | CStateObj.Stuck => Term.Stuck
 
 
 def __eo_state_proven_nth : CState -> eo_lit_Int -> Term
   | (CState.cons so s), 0 => (__eo_StateObj_proven so)
   | (CState.cons so s), n => (__eo_state_proven_nth s (eo_lit_zplus n (eo_lit_zneg 1)))
   | s, n => (Term.Boolean true)
+
+
+def __eo_premise_nth : CIndexList -> eo_lit_Int -> eo_lit_Int
+  | (CIndexList.cons i il), 0 => i
+  | (CIndexList.cons i il), n => (__eo_premise_nth il (eo_lit_zplus n (eo_lit_zneg 1)))
+  | CIndexList.nil, n => (eo_lit_zneg 1)
 
 
 def __eo_state_is_closed : CState -> eo_lit_Bool
@@ -275,8 +295,8 @@ def __eo_invoke_cmd_check_proven : CState -> Term -> CState
 def __eo_invoke_cmd (S : CState) : CCmd -> CState
   | (CCmd.assume_push proven) => (__eo_push_assume proven S)
   | (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
-  | (CCmd.contra n1 n2) => (__eo_push_proven (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.symm n1) => (__eo_push_proven (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1))) S)
+  | (CCmd.step CRule.contra premises args) => (__eo_push_proven (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.symm premises args) => (__eo_push_proven (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
 
 
 def __eo_invoke_cmd_list : CState -> CCmdList -> CState

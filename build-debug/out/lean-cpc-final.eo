@@ -1,10 +1,9 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 291
+; #trim-defs: 299
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
 (declare-consts <numeral> Int)
-(define $eo_Numeral () Int)
 (declare-const Real Type)
 (declare-consts <rational> Real)
 (declare-const BitVec (-> Int Type))
@@ -761,7 +760,14 @@
 )
 (define $eoT_Index () $smt_builtin_Int)
 (declare-const $eo_IndexList Type)
+(declare-const $emb_indl.nil $eo_IndexList)
+(define $eot_iln () $emb_indl.nil)
+(declare-parameterized-const $emb_indl.cons
+  ((i $eoT_Index :opaque) (il $eo_IndexList :opaque)) $eo_IndexList)
+(define $eot_ilc ((i $eoT_Index) (il $eo_IndexList)) ($emb_indl.cons i il))
+(declare-const $eo_ArgList Type)
 (define $eoT_Result () $smt_builtin_Bool)
+(declare-const $eo_Rule Type)
 (declare-const $eo_Cmd Type)
 (declare-const $eo_State Type)
 (declare-const $eo_StateObj Type)
@@ -771,6 +777,8 @@
 (define $so_assume_push ((F Bool)) ($emb_so.assume_push F))
 (declare-parameterized-const $emb_so.proven ((F Bool :opaque)) $eo_StateObj)
 (define $so_proven ((F Bool)) ($emb_so.proven F))
+(declare-const $emb_so.Stuck $eo_StateObj)
+(define $so_stuck () $emb_so.Stuck)
 (declare-const $emb_s.nil $eo_State)
 (define $s_nil () $emb_s.nil)
 (declare-const $emb_s.Stuck $eo_State)
@@ -784,6 +792,7 @@
   (($eo_StateObj_proven ($so_assume F)) F)
   (($eo_StateObj_proven ($so_assume_push F)) F)
   (($eo_StateObj_proven ($so_proven F)) F)
+  (($eo_StateObj_proven $so_stuck) $eot_stuck)
   )
 )
 (program $eo_state_proven_nth ((so $eo_StateObj) (s $eo_State) (n $eoT_Index))
@@ -793,6 +802,14 @@
   (($eo_state_proven_nth ($s_cons so s) n) ($eo_state_proven_nth s ($smt_builtin_z_dec n)))
   
   (($eo_state_proven_nth s n) true)
+  )
+)
+(program $eo_premise_nth ((i $eoT_Index) (il $eo_IndexList) (n $smt_builtin_Int))
+  :signature ($eo_IndexList $eoT_Index) $eoT_Index
+  (
+  (($eo_premise_nth ($eot_ilc i il) $smt_builtin_z_zero) i)
+  (($eo_premise_nth ($eot_ilc i il) n) ($eo_premise_nth il ($smt_builtin_z_dec n)))
+  (($eo_premise_nth $eot_iln n) $smt_builtin_z_neg_one)
   )
 )
 (program $eo_state_is_closed ((so $eo_StateObj) (s $eo_State) (F Bool))
@@ -823,14 +840,18 @@
   (($eo_push_proven F s)  ($eo_push_proven_check (eo::is_ok F) F s))
   )
 )
+(declare-const $emb_r.contra $eo_Rule)
+(declare-const $emb_r.symm $eo_Rule)
 (declare-parameterized-const $emb_cmd.assume_push ((x Bool :opaque)) $eo_Cmd)
 (define $cmd_assume_push ((x Bool)) ($emb_cmd.assume_push x))
 (declare-parameterized-const $emb_cmd.check_proven ((x Bool :opaque)) $eo_Cmd)
 (define $cmd_check_proven ((x Bool)) ($emb_cmd.check_proven x))
-(declare-parameterized-const $emb_cmd.contra ( (n1 $eoT_Index :opaque) (n2 $eoT_Index :opaque)) $eo_Cmd)
-(define $cmd_contra ( (n1 $eoT_Index) (n2 $eoT_Index)) ($emb_cmd.contra n1 n2))
-(declare-parameterized-const $emb_cmd.symm ( (n1 $eoT_Index :opaque)) $eo_Cmd)
-(define $cmd_symm ( (n1 $eoT_Index)) ($emb_cmd.symm n1))
+(declare-parameterized-const $emb_cmd.step
+  ((r $eo_Rule :opaque) (premises $eo_IndexList :opaque) (args $eo_ArgList :opaque))
+  $eo_Cmd)
+(define $cmd_step
+  ((r $eo_Rule) (premises $eo_IndexList) (args $eo_ArgList))
+  ($emb_cmd.step r premises args))
 (program $eo_invoke_cmd_check_proven ((S $eo_State) (F Bool) (proven Bool))
   :signature ($eo_State Bool) $eo_State
   (
@@ -841,18 +862,13 @@
   )
 )
 (program $eo_invoke_cmd
-  ((proven Bool) (premises $eo_IndexList) (S $eo_State)
-  (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
-  (T6 Type) (T7 Type) (T8 Type) (T9 Type) (T10 Type)
-  (a1 T1) (a2 T2) (a3 T3) (a4 T4) (a5 T5) (a6 T6) (a7 T7) (a8 T8) (a9 T9) (a10 T10)
-  (n1 $eo_Numeral) (n2 $eo_Numeral) (n3 $eo_Numeral) (n4 $eo_Numeral)
-  (n5 $eo_Numeral) (n6 $eo_Numeral) (n7 $eo_Numeral) (n8 $eo_Numeral))
+  ((proven Bool) (premises $eo_IndexList) (S $eo_State) (args $eo_ArgList))
   :signature ($eo_State $eo_Cmd) $eo_State
   (
   (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume proven S))
   (($eo_invoke_cmd S ($cmd_check_proven proven)) ($eo_invoke_cmd_check_proven S proven))
-  (($eo_invoke_cmd S ($cmd_contra n1 n2)) ($eo_push_proven ($eo_prog_contra ($eo_pf ($eo_state_proven_nth S n1)) ($eo_pf ($eo_state_proven_nth S n2))) S))
-  (($eo_invoke_cmd S ($cmd_symm n1)) ($eo_push_proven ($eo_prog_symm ($eo_pf ($eo_state_proven_nth S n1))) S))
+  (($eo_invoke_cmd S ($cmd_step $emb_r.contra premises args)) ($eo_push_proven ($eo_prog_contra ($eo_pf ($eo_state_proven_nth S ($eo_premise_nth premises ($smt_apply_0 "0")))) ($eo_pf ($eo_state_proven_nth S ($eo_premise_nth premises ($smt_apply_0 "1"))))) S))
+  (($eo_invoke_cmd S ($cmd_step $emb_r.symm premises args)) ($eo_push_proven ($eo_prog_symm ($eo_pf ($eo_state_proven_nth S ($eo_premise_nth premises ($smt_apply_0 "0"))))) S))
 
   )
 )

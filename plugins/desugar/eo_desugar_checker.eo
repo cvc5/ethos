@@ -5,13 +5,25 @@
 
 (declare-const $eo_IndexList Type)
 (declare-const $emb_indl.nil $eo_IndexList)
+(define $eot_iln () $emb_indl.nil)
 (declare-parameterized-const $emb_indl.cons
   ((i $eoT_Index :opaque) (il $eo_IndexList :opaque)) $eo_IndexList)
+(define $eot_ilc ((i $eoT_Index) (il $eo_IndexList)) ($emb_indl.cons i il))
+
+(declare-const $eo_ArgList Type)
+(declare-const $emb_al.nil $eo_ArgList)
+(define $eot_aln () $emb_al.nil)
+(declare-parameterized-const $emb_al.cons
+  ((i $eo_Term :opaque) (il $eo_ArgList :opaque)) $eo_ArgList)
+(define $eot_alc ((i $eo_Term) (il $eo_ArgList)) ($emb_al.cons i il))
 
 ; for bool??
 (define $eoT_Result () $smt_builtin_Bool)
 
 ;;; Types
+
+; A Eunoia rule
+(declare-const $eo_Rule Type)
 
 ; A Eunoia command
 (declare-const $eo_Cmd Type)
@@ -29,6 +41,8 @@
 (define $so_assume_push ((F Bool)) ($emb_so.assume_push F))
 (declare-parameterized-const $emb_so.proven ((F Bool :opaque)) $eo_StateObj)
 (define $so_proven ((F Bool)) ($emb_so.proven F))
+(declare-const $emb_so.Stuck $eo_StateObj)
+(define $so_stuck () $emb_so.Stuck)
 
 
 (declare-const $emb_s.nil $eo_State)
@@ -45,6 +59,7 @@
   (($eo_StateObj_proven ($so_assume F)) F)
   (($eo_StateObj_proven ($so_assume_push F)) F)
   (($eo_StateObj_proven ($so_proven F)) F)
+  (($eo_StateObj_proven $so_stuck) $eot_stuck)
   )
 )
 
@@ -55,6 +70,24 @@
   (($eo_state_proven_nth ($s_cons so s) n) ($eo_state_proven_nth s ($smt_builtin_z_dec n)))
   ; otherwise just return true
   (($eo_state_proven_nth s n) true)
+  )
+)
+
+(program $eo_premise_nth ((i $eoT_Index) (il $eo_IndexList) (n $smt_builtin_Int))
+  :signature ($eo_IndexList $eoT_Index) $eoT_Index
+  (
+  (($eo_premise_nth ($eot_ilc i il) $smt_builtin_z_zero) i)
+  (($eo_premise_nth ($eot_ilc i il) n) ($eo_premise_nth il ($smt_builtin_z_dec n)))
+  (($eo_premise_nth $eot_iln n) $smt_builtin_z_neg_one)
+  )
+)
+
+(program $eo_arg_nth ((t $eo_Term) (ts $eo_Term) (n $smt_builtin_Int))
+  :signature ($eo_ArgList $eoT_Index) $eo_Term
+  (
+  (($eo_arg_nth ($eot_alc t ts) $smt_builtin_z_zero) t)
+  (($eo_arg_nth ($eot_alc t ts) n) ($eo_arg_nth ts ($smt_builtin_z_dec n)))
+  (($eo_arg_nth $eot_aln n) $eot_stuck)
   )
 )
 
@@ -104,6 +137,10 @@
   )
 )
 
+; Rule constructors
+
+$EO_RULE_DEFS$
+
 ; Command constructors
 
 ; note that assume is not a command, instead formulas are input to 
@@ -112,7 +149,12 @@
 (define $cmd_assume_push ((x Bool)) ($emb_cmd.assume_push x))
 (declare-parameterized-const $emb_cmd.check_proven ((x Bool :opaque)) $eo_Cmd)
 (define $cmd_check_proven ((x Bool)) ($emb_cmd.check_proven x))
-$EO_CMD_DEFS$
+(declare-parameterized-const $emb_cmd.step
+  ((r $eo_Rule :opaque) (premises $eo_IndexList :opaque) (args $eo_ArgList :opaque))
+  $eo_Cmd)
+(define $cmd_step
+  ((r $eo_Rule) (premises $eo_IndexList) (args $eo_ArgList))
+  ($emb_cmd.step r premises args))
 
 (program $eo_invoke_cmd_check_proven ((S $eo_State) (F Bool) (proven Bool))
   :signature ($eo_State Bool) $eo_State
@@ -127,12 +169,7 @@ $EO_CMD_DEFS$
 $EO_INVOKE_DEFS$
 
 (program $eo_invoke_cmd
-  ((proven Bool) (premises $eo_IndexList) (S $eo_State)
-  (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
-  (T6 Type) (T7 Type) (T8 Type) (T9 Type) (T10 Type)
-  (a1 T1) (a2 T2) (a3 T3) (a4 T4) (a5 T5) (a6 T6) (a7 T7) (a8 T8) (a9 T9) (a10 T10)
-  (n1 $eo_Numeral) (n2 $eo_Numeral) (n3 $eo_Numeral) (n4 $eo_Numeral)
-  (n5 $eo_Numeral) (n6 $eo_Numeral) (n7 $eo_Numeral) (n8 $eo_Numeral))
+  ((proven Bool) (premises $eo_IndexList) (S $eo_State) (args $eo_ArgList))
   :signature ($eo_State $eo_Cmd) $eo_State
   (
   (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume proven S))

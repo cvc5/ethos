@@ -33,12 +33,14 @@ std::string metaKindToString(MetaKind k)
     case MetaKind::SMT_DATATYPE_CONSTRUCTOR:
       ss << "SMT_DATATYPE_CONSTRUCTOR";
       break;
+    case MetaKind::CHECKER_RULE: return "CHECKER_RULE"; break;
     case MetaKind::CHECKER_STATE: ss << "CHECKER_STATE"; break;
     case MetaKind::CHECKER_STATE_OBJ: ss << "CHECKER_STATE_OBJ"; break;
     case MetaKind::CHECKER_CMD: ss << "CHECKER_CMD"; break;
     case MetaKind::CHECKER_CMD_LIST: ss << "CHECKER_CMD_LIST"; break;
     case MetaKind::CHECKER_INDEX: ss << "CHECKER_INDEX"; break;
     case MetaKind::CHECKER_INDEX_LIST: ss << "CHECKER_INDEX_LIST"; break;
+    case MetaKind::CHECKER_ARG_LIST: ss << "CHECKER_ARG_LIST"; break;
     case MetaKind::NONE: ss << "NONE"; break;
     default: ss << "?MetaKind"; break;
   }
@@ -72,10 +74,10 @@ bool isSmtMetaKind(MetaKind k)
 }
 bool isCheckerMetaKind(MetaKind k)
 {
-  return k == MetaKind::CHECKER_STATE || k == MetaKind::CHECKER_STATE_OBJ
+  return k == MetaKind::CHECKER_RULE || k == MetaKind::CHECKER_STATE || k == MetaKind::CHECKER_STATE_OBJ
          || k == MetaKind::CHECKER_CMD || k == MetaKind::CHECKER_INDEX
          || k == MetaKind::CHECKER_CMD_LIST
-         || k == MetaKind::CHECKER_INDEX_LIST;
+         || k == MetaKind::CHECKER_INDEX_LIST || k == MetaKind::CHECKER_ARG_LIST;
 }
 
 ConjPrint::ConjPrint() : d_npush(0) {}

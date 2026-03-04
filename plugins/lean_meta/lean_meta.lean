@@ -268,7 +268,14 @@ abbrev CIndex := eo_lit_Int
 inductive CIndexList : Type where
   | nil : CIndexList
   | cons : CIndex -> CIndexList -> CIndexList
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, Inhabited
+
+/-
+-/
+inductive CArgList : Type where
+  | nil : CArgList
+  | cons : Term -> CArgList -> CArgList
+deriving Repr, Inhabited
 
 /-
 -/
@@ -276,7 +283,8 @@ inductive CStateObj : Type where
   | assume : Term -> CStateObj
   | assume_push : Term -> CStateObj
   | proven : Term -> CStateObj
-deriving Repr, DecidableEq, Inhabited
+  | Stuck : CStateObj
+deriving Repr, Inhabited
 
 /-
 -/
@@ -284,20 +292,26 @@ inductive CState : Type where
   | nil : CState
   | cons : CStateObj -> CState -> CState
   | Stuck : CState
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, Inhabited
+
+/-
+-/
+inductive CRule : Type where
+$LEAN_CHECKER_RULE_DEF$
+deriving Repr, Inhabited
 
 /-
 -/
 inductive CCmd : Type where
-$LEAN_CHECKER_RULE_DEF$
-deriving Repr, DecidableEq, Inhabited
+$LEAN_CHECKER_CMD_DEF$
+deriving Repr, Inhabited
 
 /-
 -/
 inductive CCmdList : Type where
   | nil : CCmdList
   | cons : CCmd -> CCmdList -> CCmdList
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, Inhabited
 
 $LEAN_CHECKER_DEFS$
 

@@ -1,7 +1,7 @@
 import Cpc.SmtEval
 
 set_option linter.unusedVariables false
-set_option maxHeartbeats 1000000
+set_option maxHeartbeats 10000000
 
 namespace Eo
 
@@ -128,10 +128,18 @@ deriving Repr, Inhabited
 
 /-
 -/
+inductive CArgList : Type where
+  | nil : CArgList
+  | cons : Term -> CArgList -> CArgList
+deriving Repr, Inhabited
+
+/-
+-/
 inductive CStateObj : Type where
   | assume : Term -> CStateObj
   | assume_push : Term -> CStateObj
   | proven : Term -> CStateObj
+  | Stuck : CStateObj
 deriving Repr, Inhabited
 
 /-
@@ -144,8 +152,14 @@ deriving Repr, Inhabited
 
 /-
 -/
-inductive CCmd : Type where
+inductive CRule : Type where
 $LEAN_CHECKER_RULE_DEF$
+deriving Repr, Inhabited
+
+/-
+-/
+inductive CCmd : Type where
+$LEAN_CHECKER_CMD_DEF$
 deriving Repr, Inhabited
 
 /-
