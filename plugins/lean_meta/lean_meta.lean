@@ -251,8 +251,7 @@ end
 
 /- Definition of the checker -/
 
-/- FIXME: make Int -/
-abbrev CIndex := Term
+abbrev CIndex := eo_lit_Int
 
 /-
 -/
@@ -274,7 +273,7 @@ deriving Repr, DecidableEq, Inhabited
 inductive CState : Type where
   | nil : CState
   | cons : CStateObj -> CState -> CState
-  | fail : CState
+  | Stuck : CState
 deriving Repr, DecidableEq, Inhabited
 
 /-

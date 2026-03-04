@@ -118,8 +118,8 @@ void DesugarChecker::finalizeRule(const Expr& v)
     Assert(npremises <= 8);
     for (size_t i = 1; i <= npremises; i++)
     {
-      embArg << " (n" << i << " $eo_Index :opaque)";
-      macroArg << " (n" << i << " $eo_Index)";
+      embArg << " (n" << i << " $eoT_Index :opaque)";
+      macroArg << " (n" << i << " $eoT_Index)";
       macroRet << " n" << i;
       invokePat << " n" << i;
       invokeRet << " ($eo_pf ($eo_state_proven_nth S n" << i << "))";

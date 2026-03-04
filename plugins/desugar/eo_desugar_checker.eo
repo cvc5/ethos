@@ -1,17 +1,15 @@
 ;;; utilities
 
 ; placeholders
-(declare-const $eo_Index Type)
-;(define $eo_Index () $smt_builtin_Int)
+(define $eoT_Index () $smt_builtin_Int)
 
 (declare-const $eo_IndexList Type)
 (declare-const $emb_indl.nil $eo_IndexList)
 (declare-parameterized-const $emb_indl.cons
-  ((i $eo_Index :opaque) (il $eo_IndexList :opaque)) $eo_IndexList)
+  ((i $eoT_Index :opaque) (il $eo_IndexList :opaque)) $eo_IndexList)
 
 ; for bool??
-(define $eo_Result () Bool)
-;(define $eo_Result () $smt_builtin_Bool)
+(define $eoT_Result () $smt_builtin_Bool)
 
 ;;; Types
 
@@ -50,23 +48,23 @@
   )
 )
 
-(program $eo_state_proven_nth ((so $eo_StateObj) (s $eo_State) (n $eo_Index))
-  :signature ($eo_State $eo_Index) Bool
+(program $eo_state_proven_nth ((so $eo_StateObj) (s $eo_State) (n $eoT_Index))
+  :signature ($eo_State $eoT_Index) Bool
   (
-  (($eo_state_proven_nth ($s_cons so s) 0) ($eo_StateObj_proven so))
-  (($eo_state_proven_nth ($s_cons so s) n) ($eo_state_proven_nth s (eo::add n -1)))
+  (($eo_state_proven_nth ($s_cons so s) $smt_builtin_z_zero) ($eo_StateObj_proven so))
+  (($eo_state_proven_nth ($s_cons so s) n) ($eo_state_proven_nth s ($smt_builtin_z_dec n)))
   ; otherwise just return true
   (($eo_state_proven_nth s n) true)
   )
 )
 
 (program $eo_state_is_closed ((so $eo_StateObj) (s $eo_State) (F Bool))
-  :signature ($eo_State) $eo_Result
+  :signature ($eo_State) $eoT_Result
   (
-  (($eo_state_is_closed ($s_cons ($so_assume_push F) s)) false)
+  (($eo_state_is_closed ($s_cons ($so_assume_push F) s)) $smt_builtin_false)
   (($eo_state_is_closed ($s_cons so s)) ($eo_state_is_closed s))
-  (($eo_state_is_closed $s_nil) true)
-  (($eo_state_is_closed s) false)
+  (($eo_state_is_closed $s_nil) $smt_builtin_true)
+  (($eo_state_is_closed s) $smt_builtin_false)
   )
 )
 
@@ -97,7 +95,7 @@
 ; constructs a formula based on a premise list constructor f, a premise list
 ; and the current state.
 (program $eo_mk_premise_list
-  ((f (-> Bool Bool Bool)) (n $eo_Index) (pl $eo_IndexList :list) (S $eo_State))
+  ((f (-> Bool Bool Bool)) (n $eoT_Index) (pl $eo_IndexList :list) (S $eo_State))
   :signature ((-> Bool Bool Bool) $eo_IndexList $eo_State) Bool
   (
   (($eo_mk_premise_list f $emb_indl.nil S)          (eo::nil f Bool))
@@ -179,7 +177,7 @@ $EO_INVOKE$
 ; - cs is a command list to invoke. Note the indices of premises should take
 ; into account the size of as.
 (program $eo_checker_is_refutation ((as Bool) (cs $eo_CmdList))
-  :signature (Bool $eo_CmdList) $eo_Result
+  :signature (Bool $eo_CmdList) $eoT_Result
   (
   (($eo_checker_is_refutation as cs)
     (eo::define ((s ($eo_invoke_cmd_list_assuming $s_nil as cs)))

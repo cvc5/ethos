@@ -34,6 +34,8 @@
 (define $smt_builtin_Rat () ($smt_type_0 "Rat"))
 (define $smt_builtin_String () ($smt_type_0 "String"))
 (define $smt_builtin_RegLan () ($smt_type_0 "RegLan"))
+(define $smt_builtin_true () ($smt_apply_0 "true"))
+(define $smt_builtin_false () ($smt_apply_0 "false"))
 (define $smt_builtin_ite ((W Type :implicit) (b $smt_builtin_Bool) (x1 W) (x2 W)) ($smt_apply_3 "ite" b x1 x2))
 (define $smt_builtin_z_zero () ($smt_apply_0 "0"))
 (define $smt_builtin_z_one () ($smt_apply_0 "1"))
@@ -45,7 +47,6 @@
 (define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
 (define $smt_builtin_z_pow2 ((W Type :implicit) (x1 W)) ($smt_apply_1 "int.pow2" x1))
 (define $smt_builtin_z_piand ((W Type :implicit) (x1 W) (x2 W) (x3 W)) ($smt_apply_3 "piand" x1 x2 x3))
-(define $smt_builtin_q_+ ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qplus" x1 x2))
 (define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
 (define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
@@ -182,20 +183,6 @@
   (($eo_and ($eot_binary w1 n1) ($eot_binary w2 n2))
     ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
       ($eo_binary_mod_w w1 ($smtx_binary_and w1 n1 n2))))
-  )
-)
-(program $eo_add
-  ((T Type) (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
-   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Rat) (r2 $smt_builtin_Rat))
-  :signature (T T) T
-  (
-  (($eo_add ($eot_numeral n1) ($eot_numeral n2))
-    ($eot_numeral ($smt_builtin_z_+ n1 n2)))
-  (($eo_add ($eot_rational r1) ($eot_rational r2))
-    ($eot_rational ($smt_builtin_q_+ r1 r2)))
-  (($eo_add ($eot_binary w1 n1) ($eot_binary w2 n2))
-    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
-      ($eo_binary_mod_w w1 ($smt_builtin_z_+ n1 n2))))  
   )
 )
 (program $eo_eq ((t $eo_Term) (s $eo_Term))
@@ -772,9 +759,9 @@
   (($eo_to_smt y)                   $sm_none)
   )
 )
-(declare-const $eo_Index Type)
+(define $eoT_Index () $smt_builtin_Int)
 (declare-const $eo_IndexList Type)
-(define $eo_Result () Bool)
+(define $eoT_Result () $smt_builtin_Bool)
 (declare-const $eo_Cmd Type)
 (declare-const $eo_State Type)
 (declare-const $eo_StateObj Type)
@@ -799,22 +786,22 @@
   (($eo_StateObj_proven ($so_proven F)) F)
   )
 )
-(program $eo_state_proven_nth ((so $eo_StateObj) (s $eo_State) (n $eo_Index))
-  :signature ($eo_State $eo_Index) Bool
+(program $eo_state_proven_nth ((so $eo_StateObj) (s $eo_State) (n $eoT_Index))
+  :signature ($eo_State $eoT_Index) Bool
   (
-  (($eo_state_proven_nth ($s_cons so s) 0) ($eo_StateObj_proven so))
-  (($eo_state_proven_nth ($s_cons so s) n) ($eo_state_proven_nth s (eo::add n -1)))
+  (($eo_state_proven_nth ($s_cons so s) $smt_builtin_z_zero) ($eo_StateObj_proven so))
+  (($eo_state_proven_nth ($s_cons so s) n) ($eo_state_proven_nth s ($smt_builtin_z_dec n)))
   
   (($eo_state_proven_nth s n) true)
   )
 )
 (program $eo_state_is_closed ((so $eo_StateObj) (s $eo_State) (F Bool))
-  :signature ($eo_State) $eo_Result
+  :signature ($eo_State) $eoT_Result
   (
-  (($eo_state_is_closed ($s_cons ($so_assume_push F) s)) false)
+  (($eo_state_is_closed ($s_cons ($so_assume_push F) s)) $smt_builtin_false)
   (($eo_state_is_closed ($s_cons so s)) ($eo_state_is_closed s))
-  (($eo_state_is_closed $s_nil) true)
-  (($eo_state_is_closed s) false)
+  (($eo_state_is_closed $s_nil) $smt_builtin_true)
+  (($eo_state_is_closed s) $smt_builtin_false)
   )
 )
 (program $eo_push_assume ((F Bool) (s $eo_State))
@@ -840,10 +827,10 @@
 (define $cmd_assume_push ((x Bool)) ($emb_cmd.assume_push x))
 (declare-parameterized-const $emb_cmd.check_proven ((x Bool :opaque)) $eo_Cmd)
 (define $cmd_check_proven ((x Bool)) ($emb_cmd.check_proven x))
-(declare-parameterized-const $emb_cmd.contra ( (n1 $eo_Index :opaque) (n2 $eo_Index :opaque)) $eo_Cmd)
-(define $cmd_contra ( (n1 $eo_Index) (n2 $eo_Index)) ($emb_cmd.contra n1 n2))
-(declare-parameterized-const $emb_cmd.symm ( (n1 $eo_Index :opaque)) $eo_Cmd)
-(define $cmd_symm ( (n1 $eo_Index)) ($emb_cmd.symm n1))
+(declare-parameterized-const $emb_cmd.contra ( (n1 $eoT_Index :opaque) (n2 $eoT_Index :opaque)) $eo_Cmd)
+(define $cmd_contra ( (n1 $eoT_Index) (n2 $eoT_Index)) ($emb_cmd.contra n1 n2))
+(declare-parameterized-const $emb_cmd.symm ( (n1 $eoT_Index :opaque)) $eo_Cmd)
+(define $cmd_symm ( (n1 $eoT_Index)) ($emb_cmd.symm n1))
 (program $eo_invoke_cmd_check_proven ((S $eo_State) (F Bool) (proven Bool))
   :signature ($eo_State Bool) $eo_State
   (
@@ -895,7 +882,7 @@
   )
 )
 (program $eo_checker_is_refutation ((as Bool) (cs $eo_CmdList))
-  :signature (Bool $eo_CmdList) $eo_Result
+  :signature (Bool $eo_CmdList) $eoT_Result
   (
   (($eo_checker_is_refutation as cs)
     (eo::define ((s ($eo_invoke_cmd_list_assuming $s_nil as cs)))

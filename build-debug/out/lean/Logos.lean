@@ -156,13 +156,6 @@ partial def __eo_and : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
-partial def __eo_add : Term -> Term -> Term
-  | (Term.Numeral n1), (Term.Numeral n2) => (Term.Numeral (eo_lit_zplus n1 n2))
-  | (Term.Rational r1), (Term.Rational r2) => (Term.Rational (eo_lit_qplus r1 r2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_zplus n1 n2) (__smtx_pow2 w1))) Term.Stuck) Term.Stuck)
-  | _, _ => Term.Stuck
-
-
 partial def __eo_eq : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -185,15 +178,13 @@ partial def __eo_prog_symm : Proof -> Term
   | _ => Term.Stuck
 
 
-partial def __eo_Result : Term := Term.Bool
 
 
 end
 
 /- Definition of the checker -/
 
-/- FIXME: make Int -/
-abbrev CIndex := Term
+abbrev CIndex := eo_lit_Int
 
 /-
 -/
@@ -223,8 +214,8 @@ deriving Repr, Inhabited
 inductive CCmd : Type where
   | assume_push : Term -> CCmd
   | check_proven : Term -> CCmd
-  | contra : CIndex -> CIndex -> CCmd
-  | symm : CIndex -> CCmd
+  | contra : eo_lit_Int -> eo_lit_Int -> CCmd
+  | symm : eo_lit_Int -> CCmd
 
 deriving Repr, Inhabited
 
@@ -241,17 +232,17 @@ def __eo_StateObj_proven : CStateObj -> Term
   | (CStateObj.proven F) => F
 
 
-def __eo_state_proven_nth : CState -> CIndex -> Term
-  | (CState.cons so s), (Term.Numeral 0) => (__eo_StateObj_proven so)
-  | (CState.cons so s), n => (__eo_state_proven_nth s (__eo_add n (Term.Numeral (-1 : eo_lit_Int))))
+def __eo_state_proven_nth : CState -> eo_lit_Int -> Term
+  | (CState.cons so s), 0 => (__eo_StateObj_proven so)
+  | (CState.cons so s), n => (__eo_state_proven_nth s (eo_lit_zplus n (eo_lit_zneg 1)))
   | s, n => (Term.Boolean true)
 
 
-def __eo_state_is_closed : CState -> Term
-  | (CState.cons (CStateObj.assume_push F) s) => (Term.Boolean false)
+def __eo_state_is_closed : CState -> eo_lit_Bool
+  | (CState.cons (CStateObj.assume_push F) s) => false
   | (CState.cons so s) => (__eo_state_is_closed s)
-  | CState.nil => (Term.Boolean true)
-  | s => (Term.Boolean false)
+  | CState.nil => true
+  | s => false
 
 
 def __eo_push_assume : Term -> CState -> CState
@@ -291,8 +282,7 @@ def __eo_invoke_cmd_list_assuming (S : CState) : Term -> CCmdList -> CState
   | as, cs => CState.Stuck
 
 
-def __eo_checker_is_refutation : Term -> CCmdList -> Term
-  | Term.Stuck , _  => Term.Stuck
+def __eo_checker_is_refutation : Term -> CCmdList -> eo_lit_Bool
   | as, cs => (__eo_state_is_closed (__eo_invoke_cmd_check_proven (__eo_invoke_cmd_list_assuming CState.nil as cs) (Term.Boolean false)))
 
 

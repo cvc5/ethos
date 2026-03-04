@@ -108,8 +108,7 @@ end
 
 /- Definition of the checker -/
 
-/- FIXME: make Int -/
-abbrev CIndex := Term
+abbrev CIndex := eo_lit_Int
 
 /-
 -/
