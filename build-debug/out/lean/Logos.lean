@@ -260,12 +260,6 @@ def __eo_state_proven_nth : CState -> eo_lit_Int -> Term
   | s, n => (Term.Boolean true)
 
 
-def __eo_premise_nth : CIndexList -> eo_lit_Int -> eo_lit_Int
-  | (CIndexList.cons i il), 0 => i
-  | (CIndexList.cons i il), n => (__eo_premise_nth il (eo_lit_zplus n (eo_lit_zneg 1)))
-  | CIndexList.nil, n => (eo_lit_zneg 1)
-
-
 def __eo_state_is_closed : CState -> eo_lit_Bool
   | (CState.cons (CStateObj.assume_push F) s) => false
   | (CState.cons so s) => (__eo_state_is_closed s)
@@ -295,8 +289,8 @@ def __eo_invoke_cmd : CState -> CCmd -> CState
   | CState.Stuck, c => CState.Stuck
   | S, (CCmd.assume_push proven) => (__eo_push_assume proven S)
   | S, (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
-  | S, (CCmd.step CRule.contra premises args) => (__eo_push_proven (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
-  | S, (CCmd.step CRule.symm premises args) => (__eo_push_proven (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | S, (CCmd.step CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil))) => (__eo_push_proven (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
+  | S, (CCmd.step CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil)) => (__eo_push_proven (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1))) S)
 
 
 def __eo_invoke_cmd_list (S : CState) : CCmdList -> CState

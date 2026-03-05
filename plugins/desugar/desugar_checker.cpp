@@ -86,19 +86,24 @@ void DesugarChecker::finalizeRule(const Expr& v)
     nargs--;
   }
   // first, pass the ordinary arguments
-  Assert(nargs <= 10);
+  Assert(nargs <= 10) << "Compiler supports at most 10 arguments to proof rule";
+  std::string invPatArgs = "$eot_aln";
   for (size_t i = 1; i <= nargs; i++)
   {
     embArg << " (T" << i << " Type :implicit) (x" << i << " T" << i
            << " :opaque)";
     macroArg << " (T" << i << " Type :implicit) (x" << i << " T" << i << ")";
     macroRet << " x" << i;
-    invokeRet << " ($eo_arg_nth args " << smtIndex(i - 1) << ")";
+    invokeRet << " a" << i;
     progParamList << " (T" << i << " Type) (a" << i << " T" << i << ")";
     progSig << " T" << i;
     progPat << " a" << i;
     progRet << " a" << i;
+    std::stringstream ssnext;
+    ssnext << "($eot_alc a" << (nargs-i)+1 << " " << invPatArgs << ")";
+    invPatArgs = ssnext.str();
   }
+  invokePat << " " << invPatArgs;
   // then, pass the assumption
   if (isAssume)
   {
@@ -121,19 +126,23 @@ void DesugarChecker::finalizeRule(const Expr& v)
   }
   else
   {
-    Assert(npremises <= 8);
+    Assert(npremises <= 8) << "Compiler supports at most 8 premises to proof rule";
+    std::string invPatPremises = "$eot_iln";
     for (size_t i = 1; i <= npremises; i++)
     {
       embArg << " (n" << i << " $eoT_Index :opaque)";
       macroArg << " (n" << i << " $eoT_Index)";
       macroRet << " n" << i;
-      invokeRet << " ($eo_pf ($eo_state_proven_nth S ($eo_premise_nth premises "
-                << smtIndex(i - 1) << ")))";
+      invokeRet << " ($eo_pf ($eo_state_proven_nth S n" << i << "))";
       progParamList << " (p" << i << " $eo_Proof)";
       progSig << " $eo_Proof";
       progPat << " p" << i;
       progRet << " p" << i;
+      std::stringstream ssnext;
+      ssnext << "($eot_ilc n" << (npremises-i)+1 << " " << invPatPremises << ")";
+      invPatPremises = ssnext.str();
     }
+    invokePat << " " << invPatPremises;
   }
   std::stringstream ssv;
   ssv << v;
@@ -143,7 +152,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
   ssr << "$rule_" << vname;
   d_rules << "(declare-const $emb_r." << vname << " $eo_Rule)" << std::endl;
   d_ruleInvokes << "  (($eo_invoke_cmd S ($cmd_step $emb_r." << vname
-                << " premises args)) ";
+                << invokePat.str() << ")) ";
   if (isAssume)
   {
     d_ruleInvokes << "($eo_invoke_cmd_pop_" << vname << " S" << invokeRet.str()
