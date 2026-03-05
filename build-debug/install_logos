@@ -27,3 +27,15 @@ cp $OUT_DIR/lean/Logos.lean $TEST_DIR/Cpc/Logos.lean
 cp $OUT_DIR/lean/SmtEval.lean $TEST_DIR/Cpc/SmtEval.lean
 cp $OUT_DIR/lean/SmtModel.lean $TEST_DIR/Cpc/SmtModel.lean
 cp $OUT_DIR/lean/Spec.lean $TEST_DIR/Cpc/Spec.lean
+
+cd ~/ethos/smtlibTests/logos-tests
+
+for FILE in *.smt2; do
+  BASE_FILE=$(basename $FILE)
+  BASE_NAME=${BASE_FILE%.*}
+  echo "Generating `pwd`/$FILE to ~/logos/examples/test-$BASE_NAME.cpc.lean"
+  cpc_gen_logos.sh ajr-cvc5 $FILE > temp.lean
+  cp temp.lean ~/logos/examples/test-$BASE_NAME.cpc.lean
+  cp temp.lean /local/ajreynol/lean/cpc/examples/test-$BASE_NAME.cpc.lean
+  rm -f temp.lean
+done

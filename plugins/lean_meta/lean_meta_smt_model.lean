@@ -48,6 +48,7 @@ abbrev smt_lit_str_from_code := SmtEval.smt_lit_str_from_code
 
 abbrev smt_lit_bit := SmtEval.smt_lit_bit
 abbrev smt_lit_msb := SmtEval.smt_lit_msb
+abbrev smt_lit_binary_and := SmtEval.smt_lit_binary_and
 abbrev smt_lit_binary_or := SmtEval.smt_lit_binary_or
 abbrev smt_lit_binary_xor := SmtEval.smt_lit_binary_xor
 abbrev smt_lit_binary_not := SmtEval.smt_lit_binary_not

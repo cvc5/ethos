@@ -58,8 +58,8 @@ $EO_LITERAL_TYPE_DECL$
   :signature ((-> T U V) (eo::quote W)) W)
 
 ; forward declaration
-(program $eo_is_list_nil ((T Type) (U Type) (V Type) (W Type))
-  :signature ((-> T U V) W) Bool)
+(program $eo_is_list_nil ((T Type) (V Type))
+  :signature ((-> T V V) V) Bool)
 
 ; forward declaration
 (program $eo_dt_constructors () :signature (Type) $eo_List)
@@ -99,24 +99,26 @@ $EO_LITERAL_TYPE_DECL$
 ;;; $eo_is_list
 
 ; Note: a helper for $eo_is_list.
-(program $eo_is_list_rec
-  ((T Type) (U Type) (V Type) (W Type) (X Type)
-   (f (-> T U V)) (g (-> T U V)) (x T) (y U) (nil W) (z X))
-  :signature ((-> T U V) W X) Bool
+(program $eo_get_nil_rec
+  ((T Type) (U Type) (V Type)
+   (f (-> T V V)) (g (-> T V V)) (x T) (y V) (nil V))
+  :signature ((-> T V V) V) Bool
   (
-  (($eo_is_list_rec f nil (g x y)) (eo::ite (eo::eq f g)
-                                      ($eo_is_list_rec f nil y) false))
-  (($eo_is_list_rec f nil z)       (eo::eq nil z))
+  (($eo_get_nil_rec f (g x y)) (eo::requires f g ($eo_get_nil_rec f y)))
+  (($eo_get_nil_rec f nil)     (eo::requires ($eo_is_list_nil f nil) true nil))
   )
 )
 
 ; Note: >
 ;   This does not correspond to a builtin operator. It is used as a helper
 ;   to define the preconditions for most of the operators below.
-(define $eo_is_list
-  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
-   (f (-> T U V)) (x W))
-  ($eo_is_list_rec f ($eo_nil f ($eo_typeof x)) x))
+(program $eo_is_list
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x V))
+  :signature ((-> T U V) V) Bool
+  (
+  (($eo_is_list f x) (eo::is_ok ($eo_get_nil_rec f x)))
+  )
+)
 
 ;;; $eo_cons
 
@@ -253,7 +255,7 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (f (-> T V V)) (a U))
   (eo::requires ($eo_is_list f a) true
-    ($eo_list_rev_rec a ($eo_nil f ($eo_typeof a)))))
+    ($eo_list_rev_rec a ($eo_get_nil_rec f a))))
 
 ;;; $eo_list_erase
 
@@ -415,11 +417,11 @@ $EO_LITERAL_TYPE_DECL$
 
 ; Note: a helper for $eo_list_singleton_elim.
 (program $eo_list_singleton_elim_2
-  ((T Type) (f (-> T T T)) (x T) (y T) (z T) (nil T))
-  :signature (T T) T
+  ((T Type) (f (-> T T T)) (x T) (y T))
+  :signature (T) T
   (
-  (($eo_list_singleton_elim_2 nil (f x y))  (eo::ite (eo::eq y nil) x (f x y)))
-  (($eo_list_singleton_elim_2 nil z)        z)
+  (($eo_list_singleton_elim_2 (f x y))  (eo::ite ($eo_is_list_nil f y) x (f x y)))
+  (($eo_list_singleton_elim_2 y)        y)
   )
 )
 
@@ -429,7 +431,7 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (a W))
   (eo::requires ($eo_is_list f a) true
-    ($eo_list_singleton_elim_2 ($eo_nil f ($eo_typeof a)) a)))
+    ($eo_list_singleton_elim_2 a)))
 
 ; all further definitions
 
@@ -533,8 +535,8 @@ $EO_NIL_CASES$
 ; it for the common case when the nil terminator does not depend
 ; on the type, which avoids the use of eo::typeof.
 (program $eo_is_list_nil
-  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (nil W))
-  :signature ((-> T U V) W) Bool
+  ((T Type) (V Type) (f (-> T V V)) (nil V))
+  :signature ((-> T V V) V) Bool
   (
 $EO_IS_LIST_NIL_CASES$
   ; builtin case of $eo_List

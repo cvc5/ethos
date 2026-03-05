@@ -319,4 +319,10 @@ deriving Repr, Inhabited
 
 $LEAN_CHECKER_DEFS$
 
+/-- API for logos -/
+def logos_init_state : CState := CState.nil
+def logos_invoke_assume (s : CState) (A : Term) : CState := (CState.cons (CStateObj.assume A) s)
+def logos_invoke_cmd (s : CState) (c :CCmd) : CState := (__eo_invoke_cmd s c)
+def logos_state_is_refutation (s : CState) : eo_lit_Bool := (__eo_state_is_refutation s)
+
 end Eo
