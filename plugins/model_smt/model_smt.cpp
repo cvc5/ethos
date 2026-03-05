@@ -1092,7 +1092,7 @@ void ModelSmt::printDecl(const std::string& name,
   {
     // note that if we are a builtin type, we don't need to print the embedding
     // declaration
-    if (name == "Int" || name == "Real" || name == "String" || name == "BitVec"
+    if (name == "Int" || name == "Real" || name == "Char" || name == "BitVec"
         || name == "Seq" || name == "RegLan")
     {
       out = &tmp;

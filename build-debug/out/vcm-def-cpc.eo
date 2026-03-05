@@ -84,6 +84,10 @@
   :signature ((-> T U V) (eo::quote W)) W)
 
 ; forward declaration
+(program $eo_is_list_nil ((T Type) (U Type) (V Type) (W Type))
+  :signature ((-> T U V) W) Bool)
+
+; forward declaration
 (program $eo_dt_constructors () :signature (Type) $eo_List)
 
 ; forward declaration
@@ -1794,6 +1798,24 @@
   )
 )
 
+;;; $eo_is_list_nil
+; Note: a helper for $eo_is_list_rec.
+; We have that ($eo_is_list_nil f x) is equivalent to
+; (eo::eq (eo::nil f (eo::typeof x)) x). We custom define
+; it for the common case when the nil terminator does not depend
+; on the type, which avoids the use of eo::typeof.
+(program $eo_is_list_nil
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (nil W))
+  :signature ((-> T U V) W) Bool
+  (
+  (($eo_is_list_nil and true) true)
+
+  ; builtin case of $eo_List
+  (($eo_is_list_nil $eo_List_cons $eo_List_nil) true)
+  (($eo_is_list_nil f nil)                      false)
+  )
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_smt
 
 ; The following functions may be used to define the verification condition we
@@ -1974,10 +1996,6 @@
 (declare-const $emb_tsm.Real $smt_Type)
 (define $tsm_Real () $emb_tsm.Real)
 
-; The String type
-(declare-const $emb_tsm.String $smt_Type)
-(define $tsm_String () $emb_tsm.String)
-
 ; The RegLan type
 (declare-const $emb_tsm.RegLan $smt_Type)
 (define $tsm_RegLan () $emb_tsm.RegLan)
@@ -1999,6 +2017,13 @@
 ; The Sequence type
 (declare-parameterized-const $emb_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
 (define $tsm_Seq ((T $smt_Type)) ($emb_tsm.Seq T))
+
+; The Char type
+(declare-const $emb_tsm.Char $smt_Type)
+(define $tsm_Char () $emb_tsm.Char)
+
+; The String, type a sequence of chars
+(define $tsm_String () ($tsm_Seq $tsm_Char))
 
 ; A datatype is a type containing (1) its name, and (2) its structure.
 ; Its name can be understood as a binder under which ($tsm_TypeRef <name>) is
@@ -2057,8 +2082,6 @@
 (define $tsm_TypeRef ((s $smt_builtin_String)) ($emb_tsm.TypeRef s))
 
 ; all other ordinary type definitions
-(declare-parameterized-const $emb_tsm.Char () $smt_Type)
-(define $tsm_Char () $emb_tsm.Char)
 
 
 ;;;;;; SMT values

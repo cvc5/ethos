@@ -311,6 +311,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   if (cattr == Attr::RIGHT_ASSOC_NIL || cattr == Attr::LEFT_ASSOC_NIL)
   {
     d_eoNil << "  (($eo_nil " << e << " T) ";
+    d_eoIsListNil << "  (($eo_is_list_nil " << e << " ";
     std::vector<Expr> nvars = Expr::getVariables(cattrCons);
     // print the type
     if (!nvars.empty())
@@ -334,9 +335,14 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
       finalizeProgram(prog, progDef, d_eoNilNground);
       d_eoNil << "(" << pname << " T)";
+      d_eoIsListNil << "nil) (eo::eq nil ($eo_nil " << e << " ($eo_typeof nil))))" << std::endl;
     }
     else
     {
+      // Note that cattrCons may print out as evaluatable, e.g. if it
+      // is the empty bitvector (eo::to_bin 0 0). This is ok because it is ground and hence
+      // will be evaluated upon parsing.
+      d_eoIsListNil << cattrCons << ") true)" << std::endl;
       d_eoNil << cattrCons;
     }
     d_eoNil << ")" << std::endl;
@@ -852,6 +858,7 @@ void Desugar::finalize()
   replace(finalEo, "$EO_LITERAL_TYPE_DECL$", d_litTypeDecl.str());
   replace(finalEo, "$EO_LIT_TYPEOF_DEFS$", d_litTypeProg.str());
   replace(finalEo, "$EO_DEFS$", d_defs.str());
+  replace(finalEo, "$EO_IS_LIST_NIL_CASES$", d_eoIsListNil.str());
   replace(finalEo, "$EO_NIL_CASES$", d_eoNil.str());
   replace(finalEo, "$EO_NIL_NGROUND_DEFS$", d_eoNilNground.str());
   replace(finalEo, "$EO_TYPEOF_CASES$", d_eoTypeof.str());

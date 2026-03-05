@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 279
+; #trim-defs: 278
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -447,8 +447,6 @@
 (define $tsm_Int () $emb_tsm.Int)
 (declare-const $emb_tsm.Real $smt_Type)
 (define $tsm_Real () $emb_tsm.Real)
-(declare-const $emb_tsm.String $smt_Type)
-(define $tsm_String () $emb_tsm.String)
 (declare-const $emb_tsm.RegLan $smt_Type)
 (define $tsm_RegLan () $emb_tsm.RegLan)
 (declare-parameterized-const $emb_tsm.BitVec ((w $smt_builtin_Int :opaque)) $smt_Type)
@@ -461,6 +459,9 @@
 (define $tsm_DtConsType ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.DtConsType Ti Te))
 (declare-parameterized-const $emb_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
 (define $tsm_Seq ((T $smt_Type)) ($emb_tsm.Seq T))
+(declare-const $emb_tsm.Char $smt_Type)
+(define $tsm_Char () $emb_tsm.Char)
+(define $tsm_String () ($tsm_Seq $tsm_Char))
 (declare-parameterized-const $emb_tsm.Datatype 
   ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)) $smt_Type)
 (define $tsm_Datatype ((s $smt_builtin_String) (d $smt_Datatype))
@@ -468,8 +469,6 @@
 (declare-parameterized-const $emb_tsm.TypeRef
   ((s $smt_builtin_String :opaque)) $smt_Type)
 (define $tsm_TypeRef ((s $smt_builtin_String)) ($emb_tsm.TypeRef s))
-(declare-parameterized-const $emb_tsm.Char () $smt_Type)
-(define $tsm_Char () $emb_tsm.Char)
 (declare-const $smt_Map Type)
 (declare-const $smt_Seq Type)
 (declare-const $emb_vsm.NotValue $smt_Value)

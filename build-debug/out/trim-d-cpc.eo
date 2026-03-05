@@ -84,6 +84,10 @@
   :signature ((-> T U V) (eo::quote W)) W)
 
 ; forward declaration
+(program $eo_is_list_nil ((T Type) (U Type) (V Type) (W Type))
+  :signature ((-> T U V) W) Bool)
+
+; forward declaration
 (program $eo_dt_constructors () :signature (Type) $eo_List)
 
 ; forward declaration
@@ -1791,6 +1795,24 @@
 
   ; builtin case of $eo_List
   (($eo_nil $eo_List_cons $eo_List) $eo_List_nil)
+  )
+)
+
+;;; $eo_is_list_nil
+; Note: a helper for $eo_is_list_rec.
+; We have that ($eo_is_list_nil f x) is equivalent to
+; (eo::eq (eo::nil f (eo::typeof x)) x). We custom define
+; it for the common case when the nil terminator does not depend
+; on the type, which avoids the use of eo::typeof.
+(program $eo_is_list_nil
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (nil W))
+  :signature ((-> T U V) W) Bool
+  (
+  (($eo_is_list_nil and true) true)
+
+  ; builtin case of $eo_List
+  (($eo_is_list_nil $eo_List_cons $eo_List_nil) true)
+  (($eo_is_list_nil f nil)                      false)
   )
 )
 

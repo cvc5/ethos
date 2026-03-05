@@ -161,10 +161,6 @@ $SMT_TERM_CONSTRUCTORS$
 (declare-const $emb_tsm.Real $smt_Type)
 (define $tsm_Real () $emb_tsm.Real)
 
-; The String type
-(declare-const $emb_tsm.String $smt_Type)
-(define $tsm_String () $emb_tsm.String)
-
 ; The RegLan type
 (declare-const $emb_tsm.RegLan $smt_Type)
 (define $tsm_RegLan () $emb_tsm.RegLan)
@@ -186,6 +182,13 @@ $SMT_TERM_CONSTRUCTORS$
 ; The Sequence type
 (declare-parameterized-const $emb_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
 (define $tsm_Seq ((T $smt_Type)) ($emb_tsm.Seq T))
+
+; The Char type
+(declare-const $emb_tsm.Char $smt_Type)
+(define $tsm_Char () $emb_tsm.Char)
+
+; The String, type a sequence of chars
+(define $tsm_String () ($tsm_Seq $tsm_Char))
 
 ; A datatype is a type containing (1) its name, and (2) its structure.
 ; Its name can be understood as a binder under which ($tsm_TypeRef <name>) is

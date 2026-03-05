@@ -201,8 +201,6 @@
   (tsm.Int)
   ; smt-cons: Real
   (tsm.Real)
-  ; smt-cons: String
-  (tsm.String)
   ; smt-cons: RegLan
   (tsm.RegLan)
   ; smt-cons: BitVec
@@ -213,12 +211,12 @@
   (tsm.DtConsType (tsm.DtConsType.arg1 tsm.Type) (tsm.DtConsType.arg2 tsm.Type))
   ; smt-cons: Seq
   (tsm.Seq (tsm.Seq.arg1 tsm.Type))
+  ; smt-cons: Char
+  (tsm.Char)
   ; smt-cons: Datatype
   (tsm.Datatype (tsm.Datatype.arg1 String) (tsm.Datatype.arg2 dt.Datatype))
   ; smt-cons: TypeRef
   (tsm.TypeRef (tsm.TypeRef.arg1 String))
-  ; smt-cons: Char
-  (tsm.Char)
 
   )
   (
@@ -623,7 +621,7 @@
   (ite ((_ is vsm.Rational) x1)
     tsm.Real
   (ite ((_ is vsm.String) x1)
-    tsm.String
+    (tsm.Seq tsm.Char)
   (ite ((_ is vsm.Binary) x1)
     (ite (zleq 0 (vsm.Binary.arg1 x1)) (tsm.BitVec (vsm.Binary.arg1 x1)) tsm.None)
   (ite ((_ is vsm.RegLan) x1)
