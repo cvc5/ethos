@@ -42,6 +42,7 @@ class DesugarChecker : public StdPlugin
   // the rules
   std::stringstream d_rules;
   std::stringstream d_ruleInvokes;
+  std::stringstream d_ruleInvokesPop;
   std::stringstream d_ruleInvokesDefs;
 };
 

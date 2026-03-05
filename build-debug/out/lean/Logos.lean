@@ -238,6 +238,7 @@ inductive CCmd : Type where
   | assume_push : Term -> CCmd
   | check_proven : Term -> CCmd
   | step : CRule -> CArgList -> CIndexList -> CCmd
+  | step_pop : CRule -> CArgList -> CIndexList -> CCmd
 
 deriving Repr, Inhabited
 
@@ -286,13 +287,29 @@ def __eo_invoke_cmd_check_proven : CState -> Term -> CState
   | S, proven => CState.Stuck
 
 
+def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
+  | CRule.contra, CArgList.nil, (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) => (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)))
+  | CRule.symm, CArgList.nil, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1)))
+  | r, args, premises => Term.Stuck
+
+
+def __eo_cmd_step_pop_proven (S : CState) (r : CRule) (args : CArgList) : Term -> CIndexList -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | A, premises => Term.Stuck
+
+
+def __eo_invoke_cmd_step_pop (s : CState) : CState -> CRule -> CArgList -> CIndexList -> CState
+  | (CState.cons (CStateObj.assume_push A) s2), r, args, premises => (__eo_push_proven (__eo_cmd_step_pop_proven s r args A premises) s2)
+  | (CState.cons so s2), r, args, premises => (__eo_invoke_cmd_step_pop s s2 r args premises)
+  | s2, r, args, premises => CState.Stuck
+
+
 def __eo_invoke_cmd : CState -> CCmd -> CState
   | CState.Stuck, c => CState.Stuck
   | S, (CCmd.assume_push proven) => (__eo_push_assume proven S)
   | S, (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
-  | S, (CCmd.step CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil))) => (__eo_push_proven (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | S, (CCmd.step CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil)) => (__eo_push_proven (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | S, c => CState.Stuck
+  | S, (CCmd.step r args premises) => (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
+  | S, (CCmd.step_pop r args premises) => (__eo_invoke_cmd_step_pop S S r args premises)
 
 
 def __eo_invoke_cmd_list (S : CState) : CCmdList -> CState

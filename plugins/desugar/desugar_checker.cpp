@@ -108,6 +108,8 @@ void DesugarChecker::finalizeRule(const Expr& v)
   if (isAssume)
   {
     progRet << " A";
+    invokePat << " A";
+    invokeRet << " A";
   }
   // then the premises
   if (!plCons.isNull())
@@ -150,48 +152,19 @@ void DesugarChecker::finalizeRule(const Expr& v)
   vname = replace_all(vname, "-", "_");
   std::stringstream ssr;
   ssr << "$rule_" << vname;
+  std::ostream* rout = isAssume ? &d_ruleInvokesPop : &d_ruleInvokes;
   d_rules << "(declare-const $emb_r." << vname << " $eo_Rule)" << std::endl;
-  d_ruleInvokes << "  (($eo_invoke_cmd S ($cmd_step $emb_r." << vname
-                << invokePat.str() << ")) ";
-  if (isAssume)
+  (*rout) << "  (($eo_cmd_step_" << (isAssume ? "pop_" : "") << "proven S $emb_r." << vname
+                << invokePat.str() << ") ";
+  if (!invokeRet.str().empty())
   {
-    d_ruleInvokes << "($eo_invoke_cmd_pop_" << vname << " S" << invokeRet.str()
-                  << "))" << std::endl;
-    std::stringstream pname;
-    pname << "$eo_invoke_cmd_pop_" << vname;
-    d_ruleInvokesDefs << "(program " << pname.str() << std::endl;
-    d_ruleInvokesDefs << "  ((A Bool) (s $eo_State) (so $eo_StateObj)"
-                      << progParamList.str() << ")" << std::endl;
-    d_ruleInvokesDefs << "  :signature ($eo_State" << progSig.str()
-                      << ") $eo_State" << std::endl;
-    d_ruleInvokesDefs << "  (" << std::endl;
-    d_ruleInvokesDefs << "  ((" << pname.str()
-                      << " ($s_cons ($so_assume_push A) s)" << progPat.str()
-                      << ")" << std::endl;
-    d_ruleInvokesDefs << "     ($eo_push_proven (" << rprog << progRet.str()
-                      << ") s))" << std::endl;
-    d_ruleInvokesDefs << "  ((" << pname.str() << " ($s_cons so s)"
-                      << progPat.str() << ") " << std::endl;
-    d_ruleInvokesDefs << "     (" << pname.str() << " s" << progPat.str()
-                      << "))" << std::endl;
-    d_ruleInvokesDefs << "  ((" << pname.str() << " s" << progPat.str()
-                      << ") $s_stuck)" << std::endl;
-    d_ruleInvokesDefs << "  )" << std::endl;
-    d_ruleInvokesDefs << ")" << std::endl;
+    (*rout) << "(" << rprog << invokeRet.str() << ")";
   }
   else
   {
-    d_ruleInvokes << "($eo_push_proven ";
-    if (!invokeRet.str().empty())
-    {
-      d_ruleInvokes << "(" << rprog << invokeRet.str() << ")";
-    }
-    else
-    {
-      d_ruleInvokes << rprog;
-    }
-    d_ruleInvokes << " S))" << std::endl;
+    (*rout) << rprog;
   }
+  (*rout) << ")" << std::endl;
 }
 
 void DesugarChecker::finalizeRuleOld(const Expr& v)
@@ -392,6 +365,7 @@ void DesugarChecker::output(std::ostream& out)
   std::string finalCheckEo = ssec.str();
   replace(finalCheckEo, "$EO_RULE_DEFS$", d_rules.str());
   replace(finalCheckEo, "$EO_INVOKE$", d_ruleInvokes.str());
+  replace(finalCheckEo, "$EO_INVOKE_POP$", d_ruleInvokesPop.str());
   replace(finalCheckEo, "$EO_INVOKE_DEFS$", d_ruleInvokesDefs.str());
   out << finalCheckEo;
   out << ";; ------------ checker end" << std::endl;

@@ -728,7 +728,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       cases << "  | ";
       for (size_t j = macroStartArg; j < nargs; j++)
       {
-        if (j > 1)
+        if (j > macroStartArg)
         {
           cases << ", ";
         }

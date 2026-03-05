@@ -119,6 +119,10 @@ def smt_lit_msb : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
   | w, n => (smt_lit_bit n (smt_lit_zplus w (smt_lit_zneg 1)))
 
 
+def smt_lit_binary_and : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
+  | w, n1, n2 => (smt_lit_ite (smt_lit_zeq w 0) 0 (smt_lit_piand w n1 n2))
+
+
 def smt_lit_binary_or : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | w, n1, n2 => (smt_lit_zplus n1 (smt_lit_zplus n2 (smt_lit_zneg (smt_lit_ite (smt_lit_zeq w 0) 0 (smt_lit_piand w n1 n2)))))
 
