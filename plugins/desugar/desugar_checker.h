@@ -27,7 +27,6 @@ class DesugarChecker : public StdPlugin
  public:
   DesugarChecker(State& s, Desugar* d);
   ~DesugarChecker();
-  void finalizeRuleOld(const Expr& v);
   void finalizeRule(const Expr& v);
   void finalizeChecker(const std::string& finalEo);
 
