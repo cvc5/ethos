@@ -66,7 +66,7 @@ $LEAN_THMS$
 /- correctness theorem for the checker -/
 theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
   (eo_is_refutation F pf) ->
-  (Not (eo_interprets F true)) :=
+  (eo_interprets F false) :=
 by
   sorry
 

@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 278
+; #trim-defs: 277
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -60,16 +60,6 @@
 (define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
 (define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
-(program $smtx_pow2 ((i $smt_builtin_Int))
-  :signature ($smt_builtin_Int) $smt_builtin_Int
-  (
-  (($smtx_pow2 i) ($smt_builtin_z_pow2 i))
-
-
-
-
-  )
-)
 (declare-const $eo_Term Type)
 (define $smt_builtin_teq ((x1 $eo_Term) (x2 $eo_Term)) ($smt_apply_2 "teq" x1 x2))
 (declare-const $eo_DatatypeCons Type)
@@ -845,7 +835,7 @@
     ($smt_builtin_ite 
       ($smt_builtin_and
         ($smt_builtin_z_<= $smt_builtin_z_zero w)
-        ($smt_builtin_z_= n ($smt_builtin_mod n ($smtx_pow2 w))))
+        ($smt_builtin_z_= n ($smt_builtin_mod n ($smt_builtin_z_pow2 w))))
       ($vsm_binary w n)
       $vsm_not_value))
   

@@ -343,7 +343,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                {kBitVec, kBitVec},
                "x1",
                smtIte(smtZEq("x3", "$smt_builtin_z_zero"),
-                      "($smtx_binary_max x1)",
+                      "($smt_builtin_binary_max x1)",
                       "($smt_builtin_div x2 x4)"));
   addLitBinSym("bvurem",
                {kBitVec, kBitVec},
@@ -352,20 +352,20 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                       "x2",
                       "($smt_builtin_mod x2 x4)"));
   addLitBinSym(
-      "bvand", {kBitVec, kBitVec}, "x1", "($smtx_binary_and x1 x2 x4)");
-  addLitBinSym("bvor", {kBitVec, kBitVec}, "x1", "($smtx_binary_or x1 x2 x4)");
+      "bvand", {kBitVec, kBitVec}, "x1", "($smt_builtin_binary_and x1 x2 x4)");
+  addLitBinSym("bvor", {kBitVec, kBitVec}, "x1", "($smt_builtin_binary_or x1 x2 x4)");
   addLitBinSym(
-      "bvxor", {kBitVec, kBitVec}, "x1", "($smtx_binary_xor x1 x2 x4)");
-  addLitBinSym("bvnot", {kBitVec}, "x1", "($smtx_binary_not x1 x2)");
+      "bvxor", {kBitVec, kBitVec}, "x1", "($smt_builtin_binary_xor x1 x2 x4)");
+  addLitBinSym("bvnot", {kBitVec}, "x1", "($smt_builtin_binary_not x1 x2)");
   addLitBinSym("bvneg", {kBitVec}, "x1", "($smt_builtin_z_neg x2)");
   addLitBinSym("bvshl",
                {kBitVec, kBitVec},
                "x1",
-               "($smt_builtin_z_* x2 ($smtx_pow2 x4))");
+               "($smt_builtin_z_* x2 ($smt_builtin_z_pow2 x4))");
   addLitBinSym("bvlshr",
                {kBitVec, kBitVec},
                "x1",
-               "($smt_builtin_div x2 ($smtx_pow2 x4))");
+               "($smt_builtin_div x2 ($smt_builtin_z_pow2 x4))");
   std::stringstream ssExtractCond;
   ssExtractCond << smtApp(
       "and",
@@ -374,7 +374,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   std::stringstream ssExtractRet;
   ssExtractRet << "($vsm_binary_mod_w ";
   ssExtractRet << smtZSub(smtZAdd("x1", "$smt_builtin_z_one"), "x2");
-  ssExtractRet << " ($smtx_binary_extract x3 x4 x1 x2))";
+  ssExtractRet << " ($smt_builtin_binary_extract x3 x4 x1 x2))";
   addLitSym("extract",
             {kInt, kInt, kBitVec},
             kT,
@@ -382,7 +382,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitBinSym("concat",
                {kBitVec, kBitVec},
                smtZAdd("x1", "x3"),
-               "($smtx_binary_concat x1 x2 x3 x4)",
+               "($smt_builtin_binary_concat x1 x2 x3 x4)",
                false);
   std::stringstream ssUgtRet;
   ssUgtRet << "($vsm_bool " << smtZLt("x4", "x2") << ")";
@@ -393,8 +393,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // the following operators require a mix of literal evaluation and term
   // reduction
   std::stringstream ssSgtRet;
-  ssSgtRet << "(eo::define ((msb_s ($sm_bool ($smtx_msb x1 x2)))) ";
-  ssSgtRet << "(eo::define ((msb_t ($sm_bool ($smtx_msb x3 x4)))) ";
+  ssSgtRet << "(eo::define ((msb_s ($sm_bool ($smt_builtin_msb x1 x2)))) ";
+  ssSgtRet << "(eo::define ((msb_t ($sm_bool ($smt_builtin_msb x3 x4)))) ";
   ssSgtRet << smtEval(
       "(or (and (not msb_s) msb_t) (and (= msb_s msb_t) (bvugt s t)))");
   ssSgtRet << "))";
@@ -489,8 +489,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   {
     std::stringstream ssRet;
     std::stringstream ssRetEnd;
-    ssRet << "(eo::define ((msb_s ($sm_bool ($smtx_msb x1 x2)))) ";
-    ssRet << "(eo::define ((msb_t ($sm_bool ($smtx_msb x3 x4)))) ";
+    ssRet << "(eo::define ((msb_s ($sm_bool ($smt_builtin_msb x1 x2)))) ";
+    ssRet << "(eo::define ((msb_t ($sm_bool ($smt_builtin_msb x3 x4)))) ";
     ssRetEnd << "))";
     std::string op;
     std::stringstream ssTermRet;
@@ -533,19 +533,19 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("bvuaddo",
             {kBitVec, kBitVec},
             kBool,
-            smtZLeq("($smtx_pow2 x1)", smtZAdd("x2", "x4")));
+            smtZLeq("($smt_builtin_z_pow2 x1)", smtZAdd("x2", "x4")));
   addLitSym("bvumulo",
             {kBitVec, kBitVec},
             kBool,
-            smtZLeq("($smtx_pow2 x1)", "($smt_builtin_z_* x2 x4)"));
+            smtZLeq("($smt_builtin_z_pow2 x1)", "($smt_builtin_z_* x2 x4)"));
   for (size_t i = 0; i < 2; i++)
   {
     std::string intOp = i == 0 ? "+" : "*";
     std::string bvOp = i == 0 ? "bvsaddo" : "bvsmulo";
     std::stringstream ssRet;
     ssRet << "(eo::define ((sret ($smt_builtin_z_" << intOp;
-    ssRet << " ($smtx_binary_uts x1 x2) ($smtx_binary_uts x3 x4)))) ";
-    ssRet << "(eo::define ((p2wm1 ($smtx_pow2 ($smt_builtin_z_- x1 "
+    ssRet << " ($smt_builtin_binary_uts x1 x2) ($smt_builtin_binary_uts x3 x4)))) ";
+    ssRet << "(eo::define ((p2wm1 ($smt_builtin_z_pow2 ($smt_builtin_z_- x1 "
              "$smt_builtin_z_one)))) ";
     ssRet << " ($smt_builtin_or " << smtZLeq("p2wm1", "sret");
     ssRet << " " << smtZLt("sret", "($smt_builtin_z_neg p2wm1)");
@@ -555,7 +555,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("bvnego",
             {kBitVec},
             kBool,
-            smtZEq("x2", "($smtx_pow2 ($smt_builtin_z_dec x1))"));
+            smtZEq("x2", "($smt_builtin_z_pow2 ($smt_builtin_z_dec x1))"));
   addTermReduceSym("bvusubo", {kBitVec, kBitVec}, "(bvult x1 x2)");
   addLitSym("bvssubo",
             {kBitVec, kBitVec},
@@ -571,7 +571,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                                  "($sm_binary x1 $smt_builtin_z_zero))))")));
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
-  addLitSym("sbv_to_int", {kBitVec}, kInt, "($smtx_binary_uts x1 x2)");
+  addLitSym("sbv_to_int", {kBitVec}, kInt, "($smt_builtin_binary_uts x1 x2)");
   addLitSym(
       "int_to_bv", {kInt, kInt}, kT, "($smtx_model_eval ($sm_binary x1 x2))");
   // Quantifiers

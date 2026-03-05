@@ -191,7 +191,7 @@
 ; note: Assumes 0 <= w, makes n legal. We cannot handle errors with
 ;       w here since we cannot return stuckness.
 (define $eo_binary_mod_w ((w $smt_builtin_Int) (n $smt_builtin_Int))
-  ($eot_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
+  ($eot_binary w ($smt_builtin_mod n ($smt_builtin_z_pow2 w))))
 
 ; program: $eo_mk_binary
 ; return: >
@@ -256,7 +256,7 @@
   :signature (T) T
   (
   (($eo_not ($eot_bool b))     ($eot_bool ($smt_builtin_not b)))
-  (($eo_not ($eot_binary w n)) ($eo_binary_mod_w w ($smtx_binary_not w n)))
+  (($eo_not ($eot_binary w n)) ($eo_binary_mod_w w ($smt_builtin_binary_not w n)))
   )
 )
 
@@ -272,7 +272,7 @@
      ($eot_bool ($smt_builtin_and b1 b2)))
   (($eo_and ($eot_binary w1 n1) ($eot_binary w2 n2))
     ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
-      ($eo_binary_mod_w w1 ($smtx_binary_and w1 n1 n2))))
+      ($eo_binary_mod_w w1 ($smt_builtin_binary_and w1 n1 n2))))
   )
 )
 
@@ -288,7 +288,7 @@
      ($eot_bool ($smt_builtin_or b1 b2)))
   (($eo_or ($eot_binary w1 n1) ($eot_binary w2 n2))
     ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
-     ($eo_binary_mod_w w1 ($smtx_binary_or w1 n1 n2))))
+     ($eo_binary_mod_w w1 ($smt_builtin_binary_or w1 n1 n2))))
   )
 )
 
@@ -304,7 +304,7 @@
      ($eot_bool ($smt_apply_2 "xor" b1 b2)))
   (($eo_xor ($eot_binary w1 n1) ($eot_binary w2 n2))
     ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
-     ($eo_binary_mod_w w1 ($smtx_binary_or w1 n1 n2))))
+     ($eo_binary_mod_w w1 ($smt_builtin_binary_or w1 n1 n2))))
   )
 )
 
@@ -373,7 +373,7 @@
   (($eo_zdiv ($eot_binary w1 n1) ($eot_binary w2 n2))
     ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
       ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
-        ($eot_binary w1 ($smtx_binary_max w1))
+        ($eot_binary w1 ($smt_builtin_binary_max w1))
         ($eo_binary_mod_w w1 ($smt_builtin_div n1 n2)))))
   )
 )
@@ -444,7 +444,7 @@
   (($eo_concat ($eot_string s1) ($eot_string s2))
      ($eot_string ($smt_apply_2 "str.++" s1 s2)))
   (($eo_concat ($eot_binary w1 n1) ($eot_binary w2 n2))
-     ($eo_mk_binary ($smt_builtin_z_+ w1 w2) ($smtx_binary_concat w1 n1 w2 n2)))
+     ($eo_mk_binary ($smt_builtin_z_+ w1 w2) ($smt_builtin_binary_concat w1 n1 w2 n2)))
   )
 )
 
@@ -462,7 +462,7 @@
       $eo_empty_binary
       ($eo_mk_binary
         ($smt_builtin_z_inc nw)
-        ($smtx_binary_extract w n1 n2 n3)))))
+        ($smt_builtin_binary_extract w n1 n2 n3)))))
   )
 )
 

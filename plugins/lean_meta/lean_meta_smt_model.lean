@@ -10,7 +10,7 @@ abbrev smt_lit_Bool := SmtEval.smt_lit_Bool
 abbrev smt_lit_Int := SmtEval.smt_lit_Int
 abbrev smt_lit_Rat := SmtEval.smt_lit_Rat
 abbrev smt_lit_String := SmtEval.smt_lit_String
-abbrev smt_lit_RegLan := SmtEval.smt_lit_String --FIXME
+abbrev smt_lit_RegLan := String --FIXME
 
 def smt_lit_ite {T : Type} (c : smt_lit_Bool) (t e : T) : T :=
   if c then t else e
@@ -46,16 +46,15 @@ abbrev smt_lit_str_indexof := SmtEval.smt_lit_str_indexof
 abbrev smt_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev smt_lit_str_from_code := SmtEval.smt_lit_str_from_code
 
-abbrev __smtx_pow2 := SmtEval.__smtx_pow2
-abbrev __smtx_bit := SmtEval.__smtx_bit
-abbrev __smtx_msb := SmtEval.__smtx_msb
-abbrev __smtx_binary_or := SmtEval.__smtx_binary_or
-abbrev __smtx_binary_xor := SmtEval.__smtx_binary_xor
-abbrev __smtx_binary_not := SmtEval.__smtx_binary_not
-abbrev __smtx_binary_max := SmtEval.__smtx_binary_max
-abbrev __smtx_binary_uts := SmtEval.__smtx_binary_uts
-abbrev __smtx_binary_concat := SmtEval.__smtx_binary_concat
-abbrev __smtx_binary_extract := SmtEval.__smtx_binary_extract
+abbrev smt_lit_bit := SmtEval.smt_lit_bit
+abbrev smt_lit_msb := SmtEval.smt_lit_msb
+abbrev smt_lit_binary_or := SmtEval.smt_lit_binary_or
+abbrev smt_lit_binary_xor := SmtEval.smt_lit_binary_xor
+abbrev smt_lit_binary_not := SmtEval.smt_lit_binary_not
+abbrev smt_lit_binary_max := SmtEval.smt_lit_binary_max
+abbrev smt_lit_binary_uts := SmtEval.smt_lit_binary_uts
+abbrev smt_lit_binary_concat := SmtEval.smt_lit_binary_concat
+abbrev smt_lit_binary_extract := SmtEval.smt_lit_binary_extract
 
 -- SMT Beyond Eunoia
 

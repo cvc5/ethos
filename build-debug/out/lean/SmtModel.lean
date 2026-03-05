@@ -10,7 +10,7 @@ abbrev smt_lit_Bool := SmtEval.smt_lit_Bool
 abbrev smt_lit_Int := SmtEval.smt_lit_Int
 abbrev smt_lit_Rat := SmtEval.smt_lit_Rat
 abbrev smt_lit_String := SmtEval.smt_lit_String
-abbrev smt_lit_RegLan := SmtEval.smt_lit_String --FIXME
+abbrev smt_lit_RegLan := String --FIXME
 
 def smt_lit_ite {T : Type} (c : smt_lit_Bool) (t e : T) : T :=
   if c then t else e
@@ -46,16 +46,15 @@ abbrev smt_lit_str_indexof := SmtEval.smt_lit_str_indexof
 abbrev smt_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev smt_lit_str_from_code := SmtEval.smt_lit_str_from_code
 
-abbrev __smtx_pow2 := SmtEval.__smtx_pow2
-abbrev __smtx_bit := SmtEval.__smtx_bit
-abbrev __smtx_msb := SmtEval.__smtx_msb
-abbrev __smtx_binary_or := SmtEval.__smtx_binary_or
-abbrev __smtx_binary_xor := SmtEval.__smtx_binary_xor
-abbrev __smtx_binary_not := SmtEval.__smtx_binary_not
-abbrev __smtx_binary_max := SmtEval.__smtx_binary_max
-abbrev __smtx_binary_uts := SmtEval.__smtx_binary_uts
-abbrev __smtx_binary_concat := SmtEval.__smtx_binary_concat
-abbrev __smtx_binary_extract := SmtEval.__smtx_binary_extract
+abbrev smt_lit_bit := SmtEval.smt_lit_bit
+abbrev smt_lit_msb := SmtEval.smt_lit_msb
+abbrev smt_lit_binary_or := SmtEval.smt_lit_binary_or
+abbrev smt_lit_binary_xor := SmtEval.smt_lit_binary_xor
+abbrev smt_lit_binary_not := SmtEval.smt_lit_binary_not
+abbrev smt_lit_binary_max := SmtEval.smt_lit_binary_max
+abbrev smt_lit_binary_uts := SmtEval.smt_lit_binary_uts
+abbrev smt_lit_binary_concat := SmtEval.smt_lit_binary_concat
+abbrev smt_lit_binary_extract := SmtEval.smt_lit_binary_extract
 
 -- SMT Beyond Eunoia
 
@@ -135,15 +134,14 @@ inductive SmtType : Type where
   | Bool : SmtType
   | Int : SmtType
   | Real : SmtType
-  | String : SmtType
   | RegLan : SmtType
   | BitVec : smt_lit_Int -> SmtType
   | Map : SmtType -> SmtType -> SmtType
   | DtConsType : SmtType -> SmtType -> SmtType
   | Seq : SmtType -> SmtType
+  | Char : SmtType
   | Datatype : smt_lit_String -> SmtDatatype -> SmtType
   | TypeRef : smt_lit_String -> SmtType
-  | Char : SmtType
 
 deriving Repr, DecidableEq, Inhabited
 
@@ -251,9 +249,6 @@ def smt_lit_tchoice : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
 
 mutual
 
-def __smtx_pow2 (i : smt_lit_Int) : smt_lit_Int :=
-  (smt_lit_int_pow2 i)
-
 def __vsm_apply_head : SmtValue -> SmtValue
   | (SmtValue.Apply f a) => (__vsm_apply_head f)
   | a => a
@@ -310,7 +305,7 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Boolean b) => SmtType.Bool
   | (SmtValue.Numeral n) => SmtType.Int
   | (SmtValue.Rational q) => SmtType.Real
-  | (SmtValue.String s) => SmtType.String
+  | (SmtValue.String s) => (SmtType.Seq SmtType.Char)
   | (SmtValue.Binary w n) => (smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec w) SmtType.None)
   | (SmtValue.RegLan r) => SmtType.RegLan
   | (SmtValue.Map m) => (__smtx_typeof_map_value m)
@@ -361,7 +356,7 @@ def __smtx_model_eval : SmtTerm -> SmtValue
   | (SmtTerm.Numeral n) => (SmtValue.Numeral n)
   | (SmtTerm.Rational r) => (SmtValue.Rational r)
   | (SmtTerm.String s) => (SmtValue.String s)
-  | (SmtTerm.Binary w n) => (smt_lit_ite (smt_lit_and (smt_lit_zleq 0 w) (smt_lit_zeq n (smt_lit_mod n (__smtx_pow2 w)))) (SmtValue.Binary w n) SmtValue.NotValue)
+  | (SmtTerm.Binary w n) => (smt_lit_ite (smt_lit_and (smt_lit_zleq 0 w) (smt_lit_zeq n (smt_lit_mod n (smt_lit_int_pow2 w)))) (SmtValue.Binary w n) SmtValue.NotValue)
   | (SmtTerm.Apply SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and x1) x2) => (__smtx_model_eval_and (__smtx_model_eval x1) (__smtx_model_eval x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_model_eval_eq (__smtx_model_eval x1) (__smtx_model_eval x2))

@@ -107,44 +107,44 @@ def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
   | x, y => decide (x = y)
 
 
-def __smtx_pow2 : smt_lit_Int -> smt_lit_Int
+def smt_lit_pow2 : smt_lit_Int -> smt_lit_Int
   | i => (smt_lit_int_pow2 i)
 
 
-def __smtx_bit : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
-  | x, i => (smt_lit_zeq 1 (smt_lit_mod (smt_lit_div x (__smtx_pow2 i)) 2))
+def smt_lit_bit : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
+  | x, i => (smt_lit_zeq 1 (smt_lit_mod (smt_lit_div x (smt_lit_pow2 i)) 2))
 
 
-def __smtx_msb : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
-  | w, n => (__smtx_bit n (smt_lit_zplus w (smt_lit_zneg 1)))
+def smt_lit_msb : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
+  | w, n => (smt_lit_bit n (smt_lit_zplus w (smt_lit_zneg 1)))
 
 
-def __smtx_binary_or : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
+def smt_lit_binary_or : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | w, n1, n2 => (smt_lit_zplus n1 (smt_lit_zplus n2 (smt_lit_zneg (smt_lit_ite (smt_lit_zeq w 0) 0 (smt_lit_piand w n1 n2)))))
 
 
-def __smtx_binary_xor : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
+def smt_lit_binary_xor : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | w, n1, n2 => (smt_lit_zplus n1 (smt_lit_zplus n2 (smt_lit_zneg (smt_lit_zmult 2 (smt_lit_ite (smt_lit_zeq w 0) 0 (smt_lit_piand w n1 n2))))))
 
 
-def __smtx_binary_not : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
-  | w, n => (smt_lit_zplus (__smtx_pow2 w) (smt_lit_zneg (smt_lit_zplus n 1)))
+def smt_lit_binary_not : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
+  | w, n => (smt_lit_zplus (smt_lit_pow2 w) (smt_lit_zneg (smt_lit_zplus n 1)))
 
 
-def __smtx_binary_max : smt_lit_Int -> smt_lit_Int
-  | w => (smt_lit_zplus (__smtx_pow2 w) (smt_lit_zneg 1))
+def smt_lit_binary_max : smt_lit_Int -> smt_lit_Int
+  | w => (smt_lit_zplus (smt_lit_pow2 w) (smt_lit_zneg 1))
 
 
-def __smtx_binary_uts : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
-  | w, n => (smt_lit_zplus (smt_lit_zmult 2 (smt_lit_mod n (__smtx_pow2 (smt_lit_zplus w (smt_lit_zneg 1))))) (smt_lit_zneg n))
+def smt_lit_binary_uts : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
+  | w, n => (smt_lit_zplus (smt_lit_zmult 2 (smt_lit_mod n (smt_lit_pow2 (smt_lit_zplus w (smt_lit_zneg 1))))) (smt_lit_zneg n))
 
 
-def __smtx_binary_concat : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
-  | w1, n1, w2, n2 => (smt_lit_zplus (smt_lit_zmult n1 (__smtx_pow2 w2)) n2)
+def smt_lit_binary_concat : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
+  | w1, n1, w2, n2 => (smt_lit_zplus (smt_lit_zmult n1 (smt_lit_pow2 w2)) n2)
 
 
-def __smtx_binary_extract : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
-  | w, n, x1, x2 => (smt_lit_div n (__smtx_pow2 x2))
+def smt_lit_binary_extract : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
+  | w, n, x1, x2 => (smt_lit_div n (smt_lit_pow2 x2))
 
 end SmtEval
 
@@ -172,6 +172,8 @@ abbrev eo_lit_zleq := SmtEval.smt_lit_zleq
 abbrev eo_lit_zlt := SmtEval.smt_lit_zlt
 abbrev eo_lit_div := SmtEval.smt_lit_div
 abbrev eo_lit_mod := SmtEval.smt_lit_mod
+abbrev eo_lit_int_pow2 := SmtEval.smt_lit_int_pow2
+abbrev eo_lit_piand := SmtEval.smt_lit_piand
 abbrev eo_lit_mk_rational := SmtEval.smt_lit_mk_rational
 abbrev eo_lit_qplus := SmtEval.smt_lit_qplus
 abbrev eo_lit_qmult := SmtEval.smt_lit_qmult
@@ -190,16 +192,15 @@ abbrev eo_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev eo_lit_str_from_code := SmtEval.smt_lit_str_from_code
 abbrev eo_lit_piand := SmtEval.smt_lit_piand
 
-abbrev __smtx_pow2 := SmtEval.__smtx_pow2
-abbrev __smtx_bit := SmtEval.__smtx_bit
-abbrev __smtx_msb := SmtEval.__smtx_msb
-abbrev __smtx_binary_or := SmtEval.__smtx_binary_or
-abbrev __smtx_binary_xor := SmtEval.__smtx_binary_xor
-abbrev __smtx_binary_not := SmtEval.__smtx_binary_not
-abbrev __smtx_binary_max := SmtEval.__smtx_binary_max
-abbrev __smtx_binary_uts := SmtEval.__smtx_binary_uts
-abbrev __smtx_binary_concat := SmtEval.__smtx_binary_concat
-abbrev __smtx_binary_extract := SmtEval.__smtx_binary_extract
+abbrev eo_lit_bit := SmtEval.smt_lit_bit
+abbrev eo_lit_msb := SmtEval.smt_lit_msb
+abbrev eo_lit_binary_or := SmtEval.smt_lit_binary_or
+abbrev eo_lit_binary_xor := SmtEval.smt_lit_binary_xor
+abbrev eo_lit_binary_not := SmtEval.smt_lit_binary_not
+abbrev eo_lit_binary_max := SmtEval.smt_lit_binary_max
+abbrev eo_lit_binary_uts := SmtEval.smt_lit_binary_uts
+abbrev eo_lit_binary_concat := SmtEval.smt_lit_binary_concat
+abbrev eo_lit_binary_extract := SmtEval.smt_lit_binary_extract
 
 instance : Ord Rat where
   compare a b :=

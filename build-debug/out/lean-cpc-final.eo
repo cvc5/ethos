@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 299
+; #trim-defs: 297
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -49,17 +49,7 @@
 (define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
 (define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
-(program $smtx_pow2 ((i $smt_builtin_Int))
-  :signature ($smt_builtin_Int) $smt_builtin_Int
-  (
-  (($smtx_pow2 i) ($smt_builtin_z_pow2 i))
-
-
-
-
-  )
-)
-(define $smtx_binary_and
+(define $smt_builtin_binary_and
   ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   ($smt_builtin_ite ($smt_builtin_z_= w $smt_builtin_z_zero)
     $smt_builtin_z_zero
@@ -156,7 +146,7 @@
   )
 )
 (define $eo_binary_mod_w ((w $smt_builtin_Int) (n $smt_builtin_Int))
-  ($eot_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
+  ($eot_binary w ($smt_builtin_mod n ($smt_builtin_z_pow2 w))))
 (define $smt_builtin_is_ok ((x $eo_Term))
   ($smt_builtin_not ($smt_builtin_teq x $eot_stuck)))
 (define $eo_is_ok ((x $eo_Term))
@@ -181,7 +171,7 @@
      ($eot_bool ($smt_builtin_and b1 b2)))
   (($eo_and ($eot_binary w1 n1) ($eot_binary w2 n2))
     ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
-      ($eo_binary_mod_w w1 ($smtx_binary_and w1 n1 n2))))
+      ($eo_binary_mod_w w1 ($smt_builtin_binary_and w1 n1 n2))))
   )
 )
 (program $eo_eq ((t $eo_Term) (s $eo_Term))
@@ -304,8 +294,6 @@
 (define $tsm_Int () $emb_tsm.Int)
 (declare-const $emb_tsm.Real $smt_Type)
 (define $tsm_Real () $emb_tsm.Real)
-(declare-const $emb_tsm.String $smt_Type)
-(define $tsm_String () $emb_tsm.String)
 (declare-const $emb_tsm.RegLan $smt_Type)
 (define $tsm_RegLan () $emb_tsm.RegLan)
 (declare-parameterized-const $emb_tsm.BitVec ((w $smt_builtin_Int :opaque)) $smt_Type)
@@ -318,6 +306,9 @@
 (define $tsm_DtConsType ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.DtConsType Ti Te))
 (declare-parameterized-const $emb_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
 (define $tsm_Seq ((T $smt_Type)) ($emb_tsm.Seq T))
+(declare-const $emb_tsm.Char $smt_Type)
+(define $tsm_Char () $emb_tsm.Char)
+(define $tsm_String () ($tsm_Seq $tsm_Char))
 (declare-parameterized-const $emb_tsm.Datatype 
   ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)) $smt_Type)
 (define $tsm_Datatype ((s $smt_builtin_String) (d $smt_Datatype))
@@ -325,8 +316,6 @@
 (declare-parameterized-const $emb_tsm.TypeRef
   ((s $smt_builtin_String :opaque)) $smt_Type)
 (define $tsm_TypeRef ((s $smt_builtin_String)) ($emb_tsm.TypeRef s))
-(declare-parameterized-const $emb_tsm.Char () $smt_Type)
-(define $tsm_Char () $emb_tsm.Char)
 (declare-const $smt_Map Type)
 (declare-const $smt_Seq Type)
 (declare-const $emb_vsm.NotValue $smt_Value)
@@ -659,7 +648,7 @@
     ($smt_builtin_ite 
       ($smt_builtin_and
         ($smt_builtin_z_<= $smt_builtin_z_zero w)
-        ($smt_builtin_z_= n ($smt_builtin_mod n ($smtx_pow2 w))))
+        ($smt_builtin_z_= n ($smt_builtin_mod n ($smt_builtin_z_pow2 w))))
       ($vsm_binary w n)
       $vsm_not_value))
   

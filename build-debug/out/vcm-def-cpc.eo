@@ -233,150 +233,150 @@
 ; The operators in this section are needed to reason about the parametric
 ; operations on the Eunoia binary literal type.
 
-; program: $smtx_pow2
+; program: $smt_builtin_z_pow2
 ; return: >
 ;   The integer value of 2 raised to the i^th power.
 ; note: We expect i to be non-negative.
-(program $smtx_pow2 ((i $smt_builtin_Int))
-  :signature ($smt_builtin_Int) $smt_builtin_Int
-  (
-  (($smtx_pow2 i) ($smt_builtin_z_pow2 i))
+;(program $smt_builtin_z_pow2 ((i $smt_builtin_Int))
+;  :signature ($smt_builtin_Int) $smt_builtin_Int
+;  (
+;  (($smt_builtin_z_pow2 i)
 ;    ($smt_builtin_ite ($smt_builtin_z_<= i $smt_builtin_z_zero)
 ;      $smt_builtin_z_one
 ;      ($smt_builtin_z_* $smt_builtin_z_two
-;        ($smtx_pow2 ($smt_builtin_z_dec i)))))
-  )
-)
+;        ($smt_builtin_z_pow2 ($smt_builtin_z_dec i)))))
+;  )
+;)
 
-; program: $smtx_bit
+; program: $smt_builtin_bit
 ; return: >
 ;   true iff the i^th bit of a binary with integer value x is set. Note this
 ;   method is agnostic to bitwidth.
-(program $smtx_bit ((x $smt_builtin_Int) (i $smt_builtin_Int))
+(program $smt_builtin_bit ((x $smt_builtin_Int) (i $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Bool
   (
-  (($smtx_bit x i)
+  (($smt_builtin_bit x i)
     ($smt_builtin_z_=
       $smt_builtin_z_one
-      ($smt_builtin_mod ($smt_builtin_div x ($smtx_pow2 i)) $smt_builtin_z_two)))
+      ($smt_builtin_mod ($smt_builtin_div x ($smt_builtin_z_pow2 i)) $smt_builtin_z_two)))
   )
 )
 
-; program: $smtx_msb
+; program: $smt_builtin_msb
 ; return: >
 ;   true iff the most significant bit of the binary of width w and value n is
 ;   set.
-(program $smtx_msb ((w $smt_builtin_Int) (n $smt_builtin_Int))
+(program $smt_builtin_msb ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Bool
   (
-  (($smtx_msb w n) ($smtx_bit n ($smt_builtin_z_dec w)))
+  (($smt_builtin_msb w n) ($smt_builtin_bit n ($smt_builtin_z_dec w)))
   )
 )
 
-; program: $smtx_binary_and_rec
-; note: Helper for $smtx_binary_and below.
-;(program $smtx_binary_and_rec ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+; program: $smt_builtin_binary_and_rec
+; note: Helper for $smt_builtin_binary_and below.
+;(program $smt_builtin_binary_and_rec ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
 ;  :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
 ;  (
-;  (($smtx_binary_and_rec w n1 n2)
+;  (($smt_builtin_binary_and_rec w n1 n2)
 ;      ($smt_builtin_z_+
 ;        ($smt_builtin_ite ($smt_builtin_z_= w $smt_builtin_z_zero)
 ;          $smt_builtin_z_zero
-;          ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2))
-;        ($smt_builtin_z_* ($smtx_pow2 w)
-;            ($smt_builtin_ite ($smt_builtin_and ($smtx_bit n1 w) ($smtx_bit n2 w)) 
+;          ($smt_builtin_binary_and_rec ($smt_builtin_z_dec w) n1 n2))
+;        ($smt_builtin_z_* ($smt_builtin_z_pow2 w)
+;            ($smt_builtin_ite ($smt_builtin_and ($smt_builtin_bit n1 w) ($smt_builtin_bit n2 w))
 ;              $smt_builtin_z_one 
 ;              $smt_builtin_z_zero))))
 ;  )
 ;)
 
-; program: $smtx_binary_and
+; program: $smt_builtin_binary_and
 ; return: >
 ;   The integer value of the binary value obtained by taking the bitwise and of
 ;   binary literals ($eo_binary w n1) and ($eo_binary w n2). This value will be
 ;   taken modulo 2^w.
 ; note: >
 ;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
-(define $smtx_binary_and
+(define $smt_builtin_binary_and
   ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   ($smt_builtin_ite ($smt_builtin_z_= w $smt_builtin_z_zero)
     $smt_builtin_z_zero
     ($smt_builtin_z_piand w n1 n2)
-    ;($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2)
+    ;($smt_builtin_binary_and_rec ($smt_builtin_z_dec w) n1 n2)
     ))
 
-; program: $smtx_binary_or
+; program: $smt_builtin_binary_or
 ; return: >
 ;   The integer value of the binary value obtained by taking the bitwise or of
 ;   binary literals ($eo_binary w n1) and ($eo_binary w n2). This is equal to
-;   n1+n2-($smtx_binary_and w n1 n2). This value will be taken modulo 2^w.
+;   n1+n2-($smt_builtin_binary_and w n1 n2). This value will be taken modulo 2^w.
 ; note: >
 ;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
-(program $smtx_binary_or ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+(program $smt_builtin_binary_or ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
-  (($smtx_binary_or w n1 n2)
-    ($smt_builtin_z_+ n1 ($smt_builtin_z_- n2 ($smtx_binary_and w n1 n2))))
+  (($smt_builtin_binary_or w n1 n2)
+    ($smt_builtin_z_+ n1 ($smt_builtin_z_- n2 ($smt_builtin_binary_and w n1 n2))))
   )
 )
 
-; program: $smtx_binary_xor
+; program: $smt_builtin_binary_xor
 ; return: >
 ;   The integer value of the binary value obtained by taking the bitwise xor of
 ;   binary literals ($eo_binary w n1) and ($eo_binary w n2). This is equal to
-;   n1+n2-(2*($smtx_binary_and w n1 n2)). This value will be taken modulo 2^w.
+;   n1+n2-(2*($smt_builtin_binary_and w n1 n2)). This value will be taken modulo 2^w.
 ; note: >
 ;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
-(program $smtx_binary_xor ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+(program $smt_builtin_binary_xor ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
-  (($smtx_binary_xor w n1 n2)
-    ($smt_builtin_z_+ n1 ($smt_builtin_z_- n2 ($smt_builtin_z_* $smt_builtin_z_two ($smtx_binary_and w n1 n2)))))
+  (($smt_builtin_binary_xor w n1 n2)
+    ($smt_builtin_z_+ n1 ($smt_builtin_z_- n2 ($smt_builtin_z_* $smt_builtin_z_two ($smt_builtin_binary_and w n1 n2)))))
   )
 )
 
-; program: $smtx_binary_not
+; program: $smt_builtin_binary_not
 ; return: >
 ;   The integer value of the binary value obtained by taking bitwise not of
 ;   the binary literal ($eo_binary w n). This is equal to 2^w-(1+n). This value
 ;   will be taken modulo 2^w.
 ; note: >
 ;   Assumes that 0 <= n < 2^w, 0 <= w.
-(program $smtx_binary_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
+(program $smt_builtin_binary_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
-  (($smtx_binary_not w n)
-    ($smt_builtin_z_- ($smtx_pow2 w) ($smt_builtin_z_inc n)))
+  (($smt_builtin_binary_not w n)
+    ($smt_builtin_z_- ($smt_builtin_z_pow2 w) ($smt_builtin_z_inc n)))
   )
 )
 
-; program: $smtx_binary_max
+; program: $smt_builtin_binary_max
 ; return: >
 ;   The integer value of the maximum unsigned binary value of width w. This is
 ;   equal to 2^w-1.
-(program $smtx_binary_max ((w $smt_builtin_Int))
+(program $smt_builtin_binary_max ((w $smt_builtin_Int))
   :signature ($smt_builtin_Int) $smt_builtin_Int
   (
-  (($smtx_binary_max w) ($smt_builtin_z_dec ($smtx_pow2 w)))
+  (($smt_builtin_binary_max w) ($smt_builtin_z_dec ($smt_builtin_z_pow2 w)))
   )
 )
 
-; program: $smtx_binary_uts
+; program: $smt_builtin_binary_uts
 ; return: >
 ;   The conversion of n from unsigned to signed integer, which is
 ;   2*(n mod 2^w-1) - n.
-(program $smtx_binary_uts ((w $smt_builtin_Int) (n $smt_builtin_Int))
+(program $smt_builtin_binary_uts ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
-  (($smtx_binary_uts w n) 
+  (($smt_builtin_binary_uts w n)
     ($smt_builtin_z_-
       ($smt_builtin_z_* $smt_builtin_z_two
-        ($smt_builtin_mod n ($smtx_pow2 ($smt_builtin_z_dec w))))
+        ($smt_builtin_mod n ($smt_builtin_z_pow2 ($smt_builtin_z_dec w))))
       n))
   )
 )
 
-; program: $smtx_binary_concat
+; program: $smt_builtin_binary_concat
 ; return: >
 ;   The integer value of the binary value obtained by concatenating binary
 ;   literals ($eo_binary w1 n1) and ($eo_binary w2 n2). This is equal to
@@ -384,27 +384,27 @@
 ;   be taken modulo 2^(w1+w2).
 ; note: >
 ;   Assumes that 0 <= n1 < 2^w1, 0 <= n2 < 2^w2, 0 <= w1, 0 <= w2.
-(program $smtx_binary_concat
+(program $smt_builtin_binary_concat
   ((w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (w2 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
-  (($smtx_binary_concat w1 n1 w2 n2)
-    ($smt_builtin_z_+ ($smt_builtin_z_* n1 ($smtx_pow2 w2)) n2))
+  (($smt_builtin_binary_concat w1 n1 w2 n2)
+    ($smt_builtin_z_+ ($smt_builtin_z_* n1 ($smt_builtin_z_pow2 w2)) n2))
   )
 )
 
-; program: $smtx_binary_extract
+; program: $smt_builtin_binary_extract
 ; return: >
 ;   The integer value of the binary value obtained by extracting bits x1
 ;   through x2 (inclusive) of binary literal ($eo_binary w n). This is equal
 ;   to (div n 2^x1). This value will be taken modulo 2^(1+x2-x1).
 ; note: >
 ;   Assumes that 0 <= n < 2^w, 0 <= x1 <= x2 < w.
-(program $smtx_binary_extract
+(program $smt_builtin_binary_extract
   ((w $smt_builtin_Int) (n $smt_builtin_Int) (x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
-  (($smtx_binary_extract w n x1 x2) ($smt_builtin_div n ($smtx_pow2 x2)))
+  (($smt_builtin_binary_extract w n x1 x2) ($smt_builtin_div n ($smt_builtin_z_pow2 x2)))
   )
 )
 
@@ -596,7 +596,7 @@
 ; note: Assumes 0 <= w, makes n legal. We cannot handle errors with
 ;       w here since we cannot return stuckness.
 (define $eo_binary_mod_w ((w $smt_builtin_Int) (n $smt_builtin_Int))
-  ($eot_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
+  ($eot_binary w ($smt_builtin_mod n ($smt_builtin_z_pow2 w))))
 
 ; program: $eo_mk_binary
 ; return: >
@@ -661,7 +661,7 @@
   :signature (T) T
   (
   (($eo_not ($eot_bool b))     ($eot_bool ($smt_builtin_not b)))
-  (($eo_not ($eot_binary w n)) ($eo_binary_mod_w w ($smtx_binary_not w n)))
+  (($eo_not ($eot_binary w n)) ($eo_binary_mod_w w ($smt_builtin_binary_not w n)))
   )
 )
 
@@ -677,7 +677,7 @@
      ($eot_bool ($smt_builtin_and b1 b2)))
   (($eo_and ($eot_binary w1 n1) ($eot_binary w2 n2))
     ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
-      ($eo_binary_mod_w w1 ($smtx_binary_and w1 n1 n2))))
+      ($eo_binary_mod_w w1 ($smt_builtin_binary_and w1 n1 n2))))
   )
 )
 
@@ -693,7 +693,7 @@
      ($eot_bool ($smt_builtin_or b1 b2)))
   (($eo_or ($eot_binary w1 n1) ($eot_binary w2 n2))
     ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
-     ($eo_binary_mod_w w1 ($smtx_binary_or w1 n1 n2))))
+     ($eo_binary_mod_w w1 ($smt_builtin_binary_or w1 n1 n2))))
   )
 )
 
@@ -709,7 +709,7 @@
      ($eot_bool ($smt_apply_2 "xor" b1 b2)))
   (($eo_xor ($eot_binary w1 n1) ($eot_binary w2 n2))
     ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
-     ($eo_binary_mod_w w1 ($smtx_binary_or w1 n1 n2))))
+     ($eo_binary_mod_w w1 ($smt_builtin_binary_or w1 n1 n2))))
   )
 )
 
@@ -778,7 +778,7 @@
   (($eo_zdiv ($eot_binary w1 n1) ($eot_binary w2 n2))
     ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
       ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
-        ($eot_binary w1 ($smtx_binary_max w1))
+        ($eot_binary w1 ($smt_builtin_binary_max w1))
         ($eo_binary_mod_w w1 ($smt_builtin_div n1 n2)))))
   )
 )
@@ -849,7 +849,7 @@
   (($eo_concat ($eot_string s1) ($eot_string s2))
      ($eot_string ($smt_apply_2 "str.++" s1 s2)))
   (($eo_concat ($eot_binary w1 n1) ($eot_binary w2 n2))
-     ($eo_mk_binary ($smt_builtin_z_+ w1 w2) ($smtx_binary_concat w1 n1 w2 n2)))
+     ($eo_mk_binary ($smt_builtin_z_+ w1 w2) ($smt_builtin_binary_concat w1 n1 w2 n2)))
   )
 )
 
@@ -867,7 +867,7 @@
       $eo_empty_binary
       ($eo_mk_binary
         ($smt_builtin_z_inc nw)
-        ($smtx_binary_extract w n1 n2 n3)))))
+        ($smt_builtin_binary_extract w n1 n2 n3)))))
   )
 )
 
@@ -2121,7 +2121,7 @@
   ($emb_vsm.Binary w v))
 ; utilities
 (define $vsm_binary_mod_w ((w $smt_builtin_Int) (v $smt_builtin_Int))
-  ($emb_vsm.Binary w ($smt_builtin_mod v ($smtx_pow2 w))))
+  ($emb_vsm.Binary w ($smt_builtin_mod v ($smt_builtin_z_pow2 w))))
 (define $vsm_mk_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
   ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w)
     ($vsm_binary_mod_w w v)
@@ -2801,7 +2801,7 @@
     ($smt_builtin_ite 
       ($smt_builtin_and
         ($smt_builtin_z_<= $smt_builtin_z_zero w)
-        ($smt_builtin_z_= n ($smt_builtin_mod n ($smtx_pow2 w))))
+        ($smt_builtin_z_= n ($smt_builtin_mod n ($smt_builtin_z_pow2 w))))
       ($vsm_binary w n)
       $vsm_not_value))
   ; evaluation of standard SMT symbols

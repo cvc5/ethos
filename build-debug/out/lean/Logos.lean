@@ -47,16 +47,15 @@ abbrev eo_lit_str_indexof := SmtEval.smt_lit_str_indexof
 abbrev eo_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev eo_lit_str_from_code := SmtEval.smt_lit_str_from_code
 
-abbrev __smtx_pow2 := SmtEval.__smtx_pow2
-abbrev __smtx_bit := SmtEval.__smtx_bit
-abbrev __smtx_msb := SmtEval.__smtx_msb
-abbrev __smtx_binary_or := SmtEval.__smtx_binary_or
-abbrev __smtx_binary_xor := SmtEval.__smtx_binary_xor
-abbrev __smtx_binary_not := SmtEval.__smtx_binary_not
-abbrev __smtx_binary_max := SmtEval.__smtx_binary_max
-abbrev __smtx_binary_uts := SmtEval.__smtx_binary_uts
-abbrev __smtx_binary_concat := SmtEval.__smtx_binary_concat
-abbrev __smtx_binary_extract := SmtEval.__smtx_binary_extract
+abbrev eo_lit_bit := SmtEval.smt_lit_bit
+abbrev eo_lit_msb := SmtEval.smt_lit_msb
+abbrev eo_lit_binary_or := SmtEval.smt_lit_binary_or
+abbrev eo_lit_binary_xor := SmtEval.smt_lit_binary_xor
+abbrev eo_lit_binary_not := SmtEval.smt_lit_binary_not
+abbrev eo_lit_binary_max := SmtEval.smt_lit_binary_max
+abbrev eo_lit_binary_uts := SmtEval.smt_lit_binary_uts
+abbrev eo_lit_binary_concat := SmtEval.smt_lit_binary_concat
+abbrev eo_lit_binary_extract := SmtEval.smt_lit_binary_extract
 
 instance : Ord Rat where
   compare a b :=
@@ -143,7 +142,7 @@ partial def __eo_mk_apply : Term -> Term -> Term
 
 
 partial def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
-  (Term.Binary w (eo_lit_mod n (__smtx_pow2 w)))
+  (Term.Binary w (eo_lit_mod n (eo_lit_int_pow2 w)))
 
 partial def __eo_is_ok : Term -> Term
   | x => (Term.Boolean (eo_lit_not (eo_lit_teq x Term.Stuck)))
@@ -159,7 +158,7 @@ partial def __eo_requires : Term -> Term -> Term -> Term
 
 partial def __eo_and : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (eo_lit_and b1 b2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_ite (eo_lit_zeq w1 0) 0 (eo_lit_piand w1 n1 n2)) (__smtx_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_ite (eo_lit_zeq w1 0) 0 (eo_lit_piand w1 n1 n2)) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck
 
 

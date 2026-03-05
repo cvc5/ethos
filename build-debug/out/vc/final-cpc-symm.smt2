@@ -261,11 +261,6 @@
 ; fwd-decl: $eo_typeof
 (declare-fun $eo_typeof (eo.Term) eo.Term)
 
-; program: $smtx_pow2
-(define-fun $smtx_pow2 ((x1 Int)) Int
-    (int.pow2 x1)
-)
-
 ; program: $eo_mk_apply
 (define-fun $eo_mk_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
@@ -736,7 +731,7 @@
   (ite ((_ is sm.String) x1)
     (vsm.String (sm.String.arg1 x1))
   (ite ((_ is sm.Binary) x1)
-    (ite (and (zleq 0 (sm.Binary.arg1 x1)) (zeq (sm.Binary.arg2 x1) (mod (sm.Binary.arg2 x1) ($smtx_pow2 (sm.Binary.arg1 x1))))) (vsm.Binary (sm.Binary.arg1 x1) (sm.Binary.arg2 x1)) vsm.NotValue)
+    (ite (and (zleq 0 (sm.Binary.arg1 x1)) (zeq (sm.Binary.arg2 x1) (mod (sm.Binary.arg2 x1) (int.pow2 (sm.Binary.arg1 x1))))) (vsm.Binary (sm.Binary.arg1 x1) (sm.Binary.arg2 x1)) vsm.NotValue)
   (ite (and ((_ is sm.Apply) x1) (= (sm.Apply.arg1 x1) sm.not))
     ($smtx_model_eval_not ($smtx_model_eval (sm.Apply.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.and))
