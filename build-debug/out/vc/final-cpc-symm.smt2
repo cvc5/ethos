@@ -21,6 +21,27 @@
 (define-fun div_by_zero ((x Int)) Int (div x 0))
 (define-fun mod_by_zero ((x Int)) Int (mod x 0))
 
+(define-fun bit ((x1 Int) (x2 Int)) Bool
+  (zeq 1 (mod (div x1 (int.pow2 x2)) 2)))
+(define-fun msb ((x1 Int) (x2 Int)) Bool
+  (bit x2 (zplus x1 (zneg 1))))
+(define-fun binary_and ((x1 Int) (x2 Int) (x3 Int)) Int
+  (ite (zeq x1 0) 0 (piand x1 x2 x3)))
+(define-fun binary_or ((x1 Int) (x2 Int) (x3 Int)) Int
+  (zplus x2 (zplus x3 (zneg (ite (zeq x1 0) 0 (piand x1 x2 x3))))))
+(define-fun binary_xor ((x1 Int) (x2 Int) (x3 Int)) Int
+  (zplus x2 (zplus x3 (zneg (zmult 2 (ite (zeq x1 0) 0 (piand x1 x2 x3)))))))
+(define-fun binary_not ((x1 Int) (x2 Int)) Int
+  (zplus (int.pow2 x1) (zneg (zplus x2 1))))
+(define-fun binary_max ((x1 Int)) Int
+  (zplus (int.pow2 x1) (zneg 1)))
+(define-fun binary_uts ((w Int) (n Int)) Int
+  (zplus (zmult 2 (mod n (int.pow2 (zplus w (zneg 1))))) (zneg n)))
+(define-fun binary_concat ((x1 Int) (x2 Int) (x3 Int) (x4 Int)) Int
+  (zplus (zmult x2 (int.pow2 x3)) x4))
+(define-fun binary_extract ((x1 Int) (x2 Int) (x3 Int) (x4 Int)) Int
+  (div x2 (int.pow2 x4)))
+    
 ; tsm.Type:
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
 ; sm.Term:

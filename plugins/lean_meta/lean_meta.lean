@@ -190,10 +190,10 @@ abbrev eo_lit_str_substr := SmtEval.smt_lit_str_substr
 abbrev eo_lit_str_indexof := SmtEval.smt_lit_str_indexof
 abbrev eo_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev eo_lit_str_from_code := SmtEval.smt_lit_str_from_code
-abbrev eo_lit_piand := SmtEval.smt_lit_piand
 
 abbrev eo_lit_bit := SmtEval.smt_lit_bit
 abbrev eo_lit_msb := SmtEval.smt_lit_msb
+abbrev eo_lit_binary_and := SmtEval.smt_lit_binary_and
 abbrev eo_lit_binary_or := SmtEval.smt_lit_binary_or
 abbrev eo_lit_binary_xor := SmtEval.smt_lit_binary_xor
 abbrev eo_lit_binary_not := SmtEval.smt_lit_binary_not

@@ -132,11 +132,11 @@ $EO_RULE_DEFS$
 (declare-parameterized-const $emb_cmd.check_proven ((x Bool :opaque)) $eo_Cmd)
 (define $cmd_check_proven ((x Bool)) ($emb_cmd.check_proven x))
 (declare-parameterized-const $emb_cmd.step
-  ((r $eo_Rule :opaque) (premises $eo_IndexList :opaque) (args $eo_ArgList :opaque))
+  ((r $eo_Rule :opaque) (args $eo_ArgList :opaque) (premises $eo_IndexList :opaque))
   $eo_Cmd)
 (define $cmd_step
-  ((r $eo_Rule) (premises $eo_IndexList) (args $eo_ArgList))
-  ($emb_cmd.step r premises args))
+  ((r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList))
+  ($emb_cmd.step r args premises))
 
 (program $eo_invoke_cmd_check_proven ((S $eo_State) (F Bool) (proven Bool))
   :signature ($eo_State Bool) $eo_State
@@ -163,6 +163,7 @@ $EO_INVOKE_DEFS$
   (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume proven S))
   (($eo_invoke_cmd S ($cmd_check_proven proven)) ($eo_invoke_cmd_check_proven S proven))
 $EO_INVOKE$
+  (($eo_invoke_cmd S c) $s_stuck)
   )
 )
 

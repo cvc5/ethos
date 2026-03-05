@@ -49,6 +49,7 @@ abbrev eo_lit_str_from_code := SmtEval.smt_lit_str_from_code
 
 abbrev eo_lit_bit := SmtEval.smt_lit_bit
 abbrev eo_lit_msb := SmtEval.smt_lit_msb
+abbrev eo_lit_binary_and := SmtEval.smt_lit_binary_and
 abbrev eo_lit_binary_or := SmtEval.smt_lit_binary_or
 abbrev eo_lit_binary_xor := SmtEval.smt_lit_binary_xor
 abbrev eo_lit_binary_not := SmtEval.smt_lit_binary_not
@@ -158,7 +159,7 @@ partial def __eo_requires : Term -> Term -> Term -> Term
 
 partial def __eo_and : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (eo_lit_and b1 b2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_ite (eo_lit_zeq w1 0) 0 (eo_lit_piand w1 n1 n2)) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_binary_and w1 n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck
 
 
@@ -236,7 +237,7 @@ deriving Repr, Inhabited
 inductive CCmd : Type where
   | assume_push : Term -> CCmd
   | check_proven : Term -> CCmd
-  | step : CRule -> CIndexList -> CArgList -> CCmd
+  | step : CRule -> CArgList -> CIndexList -> CCmd
 
 deriving Repr, Inhabited
 
@@ -291,6 +292,7 @@ def __eo_invoke_cmd : CState -> CCmd -> CState
   | S, (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
   | S, (CCmd.step CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil))) => (__eo_push_proven (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
   | S, (CCmd.step CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil)) => (__eo_push_proven (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1))) S)
+  | S, c => CState.Stuck
 
 
 def __eo_invoke_cmd_list (S : CState) : CCmdList -> CState

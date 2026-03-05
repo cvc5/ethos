@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 298
+; #trim-defs: 297
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -45,17 +45,12 @@
 (define $smt_builtin_z_+ ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zplus" x1 x2))
 (define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
 (define $smt_builtin_z_pow2 ((W Type :implicit) (x1 W)) ($smt_apply_1 "int.pow2" x1))
-(define $smt_builtin_z_piand ((W Type :implicit) (x1 W) (x2 W) (x3 W)) ($smt_apply_3 "piand" x1 x2 x3))
 (define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
 (define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
 (define $smt_builtin_binary_and
   ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
-  ($smt_builtin_ite ($smt_builtin_z_= w $smt_builtin_z_zero)
-    $smt_builtin_z_zero
-    ($smt_builtin_z_piand w n1 n2)
-    
-    ))
+  ($smt_apply_3 "binary_and" w n1 n2))
 (declare-const $eo_Term Type)
 (define $smt_builtin_teq ((x1 $eo_Term) (x2 $eo_Term)) ($smt_apply_2 "teq" x1 x2))
 (declare-const $eo_DatatypeCons Type)
@@ -830,11 +825,11 @@
 (declare-parameterized-const $emb_cmd.check_proven ((x Bool :opaque)) $eo_Cmd)
 (define $cmd_check_proven ((x Bool)) ($emb_cmd.check_proven x))
 (declare-parameterized-const $emb_cmd.step
-  ((r $eo_Rule :opaque) (premises $eo_IndexList :opaque) (args $eo_ArgList :opaque))
+  ((r $eo_Rule :opaque) (args $eo_ArgList :opaque) (premises $eo_IndexList :opaque))
   $eo_Cmd)
 (define $cmd_step
-  ((r $eo_Rule) (premises $eo_IndexList) (args $eo_ArgList))
-  ($emb_cmd.step r premises args))
+  ((r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList))
+  ($emb_cmd.step r args premises))
 (program $eo_invoke_cmd_check_proven ((S $eo_State) (F Bool) (proven Bool))
   :signature ($eo_State Bool) $eo_State
   (
@@ -859,6 +854,7 @@
   (($eo_invoke_cmd S ($cmd_step $emb_r.contra $eot_aln ($eot_ilc n1 ($eot_ilc n2 $eot_iln)))) ($eo_push_proven ($eo_prog_contra ($eo_pf ($eo_state_proven_nth S n1)) ($eo_pf ($eo_state_proven_nth S n2))) S))
   (($eo_invoke_cmd S ($cmd_step $emb_r.symm $eot_aln ($eot_ilc n1 $eot_iln))) ($eo_push_proven ($eo_prog_symm ($eo_pf ($eo_state_proven_nth S n1))) S))
 
+  (($eo_invoke_cmd S c) $s_stuck)
   )
 )
 (declare-const $eo_CmdList Type)
