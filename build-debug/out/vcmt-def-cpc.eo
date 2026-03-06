@@ -61,7 +61,7 @@
 (define $smt_builtin_z_+ ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zplus" x1 x2))
 (define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
 (define $smt_builtin_z_pow2 ((W Type :implicit) (x1 W)) ($smt_apply_1 "int.pow2" x1))
-(define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
+(define $smt_builtin_mod_total ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod_total" x1 x2))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
 (define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
 (declare-const $eo_Term Type)
@@ -845,7 +845,7 @@
     ($smt_builtin_ite 
       ($smt_builtin_and
         ($smt_builtin_z_<= $smt_builtin_z_zero w)
-        ($smt_builtin_z_= n ($smt_builtin_mod n ($smt_builtin_z_pow2 w))))
+        ($smt_builtin_z_= n ($smt_builtin_mod_total n ($smt_builtin_z_pow2 w))))
       ($vsm_binary w n)
       $vsm_not_value))
   

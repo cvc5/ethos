@@ -296,7 +296,7 @@ $SMT_TYPE_CONSTRUCTORS$
   ($emb_vsm.Binary w v))
 ; utilities
 (define $vsm_binary_mod_w ((w $smt_builtin_Int) (v $smt_builtin_Int))
-  ($emb_vsm.Binary w ($smt_builtin_mod v ($smt_builtin_z_pow2 w))))
+  ($emb_vsm.Binary w ($smt_builtin_mod_total v ($smt_builtin_z_pow2 w))))
 (define $vsm_mk_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
   ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w)
     ($vsm_binary_mod_w w v)
@@ -961,7 +961,7 @@ $SMT_EVAL_PROGS$
     ($smt_builtin_ite 
       ($smt_builtin_and
         ($smt_builtin_z_<= $smt_builtin_z_zero w)
-        ($smt_builtin_z_= n ($smt_builtin_mod n ($smt_builtin_z_pow2 w))))
+        ($smt_builtin_z_= n ($smt_builtin_mod_total n ($smt_builtin_z_pow2 w))))
       ($vsm_binary w n)
       $vsm_not_value))
   ; evaluation of standard SMT symbols

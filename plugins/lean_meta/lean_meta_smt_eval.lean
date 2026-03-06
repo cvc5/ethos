@@ -35,12 +35,14 @@ def smt_lit_zleq : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
   | x, y => decide (x <= y)
 def smt_lit_zlt : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
   | x, y => decide (x < y)
-def smt_lit_div : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
+def smt_lit_div_total : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | x, y => x/y
-def smt_lit_mod : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
+def smt_lit_mod_total : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | x, y => x%y
+def smt_lit_zexp_total (x : smt_lit_Int) (y : smt_lit_Int) : smt_lit_Int :=
+  if y < 0 then 0 else (x ^ (Int.toNat y))
 def smt_lit_int_pow2 (n : smt_lit_Int) : smt_lit_Int :=
-  if n < 0 then 0 else (2 ^ (Int.toNat n))
+  (smt_lit_zexp_total 2 n)
 def smt_lit_piand : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | w, x, y => ((BitVec.ofInt (Int.toNat w) x) &&& (BitVec.ofInt (Int.toNat w) y)).toInt
 
@@ -59,7 +61,7 @@ def smt_lit_qleq : smt_lit_Rat -> smt_lit_Rat -> smt_lit_Bool
   | x, y => decide (x <= y)
 def smt_lit_qlt : smt_lit_Rat -> smt_lit_Rat -> smt_lit_Bool
   | x, y => decide (x < y)
-def smt_lit_qdiv : smt_lit_Rat -> smt_lit_Rat -> smt_lit_Rat
+def smt_lit_qdiv_total : smt_lit_Rat -> smt_lit_Rat -> smt_lit_Rat
   | x, y => x/y
 
 -- Conversions
@@ -106,7 +108,7 @@ def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
   | x, y => decide (x = y)
 
 def smt_lit_bit : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
-  | x, i => (smt_lit_zeq 1 (smt_lit_mod (smt_lit_div x (smt_lit_int_pow2 i)) 2))
+  | x, i => (smt_lit_zeq 1 (smt_lit_mod_total (smt_lit_div_total x (smt_lit_int_pow2 i)) 2))
 
 def smt_lit_msb : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
   | w, n => (smt_lit_bit n (smt_lit_zplus w (smt_lit_zneg 1)))
@@ -127,12 +129,12 @@ def smt_lit_binary_max : smt_lit_Int -> smt_lit_Int
   | w => (smt_lit_zplus (smt_lit_int_pow2 w) (smt_lit_zneg 1))
 
 def smt_lit_binary_uts : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
-  | w, n => (smt_lit_zplus (smt_lit_zmult 2 (smt_lit_mod n (smt_lit_int_pow2 (smt_lit_zplus w (smt_lit_zneg 1))))) (smt_lit_zneg n))
+  | w, n => (smt_lit_zplus (smt_lit_zmult 2 (smt_lit_mod_total n (smt_lit_int_pow2 (smt_lit_zplus w (smt_lit_zneg 1))))) (smt_lit_zneg n))
 
 def smt_lit_binary_concat : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | w1, n1, w2, n2 => (smt_lit_zplus (smt_lit_zmult n1 (smt_lit_int_pow2 w2)) n2)
 
 def smt_lit_binary_extract : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
-  | w, n, x1, x2 => (smt_lit_div n (smt_lit_int_pow2 x2))
+  | w, n, x1, x2 => (smt_lit_div_total n (smt_lit_int_pow2 x2))
 
 end SmtEval

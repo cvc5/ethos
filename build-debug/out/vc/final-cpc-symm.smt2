@@ -17,9 +17,11 @@
 (define-fun qmult ((x Real) (y Real)) Real (* x y))
 (define-fun qneg ((x Real)) Real (- x))
 (define-fun streq ((x String) (y String)) Bool (= x y))
-(define-fun /_by_zero ((x Real)) Real (/ x 0.0))
-(define-fun div_by_zero ((x Int)) Int (div x 0))
-(define-fun mod_by_zero ((x Int)) Int (mod x 0))
+
+; uninterpreted constant identifier for builtin partial functions
+(define-fun /_by_zero_id () Int (- 1))
+(define-fun div_by_zero_id () Int (- 2))
+(define-fun mod_by_zero_id () Int (- 3))
 
 ; integer exponentiation is not handled by cvc5, axiomatize it
 (declare-fun zexp_total (Int Int) Int)
@@ -764,7 +766,7 @@
   (ite ((_ is sm.String) x2)
     (vsm.String (sm.String.arg1 x2))
   (ite ((_ is sm.Binary) x2)
-    (ite (and (zleq 0 (sm.Binary.arg1 x2)) (zeq (sm.Binary.arg2 x2) (mod (sm.Binary.arg2 x2) (int.pow2 (sm.Binary.arg1 x2))))) (vsm.Binary (sm.Binary.arg1 x2) (sm.Binary.arg2 x2)) vsm.NotValue)
+    (ite (and (zleq 0 (sm.Binary.arg1 x2)) (zeq (sm.Binary.arg2 x2) (mod_total (sm.Binary.arg2 x2) (int.pow2 (sm.Binary.arg1 x2))))) (vsm.Binary (sm.Binary.arg1 x2) (sm.Binary.arg2 x2)) vsm.NotValue)
   (ite (and ((_ is sm.Apply) x2) (= (sm.Apply.arg1 x2) sm.not))
     ($smtx_model_eval_not ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.Apply) (sm.Apply.arg1 x2)) (= (sm.Apply.arg1 (sm.Apply.arg1 x2)) sm.and))

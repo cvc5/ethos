@@ -86,6 +86,12 @@ std::string smtNot(const std::string& c1)
   ss << "($smt_builtin_not " << c1 << ")";
   return ss.str();
 }
+std::string smtApp0(const std::string& c1)
+{
+  std::stringstream ss;
+  ss << "($smt_apply_0 \"" << c1 << "\")";
+  return ss.str();
+}
 std::string smtApp1(const std::string& app, const std::string& c1)
 {
   std::stringstream ss;
@@ -245,14 +251,32 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("<", {kT, kT}, kBool);
   // addConstFoldSym("is_int", {kReal}, kBool);
   addTermReduceSym("is_int", {kReal}, "(= (to_real (to_int x1)) x1)");
+#if 0
   addConstFoldSym("/", {kReal, kReal}, kReal);
   addConstFoldSym("div", {kInt, kInt}, kInt);
   addConstFoldSym("mod", {kInt, kInt}, kInt);
-  addConstFoldSym("**_total", {kInt, kInt}, kInt);
+  addTermReduceSym("/_total", {kT, kT}, "(ite (= x2 0/1) 0/1 (/ x1 x2))");
+  addTermReduceSym("div_total", {kInt, kInt}, "(ite (= x2 0) 0 (div x1 x2))");
+  addTermReduceSym("mod_total", {kInt, kInt}, "(ite (= x2 0) x1 (mod x1 x2))");
+#else
+  addConstFoldSym("/_total", {kReal, kReal}, kReal);
+  addConstFoldSym("div_total", {kInt, kInt}, kInt);
+  addConstFoldSym("mod_total", {kInt, kInt}, kInt);
+  std::stringstream ssQDiv;
+  ssQDiv << "(ite (= x2 0/1) (apply (UConst " << smtApp0("/_by_zero_id") << "($tsm_Map $tsm_Real $tsm_Real)) x1) (/_total x1 x2))";
+  addTermReduceSym("/", {kT, kT}, ssQDiv.str());
+  std::stringstream ssDiv;
+  ssDiv << "(ite (= x2 0) (apply (UConst " << smtApp0("div_by_zero_id") << "($tsm_Map $tsm_Int $tsm_Int)) x1) (div_total x1 x2))";
+  addTermReduceSym("div", {kInt, kInt}, ssDiv.str());
+  std::stringstream ssMod;
+  ssMod << "(ite (= x2 0) (apply (UConst " << smtApp0("mod_by_zero_id") << "($tsm_Map $tsm_Int $tsm_Int)) x1) (mod_total x1 x2))";
+  addTermReduceSym("mod", {kInt, kInt}, ssMod.str());
+#endif
   addTermReduceSym(
       "**",
       {kInt, kInt},
       "(ite (>= x1 0) (**_total x1 x2) (div 1 (**_total x1 (- 0 x2))))");
+  addConstFoldSym("**_total", {kInt, kInt}, kInt);
   addConstFoldSym("to_int", {kReal}, kInt);
   addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
@@ -354,13 +378,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                "x1",
                smtIte(smtZEq("x3", "$smt_builtin_z_zero"),
                       "($smt_builtin_binary_max x1)",
-                      "($smt_builtin_div x2 x4)"));
+                      "($smt_builtin_div_total x2 x4)"));
   addLitBinSym("bvurem",
                {kBitVec, kBitVec},
                "x1",
                smtIte(smtZEq("x3", "$smt_builtin_z_zero"),
                       "x2",
-                      "($smt_builtin_mod x2 x4)"));
+                      "($smt_builtin_mod_total x2 x4)"));
   addLitBinSym(
       "bvand", {kBitVec, kBitVec}, "x1", "($smt_builtin_binary_and x1 x2 x4)");
   addLitBinSym(
@@ -376,7 +400,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitBinSym("bvlshr",
                {kBitVec, kBitVec},
                "x1",
-               "($smt_builtin_div x2 ($smt_builtin_z_pow2 x4))");
+               "($smt_builtin_div_total x2 ($smt_builtin_z_pow2 x4))");
   std::stringstream ssExtractCond;
   ssExtractCond << smtApp(
       "and",
@@ -737,9 +761,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                                         "($eo_to_smt x1)");
   addEunoiaReduceSym("@purify", {kT}, "($eo_to_smt x1)");
   // arithmetic
-  addTermReduceSym("/_total", {kT, kT}, "(ite (= x2 0/1) 0/1 (/ x1 x2))");
-  addTermReduceSym("div_total", {kInt, kInt}, "(ite (= x2 0) 0 (div x1 x2))");
-  addTermReduceSym("mod_total", {kInt, kInt}, "(ite (= x2 0) x1 (mod x1 x2))");
   addConstFoldSym("int.pow2", {kInt}, kInt);
   addConstFoldSym("int.log2", {kInt}, kInt);
   addEunoiaReduceSym("@int_div_by_zero", {kInt}, "($eo_to_smt (div x1 0))");
@@ -1495,17 +1516,9 @@ void ModelSmt::printConstFold(const std::string& name,
       ssret << "($smt_apply_" << args.size() << " \"" << opName.str() << "\"";
     }
     ssret << retArgs.str() << ")";
-    std::string ssrets = ssret.str();
-    // partial cases are hard coded here
-    if (name == "/" || name == "div" || name == "mod")
-    {
-      std::string guard = name == "/" ? smtQEq("x2", "$smt_builtin_q_zero")
-                                      : smtZEq("x2", "$smt_builtin_z_zero");
-      ssrets = smtIte(guard, smtApp1(name + "_by_zero", "x1"), ssrets);
-    }
     // print the term with the right type
     std::stringstream fssret;
-    printTermInternal(kr, ssrets, fssret);
+    printTermInternal(kr, ssret.str(), fssret);
     // then print it on cases
     printAuxProgramCase(progName.str(),
                         instArgs,

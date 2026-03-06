@@ -25,8 +25,9 @@ abbrev smt_lit_zneg := SmtEval.smt_lit_zneg
 abbrev smt_lit_zeq := SmtEval.smt_lit_zeq
 abbrev smt_lit_zleq := SmtEval.smt_lit_zleq
 abbrev smt_lit_zlt := SmtEval.smt_lit_zlt
-abbrev smt_lit_div := SmtEval.smt_lit_div
-abbrev smt_lit_mod := SmtEval.smt_lit_mod
+abbrev smt_lit_div_total := SmtEval.smt_lit_div_total
+abbrev smt_lit_mod_total := SmtEval.smt_lit_mod_total
+abbrev smt_lit_zexp_total := SmtEval.smt_lit_zexp_total
 abbrev smt_lit_int_pow2 := SmtEval.smt_lit_int_pow2
 abbrev smt_lit_piand := SmtEval.smt_lit_piand
 abbrev smt_lit_mk_rational := SmtEval.smt_lit_mk_rational
@@ -36,7 +37,7 @@ abbrev smt_lit_qneg := SmtEval.smt_lit_qneg
 abbrev smt_lit_qeq := SmtEval.smt_lit_qeq
 abbrev smt_lit_qleq := SmtEval.smt_lit_qleq
 abbrev smt_lit_qlt := SmtEval.smt_lit_qlt
-abbrev smt_lit_qdiv := SmtEval.smt_lit_qdiv
+abbrev smt_lit_qdiv_total := SmtEval.smt_lit_qdiv_total
 abbrev smt_lit_to_int := SmtEval.smt_lit_to_int
 abbrev smt_lit_to_real := SmtEval.smt_lit_to_real
 abbrev smt_lit_str_len := SmtEval.smt_lit_str_len
@@ -117,13 +118,9 @@ def smt_lit_re_all : smt_lit_RegLan := "" --FIXME
 
 -- Partial semantics
 
-def smt_lit_qdiv_by_zero : smt_lit_Rat -> smt_lit_Rat
-  | x => x -- FIXME
-def smt_lit_div_by_zero : smt_lit_Int -> smt_lit_Int
-  | x => x -- FIXME
-def smt_lit_mod_by_zero : smt_lit_Int -> smt_lit_Int
-  | x => x -- FIXME
-
+def smt_lit_qdiv_by_zero_id : smt_lit_Int := -1
+def smt_lit_div_by_zero_id : smt_lit_Int := -2
+def smt_lit_mod_by_zero_id : smt_lit_Int := -3
 
 mutual
 
@@ -248,13 +245,13 @@ def __smtx_value_hash : SmtValue -> smt_lit_Int
   
 /- exists -/
 def smt_lit_tforall : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
-  | _, _, _ => (SmtValue.Boolean true) -- FIXME
+  | _, _, _, _ => (SmtValue.Boolean true) -- FIXME
 /- forall -/
 def smt_lit_texists : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
-  | _, _, _ => (SmtValue.Boolean true) -- FIXME
+  | _, _, _, _ => (SmtValue.Boolean true) -- FIXME
 /- choice -/
 def smt_lit_tchoice : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
-  | _, _, _ => (SmtValue.Boolean true) -- FIXME
+  | _, _, _, _ => (SmtValue.Boolean true) -- FIXME
 
 /- Definition of SMT-LIB model semantics -/
 
@@ -367,7 +364,7 @@ def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Numeral n) => (SmtValue.Numeral n)
   | (SmtTerm.Rational r) => (SmtValue.Rational r)
   | (SmtTerm.String s) => (SmtValue.String s)
-  | (SmtTerm.Binary w n) => (smt_lit_ite (smt_lit_and (smt_lit_zleq 0 w) (smt_lit_zeq n (smt_lit_mod n (smt_lit_int_pow2 w)))) (SmtValue.Binary w n) SmtValue.NotValue)
+  | (SmtTerm.Binary w n) => (smt_lit_ite (smt_lit_and (smt_lit_zleq 0 w) (smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w)))) (SmtValue.Binary w n) SmtValue.NotValue)
   | (SmtTerm.Apply SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and x1) x2) => (__smtx_model_eval_and (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
@@ -395,10 +392,10 @@ interpreting the free constants.
 -/
 inductive smt_interprets : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
-      exists M : SmtModel, (__smtx_model_eval M t) = (SmtValue.Boolean true) ->
+      (exists M : SmtModel, (__smtx_model_eval M t) = (SmtValue.Boolean true)) ->
       smt_interprets t true
   | intro_false (t : SmtTerm) :
-      forall M : SmtModel, (__smtx_model_eval M t) = (SmtValue.Boolean false)->
+      (forall M : SmtModel, (__smtx_model_eval M t) = (SmtValue.Boolean false))->
       smt_interprets t false
 
 /- FIXME inductive smt_model_well_typed : SmtModel -> Prop, based on smt axiom -/

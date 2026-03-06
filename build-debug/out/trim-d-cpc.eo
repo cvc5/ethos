@@ -216,8 +216,9 @@
 (define $smt_builtin_q_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "qneg" x1))
 (define $smt_builtin_q_- ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_q_+ x1 ($smt_builtin_q_neg x2)))
 ; other arithmetic
-(define $smt_builtin_div ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "div" x1 x2))
-(define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
+(define $smt_builtin_qdiv_total ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qdiv_total" x1 x2))
+(define $smt_builtin_div_total ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "div_total" x1 x2))
+(define $smt_builtin_mod_total ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod_total" x1 x2))
 (define $smt_builtin_z_**_total ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zexp_total" x1 x2))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
 (define $smt_builtin_z_inc ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_one))
@@ -516,7 +517,7 @@
 ; note: Assumes 0 <= w, makes n legal. We cannot handle errors with
 ;       w here since we cannot return stuckness.
 (define $eo_binary_mod_w ((w $smt_builtin_Int) (n $smt_builtin_Int))
-  ($eot_binary w ($smt_builtin_mod n ($smt_builtin_z_pow2 w))))
+  ($eot_binary w ($smt_builtin_mod_total n ($smt_builtin_z_pow2 w))))
 
 ; program: $eo_mk_binary
 ; return: >
@@ -677,11 +678,11 @@
     (eo::define ((rn2 ($smt_apply_1 "to_real" n2)))
     ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       $eot_stuck
-      ($eot_rational ($smt_apply_2 "/" rn1 rn2))))))
+      ($eot_rational ($smt_builtin_qdiv_total rn1 rn2))))))
   (($eo_qdiv ($eot_rational r1) ($eot_rational r2))
     ($smt_builtin_ite ($smt_builtin_q_= $smt_builtin_q_zero r2)
       $eot_stuck
-      ($eot_rational ($smt_apply_2 "/" r1 r2))))
+      ($eot_rational ($smt_builtin_qdiv_total r1 r2))))
   )
 )
 
@@ -694,12 +695,12 @@
   (($eo_zdiv ($eot_numeral n1) ($eot_numeral n2))
     ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       $eot_stuck
-      ($eot_numeral ($smt_builtin_div n1 n2))))
+      ($eot_numeral ($smt_builtin_div_total n1 n2))))
   (($eo_zdiv ($eot_binary w1 n1) ($eot_binary w2 n2))
     ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
       ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
         ($eot_binary w1 ($smt_builtin_binary_max w1))
-        ($eo_binary_mod_w w1 ($smt_builtin_div n1 n2)))))
+        ($eo_binary_mod_w w1 ($smt_builtin_div_total n1 n2)))))
   )
 )
 
@@ -711,12 +712,12 @@
   (($eo_zmod ($eot_numeral n1) ($eot_numeral n2))
     ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       $eot_stuck
-      ($eot_numeral ($smt_builtin_mod n1 n2))))
+      ($eot_numeral ($smt_builtin_mod_total n1 n2))))
   (($eo_zmod ($eot_binary w1 n1) ($eot_binary w2 n2))
     ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
       ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
         ($eot_binary w1 n1)
-        ($eo_binary_mod_w w1 ($smt_builtin_mod n1 n2)))))
+        ($eo_binary_mod_w w1 ($smt_builtin_mod_total n1 n2)))))
   )
 )
 
