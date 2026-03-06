@@ -160,7 +160,7 @@ std::string ModelSmt::smtToSmtEmbed(const std::string& s)
 std::string ModelSmt::smtEval(const std::string& s)
 {
   std::stringstream ss;
-  ss << "($smtx_model_eval " << smtToSmtEmbed(s) << ")";
+  ss << "($smtx_model_eval M " << smtToSmtEmbed(s) << ")";
   return ss.str();
 }
 std::string eoDefine(const std::string& x,
@@ -575,7 +575,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
   addLitSym("sbv_to_int", {kBitVec}, kInt, "($smt_builtin_binary_uts x1 x2)");
   addLitSym(
-      "int_to_bv", {kInt, kInt}, kT, "($smtx_model_eval ($sm_binary x1 x2))");
+      "int_to_bv", {kInt, kInt}, kT, "($smtx_model_eval M ($sm_binary x1 x2))");
   // Quantifiers
   // one variable at a time, $sm_exists is hardcoded
   addEunoiaReduceSym("exists",
@@ -958,7 +958,7 @@ void ModelSmt::addRecReduceSym(const std::string& sym,
   std::stringstream ssend;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
-    ss << "(eo::define ((e" << i << " ($smtx_model_eval x" << i << "))) ";
+    ss << "(eo::define ((e" << i << " ($smtx_model_eval M x" << i << "))) ";
     ssend << ")";
   }
   ss << retTerm << ssend.str();
@@ -1239,7 +1239,7 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
 {
   std::stringstream ss;
   ss << "$sm_" << name;
-  printEvalCallBase(d_eval, "$smtx_model_eval", ss.str(), args, ret);
+  printEvalCallBase(d_eval, "$smtx_model_eval M", ss.str(), args, ret);
 }
 
 void ModelSmt::printEunoiaReduce(const std::string& name,
@@ -1258,7 +1258,7 @@ void ModelSmt::printModelEvalCall(const std::string& name,
   callArgs << "($smtx_model_eval_" << name;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
-    callArgs << " ($smtx_model_eval x" << i << ")";
+    callArgs << " ($smtx_model_eval M x" << i << ")";
   }
   callArgs << ")";
   printModelEvalCallBase(name, args, callArgs.str());

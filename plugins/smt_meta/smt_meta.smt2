@@ -99,6 +99,9 @@ $SM_TYPE_DECL$
   )
 )
 
+; models
+(declare-sort smm.SmtModel 0)
+
 (define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
 (define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))
 (define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))
@@ -112,10 +115,10 @@ $SM_TYPE_DECL$
 (define-fun tcmp ((a eo.Term) (b eo.Term)) Bool (< (thash a) (thash b)))
 
 ; forward declarations
-(declare-fun texists (String tsm.Type sm.Term) vsm.Value)
-(declare-fun tforall (String tsm.Type sm.Term) vsm.Value)
-(declare-fun tchoice (String tsm.Type sm.Term) vsm.Value)
-(declare-fun tlambda (String tsm.Type sm.Term) vsm.Value)
+(declare-fun texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
   
 ;;; Relevant definitions
 
@@ -123,43 +126,46 @@ $SM_DEFS$
 
 ;;; Meta-level properties of models
 
+; models are well typed
+(assert (! (forall ((M smm.SmtModel) (id Int) (T tsm.Type))
+              (= ($smtx_typeof_value ($smtx_model_lookup M id T)) T)) :named smtx.model_lookup_well_typed))
+
 (assert (! (forall ((x vsm.Value))
     (! (= ($smtx_reverse_value_hash ($smtx_value_hash x)) x) :pattern (($smtx_value_hash x)))) :named smtx.hash_injective))
-
 
 ; true iff there exists a value of type T that when substituted into F
 ; is evaluated as tgt. Note that we do not check the type of T here,
 ; instead $smtx_substitute will generate terms ($sm_Const v T), which
 ; only evaluate to v if it is of type T.
-(define-fun texists_total ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+(define-fun texists_total ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (exists ((v vsm.Value))
-    (= ($smtx_model_eval ($smtx_substitute s T (sm.Const v T) F)) tgt)))
+    (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const v T) F)) tgt)))
 
 ; true iff all values of type T when substituted into F are evaluated as tgt.
-(define-fun tforall_total ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+(define-fun tforall_total ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (forall ((v vsm.Value))
-    (= ($smtx_model_eval ($smtx_substitute s T (sm.Const v T) F)) tgt)))
+    (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const v T) F)) tgt)))
 
 ; exists
-(assert (forall ((s String) (T tsm.Type) (F sm.Term))
-  (= (texists s T F)
-     (ite (texists_total s T F (vsm.Boolean true)) (vsm.Boolean true)
-     (ite (tforall_total s T F (vsm.Boolean false)) (vsm.Boolean false)
+(assert (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
+  (= (texists M s T F)
+     (ite (texists_total M s T F (vsm.Boolean true)) (vsm.Boolean true)
+     (ite (tforall_total M s T F (vsm.Boolean false)) (vsm.Boolean false)
        vsm.NotValue)))))
   
 ; forall
-(assert (forall ((s String) (T tsm.Type) (F sm.Term))
-  (= (tforall s T F)
-     (ite (texists_total s T F (vsm.Boolean false)) (vsm.Boolean false)
-     (ite (tforall_total s T F (vsm.Boolean true)) (vsm.Boolean true)
+(assert (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
+  (= (tforall M s T F)
+     (ite (texists_total M s T F (vsm.Boolean false)) (vsm.Boolean false)
+     (ite (tforall_total M s T F (vsm.Boolean true)) (vsm.Boolean true)
        vsm.NotValue)))))
 
 ; choice
 ; If there exists a value making the existential true, we can assume
 ; that substituting with choice also makes it true.
-(assert (forall ((s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
-  (=> (texists_total s T F (vsm.Boolean true))
-      (= ($smtx_model_eval ($smtx_substitute s T (sm.Const (tchoice s T F) T) F))
+(assert (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
+  (=> (texists_total M s T F (vsm.Boolean true))
+      (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const (tchoice M s T F) T) F))
          (vsm.Boolean true)))))
 
 ; whether two values are extensionally equal

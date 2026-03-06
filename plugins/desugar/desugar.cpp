@@ -49,7 +49,9 @@ Desugar::Desugar(State& s)
   // a placeholder
   d_boolType = d_state.mkBoolType();
   Expr ttype = d_state.mkType();
-  Expr modelSatType = d_state.mkProgramType({d_boolType}, d_boolType);
+  Expr anyT = allocateTypeVariable();
+  Expr anyT2 = allocateTypeVariable();
+  Expr modelSatType = d_state.mkProgramType({anyT, d_boolType}, d_boolType);
   d_peoModelSat =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_sat", modelSatType);
   d_peoModelUnsat =
@@ -58,8 +60,6 @@ Desugar::Desugar(State& s)
   d_peoModelTypeof =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_typeof", modelTypeofType);
   Expr modelIsInputType = d_state.mkProgramType({d_boolType}, d_boolType);
-  Expr anyT = allocateTypeVariable();
-  Expr anyT2 = allocateTypeVariable();
   Expr eoRequireEqType = d_state.mkProgramType({anyT, anyT, anyT2}, anyT2);
   d_peoRequiresEq =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_eq", eoRequireEqType);
@@ -675,8 +675,10 @@ void Desugar::finalizeRule(const Expr& e)
   std::stringstream pvcname;
   pvcname << "$eovc_" << e;
   Expr unsound = d_true;
+  Expr modelVarType = d_state.mkSymbol(Kind::CONST, "$smt_Model", d_state.mkType());
+  Expr modelVar = d_state.mkSymbol(Kind::PARAM, "$eoM", modelVarType);
   // require that the conclusion is not satisfied
-  unsound = mkRequiresModelSat(false, conclusion, unsound);
+  unsound = mkRequiresModelSat(modelVar, false, conclusion, unsound);
   if (StdPlugin::optionVcUseTypeof())
   {
     unsound = mkRequiresModelTypeofBool(conclusion, unsound);
@@ -687,7 +689,7 @@ void Desugar::finalizeRule(const Expr& e)
     size_t ii = nargs - (i + 1);
     if (progCase[ii].getKind() == Kind::PROOF)
     {
-      unsound = mkRequiresModelSat(true, progCase[ii][0], unsound);
+      unsound = mkRequiresModelSat(modelVar, true, progCase[ii][0], unsound);
       if (StdPlugin::optionVcUseTypeof())
       {
         unsound = mkRequiresModelTypeofBool(progCase[ii][0], unsound);
@@ -695,12 +697,7 @@ void Desugar::finalizeRule(const Expr& e)
     }
   }
   std::vector<Expr> uvars = Expr::getVariables(unsound);
-  if (uvars.empty())
-  {
-    // add a dummy variable
-    Expr dummy = d_state.mkSymbol(Kind::PARAM, "$etmp", d_boolType);
-    uvars.push_back(dummy);
-  }
+  Assert (!uvars.empty());
   std::vector<Expr> uargTypes;
   for (const Expr& v : uvars)
   {
@@ -972,10 +969,11 @@ Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& visited)
   return visited[t];
 }
 
-Expr Desugar::mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret)
+Expr Desugar::mkRequiresModelSat(const Expr& m, bool tgt, const Expr& test, const Expr& ret)
 {
   std::vector<Expr> modelSatArgs;
   modelSatArgs.push_back(tgt ? d_peoModelSat : d_peoModelUnsat);
+  modelSatArgs.push_back(m);
   modelSatArgs.push_back(test);
   Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
   if (StdPlugin::optionVcUseModelStrict())

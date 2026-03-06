@@ -28,6 +28,8 @@ enum class MetaKind
   /** A Eunoia datatype / datatype constructor */
   DATATYPE,
   DATATYPE_CONSTRUCTOR,
+  /** smt model */
+  SMT_MODEL,
   /** A context in which the deep embedding of the term is an SMT-LIB term */
   SMT,
   /** A context in which the deep embedding of the term is an SMT-LIB type */

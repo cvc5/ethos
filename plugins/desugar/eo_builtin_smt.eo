@@ -124,11 +124,11 @@
    (ai $smt_builtin_Int))
   ($emb_DtSel s d ci ai))
   
-; (temporary) uninterpreted sorts
+; uninterpreted sorts
 (declare-parameterized-const $emb_USort ((n $smt_builtin_Int :opaque)) $eo_Term)
 (define $eot_USort ((n $smt_builtin_Int)) ($emb_USort n))
   
-; (temporary) uninterpreted constants
+; uninterpreted constants
 (declare-parameterized-const $emb_UConst
   ((n $smt_builtin_Int :opaque) (T $eo_Term :opaque))
   $eo_Term)

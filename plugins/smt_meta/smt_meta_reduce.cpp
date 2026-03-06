@@ -32,6 +32,7 @@ SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s), d_smSygus(s)
   d_typeToMetaKind["$eo_Datatype"] = MetaKind::DATATYPE;
   d_typeToMetaKind["$eo_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
   // d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
+  d_typeToMetaKind["$smt_Model"] = MetaKind::SMT_MODEL;
   d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
   d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
@@ -72,6 +73,7 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case MetaKind::EUNOIA: os << "eo.Term"; break;
     case MetaKind::DATATYPE: os << "edt.Datatype"; break;
     case MetaKind::DATATYPE_CONSTRUCTOR: os << "edtc.DatatypeCons"; break;
+    case MetaKind::SMT_MODEL: os << "smm.SmtModel"; break;
     case MetaKind::SMT: os << "sm.Term"; break;
     case MetaKind::SMT_TYPE: os << "tsm.Type"; break;
     case MetaKind::SMT_VALUE: os << "vsm.Value"; break;
@@ -1023,9 +1025,14 @@ bool SmtMetaReduce::echo(const std::string& msg)
       }
       for (size_t i = 1; i < nargs; i++)
       {
+        std::stringstream metaType;
+        if (!printMetaType(vt[i-1], metaType))
+        {
+          metaType << "eo.Term";
+        }
         if (StdPlugin::optionSmtMetaDebugConjecture())
         {
-          d_smtVc << "(declare-const x" << i << " eo.Term)" << std::endl;
+          d_smtVc << "(declare-const x" << i << " " << metaType.str() << ")" << std::endl;
         }
         else
         {
@@ -1033,7 +1040,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
           {
             d_smtVc << " ";
           }
-          d_smtVc << "(x" << i << " eo.Term)";
+          d_smtVc << "(x" << i << " " << metaType.str() << ")";
         }
         call << " x" << i;
       }

@@ -94,7 +94,7 @@ class Desugar : public StdPlugin
   /** */
   Expr mkSanitize(const Expr& t);
   Expr mkSanitize(const Expr& t, std::map<Expr, Expr>& visited);
-  Expr mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret);
+  Expr mkRequiresModelSat(const Expr& m, bool tgt, const Expr& test, const Expr& ret);
   Expr mkRequiresModelTypeofBool(const Expr& test, const Expr& ret);
   Expr mkRequiresEq(const Expr& t1,
                     const Expr& t2,

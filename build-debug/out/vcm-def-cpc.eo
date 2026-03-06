@@ -449,11 +449,11 @@
    (ai $smt_builtin_Int))
   ($emb_DtSel s d ci ai))
   
-; (temporary) uninterpreted sorts
+; uninterpreted sorts
 (declare-parameterized-const $emb_USort ((n $smt_builtin_Int :opaque)) $eo_Term)
 (define $eot_USort ((n $smt_builtin_Int)) ($emb_USort n))
   
-; (temporary) uninterpreted constants
+; uninterpreted constants
 (declare-parameterized-const $emb_UConst
   ((n $smt_builtin_Int :opaque) (T $eo_Term :opaque))
   $eo_Term)
@@ -1743,10 +1743,13 @@
 ; The following functions may be used to define the verification condition we
 ; will write below.
 
+; An SMT model.
+(declare-const $smt_Model Type)
+
 ; A placeholder for asking whether a formula evaluates to true in a model.
-(program $eo_model_sat () :signature (Bool) Bool)
+(program $eo_model_sat () :signature ($smt_Model Bool) Bool)
 ; A placeholder for asking whether a formula evaluates to false in a model.
-(program $eo_model_unsat () :signature (Bool) Bool)
+(program $eo_model_unsat () :signature ($smt_Model Bool) Bool)
 
 ; We will include the definition of the above functions here.
 ; This file defines SMT-LIB model semantics in Eunoia.
@@ -1891,6 +1894,16 @@
   ((v $smt_Value :opaque) (T $smt_Type :opaque)) $smt_Term)
 (define $sm_Const
   ((v $smt_Value) (T $smt_Type)) ($emb_sm.Const v T))
+
+; uninterpreted sorts
+(declare-parameterized-const $emb_sm.USort ((n $smt_builtin_Int :opaque)) $smt_Term)
+(define $sm_USort ((n $smt_builtin_Int)) ($emb_USort n))
+
+; uninterpreted constants
+(declare-parameterized-const $emb_sm.UConst
+  ((n $smt_builtin_Int :opaque) (T $smt_Type :opaque))
+  $smt_Term)
+(define $sm_UConst ((n $smt_builtin_Int) (T $smt_Type)) ($emb_sm.UConst n T))
 
 ; all other ordinary term definitions
 (declare-parameterized-const $emb_sm.not ((x1 $smt_Term)) $smt_Term)
@@ -2412,7 +2425,8 @@
 
 ; Forward declaration of the main method defined by this signature.
 ; We use this to define $eo_model_sat.
-(program $smtx_model_eval () :signature ($smt_Term) $smt_Value)
+(program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
+(program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_Int $smt_Type) $smt_Value)
 
 ;;; Core
 
@@ -2674,7 +2688,7 @@
   ; Lambda case
   ;(($smtx_model_eval_apply ($vsm_lambda s T t) i)
     ; substitutes into body
-    ;($smtx_model_eval ($smtx_substitute s T ($sm_Const i T) t)))
+    ;($smtx_model_eval M ($smtx_substitute s T ($sm_Const i T) t)))
   ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )
@@ -2706,19 +2720,19 @@
 ;            it represents a unique SMT-LIB value, i.e. ($vsm_term t) is
 ;            forbidden unless t denotes a value.
 (program $smtx_model_eval
-  ((f $smt_Term) (v $smt_Value) (T $smt_Type) (d $smt_Datatype)
+  ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (d $smt_Datatype)
    (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int)
    (m $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
-  :signature ($smt_Term) $smt_Value
+  :signature ($smt_Model $smt_Term) $smt_Value
   (
 
-  (($smtx_model_eval ($sm_bool b))      ($vsm_bool b))
-  (($smtx_model_eval ($sm_numeral n))   ($vsm_numeral n))
-  (($smtx_model_eval ($sm_rational r))  ($vsm_rational r))
-  (($smtx_model_eval ($sm_string s))    ($vsm_string s))
-  (($smtx_model_eval ($sm_binary w n))
+  (($smtx_model_eval M ($sm_bool b))      ($vsm_bool b))
+  (($smtx_model_eval M ($sm_numeral n))   ($vsm_numeral n))
+  (($smtx_model_eval M ($sm_rational r))  ($vsm_rational r))
+  (($smtx_model_eval M ($sm_string s))    ($vsm_string s))
+  (($smtx_model_eval M ($sm_binary w n))
     ; must be legal width and value
     ($smt_builtin_ite 
       ($smt_builtin_and
@@ -2729,39 +2743,40 @@
   ; evaluation of standard SMT symbols
   ; These calls will reference helper methods above, e.g. of the form
   ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
-  (($smtx_model_eval ($sm_not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
-  (($smtx_model_eval ($sm_and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
-  (($smtx_model_eval ($sm_= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval M ($sm_not x1)) ($smtx_model_eval_not ($smtx_model_eval M x1)))
+  (($smtx_model_eval M ($sm_and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+  (($smtx_model_eval M ($sm_= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
 
   ; quantifiers
-  (($smtx_model_eval ($sm_apply ($sm_exists s T) x1))
-    ($smt_apply_3 "tforall" s T x1))
-  (($smtx_model_eval ($sm_apply ($sm_forall s T) x1))
-    ($smt_apply_3 "texists" s T x1))
-  (($smtx_model_eval ($sm_apply ($sm_lambda s T) x1)) ($vsm_lambda s T x1))
-  (($smtx_model_eval ($sm_apply ($sm_choice s T) x1))
-    ($smt_apply_3 "tchoice" s T x1))
+  (($smtx_model_eval M ($sm_apply ($sm_exists s T) x1))
+    ($smt_apply_4 "tforall" M s T x1))
+  (($smtx_model_eval M ($sm_apply ($sm_forall s T) x1))
+    ($smt_apply_4 "texists" M s T x1))
+  (($smtx_model_eval M ($sm_apply ($sm_lambda s T) x1)) ($vsm_lambda s T x1))
+  (($smtx_model_eval M ($sm_apply ($sm_choice s T) x1))
+    ($smt_apply_4 "tchoice" M s T x1))
   ; datatypes
-  (($smtx_model_eval ($sm_DtCons s d n)) ($smtx_model_eval_dt_cons s d n))
-  (($smtx_model_eval ($sm_apply ($sm_DtSel s d n m) x1))
-    ($smtx_model_eval_dt_sel s d n m ($smtx_model_eval x1)))
-  (($smtx_model_eval ($sm_apply ($sm_DtTester s d n) x1))
-    ($smtx_model_eval_dt_tester s d n ($smtx_model_eval x1)))
-  (($smtx_model_eval ($sm_apply ($sm_apply ($sm_DtUpdater s d n m) x1) x2))
-    ($smtx_model_eval_dt_updater s d n m ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval M ($sm_DtCons s d n)) ($smtx_model_eval_dt_cons s d n))
+  (($smtx_model_eval M ($sm_apply ($sm_DtSel s d n m) x1))
+    ($smtx_model_eval_dt_sel s d n m ($smtx_model_eval M x1)))
+  (($smtx_model_eval M ($sm_apply ($sm_DtTester s d n) x1))
+    ($smtx_model_eval_dt_tester s d n ($smtx_model_eval M x1)))
+  (($smtx_model_eval M ($sm_apply ($sm_apply ($sm_DtUpdater s d n m) x1) x2))
+    ($smtx_model_eval_dt_updater s d n m ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
   ; Apply case. We evaluate f and x1 separately and then call the
   ; $smtx_model_eval_apply above. We expect f to be an uninterpreted
   ; function whose model evaluation is an SMT-LIB map in this case.
   ; All interpreted f should be handled in the evaluation cases above.
-  (($smtx_model_eval ($sm_apply f x1))
-    ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval x1)))
+  (($smtx_model_eval M ($sm_apply f x1))
+    ($smtx_model_eval_apply ($smtx_model_eval M f) ($smtx_model_eval M x1)))
   ; Constants, which carry their value. They additionally guard their value
   ; to ensure it has type T.
-  (($smtx_model_eval ($sm_Const v T))
+  (($smtx_model_eval M ($sm_Const v T))
     ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value v) T)
       v
       $vsm_not_value))
-  (($smtx_model_eval x1)   $vsm_not_value)
+  (($smtx_model_eval M ($sm_UConst n T)) ($smtx_model_lookup M n T))
+  (($smtx_model_eval M x1)   $vsm_not_value)
   )
 )
 
@@ -2927,16 +2942,16 @@
 ; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
 ; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
 ; (term of Boolean type).
-(program $eo_model_sat ((F Bool))
-  :signature (Bool) Bool
+(program $eo_model_sat ((M $smt_Model) (F Bool))
+  :signature ($smt_Model Bool) Bool
   (
-  (($eo_model_sat F) ($smt_builtin_ite ($smt_builtin_veq ($smtx_model_eval ($eo_to_smt F)) $vsm_true) true false))
+  (($eo_model_sat M F) ($smt_builtin_ite ($smt_builtin_veq ($smtx_model_eval M ($eo_to_smt F)) $vsm_true) true false))
   )
 )
-(program $eo_model_unsat ((F Bool))
-  :signature (Bool) Bool
+(program $eo_model_unsat ((M $smt_Model) (F Bool))
+  :signature ($smt_Model Bool) Bool
   (
-  (($eo_model_unsat F) ($smt_builtin_ite ($smt_builtin_veq ($smtx_model_eval ($eo_to_smt F)) $vsm_false) true false))
+  (($eo_model_unsat M F) ($smt_builtin_ite ($smt_builtin_veq ($smtx_model_eval M ($eo_to_smt F)) $vsm_false) true false))
   )
 )
 
@@ -2953,10 +2968,10 @@
 ;; verification conditions
 
 ; program: $eovc_symm
-(program $eovc_symm ((F Bool))
-  :signature (Bool) Bool
+(program $eovc_symm (($eoM $smt_Model) (F Bool))
+  :signature (Bool $smt_Model) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eo_prog_symm ($eo_pf F)))) (eo::requires ($eo_typeof F) Bool (eo::requires ($eo_model_sat F) true (eo::requires ($eo_typeof _v0) Bool (eo::requires ($eo_model_unsat _v0) true true))))))
+  (($eovc_symm F $eoM) (eo::define ((_v0 ($eo_prog_symm ($eo_pf F)))) (eo::requires ($eo_typeof F) Bool (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_typeof _v0) Bool (eo::requires ($eo_model_unsat $eoM _v0) true true))))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_substitute $mk_vsm_bool $mk_sm_const ")

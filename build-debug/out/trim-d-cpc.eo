@@ -449,11 +449,11 @@
    (ai $smt_builtin_Int))
   ($emb_DtSel s d ci ai))
   
-; (temporary) uninterpreted sorts
+; uninterpreted sorts
 (declare-parameterized-const $emb_USort ((n $smt_builtin_Int :opaque)) $eo_Term)
 (define $eot_USort ((n $smt_builtin_Int)) ($emb_USort n))
   
-; (temporary) uninterpreted constants
+; uninterpreted constants
 (declare-parameterized-const $emb_UConst
   ((n $smt_builtin_Int :opaque) (T $eo_Term :opaque))
   $eo_Term)
@@ -1743,10 +1743,13 @@
 ; The following functions may be used to define the verification condition we
 ; will write below.
 
+; An SMT model.
+(declare-const $smt_Model Type)
+
 ; A placeholder for asking whether a formula evaluates to true in a model.
-(program $eo_model_sat () :signature (Bool) Bool)
+(program $eo_model_sat () :signature ($smt_Model Bool) Bool)
 ; A placeholder for asking whether a formula evaluates to false in a model.
-(program $eo_model_unsat () :signature (Bool) Bool)
+(program $eo_model_unsat () :signature ($smt_Model Bool) Bool)
 
 ; We will include the definition of the above functions here.
 (echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors_main $eo_dt_selectors_main $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
@@ -1760,10 +1763,10 @@
 ;; verification conditions
 
 ; program: $eovc_symm
-(program $eovc_symm ((F Bool))
-  :signature (Bool) Bool
+(program $eovc_symm (($eoM $smt_Model) (F Bool))
+  :signature (Bool $smt_Model) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eo_prog_symm ($eo_pf F)))) (eo::requires ($eo_typeof F) Bool (eo::requires ($eo_model_sat F) true (eo::requires ($eo_typeof _v0) Bool (eo::requires ($eo_model_unsat _v0) true true))))))
+  (($eovc_symm F $eoM) (eo::define ((_v0 ($eo_prog_symm ($eo_pf F)))) (eo::requires ($eo_typeof F) Bool (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_typeof _v0) Bool (eo::requires ($eo_model_unsat $eoM _v0) true true))))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_substitute $mk_vsm_bool $mk_sm_const ")

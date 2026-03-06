@@ -209,6 +209,8 @@
   (sm.DtUpdater (sm.DtUpdater.arg1 String) (sm.DtUpdater.arg2 dt.Datatype) (sm.DtUpdater.arg3 Int) (sm.DtUpdater.arg4 Int))
   ; smt-cons: Const
   (sm.Const (sm.Const.arg1 vsm.Value) (sm.Const.arg2 tsm.Type))
+  ; smt-cons: UConst
+  (sm.UConst (sm.UConst.arg1 Int) (sm.UConst.arg2 tsm.Type))
   ; smt-cons: not
   (sm.not)
   ; smt-cons: and
@@ -255,6 +257,9 @@
   )
 )
 
+; models
+(declare-sort smm.SmtModel 0)
+
 (define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
 (define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))
 (define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))
@@ -268,10 +273,10 @@
 (define-fun tcmp ((a eo.Term) (b eo.Term)) Bool (< (thash a) (thash b)))
 
 ; forward declarations
-(declare-fun texists (String tsm.Type sm.Term) vsm.Value)
-(declare-fun tforall (String tsm.Type sm.Term) vsm.Value)
-(declare-fun tchoice (String tsm.Type sm.Term) vsm.Value)
-(declare-fun tlambda (String tsm.Type sm.Term) vsm.Value)
+(declare-fun texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
   
 ;;; Relevant definitions
 
@@ -527,10 +532,10 @@
     eo.Stuck))) :pattern (($eo_lit_type_String x1)))) :named sm.axiom.$eo_lit_type_String))
 
 ; fwd-decl: $eo_model_sat
-(declare-fun $eo_model_sat (eo.Term) eo.Term)
+(declare-fun $eo_model_sat (smm.SmtModel eo.Term) eo.Term)
 
 ; fwd-decl: $eo_model_unsat
-(declare-fun $eo_model_unsat (eo.Term) eo.Term)
+(declare-fun $eo_model_unsat (smm.SmtModel eo.Term) eo.Term)
 
 ; program: $vsm_apply_head
 (declare-fun $vsm_apply_head (vsm.Value) vsm.Value)
@@ -658,7 +663,10 @@
 ))))))))))) :pattern (($smtx_typeof_value x1)))) :named sm.axiom.$smtx_typeof_value))
 
 ; fwd-decl: $smtx_model_eval
-(declare-fun $smtx_model_eval (sm.Term) vsm.Value)
+(declare-fun $smtx_model_eval (smm.SmtModel sm.Term) vsm.Value)
+
+; fwd-decl: $smtx_model_lookup
+(declare-fun $smtx_model_lookup (smm.SmtModel Int tsm.Type) vsm.Value)
 
 ; program: $smtx_model_eval_=
 (define-fun $smtx_model_eval_= ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
@@ -745,46 +753,48 @@
 ))
 
 ; program: $smtx_model_eval
-(assert (! (forall ((x1 sm.Term))
-  (! (= ($smtx_model_eval x1)
-  (ite ((_ is sm.Boolean) x1)
-    (vsm.Boolean (sm.Boolean.arg1 x1))
-  (ite ((_ is sm.Numeral) x1)
-    (vsm.Numeral (sm.Numeral.arg1 x1))
-  (ite ((_ is sm.Rational) x1)
-    (vsm.Rational (sm.Rational.arg1 x1))
-  (ite ((_ is sm.String) x1)
-    (vsm.String (sm.String.arg1 x1))
-  (ite ((_ is sm.Binary) x1)
-    (ite (and (zleq 0 (sm.Binary.arg1 x1)) (zeq (sm.Binary.arg2 x1) (mod (sm.Binary.arg2 x1) (int.pow2 (sm.Binary.arg1 x1))))) (vsm.Binary (sm.Binary.arg1 x1) (sm.Binary.arg2 x1)) vsm.NotValue)
-  (ite (and ((_ is sm.Apply) x1) (= (sm.Apply.arg1 x1) sm.not))
-    ($smtx_model_eval_not ($smtx_model_eval (sm.Apply.arg2 x1)))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.and))
-    ($smtx_model_eval_and ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1)))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.=))
-    ($smtx_model_eval_= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1)))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.exists) (sm.Apply.arg1 x1)))
-    (tforall (sm.exists.arg1 (sm.Apply.arg1 x1)) (sm.exists.arg2 (sm.Apply.arg1 x1)) (sm.Apply.arg2 x1))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.forall) (sm.Apply.arg1 x1)))
-    (texists (sm.forall.arg1 (sm.Apply.arg1 x1)) (sm.forall.arg2 (sm.Apply.arg1 x1)) (sm.Apply.arg2 x1))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.lambda) (sm.Apply.arg1 x1)))
-    (vsm.Lambda (sm.lambda.arg1 (sm.Apply.arg1 x1)) (sm.lambda.arg2 (sm.Apply.arg1 x1)) (sm.Apply.arg2 x1))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.choice) (sm.Apply.arg1 x1)))
-    (tchoice (sm.choice.arg1 (sm.Apply.arg1 x1)) (sm.choice.arg2 (sm.Apply.arg1 x1)) (sm.Apply.arg2 x1))
-  (ite ((_ is sm.DtCons) x1)
-    ($smtx_model_eval_dt_cons (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1) (sm.DtCons.arg3 x1))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtSel) (sm.Apply.arg1 x1)))
-    ($smtx_model_eval_dt_sel (sm.DtSel.arg1 (sm.Apply.arg1 x1)) (sm.DtSel.arg2 (sm.Apply.arg1 x1)) (sm.DtSel.arg3 (sm.Apply.arg1 x1)) (sm.DtSel.arg4 (sm.Apply.arg1 x1)) ($smtx_model_eval (sm.Apply.arg2 x1)))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtTester) (sm.Apply.arg1 x1)))
-    ($smtx_model_eval_dt_tester (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1)) (sm.DtTester.arg3 (sm.Apply.arg1 x1)) ($smtx_model_eval (sm.Apply.arg2 x1)))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) ((_ is sm.DtUpdater) (sm.Apply.arg1 (sm.Apply.arg1 x1))))
-    ($smtx_model_eval_dt_updater (sm.DtUpdater.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x1))) (sm.DtUpdater.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))) (sm.DtUpdater.arg3 (sm.Apply.arg1 (sm.Apply.arg1 x1))) (sm.DtUpdater.arg4 (sm.Apply.arg1 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1)))
-  (ite ((_ is sm.Apply) x1)
-    ($smtx_model_eval_apply ($smtx_model_eval (sm.Apply.arg1 x1)) ($smtx_model_eval (sm.Apply.arg2 x1)))
-  (ite ((_ is sm.Const) x1)
-    (ite (Teq ($smtx_typeof_value (sm.Const.arg1 x1)) (sm.Const.arg2 x1)) (sm.Const.arg1 x1) vsm.NotValue)
+(assert (! (forall ((x1 smm.SmtModel) (x2 sm.Term))
+  (! (= ($smtx_model_eval x1 x2)
+  (ite ((_ is sm.Boolean) x2)
+    (vsm.Boolean (sm.Boolean.arg1 x2))
+  (ite ((_ is sm.Numeral) x2)
+    (vsm.Numeral (sm.Numeral.arg1 x2))
+  (ite ((_ is sm.Rational) x2)
+    (vsm.Rational (sm.Rational.arg1 x2))
+  (ite ((_ is sm.String) x2)
+    (vsm.String (sm.String.arg1 x2))
+  (ite ((_ is sm.Binary) x2)
+    (ite (and (zleq 0 (sm.Binary.arg1 x2)) (zeq (sm.Binary.arg2 x2) (mod (sm.Binary.arg2 x2) (int.pow2 (sm.Binary.arg1 x2))))) (vsm.Binary (sm.Binary.arg1 x2) (sm.Binary.arg2 x2)) vsm.NotValue)
+  (ite (and ((_ is sm.Apply) x2) (= (sm.Apply.arg1 x2) sm.not))
+    ($smtx_model_eval_not ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
+  (ite (and ((_ is sm.Apply) x2) ((_ is sm.Apply) (sm.Apply.arg1 x2)) (= (sm.Apply.arg1 (sm.Apply.arg1 x2)) sm.and))
+    ($smtx_model_eval_and ($smtx_model_eval x1 (sm.Apply.arg2 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
+  (ite (and ((_ is sm.Apply) x2) ((_ is sm.Apply) (sm.Apply.arg1 x2)) (= (sm.Apply.arg1 (sm.Apply.arg1 x2)) sm.=))
+    ($smtx_model_eval_= ($smtx_model_eval x1 (sm.Apply.arg2 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
+  (ite (and ((_ is sm.Apply) x2) ((_ is sm.exists) (sm.Apply.arg1 x2)))
+    (tforall x1 (sm.exists.arg1 (sm.Apply.arg1 x2)) (sm.exists.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
+  (ite (and ((_ is sm.Apply) x2) ((_ is sm.forall) (sm.Apply.arg1 x2)))
+    (texists x1 (sm.forall.arg1 (sm.Apply.arg1 x2)) (sm.forall.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
+  (ite (and ((_ is sm.Apply) x2) ((_ is sm.lambda) (sm.Apply.arg1 x2)))
+    (vsm.Lambda (sm.lambda.arg1 (sm.Apply.arg1 x2)) (sm.lambda.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
+  (ite (and ((_ is sm.Apply) x2) ((_ is sm.choice) (sm.Apply.arg1 x2)))
+    (tchoice x1 (sm.choice.arg1 (sm.Apply.arg1 x2)) (sm.choice.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
+  (ite ((_ is sm.DtCons) x2)
+    ($smtx_model_eval_dt_cons (sm.DtCons.arg1 x2) (sm.DtCons.arg2 x2) (sm.DtCons.arg3 x2))
+  (ite (and ((_ is sm.Apply) x2) ((_ is sm.DtSel) (sm.Apply.arg1 x2)))
+    ($smtx_model_eval_dt_sel (sm.DtSel.arg1 (sm.Apply.arg1 x2)) (sm.DtSel.arg2 (sm.Apply.arg1 x2)) (sm.DtSel.arg3 (sm.Apply.arg1 x2)) (sm.DtSel.arg4 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
+  (ite (and ((_ is sm.Apply) x2) ((_ is sm.DtTester) (sm.Apply.arg1 x2)))
+    ($smtx_model_eval_dt_tester (sm.DtTester.arg1 (sm.Apply.arg1 x2)) (sm.DtTester.arg2 (sm.Apply.arg1 x2)) (sm.DtTester.arg3 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
+  (ite (and ((_ is sm.Apply) x2) ((_ is sm.Apply) (sm.Apply.arg1 x2)) ((_ is sm.DtUpdater) (sm.Apply.arg1 (sm.Apply.arg1 x2))))
+    ($smtx_model_eval_dt_updater (sm.DtUpdater.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x2))) (sm.DtUpdater.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x2))) (sm.DtUpdater.arg3 (sm.Apply.arg1 (sm.Apply.arg1 x2))) (sm.DtUpdater.arg4 (sm.Apply.arg1 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
+  (ite ((_ is sm.Apply) x2)
+    ($smtx_model_eval_apply ($smtx_model_eval x1 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
+  (ite ((_ is sm.Const) x2)
+    (ite (Teq ($smtx_typeof_value (sm.Const.arg1 x2)) (sm.Const.arg2 x2)) (sm.Const.arg1 x2) vsm.NotValue)
+  (ite ((_ is sm.UConst) x2)
+    ($smtx_model_lookup x1 (sm.UConst.arg1 x2) (sm.UConst.arg2 x2))
     vsm.NotValue
-))))))))))))))))))) :pattern (($smtx_model_eval x1)))) :named sm.axiom.$smtx_model_eval))
+)))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
 
 ; fwd-decl: $eo_to_smt_type
 (declare-fun $eo_to_smt_type (eo.Term) tsm.Type)
@@ -859,72 +869,75 @@
 ))))))))))))) :pattern (($eo_to_smt x1)))) :named sm.axiom.$eo_to_smt))
 
 ; program: $eo_model_sat
-(assert (! (forall ((x1 eo.Term))
-  (! (= ($eo_model_sat x1)
-  (ite (= x1 eo.Stuck)
+(assert (! (forall ((x1 smm.SmtModel) (x2 eo.Term))
+  (! (= ($eo_model_sat x1 x2)
+  (ite (= x2 eo.Stuck)
     eo.Stuck
   (ite true
-    (ite (veq ($smtx_model_eval ($eo_to_smt x1)) (vsm.Boolean true)) (eo.Boolean true) (eo.Boolean false))
-    eo.Stuck))) :pattern (($eo_model_sat x1)))) :named sm.axiom.$eo_model_sat))
+    (ite (veq ($smtx_model_eval x1 ($eo_to_smt x2)) (vsm.Boolean true)) (eo.Boolean true) (eo.Boolean false))
+    eo.Stuck))) :pattern (($eo_model_sat x1 x2)))) :named sm.axiom.$eo_model_sat))
 
 ; program: $eo_model_unsat
-(assert (! (forall ((x1 eo.Term))
-  (! (= ($eo_model_unsat x1)
-  (ite (= x1 eo.Stuck)
+(assert (! (forall ((x1 smm.SmtModel) (x2 eo.Term))
+  (! (= ($eo_model_unsat x1 x2)
+  (ite (= x2 eo.Stuck)
     eo.Stuck
   (ite true
-    (ite (veq ($smtx_model_eval ($eo_to_smt x1)) (vsm.Boolean false)) (eo.Boolean true) (eo.Boolean false))
-    eo.Stuck))) :pattern (($eo_model_unsat x1)))) :named sm.axiom.$eo_model_unsat))
+    (ite (veq ($smtx_model_eval x1 ($eo_to_smt x2)) (vsm.Boolean false)) (eo.Boolean true) (eo.Boolean false))
+    eo.Stuck))) :pattern (($eo_model_unsat x1 x2)))) :named sm.axiom.$eo_model_unsat))
 
 ; program: $eovc_symm
-(define-fun $eovc_symm ((x1 eo.Term)) eo.Term
+(define-fun $eovc_symm ((x1 eo.Term) (x2 smm.SmtModel)) eo.Term
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires ($eo_typeof x1) eo.Bool ($eo_requires ($eo_model_sat x1) (eo.Boolean true) ($eo_requires ($eo_typeof ($eo_prog_symm (eo.$eo_pf x1))) eo.Bool ($eo_requires ($eo_model_unsat ($eo_prog_symm (eo.$eo_pf x1))) (eo.Boolean true) (eo.Boolean true)))))
+    ($eo_requires ($eo_typeof x1) eo.Bool ($eo_requires ($eo_model_sat x2 x1) (eo.Boolean true) ($eo_requires ($eo_typeof ($eo_prog_symm (eo.$eo_pf x1))) eo.Bool ($eo_requires ($eo_model_unsat x2 ($eo_prog_symm (eo.$eo_pf x1))) (eo.Boolean true) (eo.Boolean true)))))
     eo.Stuck)))
 
 
 
 ;;; Meta-level properties of models
 
+; models are well typed
+(assert (! (forall ((M smm.SmtModel) (id Int) (T tsm.Type))
+              (= ($smtx_typeof_value ($smtx_model_lookup M id T)) T)) :named smtx.model_lookup_well_typed))
+
 (assert (! (forall ((x vsm.Value))
     (! (= ($smtx_reverse_value_hash ($smtx_value_hash x)) x) :pattern (($smtx_value_hash x)))) :named smtx.hash_injective))
-
 
 ; true iff there exists a value of type T that when substituted into F
 ; is evaluated as tgt. Note that we do not check the type of T here,
 ; instead $smtx_substitute will generate terms ($sm_Const v T), which
 ; only evaluate to v if it is of type T.
-(define-fun texists_total ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+(define-fun texists_total ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (exists ((v vsm.Value))
-    (= ($smtx_model_eval ($smtx_substitute s T (sm.Const v T) F)) tgt)))
+    (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const v T) F)) tgt)))
 
 ; true iff all values of type T when substituted into F are evaluated as tgt.
-(define-fun tforall_total ((s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+(define-fun tforall_total ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (forall ((v vsm.Value))
-    (= ($smtx_model_eval ($smtx_substitute s T (sm.Const v T) F)) tgt)))
+    (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const v T) F)) tgt)))
 
 ; exists
-(assert (forall ((s String) (T tsm.Type) (F sm.Term))
-  (= (texists s T F)
-     (ite (texists_total s T F (vsm.Boolean true)) (vsm.Boolean true)
-     (ite (tforall_total s T F (vsm.Boolean false)) (vsm.Boolean false)
+(assert (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
+  (= (texists M s T F)
+     (ite (texists_total M s T F (vsm.Boolean true)) (vsm.Boolean true)
+     (ite (tforall_total M s T F (vsm.Boolean false)) (vsm.Boolean false)
        vsm.NotValue)))))
   
 ; forall
-(assert (forall ((s String) (T tsm.Type) (F sm.Term))
-  (= (tforall s T F)
-     (ite (texists_total s T F (vsm.Boolean false)) (vsm.Boolean false)
-     (ite (tforall_total s T F (vsm.Boolean true)) (vsm.Boolean true)
+(assert (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
+  (= (tforall M s T F)
+     (ite (texists_total M s T F (vsm.Boolean false)) (vsm.Boolean false)
+     (ite (tforall_total M s T F (vsm.Boolean true)) (vsm.Boolean true)
        vsm.NotValue)))))
 
 ; choice
 ; If there exists a value making the existential true, we can assume
 ; that substituting with choice also makes it true.
-(assert (forall ((s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
-  (=> (texists_total s T F (vsm.Boolean true))
-      (= ($smtx_model_eval ($smtx_substitute s T (sm.Const (tchoice s T F) T) F))
+(assert (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
+  (=> (texists_total M s T F (vsm.Boolean true))
+      (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const (tchoice M s T F) T) F))
          (vsm.Boolean true)))))
 
 ; whether two values are extensionally equal
@@ -935,7 +948,7 @@
 ;;; The verification condition
 
 ;;;; final verification condition for $eovc_symm
-(assert (! (exists ((x1 eo.Term))
-  (= ($eovc_symm x1) (eo.Boolean true))) :named sm.conjecture.$eovc_symm))
+(assert (! (exists ((x1 eo.Term) (x2 smm.SmtModel))
+  (= ($eovc_symm x1 x2) (eo.Boolean true))) :named sm.conjecture.$eovc_symm))
 (check-sat)
 

@@ -23,6 +23,7 @@ std::string metaKindToString(MetaKind k)
     case MetaKind::DATATYPE_CONSTRUCTOR: ss << "DATATYPE_CONSTRUCTOR"; break;
     case MetaKind::PROGRAM: ss << "PROGRAM"; break;
     case MetaKind::PROOF: ss << "PROOF"; break;
+    case MetaKind::SMT_MODEL: return "SMT_MODEL"; break;
     case MetaKind::SMT: ss << "SMT"; break;
     case MetaKind::SMT_BUILTIN: ss << "SMT_BUILTIN"; break;
     case MetaKind::SMT_TYPE: ss << "SMT_TYPE"; break;
@@ -66,7 +67,7 @@ std::string metaKindToPrefix(MetaKind k)
 }
 bool isSmtMetaKind(MetaKind k)
 {
-  return k == MetaKind::SMT_BUILTIN || k == MetaKind::SMT
+  return k == MetaKind::SMT_MODEL || k == MetaKind::SMT_BUILTIN || k == MetaKind::SMT
          || k == MetaKind::SMT_TYPE || k == MetaKind::SMT_VALUE
          || k == MetaKind::SMT_MAP || k == MetaKind::SMT_SEQ
          || k == MetaKind::SMT_DATATYPE

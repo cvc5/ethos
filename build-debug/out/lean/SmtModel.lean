@@ -2,7 +2,7 @@ import Cpc.SmtEval
 
 set_option linter.unusedVariables false
 
-namespace SmtModel
+namespace Smtm
 
 /- SMT literal evaluation defined -/
 
@@ -167,6 +167,7 @@ inductive SmtTerm : Type where
   | DtTester : smt_lit_String -> SmtDatatype -> smt_lit_Int -> SmtTerm
   | DtUpdater : smt_lit_String -> SmtDatatype -> smt_lit_Int -> smt_lit_Int -> SmtTerm
   | Const : SmtValue -> SmtType -> SmtTerm
+  | UConst : smt_lit_Int -> SmtType -> SmtTerm
   | not : SmtTerm
   | and : SmtTerm
   | eq : SmtTerm
@@ -226,6 +227,15 @@ deriving Repr, DecidableEq, Inhabited
 
 end
 
+/-
+SMT-LIB model
+-/
+abbrev SmtModel := Int -- FIXME
+
+def __smtx_model_lookup : SmtModel -> smt_lit_Int -> SmtType -> SmtValue
+  | _, _, _ => (SmtValue.Boolean true) -- FIXME
+
+
 /- Type equality -/
 def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
   | x, y => decide (x = y)
@@ -237,13 +247,13 @@ def __smtx_value_hash : SmtValue -> smt_lit_Int
   | _ => 0 -- FIXME
   
 /- exists -/
-def smt_lit_tforall : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+def smt_lit_tforall : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME
 /- forall -/
-def smt_lit_texists : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+def smt_lit_texists : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME
 /- choice -/
-def smt_lit_tchoice : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+def smt_lit_tchoice : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME
 
 /- Definition of SMT-LIB model semantics -/
@@ -352,25 +362,26 @@ def __smtx_model_eval_and : SmtValue -> SmtValue -> SmtValue
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval : SmtTerm -> SmtValue
+def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
   | (SmtTerm.Numeral n) => (SmtValue.Numeral n)
   | (SmtTerm.Rational r) => (SmtValue.Rational r)
   | (SmtTerm.String s) => (SmtValue.String s)
   | (SmtTerm.Binary w n) => (smt_lit_ite (smt_lit_and (smt_lit_zleq 0 w) (smt_lit_zeq n (smt_lit_mod n (smt_lit_int_pow2 w)))) (SmtValue.Binary w n) SmtValue.NotValue)
-  | (SmtTerm.Apply SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval x1))
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and x1) x2) => (__smtx_model_eval_and (__smtx_model_eval x1) (__smtx_model_eval x2))
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_model_eval_eq (__smtx_model_eval x1) (__smtx_model_eval x2))
-  | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (smt_lit_tforall s T x1)
-  | (SmtTerm.Apply (SmtTerm.forall s T) x1) => (smt_lit_texists s T x1)
+  | (SmtTerm.Apply SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and x1) x2) => (__smtx_model_eval_and (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (smt_lit_tforall M s T x1)
+  | (SmtTerm.Apply (SmtTerm.forall s T) x1) => (smt_lit_texists M s T x1)
   | (SmtTerm.Apply (SmtTerm.lambda s T) x1) => (SmtValue.Lambda s T x1)
-  | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (smt_lit_tchoice s T x1)
+  | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (smt_lit_tchoice M s T x1)
   | (SmtTerm.DtCons s d n) => (__smtx_model_eval_dt_cons s d n)
-  | (SmtTerm.Apply (SmtTerm.DtSel s d n m) x1) => (__smtx_model_eval_dt_sel s d n m (__smtx_model_eval x1))
-  | (SmtTerm.Apply (SmtTerm.DtTester s d n) x1) => (__smtx_model_eval_dt_tester s d n (__smtx_model_eval x1))
-  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.DtUpdater s d n m) x1) x2) => (__smtx_model_eval_dt_updater s d n m (__smtx_model_eval x1) (__smtx_model_eval x2))
-  | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply (__smtx_model_eval f) (__smtx_model_eval x1))
+  | (SmtTerm.Apply (SmtTerm.DtSel s d n m) x1) => (__smtx_model_eval_dt_sel s d n m (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.DtTester s d n) x1) => (__smtx_model_eval_dt_tester s d n (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.DtUpdater s d n m) x1) x2) => (__smtx_model_eval_dt_updater s d n m (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x1))
   | (SmtTerm.Const v T) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value v) T) v SmtValue.NotValue)
+  | (SmtTerm.UConst n T) => (__smtx_model_lookup M n T)
   | x1 => SmtValue.NotValue
 
 
@@ -378,14 +389,20 @@ def __smtx_model_eval : SmtTerm -> SmtValue
 
 end
 
+/-
+SMT interpretation is satisfiability, i.e. the existence of a model
+interpreting the free constants.
+-/
 inductive smt_interprets : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
-      (__smtx_model_eval t) = (SmtValue.Boolean true) ->
+      exists M : SmtModel, (__smtx_model_eval M t) = (SmtValue.Boolean true) ->
       smt_interprets t true
   | intro_false (t : SmtTerm) :
-      (__smtx_model_eval t) = (SmtValue.Boolean false)->
+      forall M : SmtModel, (__smtx_model_eval M t) = (SmtValue.Boolean false)->
       smt_interprets t false
+
+/- FIXME inductive smt_model_well_typed : SmtModel -> Prop, based on smt axiom -/
 
 /- ---------------------------------------------- -/
 
-end SmtModel
+end Smtm

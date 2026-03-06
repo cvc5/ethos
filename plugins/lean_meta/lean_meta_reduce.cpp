@@ -23,8 +23,9 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
   d_typeToMetaKind["$eo_Term"] = MetaKind::EUNOIA;
   d_typeToMetaKind["$eo_Datatype"] = MetaKind::DATATYPE;
   d_typeToMetaKind["$eo_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
-  d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
+  d_typeToMetaKind["$smt_Model"] = MetaKind::SMT_MODEL;
   d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
+  d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
@@ -94,6 +95,7 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
     case MetaKind::DATATYPE: os << "Datatype"; break;
     case MetaKind::DATATYPE_CONSTRUCTOR: os << "DatatypeCons"; break;
     case MetaKind::SMT_TYPE: os << "SmtType"; break;
+    case MetaKind::SMT_MODEL: os << "SmtModel"; break;
     case MetaKind::SMT: os << "SmtTerm"; break;
     case MetaKind::SMT_VALUE: os << "SmtValue"; break;
     case MetaKind::SMT_MAP: os << "SmtMap"; break;

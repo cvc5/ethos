@@ -2,7 +2,7 @@ import Cpc.SmtEval
 
 set_option linter.unusedVariables false
 
-namespace SmtModel
+namespace Smtm
 
 /- SMT literal evaluation defined -/
 
@@ -182,6 +182,15 @@ deriving Repr, DecidableEq, Inhabited
 
 end
 
+/-
+SMT-LIB model
+-/
+abbrev SmtModel := Int -- FIXME
+
+def __smtx_model_lookup : SmtModel -> smt_lit_Int -> SmtType -> SmtValue
+  | _, _, _ => (SmtValue.Boolean true) -- FIXME
+
+
 /- Type equality -/
 def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
   | x, y => decide (x = y)
@@ -193,13 +202,13 @@ def __smtx_value_hash : SmtValue -> smt_lit_Int
   | _ => 0 -- FIXME
   
 /- exists -/
-def smt_lit_tforall : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+def smt_lit_tforall : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME
 /- forall -/
-def smt_lit_texists : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+def smt_lit_texists : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME
 /- choice -/
-def smt_lit_tchoice : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
+def smt_lit_tchoice : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME
 
 /- Definition of SMT-LIB model semantics -/
@@ -210,14 +219,20 @@ $LEAN_SMT_EVAL_DEFS$
 
 end
 
+/-
+SMT interpretation is satisfiability, i.e. the existence of a model
+interpreting the free constants.
+-/
 inductive smt_interprets : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
-      (__smtx_model_eval t) = (SmtValue.Boolean true) ->
+      exists M : SmtModel, (__smtx_model_eval M t) = (SmtValue.Boolean true) ->
       smt_interprets t true
   | intro_false (t : SmtTerm) :
-      (__smtx_model_eval t) = (SmtValue.Boolean false)->
+      forall M : SmtModel, (__smtx_model_eval M t) = (SmtValue.Boolean false)->
       smt_interprets t false
+
+/- FIXME inductive smt_model_well_typed : SmtModel -> Prop, based on smt axiom -/
 
 /- ---------------------------------------------- -/
 
-end SmtModel
+end Smtm
