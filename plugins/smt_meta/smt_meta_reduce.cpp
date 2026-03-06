@@ -1069,6 +1069,12 @@ bool SmtMetaReduce::echo(const std::string& msg)
       d_smSygus.finalizeGrammars();
       for (size_t i = 1; i < nargs; i++)
       {
+        MetaKind tk = getTypeMetaKind(vt[i-1]);
+        if (tk!=MetaKind::EUNOIA)
+        {
+          call << " 0";
+          continue;
+        }
         std::stringstream varName;
         varName << "arg_" << patCall[i];
         d_smtVc << "(synth-fun " << varName.str() << " () eo.Term";

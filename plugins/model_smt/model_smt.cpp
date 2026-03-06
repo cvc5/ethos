@@ -376,13 +376,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitBinSym("bvudiv",
                {kBitVec, kBitVec},
                "x1",
-               smtIte(smtZEq("x3", "$smt_builtin_z_zero"),
+               smtIte(smtZEq("x4", "$smt_builtin_z_zero"),
                       "($smt_builtin_binary_max x1)",
                       "($smt_builtin_div_total x2 x4)"));
   addLitBinSym("bvurem",
                {kBitVec, kBitVec},
                "x1",
-               smtIte(smtZEq("x3", "$smt_builtin_z_zero"),
+               smtIte(smtZEq("x4", "$smt_builtin_z_zero"),
                       "x2",
                       "($smt_builtin_mod_total x2 x4)"));
   addLitBinSym(

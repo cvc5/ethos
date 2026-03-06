@@ -100,7 +100,7 @@ void SmtMetaSygus::finalizeGrammars()
 SygusGrammar* SmtMetaSygus::allocateGrammar(const std::string& gn,
                                             const std::string& tn)
 {
-  Assert(!d_gisFinalized);
+  Assert(!d_gisFinalized) << "Trying to allocate " << gn << " / " << tn;
   d_glist.push_back(gn);
   SygusGrammar& sg = d_grammar[gn];
   sg.d_gname = gn;
@@ -148,7 +148,7 @@ Expr SmtMetaSygus::getGrammarTypeApprox(const Expr& e)
     std::stringstream ssc;
     ssc << cur;
     std::string cname = ssc.str();
-    if (cname == "$eo_Term")
+    if (cname == "$eo_Term" || cname=="$smt_Model")
     {
       // special case: those marked $eo_Term are general Eunoia terms
       return d_null;
@@ -273,7 +273,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
 #endif
     return;
   }
-  else if (tk == MetaKind::SMT_MAP || tk == MetaKind::SMT_SEQ)
+  else if (tk == MetaKind::SMT_MAP || tk == MetaKind::SMT_SEQ || tk==MetaKind::SMT_MODEL)
   {
     return;
   }

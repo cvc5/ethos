@@ -16,6 +16,7 @@
 (define-fun qplus ((x Real) (y Real)) Real (+ x y))
 (define-fun qmult ((x Real) (y Real)) Real (* x y))
 (define-fun qneg ((x Real)) Real (- x))
+(define-fun qdiv_total ((x Real) (y Real)) Real (/_total x y))
 (define-fun streq ((x String) (y String)) Bool (= x y))
 
 ; uninterpreted constant identifier for builtin partial functions
@@ -102,7 +103,7 @@ $SM_TYPE_DECL$
 )
 
 ; models
-(declare-sort smm.SmtModel 0)
+(define-sort smm.SmtModel () Int)
 
 (define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
 (define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))
