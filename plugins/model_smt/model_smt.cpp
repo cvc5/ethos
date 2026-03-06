@@ -243,6 +243,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("/", {kReal, kReal}, kReal);
   addConstFoldSym("div", {kInt, kInt}, kInt);
   addConstFoldSym("mod", {kInt, kInt}, kInt);
+  addConstFoldSym("**_total", {kInt, kInt}, kInt);
+  addTermReduceSym("**", {kInt, kInt}, "(ite (>= x1 0) (**_total x1 x2) (div 1 (**_total x1 (- 0 x2))))");
   addConstFoldSym("to_int", {kReal}, kInt);
   addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
@@ -624,10 +626,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.rev", {kString}, kString);
   addConstFoldSym("str.to_lower", {kString}, kString);
   addConstFoldSym("str.to_upper", {kString}, kString);
-  // FIXME
-  // addEunoiaReduceSym("@strings_itos_result",
-  //                   {kInt, kInt},
-  //                   "($eo_to_smt (str.from_int (mod x1 (^ 10 x2))))");
+  addEunoiaReduceSym("@strings_itos_result",
+                     {kInt, kInt},
+                     "($eo_to_smt (str.from_int (mod x1 (** 10 x2))))");
   addEunoiaReduceSym("@strings_stoi_result",
                      {kString, kInt},
                      "($eo_to_smt (str.to_int (str.substr x1 0 x2)))");
@@ -860,7 +861,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_symIgnore["@strings_occur_index_re"] = true;
   d_symIgnore["@strings_replace_all_result"] = true;
   d_symIgnore["@const"] = true;
-  d_symIgnore["@strings_itos_result"] = true;
 }
 
 ModelSmt::~ModelSmt() {}
@@ -1338,6 +1338,10 @@ void ModelSmt::printConstFold(const std::string& name,
     {
       ssret << "($smt_builtin_" << (kas == Kind::NUMERAL ? "z" : "q") << "_"
             << opName.str();
+    }
+    else if (opName.str()=="**_total")
+    {
+      ssret << "($smt_builtin_z_**_total";
     }
     else
     {

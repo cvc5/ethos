@@ -21,6 +21,10 @@
 (define-fun div_by_zero ((x Int)) Int (div x 0))
 (define-fun mod_by_zero ((x Int)) Int (mod x 0))
 
+; integer exponentiation is not handled by cvc5, axiomatize it
+(declare-fun zexp_total (Int Int) Int)
+(assert (forall ((x Int) (y Int)) (= (zexp_total x y) (ite (< y 0) 0 (ite (= y 0) 1 (* x (zexp_total x (- y 1))))))))
+
 (define-fun bit ((x1 Int) (x2 Int)) Bool
   (zeq 1 (mod (div x1 (int.pow2 x2)) 2)))
 (define-fun msb ((x1 Int) (x2 Int)) Bool
