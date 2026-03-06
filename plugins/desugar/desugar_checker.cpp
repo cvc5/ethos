@@ -100,7 +100,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
     progPat << " a" << i;
     progRet << " a" << i;
     std::stringstream ssnext;
-    ssnext << "($eot_alc a" << (nargs-i)+1 << " " << invPatArgs << ")";
+    ssnext << "($eot_alc a" << (nargs - i) + 1 << " " << invPatArgs << ")";
     invPatArgs = ssnext.str();
   }
   invokePat << " " << invPatArgs;
@@ -128,7 +128,8 @@ void DesugarChecker::finalizeRule(const Expr& v)
   }
   else
   {
-    Assert(npremises <= 8) << "Compiler supports at most 8 premises to proof rule";
+    Assert(npremises <= 8)
+        << "Compiler supports at most 8 premises to proof rule";
     std::string invPatPremises = "$eot_iln";
     for (size_t i = 1; i <= npremises; i++)
     {
@@ -141,7 +142,8 @@ void DesugarChecker::finalizeRule(const Expr& v)
       progPat << " p" << i;
       progRet << " p" << i;
       std::stringstream ssnext;
-      ssnext << "($eot_ilc n" << (npremises-i)+1 << " " << invPatPremises << ")";
+      ssnext << "($eot_ilc n" << (npremises - i) + 1 << " " << invPatPremises
+             << ")";
       invPatPremises = ssnext.str();
     }
     invokePat << " " << invPatPremises;
@@ -154,8 +156,8 @@ void DesugarChecker::finalizeRule(const Expr& v)
   ssr << "$rule_" << vname;
   std::ostream* rout = isAssume ? &d_ruleInvokesPop : &d_ruleInvokes;
   d_rules << "(declare-const $emb_r." << vname << " $eo_Rule)" << std::endl;
-  (*rout) << "  (($eo_cmd_step_" << (isAssume ? "pop_" : "") << "proven S $emb_r." << vname
-                << invokePat.str() << ") ";
+  (*rout) << "  (($eo_cmd_step_" << (isAssume ? "pop_" : "")
+          << "proven S $emb_r." << vname << invokePat.str() << ") ";
   if (!invokeRet.str().empty())
   {
     (*rout) << "(" << rprog << invokeRet.str() << ")";

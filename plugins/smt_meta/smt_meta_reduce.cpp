@@ -1026,13 +1026,14 @@ bool SmtMetaReduce::echo(const std::string& msg)
       for (size_t i = 1; i < nargs; i++)
       {
         std::stringstream metaType;
-        if (!printMetaType(vt[i-1], metaType))
+        if (!printMetaType(vt[i - 1], metaType))
         {
           metaType << "eo.Term";
         }
         if (StdPlugin::optionSmtMetaDebugConjecture())
         {
-          d_smtVc << "(declare-const x" << i << " " << metaType.str() << ")" << std::endl;
+          d_smtVc << "(declare-const x" << i << " " << metaType.str() << ")"
+                  << std::endl;
         }
         else
         {

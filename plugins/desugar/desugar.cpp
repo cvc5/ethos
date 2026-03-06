@@ -335,13 +335,14 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
       finalizeProgram(prog, progDef, d_eoNilNground);
       d_eoNil << "(" << pname << " T)";
-      d_eoIsListNil << "nil) (eo::eq nil ($eo_nil " << e << " ($eo_typeof nil))))" << std::endl;
+      d_eoIsListNil << "nil) (eo::eq nil ($eo_nil " << e
+                    << " ($eo_typeof nil))))" << std::endl;
     }
     else
     {
       // Note that cattrCons may print out as evaluatable, e.g. if it
-      // is the empty bitvector (eo::to_bin 0 0). This is ok because it is ground and hence
-      // will be evaluated upon parsing.
+      // is the empty bitvector (eo::to_bin 0 0). This is ok because it is
+      // ground and hence will be evaluated upon parsing.
       d_eoIsListNil << cattrCons << ") true)" << std::endl;
       d_eoNil << cattrCons;
     }
@@ -675,7 +676,8 @@ void Desugar::finalizeRule(const Expr& e)
   std::stringstream pvcname;
   pvcname << "$eovc_" << e;
   Expr unsound = d_true;
-  Expr modelVarType = d_state.mkSymbol(Kind::CONST, "$smt_Model", d_state.mkType());
+  Expr modelVarType =
+      d_state.mkSymbol(Kind::CONST, "$smt_Model", d_state.mkType());
   Expr modelVar = d_state.mkSymbol(Kind::PARAM, "$eoM", modelVarType);
   // require that the conclusion is not satisfied
   unsound = mkRequiresModelSat(modelVar, false, conclusion, unsound);
@@ -697,7 +699,7 @@ void Desugar::finalizeRule(const Expr& e)
     }
   }
   std::vector<Expr> uvars = Expr::getVariables(unsound);
-  Assert (!uvars.empty());
+  Assert(!uvars.empty());
   std::vector<Expr> uargTypes;
   for (const Expr& v : uvars)
   {
@@ -969,7 +971,10 @@ Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& visited)
   return visited[t];
 }
 
-Expr Desugar::mkRequiresModelSat(const Expr& m, bool tgt, const Expr& test, const Expr& ret)
+Expr Desugar::mkRequiresModelSat(const Expr& m,
+                                 bool tgt,
+                                 const Expr& test,
+                                 const Expr& ret)
 {
   std::vector<Expr> modelSatArgs;
   modelSatArgs.push_back(tgt ? d_peoModelSat : d_peoModelUnsat);
