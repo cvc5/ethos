@@ -166,7 +166,6 @@ inductive SmtTerm : Type where
   | DtCons : smt_lit_String -> SmtDatatype -> smt_lit_Int -> SmtTerm
   | DtSel : smt_lit_String -> SmtDatatype -> smt_lit_Int -> smt_lit_Int -> SmtTerm
   | DtTester : smt_lit_String -> SmtDatatype -> smt_lit_Int -> SmtTerm
-  | DtUpdater : smt_lit_String -> SmtDatatype -> smt_lit_Int -> smt_lit_Int -> SmtTerm
   | Const : SmtValue -> SmtType -> SmtTerm
   | UConst : smt_lit_Int -> SmtType -> SmtTerm
   | not : SmtTerm
@@ -356,9 +355,6 @@ partial def __smtx_model_eval_dt_sel (M : SmtModel) (s : smt_lit_String) (d : Sm
 partial def __smtx_model_eval_dt_tester (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Int) (v1 : SmtValue) : SmtValue :=
   (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value v1) (SmtType.Datatype s d)) (SmtValue.Boolean (smt_lit_veq (__vsm_apply_head v1) (SmtValue.DtCons s d n))) SmtValue.NotValue)
 
-partial def __smtx_model_eval_dt_updater (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Int) (m : smt_lit_Int) (v1 : SmtValue) (v2 : SmtValue) : SmtValue :=
-  SmtValue.NotValue
-
 partial def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
   | (SmtValue.Map m), i => (__smtx_map_select (SmtValue.Map m) i)
@@ -392,7 +388,6 @@ partial def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.DtCons s d n) => (__smtx_model_eval_dt_cons s d n)
   | (SmtTerm.Apply (SmtTerm.DtSel s d n m) x1) => (__smtx_model_eval_dt_sel M s d n m (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d n) x1) => (__smtx_model_eval_dt_tester s d n (__smtx_model_eval M x1))
-  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.DtUpdater s d n m) x1) x2) => (__smtx_model_eval_dt_updater s d n m (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x1))
   | (SmtTerm.Const v T) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value v) T) v SmtValue.NotValue)
   | (SmtTerm.UConst n T) => (__smtx_model_lookup M n T)

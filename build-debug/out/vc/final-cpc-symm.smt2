@@ -214,8 +214,6 @@
   (sm.DtSel (sm.DtSel.arg1 String) (sm.DtSel.arg2 dt.Datatype) (sm.DtSel.arg3 Int) (sm.DtSel.arg4 Int))
   ; smt-cons: DtTester
   (sm.DtTester (sm.DtTester.arg1 String) (sm.DtTester.arg2 dt.Datatype) (sm.DtTester.arg3 Int))
-  ; smt-cons: DtUpdater
-  (sm.DtUpdater (sm.DtUpdater.arg1 String) (sm.DtUpdater.arg2 dt.Datatype) (sm.DtUpdater.arg3 Int) (sm.DtUpdater.arg4 Int))
   ; smt-cons: Const
   (sm.Const (sm.Const.arg1 vsm.Value) (sm.Const.arg2 tsm.Type))
   ; smt-cons: UConst
@@ -755,11 +753,6 @@
     (ite (Teq ($smtx_typeof_value x4) (tsm.Datatype x1 x2)) (vsm.Boolean (veq ($vsm_apply_head x4) (vsm.DtCons x1 x2 x3))) vsm.NotValue)
 )
 
-; program: $smtx_model_eval_dt_updater
-(define-fun $smtx_model_eval_dt_updater ((x1 String) (x2 dt.Datatype) (x3 Int) (x4 Int) (x5 vsm.Value) (x6 vsm.Value)) vsm.Value
-    vsm.NotValue
-)
-
 ; program: $smtx_model_eval_apply
 (define-fun $smtx_model_eval_apply ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Apply) x1)
@@ -818,8 +811,6 @@
     ($smtx_model_eval_dt_sel x1 (sm.DtSel.arg1 (sm.Apply.arg1 x2)) (sm.DtSel.arg2 (sm.Apply.arg1 x2)) (sm.DtSel.arg3 (sm.Apply.arg1 x2)) (sm.DtSel.arg4 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.DtTester) (sm.Apply.arg1 x2)))
     ($smtx_model_eval_dt_tester (sm.DtTester.arg1 (sm.Apply.arg1 x2)) (sm.DtTester.arg2 (sm.Apply.arg1 x2)) (sm.DtTester.arg3 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
-  (ite (and ((_ is sm.Apply) x2) ((_ is sm.Apply) (sm.Apply.arg1 x2)) ((_ is sm.DtUpdater) (sm.Apply.arg1 (sm.Apply.arg1 x2))))
-    ($smtx_model_eval_dt_updater (sm.DtUpdater.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x2))) (sm.DtUpdater.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x2))) (sm.DtUpdater.arg3 (sm.Apply.arg1 (sm.Apply.arg1 x2))) (sm.DtUpdater.arg4 (sm.Apply.arg1 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite ((_ is sm.Apply) x2)
     ($smtx_model_eval_apply ($smtx_model_eval x1 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite ((_ is sm.Const) x2)
@@ -827,7 +818,7 @@
   (ite ((_ is sm.UConst) x2)
     ($smtx_model_lookup x1 (sm.UConst.arg1 x2) (sm.UConst.arg2 x2))
     vsm.NotValue
-))))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
+)))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
 
 ; fwd-decl: $eo_to_smt_type
 (declare-fun $eo_to_smt_type (eo.Term) tsm.Type)

@@ -208,6 +208,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToEoPrefix[kReal] = "rational";
   d_kindToEoPrefix[kString] = "string";
   d_kindToEoPrefix[kBitVec] = "binary";
+  d_kindToEoPrefix[kRegLan] = "re";
   d_kindToType[kBool] = "Bool";
   d_kindToType[kInt] = "Int";
   d_kindToType[kReal] = "Real";
@@ -1006,9 +1007,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      "($eo_to_smt_tuple_select ($eo_to_smt_type ($eo_typeof "
                      "x2)) ($eo_to_smt x1) ($eo_to_smt x2))");
   addEunoiaReduceSym("tuple.update",
-                     {kT, kT},
+                     {kInt, kT, kT},
                      "($eo_to_smt_tuple_update ($eo_to_smt_type ($eo_typeof "
-                     "x2)) ($eo_to_smt x1) ($eo_to_smt x2))");
+                     "x2)) ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
   addEunoiaReduceSym("tuple",
                      {kT, kT},
                      "($sm_apply ($eo_to_smt_tuple_app_extend ($eo_to_smt x1) "
@@ -1018,7 +1019,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      "($sm_DtCons $smt_builtin_str_tuple_name ($dt_sum "
                      "$dtc_unit $dt_null) $smt_builtin_z_zero)");
   addEunoiaReduceSym("is", {kT}, "($eo_to_smt_tester ($eo_to_smt x1))");
-  addEunoiaReduceSym("update", {kT}, "($eo_to_smt_updater ($eo_to_smt x1))");
+  addEunoiaReduceSym("update", {kT, kT, kT}, "($eo_to_smt_updater ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
 
   // for alethe
   addEunoiaReduceSym("@cl", {kT, kT}, "($eo_to_smt (or x1 x2))");
@@ -1428,10 +1429,6 @@ void ModelSmt::printTermInternal(Kind k,
   {
     ret << "($vsm_" << d_kindToEoPrefix[k] << " " << term << ")";
   }
-  else if (k == Kind::EVAL_TO_STRING)
-  {
-    ret << "($vsm_re " << term << ")";
-  }
   else
   {
     ret << term;
@@ -1561,12 +1558,6 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
     if (paramCount > 1)
     {
       progParams << " ";
-    }
-    if (ka == Kind::EVAL_TO_STRING)
-    {
-      progCases << " ($vsm_re x" << paramCount << ")";
-      progParams << "(x" << paramCount << " $smt_builtin_RegLan)";
-      continue;
     }
     progCases << " ($vsm_";
     if (ka == Kind::BINARY)

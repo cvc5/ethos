@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 288
+; #trim-defs: 285
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -425,13 +425,6 @@
   $smt_Term)
 (define $sm_DtTester ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int))
   ($emb_sm.DtTester s d ci))
-(declare-parameterized-const $emb_sm.DtUpdater
-  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
-   (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
-  $smt_Term)
-(define $sm_DtUpdater
-  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int) (ai $smt_builtin_Int))
-  ($emb_sm.DtUpdater s d ci ai))
 (declare-parameterized-const $emb_sm.Const
   ((v $smt_Value :opaque) (T $smt_Type :opaque)) $smt_Term)
 (define $sm_Const
@@ -825,15 +818,6 @@
       $vsm_not_value))
   )
 )
-(program $smtx_model_eval_dt_updater
-  ((s $smt_builtin_String) (d $smt_Datatype)
-   (n $smt_builtin_Int) (m $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Int $smt_builtin_Int $smt_Value $smt_Value) $smt_Value
-  (
-  
-  (($smtx_model_eval_dt_updater s d n m v1 v2) $vsm_not_value)
-  )
-)
 (program $smtx_model_eval_apply
   ((m $smt_Map) (i $smt_Value) (f $smt_Value) (v $smt_Value)
    (s $smt_builtin_String) (T $smt_Type) (t $smt_Term))
@@ -912,8 +896,6 @@
     ($smtx_model_eval_dt_sel M s d n m ($smtx_model_eval M x1)))
   (($smtx_model_eval M ($sm_apply ($sm_DtTester s d n) x1))
     ($smtx_model_eval_dt_tester s d n ($smtx_model_eval M x1)))
-  (($smtx_model_eval M ($sm_apply ($sm_apply ($sm_DtUpdater s d n m) x1) x2))
-    ($smtx_model_eval_dt_updater s d n m ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
   
   
   
