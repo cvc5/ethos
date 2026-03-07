@@ -16,6 +16,7 @@
 (define-fun qplus ((x Real) (y Real)) Real (+ x y))
 (define-fun qmult ((x Real) (y Real)) Real (* x y))
 (define-fun qneg ((x Real)) Real (- x))
+(define-fun zdiv_total ((x Int) (y Int)) Real (/_total (to_real x) (to_real y)))
 (define-fun qdiv_total ((x Real) (y Real)) Real (/_total x y))
 (define-fun streq ((x String) (y String)) Bool (= x y))
 

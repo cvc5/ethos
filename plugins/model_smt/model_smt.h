@@ -226,10 +226,6 @@ class ModelSmt : public StdPlugin
       d_eoSymReduce;
   // subset of those that are types
   std::unordered_set<std::string> d_eoSymReduceTypes;
-  /**
-   * SMT-LIB symbols that have a custom evaluation function that we define.
-   */
-  std::map<std::string, std::vector<Kind>> d_symHardCode;
   /** Symbols that we need no definition for */
   std::map<std::string, bool> d_symIgnore;
   /** SMT-LIB syntax to embedding helper */

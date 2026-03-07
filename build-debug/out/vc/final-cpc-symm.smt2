@@ -16,6 +16,7 @@
 (define-fun qplus ((x Real) (y Real)) Real (+ x y))
 (define-fun qmult ((x Real) (y Real)) Real (* x y))
 (define-fun qneg ((x Real)) Real (- x))
+(define-fun zdiv_total ((x Int) (y Int)) Real (/_total (to_real x) (to_real y)))
 (define-fun qdiv_total ((x Real) (y Real)) Real (/_total x y))
 (define-fun streq ((x String) (y String)) Bool (= x y))
 
@@ -23,7 +24,7 @@
 (define-fun /_by_zero_id () Int (- 1))
 (define-fun div_by_zero_id () Int (- 2))
 (define-fun mod_by_zero_id () Int (- 3))
-(define-fun wrong_apply_sel_id () Int (- 3))
+(define-fun wrong_apply_sel_id () Int (- 4))
 
 ; integer exponentiation is not handled by cvc5, axiomatize it
 (declare-fun zexp_total (Int Int) Int)
@@ -195,6 +196,10 @@
   (sm.Apply (sm.Apply.arg1 sm.Term) (sm.Apply.arg2 sm.Term))
   ; smt-cons: Var
   (sm.Var (sm.Var.arg1 String) (sm.Var.arg2 tsm.Type))
+  ; smt-cons: ite
+  (sm.ite)
+  ; smt-cons: =
+  (sm.=)
   ; smt-cons: exists
   (sm.exists (sm.exists.arg1 String) (sm.exists.arg2 tsm.Type))
   ; smt-cons: forall
@@ -219,8 +224,6 @@
   (sm.not)
   ; smt-cons: and
   (sm.and)
-  ; smt-cons: =
-  (sm.=)
 
   )
   (
@@ -248,6 +251,8 @@
   (tsm.Datatype (tsm.Datatype.arg1 String) (tsm.Datatype.arg2 dt.Datatype))
   ; smt-cons: TypeRef
   (tsm.TypeRef (tsm.TypeRef.arg1 String))
+  ; smt-cons: USort
+  (tsm.USort (tsm.USort.arg1 Int))
 
   )
   (
@@ -685,6 +690,15 @@
 ; fwd-decl: $smtx_model_lookup
 (declare-fun $smtx_model_lookup (smm.SmtModel Int tsm.Type) vsm.Value)
 
+; program: $smtx_model_eval_ite
+(define-fun $smtx_model_eval_ite ((x1 vsm.Value) (x2 vsm.Value) (x3 vsm.Value)) vsm.Value
+  (ite (and ((_ is vsm.Boolean) x1) (= (vsm.Boolean.arg1 x1) true))
+    x2
+  (ite (and ((_ is vsm.Boolean) x1) (= (vsm.Boolean.arg1 x1) false))
+    x3
+    vsm.NotValue
+)))
+
 ; program: $smtx_model_eval_=
 (define-fun $smtx_model_eval_= ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
     (ite (Teq ($smtx_typeof_value x1) ($smtx_typeof_value x2)) (ite (Teq ($smtx_typeof_value x1) tsm.None) vsm.NotValue (vsm.Boolean (veq x1 x2))) vsm.NotValue)
@@ -786,6 +800,8 @@
     ($smtx_model_eval_not ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.Apply) (sm.Apply.arg1 x2)) (= (sm.Apply.arg1 (sm.Apply.arg1 x2)) sm.and))
     ($smtx_model_eval_and ($smtx_model_eval x1 (sm.Apply.arg2 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
+  (ite (and ((_ is sm.Apply) x2) ((_ is sm.Apply) (sm.Apply.arg1 x2)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x2))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x2))) sm.ite))
+    ($smtx_model_eval_ite ($smtx_model_eval x1 (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x2)))) ($smtx_model_eval x1 (sm.Apply.arg2 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.Apply) (sm.Apply.arg1 x2)) (= (sm.Apply.arg1 (sm.Apply.arg1 x2)) sm.=))
     ($smtx_model_eval_= ($smtx_model_eval x1 (sm.Apply.arg2 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.exists) (sm.Apply.arg1 x2)))
@@ -811,7 +827,7 @@
   (ite ((_ is sm.UConst) x2)
     ($smtx_model_lookup x1 (sm.UConst.arg1 x2) (sm.UConst.arg2 x2))
     vsm.NotValue
-)))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
+))))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
 
 ; fwd-decl: $eo_to_smt_type
 (declare-fun $eo_to_smt_type (eo.Term) tsm.Type)
@@ -841,6 +857,8 @@
     tsm.Bool
   (ite ((_ is eo.DatatypeType) x1)
     (tsm.Datatype (eo.DatatypeType.arg1 x1) ($eo_to_smt_datatype (eo.DatatypeType.arg2 x1)))
+  (ite ((_ is eo.USort) x1)
+    (tsm.USort (eo.USort.arg1 x1))
   (ite (= x1 eo.Int)
     tsm.Int
   (ite (= x1 eo.Real)
@@ -852,7 +870,7 @@
   (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.Seq))
     (tsm.Seq ($eo_to_smt_type (eo.Apply.arg2 x1)))
     tsm.None
-)))))))) :pattern (($eo_to_smt_type x1)))) :named sm.axiom.$eo_to_smt_type))
+))))))))) :pattern (($eo_to_smt_type x1)))) :named sm.axiom.$eo_to_smt_type))
 
 ; program: $eo_to_smt
 (declare-fun $eo_to_smt (eo.Term) sm.Term)
@@ -874,6 +892,8 @@
     (sm.DtCons (eo.DtCons.arg1 x1) ($eo_to_smt_datatype (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1))
   (ite ((_ is eo.DtSel) x1)
     (sm.DtSel (eo.DtSel.arg1 x1) ($eo_to_smt_datatype (eo.DtSel.arg2 x1)) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1))
+  (ite ((_ is eo.UConst) x1)
+    (sm.UConst (eo.UConst.arg1 x1) ($eo_to_smt_type (eo.UConst.arg2 x1)))
   (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.not))
     (sm.Apply sm.not ($eo_to_smt (eo.Apply.arg2 x1)))
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) (= (eo.Apply.arg1 (eo.Apply.arg1 x1)) eo.and))
@@ -883,7 +903,7 @@
   (ite ((_ is eo.Apply) x1)
     (sm.Apply ($eo_to_smt (eo.Apply.arg1 x1)) ($eo_to_smt (eo.Apply.arg2 x1)))
     sm.None
-))))))))))))) :pattern (($eo_to_smt x1)))) :named sm.axiom.$eo_to_smt))
+)))))))))))))) :pattern (($eo_to_smt x1)))) :named sm.axiom.$eo_to_smt))
 
 ; program: $eo_model_sat
 (assert (! (forall ((x1 smm.SmtModel) (x2 eo.Term))

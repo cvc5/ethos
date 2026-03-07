@@ -77,6 +77,18 @@
   $smt_Term)
 (define $sm_Var ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.Var s T))
 
+; ITE
+(declare-parameterized-const $emb_sm.ite
+  ((x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term))
+  $smt_Term)
+(define $sm_ite ((x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term))
+  ($sm_apply ($sm_apply ($sm_apply $emb_sm.ite x1) x2) x3))
+
+; equality
+(declare-parameterized-const $emb_sm.= ((x1 $smt_Term) (x2 $smt_Term)) $smt_Term)
+(define $sm_= ((x1 $smt_Term) (x2 $smt_Term))
+  ($sm_apply ($sm_apply $emb_sm.= x1) x2))
+
 ; exists
 ; this takes the variable to quantify over, which should then be applied
 ; to a formula, similarly for the other quantifiers
@@ -125,7 +137,7 @@
   $smt_Term)
 (define $sm_DtTester ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int))
   ($emb_sm.DtTester s d ci))
-  
+
 ; the updater of the ai^th argument of the ci^th constructor of datatype ($tsm_Datatype s d).
 (declare-parameterized-const $emb_sm.DtUpdater
   ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
@@ -140,10 +152,6 @@
   ((v $smt_Value :opaque) (T $smt_Type :opaque)) $smt_Term)
 (define $sm_Const
   ((v $smt_Value) (T $smt_Type)) ($emb_sm.Const v T))
-
-; uninterpreted sorts
-(declare-parameterized-const $emb_sm.USort ((n $smt_builtin_Int :opaque)) $smt_Term)
-(define $sm_USort ((n $smt_builtin_Int)) ($emb_USort n))
 
 ; uninterpreted constants
 (declare-parameterized-const $emb_sm.UConst
@@ -255,6 +263,10 @@ $SMT_TERM_CONSTRUCTORS$
 (declare-parameterized-const $emb_tsm.TypeRef
   ((s $smt_builtin_String :opaque)) $smt_Type)
 (define $tsm_TypeRef ((s $smt_builtin_String)) ($emb_tsm.TypeRef s))
+
+; uninterpreted sorts
+(declare-parameterized-const $emb_tsm.USort ((n $smt_builtin_Int :opaque)) $smt_Type)
+(define $tsm_USort ((n $smt_builtin_Int)) ($emb_tsm.USort n))
 
 ; all other ordinary type definitions
 $SMT_TYPE_CONSTRUCTORS$
@@ -993,6 +1005,10 @@ $SMT_EVAL_PROGS$
   ; These calls will reference helper methods above, e.g. of the form
   ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
 $SMT_EVAL_CASES$
+  (($smtx_model_eval M ($sm_ite x1 x2 x3))
+    ($smtx_model_eval_ite ($smtx_model_eval M x1) ($smtx_model_eval M x2) ($smtx_model_eval M x3)))
+  (($smtx_model_eval M ($sm_= x1 x2))
+    ($smtx_model_eval_= ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
   ; quantifiers
   (($smtx_model_eval M ($sm_apply ($sm_exists s T) x1))
     ($smt_apply_4 "tforall" M s T x1))
@@ -1076,6 +1092,7 @@ $EO_TO_SMT_AUX$
   (
   (($eo_to_smt_type Bool)                     $tsm_Bool)
   (($eo_to_smt_type ($eot_DatatypeType s d))  ($tsm_Datatype s ($eo_to_smt_datatype d)))
+  (($eo_to_smt_type ($eot_USort n1))          ($tsm_USort n1))
 $EO_TO_SMT_TYPE_CASES$
   (($eo_to_smt_type T)                      $tsm_none)
   )
@@ -1154,6 +1171,40 @@ $EO_TO_SMT_TYPE_CASES$
 ; (update x1) returns
 ;   ($eo_to_smt_updater ($eo_to_smt x1))
 
+
+; ($eo_to_smt_updater_rec s k t u acc)
+; returns the constructor app that is equivalent to u
+; but where the selector s field is updated to t.
+(program $eo_to_smt_updater_rec
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int) (m $smt_builtin_Int)
+   (k $smt_builtin_Int) (t $smt_Term) (u $smt_Term) (acc $smt_Term))
+  :signature ($smt_Term $smt_builtin_Int $smt_Term $smt_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_updater_rec ($sm_DtSel s d n m) $smt_builtin_z_zero t u acc) acc)
+  (($eo_to_smt_updater_rec ($sm_DtSel s d n m) k t u acc)
+    (eo::define ((arg ($smt_builtin_ite ($smt_builtin_z_= m k) t ($sm_apply ($sm_DtSel s d n k) u))))
+      ($eo_to_smt_updater_rec ($sm_DtSel s d n m) ($smt_builtin_z_dec k) t d ($sm_apply acc arg))))
+  )
+)
+
+(program $eo_to_smt_updater2
+  ((s $smt_builtin_String) (d $smt_Datatype)
+   (n $smt_builtin_Int) (m $smt_builtin_Int) (sel $smt_Term) (t $smt_Term) (u $smt_Term))
+  :signature ($smt_Term $smt_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_updater2 ($sm_DtSel s d n m) t u)
+    (eo::define ((ncons $smt_builtin_z_zero)) ; FIXME
+    ($sm_ite ($sm_apply ($sm_DtTester s d n) u)
+      ($eo_to_smt_updater_rec ($sm_DtSel s d n m) ncons t u ($sm_DtCons s d n))
+      d)))
+  (($eo_to_smt_updater2 sel t d)                     $sm_none)
+  )
+)
+
+; (update x1 x2 x3) returns
+;   ($eo_to_smt_updater2 ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt_x3))
+
+
 (program $eo_to_smt 
   ((b $smt_builtin_Bool) (n $smt_builtin_Int) (m $smt_builtin_Int) (r $smt_builtin_Rat)
    (s $smt_builtin_String) (w $smt_builtin_Int) (d $eo_Datatype)
@@ -1169,6 +1220,7 @@ $EO_TO_SMT_TYPE_CASES$
   (($eo_to_smt ($eot_Var s T))       ($sm_Var s ($eo_to_smt_type T)))
   (($eo_to_smt ($eot_DtCons s d n))  ($sm_DtCons s ($eo_to_smt_datatype d) n))
   (($eo_to_smt ($eot_DtSel s d n m)) ($sm_DtSel s ($eo_to_smt_datatype d) n m))
+  (($eo_to_smt ($eot_UConst n T))    ($sm_UConst n ($eo_to_smt_type T)))
 $EO_TO_SMT_CASES$
   ; TODO: maybe a datatype constructor or selector???
   (($eo_to_smt (f y))               ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))

@@ -219,8 +219,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // builtin
   // immediately include Bool, as it will not be defined
   // printDecl("Bool", {}, Kind::TYPE);
-  addHardCodeSym("=", {kT, kT});
-  addHardCodeSym("ite", {kBool, kT, kT});
+  // $sm_= and $sm_ite are builtin, reduce them in eo_to_smt
+  addEunoiaReduceSym("=", {kT, kT}, "($sm_= ($eo_to_smt x1) ($eo_to_smt x2))");
+  addEunoiaReduceSym("ite", {kT, kT, kT}, "($sm_ite ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
   addTermReduceSym("distinct", {kT, kT}, "(not (= x1 x2))");
   // Booleans
   addConstFoldSym("and", {kBool, kBool}, kBool);
@@ -259,7 +260,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("div_total", {kInt, kInt}, "(ite (= x2 0) 0 (div x1 x2))");
   addTermReduceSym("mod_total", {kInt, kInt}, "(ite (= x2 0) x1 (mod x1 x2))");
 #else
-  addConstFoldSym("/_total", {kReal, kReal}, kReal);
+  addConstFoldSym("/_total", {kT, kT}, kReal);
   addConstFoldSym("div_total", {kInt, kInt}, kInt);
   addConstFoldSym("mod_total", {kInt, kInt}, kInt);
   std::stringstream ssQDiv;
@@ -278,7 +279,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "(ite (>= x1 0) (**_total x1 x2) (div 1 (**_total x1 (- 0 x2))))");
   addConstFoldSym("**_total", {kInt, kInt}, kInt);
   addConstFoldSym("to_int", {kReal}, kInt);
-  addConstFoldSym("to_real", {kInt}, kReal);
+  addConstFoldSym("to_real", {kT}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
   // arrays
   addTypeSym("Array", {kType, kType});
@@ -766,8 +767,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym("@int_div_by_zero", {kInt}, "($eo_to_smt (div x1 0))");
   addEunoiaReduceSym("@mod_by_zero", {kInt}, "($eo_to_smt (mod x1 0))");
   addEunoiaReduceSym("@div_by_zero", {kReal}, "($eo_to_smt (/ x1 0/1))");
-  addTermReduceSym(
-      "int.ispow2", {kInt}, "(and (>= x1 0) (= x1 (int.pow2 (int.log2 x1))))");
+  addEunoiaReduceSym(
+      "int.ispow2", {kInt}, "($eo_to_smt (and (>= x1 0) (= x1 (int.pow2 (int.log2 x1)))))");
   // arrays
   std::stringstream ssArrayDiffVar;
   ssArrayDiffVar << "($sm_Var $smt_builtin_str_vname T)";
@@ -952,16 +953,16 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_specialCases["set.insert"].emplace_back("(set.insert $eo_List_nil x1)",
                                             "($eo_to_smt x1)");
   //   bitvectors
-  addTermReduceSym(
-      "bvite", {kBitVec, kBitVec, kBitVec}, "(ite (= x1 (@bv 1 1)) x2 x3)");
+  addEunoiaReduceSym(
+      "bvite", {kBitVec, kBitVec, kBitVec}, "($eo_to_smt (ite (= x1 (@bv 1 1)) x2 x3))");
   addTermReduceSym(
       "bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) (@bv 1 1) (@bv 0 1))");
-  addTermReduceSym("bvultbv",
+  addEunoiaReduceSym("bvultbv",
                    {kBitVec, kBitVec, kBitVec},
-                   "(ite (bvult x1 x2) (@bv 1 1) (@bv 0 1))");
-  addTermReduceSym("bvsltbv",
+                   "($eo_to_smt (ite (bvult x1 x2) (@bv 1 1) (@bv 0 1)))");
+  addEunoiaReduceSym("bvsltbv",
                    {kBitVec, kBitVec, kBitVec},
-                   "(ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1))");
+                   "($eo_to_smt (ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1)))");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
 #if 0
   addLitSym("bvredor",
@@ -1037,12 +1038,6 @@ void ModelSmt::addTypeSym(const std::string& sym, const std::vector<Kind>& args)
 {
   d_symIgnore[sym] = true;
   d_symTypes[sym] = args;
-}
-
-void ModelSmt::addHardCodeSym(const std::string& sym,
-                              const std::vector<Kind>& args)
-{
-  d_symHardCode[sym] = args;
 }
 
 void ModelSmt::addConstFoldSym(const std::string& sym,
@@ -1174,14 +1169,6 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
   {
     // append to definitions
     d_eoToSmtAux << itax->second << std::endl;
-  }
-  std::map<std::string, std::vector<Kind>>::iterator ith =
-      d_symHardCode.find(name);
-  if (ith != d_symHardCode.end())
-  {
-    printDecl(name, ith->second, Kind::PARAM, nopqArgs);
-    printModelEvalCall(name, ith->second);
-    return;
   }
   // maybe a constant fold symbol
   std::map<std::string, std::pair<std::vector<Kind>, Kind>>::iterator it =
