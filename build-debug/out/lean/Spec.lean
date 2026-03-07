@@ -1,15 +1,11 @@
-import Cpc.Smtm
+import Cpc.SmtModel
 import Cpc.Logos
+
+open Eo
+open Smtm
 
 set_option linter.unusedVariables false
 
-namespace EoCorrect
-
-abbrev Term := Eo.Term
-abbrev CCmdList := Eo.CCmdList
-abbrev SmtModel := Smtm.SmtModel
-abbrev SmtType := Smtm.SmtType
-abbrev SmtTerm := Smtm.SmtTerm
 
 /- Definitions for theorems -/
 
@@ -17,7 +13,7 @@ abbrev SmtTerm := Smtm.SmtTerm
 
 inductive eo_is_refutation : Term -> CCmdList -> Prop
   | intro (F : Term) (c : CCmdList) : 
-    (__eo_checker_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation F c)
+    (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 
 
 /-
@@ -39,17 +35,17 @@ Definitions for eo_is_obj
 -/
 mutual
 
-def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
+partial def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
   | DatatypeCons.unit => SmtDatatypeCons.unit
   | (DatatypeCons.cons U c) => (SmtDatatypeCons.cons (__eo_to_smt_type U) (__eo_to_smt_datatype_cons c))
 
 
-def __eo_to_smt_datatype : Datatype -> SmtDatatype
+partial def __eo_to_smt_datatype : Datatype -> SmtDatatype
   | (Datatype.sum c d) => (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
   | Datatype.null => SmtDatatype.null
 
 
-def __eo_to_smt_type : Term -> SmtType
+partial def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
   | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
   | Term.Int => SmtType.Int
@@ -60,7 +56,7 @@ def __eo_to_smt_type : Term -> SmtType
   | T => SmtType.None
 
 
-def __eo_to_smt : Term -> SmtTerm
+partial def __eo_to_smt : Term -> SmtTerm
   | (Term.Boolean b) => (SmtTerm.Boolean b)
   | (Term.Numeral n) => (SmtTerm.Numeral n)
   | (Term.Rational r) => (SmtTerm.Rational r)
@@ -128,4 +124,3 @@ by
 
 /- ---------------------------------------------- -/
 
-end EoCorrect

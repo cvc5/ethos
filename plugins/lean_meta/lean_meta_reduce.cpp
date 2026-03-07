@@ -601,6 +601,8 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     out = &d_smtDefs;
     tmk = MetaKind::SMT_TYPE;
+    // FIXME
+    decl << "partial ";
   }
   else
   {
@@ -608,9 +610,13 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     // FIXME
     decl << "partial ";
   }
+  // $eo_model is used only for VC generation
+  if (vname.compare(0, 9, "$eo_model") == 0)
+  {
+    return;
+  }
   // exception: conversion from Eunoia to SMT is printed on defs
-  if (vname.compare(0, 10, "$eo_to_smt") == 0
-      || vname.compare(0, 9, "$eo_model") == 0)
+  if (vname.compare(0, 10, "$eo_to_smt") == 0)
   {
     out = &d_eoIsObjDefs;
   }
@@ -1096,7 +1102,7 @@ void LeanMetaReduce::finalize()
             << std::endl;
   // refutation is if the method returns true
   d_eoIsRef << "  | intro (F : Term) (c : CCmdList) : " << std::endl;
-  d_eoIsRef << "    (__eo_checker_is_refutation F c) = (Term.Boolean true) -> "
+  d_eoIsRef << "    (__eo_checker_is_refutation F c) = true -> "
                "(eo_is_refutation F c)"
             << std::endl;
 

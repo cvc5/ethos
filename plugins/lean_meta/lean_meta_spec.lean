@@ -1,15 +1,11 @@
-import Cpc.Smtm
+import Cpc.SmtModel
 import Cpc.Logos
+
+open Eo
+open Smtm
 
 set_option linter.unusedVariables false
 
-namespace EoCorrect
-
-abbrev Term := Eo.Term
-abbrev CCmdList := Eo.CCmdList
-abbrev SmtModel := Smtm.SmtModel
-abbrev SmtType := Smtm.SmtType
-abbrev SmtTerm := Smtm.SmtTerm
 
 /- Definitions for theorems -/
 
@@ -73,4 +69,3 @@ by
 
 /- ---------------------------------------------- -/
 
-end EoCorrect

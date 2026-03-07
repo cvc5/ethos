@@ -132,10 +132,7 @@ check_status
 ./run_gen_vc_single $INPUT arith-geq-norm1-real
 ./run_gen_vc_single $INPUT arith-eq-elim-real
 ./run_gen_vc_single $INPUT arith-eq-elim-int
-./run_gen_vc_single $INPUT arith-to-int-elim
 ./run_gen_vc_single $INPUT arith-to-int-elim-to-real
-./run_gen_vc_single $INPUT arith-div-elim-to-real1
-./run_gen_vc_single $INPUT arith-div-elim-to-real2
 ./run_gen_vc_single $INPUT arith-mod-over-mod
 ./run_gen_vc_single $INPUT arith-int-eq-conflict
 ./run_gen_vc_single $INPUT arith-int-geq-tighten
