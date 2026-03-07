@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 282
+; #trim-defs: 283
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -639,6 +639,18 @@
   
   
   ($smtx_typeof_dt_cons_value_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) n))
+(program $smtx_ret_typeof_sel
+  ((T $smt_Type) (n $smt_builtin_Int) (m $smt_builtin_Int) (c $smt_DatatypeCons) (d $smt_Datatype))
+  :signature ($smt_Datatype $smt_builtin_Int $smt_builtin_Int) $smt_Type
+  (
+  (($smtx_ret_typeof_sel ($dt_sum ($dtc_cons T c) d) $smt_builtin_z_zero $smt_builtin_z_zero) T)
+  (($smtx_ret_typeof_sel ($dt_sum ($dtc_cons T c) d) $smt_builtin_z_zero m)
+    ($smtx_ret_typeof_sel ($dt_sum c d) $smt_builtin_z_zero ($smt_builtin_z_dec m)))
+  (($smtx_ret_typeof_sel ($dt_sum c d) n m)
+    ($smtx_ret_typeof_sel d ($smt_builtin_z_dec n) m))
+  (($smtx_ret_typeof_sel d n m) $tsm_none)
+  )
+)
 (program $smtx_typeof_apply_value ((T $smt_Type) (U $smt_Type) (V $smt_Type))
   :signature ($smt_Type $smt_Type) $smt_Type
   (
@@ -756,20 +768,31 @@
   )
 )
 (program $smtx_model_eval_dt_sel
-  ((n $smt_builtin_Int) (m $smt_builtin_Int) (v1 $smt_Value)
+  ((M $smt_Model) (n $smt_builtin_Int) (m $smt_builtin_Int) (v $smt_Value)
    (s $smt_builtin_String) (d $smt_Datatype))
-  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Int $smt_builtin_Int $smt_Value) $smt_Value
+  :signature ($smt_Model $smt_builtin_String $smt_Datatype $smt_builtin_Int $smt_builtin_Int $smt_Value) $smt_Value
   (
-  (($smtx_model_eval_dt_sel s d n m v1)
+  (($smtx_model_eval_dt_sel M s d n m v)
+    (eo::define ((vT ($smtx_typeof_value v)))
     
-    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value v1) ($tsm_Datatype s d))
+    ($smt_builtin_ite ($smt_builtin_Teq vT ($tsm_Datatype s d))
       
-      ($smt_builtin_ite ($smt_builtin_veq ($vsm_apply_head v1) ($vsm_DtCons s d n))
-        ($vsm_apply_arg_nth v1 m)
+      ($smt_builtin_ite ($smt_builtin_veq ($vsm_apply_head v) ($vsm_DtCons s d n))
+        ($vsm_apply_arg_nth v m)
         
-        $vsm_not_value)
+        
+        
+        
+        ($smtx_map_select
+          ($smtx_map_select
+            ($smtx_map_select
+              ($smtx_model_lookup M ($smt_apply_0 "wrong_apply_sel_id")
+                ($tsm_Map $tsm_Int ($tsm_Map $tsm_Int ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel d n m)))))
+              ($vsm_numeral n))
+            ($vsm_numeral m))
+          v))
       
-      $vsm_not_value))
+      $vsm_not_value)))
   )
 )
 (program $smtx_model_eval_dt_tester
@@ -866,7 +889,7 @@
   
   (($smtx_model_eval M ($sm_DtCons s d n)) ($smtx_model_eval_dt_cons s d n))
   (($smtx_model_eval M ($sm_apply ($sm_DtSel s d n m) x1))
-    ($smtx_model_eval_dt_sel s d n m ($smtx_model_eval M x1)))
+    ($smtx_model_eval_dt_sel M s d n m ($smtx_model_eval M x1)))
   (($smtx_model_eval M ($sm_apply ($sm_DtTester s d n) x1))
     ($smtx_model_eval_dt_tester s d n ($smtx_model_eval M x1)))
   (($smtx_model_eval M ($sm_apply ($sm_apply ($sm_DtUpdater s d n m) x1) x2))

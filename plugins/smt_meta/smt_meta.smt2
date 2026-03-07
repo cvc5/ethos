@@ -23,6 +23,7 @@
 (define-fun /_by_zero_id () Int (- 1))
 (define-fun div_by_zero_id () Int (- 2))
 (define-fun mod_by_zero_id () Int (- 3))
+(define-fun wrong_apply_sel_id () Int (- 4))
 
 ; integer exponentiation is not handled by cvc5, axiomatize it
 (declare-fun zexp_total (Int Int) Int)

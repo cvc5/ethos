@@ -621,6 +621,20 @@ $SMT_TYPE_CONSTRUCTORS$
   ; datatype we are processing is closed.
   ($smtx_typeof_dt_cons_value_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) n))
 
+; returns the return type of the selector n,m of datatype d.
+(program $smtx_ret_typeof_sel
+  ((T $smt_Type) (n $smt_builtin_Int) (m $smt_builtin_Int) (c $smt_DatatypeCons) (d $smt_Datatype))
+  :signature ($smt_Datatype $smt_builtin_Int $smt_builtin_Int) $smt_Type
+  (
+  (($smtx_ret_typeof_sel ($dt_sum ($dtc_cons T c) d) $smt_builtin_z_zero $smt_builtin_z_zero) T)
+  (($smtx_ret_typeof_sel ($dt_sum ($dtc_cons T c) d) $smt_builtin_z_zero m)
+    ($smtx_ret_typeof_sel ($dt_sum c d) $smt_builtin_z_zero ($smt_builtin_z_dec m)))
+  (($smtx_ret_typeof_sel ($dt_sum c d) n m)
+    ($smtx_ret_typeof_sel d ($smt_builtin_z_dec n) m))
+  (($smtx_ret_typeof_sel d n m) $tsm_none)
+  )
+)
+
 ; program: $smtx_typeof_apply_value
 (program $smtx_typeof_apply_value ((T $smt_Type) (U $smt_Type) (V $smt_Type))
   :signature ($smt_Type $smt_Type) $smt_Type
@@ -868,20 +882,31 @@ $SMT_TYPE_CONSTRUCTORS$
 )
 
 (program $smtx_model_eval_dt_sel
-  ((n $smt_builtin_Int) (m $smt_builtin_Int) (v1 $smt_Value)
+  ((M $smt_Model) (n $smt_builtin_Int) (m $smt_builtin_Int) (v $smt_Value)
    (s $smt_builtin_String) (d $smt_Datatype))
-  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Int $smt_builtin_Int $smt_Value) $smt_Value
+  :signature ($smt_Model $smt_builtin_String $smt_Datatype $smt_builtin_Int $smt_builtin_Int $smt_Value) $smt_Value
   (
-  (($smtx_model_eval_dt_sel s d n m v1)
+  (($smtx_model_eval_dt_sel M s d n m v)
+    (eo::define ((vT ($smtx_typeof_value v)))
     ; must ensure its type is T
-    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value v1) ($tsm_Datatype s d))
+    ($smt_builtin_ite ($smt_builtin_Teq vT ($tsm_Datatype s d))
       ; check if the head of the apply term is ($vsm_DtCons s d n)
-      ($smt_builtin_ite ($smt_builtin_veq ($vsm_apply_head v1) ($vsm_DtCons s d n))
-        ($vsm_apply_arg_nth v1 m)
+      ($smt_builtin_ite ($smt_builtin_veq ($vsm_apply_head v) ($vsm_DtCons s d n))
+        ($vsm_apply_arg_nth v m)
         ; wrongly applied selector
-        $vsm_not_value)
+        ; we introduce an uninterpreted function wrong_apply_sel : (-> Int Int D T)
+        ; where (wrong_apply_sel_id n m) is the uninterpreted function corresponding
+        ; to wrong applications of the m^th selector of the n^th constructor of the datatype of v.
+        ($smtx_map_select
+          ($smtx_map_select
+            ($smtx_map_select
+              ($smtx_model_lookup M ($smt_apply_0 "wrong_apply_sel_id")
+                ($tsm_Map $tsm_Int ($tsm_Map $tsm_Int ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel d n m)))))
+              ($vsm_numeral n))
+            ($vsm_numeral m))
+          v))
       ; ill typed term
-      $vsm_not_value))
+      $vsm_not_value)))
   )
 )
 
@@ -979,7 +1004,7 @@ $SMT_EVAL_CASES$
   ; datatypes
   (($smtx_model_eval M ($sm_DtCons s d n)) ($smtx_model_eval_dt_cons s d n))
   (($smtx_model_eval M ($sm_apply ($sm_DtSel s d n m) x1))
-    ($smtx_model_eval_dt_sel s d n m ($smtx_model_eval M x1)))
+    ($smtx_model_eval_dt_sel M s d n m ($smtx_model_eval M x1)))
   (($smtx_model_eval M ($sm_apply ($sm_DtTester s d n) x1))
     ($smtx_model_eval_dt_tester s d n ($smtx_model_eval M x1)))
   (($smtx_model_eval M ($sm_apply ($sm_apply ($sm_DtUpdater s d n m) x1) x2))

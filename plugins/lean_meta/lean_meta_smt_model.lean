@@ -121,6 +121,7 @@ def smt_lit_re_all : smt_lit_RegLan := "" --FIXME
 def smt_lit_qdiv_by_zero_id : smt_lit_Int := -1
 def smt_lit_div_by_zero_id : smt_lit_Int := -2
 def smt_lit_mod_by_zero_id : smt_lit_Int := -3
+def smt_lit_wrong_apply_sel_id : smt_lit_Int := -4
 
 mutual
 
