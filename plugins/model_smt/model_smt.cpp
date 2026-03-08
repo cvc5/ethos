@@ -745,12 +745,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // one variable at a time, $sm_exists is hardcoded
   addEunoiaReduceSym("exists",
                      {kVarList, kT},
-                     "($sm_apply ($sm_exists s ($eo_to_smt_type T)) "
-                     "($eo_to_smt (exists x1 x2)))");
-  d_specialCases["exists"].emplace_back("(exists $eo_List_nil x1)",
-                                        "($eo_to_smt x1)");
+                     "($eo_to_smt_exists x1 ($eo_to_smt x2))");
   addEunoiaReduceSym(
-      "forall", {kT, kBool}, "($eo_to_smt (not (exists x1 (not x2))))");
+      "forall", {kT, kBool}, "($sm_not ($eo_to_smt_exists x1 ($sm_not ($eo_to_smt x2))))");
 
   //===========================================================================
   ///----- non standard extensions and skolems
@@ -848,7 +845,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_auxDef["@quantifiers_skolemize"] = ssQuantSkolem.str();
   d_specialCases["@quantifiers_skolemize"].emplace_back(
       "(@quantifiers_skolemize (forall x1 x2) x3)",
-      "($eo_to_smt_quantifiers_skolemize ($eo_to_smt (exists x1 (not x2))) "
+      "($eo_to_smt_quantifiers_skolemize ($eo_to_smt_exists x1 ($sm_not ($eo_to_smt x2))) "
       "($eo_to_smt x3))");
   d_symIgnore["@quantifiers_skolemize"] = true;
 
@@ -959,15 +956,15 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                                             "($eo_to_smt x1)");
   //   bitvectors
   addEunoiaReduceSym(
-      "bvite", {kBitVec, kBitVec, kBitVec}, "($eo_to_smt (ite (= x1 (@bv 1 1)) x2 x3))");
+      "bvite", {kBitVec, kBitVec, kBitVec}, smtToSmtEmbed("(ite (= ($eo_to_smt x1) #b1) ($eo_to_smt x2) ($eo_to_smt x3))", true));
   addTermReduceSym(
-      "bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) (@bv 1 1) (@bv 0 1))");
+      "bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) #b1 #b0)");
   addEunoiaReduceSym("bvultbv",
                    {kBitVec, kBitVec, kBitVec},
-                   "($eo_to_smt (ite (bvult x1 x2) (@bv 1 1) (@bv 0 1)))");
+                   smtToSmtEmbed("(ite (bvult ($eo_to_smt x1) ($eo_to_smt x2)) #b1 #b0)", true));
   addEunoiaReduceSym("bvsltbv",
                    {kBitVec, kBitVec, kBitVec},
-                   "($eo_to_smt (ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1)))");
+                   smtToSmtEmbed("(ite (bvslt ($eo_to_smt x1) ($eo_to_smt x2)) #b1 #b0)", true));
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
 #if 0
   addLitSym("bvredor",
@@ -983,18 +980,18 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 #else
   addEunoiaReduceSym("bvredor",
                      {kBitVec},
-                     "($eo_to_smt (bvnot (bvcomp x1 (@bv 0 (@bvsize x1)))))");
+                     smtToSmtEmbed("(bvnot (bvcomp ($eo_to_smt x1) (@bv 0 (@bvsize ($eo_to_smt x1)))))", true));
   addEunoiaReduceSym("bvredand",
                      {kBitVec},
-                     "($eo_to_smt (bvcomp x1 (bvnot (@bv 0 (@bvsize x1)))))");
+                     smtToSmtEmbed("(bvcomp ($eo_to_smt x1) (bvnot (@bv 0 (@bvsize ($eo_to_smt x1)))))", true));
 #endif
   // utility guards for negative widths, which do not evaluate
   addLitSym("@bv", {kInt, kInt}, kT, "($vsm_mk_binary x2 x1)");
   addEunoiaReduceSym(
-      "@bit", {kInt, kBitVec}, "($eo_to_smt (extract x1 x1 x2))");
+      "@bit", {kInt, kBitVec}, smtToSmtEmbed("(extract ($eo_to_smt x1) ($eo_to_smt x1) ($eo_to_smt x2))", true));
   addEunoiaReduceSym("@from_bools",
                      {kBool, kBitVec},
-                     "($eo_to_smt (concat (ite x1 #b1 #b0) x2))");
+                     smtToSmtEmbed("(concat (ite ($eo_to_smt x1) #b1 #b0) ($eo_to_smt x2))", true));
   // datatypes
   addEunoiaReduceSym(
       "Tuple",

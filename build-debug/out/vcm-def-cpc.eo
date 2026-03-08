@@ -2982,6 +2982,16 @@
   )
 )
 
+(program $eo_to_smt_exists
+  ((s $smt_builtin_String) (T $eo_Term) (vs $eo_List :list) (F $eo_Term))
+  :signature ($eo_List $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_exists $eo_List_nil F) F)
+  (($eo_to_smt_exists ($eo_List ($eot_Var s T) vs) F)
+    ($sm_apply ($sm_exists s ($eo_to_smt_type T)) ($eo_to_smt_exists vs F)))
+  )
+)
+
 (program $eo_to_smt 
   ((b $smt_builtin_Bool) (n $smt_builtin_Int) (m $smt_builtin_Int) (r $smt_builtin_Rat)
    (s $smt_builtin_String) (w $smt_builtin_Int) (d $eo_Datatype)
