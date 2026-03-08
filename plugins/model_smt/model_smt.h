@@ -149,6 +149,10 @@ class ModelSmt : public StdPlugin
   void printConstFold(const std::string& name,
                       const std::vector<Kind>& args,
                       Kind ret);
+  /** Print necessary information for a symbol added via addTermReduceSym */
+  void printTermReduce(const std::string& name,
+                      const std::vector<Kind>& args,
+                      const std::string& ret);
   /** Print necessary information for a symbol added via addLitSym */
   void printLitReduce(const std::string& name,
                       const std::vector<Kind>& args,
@@ -181,6 +185,7 @@ class ModelSmt : public StdPlugin
   std::map<std::string, size_t> d_opqArgs;
   Expr d_null;
   /** Auxiliary programs for SMT-LIB model evaluation */
+  std::stringstream d_modelEvalProgsFwd;
   std::stringstream d_modelEvalProgs;
   /** SMT-LIB model evaluation cases */
   std::stringstream d_eval;
@@ -219,6 +224,8 @@ class ModelSmt : public StdPlugin
    * references to the arguments.
    */
   std::map<std::string, std::pair<std::vector<Kind>, std::string>> d_symReduce;
+  /** those marked rec reduce */
+  std::unordered_set<std::string> d_recReduce;
   /**
    * Eunoia terms that have special reductions to SMT-LIB terms
    */
@@ -229,7 +236,7 @@ class ModelSmt : public StdPlugin
   /** Symbols that we need no definition for */
   std::map<std::string, bool> d_symIgnore;
   /** SMT-LIB syntax to embedding helper */
-  static std::string smtToSmtEmbed(const std::string& str);
+  static std::string smtToSmtEmbed(const std::string& str, bool isTerm=false);
   static std::string smtBinaryBinReturn(const std::string& term);
   static std::string smtEval(const std::string& s);
   static std::string eoDefine(const std::string& x,

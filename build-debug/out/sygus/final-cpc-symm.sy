@@ -762,19 +762,27 @@
     vsm.NotValue
 )))
 
+; fwd-decl: $smtx_model_eval_not
+(declare-fun $smtx_model_eval_not (vsm.Value) vsm.Value)
+
+; fwd-decl: $smtx_model_eval_and
+(declare-fun $smtx_model_eval_and (vsm.Value vsm.Value) vsm.Value)
+
 ; program: $smtx_model_eval_not
-(define-fun $smtx_model_eval_not ((x1 vsm.Value)) vsm.Value
+(assert (! (forall ((x1 vsm.Value))
+  (! (= ($smtx_model_eval_not x1)
   (ite ((_ is vsm.Boolean) x1)
     (vsm.Boolean (not (vsm.Boolean.arg1 x1)))
     vsm.NotValue
-))
+)) :pattern (($smtx_model_eval_not x1)))) :named sm.axiom.$smtx_model_eval_not))
 
 ; program: $smtx_model_eval_and
-(define-fun $smtx_model_eval_and ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
+(assert (! (forall ((x1 vsm.Value) (x2 vsm.Value))
+  (! (= ($smtx_model_eval_and x1 x2)
   (ite (and ((_ is vsm.Boolean) x1) ((_ is vsm.Boolean) x2))
     (vsm.Boolean (and (vsm.Boolean.arg1 x1) (vsm.Boolean.arg1 x2)))
     vsm.NotValue
-))
+)) :pattern (($smtx_model_eval_and x1 x2)))) :named sm.axiom.$smtx_model_eval_and))
 
 ; program: $smtx_model_eval
 (assert (! (forall ((x1 smm.SmtModel) (x2 sm.Term))

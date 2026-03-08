@@ -2043,20 +2043,29 @@
 (declare-parameterized-const $emb_vsm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Value)
 (define $vsm_numeral ((n $smt_builtin_Int)) ($emb_vsm.Numeral n))
+; helpers
+(define $vsm_z_zero () ($vsm_numeral $smt_builtin_z_zero))
+(define $vsm_z_one () ($vsm_numeral $smt_builtin_z_one))
 
 (declare-parameterized-const $emb_vsm.Rational
   ((r $smt_builtin_Rat :opaque)) $smt_Value)
 (define $vsm_rational ((r $smt_builtin_Rat)) ($emb_vsm.Rational r))
+; helpers
+(define $vsm_q_zero () ($vsm_rational $smt_builtin_q_zero))
 
 (declare-parameterized-const $emb_vsm.String
   ((s $smt_builtin_String :opaque)) $smt_Value)
 (define $vsm_string ((s $smt_builtin_String)) ($emb_vsm.String s))
+; helpers
+(define $vsm_string_empty () ($emb_vsm.String $smt_builtin_str_empty))
 
 (declare-parameterized-const $emb_vsm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Value)
 (define $vsm_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
   ($emb_vsm.Binary w v))
 ; utilities
+(define $vsm_binary_bit_false () ($vsm_binary $smt_builtin_z_one $smt_builtin_z_zero))
+(define $vsm_binary_bit_true () ($vsm_binary $smt_builtin_z_one $smt_builtin_z_one))
 (define $vsm_binary_mod_w ((w $smt_builtin_Int) (v $smt_builtin_Int))
   ($emb_vsm.Binary w ($smt_builtin_mod_total v ($smt_builtin_z_pow2 w))))
 (define $vsm_mk_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
@@ -2729,6 +2738,10 @@
   )
 )
 ;;; Other model evaluation functions
+
+(program $smtx_model_eval_not () :signature ($smt_Value) $smt_Value)
+(program $smtx_model_eval_and () :signature ($smt_Value $smt_Value) $smt_Value)
+
 
 (program $smtx_model_eval_not
   ((x1 $smt_builtin_Bool) (t1 $smt_Value))

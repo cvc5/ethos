@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 312
+; #trim-defs: 314
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -645,6 +645,8 @@
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )
 )
+(program $smtx_model_eval_not () :signature ($smt_Value) $smt_Value)
+(program $smtx_model_eval_and () :signature ($smt_Value $smt_Value) $smt_Value)
 (program $smtx_model_eval_not
   ((x1 $smt_builtin_Bool) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
