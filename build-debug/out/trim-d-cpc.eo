@@ -146,6 +146,10 @@
   (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque))
   Type)
+; A datatype we are using in the final embedding
+(declare-parameterized-const $smt_datatype
+  (($smt_id Type :implicit) (op $smt_id :opaque))
+  Type)
 (declare-parameterized-const $smt_apply_0
   (($smt_id Type :implicit) (op $smt_id :opaque))
   $smt_BuiltinType)
@@ -170,7 +174,6 @@
 (define $smt_builtin_Bool () ($smt_type_0 "Bool"))
 (define $smt_builtin_Int () ($smt_type_0 "Int"))
 (define $smt_builtin_Real () ($smt_type_0 "Real"))
-; Assumes Rat is defined as Real.
 (define $smt_builtin_Rat () ($smt_type_0 "Rat"))
 (define $smt_builtin_String () ($smt_type_0 "String"))
 (define $smt_builtin_RegLan () ($smt_type_0 "RegLan"))
@@ -219,12 +222,17 @@
 (define $smt_builtin_z_/_total ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "mk_rational" x1 x2))
 (define $smt_builtin_q_/_total ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qdiv_total" x1 x2))
 (define $smt_builtin_q_zero () ($smt_builtin_z_/_total $smt_builtin_z_zero $smt_builtin_z_one))
-(define $smt_builtin_div_total ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "div_total" x1 x2))
-(define $smt_builtin_mod_total ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod_total" x1 x2))
-(define $smt_builtin_z_**_total ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zexp_total" x1 x2))
+(define $smt_builtin_div_total ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "div_total" x1 x2))
+(define $smt_builtin_mod_total ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "mod_total" x1 x2))
+(define $smt_builtin_z_**_total ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zexp_total" x1 x2))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
-(define $smt_builtin_z_inc ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_one))
-(define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
+(define $smt_builtin_z_inc ((x1 $smt_builtin_Int)) ($smt_builtin_z_+ x1 $smt_builtin_z_one))
+(define $smt_builtin_z_dec ((x1 $smt_builtin_Int)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
+; natural numbers
+(define $smt_builtin_Nat () ($smt_datatype "Nat"))
+(define $smt_builtin_n_zero () ($smt_apply_0 "nat.zero"))
+(define $smt_builtin_n_succ ((x1 $smt_builtin_Nat)) ($smt_apply_1 "nat.succ" x1))
+(define $smt_builtin_z_to_n ((x1 $smt_builtin_Int)) ($smt_apply_1 "int.to_nat" x1))
 
 ; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
 (define $smt_apply_nary_3

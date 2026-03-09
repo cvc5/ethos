@@ -68,6 +68,7 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
                                   MetaKind tctx) const
 {
   MetaKind tk = getTypeMetaKind(t, tctx);
+  Trace("smt-meta") << "Type meta kind for " << t << " is " << metaKindToString(tk) << std::endl;
   switch (tk)
   {
     case MetaKind::EUNOIA: os << "eo.Term"; break;
@@ -78,6 +79,7 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case MetaKind::SMT_TYPE: os << "tsm.Type"; break;
     case MetaKind::SMT_VALUE: os << "vsm.Value"; break;
     case MetaKind::SMT_BUILTIN: os << getEmbedName(t); break;
+    case MetaKind::SMT_BUILTIN_DATATYPE: os << getEmbedName(t); break;
     case MetaKind::SMT_MAP: os << "msm.Map"; break;
     case MetaKind::SMT_SEQ: os << "ssm.Seq"; break;
     case MetaKind::SMT_DATATYPE: os << "dt.Datatype"; break;
@@ -224,18 +226,28 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     }
     else if (ck == Kind::APPLY_OPAQUE)
     {
-      // will use a tester
-      printEmbAtomicTerm(tcur[0], cname, MetaKind::NONE);
       printArgStart = 1;
       if (isSmtApplyApp(tcur))
       {
         Assert(tcur[1].getKind() == Kind::STRING);
-        // e.g. ($smt_apply_0 "0") in a pattern.
         const Literal* l = tcur[1].getValue()->asLiteral();
-        std::stringstream eq;
-        eq << "(= " << currTerm << " " << l->d_str.toString() << ")";
-        print.push(eq.str());
-        continue;
+        if (tcur.getNumChildren()==2)
+        {
+          // e.g. ($smt_apply_0 "0") or ($smt_apply_0 "nat.zero") in a pattern.
+          std::stringstream eq;
+          eq << "(= " << currTerm << " " << l->d_str.toString() << ")";
+          print.push(eq.str());
+          continue;
+        }
+        // Otherwise it is a builtin non-nullary smt datatype constructor,
+        // e.g. nat.succ. The embed name of the apply is the constructor name.
+        printArgStart = 2;
+        cname << l->d_str.toString();
+      }
+      else
+      {
+        // will use a tester
+        printEmbAtomicTerm(tcur[0], cname, MetaKind::NONE);
       }
       printArgs = true;
       // we don't know the context of children, we compute per child below
@@ -336,7 +348,8 @@ bool SmtMetaReduce::isSmtApplyApp(const Expr& oApp)
   }
   std::string sname = getName(oApp[0]);
   return (sname.compare(0, 11, "$smt_apply_") == 0
-          || sname.compare(0, 10, "$smt_type_") == 0);
+          || sname.compare(0, 10, "$smt_type_") == 0
+          || sname.compare(0, 13, "$smt_datatype") == 0);
 }
 
 std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
@@ -463,7 +476,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // operators that print the identifier embedding e.g.
       // `($smt_apply_3 "ite"` becomes `(ite`
       if (sname.compare(0, 11, "$smt_apply_") == 0
-          || sname.compare(0, 10, "$smt_type_") == 0)
+          || sname.compare(0, 10, "$smt_type_") == 0
+          || sname.compare(0, 14, "$smt_datatype_")==0)
       {
         std::string embName = getEmbedName(recTerm);
         if (recTerm.getNumChildren() > 2)
@@ -593,6 +607,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v,
     std::stringstream argType;
     Trace("smt-meta") << "Print meta type " << vt[i - 1] << std::endl;
     printMetaType(vt[i - 1], argType, MetaKind::EUNOIA);
+    Trace("smt-meta") << "...returned " << argType.str() << std::endl;
     decl << argType.str();
     std::stringstream ssArg;
     ssArg << "x" << i;
@@ -1116,6 +1131,10 @@ MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
     if (sname.compare(0, 10, "$smt_type_") == 0)
     {
       return MetaKind::SMT_BUILTIN;
+    }
+    else if (sname.compare(0, 13, "$smt_datatype") == 0)
+    {
+      return MetaKind::SMT_BUILTIN_DATATYPE;
     }
   }
   if (k == Kind::FUNCTION_TYPE)

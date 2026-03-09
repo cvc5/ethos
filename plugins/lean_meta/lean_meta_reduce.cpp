@@ -79,7 +79,7 @@ bool LeanMetaReduce::printMetaType(const Expr& t,
                                    MetaKind tctx) const
 {
   MetaKind tk = getTypeMetaKind(t);
-  if (tk == MetaKind::SMT_BUILTIN)
+  if (tk == MetaKind::SMT_BUILTIN || tk==MetaKind::SMT_BUILTIN_DATATYPE)
   {
     os << getEmbedName(t, tctx);
     return true;
@@ -236,7 +236,8 @@ bool LeanMetaReduce::isSmtApplyApp(const Expr& oApp)
   }
   std::string sname = getName(oApp[0]);
   return (sname.compare(0, 11, "$smt_apply_") == 0
-          || sname.compare(0, 10, "$smt_type_") == 0);
+          || sname.compare(0, 10, "$smt_type_") == 0
+          || sname.compare(0, 13, "$smt_datatype") == 0);
 }
 
 bool is_integer(const std::string& s)
@@ -374,7 +375,8 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
       // operators that print the identifier embedding e.g.
       // `($smt_apply_3 "ite"` becomes `(ite`
       if (sname.compare(0, 11, "$smt_apply_") == 0
-          || sname.compare(0, 10, "$smt_type_") == 0)
+          || sname.compare(0, 10, "$smt_type_") == 0
+          || sname.compare(0, 13, "$smt_datatype") == 0)
       {
         std::string embName = getEmbedName(recTerm, tinit);
         if (recTerm.getNumChildren() > 2)
@@ -601,8 +603,6 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     out = &d_smtDefs;
     tmk = MetaKind::SMT_TYPE;
-    // FIXME
-    decl << "partial ";
   }
   else
   {
@@ -1200,6 +1200,10 @@ MetaKind LeanMetaReduce::getTypeMetaKind(const Expr& typ) const
     if (sname.compare(0, 10, "$smt_type_") == 0)
     {
       return MetaKind::SMT_BUILTIN;
+    }
+    if (sname.compare(0, 13, "$smt_datatype") == 0)
+    {
+      return MetaKind::SMT_BUILTIN_DATATYPE;
     }
   }
   std::string sname = getName(typ);

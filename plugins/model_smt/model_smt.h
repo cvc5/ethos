@@ -173,6 +173,15 @@ class ModelSmt : public StdPlugin
                        const std::vector<Kind>& args,
                        std::stringstream& progCases,
                        std::stringstream& progParams);
+  /**
+   * Print program where zeroRet and succRet should use parameters
+   * n, v1 .... vm, where n is the predecessor Nat (only used in succRet)
+   * and v1 ... vm are smt values.
+   */
+  void printAuxNatRecProgram(const std::string& name,
+                             const std::vector<Kind>& args,
+                             const std::string& zeroRet,
+                             const std::string& succRet);
 
   void printTermInternal(Kind k, const std::string& term, std::ostream& os);
   /** Finalize declaration, main entry point for calling methods above */
@@ -203,6 +212,8 @@ class ModelSmt : public StdPlugin
       d_specialCases;
   /** Auxiliary definitions on $EO_TO_SMT_AUX$ */
   std::map<std::string, std::string> d_auxDef;
+  /** Auxiliary definitions on $SMT_EVAL_PROGS$ */
+  std::map<std::string, std::string> d_auxSmtEval;
   /**
    * SMT-LIB types.
    */

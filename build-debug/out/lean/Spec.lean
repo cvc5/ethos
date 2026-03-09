@@ -5,6 +5,7 @@ open Eo
 open Smtm
 
 set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
 
 
 /- Definitions for theorems -/
@@ -35,17 +36,17 @@ Definitions for eo_is_obj
 -/
 mutual
 
-partial def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
+def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
   | DatatypeCons.unit => SmtDatatypeCons.unit
   | (DatatypeCons.cons U c) => (SmtDatatypeCons.cons (__eo_to_smt_type U) (__eo_to_smt_datatype_cons c))
 
 
-partial def __eo_to_smt_datatype : Datatype -> SmtDatatype
+def __eo_to_smt_datatype : Datatype -> SmtDatatype
   | (Datatype.sum c d) => (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
   | Datatype.null => SmtDatatype.null
 
 
-partial def __eo_to_smt_type : Term -> SmtType
+def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
   | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
   | (Term.USort n1) => (SmtType.USort n1)
@@ -57,7 +58,7 @@ partial def __eo_to_smt_type : Term -> SmtType
   | T => SmtType.None
 
 
-partial def __eo_to_smt : Term -> SmtTerm
+def __eo_to_smt : Term -> SmtTerm
   | (Term.Boolean b) => (SmtTerm.Boolean b)
   | (Term.Numeral n) => (SmtTerm.Numeral n)
   | (Term.Rational r) => (SmtTerm.Rational r)

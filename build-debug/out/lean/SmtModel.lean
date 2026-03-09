@@ -58,6 +58,19 @@ abbrev smt_lit_binary_uts := SmtEval.smt_lit_binary_uts
 abbrev smt_lit_binary_concat := SmtEval.smt_lit_binary_concat
 abbrev smt_lit_binary_extract := SmtEval.smt_lit_binary_extract
 
+-- Natural numbers
+
+abbrev smt_lit_Nat := Nat
+syntax "smt_lit_nat_zero" : term
+macro_rules
+  | `(smt_lit_nat_zero) => `(Nat.zero)
+
+syntax "smt_lit_nat_succ " term : term
+macro_rules
+  | `(smt_lit_nat_succ $x) => `(Nat.succ $x)
+def smt_lit_int_to_nat (x : smt_lit_Int) : smt_lit_Nat :=
+  (Int.toNat x)
+
 -- SMT Beyond Eunoia
 
 def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
@@ -259,66 +272,66 @@ def smt_lit_tchoice : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtVal
 
 mutual
 
-partial def __vsm_apply_head : SmtValue -> SmtValue
+def __vsm_apply_head : SmtValue -> SmtValue
   | (SmtValue.Apply f a) => (__vsm_apply_head f)
   | a => a
 
 
-partial def __vsm_apply_arg_nth : SmtValue -> smt_lit_Int -> SmtValue
+def __vsm_apply_arg_nth : SmtValue -> smt_lit_Int -> SmtValue
   | (SmtValue.Apply f a), n => (smt_lit_ite (smt_lit_zeq n 0) a (__vsm_apply_arg_nth f (smt_lit_zplus n (smt_lit_zneg 1))))
   | a, n => SmtValue.NotValue
 
 
-partial def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
+def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
   | (SmtMap.cons j e m), i => (smt_lit_ite (smt_lit_veq j i) e (__smtx_msm_lookup m i))
   | (SmtMap.default T e), i => e
 
 
-partial def __smtx_typeof_map_value : SmtMap -> SmtType
+def __smtx_typeof_map_value : SmtMap -> SmtType
   | (SmtMap.cons i e m) => (smt_lit_ite (smt_lit_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e)) (__smtx_typeof_map_value m)) (__smtx_typeof_map_value m) SmtType.None)
   | (SmtMap.default T e) => (SmtType.Map T (__smtx_typeof_value e))
 
 
-partial def __smtx_index_typeof_map : SmtType -> SmtType
+def __smtx_index_typeof_map : SmtType -> SmtType
   | (SmtType.Map T U) => T
   | T => SmtType.None
 
 
-partial def __smtx_typeof_seq_value : SmtSeq -> SmtType
+def __smtx_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.cons v vs) => (smt_lit_ite (smt_lit_Teq (SmtType.Seq (__smtx_typeof_value v)) (__smtx_typeof_seq_value vs)) (__smtx_typeof_seq_value vs) SmtType.None)
   | (SmtSeq.empty T) => (SmtType.Seq T)
 
 
-partial def __smtx_dtc_substitute (s : smt_lit_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
+def __smtx_dtc_substitute (s : smt_lit_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
   | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (smt_lit_ite (smt_lit_Teq T (SmtType.TypeRef s)) (SmtType.Datatype s d) T) (__smtx_dtc_substitute s d c))
   | SmtDatatypeCons.unit => SmtDatatypeCons.unit
 
 
-partial def __smtx_dt_substitute (s : smt_lit_String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
+def __smtx_dt_substitute (s : smt_lit_String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
   | (SmtDatatype.sum c d2) => (SmtDatatype.sum (__smtx_dtc_substitute s d c) (__smtx_dt_substitute s d d2))
   | SmtDatatype.null => SmtDatatype.null
 
 
-partial def __smtx_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> smt_lit_Int -> SmtType
+def __smtx_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> smt_lit_Int -> SmtType
   | SmtDatatype.null, 0 => T
   | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), 0 => (SmtType.DtConsType U (__smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) 0))
   | (SmtDatatype.sum c d), n => (__smtx_typeof_dt_cons_value_rec T d (smt_lit_zplus n (smt_lit_zneg 1)))
   | d, n => SmtType.None
 
 
-partial def __smtx_ret_typeof_sel : SmtDatatype -> smt_lit_Int -> smt_lit_Int -> SmtType
+def __smtx_ret_typeof_sel : SmtDatatype -> smt_lit_Int -> smt_lit_Int -> SmtType
   | (SmtDatatype.sum (SmtDatatypeCons.cons T c) d), 0, 0 => T
   | (SmtDatatype.sum (SmtDatatypeCons.cons T c) d), 0, m => (__smtx_ret_typeof_sel (SmtDatatype.sum c d) 0 (smt_lit_zplus m (smt_lit_zneg 1)))
   | (SmtDatatype.sum c d), n, m => (__smtx_ret_typeof_sel d (smt_lit_zplus n (smt_lit_zneg 1)) m)
   | d, n, m => SmtType.None
 
 
-partial def __smtx_typeof_apply_value : SmtType -> SmtType -> SmtType
+def __smtx_typeof_apply_value : SmtType -> SmtType -> SmtType
   | (SmtType.DtConsType T U), V => (smt_lit_ite (smt_lit_Teq T V) U SmtType.None)
   | T, U => SmtType.None
 
 
-partial def __smtx_typeof_value : SmtValue -> SmtType
+def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Boolean b) => SmtType.Bool
   | (SmtValue.Numeral n) => SmtType.Int
   | (SmtValue.Rational q) => SmtType.Real
@@ -332,46 +345,46 @@ partial def __smtx_typeof_value : SmtValue -> SmtType
   | v => SmtType.None
 
 
-partial def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
+def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Boolean true), t2, t3 => t2
   | (SmtValue.Boolean false), t2, t3 => t3
   | t1, t2, t3 => SmtValue.NotValue
 
 
-partial def __smtx_model_eval_eq (t1 : SmtValue) (t2 : SmtValue) : SmtValue :=
+def __smtx_model_eval_eq (t1 : SmtValue) (t2 : SmtValue) : SmtValue :=
   (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value t1) (__smtx_typeof_value t2)) (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value t1) SmtType.None) SmtValue.NotValue (SmtValue.Boolean (smt_lit_veq t1 t2))) SmtValue.NotValue)
 
-partial def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
+def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m), i => (smt_lit_ite (smt_lit_Teq (__smtx_index_typeof_map (__smtx_typeof_map_value m)) (__smtx_typeof_value i)) (__smtx_msm_lookup m i) SmtValue.NotValue)
   | v, i => SmtValue.NotValue
 
 
-partial def __smtx_model_eval_dt_cons (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Int) : SmtValue :=
+def __smtx_model_eval_dt_cons (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Int) : SmtValue :=
   (smt_lit_ite (smt_lit_Teq (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) n) SmtType.None) SmtValue.NotValue (SmtValue.DtCons s d n))
 
-partial def __smtx_model_eval_dt_sel (M : SmtModel) (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Int) (m : smt_lit_Int) (v : SmtValue) : SmtValue :=
+def __smtx_model_eval_dt_sel (M : SmtModel) (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Int) (m : smt_lit_Int) (v : SmtValue) : SmtValue :=
   (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value v) (SmtType.Datatype s d)) (smt_lit_ite (smt_lit_veq (__vsm_apply_head v) (SmtValue.DtCons s d n)) (__vsm_apply_arg_nth v m) (__smtx_map_select (__smtx_map_select (__smtx_map_select (__smtx_model_lookup M smt_lit_wrong_apply_sel_id (SmtType.Map SmtType.Int (SmtType.Map SmtType.Int (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel d n m))))) (SmtValue.Numeral n)) (SmtValue.Numeral m)) v)) SmtValue.NotValue)
 
-partial def __smtx_model_eval_dt_tester (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Int) (v1 : SmtValue) : SmtValue :=
+def __smtx_model_eval_dt_tester (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Int) (v1 : SmtValue) : SmtValue :=
   (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value v1) (SmtType.Datatype s d)) (SmtValue.Boolean (smt_lit_veq (__vsm_apply_head v1) (SmtValue.DtCons s d n))) SmtValue.NotValue)
 
-partial def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
+def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
   | (SmtValue.Map m), i => (__smtx_map_select (SmtValue.Map m) i)
   | v, i => SmtValue.NotValue
 
 
-partial def __smtx_model_eval_not : SmtValue -> SmtValue
+def __smtx_model_eval_not : SmtValue -> SmtValue
   | (SmtValue.Boolean x1) => (SmtValue.Boolean (smt_lit_not x1))
   | t1 => SmtValue.NotValue
 
 
-partial def __smtx_model_eval_and : SmtValue -> SmtValue -> SmtValue
+def __smtx_model_eval_and : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Boolean x1), (SmtValue.Boolean x2) => (SmtValue.Boolean (smt_lit_and x1 x2))
   | t1, t2 => SmtValue.NotValue
 
 
-partial def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
+def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
   | (SmtTerm.Numeral n) => (SmtValue.Numeral n)
   | (SmtTerm.Rational r) => (SmtValue.Rational r)

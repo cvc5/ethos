@@ -1,6 +1,7 @@
 (set-logic ALL)
 
 (define-sort Rat () Real)
+(declare-datatype Nat ((nat.zero) (nat.succ (nat.succ.arg1 Nat))))
 (define-fun iff ((x Bool) (y Bool)) Bool (= x y))
 ; Helpers to avoid mixed arithmetic
 (define-fun mk_rational ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))
@@ -20,6 +21,12 @@
 (define-fun qdiv_total ((x Real) (y Real)) Real (/_total x y))
 (define-fun streq ((x String) (y String)) Bool (= x y))
 
+(declare-fun int.to_nat (Int) Nat)
+(assert (! (forall ((x Int)) 
+  (! (= (int.to_nat x) (ite (<= x 0) nat.zero (nat.succ (int.to_nat (- x 1)))))
+  :pattern ((int.to_nat x))))
+  :named smtx.int.to_nat.def))
+  
 ; uninterpreted constant identifier for builtin partial functions
 (define-fun /_by_zero_id () Int (- 1))
 (define-fun div_by_zero_id () Int (- 2))
@@ -28,7 +35,10 @@
 
 ; integer exponentiation is not handled by cvc5, axiomatize it
 (declare-fun zexp_total (Int Int) Int)
-(assert (forall ((x Int) (y Int)) (= (zexp_total x y) (ite (< y 0) 0 (ite (= y 0) 1 (* x (zexp_total x (- y 1))))))))
+(assert (! (forall ((x Int) (y Int)) 
+  (! (= (zexp_total x y) (ite (< y 0) 0 (ite (= y 0) 1 (* x (zexp_total x (- y 1))))))
+  :pattern ((zexp_total x y))))
+  :named smtx.zexp_total.def))
 
 (define-fun bit ((x1 Int) (x2 Int)) Bool
   (zeq 1 (mod (div x1 (int.pow2 x2)) 2)))
@@ -936,10 +946,14 @@
 
 ; models are well typed
 (assert (! (forall ((M smm.SmtModel) (id Int) (T tsm.Type))
-              (= ($smtx_typeof_value ($smtx_model_lookup M id T)) T)) :named smtx.model_lookup_well_typed))
+  (! (= ($smtx_typeof_value ($smtx_model_lookup M id T)) T)
+  :pattern (($smtx_model_lookup M id T))))
+  :named smtx.model_lookup_well_typed))
 
 (assert (! (forall ((x vsm.Value))
-    (! (= ($smtx_reverse_value_hash ($smtx_value_hash x)) x) :pattern (($smtx_value_hash x)))) :named smtx.hash_injective))
+  (! (= ($smtx_reverse_value_hash ($smtx_value_hash x)) x) 
+  :pattern (($smtx_value_hash x))))
+  :named smtx.hash_injective))
 
 ; true iff there exists a value of type T that when substituted into F
 ; is evaluated as tgt. Note that we do not check the type of T here,
@@ -955,26 +969,32 @@
     (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const v T) F)) tgt)))
 
 ; exists
-(assert (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
-  (= (texists M s T F)
+(assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
+  (! (= (texists M s T F)
      (ite (texists_total M s T F (vsm.Boolean true)) (vsm.Boolean true)
      (ite (tforall_total M s T F (vsm.Boolean false)) (vsm.Boolean false)
-       vsm.NotValue)))))
+       vsm.NotValue)))
+  :pattern ((texists M s T F))))
+  :named smtx.texists.def))
   
 ; forall
-(assert (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
-  (= (tforall M s T F)
+(assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
+  (! (= (tforall M s T F)
      (ite (texists_total M s T F (vsm.Boolean false)) (vsm.Boolean false)
      (ite (tforall_total M s T F (vsm.Boolean true)) (vsm.Boolean true)
-       vsm.NotValue)))))
+       vsm.NotValue)))
+  :pattern ((tforall M s T F))))
+  :named smtx.tforall.def))
 
 ; choice
 ; If there exists a value making the existential true, we can assume
 ; that substituting with choice also makes it true.
-(assert (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
-  (=> (texists_total M s T F (vsm.Boolean true))
+(assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
+  (! (=> (texists_total M s T F (vsm.Boolean true))
       (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const (tchoice M s T F) T) F))
-         (vsm.Boolean true)))))
+         (vsm.Boolean true)))
+  :pattern ((tchoice M s T F))))
+  :named smtx.tchoice.def))
 
 ; whether two values are extensionally equal
 ; FIXME: 3 valued?

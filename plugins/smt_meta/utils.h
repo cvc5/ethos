@@ -42,6 +42,8 @@ enum class MetaKind
   SMT_SEQ,
   /** A builtin SMT-LIB term context */
   SMT_BUILTIN,
+  /** A builtin SMT-LIB datatype used in the final embedding, e.g. Nat */
+  SMT_BUILTIN_DATATYPE,
   /** A program */
   PROGRAM,
   /** A proof */

@@ -58,6 +58,19 @@ abbrev smt_lit_binary_uts := SmtEval.smt_lit_binary_uts
 abbrev smt_lit_binary_concat := SmtEval.smt_lit_binary_concat
 abbrev smt_lit_binary_extract := SmtEval.smt_lit_binary_extract
 
+-- Natural numbers
+
+abbrev smt_lit_Nat := Nat
+syntax "smt_lit_nat_zero" : term
+macro_rules
+  | `(smt_lit_nat_zero) => `(Nat.zero)
+
+syntax "smt_lit_nat_succ " term : term
+macro_rules
+  | `(smt_lit_nat_succ $x) => `(Nat.succ $x)
+def smt_lit_int_to_nat (x : smt_lit_Int) : smt_lit_Nat :=
+  (Int.toNat x)
+
 -- SMT Beyond Eunoia
 
 def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
