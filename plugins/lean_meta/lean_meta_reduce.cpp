@@ -79,7 +79,7 @@ bool LeanMetaReduce::printMetaType(const Expr& t,
                                    MetaKind tctx) const
 {
   MetaKind tk = getTypeMetaKind(t);
-  if (tk == MetaKind::SMT_BUILTIN || tk==MetaKind::SMT_BUILTIN_DATATYPE)
+  if (tk == MetaKind::SMT_BUILTIN || tk == MetaKind::SMT_BUILTIN_DATATYPE)
   {
     os << getEmbedName(t, tctx);
     return true;

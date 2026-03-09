@@ -226,7 +226,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // printDecl("Bool", {}, Kind::TYPE);
   // $sm_= and $sm_ite are builtin, reduce them in eo_to_smt
   addEunoiaReduceSym("=", {kT, kT}, "($sm_= ($eo_to_smt x1) ($eo_to_smt x2))");
-  addEunoiaReduceSym("ite", {kT, kT, kT}, "($sm_ite ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
+  addEunoiaReduceSym(
+      "ite",
+      {kT, kT, kT},
+      "($sm_ite ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
   addTermReduceSym("distinct", {kT, kT}, "(not (= x1 x2))");
   // Booleans
   addConstFoldSym("and", {kBool, kBool}, kBool);
@@ -269,21 +272,28 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("div_total", {kInt, kInt}, kInt);
   addConstFoldSym("mod_total", {kInt, kInt}, kInt);
   std::stringstream ssQDiv;
-  ssQDiv << "(ite (= e2 0/1) (apply ($smtx_model_lookup M " << smtApp0("/_by_zero_id") << "($tsm_Map $tsm_Real $tsm_Real)) e1) (/_total e1 e2))";
+  ssQDiv << "(ite (= e2 0/1) (apply ($smtx_model_lookup M "
+         << smtApp0("/_by_zero_id")
+         << "($tsm_Map $tsm_Real $tsm_Real)) e1) (/_total e1 e2))";
   addRecReduceSym("/", {kT, kT}, smtToSmtEmbed(ssQDiv.str()));
   std::stringstream ssDiv;
-  ssDiv << "(ite (= e2 0) (apply ($smtx_model_lookup M " << smtApp0("div_by_zero_id") << "($tsm_Map $tsm_Int $tsm_Int)) e1) (div_total e1 e2))";
+  ssDiv << "(ite (= e2 0) (apply ($smtx_model_lookup M "
+        << smtApp0("div_by_zero_id")
+        << "($tsm_Map $tsm_Int $tsm_Int)) e1) (div_total e1 e2))";
   addRecReduceSym("div", {kInt, kInt}, smtToSmtEmbed(ssDiv.str()));
   std::stringstream ssMod;
-  ssMod << "(ite (= e2 0) (apply ($smtx_model_lookup M " << smtApp0("mod_by_zero_id") << "($tsm_Map $tsm_Int $tsm_Int)) e1) (mod_total e1 e2))";
+  ssMod << "(ite (= e2 0) (apply ($smtx_model_lookup M "
+        << smtApp0("mod_by_zero_id")
+        << "($tsm_Map $tsm_Int $tsm_Int)) e1) (mod_total e1 e2))";
   addRecReduceSym("mod", {kInt, kInt}, smtToSmtEmbed(ssMod.str()));
 #endif
   std::stringstream ssZExp;
-  ssZExp << "(ite (>= e2 0) (**_total e1 e2) (ite (= e1 0) (apply ($smtx_model_lookup M " << smtApp0("div_by_zero_id") << "($tsm_Map $tsm_Int $tsm_Int)) 1) (div_total 1 (**_total e1 (- 0 e2)))))";
-  addRecReduceSym(
-      "**",
-      {kInt, kInt},
-      smtToSmtEmbed(ssZExp.str()));
+  ssZExp << "(ite (>= e2 0) (**_total e1 e2) (ite (= e1 0) (apply "
+            "($smtx_model_lookup M "
+         << smtApp0("div_by_zero_id")
+         << "($tsm_Map $tsm_Int $tsm_Int)) 1) (div_total 1 (**_total e1 (- 0 "
+            "e2)))))";
+  addRecReduceSym("**", {kInt, kInt}, smtToSmtEmbed(ssZExp.str()));
   addConstFoldSym("**_total", {kInt, kInt}, kInt);
   addConstFoldSym("to_int", {kReal}, kInt);
   addConstFoldSym("to_real", {kT}, kReal);
@@ -315,7 +325,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // addConstFoldSym("str.is_digit", {kString}, kBool);
   std::stringstream ssIsDigit;
   ssIsDigit << "(and (<= ($vsm_numeral " << smtZ(48) << ")"
-            << " (str.to_code x1)) (<= (str.to_code x1) ($vsm_numeral " << smtZ(57) << ")))";
+            << " (str.to_code x1)) (<= (str.to_code x1) ($vsm_numeral "
+            << smtZ(57) << ")))";
   addTermReduceSym("str.is_digit", {kString}, ssIsDigit.str());
   addConstFoldSym("str.contains", {kString, kString}, kBool);
   // addConstFoldSym("str.suffixof", {kString, kString}, kBool);
@@ -371,26 +382,37 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       {kInt, kInt, kRegLan},
       smtToSmtEmbed(ssReLoopRet.str()));
 #else
-  printAuxNatRecProgram("re.^", {kNone}, smtToSmtEmbed("(str.to_re $vsm_string_empty)"),
-                        smtToSmtEmbed("(re.++ ($smtx_model_eval_re.^_rec n x1) x1)"));
+  printAuxNatRecProgram(
+      "re.^",
+      {kNone},
+      smtToSmtEmbed("(str.to_re $vsm_string_empty)"),
+      smtToSmtEmbed("(re.++ ($smtx_model_eval_re.^_rec n x1) x1)"));
   addLitSym("re.^",
-               {kInt, kRegLan}, kT,
-               smtGuard(smtZLeq("$smt_builtin_z_one", "x1"),
-               smtToSmtEmbed("($smtx_model_eval_re.^_rec ($smt_builtin_z_to_n x1) ($vsm_re x2))")));
+            {kInt, kRegLan},
+            kT,
+            smtGuard(smtZLeq("$smt_builtin_z_one", "x1"),
+                     smtToSmtEmbed("($smtx_model_eval_re.^_rec "
+                                   "($smt_builtin_z_to_n x1) ($vsm_re x2))")));
   std::stringstream ssReLoopRet;
   ssReLoopRet << "(ite (> ($vsm_numeral x1) ($vsm_numeral x2))";
   ssReLoopRet << " ($vsm_re ($smt_apply_0 \"re.none\"))";
-  ssReLoopRet << " ($smtx_model_eval_re.loop_rec ($smt_builtin_z_to_n ($smt_builtin_z_- x2 x1)) ($vsm_numeral x1) ($vsm_numeral x2) ($vsm_re x3)))";
+  ssReLoopRet << " ($smtx_model_eval_re.loop_rec ($smt_builtin_z_to_n "
+                 "($smt_builtin_z_- x2 x1)) ($vsm_numeral x1) ($vsm_numeral "
+                 "x2) ($vsm_re x3)))";
   std::stringstream ssReLoopRetRec;
-  ssReLoopRetRec << "(re.union ($smtx_model_eval_re.loop_rec n x1 ($vsm_numeral ($smt_builtin_z_dec x2)) x3) (re.^ ($vsm_numeral x2) x3))";
-  printAuxNatRecProgram("re.loop", {kNone, kInt, kNone}, smtToSmtEmbed("(re.^ x1 x3)"),
+  ssReLoopRetRec
+      << "(re.union ($smtx_model_eval_re.loop_rec n x1 ($vsm_numeral "
+         "($smt_builtin_z_dec x2)) x3) (re.^ ($vsm_numeral x2) x3))";
+  printAuxNatRecProgram("re.loop",
+                        {kNone, kInt, kNone},
+                        smtToSmtEmbed("(re.^ x1 x3)"),
                         smtToSmtEmbed(ssReLoopRetRec.str()));
-  addLitSym(
-      "re.loop",
-      {kInt, kInt, kRegLan}, kT,
-               smtGuard(smtZLeq("$smt_builtin_z_one", "x1"),
-               smtGuard(smtZLeq("$smt_builtin_z_one", "x2"),
-               smtToSmtEmbed(ssReLoopRet.str()))));
+  addLitSym("re.loop",
+            {kInt, kInt, kRegLan},
+            kT,
+            smtGuard(smtZLeq("$smt_builtin_z_one", "x1"),
+                     smtGuard(smtZLeq("$smt_builtin_z_one", "x2"),
+                              smtToSmtEmbed(ssReLoopRet.str()))));
 #endif
   // RE operators
   addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
@@ -597,39 +619,50 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssRLeftRet << "(eo::define (($wm1 ($vsm_numeral ($smt_builtin_z_dec x1)))) ";
   ssRLeftRet << "(eo::define (($wm2 ($vsm_numeral ($smt_builtin_z_dec "
                 "($smt_builtin_z_dec x1))))) ";
-  ssRLeftRet
-      << "($smtx_model_eval_rotate_left_rec n "
-         "(concat (extract $wm2 $vsm_z_zero ($vsm_binary x1 x2)) "
-         "(extract $wm1 $wm1 ($vsm_binary x1 x2))))))";
-  printAuxNatRecProgram("rotate_left", {kBitVec}, "($vsm_binary x1 x2)",
+  ssRLeftRet << "($smtx_model_eval_rotate_left_rec n "
+                "(concat (extract $wm2 $vsm_z_zero ($vsm_binary x1 x2)) "
+                "(extract $wm1 $wm1 ($vsm_binary x1 x2))))))";
+  printAuxNatRecProgram("rotate_left",
+                        {kBitVec},
+                        "($vsm_binary x1 x2)",
                         smtToSmtEmbed(ssRLeftRet.str()));
-  addLitSym("rotate_left",
-            {kInt, kT},
-            kT,
-            smtGuard(smtZLeq("$smt_builtin_z_zero", "x1"),
-                            "($smtx_model_eval_rotate_left_rec ($smt_builtin_z_to_n x1) x2)"));
+  addLitSym(
+      "rotate_left",
+      {kInt, kT},
+      kT,
+      smtGuard(
+          smtZLeq("$smt_builtin_z_zero", "x1"),
+          "($smtx_model_eval_rotate_left_rec ($smt_builtin_z_to_n x1) x2)"));
   std::stringstream ssRRightRet;
   ssRRightRet << "(eo::define (($wm1 ($vsm_numeral ($smt_builtin_z_dec x1)))) ";
-  ssRRightRet
-      << "($smtx_model_eval_rotate_right_rec n (concat (extract $vsm_z_zero $vsm_z_zero ($vsm_binary x1 x2)) "
-         "(extract $wm1 $vsm_z_one ($vsm_binary x1 x2)))))";
-  printAuxNatRecProgram("rotate_right", {kBitVec}, "($vsm_binary x1 x2)",
+  ssRRightRet << "($smtx_model_eval_rotate_right_rec n (concat (extract "
+                 "$vsm_z_zero $vsm_z_zero ($vsm_binary x1 x2)) "
+                 "(extract $wm1 $vsm_z_one ($vsm_binary x1 x2)))))";
+  printAuxNatRecProgram("rotate_right",
+                        {kBitVec},
+                        "($vsm_binary x1 x2)",
                         smtToSmtEmbed(ssRRightRet.str()));
-  addLitSym("rotate_right",
-            {kInt, kT},
-            kT,
-            smtGuard(smtZLeq("$smt_builtin_z_zero", "x1"),
-                            "($smtx_model_eval_rotate_right_rec ($smt_builtin_z_to_n x1) x2)"));
+  addLitSym(
+      "rotate_right",
+      {kInt, kT},
+      kT,
+      smtGuard(
+          smtZLeq("$smt_builtin_z_zero", "x1"),
+          "($smtx_model_eval_rotate_right_rec ($smt_builtin_z_to_n x1) x2)"));
 #endif
-  printAuxNatRecProgram("repeat", {kNone}, "$vsm_binary_empty",
-                        smtToSmtEmbed("(concat x1 ($smtx_model_eval_repeat_rec n x1))"));
+  printAuxNatRecProgram(
+      "repeat",
+      {kNone},
+      "$vsm_binary_empty",
+      smtToSmtEmbed("(concat x1 ($smtx_model_eval_repeat_rec n x1))"));
   addLitSym("repeat",
             {kInt, kBitVec},
             kT,
             smtGuard(smtZLeq("$smt_builtin_z_one", "x1"),
                      smtIte(smtZEq("x1", "$smt_builtin_z_one"),
                             "($vsm_binary x2 x3)",
-                            "($smtx_model_eval_repeat_rec ($smt_builtin_z_to_n x1) ($vsm_binary x2 x3))")));
+                            "($smtx_model_eval_repeat_rec ($smt_builtin_z_to_n "
+                            "x1) ($vsm_binary x2 x3))")));
   // the following are program cases in the main method of the form
   // (($smtx_model_eval (f x1 x2)) ($smtx_model_eval <return>))
   addTermReduceSym("bvsub", {kBitVec, kBitVec}, "(bvadd x1 (bvneg x2))");
@@ -782,10 +815,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       smtBinaryBinReturn(smtEval("(and (bvnego s) (= t (bvnot "
                                  "($sm_binary x1 $smt_builtin_z_zero))))")));
 #else
-  addTermReduceSym(
-      "bvsdivo",
-      {kBitVec, kBitVec},
-      "(and (bvnego x1) (= x2 (bvnot (@bv 0 (@bvsize x1)))))");
+  addTermReduceSym("bvsdivo",
+                   {kBitVec, kBitVec},
+                   "(and (bvnego x1) (= x2 (bvnot (@bv 0 (@bvsize x1)))))");
 #endif
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
@@ -793,11 +825,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("int_to_bv", {kInt, kInt}, kT, "($vsm_mk_binary x1 x2)");
   // Quantifiers
   // one variable at a time, $sm_exists is hardcoded
-  addEunoiaReduceSym("exists",
-                     {kVarList, kT},
-                     "($eo_to_smt_exists x1 ($eo_to_smt x2))");
   addEunoiaReduceSym(
-      "forall", {kT, kBool}, "($sm_not ($eo_to_smt_exists x1 ($sm_not ($eo_to_smt x2))))");
+      "exists", {kVarList, kT}, "($eo_to_smt_exists x1 ($eo_to_smt x2))");
+  addEunoiaReduceSym(
+      "forall",
+      {kT, kBool},
+      "($sm_not ($eo_to_smt_exists x1 ($sm_not ($eo_to_smt x2))))");
 
   //===========================================================================
   ///----- non standard extensions and skolems
@@ -813,11 +846,19 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // arithmetic
   addConstFoldSym("int.pow2", {kInt}, kInt);
   addConstFoldSym("int.log2", {kInt}, kInt);
-  addEunoiaReduceSym("@int_div_by_zero", {kInt}, smtToSmtEmbed("(div ($eo_to_smt x1) 0)", true));
-  addEunoiaReduceSym("@mod_by_zero", {kInt}, smtToSmtEmbed("(mod ($eo_to_smt x1) 0)", true));
-  addEunoiaReduceSym("@div_by_zero", {kReal}, smtToSmtEmbed("(/ ($eo_to_smt x1) 0/1)", true));
+  addEunoiaReduceSym("@int_div_by_zero",
+                     {kInt},
+                     smtToSmtEmbed("(div ($eo_to_smt x1) 0)", true));
   addEunoiaReduceSym(
-      "int.ispow2", {kInt}, smtToSmtEmbed("(eo::define (($e1 ($eo_to_smt x1))) (and (>= $e1 0) (= $e1 (int.pow2 (int.log2 $e1)))))", true));
+      "@mod_by_zero", {kInt}, smtToSmtEmbed("(mod ($eo_to_smt x1) 0)", true));
+  addEunoiaReduceSym(
+      "@div_by_zero", {kReal}, smtToSmtEmbed("(/ ($eo_to_smt x1) 0/1)", true));
+  addEunoiaReduceSym(
+      "int.ispow2",
+      {kInt},
+      smtToSmtEmbed("(eo::define (($e1 ($eo_to_smt x1))) (and (>= $e1 0) (= "
+                    "$e1 (int.pow2 (int.log2 $e1)))))",
+                    true));
   // arrays
   std::stringstream ssArrayDiffVar;
   ssArrayDiffVar << "($sm_Var $smt_builtin_str_vname T)";
@@ -836,18 +877,23 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.to_lower", {kString}, kString);
   addConstFoldSym("str.to_upper", {kString}, kString);
   std::stringstream ssItosRes;
-  ssItosRes << "(str.from_int (mod ($eo_to_smt x1) (** (numeral " << smtZ(10) << ") ($eo_to_smt x2))))";
+  ssItosRes << "(str.from_int (mod ($eo_to_smt x1) (** (numeral " << smtZ(10)
+            << ") ($eo_to_smt x2))))";
   addEunoiaReduceSym("@strings_itos_result",
                      {kInt, kInt},
                      smtToSmtEmbed(ssItosRes.str(), true));
-  addEunoiaReduceSym("@strings_stoi_result",
-                     {kString, kInt},
-                     smtToSmtEmbed("(str.to_int (str.substr ($eo_to_smt x1) 0 ($eo_to_smt x2)))", true));
-  addEunoiaReduceSym("@strings_stoi_non_digit",
-                     {kString},
-                     smtToSmtEmbed("(str.indexof_re ($eo_to_smt x1) (re.comp (re.range "
-                     "(string $smt_builtin_str_c0) (string "
-                     "$smt_builtin_str_c9))) 0)", true));
+  addEunoiaReduceSym(
+      "@strings_stoi_result",
+      {kString, kInt},
+      smtToSmtEmbed(
+          "(str.to_int (str.substr ($eo_to_smt x1) 0 ($eo_to_smt x2)))", true));
+  addEunoiaReduceSym(
+      "@strings_stoi_non_digit",
+      {kString},
+      smtToSmtEmbed("(str.indexof_re ($eo_to_smt x1) (re.comp (re.range "
+                    "(string $smt_builtin_str_c0) (string "
+                    "$smt_builtin_str_c9))) 0)",
+                    true));
   std::stringstream ssStringsDeqDiff;
   ssStringsDeqDiff
       << "(eo::define ((i ($sm_Var $smt_builtin_str_vname $tsm_Int))) ";
@@ -855,8 +901,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       << "($sm_apply ($sm_choice $smt_builtin_str_vname $tsm_Int) ";
   ssStringsDeqDiff << smtToSmtEmbed(
       "(not (= (str.substr ($eo_to_smt x1) i 1) (str.substr "
-      "($eo_to_smt x2) i 1)))", true)
-                   << "))";
+      "($eo_to_smt x2) i 1)))",
+      true) << "))";
   addEunoiaReduceSym("@strings_deq_diff", {kT, kT}, ssStringsDeqDiff.str());
   std::stringstream ssWitnessStringLength;
   ssWitnessStringLength << "(eo::define (($T ($eo_to_smt_type x1))) ";
@@ -895,7 +941,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_auxDef["@quantifiers_skolemize"] = ssQuantSkolem.str();
   d_specialCases["@quantifiers_skolemize"].emplace_back(
       "(@quantifiers_skolemize (forall x1 x2) x3)",
-      "($eo_to_smt_quantifiers_skolemize ($eo_to_smt_exists x1 ($sm_not ($eo_to_smt x2))) "
+      "($eo_to_smt_quantifiers_skolemize ($eo_to_smt_exists x1 ($sm_not "
+      "($eo_to_smt x2))) "
       "($eo_to_smt x3))");
   d_symIgnore["@quantifiers_skolemize"] = true;
 
@@ -916,7 +963,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       << std::endl;
   ssRePosUnfold << "    (eo::define ((xrem "
                 << smtToSmtEmbed(
-                       "(str.substr s (str.len x) (- (str.len s) (str.len x)))", true)
+                       "(str.substr s (str.len x) (- (str.len s) (str.len x)))",
+                       true)
                 << "))" << std::endl;
   ssRePosUnfold
       << "      ($sm_apply ($sm_choice $smt_builtin_str_vname $tsm_String)"
@@ -924,7 +972,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssRePosUnfold << "        "
                 << smtToSmtEmbed(
                        "(and (= s (str.++ x xrem)) (and (str.in_re x r1) "
-                       "(str.in_re xrem r2)))", true)
+                       "(str.in_re xrem r2)))",
+                       true)
                 << "))))" << std::endl;
   ssRePosUnfold << "  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) "
                    "($sm_numeral n))"
@@ -935,7 +984,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssRePosUnfold << "      ($eo_to_smt_re_unfold_pos_component" << std::endl;
   ssRePosUnfold << "        "
                 << smtToSmtEmbed(
-                       "(str.substr s (str.len k) (- (str.len s) (str.len k)))", true)
+                       "(str.substr s (str.len k) (- (str.len s) (str.len k)))",
+                       true)
                 << std::endl;
   ssRePosUnfold << "        r2 ($sm_numeral ($smt_builtin_z_dec n)))))"
                 << std::endl;
@@ -971,14 +1021,16 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (set.choose x1))))) ";
   ssSetsChoose << "(eo::define ((i ($sm_Var $smt_builtin_str_vname T))) ";
   ssSetsChoose << "($sm_apply ($sm_choice $smt_builtin_str_vname T) ";
-  ssSetsChoose << smtToSmtEmbed("(set.member i ($eo_to_smt x1))", true) << ")))";
+  ssSetsChoose << smtToSmtEmbed("(set.member i ($eo_to_smt x1))", true)
+               << ")))";
   addEunoiaReduceSym("set.choose", {kT, kT}, ssSetsChoose.str());
   std::stringstream ssSetsIsSingleton;
   ssSetsIsSingleton
       << "(eo::define (($T ($eo_to_smt_type ($eo_typeof (set.choose x1))))) ";
   ssSetsIsSingleton << "(eo::define ((i ($sm_Var $smt_builtin_str_vname $T))) ";
   ssSetsIsSingleton << "($sm_apply ($sm_exists $smt_builtin_str_vname $T) ";
-  ssSetsIsSingleton << smtToSmtEmbed("(= ($eo_to_smt x1) (set.singleton i))", true)
+  ssSetsIsSingleton << smtToSmtEmbed("(= ($eo_to_smt x1) (set.singleton i))",
+                                     true)
                     << ")))";
   addEunoiaReduceSym("set.is_singleton", {kT}, ssSetsIsSingleton.str());
   // more concise?
@@ -990,8 +1042,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssSetsDiff << "(eo::define ((i ($sm_Var $smt_builtin_str_vname T))) ";
   ssSetsDiff << "($sm_apply ($sm_choice $smt_builtin_str_vname T) ";
   ssSetsDiff << smtToSmtEmbed(
-      "(not (= (set.member i ($eo_to_smt x1)) (set.member i ($eo_to_smt x2))))", true)
-             << ")))";
+      "(not (= (set.member i ($eo_to_smt x1)) (set.member i ($eo_to_smt x2))))",
+      true) << ")))";
   addEunoiaReduceSym("@sets_deq_diff", {kT, kT}, ssSetsDiff.str());
   std::stringstream ssIsEmptyRet;
   ssIsEmptyRet << "($vsm_bool "
@@ -1006,15 +1058,22 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                                             "($eo_to_smt x1)");
   //   bitvectors
   addEunoiaReduceSym(
-      "bvite", {kBitVec, kBitVec, kBitVec}, smtToSmtEmbed("(ite (= ($eo_to_smt x1) #b1) ($eo_to_smt x2) ($eo_to_smt x3))", true));
-  addTermReduceSym(
-      "bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) #b1 #b0)");
-  addEunoiaReduceSym("bvultbv",
-                   {kBitVec, kBitVec, kBitVec},
-                   smtToSmtEmbed("(ite (bvult ($eo_to_smt x1) ($eo_to_smt x2)) #b1 #b0)", true));
-  addEunoiaReduceSym("bvsltbv",
-                   {kBitVec, kBitVec, kBitVec},
-                   smtToSmtEmbed("(ite (bvslt ($eo_to_smt x1) ($eo_to_smt x2)) #b1 #b0)", true));
+      "bvite",
+      {kBitVec, kBitVec, kBitVec},
+      smtToSmtEmbed(
+          "(ite (= ($eo_to_smt x1) #b1) ($eo_to_smt x2) ($eo_to_smt x3))",
+          true));
+  addTermReduceSym("bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) #b1 #b0)");
+  addEunoiaReduceSym(
+      "bvultbv",
+      {kBitVec, kBitVec, kBitVec},
+      smtToSmtEmbed("(ite (bvult ($eo_to_smt x1) ($eo_to_smt x2)) #b1 #b0)",
+                    true));
+  addEunoiaReduceSym(
+      "bvsltbv",
+      {kBitVec, kBitVec, kBitVec},
+      smtToSmtEmbed("(ite (bvslt ($eo_to_smt x1) ($eo_to_smt x2)) #b1 #b0)",
+                    true));
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
 #if 0
   addLitSym("bvredor",
@@ -1028,20 +1087,31 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             smtEval("(bvcomp ($sm_binary x1 x2) (bvnot ($sm_binary x1 "
                     "$smt_builtin_z_zero)))"));
 #else
-  addEunoiaReduceSym("bvredor",
-                     {kBitVec},
-                     smtToSmtEmbed("(bvnot (bvcomp ($eo_to_smt x1) (@bv 0 (@bvsize ($eo_to_smt x1)))))", true));
-  addEunoiaReduceSym("bvredand",
-                     {kBitVec},
-                     smtToSmtEmbed("(bvcomp ($eo_to_smt x1) (bvnot (@bv 0 (@bvsize ($eo_to_smt x1)))))", true));
+  addEunoiaReduceSym(
+      "bvredor",
+      {kBitVec},
+      smtToSmtEmbed(
+          "(bvnot (bvcomp ($eo_to_smt x1) (@bv 0 (@bvsize ($eo_to_smt x1)))))",
+          true));
+  addEunoiaReduceSym(
+      "bvredand",
+      {kBitVec},
+      smtToSmtEmbed(
+          "(bvcomp ($eo_to_smt x1) (bvnot (@bv 0 (@bvsize ($eo_to_smt x1)))))",
+          true));
 #endif
   // utility guards for negative widths, which do not evaluate
   addLitSym("@bv", {kInt, kInt}, kT, "($vsm_mk_binary x2 x1)");
   addEunoiaReduceSym(
-      "@bit", {kInt, kBitVec}, smtToSmtEmbed("(extract ($eo_to_smt x1) ($eo_to_smt x1) ($eo_to_smt x2))", true));
-  addEunoiaReduceSym("@from_bools",
-                     {kBool, kBitVec},
-                     smtToSmtEmbed("(concat (ite ($eo_to_smt x1) #b1 #b0) ($eo_to_smt x2))", true));
+      "@bit",
+      {kInt, kBitVec},
+      smtToSmtEmbed("(extract ($eo_to_smt x1) ($eo_to_smt x1) ($eo_to_smt x2))",
+                    true));
+  addEunoiaReduceSym(
+      "@from_bools",
+      {kBool, kBitVec},
+      smtToSmtEmbed("(concat (ite ($eo_to_smt x1) #b1 #b0) ($eo_to_smt x2))",
+                    true));
   // datatypes
   addEunoiaReduceSym(
       "Tuple",
@@ -1070,7 +1140,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      "($sm_DtCons $smt_builtin_str_tuple_name ($dt_sum "
                      "$dtc_unit $dt_null) $smt_builtin_z_zero)");
   addEunoiaReduceSym("is", {kT}, "($eo_to_smt_tester ($eo_to_smt x1))");
-  addEunoiaReduceSym("update", {kT, kT, kT}, "($eo_to_smt_updater ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
+  addEunoiaReduceSym(
+      "update",
+      {kT, kT, kT},
+      "($eo_to_smt_updater ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
 
   // for alethe
   addEunoiaReduceSym("@cl", {kT, kT}, "($eo_to_smt (or x1 x2))");
@@ -1255,7 +1328,8 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
   if (itst != d_symReduce.end())
   {
     printDecl(name, itst->second.first, Kind::PARAM, nopqArgs);
-    if (d_recReduce.find(name)!=d_recReduce.end() || itst->second.first.empty())
+    if (d_recReduce.find(name) != d_recReduce.end()
+        || itst->second.first.empty())
     {
       printModelEvalCallBase(name, itst->second.first, itst->second.second);
     }
@@ -1580,8 +1654,8 @@ void ModelSmt::printConstFold(const std::string& name,
 }
 
 void ModelSmt::printTermReduce(const std::string& name,
-                    const std::vector<Kind>& args,
-                    const std::string& ret)
+                               const std::vector<Kind>& args,
+                               const std::string& ret)
 {
   std::stringstream progName;
   progName << "$smtx_model_eval_" << name;
@@ -1596,12 +1670,8 @@ void ModelSmt::printTermReduce(const std::string& name,
     instArgs.push_back(Kind::NONE);
   }
   // then print it on cases
-  printAuxProgramCase(progName.str(),
-                      instArgs,
-                      ret,
-                      paramCount,
-                      progCases,
-                      progParams);
+  printAuxProgramCase(
+      progName.str(), instArgs, ret, paramCount, progCases, progParams);
   printAuxProgram(progName.str(), instArgs, progCases, progParams);
 }
 
@@ -1615,7 +1685,7 @@ void ModelSmt::printAuxProgram(const std::string& name,
   bool needsDefault = false;
   for (Kind k : args)
   {
-    if (k!=Kind::NONE)
+    if (k != Kind::NONE)
     {
       needsDefault = true;
       break;
@@ -1647,32 +1717,33 @@ void ModelSmt::printAuxProgram(const std::string& name,
   d_modelEvalProgs << "  (" << std::endl;
   d_modelEvalProgs << progCases.str();
   d_modelEvalProgs << "  )" << std::endl << ")" << std::endl;
-  d_modelEvalProgsFwd << "(program " << name << " () :signature " << progSig.str() << ")" << std::endl;
+  d_modelEvalProgsFwd << "(program " << name << " () :signature "
+                      << progSig.str() << ")" << std::endl;
 }
 
-void ModelSmt::printAuxNatRecProgram(
-                           const std::string& name,
-                           const std::vector<Kind>& args,
-                           const std::string& zeroRet,
-                           const std::string& succRet)
+void ModelSmt::printAuxNatRecProgram(const std::string& name,
+                                     const std::vector<Kind>& args,
+                                     const std::string& zeroRet,
+                                     const std::string& succRet)
 {
   std::stringstream out;
   std::stringstream progName;
   progName << "$smtx_model_eval_" << name << "_rec";
   out << "(program " << progName.str() << " ((n $smt_builtin_Nat)";
   std::stringstream cases;
-  for (size_t i=0; i<2; i++)
+  for (size_t i = 0; i < 2; i++)
   {
     std::stringstream ssp;
-    ssp << progName.str() << " " << (i==0 ? "$smt_builtin_n_zero" : "($smt_builtin_n_succ n)");
+    ssp << progName.str() << " "
+        << (i == 0 ? "$smt_builtin_n_zero" : "($smt_builtin_n_succ n)");
     size_t paramCount = 0;
-    std::string ret = (i==0 ? zeroRet : succRet);
+    std::string ret = (i == 0 ? zeroRet : succRet);
     printAuxProgramCase(ssp.str(), args, ret, paramCount, cases, out);
   }
   bool needsDefault;
   for (Kind k : args)
   {
-    if (k!=Kind::NONE)
+    if (k != Kind::NONE)
     {
       needsDefault = true;
       break;
@@ -1690,7 +1761,7 @@ void ModelSmt::printAuxNatRecProgram(
   }
   out << ")" << std::endl;
   out << "  :signature ($smt_builtin_Nat";
-  for (size_t i=0, nargs=args.size(); i<nargs; i++)
+  for (size_t i = 0, nargs = args.size(); i < nargs; i++)
   {
     out << " $smt_Value";
   }
@@ -1700,7 +1771,7 @@ void ModelSmt::printAuxNatRecProgram(
   out << "  )" << std::endl << ")" << std::endl;
   d_auxSmtEval[name] = out.str();
 }
-  
+
 void ModelSmt::printAuxProgramCase(const std::string& name,
                                    const std::vector<Kind>& args,
                                    const std::string& ret,
@@ -1722,7 +1793,8 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
       progCases << " ($vsm_";
       if (ka == Kind::BINARY)
       {
-        progCases << "binary x" << paramCount << " x" << (paramCount + 1) << ")";
+        progCases << "binary x" << paramCount << " x" << (paramCount + 1)
+                  << ")";
         progParams << "(x" << paramCount << " $smt_builtin_Int)";
         progParams << " (x" << (paramCount + 1) << " $smt_builtin_Int)";
         paramCount++;
@@ -1730,7 +1802,7 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
       }
       progCases << d_kindToEoPrefix[ka] << " x" << paramCount << ")";
       progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka]
-                << ")";
+                 << ")";
     }
     else
     {

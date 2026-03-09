@@ -151,8 +151,8 @@ class ModelSmt : public StdPlugin
                       Kind ret);
   /** Print necessary information for a symbol added via addTermReduceSym */
   void printTermReduce(const std::string& name,
-                      const std::vector<Kind>& args,
-                      const std::string& ret);
+                       const std::vector<Kind>& args,
+                       const std::string& ret);
   /** Print necessary information for a symbol added via addLitSym */
   void printLitReduce(const std::string& name,
                       const std::vector<Kind>& args,
@@ -247,7 +247,7 @@ class ModelSmt : public StdPlugin
   /** Symbols that we need no definition for */
   std::map<std::string, bool> d_symIgnore;
   /** SMT-LIB syntax to embedding helper */
-  static std::string smtToSmtEmbed(const std::string& str, bool isTerm=false);
+  static std::string smtToSmtEmbed(const std::string& str, bool isTerm = false);
   static std::string smtBinaryBinReturn(const std::string& term);
   static std::string smtEval(const std::string& s);
   static std::string eoDefine(const std::string& x,

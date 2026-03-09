@@ -68,7 +68,8 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
                                   MetaKind tctx) const
 {
   MetaKind tk = getTypeMetaKind(t, tctx);
-  Trace("smt-meta") << "Type meta kind for " << t << " is " << metaKindToString(tk) << std::endl;
+  Trace("smt-meta") << "Type meta kind for " << t << " is "
+                    << metaKindToString(tk) << std::endl;
   switch (tk)
   {
     case MetaKind::EUNOIA: os << "eo.Term"; break;
@@ -231,7 +232,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       {
         Assert(tcur[1].getKind() == Kind::STRING);
         const Literal* l = tcur[1].getValue()->asLiteral();
-        if (tcur.getNumChildren()==2)
+        if (tcur.getNumChildren() == 2)
         {
           // e.g. ($smt_apply_0 "0") or ($smt_apply_0 "nat.zero") in a pattern.
           std::stringstream eq;
@@ -477,7 +478,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // `($smt_apply_3 "ite"` becomes `(ite`
       if (sname.compare(0, 11, "$smt_apply_") == 0
           || sname.compare(0, 10, "$smt_type_") == 0
-          || sname.compare(0, 14, "$smt_datatype_")==0)
+          || sname.compare(0, 14, "$smt_datatype_") == 0)
       {
         std::string embName = getEmbedName(recTerm);
         if (recTerm.getNumChildren() > 2)
@@ -1084,8 +1085,8 @@ bool SmtMetaReduce::echo(const std::string& msg)
       d_smSygus.finalizeGrammars();
       for (size_t i = 1; i < nargs; i++)
       {
-        MetaKind tk = getTypeMetaKind(vt[i-1]);
-        if (tk!=MetaKind::EUNOIA)
+        MetaKind tk = getTypeMetaKind(vt[i - 1]);
+        if (tk != MetaKind::EUNOIA)
         {
           call << " 0";
           continue;

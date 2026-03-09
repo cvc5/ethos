@@ -69,10 +69,10 @@ std::string metaKindToPrefix(MetaKind k)
 bool isSmtMetaKind(MetaKind k)
 {
   return k == MetaKind::SMT_MODEL || k == MetaKind::SMT_BUILTIN
-  || k == MetaKind::SMT_BUILTIN_DATATYPE
-         || k == MetaKind::SMT || k == MetaKind::SMT_TYPE
-         || k == MetaKind::SMT_VALUE || k == MetaKind::SMT_MAP
-         || k == MetaKind::SMT_SEQ || k == MetaKind::SMT_DATATYPE
+         || k == MetaKind::SMT_BUILTIN_DATATYPE || k == MetaKind::SMT
+         || k == MetaKind::SMT_TYPE || k == MetaKind::SMT_VALUE
+         || k == MetaKind::SMT_MAP || k == MetaKind::SMT_SEQ
+         || k == MetaKind::SMT_DATATYPE
          || k == MetaKind::SMT_DATATYPE_CONSTRUCTOR;
 }
 bool isCheckerMetaKind(MetaKind k)
