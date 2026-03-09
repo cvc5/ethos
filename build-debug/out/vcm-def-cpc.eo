@@ -209,13 +209,13 @@
 (define $smt_builtin_z_piand ((W Type :implicit) (x1 W) (x2 W) (x3 W)) ($smt_apply_3 "piand" x1 x2 x3))
 ; Real operators
 ; These assume qleq, qlt, qplus, qmult, qneg are defined as <=, <, +, *, -
-(define $smt_builtin_q_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qeq" x1 x2))
-(define $smt_builtin_q_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qleq" x1 x2))
-(define $smt_builtin_q_< ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qlt" x1 x2))
-(define $smt_builtin_q_+ ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qplus" x1 x2))
-(define $smt_builtin_q_* ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qmult" x1 x2))
-(define $smt_builtin_q_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "qneg" x1))
-(define $smt_builtin_q_- ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_q_+ x1 ($smt_builtin_q_neg x2)))
+(define $smt_builtin_q_= ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qeq" x1 x2))
+(define $smt_builtin_q_<= ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qleq" x1 x2))
+(define $smt_builtin_q_< ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qlt" x1 x2))
+(define $smt_builtin_q_+ ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qplus" x1 x2))
+(define $smt_builtin_q_* ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qmult" x1 x2))
+(define $smt_builtin_q_neg ((x1 $smt_builtin_Real)) ($smt_apply_1 "qneg" x1))
+(define $smt_builtin_q_- ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_builtin_q_+ x1 ($smt_builtin_q_neg x2)))
 ; other arithmetic
 (define $smt_builtin_z_to_real ((x1 $smt_builtin_Int)) ($smt_apply_1 "to_real" x1))
 (define $smt_builtin_q_to_real ((x1 $smt_builtin_Real)) x1)
@@ -233,6 +233,7 @@
 (define $smt_builtin_n_zero () ($smt_apply_0 "nat.zero"))
 (define $smt_builtin_n_succ ((x1 $smt_builtin_Nat)) ($smt_apply_1 "nat.succ" x1))
 (define $smt_builtin_z_to_n ((x1 $smt_builtin_Int)) ($smt_apply_1 "int.to_nat" x1))
+(define $smt_builtin_n_= ((x1 $smt_builtin_Nat) (x2 $smt_builtin_Nat)) ($smt_apply_2 "nateq" x1 x2))
 
 ; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
 (define $smt_apply_nary_3
@@ -2862,6 +2863,15 @@
 ; forward declaration
 (program $eo_to_smt_type () :signature (Type) $smt_Type)
 
+; forward declaration
+(program $eo_to_smt_nat ((n $smt_builtin_Int) (t $eo_Term))
+  :signature ($eo_Term) $smt_builtin_Nat
+  (
+  (($eo_to_smt_nat ($eot_numeral n)) ($smt_builtin_z_to_n n))
+  (($eo_to_smt_nat t) $smt_builtin_n_zero)
+  )
+)
+
 (program $eo_to_smt_datatype_cons ((U $eo_Term) (c $eo_DatatypeCons))
   :signature ($eo_DatatypeCons) $smt_DatatypeCons
   (
@@ -2946,18 +2956,19 @@
   )
 )
 
-; ($eo_to_smt_updater_rec s k t u acc)
+; ($eo_to_smt_updater_rec s mn k t u acc)
 ; returns the constructor app that is equivalent to u
 ; but where the selector s field is updated to t.
 (program $eo_to_smt_updater_rec
   ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int) (m $smt_builtin_Int)
-   (k $smt_builtin_Int) (t $smt_Term) (u $smt_Term) (acc $smt_Term))
-  :signature ($smt_Term $smt_builtin_Int $smt_Term $smt_Term $smt_Term) $smt_Term
+   (mn $smt_builtin_Nat) (k $smt_builtin_Nat) (t $smt_Term) (u $smt_Term) (acc $smt_Term) (v $smt_Term))
+  :signature ($smt_Term $smt_builtin_Nat $smt_builtin_Nat $smt_Term $smt_Term $smt_Term) $smt_Term
   (
-  (($eo_to_smt_updater_rec ($sm_DtSel s d n m) $smt_builtin_z_zero t u acc) acc)
-  (($eo_to_smt_updater_rec ($sm_DtSel s d n m) k t u acc)
-    (eo::define ((arg ($smt_builtin_ite ($smt_builtin_z_= m k) t ($sm_apply ($sm_DtSel s d n k) u))))
-      ($eo_to_smt_updater_rec ($sm_DtSel s d n m) ($smt_builtin_z_dec k) t u ($sm_apply acc arg))))
+  (($eo_to_smt_updater_rec ($sm_DtSel s d n m) mn $smt_builtin_n_zero t u acc) acc)
+  (($eo_to_smt_updater_rec ($sm_DtSel s d n m) mn ($smt_builtin_n_succ k) t u acc)
+    (eo::define ((arg ($smt_builtin_ite ($smt_builtin_n_= mn k) t ($sm_apply ($sm_DtSel s d n m) u))))
+      ($eo_to_smt_updater_rec ($sm_DtSel s d n m) mn k t u ($sm_apply acc arg))))
+  (($eo_to_smt_updater_rec v mn k t u acc) $sm_none)
   )
 )
 
@@ -2971,7 +2982,10 @@
   (($eo_to_smt_updater ($sm_DtSel s d n m) t u)
     (eo::define ((nargs ($smtx_dt_num_sels d n)))
     ($sm_ite ($sm_apply ($sm_DtTester s d n) u)
-      ($eo_to_smt_updater_rec ($sm_DtSel s d n m) nargs t u ($sm_DtCons s d n))
+      ($eo_to_smt_updater_rec ($sm_DtSel s d n m) 
+        ($smt_builtin_z_to_n m)
+        ($smt_builtin_z_to_n nargs)
+        t u ($sm_DtCons s d n))
       u)))
   (($eo_to_smt_updater sel t d)                     $sm_none)
   )
@@ -2998,6 +3012,19 @@
   (($eo_to_smt_exists $eo_List_nil F) F)
   (($eo_to_smt_exists ($eo_List ($eot_Var s T) vs) F)
     ($sm_apply ($sm_exists s ($eo_to_smt_type T)) ($eo_to_smt_exists vs F)))
+  (($eo_to_smt_exists vs F) $sm_none)
+  )
+)
+
+; NOTE: maybe combine with above?
+(program $eo_to_smt_lambda
+  ((s $smt_builtin_String) (T $eo_Term) (vs $eo_List :list) (F $eo_Term))
+  :signature ($eo_List $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_lambda $eo_List_nil F) F)
+  (($eo_to_smt_lambda ($eo_List ($eot_Var s T) vs) F)
+    ($sm_apply ($sm_lambda s ($eo_to_smt_type T)) ($eo_to_smt_exists vs F)))
+  (($eo_to_smt_lambda vs F) $sm_none)
   )
 )
 

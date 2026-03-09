@@ -1,7 +1,6 @@
 (set-logic ALL)
 
 (define-sort Rat () Real)
-(declare-datatype Nat ((nat.zero) (nat.succ (nat.succ.arg1 Nat))))
 (define-fun iff ((x Bool) (y Bool)) Bool (= x y))
 ; Helpers to avoid mixed arithmetic
 (define-fun mk_rational ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))
@@ -21,11 +20,13 @@
 (define-fun qdiv_total ((x Real) (y Real)) Real (/_total x y))
 (define-fun streq ((x String) (y String)) Bool (= x y))
 
+(declare-datatype Nat ((nat.zero) (nat.succ (nat.succ.arg1 Nat))))
 (declare-fun int.to_nat (Int) Nat)
 (assert (! (forall ((x Int)) 
   (! (= (int.to_nat x) (ite (<= x 0) nat.zero (nat.succ (int.to_nat (- x 1)))))
   :pattern ((int.to_nat x))))
   :named smtx.int.to_nat.def))
+(define-fun nateq ((x Nat) (y Nat)) Bool (= x y))
   
 ; uninterpreted constant identifier for builtin partial functions
 (define-fun /_by_zero_id () Int (- 1))

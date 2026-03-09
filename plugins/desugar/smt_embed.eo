@@ -87,13 +87,13 @@
 (define $smt_builtin_z_piand ((W Type :implicit) (x1 W) (x2 W) (x3 W)) ($smt_apply_3 "piand" x1 x2 x3))
 ; Real operators
 ; These assume qleq, qlt, qplus, qmult, qneg are defined as <=, <, +, *, -
-(define $smt_builtin_q_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qeq" x1 x2))
-(define $smt_builtin_q_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qleq" x1 x2))
-(define $smt_builtin_q_< ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qlt" x1 x2))
-(define $smt_builtin_q_+ ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qplus" x1 x2))
-(define $smt_builtin_q_* ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qmult" x1 x2))
-(define $smt_builtin_q_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "qneg" x1))
-(define $smt_builtin_q_- ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_q_+ x1 ($smt_builtin_q_neg x2)))
+(define $smt_builtin_q_= ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qeq" x1 x2))
+(define $smt_builtin_q_<= ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qleq" x1 x2))
+(define $smt_builtin_q_< ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qlt" x1 x2))
+(define $smt_builtin_q_+ ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qplus" x1 x2))
+(define $smt_builtin_q_* ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qmult" x1 x2))
+(define $smt_builtin_q_neg ((x1 $smt_builtin_Real)) ($smt_apply_1 "qneg" x1))
+(define $smt_builtin_q_- ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_builtin_q_+ x1 ($smt_builtin_q_neg x2)))
 ; other arithmetic
 (define $smt_builtin_z_to_real ((x1 $smt_builtin_Int)) ($smt_apply_1 "to_real" x1))
 (define $smt_builtin_q_to_real ((x1 $smt_builtin_Real)) x1)
@@ -111,6 +111,7 @@
 (define $smt_builtin_n_zero () ($smt_apply_0 "nat.zero"))
 (define $smt_builtin_n_succ ((x1 $smt_builtin_Nat)) ($smt_apply_1 "nat.succ" x1))
 (define $smt_builtin_z_to_n ((x1 $smt_builtin_Int)) ($smt_apply_1 "int.to_nat" x1))
+(define $smt_builtin_n_= ((x1 $smt_builtin_Nat) (x2 $smt_builtin_Nat)) ($smt_apply_2 "nateq" x1 x2))
 
 ; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
 (define $smt_apply_nary_3

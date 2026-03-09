@@ -206,7 +206,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   Kind kType = Kind::TYPE;
   Kind kRegLan = Kind::EVAL_TO_STRING;
   Kind kList = Kind::EVAL_CONS;
-  Kind kVarList = Kind::VARIABLE;
+  //Kind kVarList = Kind::VARIABLE;
   d_kindToEoPrefix[kBool] = "bool";
   d_kindToEoPrefix[kInt] = "numeral";
   d_kindToEoPrefix[kReal] = "rational";
@@ -659,10 +659,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             {kInt, kBitVec},
             kT,
             smtGuard(smtZLeq("$smt_builtin_z_one", "x1"),
-                     smtIte(smtZEq("x1", "$smt_builtin_z_one"),
-                            "($vsm_binary x2 x3)",
                             "($smtx_model_eval_repeat_rec ($smt_builtin_z_to_n "
-                            "x1) ($vsm_binary x2 x3))")));
+                            "x1) ($vsm_binary x2 x3))"));
   // the following are program cases in the main method of the form
   // (($smtx_model_eval (f x1 x2)) ($smtx_model_eval <return>))
   addTermReduceSym("bvsub", {kBitVec, kBitVec}, "(bvadd x1 (bvneg x2))");
@@ -826,7 +824,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // Quantifiers
   // one variable at a time, $sm_exists is hardcoded
   addEunoiaReduceSym(
-      "exists", {kVarList, kT}, "($eo_to_smt_exists x1 ($eo_to_smt x2))");
+      "exists", {kT, kT}, "($eo_to_smt_exists x1 ($eo_to_smt x2))");
   addEunoiaReduceSym(
       "forall",
       {kT, kBool},
@@ -837,11 +835,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // builtin
   // one variable at a time, $sm_lambda is hardcoded
   addEunoiaReduceSym("lambda",
-                     {kVarList, kT},
-                     "($sm_apply ($sm_lambda s ($eo_to_smt_type T)) "
-                     "($eo_to_smt (lambda x1 x2)))");
-  d_specialCases["lambda"].emplace_back("(lambda $eo_List_nil x1)",
-                                        "($eo_to_smt x1)");
+                     {kT, kT},
+                     "($eo_to_smt_lambda x1 ($eo_to_smt x2))");
   addEunoiaReduceSym("@purify", {kT}, "($eo_to_smt x1)");
   // arithmetic
   addConstFoldSym("int.pow2", {kInt}, kInt);
@@ -917,46 +912,47 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   std::stringstream ssQuantSkolem;
   ssQuantSkolem << "(program $eo_to_smt_quantifiers_skolemize" << std::endl;
   ssQuantSkolem << "  ((s $smt_builtin_String) (T $smt_Type) (F $smt_Term) (n "
-                   "$smt_builtin_Int) (t $smt_Term))"
+                   "$smt_builtin_Nat) (t $smt_Term))"
                 << std::endl;
-  ssQuantSkolem << "  :signature ($smt_Term $smt_Term) $smt_Term" << std::endl;
+  ssQuantSkolem << "  :signature ($smt_Term $smt_builtin_Nat) $smt_Term" << std::endl;
   ssQuantSkolem << "  (" << std::endl;
   ssQuantSkolem << "  (($eo_to_smt_quantifiers_skolemize ($sm_apply "
-                   "($sm_exists s T) F) $sm_z_zero)"
+                   "($sm_exists s T) F) $smt_builtin_n_zero)"
                 << std::endl;
   ssQuantSkolem << "     ($sm_apply ($sm_choice s T) F))" << std::endl;
   ssQuantSkolem << "  (($eo_to_smt_quantifiers_skolemize ($sm_apply "
-                   "($sm_exists s T) F) ($sm_numeral n))"
+                   "($sm_exists s T) F) ($smt_builtin_n_succ n))"
                 << std::endl;
   ssQuantSkolem << "     ($eo_to_smt_quantifiers_skolemize" << std::endl;
   ssQuantSkolem
       << "       ($smtx_substitute s T ($eo_to_smt_quantifiers_skolemize "
-         "($sm_apply ($sm_exists s T) F) $sm_z_zero) F)"
+         "($sm_apply ($sm_exists s T) F) $smt_builtin_n_zero) F)"
       << std::endl;
-  ssQuantSkolem << "       ($sm_numeral ($smt_builtin_z_dec n))))" << std::endl;
+  ssQuantSkolem << "       n))" << std::endl;
   ssQuantSkolem << "  (($eo_to_smt_quantifiers_skolemize F t) $sm_none)"
                 << std::endl;
   ssQuantSkolem << "  )" << std::endl;
   ssQuantSkolem << ")" << std::endl;
   d_auxDef["@quantifiers_skolemize"] = ssQuantSkolem.str();
+  // note that negative indices are silently treated as 0 here
   d_specialCases["@quantifiers_skolemize"].emplace_back(
       "(@quantifiers_skolemize (forall x1 x2) x3)",
       "($eo_to_smt_quantifiers_skolemize ($eo_to_smt_exists x1 ($sm_not "
       "($eo_to_smt x2))) "
-      "($eo_to_smt x3))");
+      "($eo_to_smt_nat x3))");
   d_symIgnore["@quantifiers_skolemize"] = true;
 
   // re pos unfold
   std::stringstream ssRePosUnfold;
   ssRePosUnfold << "(program $eo_to_smt_re_unfold_pos_component" << std::endl;
   ssRePosUnfold << "  ((s $smt_Term) (r1 $smt_Term) (r2 $smt_Term) (n "
-                   "$smt_builtin_Int) (t $smt_Term))"
+                   "$smt_builtin_Nat) (t $smt_Term))"
                 << std::endl;
-  ssRePosUnfold << "  :signature ($smt_Term $smt_Term $smt_Term) $smt_Term"
+  ssRePosUnfold << "  :signature ($smt_Term $smt_Term $smt_builtin_Nat) $smt_Term"
                 << std::endl;
   ssRePosUnfold << "  (" << std::endl;
   ssRePosUnfold << "  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) "
-                   "$sm_z_zero)"
+                   "$smt_builtin_n_zero)"
                 << std::endl;
   ssRePosUnfold
       << "    (eo::define ((x ($sm_Var $smt_builtin_str_vname $tsm_String)))"
@@ -976,10 +972,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                        true)
                 << "))))" << std::endl;
   ssRePosUnfold << "  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) "
-                   "($sm_numeral n))"
+                   "($smt_builtin_n_succ n))"
                 << std::endl;
   ssRePosUnfold << "    (eo::define ((k ($eo_to_smt_re_unfold_pos_component s "
-                   "($sm_re.++ r1 r2) $sm_z_zero)))"
+                   "($sm_re.++ r1 r2) $smt_builtin_n_zero)))"
                 << std::endl;
   ssRePosUnfold << "      ($eo_to_smt_re_unfold_pos_component" << std::endl;
   ssRePosUnfold << "        "
@@ -987,17 +983,18 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                        "(str.substr s (str.len k) (- (str.len s) (str.len k)))",
                        true)
                 << std::endl;
-  ssRePosUnfold << "        r2 ($sm_numeral ($smt_builtin_z_dec n)))))"
+  ssRePosUnfold << "        r2 n)))"
                 << std::endl;
-  ssRePosUnfold << "  (($eo_to_smt_re_unfold_pos_component s r1 t) $sm_none)"
+  ssRePosUnfold << "  (($eo_to_smt_re_unfold_pos_component s r1 n) $sm_none)"
                 << std::endl;
   ssRePosUnfold << "  )" << std::endl;
   ssRePosUnfold << ")" << std::endl;
   d_auxDef["@re_unfold_pos_component"] = ssRePosUnfold.str();
+  // note that negative indices are silently treated as 0 here
   addEunoiaReduceSym("@re_unfold_pos_component",
                      {kT, kT, kT},
-                     "($eo_to_smt_re_unfold_pos_component ($eo_to_smt x1) "
-                     "($eo_to_smt x2) ($eo_to_smt x3))");
+                     smtToSmtEmbed("($eo_to_smt_re_unfold_pos_component ($eo_to_smt x1) "
+                     "($eo_to_smt x2) ($eo_to_smt_nat x3))", true));
   // sequences
   addReduceSym("seq.empty", {kType}, "($smtx_empty_seq x1)");
   d_recReduce.insert("seq.empty");
@@ -1050,12 +1047,24 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                << smtValueEq("e1", "($smtx_empty_set ($smtx_typeof_value e1))")
                << ")";
   addRecReduceSym("set.is_empty", {kT}, ssIsEmptyRet.str());
+#if 0
   addEunoiaReduceSym(
       "set.insert",
       {kList, kT},
       "($eo_to_smt (set.union (set.singleton x1) (set.insert x2 x3)))");
   d_specialCases["set.insert"].emplace_back("(set.insert $eo_List_nil x1)",
                                             "($eo_to_smt x1)");
+#else
+  std::stringstream ssInsert;
+  ssInsert << "(eo::define (($e ($eo_to_smt (set.insert x2 x3)))) ";
+  ssInsert << smtToSmtEmbed("(set.union (set.singleton ($eo_to_smt x1)) $e)", true) << ")";
+  addEunoiaReduceSym(
+      "set.insert",
+      {kList, kT},
+      ssInsert.str());
+  d_specialCases["set.insert"].emplace_back("(set.insert $eo_List_nil x1)",
+                                            "($eo_to_smt x1)");
+#endif
   //   bitvectors
   addEunoiaReduceSym(
       "bvite",

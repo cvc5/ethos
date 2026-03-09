@@ -70,6 +70,8 @@ macro_rules
   | `(smt_lit_nat_succ $x) => `(Nat.succ $x)
 def smt_lit_int_to_nat (x : smt_lit_Int) : smt_lit_Nat :=
   (Int.toNat x)
+def smt_lit_nateq : smt_lit_Nat -> smt_lit_Nat -> smt_lit_Bool
+  | x, y => decide (x = y)
 
 -- SMT Beyond Eunoia
 
