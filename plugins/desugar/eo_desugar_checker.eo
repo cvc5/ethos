@@ -229,25 +229,45 @@ $EO_INVOKE_POP$
   )
 )
 
-(program $eo_invoke_cmd_list_assuming
-  ((as Bool) (cs $eo_CmdList) (S $eo_State) (F Bool))
-  :signature ($eo_State Bool $eo_CmdList) $eo_State
-  (
-  (($eo_invoke_cmd_list_assuming S (and F as) cs)
-    ($eo_invoke_cmd_list_assuming ($s_cons ($so_assume F) S) as cs))
-  (($eo_invoke_cmd_list_assuming S true cs)
-    ($eo_invoke_cmd_list S cs))
-  (($eo_invoke_cmd_list_assuming S as cs) $s_stuck)
-  )
-)
-
 (program $eo_state_is_refutation ((s $eo_State))
   :signature ($eo_State) $eoT_Result
   (
   (($eo_state_is_refutation s) ($eo_state_is_closed ($eo_invoke_cmd_check_proven s false)))
   )
 )
+
+(program $eo_invoke_assume_list
+  ((as Bool) (S $eo_State) (F Bool))
+  :signature ($eo_State Bool) $eo_State
+  (
+  (($eo_invoke_assume_list S (and F as))
+    ($s_cons ($so_assume F) ($eo_invoke_assume_list S as)))
+  (($eo_invoke_assume_list S true) S)
+  (($eo_invoke_assume_list S as) $s_stuck)
+  )
+)
+
+(program $eo_state_to_formula_rec ((s $eo_State) (F Bool) (F1 Bool) (F2 Bool) (F3 Bool))
+  :signature ($eo_State Bool) Bool
+  (
+  (($eo_state_to_formula_rec $s_nil F) F)
+  (($eo_state_to_formula_rec ($s_cons ($so_assume F) s) (=> F1 (=> F2 F3)))
+    (=> (_ and F F1) (=> F2 F3)))
+  (($eo_state_to_formula_rec ($s_cons ($so_assume_push F) s) (=> F1 (=> F2 F3)))
+    (=> F1 (=> (_ and F F2) F3)))
+  (($eo_state_to_formula_rec ($s_cons ($so_proven F) s) (=> F1 (=> F2 F3)))
+    (=> F1 (=> F2 (_ and F F3))))
+  (($eo_state_to_formula_rec s F) $eot_stuck)
+  )
+)
   
+(program $eo_state_to_formula ((s $eo_State))
+  :signature ($eo_State) Bool
+  (
+  (($eo_state_to_formula s) ($eo_state_to_formula_rec s (=> true (=> true true))))
+  )
+)
+
 ; Main entry point:
 ; - as is a conjunction of formulas to assume.
 ;   Note that this should always be an and-list, which will be interpreted
@@ -258,6 +278,6 @@ $EO_INVOKE_POP$
   :signature (Bool $eo_CmdList) $eoT_Result
   (
   (($eo_checker_is_refutation as cs)
-    ($eo_state_is_refutation ($eo_invoke_cmd_list_assuming $s_nil as cs)))
+    ($eo_state_is_refutation ($eo_invoke_cmd_list ($eo_invoke_assume_list $s_nil as) cs)))
   )
 )

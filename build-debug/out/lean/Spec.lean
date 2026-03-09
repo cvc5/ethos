@@ -69,7 +69,9 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.DtSel s d i j) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
   | (Term.UConst i T) => (SmtTerm.UConst i (__eo_to_smt_type T))
   | (Term.Apply Term.not x1) => (SmtTerm.Apply SmtTerm.not (__eo_to_smt x1))
+  | (Term.Apply (Term.Apply Term.or x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.and x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply Term.imp x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.eq x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
   | y => SmtTerm.None
@@ -100,6 +102,13 @@ def eo_interprets (t : Term) (b : Bool) : Prop :=
   exists (s : Object_Term), (eo_is_obj t s) /\ (obj_interprets s b)
 
 /- The theorem statements -/
+
+/- correctness theorem for __eo_prog_scope -/
+theorem correct___eo_prog_scope (x1 x2 : Term) :
+  (eo_interprets x2 true) ->
+  (Not (eo_interprets (__eo_prog_scope x1 (Proof.pf x2)) false)) :=
+by
+  sorry
 
 /- correctness theorem for __eo_prog_contra -/
 theorem correct___eo_prog_contra (x1 x2 : Term) :
