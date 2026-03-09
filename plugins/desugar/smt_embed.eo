@@ -110,8 +110,9 @@
 (define $smt_builtin_Nat () ($smt_datatype "Nat"))
 (define $smt_builtin_n_zero () ($smt_apply_0 "nat.zero"))
 (define $smt_builtin_n_succ ((x1 $smt_builtin_Nat)) ($smt_apply_1 "nat.succ" x1))
-(define $smt_builtin_z_to_n ((x1 $smt_builtin_Int)) ($smt_apply_1 "int.to_nat" x1))
 (define $smt_builtin_n_= ((x1 $smt_builtin_Nat) (x2 $smt_builtin_Nat)) ($smt_apply_2 "nateq" x1 x2))
+(define $smt_builtin_z_to_n ((x1 $smt_builtin_Int)) ($smt_apply_1 "int.to_nat" x1))
+(define $smt_builtin_n_to_z ((x1 $smt_builtin_Nat)) ($smt_apply_1 "nat.to_int" x1))
 
 ; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
 (define $smt_apply_nary_3

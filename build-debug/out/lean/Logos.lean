@@ -59,6 +59,17 @@ abbrev eo_lit_binary_uts := SmtEval.smt_lit_binary_uts
 abbrev eo_lit_binary_concat := SmtEval.smt_lit_binary_concat
 abbrev eo_lit_binary_extract := SmtEval.smt_lit_binary_extract
 
+abbrev eo_lit_Nat := SmtEval.smt_lit_Nat
+abbrev eo_lit_int_to_nat := SmtEval.smt_lit_int_to_nat
+abbrev eo_lit_nat_to_int := SmtEval.smt_lit_nat_to_int
+abbrev eo_lit_nateq := SmtEval.smt_lit_nateq
+syntax "eo_lit_nat_zero" : term
+macro_rules
+  | `(eo_lit_nat_zero) => `(Nat.zero)
+syntax "eo_lit_nat_succ " term : term
+macro_rules
+  | `(eo_lit_nat_succ $x) => `(Nat.succ $x)
+
 instance : Ord Rat where
   compare a b :=
     -- compare a.num / a.den vs b.num / b.den by cross-multiplication
@@ -86,10 +97,10 @@ inductive Term : Type where
   | FunType : Term
   | Var : eo_lit_String -> Term -> Term
   | DatatypeType : eo_lit_String -> Datatype -> Term
-  | DtCons : eo_lit_String -> Datatype -> eo_lit_Int -> Term
-  | DtSel : eo_lit_String -> Datatype -> eo_lit_Int -> eo_lit_Int -> Term
-  | USort : eo_lit_Int -> Term
-  | UConst : eo_lit_Int -> Term -> Term
+  | DtCons : eo_lit_String -> Datatype -> eo_lit_Nat -> Term
+  | DtSel : eo_lit_String -> Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
+  | USort : eo_lit_Nat -> Term
+  | UConst : eo_lit_Nat -> Term -> Term
   | not : Term
   | and : Term
   | eq : Term

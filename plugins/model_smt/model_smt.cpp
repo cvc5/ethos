@@ -1147,7 +1147,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym("tuple.unit",
                      {},
                      "($sm_DtCons $smt_builtin_str_tuple_name ($dt_sum "
-                     "$dtc_unit $dt_null) $smt_builtin_z_zero)");
+                     "$dtc_unit $dt_null) $smt_builtin_n_zero)");
   addEunoiaReduceSym("is", {kT}, "($eo_to_smt_tester ($eo_to_smt x1))");
   addEunoiaReduceSym(
       "update",

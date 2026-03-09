@@ -21,12 +21,18 @@
 (define-fun streq ((x String) (y String)) Bool (= x y))
 
 (declare-datatype Nat ((nat.zero) (nat.succ (nat.succ.arg1 Nat))))
+(define-fun nateq ((x Nat) (y Nat)) Bool (= x y))
 (declare-fun int.to_nat (Int) Nat)
 (assert (! (forall ((x Int)) 
   (! (= (int.to_nat x) (ite (<= x 0) nat.zero (nat.succ (int.to_nat (- x 1)))))
   :pattern ((int.to_nat x))))
   :named smtx.int.to_nat.def))
-(define-fun nateq ((x Nat) (y Nat)) Bool (= x y))
+(declare-fun nat.to_int (Nat) Int)
+(assert (! (forall ((x Nat)) 
+  (! (= (nat.to_int x) (ite ((_ is nat.succ) x) (+ 1 (nat.to_int (nat.succ.arg1 x))) 0))
+  :pattern ((nat.to_int x))))
+  :named smtx.nat.to_int.def))
+  
   
 ; uninterpreted constant identifier for builtin partial functions
 (define-fun /_by_zero_id () Int (- 1))

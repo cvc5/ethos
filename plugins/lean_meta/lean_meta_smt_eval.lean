@@ -137,4 +137,20 @@ def smt_lit_binary_concat : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit
 def smt_lit_binary_extract : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | w, n, x1, x2 => (smt_lit_div_total n (smt_lit_int_pow2 x2))
 
+-- Natural numbers
+
+abbrev smt_lit_Nat := Nat
+def smt_lit_int_to_nat (x : smt_lit_Int) : smt_lit_Nat :=
+  (Int.toNat x)
+def smt_lit_nat_to_int (x : smt_lit_Nat) : smt_lit_Int :=
+  (Int.ofNat x)
+def smt_lit_nateq : smt_lit_Nat -> smt_lit_Nat -> smt_lit_Bool
+  | x, y => decide (x = y)
+syntax "smt_lit_nat_zero" : term
+macro_rules
+  | `(smt_lit_nat_zero) => `(Nat.zero)
+syntax "smt_lit_nat_succ " term : term
+macro_rules
+  | `(smt_lit_nat_succ $x) => `(Nat.succ $x)
+  
 end SmtEval

@@ -49,7 +49,7 @@ def __eo_to_smt_datatype : Datatype -> SmtDatatype
 def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
   | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
-  | (Term.USort n1) => (SmtType.USort n1)
+  | (Term.USort i) => (SmtType.USort i)
   | Term.Int => SmtType.Int
   | Term.Real => SmtType.Real
   | (Term.Apply Term.BitVec (Term.Numeral n1)) => (SmtType.BitVec n1)
@@ -65,9 +65,9 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.String s) => (SmtTerm.String s)
   | (Term.Binary w n) => (SmtTerm.Binary w n)
   | (Term.Var s T) => (SmtTerm.Var s (__eo_to_smt_type T))
-  | (Term.DtCons s d n) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) n)
-  | (Term.DtSel s d n m) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) n m)
-  | (Term.UConst n T) => (SmtTerm.UConst n (__eo_to_smt_type T))
+  | (Term.DtCons s d i) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)
+  | (Term.DtSel s d i j) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
+  | (Term.UConst i T) => (SmtTerm.UConst i (__eo_to_smt_type T))
   | (Term.Apply Term.not x1) => (SmtTerm.Apply SmtTerm.not (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.and x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.eq x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x1)) (__eo_to_smt x2))

@@ -26,6 +26,9 @@
 (declare-parameterized-const $smt_type_0
   (($smt_id Type :implicit) (op $smt_id :opaque))
   Type)
+(declare-parameterized-const $smt_datatype
+  (($smt_id Type :implicit) (op $smt_id :opaque))
+  Type)
 (declare-parameterized-const $smt_apply_0
   (($smt_id Type :implicit) (op $smt_id :opaque))
   $smt_BuiltinType)
@@ -52,18 +55,17 @@
 (define $smt_builtin_false () ($smt_apply_0 "false"))
 (define $smt_builtin_ite ((W Type :implicit) (b $smt_builtin_Bool) (x1 W) (x2 W)) ($smt_apply_3 "ite" b x1 x2))
 (define $smt_builtin_z_zero () ($smt_apply_0 "0"))
-(define $smt_builtin_z_one () ($smt_apply_0 "1"))
 (define $smt_builtin_str_= ((x1 $smt_builtin_String) (x2 $smt_builtin_String)) ($smt_apply_2 "streq" x1 x2))
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
 (define $smt_builtin_z_= ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zeq" x1 x2))
 (define $smt_builtin_z_<= ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zleq" x1 x2))
-(define $smt_builtin_z_+ ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zplus" x1 x2))
-(define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
 (define $smt_builtin_z_pow2 ((W Type :implicit) (x1 W)) ($smt_apply_1 "int.pow2" x1))
 (define $smt_builtin_mod_total ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "mod_total" x1 x2))
-(define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
-(define $smt_builtin_z_dec ((x1 $smt_builtin_Int)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
+(define $smt_builtin_Nat () ($smt_datatype "Nat"))
+(define $smt_builtin_n_zero () ($smt_apply_0 "nat.zero"))
+(define $smt_builtin_n_succ ((x1 $smt_builtin_Nat)) ($smt_apply_1 "nat.succ" x1))
+(define $smt_builtin_n_to_z ((x1 $smt_builtin_Nat)) ($smt_apply_1 "nat.to_int" x1))
 (declare-const $eo_Term Type)
 (define $smt_builtin_teq ((x1 $eo_Term) (x2 $eo_Term)) ($smt_apply_2 "teq" x1 x2))
 (declare-const $eo_DatatypeCons Type)
@@ -117,26 +119,26 @@
   ($emb_DatatypeTypeRef s))
 (declare-parameterized-const $emb_DtCons
   ((s $smt_builtin_String :opaque) (d $eo_Datatype :opaque)
-   (ci $smt_builtin_Int :opaque))
+   (ci $smt_builtin_Nat :opaque))
   $eo_Term)
 (define $eot_DtCons
-  ((s $smt_builtin_String) (d $eo_Datatype) (ci $smt_builtin_Int))
+  ((s $smt_builtin_String) (d $eo_Datatype) (ci $smt_builtin_Nat))
   ($emb_DtCons s d ci))
 (declare-parameterized-const $emb_DtSel
   ((s $smt_builtin_String :opaque) (d $eo_Datatype :opaque)
-   (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
+   (ci $smt_builtin_Nat :opaque) (ai $smt_builtin_Nat :opaque))
   $eo_Term)
 (define $eot_DtSel
-  ((s $smt_builtin_String) (d $eo_Datatype) (ci $smt_builtin_Int)
-   (ai $smt_builtin_Int))
+  ((s $smt_builtin_String) (d $eo_Datatype) (ci $smt_builtin_Nat)
+   (ai $smt_builtin_Nat))
   ($emb_DtSel s d ci ai))
-(declare-parameterized-const $emb_USort ((n $smt_builtin_Int :opaque)) $eo_Term)
-(define $eot_USort ((n $smt_builtin_Int)) ($emb_USort n))
+(declare-parameterized-const $emb_USort ((n $smt_builtin_Nat :opaque)) $eo_Term)
+(define $eot_USort ((n $smt_builtin_Nat)) ($emb_USort n))
 (declare-parameterized-const $emb_UConst
-  ((n $smt_builtin_Int :opaque) (T $eo_Term :opaque))
+  ((n $smt_builtin_Nat :opaque) (T $eo_Term :opaque))
   $eo_Term)
 (define $eot_UConst
-  ((n $smt_builtin_Int) (T $eo_Term))
+  ((n $smt_builtin_Nat) (T $eo_Term))
   ($emb_UConst n T))
 (declare-const $emb_edtc.unit $eo_DatatypeCons)
 (define $edtc_unit () $emb_edtc.unit)
@@ -205,31 +207,31 @@
   )
 )
 (program $eo_typeof_dt_cons_rec
-  ((T $eo_Term) (U $eo_Term) (d $eo_Datatype) (c $eo_DatatypeCons) (n $smt_builtin_Int))
-  :signature ($eo_Term $eo_Datatype $smt_builtin_Int) $eo_Term
+  ((T $eo_Term) (U $eo_Term) (d $eo_Datatype) (c $eo_DatatypeCons) (n $smt_builtin_Nat))
+  :signature ($eo_Term $eo_Datatype $smt_builtin_Nat) $eo_Term
   (
-  (($eo_typeof_dt_cons_rec T ($edt_sum $edtc_unit d) $smt_builtin_z_zero) T)
-  (($eo_typeof_dt_cons_rec T ($edt_sum ($edtc_cons U c) d) $smt_builtin_z_zero)
-    (-> U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $smt_builtin_z_zero)))
-  (($eo_typeof_dt_cons_rec T ($edt_sum c d) n)
-    ($eo_typeof_dt_cons_rec T d ($smt_builtin_z_dec n)))
+  (($eo_typeof_dt_cons_rec T ($edt_sum $edtc_unit d) $smt_builtin_n_zero) T)
+  (($eo_typeof_dt_cons_rec T ($edt_sum ($edtc_cons U c) d) $smt_builtin_n_zero)
+    (-> U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $smt_builtin_n_zero)))
+  (($eo_typeof_dt_cons_rec T ($edt_sum c d) ($smt_builtin_n_succ n))
+    ($eo_typeof_dt_cons_rec T d n))
   )
 )
 (program $eo_typeof_dt_sel_return
-  ((d $eo_Datatype) (c $eo_DatatypeCons) (T $eo_Term) (n $smt_builtin_Int) (m $smt_builtin_Int))
-  :signature ($eo_Datatype $smt_builtin_Int $smt_builtin_Int) $eo_Term
+  ((d $eo_Datatype) (c $eo_DatatypeCons) (T $eo_Term) (n $smt_builtin_Nat) (m $smt_builtin_Nat))
+  :signature ($eo_Datatype $smt_builtin_Nat $smt_builtin_Nat) $eo_Term
   (
-  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_z_zero $smt_builtin_z_zero)
+  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_n_zero $smt_builtin_n_zero)
     T)
-  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_z_zero m)
-    ($eo_typeof_dt_sel_return ($edt_sum c d) $smt_builtin_z_zero ($smt_builtin_z_dec m)))
-  (($eo_typeof_dt_sel_return ($edt_sum c d) n m)
-    ($eo_typeof_dt_sel_return d ($smt_builtin_z_dec n) m))
+  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_n_zero ($smt_builtin_n_succ m))
+    ($eo_typeof_dt_sel_return ($edt_sum c d) $smt_builtin_n_zero m))
+  (($eo_typeof_dt_sel_return ($edt_sum c d) ($smt_builtin_n_succ n) m)
+    ($eo_typeof_dt_sel_return d n m))
   )
 )
 (program $eo_typeof
   ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int)
-   (m $smt_builtin_Int) (w $smt_builtin_Int) (r $smt_builtin_Rat)
+   (i $smt_builtin_Nat) (j $smt_builtin_Nat) (w $smt_builtin_Int) (r $smt_builtin_Rat)
    (s $smt_builtin_String) (d $eo_Datatype))
   :signature ($eo_Term) $eo_Term
   (
@@ -240,13 +242,13 @@
   (($eo_typeof ($eot_binary w n))             ($eo_lit_type_Binary ($eot_binary w n)))
   (($eo_typeof ($eot_Var s T))                T)
   (($eo_typeof ($eot_DatatypeType s d))       Type)
-  (($eo_typeof ($eot_DtCons s d n))
-    ($eo_typeof_dt_cons_rec ($eot_DatatypeType s d) ($eo_dt_substitute s d d) n))
-  (($eo_typeof ($eot_DtSel s d n m))
+  (($eo_typeof ($eot_DtCons s d i))
+    ($eo_typeof_dt_cons_rec ($eot_DatatypeType s d) ($eo_dt_substitute s d d) i))
+  (($eo_typeof ($eot_DtSel s d i j))
     
-    (-> ($eot_DatatypeType s d) ($eo_typeof_dt_sel_return ($eo_dt_substitute s d d) n m)))
-  (($eo_typeof ($eot_USort n))                Type)
-  (($eo_typeof ($eot_UConst n T))             T)
+    (-> ($eot_DatatypeType s d) ($eo_typeof_dt_sel_return ($eo_dt_substitute s d d) i j)))
+  (($eo_typeof ($eot_USort i))                Type)
+  (($eo_typeof ($eot_UConst i T))             T)
   
   (($eo_typeof t)                            ($eo_typeof_main t))
   )
@@ -407,32 +409,32 @@
 (define $sm_choice ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.choice s T))
 (declare-parameterized-const $emb_sm.DtCons
   ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
-   (ci $smt_builtin_Int :opaque)) 
+   (ci $smt_builtin_Nat :opaque)) 
   $smt_Term)
 (define $sm_DtCons 
-  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int))
+  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Nat))
   ($emb_sm.DtCons s d ci))
 (declare-parameterized-const $emb_sm.DtSel
   ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) 
-   (ci $smt_builtin_Int :opaque) (ai $smt_builtin_Int :opaque))
+   (ci $smt_builtin_Nat :opaque) (ai $smt_builtin_Nat :opaque))
   $smt_Term)
 (define $sm_DtSel 
   ((s $smt_builtin_String) (d $smt_Datatype)
-   (ci $smt_builtin_Int) (ai $smt_builtin_Int))
+   (ci $smt_builtin_Nat) (ai $smt_builtin_Nat))
   ($emb_sm.DtSel s d ci ai))
 (declare-parameterized-const $emb_sm.DtTester
-  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) (ci $smt_builtin_Int :opaque))
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) (ci $smt_builtin_Nat :opaque))
   $smt_Term)
-(define $sm_DtTester ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int))
+(define $sm_DtTester ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Nat))
   ($emb_sm.DtTester s d ci))
 (declare-parameterized-const $emb_sm.Const
   ((v $smt_Value :opaque) (T $smt_Type :opaque)) $smt_Term)
 (define $sm_Const
   ((v $smt_Value) (T $smt_Type)) ($emb_sm.Const v T))
 (declare-parameterized-const $emb_sm.UConst
-  ((n $smt_builtin_Int :opaque) (T $smt_Type :opaque))
+  ((n $smt_builtin_Nat :opaque) (T $smt_Type :opaque))
   $smt_Term)
-(define $sm_UConst ((n $smt_builtin_Int) (T $smt_Type)) ($emb_sm.UConst n T))
+(define $sm_UConst ((n $smt_builtin_Nat) (T $smt_Type)) ($emb_sm.UConst n T))
 (declare-parameterized-const $emb_sm.not ((x1 $smt_Term)) $smt_Term)
 (define $sm_not ((x1 $smt_Term)) ($sm_apply $emb_sm.not x1))
 (declare-parameterized-const $emb_sm.and ((x1 $smt_Term) (x2 $smt_Term)) $smt_Term)
@@ -467,8 +469,8 @@
 (declare-parameterized-const $emb_tsm.TypeRef
   ((s $smt_builtin_String :opaque)) $smt_Type)
 (define $tsm_TypeRef ((s $smt_builtin_String)) ($emb_tsm.TypeRef s))
-(declare-parameterized-const $emb_tsm.USort ((n $smt_builtin_Int :opaque)) $smt_Type)
-(define $tsm_USort ((n $smt_builtin_Int)) ($emb_tsm.USort n))
+(declare-parameterized-const $emb_tsm.USort ((n $smt_builtin_Nat :opaque)) $smt_Type)
+(define $tsm_USort ((n $smt_builtin_Nat)) ($emb_tsm.USort n))
 (declare-const $smt_Map Type)
 (declare-const $smt_Seq Type)
 (declare-const $emb_vsm.NotValue $smt_Value)
@@ -501,9 +503,9 @@
   ((s $smt_builtin_String) (T $smt_Type) (t $smt_Term)) 
   ($emb_vsm.Lambda s T t))
 (declare-parameterized-const $emb_vsm.DtCons
-  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) (ci $smt_builtin_Int :opaque))
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) (ci $smt_builtin_Nat :opaque))
   $smt_Value)
-(define $vsm_DtCons ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Int))
+(define $vsm_DtCons ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Nat))
   ($emb_vsm.DtCons s d ci))
 (declare-parameterized-const $emb_vsm.Apply
   ((f $smt_Value :opaque) (a $smt_Value :opaque))
@@ -517,13 +519,12 @@
   (($vsm_apply_head a)                a)
   )
 )
-(program $vsm_apply_arg_nth ((f $smt_Value) (a $smt_Value) (n $smt_builtin_Int))
-  :signature ($smt_Value $smt_builtin_Int) $smt_Value
+(program $vsm_apply_arg_nth ((f $smt_Value) (a $smt_Value) (n $smt_builtin_Nat))
+  :signature ($smt_Value $smt_builtin_Nat) $smt_Value
   (
-  (($vsm_apply_arg_nth ($vsm_apply f a) n)
-    ($smt_builtin_ite ($smt_builtin_z_= n $smt_builtin_z_zero)
-      a
-      ($vsm_apply_arg_nth f ($smt_builtin_z_dec n))))
+  (($vsm_apply_arg_nth ($vsm_apply f a) $smt_builtin_n_zero) a)
+  (($vsm_apply_arg_nth ($vsm_apply f a) ($smt_builtin_n_succ n))
+      ($vsm_apply_arg_nth f n))
   (($vsm_apply_arg_nth a n) $vsm_not_value)
   )
 )
@@ -624,14 +625,14 @@
   )
 )
 (program $smtx_typeof_dt_cons_value_rec
-  ((T $smt_Type) (U $smt_Type) (n $smt_builtin_Int) (c $smt_DatatypeCons) (d $smt_Datatype))
-  :signature ($smt_Type $smt_Datatype $smt_builtin_Int) $smt_Type
+  ((T $smt_Type) (U $smt_Type) (n $smt_builtin_Nat) (c $smt_DatatypeCons) (d $smt_Datatype))
+  :signature ($smt_Type $smt_Datatype $smt_builtin_Nat) $smt_Type
   (
-  (($smtx_typeof_dt_cons_value_rec T $dt_null $smt_builtin_z_zero) T)
-  (($smtx_typeof_dt_cons_value_rec T ($dt_sum ($dtc_cons U c) d) $smt_builtin_z_zero)
-    ($tsm_DtConsType U ($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) $smt_builtin_z_zero)))
-  (($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) n)
-    ($smtx_typeof_dt_cons_value_rec T d ($smt_builtin_z_dec n)))
+  (($smtx_typeof_dt_cons_value_rec T $dt_null $smt_builtin_n_zero) T)
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum ($dtc_cons U c) d) $smt_builtin_n_zero)
+    ($tsm_DtConsType U ($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) $smt_builtin_n_zero)))
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) ($smt_builtin_n_succ n))
+    ($smtx_typeof_dt_cons_value_rec T d n))
   (($smtx_typeof_dt_cons_value_rec T d n) $tsm_none)
   )
 )
@@ -641,14 +642,14 @@
   
   ($smtx_typeof_dt_cons_value_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) n))
 (program $smtx_ret_typeof_sel
-  ((T $smt_Type) (n $smt_builtin_Int) (m $smt_builtin_Int) (c $smt_DatatypeCons) (d $smt_Datatype))
-  :signature ($smt_Datatype $smt_builtin_Int $smt_builtin_Int) $smt_Type
+  ((T $smt_Type) (n $smt_builtin_Nat) (m $smt_builtin_Nat) (c $smt_DatatypeCons) (d $smt_Datatype))
+  :signature ($smt_Datatype $smt_builtin_Nat $smt_builtin_Nat) $smt_Type
   (
-  (($smtx_ret_typeof_sel ($dt_sum ($dtc_cons T c) d) $smt_builtin_z_zero $smt_builtin_z_zero) T)
-  (($smtx_ret_typeof_sel ($dt_sum ($dtc_cons T c) d) $smt_builtin_z_zero m)
-    ($smtx_ret_typeof_sel ($dt_sum c d) $smt_builtin_z_zero ($smt_builtin_z_dec m)))
-  (($smtx_ret_typeof_sel ($dt_sum c d) n m)
-    ($smtx_ret_typeof_sel d ($smt_builtin_z_dec n) m))
+  (($smtx_ret_typeof_sel ($dt_sum ($dtc_cons T c) d) $smt_builtin_n_zero $smt_builtin_n_zero) T)
+  (($smtx_ret_typeof_sel ($dt_sum ($dtc_cons T c) d) $smt_builtin_n_zero ($smt_builtin_n_succ m))
+    ($smtx_ret_typeof_sel ($dt_sum c d) $smt_builtin_n_zero m))
+  (($smtx_ret_typeof_sel ($dt_sum c d) ($smt_builtin_n_succ n) m)
+    ($smtx_ret_typeof_sel d n m))
   (($smtx_ret_typeof_sel d n m) $tsm_none)
   )
 )
@@ -663,7 +664,7 @@
 )
 (program $smtx_typeof_value
   ((v $smt_Value) (f $smt_Value) (d $smt_Datatype)
-   (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int)
+   (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (i $smt_builtin_Nat)
    (q $smt_builtin_Real) (s $smt_builtin_String) (r $smt_builtin_RegLan)
    (m $smt_Map) (ss $smt_Seq))
   :signature ($smt_Value) $smt_Type
@@ -679,8 +680,8 @@
   (($smtx_typeof_value ($vsm_re r))       $tsm_RegLan)
   (($smtx_typeof_value ($vsm_map m))      ($smtx_typeof_map_value m))
   (($smtx_typeof_value ($vsm_seq ss))     ($smtx_typeof_seq_value ss))
-  (($smtx_typeof_value ($vsm_DtCons s d n))
-    ($smtx_typeof_dt_cons_value s d n))
+  (($smtx_typeof_value ($vsm_DtCons s d i))
+    ($smtx_typeof_dt_cons_value s d i))
   (($smtx_typeof_value ($vsm_apply f v))
     ($smtx_typeof_apply_value ($smtx_typeof_value f) ($smtx_typeof_value v)))
   (($smtx_typeof_value v)                 $tsm_none)
@@ -766,8 +767,8 @@
   )
 )
 (program $smtx_model_eval_dt_cons
-  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int))
-  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Int) $smt_Value
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Nat))
+  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Nat) $smt_Value
   (
   (($smtx_model_eval_dt_cons s d n)
     
@@ -778,9 +779,9 @@
   )
 )
 (program $smtx_model_eval_dt_sel
-  ((M $smt_Model) (n $smt_builtin_Int) (m $smt_builtin_Int) (v $smt_Value)
+  ((M $smt_Model) (n $smt_builtin_Nat) (m $smt_builtin_Nat) (v $smt_Value)
    (s $smt_builtin_String) (d $smt_Datatype))
-  :signature ($smt_Model $smt_builtin_String $smt_Datatype $smt_builtin_Int $smt_builtin_Int $smt_Value) $smt_Value
+  :signature ($smt_Model $smt_builtin_String $smt_Datatype $smt_builtin_Nat $smt_builtin_Nat $smt_Value) $smt_Value
   (
   (($smtx_model_eval_dt_sel M s d n m v)
     (eo::define ((vT ($smtx_typeof_value v)))
@@ -798,16 +799,16 @@
             ($smtx_map_select
               ($smtx_model_lookup M ($smt_apply_0 "wrong_apply_sel_id")
                 ($tsm_Map $tsm_Int ($tsm_Map $tsm_Int ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel d n m)))))
-              ($vsm_numeral n))
-            ($vsm_numeral m))
+              ($vsm_numeral ($smt_builtin_n_to_z n)))
+            ($vsm_numeral ($smt_builtin_n_to_z m)))
           v))
       
       $vsm_not_value)))
   )
 )
 (program $smtx_model_eval_dt_tester
-  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int) (v1 $smt_Value))
-  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Int $smt_Value) $smt_Value
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Nat) (v1 $smt_Value))
+  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Nat $smt_Value) $smt_Value
   (
   (($smtx_model_eval_dt_tester s d n v1)
     
@@ -855,6 +856,7 @@
 )
 (program $smtx_model_eval
   ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (d $smt_Datatype)
+   (i $smt_builtin_Nat) (j $smt_builtin_Nat)
    (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int)
    (m $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
    
@@ -893,11 +895,11 @@
   (($smtx_model_eval M ($sm_apply ($sm_choice s T) x1))
     ($smt_apply_4 "tchoice" M s T x1))
   
-  (($smtx_model_eval M ($sm_DtCons s d n)) ($smtx_model_eval_dt_cons s d n))
-  (($smtx_model_eval M ($sm_apply ($sm_DtSel s d n m) x1))
-    ($smtx_model_eval_dt_sel M s d n m ($smtx_model_eval M x1)))
-  (($smtx_model_eval M ($sm_apply ($sm_DtTester s d n) x1))
-    ($smtx_model_eval_dt_tester s d n ($smtx_model_eval M x1)))
+  (($smtx_model_eval M ($sm_DtCons s d i)) ($smtx_model_eval_dt_cons s d i))
+  (($smtx_model_eval M ($sm_apply ($sm_DtSel s d i j) x1))
+    ($smtx_model_eval_dt_sel M s d i j ($smtx_model_eval M x1)))
+  (($smtx_model_eval M ($sm_apply ($sm_DtTester s d i) x1))
+    ($smtx_model_eval_dt_tester s d i ($smtx_model_eval M x1)))
   
   
   
@@ -910,7 +912,7 @@
     ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value v) T)
       v
       $vsm_not_value))
-  (($smtx_model_eval M ($sm_UConst n T)) ($smtx_model_lookup M n T))
+  (($smtx_model_eval M ($sm_UConst i T)) ($smtx_model_lookup M ($smt_builtin_n_to_z i) T))
   (($smtx_model_eval M x1)   $vsm_not_value)
   )
 )
@@ -932,14 +934,14 @@
   )
 )
 (program $eo_to_smt_type 
-  ((T Type) (n1 $smt_builtin_Int) (s $smt_builtin_String) (d $eo_Datatype)
+  ((T Type) (n1 $smt_builtin_Int) (i $smt_builtin_Nat) (s $smt_builtin_String) (d $eo_Datatype)
   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
   (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
   :signature (Type) $smt_Type
   (
   (($eo_to_smt_type Bool)                     $tsm_Bool)
   (($eo_to_smt_type ($eot_DatatypeType s d))  ($tsm_Datatype s ($eo_to_smt_datatype d)))
-  (($eo_to_smt_type ($eot_USort n1))          ($tsm_USort n1))
+  (($eo_to_smt_type ($eot_USort i))           ($tsm_USort i))
   (($eo_to_smt_type Int) $tsm_Int)
   (($eo_to_smt_type Real) $tsm_Real)
   (($eo_to_smt_type (BitVec ($eot_numeral n1))) ($tsm_BitVec n1))
@@ -953,7 +955,8 @@
   ((b $smt_builtin_Bool) (n $smt_builtin_Int) (m $smt_builtin_Int) (r $smt_builtin_Rat)
    (s $smt_builtin_String) (w $smt_builtin_Int) (d $eo_Datatype)
    (T Type) (U Type) (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
-   (f (-> U T)) (y U) (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
+   (f (-> U T)) (y U) (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5)
+   (i $smt_builtin_Nat) (j $smt_builtin_Nat))
   :signature (T) $smt_Term
   (
   (($eo_to_smt ($eot_bool b))        ($sm_bool b))
@@ -962,9 +965,9 @@
   (($eo_to_smt ($eot_string s))      ($sm_string s))
   (($eo_to_smt ($eot_binary w n))    ($sm_binary w n))
   (($eo_to_smt ($eot_Var s T))       ($sm_Var s ($eo_to_smt_type T)))
-  (($eo_to_smt ($eot_DtCons s d n))  ($sm_DtCons s ($eo_to_smt_datatype d) n))
-  (($eo_to_smt ($eot_DtSel s d n m)) ($sm_DtSel s ($eo_to_smt_datatype d) n m))
-  (($eo_to_smt ($eot_UConst n T))    ($sm_UConst n ($eo_to_smt_type T)))
+  (($eo_to_smt ($eot_DtCons s d i))  ($sm_DtCons s ($eo_to_smt_datatype d) i))
+  (($eo_to_smt ($eot_DtSel s d i j)) ($sm_DtSel s ($eo_to_smt_datatype d) i j))
+  (($eo_to_smt ($eot_UConst i T))    ($sm_UConst i ($eo_to_smt_type T)))
   (($eo_to_smt (not x1)) ($sm_not ($eo_to_smt x1)))
   (($eo_to_smt (and x1 x2)) ($sm_and ($eo_to_smt x1) ($eo_to_smt x2)))
   (($eo_to_smt (= x1 x2)) ($sm_= ($eo_to_smt x1) ($eo_to_smt x2)))
