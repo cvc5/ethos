@@ -52,6 +52,8 @@ void SmtMetaSygus::initializeGrammars()
   tmp->d_rules << "0.0 (/ G_Int_C G_Int_C) (- (/ G_Int_C G_Int_C))";
   tmp = allocateGrammar("G_String", "String");
   tmp->d_rules << "\"\" (str.++ G_String \"A\") (str.++ G_String \"B\")";
+  tmp = allocateGrammar("G_Nat", "Nat");
+  tmp->d_rules << "nat.zero (nat.succ G_Nat)";
 
   d_cnameToKind["Bool"] = Kind::TYPE;
   d_cnameToKind["Boolean"] = Kind::BOOLEAN;

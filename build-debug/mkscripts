@@ -1,0 +1,21 @@
+#!/bin/bash
+
+ALETHE_INPUT=~/AletheInEunoia/signature/Alethe.eo
+echo "Generate Alethe run all script (run_gen_vc_all_alethe)"
+cat << EOF > run_gen_vc_all_alethe
+#!/usr/bin/env bash
+INPUT="$ALETHE_INPUT"
+EOF
+cat ./run_gen_vc_all_template >> run_gen_vc_all_alethe
+./get_rule_names.py $ALETHE_INPUT './run_gen_vc_single $INPUT ' >> run_gen_vc_all_alethe
+chmod 755 run_gen_vc_all_alethe
+
+CPC_INPUT=~/cvc5-ajr/proofs/eo/cpc/Cpc.eo
+echo "Generate CPC run all script (run_gen_vc_all_cpc)"
+cat << EOF > run_gen_vc_all_cpc
+#!/usr/bin/env bash
+INPUT="$CPC_INPUT"
+EOF
+cat ./run_gen_vc_all_template >> run_gen_vc_all_cpc
+./get_rule_names.py $CPC_INPUT './run_gen_vc_single $INPUT ' >> run_gen_vc_all_cpc
+chmod 755 run_gen_vc_all_cpc

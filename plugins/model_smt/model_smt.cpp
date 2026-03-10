@@ -1156,6 +1156,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 
   // for alethe
   addEunoiaReduceSym("@cl", {kT, kT}, "($eo_to_smt (or x1 x2))");
+  addEunoiaReduceSym("@empty_cl", {kT, kT}, "($sm_bool $smt_builtin_false)");
 
   // FIXME: unhandled
   d_symIgnore["@strings_num_occur"] = true;
@@ -1164,6 +1165,17 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_symIgnore["@strings_occur_index_re"] = true;
   d_symIgnore["@strings_replace_all_result"] = true;
   d_symIgnore["@const"] = true;
+  
+  // alethe unhandled
+  d_symIgnore["choice"] = true;
+  d_symIgnore["@let"] = true;
+  d_symIgnore["@ctx"] = true;
+  d_symIgnore["@var"] = true;
+  d_symIgnore["@Substitute"] = true;
+  d_symIgnore["@substitute"] = true;
+  d_symIgnore["@Substitution"] = true;
+  d_symIgnore["@substitution.nil"] = true;
+  d_symIgnore["@substitution"] = true;
 }
 
 ModelSmt::~ModelSmt() {}

@@ -1262,9 +1262,9 @@ bool LeanMetaReduce::isProgramApp(const Expr& app)
 
 std::string LeanMetaReduce::cleanSmtId(const std::string& id)
 {
-  if (id == "end")
+  if (id == "end" || id == "variable")
   {
-    return "__eo_end";
+    return "__eo_" + id;
   }
   std::string idc = id;
   idc = replace_all(idc, "++", "concat");

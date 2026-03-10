@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+INPUT="../../AletheInEunoia/signature/Alethe.eo"
+
+function check_status()
+{
+status=$?
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
+}
+
+echo "**** Compile ethos"
+make -j4
+check_status
+
+echo "**** Clean previous benchmarks"
+cd out/vc
+rm -f *.smt2
+cd ../..
+
+./run_gen_vc_single $INPUT true
+./run_gen_vc_single $INPUT false
+./run_gen_vc_single $INPUT not_not
+./run_gen_vc_single $INPUT th_resolution
+./run_gen_vc_single $INPUT resolution
+./run_gen_vc_single $INPUT tautology
+./run_gen_vc_single $INPUT contraction
+./run_gen_vc_single $INPUT subproof
+./run_gen_vc_single $INPUT la_generic
+./run_gen_vc_single $INPUT lia_generic
+./run_gen_vc_single $INPUT la_disequality
+./run_gen_vc_single $INPUT la_totality
+./run_gen_vc_single $INPUT la_tautology
+./run_gen_vc_single $INPUT la_mult_neg
+./run_gen_vc_single $INPUT bind
+./run_gen_vc_single $INPUT sko_ex
+./run_gen_vc_single $INPUT sko_forall
+./run_gen_vc_single $INPUT forall_inst
+./run_gen_vc_single $INPUT refl
+./run_gen_vc_single $INPUT trans
+./run_gen_vc_single $INPUT cong
+./run_gen_vc_single $INPUT eq_reflexive
+./run_gen_vc_single $INPUT eq_transitive
+./run_gen_vc_single $INPUT eq_congruent
+./run_gen_vc_single $INPUT eq_congruent_pred
+./run_gen_vc_single $INPUT qnt_cnf
+./run_gen_vc_single $INPUT and
+./run_gen_vc_single $INPUT not_or
+./run_gen_vc_single $INPUT or
+./run_gen_vc_single $INPUT not_and
+./run_gen_vc_single $INPUT xor1
+./run_gen_vc_single $INPUT xor2
+./run_gen_vc_single $INPUT not_xor1
+./run_gen_vc_single $INPUT not_xor2
+./run_gen_vc_single $INPUT implies
+./run_gen_vc_single $INPUT not_implies1
+./run_gen_vc_single $INPUT not_implies2
+./run_gen_vc_single $INPUT equiv1
+./run_gen_vc_single $INPUT equiv2
+./run_gen_vc_single $INPUT not_equiv1
+./run_gen_vc_single $INPUT and_pos
+./run_gen_vc_single $INPUT and_neg
+./run_gen_vc_single $INPUT or_pos
+./run_gen_vc_single $INPUT or_neg
+./run_gen_vc_single $INPUT xor_pos1
+./run_gen_vc_single $INPUT xor_pos2
+./run_gen_vc_single $INPUT xor_neg1
+./run_gen_vc_single $INPUT xor_neg2
+./run_gen_vc_single $INPUT implies_pos
+./run_gen_vc_single $INPUT implies_neg1
+./run_gen_vc_single $INPUT implies_neg2
+./run_gen_vc_single $INPUT equiv_pos1
+./run_gen_vc_single $INPUT equiv_pos2
+./run_gen_vc_single $INPUT equiv_neg1
+./run_gen_vc_single $INPUT equiv_neg2
+./run_gen_vc_single $INPUT ite1
+./run_gen_vc_single $INPUT ite2
+./run_gen_vc_single $INPUT ite_pos1
+./run_gen_vc_single $INPUT ite_pos2
+./run_gen_vc_single $INPUT ite_neg1
+./run_gen_vc_single $INPUT ite_neg2
+./run_gen_vc_single $INPUT not_ite1
+./run_gen_vc_single $INPUT not_ite2
+./run_gen_vc_single $INPUT connective_def
+./run_gen_vc_single $INPUT and_simplify
+./run_gen_vc_single $INPUT or_simplify
+./run_gen_vc_single $INPUT not_simplify
+./run_gen_vc_single $INPUT implies_simplify
+./run_gen_vc_single $INPUT equiv_simplify
+./run_gen_vc_single $INPUT bool_simplify
+./run_gen_vc_single $INPUT ac_simp
+./run_gen_vc_single $INPUT ite_simplify
+./run_gen_vc_single $INPUT qnt_simplify
+./run_gen_vc_single $INPUT onepoint
+./run_gen_vc_single $INPUT qnt_join
+./run_gen_vc_single $INPUT qnt_rm_unused
+./run_gen_vc_single $INPUT eq_simplify
+./run_gen_vc_single $INPUT div_simplify
+./run_gen_vc_single $INPUT prod_simplify
+./run_gen_vc_single $INPUT unary_minus_simplify
+./run_gen_vc_single $INPUT minus_simplify
+./run_gen_vc_single $INPUT sum_simplify
+./run_gen_vc_single $INPUT comp_simplify
+./run_gen_vc_single $INPUT let_elim
+./run_gen_vc_single $INPUT distinct_elim
+./run_gen_vc_single $INPUT la_rw_eq
+./run_gen_vc_single $INPUT nary_elim
+./run_gen_vc_single $INPUT bfun_elim
+./run_gen_vc_single $INPUT ite_intro
+./run_gen_vc_single $INPUT symm
+./run_gen_vc_single $INPUT reordering
+./run_gen_vc_single $INPUT rare_rewrite
+./run_gen_vc_single $INPUT eq_symmetric

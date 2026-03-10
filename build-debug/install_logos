@@ -15,6 +15,7 @@ fi
 }
 
 echo "********* Generating Lean signature *********"
+#./run_gen_lean "symm contra scope"
 ./run_gen_lean_all
 check_status
 
