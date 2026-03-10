@@ -216,6 +216,7 @@ abbrev smt_lit_str_substr := SmtEval.smt_lit_str_substr
 abbrev smt_lit_str_indexof := SmtEval.smt_lit_str_indexof
 abbrev smt_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev smt_lit_str_from_code := SmtEval.smt_lit_str_from_code
+abbrev smt_lit_streq : SmtEval.smt_lit_streq
 
 abbrev smt_lit_bit := SmtEval.smt_lit_bit
 abbrev smt_lit_msb := SmtEval.smt_lit_msb
@@ -234,9 +235,6 @@ abbrev smt_lit_nat_to_int := SmtEval.smt_lit_nat_to_int
 abbrev smt_lit_nateq := SmtEval.smt_lit_nateq
 
 -- SMT Beyond Eunoia
-
-def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
-  | x, y => decide (x = y)
 
 def smt_lit_int_log2 : smt_lit_Int -> smt_lit_Int
   | _ => 0 -- FIXME
@@ -457,6 +455,7 @@ abbrev eo_lit_str_substr := SmtEval.smt_lit_str_substr
 abbrev eo_lit_str_indexof := SmtEval.smt_lit_str_indexof
 abbrev eo_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev eo_lit_str_from_code := SmtEval.smt_lit_str_from_code
+abbrev eo_lit_streq := SmtEval.smt_lit_streq
 
 abbrev eo_lit_bit := SmtEval.smt_lit_bit
 abbrev eo_lit_msb := SmtEval.smt_lit_msb

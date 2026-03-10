@@ -359,17 +359,21 @@
 ; fwd-decl: $eo_lit_type_String
 (declare-fun $eo_lit_type_String (eo.Term) eo.Term)
 
+; fwd-decl: $eo_dt_substitute
+(declare-fun $eo_dt_substitute (String edt.Datatype edt.Datatype) edt.Datatype)
+
 ; program: $eo_dtc_substitute
 (declare-fun $eo_dtc_substitute (String edt.Datatype edtc.DatatypeCons) edtc.DatatypeCons)
 (assert (! (forall ((x1 String) (x2 edt.Datatype) (x3 edtc.DatatypeCons))
   (! (= ($eo_dtc_substitute x1 x2 x3)
+  (ite (and ((_ is edtc.cons) x3) ((_ is eo.DatatypeType) (edtc.cons.arg1 x3)))
+    (edtc.cons (eo.DatatypeType (eo.DatatypeType.arg1 (edtc.cons.arg1 x3)) (ite (streq x1 (eo.DatatypeType.arg1 (edtc.cons.arg1 x3))) (eo.DatatypeType.arg2 (edtc.cons.arg1 x3)) ($eo_dt_substitute x1 x2 (eo.DatatypeType.arg2 (edtc.cons.arg1 x3))))) ($eo_dtc_substitute x1 x2 (edtc.cons.arg2 x3)))
   (ite ((_ is edtc.cons) x3)
     (edtc.cons (ite (teq (edtc.cons.arg1 x3) (eo.DatatypeTypeRef x1)) (eo.DatatypeType x1 x2) (edtc.cons.arg1 x3)) ($eo_dtc_substitute x1 x2 (edtc.cons.arg2 x3)))
     edtc.unit
-)) :pattern (($eo_dtc_substitute x1 x2 x3)))) :named sm.axiom.$eo_dtc_substitute))
+))) :pattern (($eo_dtc_substitute x1 x2 x3)))) :named sm.axiom.$eo_dtc_substitute))
 
 ; program: $eo_dt_substitute
-(declare-fun $eo_dt_substitute (String edt.Datatype edt.Datatype) edt.Datatype)
 (assert (! (forall ((x1 String) (x2 edt.Datatype) (x3 edt.Datatype))
   (! (= ($eo_dt_substitute x1 x2 x3)
   (ite ((_ is edt.sum) x3)
@@ -624,17 +628,21 @@
     (tsm.Seq (ssm.empty.arg1 x1))
 )) :pattern (($smtx_typeof_seq_value x1)))) :named sm.axiom.$smtx_typeof_seq_value))
 
+; fwd-decl: $smtx_dt_substitute
+(declare-fun $smtx_dt_substitute (String dt.Datatype dt.Datatype) dt.Datatype)
+
 ; program: $smtx_dtc_substitute
 (declare-fun $smtx_dtc_substitute (String dt.Datatype dtc.DatatypeCons) dtc.DatatypeCons)
 (assert (! (forall ((x1 String) (x2 dt.Datatype) (x3 dtc.DatatypeCons))
   (! (= ($smtx_dtc_substitute x1 x2 x3)
+  (ite (and ((_ is dtc.cons) x3) ((_ is tsm.Datatype) (dtc.cons.arg1 x3)))
+    (dtc.cons (tsm.Datatype (tsm.Datatype.arg1 (dtc.cons.arg1 x3)) (ite (streq x1 (tsm.Datatype.arg1 (dtc.cons.arg1 x3))) (tsm.Datatype.arg2 (dtc.cons.arg1 x3)) ($smtx_dt_substitute x1 x2 (tsm.Datatype.arg2 (dtc.cons.arg1 x3))))) ($smtx_dtc_substitute x1 x2 (dtc.cons.arg2 x3)))
   (ite ((_ is dtc.cons) x3)
     (dtc.cons (ite (Teq (dtc.cons.arg1 x3) (tsm.TypeRef x1)) (tsm.Datatype x1 x2) (dtc.cons.arg1 x3)) ($smtx_dtc_substitute x1 x2 (dtc.cons.arg2 x3)))
     dtc.unit
-)) :pattern (($smtx_dtc_substitute x1 x2 x3)))) :named sm.axiom.$smtx_dtc_substitute))
+))) :pattern (($smtx_dtc_substitute x1 x2 x3)))) :named sm.axiom.$smtx_dtc_substitute))
 
 ; program: $smtx_dt_substitute
-(declare-fun $smtx_dt_substitute (String dt.Datatype dt.Datatype) dt.Datatype)
 (assert (! (forall ((x1 String) (x2 dt.Datatype) (x3 dt.Datatype))
   (! (= ($smtx_dt_substitute x1 x2 x3)
   (ite ((_ is dt.sum) x3)

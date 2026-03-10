@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 287
+; #trim-defs: 289
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -183,10 +183,19 @@
 (program $eo_lit_type_Rational ((T Type)) :signature (T) Type)
 (program $eo_lit_type_Binary ((T Type)) :signature (T) Type)
 (program $eo_lit_type_String ((T Type)) :signature (T) Type)
+(program $eo_dt_substitute ()
+  :signature ($smt_builtin_String $eo_Datatype $eo_Datatype) $eo_Datatype)
 (program $eo_dtc_substitute
-  ((s $smt_builtin_String) (d $eo_Datatype) (T $eo_Term) (c $eo_DatatypeCons))
+  ((s $smt_builtin_String) (d $eo_Datatype) (T $eo_Term) (c $eo_DatatypeCons)
+   (s2 $smt_builtin_String) (d2 $eo_Datatype))
   :signature ($smt_builtin_String $eo_Datatype $eo_DatatypeCons) $eo_DatatypeCons
   (
+  (($eo_dtc_substitute s d ($edtc_cons ($eot_DatatypeType s2 d2) c))
+    
+    
+    ($edtc_cons ($eot_DatatypeType s2
+      ($smt_builtin_ite ($smt_builtin_str_= s s2) d2 ($eo_dt_substitute s d d2)))
+      ($eo_dtc_substitute s d c)))
   (($eo_dtc_substitute s d ($edtc_cons T c))
     ($edtc_cons
       
@@ -601,10 +610,19 @@
   (($smtx_typeof_seq_value ($ssm_empty T)) ($tsm_Seq T))
   )
 )
+(program $smtx_dt_substitute ()
+  :signature ($smt_builtin_String $smt_Datatype $smt_Datatype) $smt_Datatype)
 (program $smtx_dtc_substitute
-  ((s $smt_builtin_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons))
+  ((s $smt_builtin_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons)
+   (s2 $smt_builtin_String) (d2 $smt_Datatype))
   :signature ($smt_builtin_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
   (
+  (($smtx_dtc_substitute s d ($dtc_cons ($tsm_Datatype s2 d2) c))
+    
+    
+    ($dtc_cons ($tsm_Datatype s2
+      ($smt_builtin_ite ($smt_builtin_str_= s s2) d2 ($smtx_dt_substitute s d d2)))
+      ($smtx_dtc_substitute s d c)))
   (($smtx_dtc_substitute s d ($dtc_cons T c))
     ($dtc_cons
       

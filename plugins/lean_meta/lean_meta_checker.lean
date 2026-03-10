@@ -47,6 +47,7 @@ abbrev eo_lit_str_substr := SmtEval.smt_lit_str_substr
 abbrev eo_lit_str_indexof := SmtEval.smt_lit_str_indexof
 abbrev eo_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev eo_lit_str_from_code := SmtEval.smt_lit_str_from_code
+abbrev eo_lit_streq := SmtEval.smt_lit_streq
 
 abbrev eo_lit_bit := SmtEval.smt_lit_bit
 abbrev eo_lit_msb := SmtEval.smt_lit_msb

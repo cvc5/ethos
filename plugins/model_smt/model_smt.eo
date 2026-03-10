@@ -599,14 +599,25 @@ $SMT_TYPE_CONSTRUCTORS$
   )
 )
 
+; forward declaration
+(program $smtx_dt_substitute ()
+  :signature ($smt_builtin_String $smt_Datatype $smt_Datatype) $smt_Datatype)
+  
 ; Replaces ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
 ; of a datatype constructor.
 ; Note that this assumes there is no nested recursion, i.e. occurrences of
 ; ($tsm_TypeRef s) that are beneath applications of other types.
 (program $smtx_dtc_substitute
-  ((s $smt_builtin_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons))
+  ((s $smt_builtin_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons)
+   (s2 $smt_builtin_String) (d2 $smt_Datatype))
   :signature ($smt_builtin_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
   (
+  (($smtx_dtc_substitute s d ($dtc_cons ($tsm_Datatype s2 d2) c))
+    ; possible mutual recursion, subsitute into the datatype, unless there is
+    ; name shadowing
+    ($dtc_cons ($tsm_Datatype s2
+      ($smt_builtin_ite ($smt_builtin_str_= s s2) d2 ($smtx_dt_substitute s d d2)))
+      ($smtx_dtc_substitute s d c)))
   (($smtx_dtc_substitute s d ($dtc_cons T c))
     ($dtc_cons
       ; if it is a recursive reference to the type we are substituting, replace
@@ -618,8 +629,9 @@ $SMT_TYPE_CONSTRUCTORS$
   )
 )
 
+; ($smtx_dt_substitute s d d2)
 ; Substitutes ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
-; of datatype constructors of a datatype.
+; of datatype constructors of a datatype d2.
 ; Note that this assumes there is no nested recursion, i.e. occurrences of
 ; ($tsm_TypeRef s) that are beneath applications of other types.
 (program $smtx_dt_substitute

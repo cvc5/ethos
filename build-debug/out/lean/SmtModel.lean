@@ -46,6 +46,7 @@ abbrev smt_lit_str_substr := SmtEval.smt_lit_str_substr
 abbrev smt_lit_str_indexof := SmtEval.smt_lit_str_indexof
 abbrev smt_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev smt_lit_str_from_code := SmtEval.smt_lit_str_from_code
+abbrev smt_lit_streq := SmtEval.smt_lit_streq
 
 abbrev smt_lit_bit := SmtEval.smt_lit_bit
 abbrev smt_lit_msb := SmtEval.smt_lit_msb
@@ -62,11 +63,8 @@ abbrev smt_lit_Nat := SmtEval.smt_lit_Nat
 abbrev smt_lit_int_to_nat := SmtEval.smt_lit_int_to_nat
 abbrev smt_lit_nat_to_int := SmtEval.smt_lit_nat_to_int
 abbrev smt_lit_nateq := SmtEval.smt_lit_nateq
-
+  
 -- SMT Beyond Eunoia
-
-def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
-  | x, y => decide (x = y)
 
 def smt_lit_int_log2 : smt_lit_Int -> smt_lit_Int
   | _ => 0 -- FIXME
@@ -174,9 +172,7 @@ inductive SmtTerm : Type where
   | Const : SmtValue -> SmtType -> SmtTerm
   | UConst : smt_lit_Nat -> SmtType -> SmtTerm
   | not : SmtTerm
-  | or : SmtTerm
   | and : SmtTerm
-  | imp : SmtTerm
 
 deriving Repr, DecidableEq, Inhabited
 
@@ -298,6 +294,7 @@ def __smtx_typeof_seq_value : SmtSeq -> SmtType
 
 
 def __smtx_dtc_substitute (s : smt_lit_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
+  | (SmtDatatypeCons.cons (SmtType.Datatype s2 d2) c) => (SmtDatatypeCons.cons (SmtType.Datatype s2 (smt_lit_ite (smt_lit_streq s s2) d2 (__smtx_dt_substitute s d d2))) (__smtx_dtc_substitute s d c))
   | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (smt_lit_ite (smt_lit_Teq T (SmtType.TypeRef s)) (SmtType.Datatype s d) T) (__smtx_dtc_substitute s d c))
   | SmtDatatypeCons.unit => SmtDatatypeCons.unit
 
@@ -374,18 +371,10 @@ def __smtx_model_eval_not : SmtValue -> SmtValue
   | t1 => SmtValue.NotValue
 
 
-def __smtx_model_eval_or : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Boolean x1), (SmtValue.Boolean x2) => (SmtValue.Boolean (smt_lit_or x1 x2))
-  | t1, t2 => SmtValue.NotValue
-
-
 def __smtx_model_eval_and : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Boolean x1), (SmtValue.Boolean x2) => (SmtValue.Boolean (smt_lit_and x1 x2))
   | t1, t2 => SmtValue.NotValue
 
-
-def __smtx_model_eval_imp (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_or (__smtx_model_eval_not x1) x2)
 
 def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
@@ -394,9 +383,7 @@ def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.String s) => (SmtValue.String s)
   | (SmtTerm.Binary w n) => (smt_lit_ite (smt_lit_and (smt_lit_zleq 0 w) (smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w)))) (SmtValue.Binary w n) SmtValue.NotValue)
   | (SmtTerm.Apply SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval M x1))
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or x1) x2) => (__smtx_model_eval_or (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and x1) x2) => (__smtx_model_eval_and (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp x1) x2) => (__smtx_model_eval_imp (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite x1) x2) x3) => (__smtx_model_eval_ite (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (smt_lit_tforall M s T x1)

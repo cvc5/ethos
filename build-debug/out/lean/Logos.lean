@@ -47,6 +47,7 @@ abbrev eo_lit_str_substr := SmtEval.smt_lit_str_substr
 abbrev eo_lit_str_indexof := SmtEval.smt_lit_str_indexof
 abbrev eo_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev eo_lit_str_from_code := SmtEval.smt_lit_str_from_code
+abbrev eo_lit_streq := SmtEval.smt_lit_streq
 
 abbrev eo_lit_bit := SmtEval.smt_lit_bit
 abbrev eo_lit_msb := SmtEval.smt_lit_msb
@@ -102,9 +103,7 @@ inductive Term : Type where
   | USort : eo_lit_Nat -> Term
   | UConst : eo_lit_Nat -> Term -> Term
   | not : Term
-  | or : Term
   | and : Term
-  | imp : Term
   | eq : Term
 
 deriving Repr, DecidableEq, Inhabited, Ord
@@ -183,12 +182,6 @@ partial def __eo_eq : Term -> Term -> Term
   | t, s => (Term.Boolean (eo_lit_teq s t))
 
 
-partial def __eo_prog_scope : Term -> Proof -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | F, (Proof.pf G) => (Term.Apply (Term.Apply Term.imp F) G)
-  | _, _ => Term.Stuck
-
-
 partial def __eo_prog_contra : Proof -> Proof -> Term
   | (Proof.pf F), (Proof.pf (Term.Apply Term.not __eo_lv_F_2)) => (__eo_requires (__eo_eq F __eo_lv_F_2) (Term.Boolean true) (Term.Boolean false))
   | _, _ => Term.Stuck
@@ -247,7 +240,6 @@ deriving Repr, Inhabited
 /-
 -/
 inductive CRule : Type where
-  | scope : CRule
   | contra : CRule
   | symm : CRule
 
@@ -314,10 +306,9 @@ def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
   | r, args, premises => Term.Stuck
 
 
-def __eo_cmd_step_pop_proven (S : CState) : CRule -> CArgList -> Term -> CIndexList -> Term
-  | _ , _ , Term.Stuck , _  => Term.Stuck
-  | CRule.scope, CArgList.nil, A, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_scope A (Proof.pf (__eo_state_proven_nth S n1)))
-  | r, args, A, premises => Term.Stuck
+def __eo_cmd_step_pop_proven (S : CState) (r : CRule) (args : CArgList) : Term -> CIndexList -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | A, premises => Term.Stuck
 
 
 def __eo_invoke_cmd_step_pop (s : CState) : CState -> CRule -> CArgList -> CIndexList -> CState
@@ -347,17 +338,6 @@ def __eo_invoke_assume_list (S : CState) : Term -> CState
   | (Term.Boolean true) => S
   | as => CState.Stuck
 
-
-def __eo_state_to_formula_rec : CState -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | (CState.cons (CStateObj.assume F) s), (Term.Apply (Term.Apply Term.imp F1) (Term.Apply (Term.Apply Term.imp F2) F3)) => (Term.Apply (Term.Apply Term.imp (Term.Apply (Term.Apply Term.and F) F1)) (Term.Apply (Term.Apply Term.imp F2) F3))
-  | (CState.cons (CStateObj.assume_push F) s), (Term.Apply (Term.Apply Term.imp F1) (Term.Apply (Term.Apply Term.imp F2) F3)) => (Term.Apply (Term.Apply Term.imp F1) (Term.Apply (Term.Apply Term.imp (Term.Apply (Term.Apply Term.and F) F2)) F3))
-  | (CState.cons (CStateObj.proven F) s), (Term.Apply (Term.Apply Term.imp F1) (Term.Apply (Term.Apply Term.imp F2) F3)) => (Term.Apply (Term.Apply Term.imp F1) (Term.Apply (Term.Apply Term.imp F2) (Term.Apply (Term.Apply Term.and F) F3)))
-  | s, F => Term.Stuck
-
-
-def __eo_state_to_formula (s : CState) : Term :=
-  (__eo_state_to_formula_rec s (Term.Apply (Term.Apply Term.imp (Term.Boolean true)) (Term.Apply (Term.Apply Term.imp (Term.Boolean true)) (Term.Boolean true))))
 
 def __eo_checker_is_refutation : Term -> CCmdList -> eo_lit_Bool
   | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
