@@ -244,9 +244,6 @@ def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
 /- Value equality -/
 def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)
-/- Used for ordering values -/
-def __smtx_value_hash : SmtValue -> smt_lit_Int
-  | _ => 0 -- FIXME
   
 /- exists -/
 def smt_lit_tforall : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
@@ -257,6 +254,9 @@ def smt_lit_texists : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtVal
 /- choice -/
 def smt_lit_tchoice : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _, _ => (SmtValue.Boolean true) -- FIXME
+/- extentional equality for values -/
+def smt_lit_veq_ext : SmtValue -> SmtValue -> SmtValue
+  | _, _ => (SmtValue.Boolean true) -- FIXME
 
 /- Definition of SMT-LIB model semantics -/
 
@@ -343,8 +343,10 @@ def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
   | t1, t2, t3 => SmtValue.NotValue
 
 
-def __smtx_model_eval_eq (t1 : SmtValue) (t2 : SmtValue) : SmtValue :=
-  (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value t1) (__smtx_typeof_value t2)) (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value t1) SmtType.None) SmtValue.NotValue (SmtValue.Boolean (smt_lit_veq t1 t2))) SmtValue.NotValue)
+def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Map m1), (SmtValue.Map m2) => (smt_lit_veq_ext (SmtValue.Map m1) (SmtValue.Map m2))
+  | t1, t2 => (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value t1) (__smtx_typeof_value t2)) (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value t1) SmtType.None) SmtValue.NotValue (SmtValue.Boolean (smt_lit_veq t1 t2))) SmtValue.NotValue)
+
 
 def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m), i => (smt_lit_ite (smt_lit_Teq (__smtx_index_typeof_map (__smtx_typeof_map_value m)) (__smtx_typeof_value i)) (__smtx_msm_lookup m i) SmtValue.NotValue)
@@ -361,7 +363,7 @@ def __smtx_model_eval_dt_tester (s : smt_lit_String) (d : SmtDatatype) (n : smt_
   (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value v1) (SmtType.Datatype s d)) (SmtValue.Boolean (smt_lit_veq (__vsm_apply_head v1) (SmtValue.DtCons s d n))) SmtValue.NotValue)
 
 def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
+  | (SmtValue.Apply f v), i => (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value (SmtValue.Apply (SmtValue.Apply f v) i)) SmtType.None) SmtValue.NotValue (SmtValue.Apply (SmtValue.Apply f v) i))
   | (SmtValue.Map m), i => (__smtx_map_select (SmtValue.Map m) i)
   | v, i => SmtValue.NotValue
 

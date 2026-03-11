@@ -336,6 +336,8 @@
 (declare-parameterized-const $emb_vsm.Boolean
   ((b $smt_builtin_Bool :opaque)) $smt_Value)
 (define $vsm_bool ((b $smt_builtin_Bool)) ($emb_vsm.Boolean b))
+(define $vsm_true () ($vsm_bool $smt_builtin_true))
+(define $vsm_false () ($vsm_bool $smt_builtin_false))
 (declare-parameterized-const $emb_vsm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Value)
 (define $vsm_numeral ((n $smt_builtin_Int)) ($emb_vsm.Numeral n))
@@ -415,8 +417,6 @@
   $smt_Datatype)
 (define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
   ($emb_dt.sum c d))
-(define $vsm_true () ($vsm_bool $smt_builtin_true))
-(define $vsm_false () ($vsm_bool $smt_builtin_false))
 (program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
 (program $smtx_msm_lookup
   ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
@@ -563,11 +563,12 @@
   (($smtx_model_eval_ite t1 t2 t3)          $vsm_not_value)
   )
 )
-(program $smtx_model_eval_= ((t1 $smt_Value) (t2 $smt_Value))
+(program $smtx_model_eval_= ((t1 $smt_Value) (t2 $smt_Value) (m1 $smt_Map) (m2 $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   
-  
+  (($smtx_model_eval_= ($vsm_map m1) ($vsm_map m2))
+    ($smt_apply_2 "veq_ext" ($vsm_map m1) ($vsm_map m2)))
   (($smtx_model_eval_= t1 t2)
     (eo::define ((T1 ($smtx_typeof_value t1)))
     (eo::define ((T2 ($smtx_typeof_value t2)))
@@ -650,7 +651,10 @@
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   
-  (($smtx_model_eval_apply ($vsm_apply f v) i)  ($vsm_apply ($vsm_apply f v) i))
+  (($smtx_model_eval_apply ($vsm_apply f v) i)
+    (eo::define ((vv ($vsm_apply ($vsm_apply f v) i)))
+      
+      ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value vv) $tsm_none) $vsm_not_value vv)))
   
   (($smtx_model_eval_apply ($vsm_map m) i) ($smtx_map_select ($vsm_map m) i))
   

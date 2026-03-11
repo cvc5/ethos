@@ -301,6 +301,8 @@
 (declare-fun tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+; whether two (e.g. map) value are extensionally equal
+(declare-fun veq_ext (vsm.Value vsm.Value) vsm.Value)
   
 ;;; Relevant definitions
 
@@ -585,12 +587,6 @@
     vsm.NotValue
 ))) :pattern (($vsm_apply_arg_nth x1 x2)))) :named sm.axiom.$vsm_apply_arg_nth))
 
-; fwd-decl: $smtx_value_hash
-(declare-fun $smtx_value_hash (vsm.Value) Int)
-
-; fwd-decl: $smtx_reverse_value_hash
-(declare-fun $smtx_reverse_value_hash (Int) vsm.Value)
-
 ; fwd-decl: $smtx_typeof_value
 (declare-fun $smtx_typeof_value (vsm.Value) tsm.Type)
 
@@ -726,8 +722,10 @@
 
 ; program: $smtx_model_eval_=
 (define-fun $smtx_model_eval_= ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
+  (ite (and ((_ is vsm.Map) x1) ((_ is vsm.Map) x2))
+    (veq_ext (vsm.Map (vsm.Map.arg1 x1)) (vsm.Map (vsm.Map.arg1 x2)))
     (ite (Teq ($smtx_typeof_value x1) ($smtx_typeof_value x2)) (ite (Teq ($smtx_typeof_value x1) tsm.None) vsm.NotValue (vsm.Boolean (veq x1 x2))) vsm.NotValue)
-)
+))
 
 ; program: $smtx_map_select
 (define-fun $smtx_map_select ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
@@ -783,7 +781,7 @@
 ; program: $smtx_model_eval_apply
 (define-fun $smtx_model_eval_apply ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Apply) x1)
-    (vsm.Apply (vsm.Apply (vsm.Apply.arg1 x1) (vsm.Apply.arg2 x1)) x2)
+    (ite (Teq ($smtx_typeof_value (vsm.Apply (vsm.Apply (vsm.Apply.arg1 x1) (vsm.Apply.arg2 x1)) x2)) tsm.None) vsm.NotValue (vsm.Apply (vsm.Apply (vsm.Apply.arg1 x1) (vsm.Apply.arg2 x1)) x2))
   (ite ((_ is vsm.Map) x1)
     ($smtx_map_select (vsm.Map (vsm.Map.arg1 x1)) x2)
     vsm.NotValue
@@ -967,29 +965,24 @@
   :pattern (($smtx_model_lookup M id T))))
   :named smtx.model_lookup_well_typed))
 
-(assert (! (forall ((x vsm.Value))
-  (! (= ($smtx_reverse_value_hash ($smtx_value_hash x)) x) 
-  :pattern (($smtx_value_hash x))))
-  :named smtx.hash_injective))
-
 ; true iff there exists a value of type T that when substituted into F
 ; is evaluated as tgt. Note that we do not check the type of T here,
 ; instead $smtx_substitute will generate terms ($sm_Const v T), which
 ; only evaluate to v if it is of type T.
-(define-fun texists_total ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+(define-fun texists_eq ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (exists ((v vsm.Value))
     (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const v T) F)) tgt)))
 
 ; true iff all values of type T when substituted into F are evaluated as tgt.
-(define-fun tforall_total ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+(define-fun tforall_eq ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (forall ((v vsm.Value))
     (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const v T) F)) tgt)))
 
 ; exists
 (assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
   (! (= (texists M s T F)
-     (ite (texists_total M s T F (vsm.Boolean true)) (vsm.Boolean true)
-     (ite (tforall_total M s T F (vsm.Boolean false)) (vsm.Boolean false)
+     (ite (texists_eq M s T F (vsm.Boolean true)) (vsm.Boolean true)
+     (ite (tforall_eq M s T F (vsm.Boolean false)) (vsm.Boolean false)
        vsm.NotValue)))
   :pattern ((texists M s T F))))
   :named smtx.texists.def))
@@ -997,8 +990,8 @@
 ; forall
 (assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
   (! (= (tforall M s T F)
-     (ite (texists_total M s T F (vsm.Boolean false)) (vsm.Boolean false)
-     (ite (tforall_total M s T F (vsm.Boolean true)) (vsm.Boolean true)
+     (ite (texists_eq M s T F (vsm.Boolean false)) (vsm.Boolean false)
+     (ite (tforall_eq M s T F (vsm.Boolean true)) (vsm.Boolean true)
        vsm.NotValue)))
   :pattern ((tforall M s T F))))
   :named smtx.tforall.def))
@@ -1007,16 +1000,18 @@
 ; If there exists a value making the existential true, we can assume
 ; that substituting with choice also makes it true.
 (assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
-  (! (=> (texists_total M s T F (vsm.Boolean true))
+  (! (=> (texists_eq M s T F (vsm.Boolean true))
       (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const (tchoice M s T F) T) F))
          (vsm.Boolean true)))
   :pattern ((tchoice M s T F))))
   :named smtx.tchoice.def))
 
 ; whether two values are extensionally equal
-; FIXME: 3 valued?
-(define-fun t_ext_equal ((v1 vsm.Value) (v2 vsm.Value)) Bool
-  (forall ((i vsm.Value)) (= ($smtx_model_eval_apply v1 i) ($smtx_model_eval_apply v2 i))))
+(assert (! (forall ((v1 vsm.Value) (v2 vsm.Value))
+  (! (= (veq_ext v1 v2)
+     (vsm.Boolean (forall ((i vsm.Value)) (= ($smtx_model_eval_apply v1 i) ($smtx_model_eval_apply v2 i)))))
+  :pattern ((veq_ext v1 v2))))
+  :named smtx.veq_ext.def))
 
 ;;; The verification condition
 

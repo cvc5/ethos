@@ -1153,19 +1153,18 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "update",
       {kT, kT, kT},
       "($eo_to_smt_updater ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
-
-  // for alethe
-  addEunoiaReduceSym("@cl", {kT, kT}, "($eo_to_smt (or x1 x2))");
-  addEunoiaReduceSym("@empty_cl", {kT, kT}, "($sm_bool $smt_builtin_false)");
-
+  addEunoiaReduceSym("@strings_num_occur", {kT, kT},
+                     "(div (- (str.len ($eo_to_smt x1)) (str.len (str.replace_all ($eo_to_smt x1) ($eo_to_smt x2) $sm_string_empty))) (str.len ($eo_to_smt x2)))");
   // FIXME: unhandled
-  d_symIgnore["@strings_num_occur"] = true;
   d_symIgnore["@strings_num_occur_re"] = true;
   d_symIgnore["@strings_occur_index"] = true;
   d_symIgnore["@strings_occur_index_re"] = true;
   d_symIgnore["@strings_replace_all_result"] = true;
   d_symIgnore["@const"] = true;
   
+  // for alethe
+  addEunoiaReduceSym("@cl", {kT, kT}, "($eo_to_smt (or x1 x2))");
+  addEunoiaReduceSym("@empty_cl", {kT, kT}, "($sm_bool $smt_builtin_false)");
   // alethe unhandled
   d_symIgnore["choice"] = true;
   d_symIgnore["@let"] = true;
@@ -1761,7 +1760,7 @@ void ModelSmt::printAuxNatRecProgram(const std::string& name,
     std::string ret = (i == 0 ? zeroRet : succRet);
     printAuxProgramCase(ssp.str(), args, ret, paramCount, cases, out);
   }
-  bool needsDefault;
+  bool needsDefault = false;
   for (Kind k : args)
   {
     if (k != Kind::NONE)

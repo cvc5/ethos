@@ -280,6 +280,9 @@ $SMT_TYPE_CONSTRUCTORS$
 (declare-parameterized-const $emb_vsm.Boolean
   ((b $smt_builtin_Bool :opaque)) $smt_Value)
 (define $vsm_bool ((b $smt_builtin_Bool)) ($emb_vsm.Boolean b))
+; helpers
+(define $vsm_true () ($vsm_bool $smt_builtin_true))
+(define $vsm_false () ($vsm_bool $smt_builtin_false))
 
 (declare-parameterized-const $emb_vsm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Value)
@@ -417,20 +420,6 @@ $SMT_TYPE_CONSTRUCTORS$
 (define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
   ($emb_dt.sum c d))
 
-;;; Generic utilities
-
-(define $vsm_true () ($vsm_bool $smt_builtin_true))
-(define $vsm_false () ($vsm_bool $smt_builtin_false))
-
-; define: $smtx_value_hash
-; note: this is an arbitrary hash for SMT values, defined axiomatically.
-(program $smtx_value_hash () :signature ($smt_Value) $smt_builtin_Int)
-(program $smtx_reverse_value_hash () :signature ($smt_builtin_Int) $smt_Value)
-
-; The SMT-LIB comparison of two SMT-LIB values.
-(define $smtx_value_cmp ((a $smt_Value) (b $smt_Value))
-  ($smt_builtin_z_<= ($smtx_value_hash a) ($smtx_value_hash b)))
-
 ; forward declaration
 (program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
 
@@ -458,25 +447,27 @@ $SMT_TYPE_CONSTRUCTORS$
 )
 
 ; updates the map with a new entry, maintaining ordered-ness
-(program $smtx_msm_update
-  ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (m $smt_Map))
-  :signature ($smt_Map $smt_Value $smt_Value) $smt_Map
-  (
-  (($smtx_msm_update ($msm_cons j e1 m) i e2) 
-    ($smt_builtin_ite ($smt_builtin_veq j i)
-      ; we overwrite if same index
-      ($msm_cons i e2 m)
-      ; otherwise, we check the hash to retain sortedness
-      ($smt_builtin_ite ($smtx_value_cmp j i)
-        ($msm_cons i e2 ($msm_cons j e1 m))
-        ($msm_cons j e1 ($smtx_msm_update m i e2)))))
-  (($smtx_msm_update ($msm_default T e1) i e2)
-    ($smt_builtin_ite ($smt_builtin_veq e1 e2)
-      ; we are redundant wrt the default value
-      ($msm_default T e1)
-      ($msm_cons i e2 ($msm_default T e1))))
-  )
-)
+;(program $smtx_msm_update
+;  ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (m $smt_Map))
+;  :signature ($smt_Map $smt_Value $smt_Value) $smt_Map
+;  (
+;  (($smtx_msm_update ($msm_cons j e1 m) i e2)
+;    ($smt_builtin_ite ($smt_builtin_veq j i)
+;      ; we overwrite if same index
+;      ($msm_cons i e2 m)
+;      ; otherwise, we check the hash to retain sortedness
+;      ($smt_builtin_ite ($smtx_value_cmp j i)
+;        ($msm_cons i e2 ($msm_cons j e1 m))
+;        ($msm_cons j e1 ($smtx_msm_update m i e2)))))
+;  (($smtx_msm_update ($msm_default T e1) i e2)
+;    ($smt_builtin_ite ($smt_builtin_veq e1 e2)
+;      ; we are redundant wrt the default value
+;      ($msm_default T e1)
+;      ($msm_cons i e2 ($msm_default T e1))))
+;  )
+;)
+(define $smtx_msm_update ((m $smt_Map) (i $smt_Value) (e $smt_Value))
+  ($msm_cons i e m))
 
 ; Returns the type of the map value or tsm_none
 (program $smtx_typeof_map_value
@@ -747,11 +738,12 @@ $SMT_TYPE_CONSTRUCTORS$
 ; The caller of this method is responsible for ensuring that this behavior is
 ; either avoided or admissible.
 ; return: The evaluation of an equality application.
-(program $smtx_model_eval_= ((t1 $smt_Value) (t2 $smt_Value))
+(program $smtx_model_eval_= ((t1 $smt_Value) (t2 $smt_Value) (m1 $smt_Map) (m2 $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  ; TODO: maps, lambdas should invoke extensionality
-  ;(($smtx_model_eval_= ($vsm_lambda s1 T1 t1) t2)
+  ; TODO: lambdas should invoke extensionality
+  (($smtx_model_eval_= ($vsm_map m1) ($vsm_map m2))
+    ($smt_apply_2 "veq_ext" ($vsm_map m1) ($vsm_map m2)))
   (($smtx_model_eval_= t1 t2)
     (eo::define ((T1 ($smtx_typeof_value t1)))
     (eo::define ((T2 ($smtx_typeof_value t2)))
@@ -979,7 +971,10 @@ $SMT_TYPE_CONSTRUCTORS$
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   ; If a Herbrand interpretation, apply it to the next value.
-  (($smtx_model_eval_apply ($vsm_apply f v) i)  ($vsm_apply ($vsm_apply f v) i))
+  (($smtx_model_eval_apply ($vsm_apply f v) i)
+    (eo::define ((vv ($vsm_apply ($vsm_apply f v) i)))
+      ; must ensure the type is correct
+      ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value vv) $tsm_none) $vsm_not_value vv)))
   ; The function evaluated to a map value, call the map lookup.
   (($smtx_model_eval_apply ($vsm_map m) i) ($smtx_map_select ($vsm_map m) i))
   ; Lambda case
