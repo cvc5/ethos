@@ -10,7 +10,20 @@ abbrev smt_lit_Bool := SmtEval.smt_lit_Bool
 abbrev smt_lit_Int := SmtEval.smt_lit_Int
 abbrev smt_lit_Rat := SmtEval.smt_lit_Rat
 abbrev smt_lit_String := SmtEval.smt_lit_String
-abbrev smt_lit_RegLan := String --FIXME
+
+inductive SmtRegLan : Type where
+  | empty : SmtRegLan
+  | epsilon : SmtRegLan
+  | char : Char -> SmtRegLan
+  | range : Char -> Char -> SmtRegLan
+  | allchar : SmtRegLan
+  | concat : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | union : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | inter : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | star : SmtRegLan -> SmtRegLan
+  | comp : SmtRegLan -> SmtRegLan
+deriving Repr, DecidableEq, Inhabited
+abbrev smt_lit_RegLan := SmtRegLan
 
 def smt_lit_ite {T : Type} (c : smt_lit_Bool) (t e : T) : T :=
   if c then t else e
@@ -67,57 +80,196 @@ abbrev smt_lit_nateq := SmtEval.smt_lit_nateq
 -- SMT Beyond Eunoia
 
 def smt_lit_int_log2 : smt_lit_Int -> smt_lit_Int
-  | _ => 0 -- FIXME
-
+  | x => Int.ofNat (Nat.log2 (Int.toNat x))
+  
 def smt_lit_str_lt : smt_lit_String -> smt_lit_String -> smt_lit_Bool
-  | _, _ => false -- FIXME
+  | s₁, s₂ => decide (s₁ < s₂)
 def smt_lit_str_from_int : smt_lit_Int -> smt_lit_String
-  | _ => "" -- FIXME
+  | i => if i < 0 then "" else (toString i)
 def smt_lit_str_to_int : smt_lit_String -> smt_lit_Int
-  | _ => 0 -- FIXME
+  | s => match s.toList with
+          | [] => -1
+          | '0' :: _ :: _ => -1
+          | cs => s.toInt?.getD (-1)
 def smt_lit_str_to_upper : smt_lit_String -> smt_lit_String
-  | _ => "" -- FIXME
+  | s => s.toUpper
 def smt_lit_str_to_lower : smt_lit_String -> smt_lit_String
-  | _ => "" -- FIXME
+  | s => s.toLower
 def smt_lit_str_update : smt_lit_String -> smt_lit_Int -> smt_lit_String -> smt_lit_String
-  | _, _, _ => "" -- FIXME
+  | s, i, t =>
+      if i < 0 || smt_lit_str_len s <= i then
+        s
+      else
+        let idx := Int.toNat i
+        String.ofList <| s.toList.take idx ++ t.toList ++ s.toList.drop (idx + 1)
 def smt_lit_str_rev : smt_lit_String -> smt_lit_String
-  | _ => "" -- FIXME
+  | s => String.ofList s.toList.reverse
+def smt_lit_str_replace_first (s pat repl : smt_lit_String) : smt_lit_String :=
+  if pat = "" then
+    repl ++ s
+  else
+    let idx := smt_lit_str_indexof s pat 0
+    if idx < 0 then
+      s
+    else
+      let n := Int.toNat idx
+      String.ofList <| s.toList.take n ++ repl.toList ++ s.toList.drop (n + pat.length)
 def smt_lit_str_replace : smt_lit_String -> smt_lit_String -> smt_lit_String -> smt_lit_String
-  | _, _, _ => "" -- FIXME
+  | s, t1, t2 => smt_lit_str_replace_first s t1 t2
 def smt_lit_str_replace_all : smt_lit_String -> smt_lit_String -> smt_lit_String -> smt_lit_String
-  | _, _, _ => "" -- FIXME
+  | s, t1, t2 => s.replace t1 t2
 def smt_lit_str_contains : smt_lit_String -> smt_lit_String -> smt_lit_Bool
-  | _, _ => false -- FIXME
+  | s, t => s.contains t
+
+-- Regular expressions
+
+def smt_lit_re_nullable : smt_lit_RegLan -> smt_lit_Bool
+  | .empty => false
+  | .epsilon => true
+  | .char _ => false
+  | .range _ _ => false
+  | .allchar => false
+  | .concat r₁ r₂ => smt_lit_re_nullable r₁ && smt_lit_re_nullable r₂
+  | .union r₁ r₂ => smt_lit_re_nullable r₁ || smt_lit_re_nullable r₂
+  | .inter r₁ r₂ => smt_lit_re_nullable r₁ && smt_lit_re_nullable r₂
+  | .star _ => true
+  | .comp r => !(smt_lit_re_nullable r)
+
+def smt_lit_re_mk_concat (r₁ r₂ : smt_lit_RegLan) : smt_lit_RegLan :=
+  match r₁, r₂ with
+  | .empty, _ => .empty
+  | _, .empty => .empty
+  | .epsilon, r => r
+  | r, .epsilon => r
+  | r₁, r₂ => .concat r₁ r₂
+
+def smt_lit_re_mk_union (r₁ r₂ : smt_lit_RegLan) : smt_lit_RegLan :=
+  match r₁, r₂ with
+  | .empty, r => r
+  | r, .empty => r
+  | r₁, r₂ => if h : r₁ = r₂ then r₁ else .union r₁ r₂
+
+def smt_lit_re_mk_inter (r₁ r₂ : smt_lit_RegLan) : smt_lit_RegLan :=
+  match r₁, r₂ with
+  | .empty, _ => .empty
+  | _, .empty => .empty
+  | r₁, r₂ => if h : r₁ = r₂ then r₁ else .inter r₁ r₂
+
+def smt_lit_re_mk_comp : smt_lit_RegLan -> smt_lit_RegLan
+  | .comp r => r
+  | r => .comp r
+
+def smt_lit_re_mk_star : smt_lit_RegLan -> smt_lit_RegLan
+  | .empty => .epsilon
+  | .epsilon => .epsilon
+  | .star r => .star r
+  | r => .star r
+
+def smt_lit_re_deriv (c : Char) : smt_lit_RegLan -> smt_lit_RegLan
+  | .empty => .empty
+  | .epsilon => .empty
+  | .char d => if c = d then .epsilon else .empty
+  | .range lo hi =>
+      if lo.toNat <= c.toNat && c.toNat <= hi.toNat then .epsilon else .empty
+  | .allchar => .epsilon
+  | .concat r₁ r₂ =>
+      smt_lit_re_mk_union
+        (smt_lit_re_mk_concat (smt_lit_re_deriv c r₁) r₂)
+        (if smt_lit_re_nullable r₁ then smt_lit_re_deriv c r₂ else .empty)
+  | .union r₁ r₂ => smt_lit_re_mk_union (smt_lit_re_deriv c r₁) (smt_lit_re_deriv c r₂)
+  | .inter r₁ r₂ => smt_lit_re_mk_inter (smt_lit_re_deriv c r₁) (smt_lit_re_deriv c r₂)
+  | .star r => smt_lit_re_mk_concat (smt_lit_re_deriv c r) (.star r)
+  | .comp r => smt_lit_re_mk_comp (smt_lit_re_deriv c r)
+
+def smt_lit_re_of_list : List Char -> smt_lit_RegLan
+  | [] => .epsilon
+  | c :: cs => smt_lit_re_mk_concat (.char c) (smt_lit_re_of_list cs)
+
+def smt_lit_re_prefix_match_len? (r : smt_lit_RegLan) (xs : List Char) : Option Nat :=
+  let rec go (cur : smt_lit_RegLan) (rest : List Char) (n : Nat) : Option Nat :=
+    if smt_lit_re_nullable cur then
+      some n
+    else
+      match rest with
+      | [] => none
+      | c :: cs => go (smt_lit_re_deriv c cur) cs (n + 1)
+  go r xs 0
+
+def smt_lit_re_find_idx_aux (r : smt_lit_RegLan) (xs : List Char) (idx : Nat) : Option (Nat × Nat) :=
+  match smt_lit_re_prefix_match_len? r xs with
+  | some n => some (idx, n)
+  | none =>
+      match xs with
+      | [] => none
+      | _ :: cs => smt_lit_re_find_idx_aux r cs (idx + 1)
+
+def smt_lit_re_find_idx_from (r : smt_lit_RegLan) (xs : List Char) (start : Nat) : Option (Nat × Nat) :=
+  smt_lit_re_find_idx_aux r (xs.drop start) start
+
+def smt_lit_re_replace_all_list_aux (fuel : Nat) (r : smt_lit_RegLan) (replacement : List Char) :
+    List Char -> List Char
+  | xs =>
+      match fuel with
+      | 0 => xs
+      | fuel + 1 =>
+          match smt_lit_re_prefix_match_len? r xs with
+          | some 0 =>
+              match xs with
+              | [] => replacement
+              | c :: cs => replacement ++ (c :: smt_lit_re_replace_all_list_aux fuel r replacement cs)
+          | some (n + 1) =>
+              replacement ++ smt_lit_re_replace_all_list_aux fuel r replacement (xs.drop (n + 1))
+          | none =>
+              match xs with
+              | [] => []
+              | c :: cs => c :: smt_lit_re_replace_all_list_aux fuel r replacement cs
+
+def smt_lit_re_replace_all_list (r : smt_lit_RegLan) (replacement xs : List Char) : List Char :=
+  smt_lit_re_replace_all_list_aux (xs.length + 1) r replacement xs
+
 def smt_lit_str_to_re : smt_lit_String -> smt_lit_RegLan
-  | _ => "" -- FIXME
+  | s => smt_lit_re_of_list s.toList
 def smt_lit_re_mult : smt_lit_RegLan -> smt_lit_RegLan
-  | _ => "" -- FIXME
+  | r => smt_lit_re_mk_star r
 def smt_lit_re_plus : smt_lit_RegLan -> smt_lit_RegLan
-  | _ => "" -- FIXME
+  | r => smt_lit_re_mk_concat r (smt_lit_re_mk_star r)
 def smt_lit_re_comp : smt_lit_RegLan -> smt_lit_RegLan
-  | _ => "" -- FIXME
+  | r => smt_lit_re_mk_comp r
 def smt_lit_re_concat : smt_lit_RegLan -> smt_lit_RegLan -> smt_lit_RegLan
-  | _, _ => "" -- FIXME
+  | r₁, r₂ => smt_lit_re_mk_concat r₁ r₂
 def smt_lit_re_inter : smt_lit_RegLan -> smt_lit_RegLan -> smt_lit_RegLan
-  | _, _ => "" -- FIXME
+  | r₁, r₂ => smt_lit_re_mk_inter r₁ r₂
 def smt_lit_re_diff : smt_lit_RegLan -> smt_lit_RegLan -> smt_lit_RegLan
-  | _, _ => "" -- FIXME
+  | r₁, r₂ => smt_lit_re_mk_inter r₁ (smt_lit_re_mk_comp r₂)
 def smt_lit_re_union : smt_lit_RegLan -> smt_lit_RegLan -> smt_lit_RegLan
-  | _, _ => "" -- FIXME
+  | r₁, r₂ => smt_lit_re_mk_union r₁ r₂
 def smt_lit_re_range : smt_lit_String -> smt_lit_String -> smt_lit_RegLan
-  | _, _ => "" -- FIXME
+  | s₁, s₂ =>
+      match s₁.toList, s₂.toList with
+      | [c₁], [c₂] => .range c₁ c₂
+      | _, _ => .empty
 def smt_lit_str_in_re : smt_lit_String -> smt_lit_RegLan -> smt_lit_Bool
-  | _, _ => false -- FIXME
+  | s, r =>
+      smt_lit_re_nullable <| s.toList.foldl (fun acc c => smt_lit_re_deriv c acc) r
 def smt_lit_str_indexof_re : smt_lit_String -> smt_lit_RegLan -> smt_lit_Int -> smt_lit_Int
-  | _, _, _ => 0 -- FIXME
+  | s, r, i =>
+      if i < 0 then
+        -1
+      else
+        match smt_lit_re_find_idx_from r s.toList (Int.toNat i) with
+        | some (idx, _) => Int.ofNat idx
+        | none => -1
 def smt_lit_str_replace_re : smt_lit_String -> smt_lit_RegLan -> smt_lit_String -> smt_lit_String
-  | _, _, _ => "" -- FIXME
+  | s, r, replacement =>
+      match smt_lit_re_find_idx_from r s.toList 0 with
+      | some (idx, len) =>
+          String.ofList <| (s.toList.take idx) ++ replacement.toList ++ (s.toList.drop (idx + len))
+      | none => s
 def smt_lit_str_replace_re_all : smt_lit_String -> smt_lit_RegLan -> smt_lit_String -> smt_lit_String
-  | _, _, _ => "" -- FIXME
-def smt_lit_re_allchar : smt_lit_RegLan := "" --FIXME
-def smt_lit_re_none : smt_lit_RegLan := "" --FIXME
-def smt_lit_re_all : smt_lit_RegLan := "" --FIXME
+  | s, r, replacement => String.ofList <| smt_lit_re_replace_all_list r replacement.toList s.toList
+def smt_lit_re_allchar : smt_lit_RegLan := .allchar
+def smt_lit_re_none : smt_lit_RegLan := .empty
+def smt_lit_re_all : smt_lit_RegLan := .star .allchar
 
 -- Partial semantics
 
@@ -232,10 +384,13 @@ end
 /-
 SMT-LIB model
 -/
-abbrev SmtModel := Int -- FIXME
+abbrev SmtModel := Int
 
+-- FIXME:
+-- (__smtx_model_lookup M n T) should return an arbitrary SMT value whose type
+-- is T.
 def __smtx_model_lookup : SmtModel -> smt_lit_Int -> SmtType -> SmtValue
-  | _, _, _ => (SmtValue.Boolean true) -- FIXME
+  | _, _, _ => (SmtValue.Boolean true)
 
 
 /- Type equality -/
@@ -405,16 +560,24 @@ def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
 
 end
 
+inductive smt_model_interprets : SmtModel -> SmtTerm -> Bool -> Prop
+  | intro_true  (M : SmtModel) (t : SmtTerm) :
+      (__smtx_model_eval M t) = (SmtValue.Boolean true) ->
+      (smt_model_interprets M t true)
+  | intro_false (M : SmtModel) (t : SmtTerm) :
+      (__smtx_model_eval M t) = (SmtValue.Boolean false)->
+      smt_model_interprets M t false
+
 /-
 SMT interpretation is satisfiability, i.e. the existence of a model
 interpreting the free constants.
 -/
 inductive smt_interprets : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
-      (exists M : SmtModel, (__smtx_model_eval M t) = (SmtValue.Boolean true)) ->
+      (exists M : SmtModel, (smt_model_interprets M t true)) ->
       smt_interprets t true
   | intro_false (t : SmtTerm) :
-      (forall M : SmtModel, (__smtx_model_eval M t) = (SmtValue.Boolean false))->
+      (forall M : SmtModel, (smt_model_interprets M t false))->
       smt_interprets t false
 
 /- FIXME inductive smt_model_well_typed : SmtModel -> Prop, based on smt axiom -/

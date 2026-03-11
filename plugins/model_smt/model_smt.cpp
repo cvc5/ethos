@@ -522,12 +522,18 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      smtIte(smtZEq("x1", "$smt_builtin_z_zero"),
                             "($vsm_binary x2 x3)",
                             ssSExtRet.str())));
-#else
+#elif 0
   std::stringstream ssSExtRet;
   ssSExtRet << "(ite (= x1 1) x2 ";
   ssSExtRet << "(concat (repeat x1 (extract (- (@bvsize x2) 1) (- (@bvsize x2) "
                "1) x2)) x2))";
   addTermReduceSym("sign_extend", {kInt, kBitVec}, ssSExtRet.str());
+#else
+  addLitSym("sign_extend",
+            {kInt, kBitVec},
+            kT,
+            smtGuard(smtZLeq("$smt_builtin_z_zero", "x1"),
+                     "($vsm_mk_binary ($smt_builtin_z_+ x1 x2) ($smt_builtin_binary_uts x2 x3))"));
 #endif
 #if 0
   std::stringstream ssAshrRet;
