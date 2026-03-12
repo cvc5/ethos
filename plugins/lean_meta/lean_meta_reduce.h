@@ -74,9 +74,13 @@ class LeanMetaReduce : public StdPlugin
  private:
   MetaKind prefixToMetaKind(const std::string& str) const;
   void printEmbAtomicTerm(const Expr& c, std::ostream& os);
-  bool printEmbTerm(const Expr& c,
+  void printEmbTerm(const Expr& c,
                     std::ostream& os,
                     MetaKind tinit = MetaKind::NONE);
+  void printEmbTermInternal(const Expr& c,
+                    std::ostream& os,
+                    MetaKind tinit,
+                    std::map<const ExprValue*, size_t>& lbind);
   void finalizePrograms();
   /**
    * Write program definition to d_defs. For consistency this is also called

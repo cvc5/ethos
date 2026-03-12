@@ -273,15 +273,55 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   return ss.str();
 }
 
-bool LeanMetaReduce::printEmbTerm(const Expr& body,
+void LeanMetaReduce::printEmbTerm(const Expr& body,
                                   std::ostream& os,
                                   MetaKind tinit)
 {
+  std::map<const ExprValue*, size_t> lbind;
+  // FIXME
+  if (false && d_state.getOptions().d_printDag)
+  {
+    std::vector<Expr> ll;
+    lbind = Expr::computeLetBinding(body, ll);
+    std::stringstream osc;
+    bool firstTime = true;
+    for (const Expr& l : ll)
+    {
+      // if its just an $smt_apply_0, don't print
+      if (isSmtApplyApp(l) && l.getNumChildren()==2)
+      {
+        lbind.erase(l.getValue());
+        continue;
+      }
+      if (firstTime)
+      {
+        os << std::endl;
+        firstTime = false;
+      }
+      const ExprValue* lv = l.getValue();
+      size_t id = lbind[lv];
+      os << "    let _v" << id << " := ";
+      lbind.erase(lv);
+      printEmbTermInternal(l, os, tinit, lbind);
+      lbind[lv] = id;
+      os << std::endl;
+    }
+    os << (firstTime ? "" : "    ");
+  }
+  printEmbTermInternal(body, os, tinit, lbind);
+}
+void LeanMetaReduce::printEmbTermInternal(const Expr& body,
+                                  std::ostream& os,
+                                  MetaKind tinit,
+                                          std::map<const ExprValue*, size_t>& lbind)
+{
+
   std::map<Expr, std::string>::const_iterator it;
   std::map<Expr, MetaKind>::const_iterator ittc;
   std::map<std::pair<Expr, MetaKind>, size_t> cparen;
   std::map<std::pair<Expr, MetaKind>, bool> pushedChildren;
   std::map<std::pair<Expr, MetaKind>, size_t>::iterator itc;
+  std::map<const ExprValue*, size_t>::iterator itl;
   std::stringstream osEnd;
   std::vector<Expr> ll;
   // maps smt apply terms to the tuple that they actually are
@@ -300,6 +340,13 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
     if (recTerm.isNull())
     {
       os << " ";
+      visit.pop_back();
+      continue;
+    }
+    itl = lbind.find(cur.first.getValue());
+    if (itl!=lbind.end())
+    {
+      os << "_v" << itl->second;
       visit.pop_back();
       continue;
     }
@@ -455,7 +502,6 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
       visit.emplace_back(rc, ctxRec);
     }
   } while (!visit.empty());
-  return true;
 }
 
 void LeanMetaReduce::defineProgram(const Expr& v, const Expr& prog)
