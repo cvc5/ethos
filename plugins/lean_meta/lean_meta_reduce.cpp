@@ -275,11 +275,11 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
 
 void LeanMetaReduce::printEmbTerm(const Expr& body,
                                   std::ostream& os,
-                                  MetaKind tinit)
+                                  MetaKind tinit,
+                    bool maybeLetify)
 {
   std::map<const ExprValue*, size_t> lbind;
-  // FIXME
-  if (false && d_state.getOptions().d_printDag)
+  if (maybeLetify && d_state.getOptions().d_printDag)
   {
     std::vector<Expr> ll;
     lbind = Expr::computeLetBinding(body, ll);
@@ -343,13 +343,6 @@ void LeanMetaReduce::printEmbTermInternal(const Expr& body,
       visit.pop_back();
       continue;
     }
-    itl = lbind.find(cur.first.getValue());
-    if (itl!=lbind.end())
-    {
-      os << "_v" << itl->second;
-      visit.pop_back();
-      continue;
-    }
     MetaKind parent = cur.second;
     std::pair<Expr, MetaKind> key(recTerm, parent);
     itc = cparen.find(key);
@@ -365,6 +358,22 @@ void LeanMetaReduce::printEmbTermInternal(const Expr& body,
         cparen.erase(key);
       }
       pushedChildren.erase(key);
+      visit.pop_back();
+      continue;
+    }
+    itl = lbind.find(cur.first.getValue());
+    if (itl!=lbind.end())
+    {
+      os << "_v" << itl->second;
+      if (itc != cparen.end())
+      {
+        // NONE context means done with arguments, close the pending parens
+        for (size_t i = 0; i < itc->second; i++)
+        {
+          os << ")";
+        }
+        cparen.erase(key);
+      }
       visit.pop_back();
       continue;
     }
@@ -819,7 +828,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       // concatenated together.
       // Initial context depends on the kind of the argument type of the
       // program.
-      printEmbTerm(hd[j], patMatch, tmk);
+      printEmbTerm(hd[j], patMatch, tmk, false);
       // note this further assumes variables are unique as they are required
       // to be unique at this point
       if (hd[j].getKind() != Kind::PARAM)

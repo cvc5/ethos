@@ -76,7 +76,8 @@ class LeanMetaReduce : public StdPlugin
   void printEmbAtomicTerm(const Expr& c, std::ostream& os);
   void printEmbTerm(const Expr& c,
                     std::ostream& os,
-                    MetaKind tinit = MetaKind::NONE);
+                    MetaKind tinit = MetaKind::NONE,
+                    bool maybeLetify=true);
   void printEmbTermInternal(const Expr& c,
                     std::ostream& os,
                     MetaKind tinit,

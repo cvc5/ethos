@@ -34,8 +34,9 @@ cd ~/ethos/smtlibTests/logos-tests
 for FILE in *.smt2; do
   BASE_FILE=$(basename $FILE)
   BASE_NAME=${BASE_FILE%.*}
-  echo "Generating `pwd`/$FILE to ~/logos/examples/test-$BASE_NAME.cpc.lean"
-  cpc_gen_logos.sh ajr-cvc5 $FILE > temp.lean
+  CVC5_LOGOS=~/bin/cvc5-logos
+  echo "Generating $CVC5_LOGOS `pwd`/$FILE to ~/logos/examples/test-$BASE_NAME.cpc.lean"
+  cpc_gen_logos.sh $CVC5_LOGOS $FILE > temp.lean
   cp temp.lean ~/logos/examples/test-$BASE_NAME.cpc.lean
   cp temp.lean /local/ajreynol/lean/cpc/examples/test-$BASE_NAME.cpc.lean
   rm -f temp.lean
