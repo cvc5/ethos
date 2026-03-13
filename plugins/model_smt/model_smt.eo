@@ -1100,6 +1100,51 @@ $SMT_TYPEOF_AUX$
   )
 )
 
+(program $smtx_typeof_bv_op_2
+  ((T $smt_Type) (U $smt_Type) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_bv_op_2 ($tsm_BitVec n1) ($tsm_BitVec n2))
+    ($smt_builtin_ite ($smt_builtin_z_= n1 n2) ($tsm_BitVec n1) $tsm_none))
+  (($smtx_typeof_bv_op_2 T U) $tsm_none)
+  )
+)
+
+(program $smtx_typeof_bv_op_2_ret
+  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_bv_op_2_ret ($tsm_BitVec n1) ($tsm_BitVec n2) U)
+    ($smt_builtin_ite ($smt_builtin_z_= n1 n2) U $tsm_none))
+  (($smtx_typeof_bv_op_2_ret T U V) $tsm_none)
+  )
+)
+
+(program $smtx_typeof_bv_op_1 ((T $smt_Type) (n $smt_builtin_Int))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_typeof_bv_op_1 ($tsm_BitVec n)) ($tsm_BitVec n))
+  (($smtx_typeof_bv_op_1 T)               $tsm_none)
+  )
+)
+
+(program $smtx_typeof_bv_op_1_ret ((T $smt_Type) (U $smt_Type) (n $smt_builtin_Int))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_bv_op_1_ret ($tsm_BitVec n) U) U)
+  (($smtx_typeof_bv_op_1_ret T U)               $tsm_none)
+  )
+)
+
+(program $smtx_typeof_arith_overload_op_2
+  ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_arith_overload_op_2 $tsm_Int $tsm_Int) $tsm_Int)
+  (($smtx_typeof_arith_overload_op_2 $tsm_Real $tsm_Real) $tsm_Real)
+  (($smtx_typeof_arith_overload_op_2 T U) $tsm_none)
+  )
+)
 (program $smtx_typeof
   ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (d $smt_Datatype)
    (i $smt_builtin_Nat) (j $smt_builtin_Nat)

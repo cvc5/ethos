@@ -393,6 +393,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             smtGuard(smtZLeq("$smt_builtin_z_one", "x1"),
                      smtToSmtEmbed("($smtx_model_eval_re.^_rec "
                                    "($smt_builtin_z_to_n x1) ($vsm_re x2))")));
+  d_typeRetCase["re.^"] = "$tsm_RegLan";
   std::stringstream ssReLoopRet;
   ssReLoopRet << "(ite (> ($vsm_numeral x1) ($vsm_numeral x2))";
   ssReLoopRet << " ($vsm_re ($smt_apply_0 \"re.none\"))";
@@ -413,6 +414,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             smtGuard(smtZLeq("$smt_builtin_z_one", "x1"),
                      smtGuard(smtZLeq("$smt_builtin_z_one", "x2"),
                               smtToSmtEmbed(ssReLoopRet.str()))));
+  d_typeRetCase["re.loop"] = "$tsm_RegLan";
 #endif
   // RE operators
   addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
@@ -474,12 +476,22 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                smtZAdd("x1", "x3"),
                "($smt_builtin_binary_concat x1 x2 x3 x4)",
                false);
+  std::stringstream ssTypeOfConcat;
+  ssTypeOfConcat << "(program $smtx_typeof_concat ((T $smt_Type) (U $smt_Type) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))" << std::endl;
+  ssTypeOfConcat << "  :signature ($smt_Type $smt_Type) $smt_Type" << std::endl;
+  ssTypeOfConcat << "  (" << std::endl;
+  ssTypeOfConcat << "  (($smtx_typeof_concat ($tsm_BitVec n1) ($tsm_BitVec n2)) ($tsm_BitVec ($smt_builtin_z_+ n1 n2)))" << std::endl;
+  ssTypeOfConcat << "  (($smtx_typeof_concat T U) $tsm_none)" << std::endl;
+  ssTypeOfConcat << "  )" << std::endl;
+  ssTypeOfConcat << ")" << std::endl;
+  d_typeCase["concat"] = ssTypeOfConcat.str();
   std::stringstream ssUgtRet;
   ssUgtRet << "($vsm_bool " << smtZLt("x4", "x2") << ")";
   addLitSym("bvugt",
             {kBitVec, kBitVec},
             kT,
             smtGuard(smtZEq("x1", "x3"), ssUgtRet.str()));
+  d_typeRetCase["bvugt"] = "$tsm_Bool";
   // the following operators require a mix of literal evaluation and term
   // reduction
 #if 0
@@ -1333,6 +1345,7 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
   if (it != d_symConstFold.end())
   {
     printDecl(name, it->second.first, Kind::PARAM, nopqArgs);
+    printTypeof(name, it->second.first, it->second.second);
     printModelEvalCall(name, it->second.first);
     printConstFold(name, it->second.first, it->second.second);
     return;
@@ -1343,10 +1356,12 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
   if (its != d_symLitReduce.end())
   {
     std::vector<Kind>& args = std::get<0>(its->second);
+    Kind ret = std::get<1>(its->second);
+    printTypeof(name, args, ret);
     printDecl(name, args, Kind::PARAM, nopqArgs);
     printModelEvalCall(name, args);
     printLitReduce(
-        name, args, std::get<1>(its->second), std::get<2>(its->second));
+        name, args, ret, std::get<2>(its->second));
     return;
   }
   std::map<std::string, std::pair<std::vector<Kind>, std::string>>::iterator
@@ -1796,6 +1811,125 @@ void ModelSmt::printAuxNatRecProgram(const std::string& name,
   out << cases.str();
   out << "  )" << std::endl << ")" << std::endl;
   d_auxSmtEval[name] = out.str();
+}
+
+bool ModelSmt::printTypeInternal(const std::string& name, Kind k, std::ostream& out)
+{
+  std::map<std::string, std::string>::iterator itc  = d_typeRetCase.find(name);
+  if (itc!=d_typeRetCase.end())
+  {
+    out << itc->second;
+    return true;
+  }
+  if (k==Kind::NUMERAL)
+  {
+    out << "$tsm_Int";
+    return true;
+  }
+  else if (k==Kind::RATIONAL)
+  {
+    out << "$tsm_Real";
+    return true;
+  }
+  else if (k==Kind::BOOLEAN)
+  {
+    out << "$tsm_Bool";
+    return true;
+  }
+  else if (k==Kind::STRING)
+  {
+    out << "$tsm_String";
+    return true;
+  }
+  else if (k==Kind::EVAL_TO_STRING)
+  {
+    out << "$tsm_RegLan";
+    return true;
+  }
+  return false;
+}
+
+void ModelSmt::printTypeof(const std::string& name, const std::vector<Kind>& args, Kind ret)
+{
+  d_smtTypeof << "  (($smtx_typeof ($sm_" << name;
+  std::stringstream ssArgs;
+  for (size_t i=0, nargs=args.size(); i<nargs; i++)
+  {
+    d_smtTypeof << " x" << (i+1);
+    ssArgs << " ($smtx_typeof x" << (i+1) << ")";
+  }
+  d_smtTypeof << ")) ";
+  std::map<std::string, std::string>::iterator itc = d_typeCase.find(name);
+  if (itc!=d_typeCase.end())
+  {
+    // print the auxiliary prgoram
+    d_smtTypeofAux << itc->second << std::endl;
+    // print the call to that program
+    d_smtTypeof << " ($smtx_typeof_" << name;
+    d_smtTypeof << ssArgs.str() << "))";
+    return;
+  }
+  if (args.size()==2 && args[0]==Kind::BINARY && args[1]==Kind::BINARY)
+  {
+    std::stringstream rets;
+    if (ret==Kind::BINARY || ret==Kind::ANY)
+    {
+      d_smtTypeof << "($smtx_typeof_bv_op_2" << ssArgs.str() << "))" << std::endl;
+      return;
+    }
+    else if (printTypeInternal(name, ret, rets))
+    {
+      d_smtTypeof << "($smtx_typeof_bv_op_2_ret" << ssArgs.str() << " " << rets.str() << "))" << std::endl;
+      return;
+    }
+  }
+  if (args.size()==1 && args[0]==Kind::BINARY && (ret==Kind::BINARY || ret==Kind::ANY))
+  {
+    d_smtTypeof << "($smtx_typeof_bv_op_1" << ssArgs.str() << "))" << std::endl;
+    return;
+  }
+  if (args.size()==1 && args[0]==Kind::BINARY)
+  {
+    std::stringstream rets;
+    if (printTypeInternal(name, ret, rets))
+    {
+      d_smtTypeof << "($smtx_typeof_bv_op_1_ret" << ssArgs.str() << " " << rets.str() << "))" << std::endl;
+      return;
+    }
+  }
+  if (args.size()==2 && args[0]==Kind::PARAM && args[1]==Kind::PARAM)
+  {
+    d_smtTypeof << "($smtx_typeof_arith_overload_op_2" << ssArgs.str() << "))" << std::endl;
+    return;
+  }
+  std::stringstream ssRet;
+  std::stringstream ssRetEnd;
+  bool success = true;
+  for (size_t i=0, nargs=args.size(); i<nargs; i++)
+  {
+    Kind k = args[i];
+    ssRet << "($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x" << (i+1) << ") ";
+    if (!printTypeInternal("", k, ssRet))
+    {
+      success = false;
+      break;
+    }
+    ssRet << ") ";
+    ssRetEnd << " $tsm_none)";
+  }
+  if (!printTypeInternal(name, ret, ssRet))
+  {
+    success = false;
+  }
+  if (success)
+  {
+    d_smtTypeof << ssRet.str() << ssRetEnd.str();
+  }
+  else
+  {
+    d_smtTypeof << "$tsm_none";
+  }
+  d_smtTypeof << ")" << std::endl;
 }
 
 void ModelSmt::printAuxProgramCase(const std::string& name,

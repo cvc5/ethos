@@ -182,6 +182,7 @@ class ModelSmt : public StdPlugin
                              const std::vector<Kind>& args,
                              const std::string& zeroRet,
                              const std::string& succRet);
+  void printTypeof(const std::string& name, const std::vector<Kind>& args, Kind ret);
 
   void printTermInternal(Kind k, const std::string& term, std::ostream& os);
   /** Finalize declaration, main entry point for calling methods above */
@@ -222,7 +223,8 @@ class ModelSmt : public StdPlugin
    */
   std::map<std::string, std::vector<Kind>> d_symTypes;
   /** Special cases */
-  std::map<std::string, std::vector<std::string>> d_typeCase;
+  std::map<std::string, std::string> d_typeCase;
+  std::map<std::string, std::string> d_typeRetCase;
   /**
    * SMT-LIB symbols with "normal" evaluation, we give their argument kinds
    * and their return kind.
@@ -256,6 +258,8 @@ class ModelSmt : public StdPlugin
   static std::string eoDefine(const std::string& x,
                               const std::string& t,
                               const std::string& ret);
+  /** Print type internal */
+  bool printTypeInternal(const std::string& name, Kind k, std::ostream& out);
 };
 
 }  // namespace ethos
