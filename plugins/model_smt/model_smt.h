@@ -42,12 +42,14 @@ class ModelSmt : public StdPlugin
    */
   void addReduceSym(const std::string& sym,
                     const std::vector<Kind>& args,
+                    Kind ret,
                     const std::string& retTerm);
   /**
    * Add function whose evaluation is ($smt_model_eval <retTerm>).
    */
   void addTermReduceSym(const std::string& sym,
                         const std::vector<Kind>& args,
+                    Kind ret,
                         const std::string& retTerm);
   /**
    * Add function that should be eliminated in the Eunoia to SMT-LIB term
@@ -65,6 +67,7 @@ class ModelSmt : public StdPlugin
    */
   void addRecReduceSym(const std::string& sym,
                        const std::vector<Kind>& args,
+                        Kind ret,
                        const std::string& retTerm);
   /**
    * Add function whose evaluation is
@@ -111,9 +114,6 @@ class ModelSmt : public StdPlugin
   void addConstFoldSym(const std::string& sym,
                        const std::vector<Kind>& args,
                        Kind ret);
-  /**
-   */
-  void addQuantifier(const std::string& sym, const std::vector<Kind>& args);
   /** add type */
   void addTypeSym(const std::string& sym, const std::vector<Kind>& args);
   /** add symbol case */
@@ -239,7 +239,7 @@ class ModelSmt : public StdPlugin
    * SMT-LIB symbols that have simple term-level reductions, we use x1 ... xn as
    * references to the arguments.
    */
-  std::map<std::string, std::pair<std::vector<Kind>, std::string>> d_symReduce;
+  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>> d_symReduce;
   /** those marked rec reduce */
   std::unordered_set<std::string> d_recReduce;
   /**

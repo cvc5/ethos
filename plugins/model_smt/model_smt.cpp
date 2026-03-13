@@ -202,6 +202,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   Kind kString = Kind::STRING;
   Kind kBitVec = Kind::BINARY;
   Kind kT = Kind::PARAM;
+  Kind kAny = Kind::ANY;
   Kind kNone = Kind::NONE;
   Kind kType = Kind::TYPE;
   Kind kRegLan = Kind::EVAL_TO_STRING;
@@ -225,19 +226,19 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // immediately include Bool, as it will not be defined
   // printDecl("Bool", {}, Kind::TYPE);
   // $sm_= and $sm_ite are builtin, reduce them in eo_to_smt
-  addEunoiaReduceSym("=", {kT, kT}, "($sm_= ($eo_to_smt x1) ($eo_to_smt x2))");
+  addEunoiaReduceSym("=", {kAny, kAny}, "($sm_= ($eo_to_smt x1) ($eo_to_smt x2))");
   addEunoiaReduceSym(
       "ite",
-      {kT, kT, kT},
+      {kBool, kAny, kAny},
       "($sm_ite ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
-  addTermReduceSym("distinct", {kT, kT}, "(not (= x1 x2))");
+  addTermReduceSym("distinct", {kAny, kAny}, kBool, "(not (= x1 x2))");
   // Booleans
   addConstFoldSym("and", {kBool, kBool}, kBool);
   addConstFoldSym("or", {kBool, kBool}, kBool);
   // addConstFoldSym("xor", {kBool, kBool}, kBool);
   // addConstFoldSym("=>", {kBool, kBool}, kBool);
-  addTermReduceSym("xor", {kBool, kBool}, "(not (= x1 x2))");
-  addTermReduceSym("=>", {kBool, kBool}, "(or (not x1) x2)");
+  addTermReduceSym("xor", {kBool, kBool}, kBool, "(not (= x1 x2))");
+  addTermReduceSym("=>", {kBool, kBool}, kBool, "(or (not x1) x2)");
   addConstFoldSym("not", {kBool}, kBool);
   // arithmetic
   addTypeSym("Int", {});
@@ -251,15 +252,15 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("$eoo_-.2", {kT}, kT);
   d_overloadRevert["$eoo_-.2"] = "-";
   // addConstFoldSym("abs", {kInt}, kInt);
-  addTermReduceSym("abs", {kInt}, "(ite (< x1 0) (- 0 x1) x1)");
+  addTermReduceSym("abs", {kInt}, kInt, "(ite (< x1 0) (- 0 x1) x1)");
   // addConstFoldSym(">=", {kT, kT}, kBool);
-  addTermReduceSym(">=", {kT, kT}, "(<= x2 x1)");
+  addTermReduceSym(">=", {kT, kT}, kBool, "(<= x2 x1)");
   addConstFoldSym("<=", {kT, kT}, kBool);
   // addConstFoldSym(">", {kT, kT}, kBool);
-  addTermReduceSym(">", {kT, kT}, "(< x2 x1)");
+  addTermReduceSym(">", {kT, kT}, kBool, "(< x2 x1)");
   addConstFoldSym("<", {kT, kT}, kBool);
   // addConstFoldSym("is_int", {kReal}, kBool);
-  addTermReduceSym("is_int", {kReal}, "(= (to_real (to_int x1)) x1)");
+  addTermReduceSym("is_int", {kReal}, kInt, "(= (to_real (to_int x1)) x1)");
 #if 0
   addConstFoldSym("/", {kReal, kReal}, kReal);
   addConstFoldSym("div", {kInt, kInt}, kInt);
@@ -275,17 +276,17 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssQDiv << "(ite (= e2 0/1) (apply ($smtx_model_lookup M "
          << smtApp0("/_by_zero_id")
          << "($tsm_Map $tsm_Real $tsm_Real)) e1) (/_total e1 e2))";
-  addRecReduceSym("/", {kT, kT}, smtToSmtEmbed(ssQDiv.str()));
+  addRecReduceSym("/", {kT, kT}, kReal, smtToSmtEmbed(ssQDiv.str()));
   std::stringstream ssDiv;
   ssDiv << "(ite (= e2 0) (apply ($smtx_model_lookup M "
         << smtApp0("div_by_zero_id")
         << "($tsm_Map $tsm_Int $tsm_Int)) e1) (div_total e1 e2))";
-  addRecReduceSym("div", {kInt, kInt}, smtToSmtEmbed(ssDiv.str()));
+  addRecReduceSym("div", {kInt, kInt}, kInt, smtToSmtEmbed(ssDiv.str()));
   std::stringstream ssMod;
   ssMod << "(ite (= e2 0) (apply ($smtx_model_lookup M "
         << smtApp0("mod_by_zero_id")
         << "($tsm_Map $tsm_Int $tsm_Int)) e1) (mod_total e1 e2))";
-  addRecReduceSym("mod", {kInt, kInt}, smtToSmtEmbed(ssMod.str()));
+  addRecReduceSym("mod", {kInt, kInt}, kInt, smtToSmtEmbed(ssMod.str()));
 #endif
   std::stringstream ssZExp;
   ssZExp << "(ite (>= e2 0) (**_total e1 e2) (ite (= e1 0) (apply "
@@ -293,15 +294,15 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
          << smtApp0("div_by_zero_id")
          << "($tsm_Map $tsm_Int $tsm_Int)) 1) (div_total 1 (**_total e1 (- 0 "
             "e2)))))";
-  addRecReduceSym("**", {kInt, kInt}, smtToSmtEmbed(ssZExp.str()));
+  addRecReduceSym("**", {kInt, kInt}, kInt, smtToSmtEmbed(ssZExp.str()));
   addConstFoldSym("**_total", {kInt, kInt}, kInt);
   addConstFoldSym("to_int", {kReal}, kInt);
   addConstFoldSym("to_real", {kT}, kReal);
-  addTermReduceSym("divisible", {kInt, kInt}, "(= (mod_total x2 x1) 0)");
+  addTermReduceSym("divisible", {kInt, kInt}, kBool, "(= (mod_total x2 x1) 0)");
   // arrays
   addTypeSym("Array", {kType, kType});
-  addTermReduceSym("select", {kT, kT}, "($smtx_map_select x1 x2)");
-  addTermReduceSym("store", {kT, kT, kT}, "($smtx_map_store x1 x2 x3)");
+  addTermReduceSym("select", {kAny, kAny}, kAny, "($smtx_map_select x1 x2)");
+  addTermReduceSym("store", {kAny, kAny, kAny}, kAny, "($smtx_map_store x1 x2 x3)");
   // array constants??
   // FIXME: needs to embed type
   // addReduceSym(
@@ -314,7 +315,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.len", {kString}, kInt);
   addConstFoldSym("str.substr", {kString, kInt, kInt}, kString);
   // addConstFoldSym("str.at", {kString, kInt}, kString);
-  addTermReduceSym("str.at", {kString, kInt}, "(str.substr x1 x2 1)");
+  addTermReduceSym("str.at", {kString, kInt}, kString, "(str.substr x1 x2 1)");
   addConstFoldSym("str.indexof", {kString, kString, kInt}, kInt);
   addConstFoldSym("str.replace", {kString, kString, kString}, kString);
   addConstFoldSym("str.replace_all", {kString, kString, kString}, kString);
@@ -327,33 +328,33 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssIsDigit << "(and (<= ($vsm_numeral " << smtZ(48) << ")"
             << " (str.to_code x1)) (<= (str.to_code x1) ($vsm_numeral "
             << smtZ(57) << ")))";
-  addTermReduceSym("str.is_digit", {kString}, ssIsDigit.str());
+  addTermReduceSym("str.is_digit", {kString}, kBool, ssIsDigit.str());
   addConstFoldSym("str.contains", {kString, kString}, kBool);
   // addConstFoldSym("str.suffixof", {kString, kString}, kBool);
   // reduce
   addTermReduceSym(
       "str.suffixof",
-      {kString, kString},
+      {kString, kString}, kBool,
       "(= x1 (str.substr x2 (- (str.len x2) (str.len x1)) (str.len x1)))");
   // addConstFoldSym("str.prefixof", {kString, kString}, kBool);
   addTermReduceSym("str.prefixof",
-                   {kString, kString},
+                   {kString, kString}, kBool,
                    "(= x1 (str.substr x2 0 (str.len x1)))");
   // addConstFoldSym("str.<=", {kString, kString}, kBool);
   addTermReduceSym(
-      "str.<=", {kString, kString}, "(or (= x1 x2) (str.< x1 x2))");
+      "str.<=", {kString, kString}, kBool, "(or (= x1 x2) (str.< x1 x2))");
   addConstFoldSym("str.<", {kString, kString}, kBool);
   // regular expressions
-  addReduceSym("re.allchar", {}, "($vsm_re ($smt_apply_0 \"re.allchar\"))");
-  addReduceSym("re.none", {}, "($vsm_re ($smt_apply_0 \"re.none\"))");
-  addReduceSym("re.all", {}, "($vsm_re ($smt_apply_0 \"re.all\"))");
+  addReduceSym("re.allchar", {}, kRegLan, "($vsm_re ($smt_apply_0 \"re.allchar\"))");
+  addReduceSym("re.none", {}, kRegLan, "($vsm_re ($smt_apply_0 \"re.none\"))");
+  addReduceSym("re.all", {}, kRegLan, "($vsm_re ($smt_apply_0 \"re.all\"))");
   addConstFoldSym("str.to_re", {kString}, kRegLan);
   addConstFoldSym("re.*", {kRegLan}, kRegLan);
   // addConstFoldSym("re.+", {kRegLan}, kRegLan);
-  addTermReduceSym("re.+", {kRegLan}, "(re.++ x1 (re.* x1))");
+  addTermReduceSym("re.+", {kRegLan}, kRegLan, "(re.++ x1 (re.* x1))");
   // addConstFoldSym("re.opt", {kRegLan}, kRegLan);
   addTermReduceSym(
-      "re.opt", {kRegLan}, "(re.union x1 (str.to_re $sm_string_empty))");
+      "re.opt", {kRegLan}, kRegLan, "(re.union x1 (str.to_re $sm_string_empty))");
   addConstFoldSym("re.comp", {kRegLan}, kRegLan);
   addConstFoldSym("re.++", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.inter", {kRegLan, kRegLan}, kRegLan);
@@ -512,7 +513,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssSgtRet
       << "(or (and (not $msb1) $msb2) (and (= $msb1 $msb2) (bvugt x1 x2)))";
   ssSgtRet << "))))";
-  addTermReduceSym("bvsgt", {kBitVec, kBitVec}, ssSgtRet.str());
+  addTermReduceSym("bvsgt", {kBitVec, kBitVec}, kBool, ssSgtRet.str());
 #endif
   addLitSym("zero_extend",
             {kInt, kBitVec},
@@ -565,7 +566,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                "x1 x2) (bvnot "
                "(bvlshr (bvnot x1) x2)))";
   ssAshrRet << ")";
-  addTermReduceSym("bvashr", {kBitVec, kBitVec}, ssAshrRet.str());
+  addTermReduceSym("bvashr", {kBitVec, kBitVec}, kBitVec, ssAshrRet.str());
 #endif
 #if 0
   std::stringstream ssRLeftRet;
@@ -681,16 +682,16 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                             "x1) ($vsm_binary x2 x3))"));
   // the following are program cases in the main method of the form
   // (($smtx_model_eval (f x1 x2)) ($smtx_model_eval <return>))
-  addTermReduceSym("bvsub", {kBitVec, kBitVec}, "(bvadd x1 (bvneg x2))");
-  addTermReduceSym("bvsle", {kBitVec, kBitVec}, "(bvsge x2 x1)");
-  addTermReduceSym("bvule", {kBitVec, kBitVec}, "(bvuge x2 x1)");
-  addTermReduceSym("bvslt", {kBitVec, kBitVec}, "(bvsgt x2 x1)");
-  addTermReduceSym("bvult", {kBitVec, kBitVec}, "(bvugt x2 x1)");
-  addTermReduceSym("bvnand", {kBitVec, kBitVec}, "(bvnot (bvand x1 x2))");
-  addTermReduceSym("bvnor", {kBitVec, kBitVec}, "(bvnot (bvor x1 x2))");
-  addTermReduceSym("bvxnor", {kBitVec, kBitVec}, "(bvnot (bvxor x1 x2))");
-  addTermReduceSym("bvuge", {kBitVec, kBitVec}, "(or (bvugt x1 x2) (= x1 x2))");
-  addTermReduceSym("bvsge", {kBitVec, kBitVec}, "(or (bvsgt x1 x2) (= x1 x2))");
+  addTermReduceSym("bvsub", {kBitVec, kBitVec}, kBitVec, "(bvadd x1 (bvneg x2))");
+  addTermReduceSym("bvsle", {kBitVec, kBitVec}, kBool, "(bvsge x2 x1)");
+  addTermReduceSym("bvule", {kBitVec, kBitVec}, kBool, "(bvuge x2 x1)");
+  addTermReduceSym("bvslt", {kBitVec, kBitVec}, kBool, "(bvsgt x2 x1)");
+  addTermReduceSym("bvult", {kBitVec, kBitVec}, kBool, "(bvugt x2 x1)");
+  addTermReduceSym("bvnand", {kBitVec, kBitVec}, kBitVec, "(bvnot (bvand x1 x2))");
+  addTermReduceSym("bvnor", {kBitVec, kBitVec}, kBitVec, "(bvnot (bvor x1 x2))");
+  addTermReduceSym("bvxnor", {kBitVec, kBitVec}, kBitVec, "(bvnot (bvxor x1 x2))");
+  addTermReduceSym("bvuge", {kBitVec, kBitVec}, kBool, "(or (bvugt x1 x2) (= x1 x2))");
+  addTermReduceSym("bvsge", {kBitVec, kBitVec}, kBool, "(or (bvsgt x1 x2) (= x1 x2))");
   // sdiv, srem, smod
   for (size_t i = 0; i < 3; i++)
   {
@@ -778,7 +779,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       ssTermRet << " (bvneg $u)))))";
     }
     ssRet << ssTermRet.str() << ssRetEnd.str();
-    addTermReduceSym(op, {kBitVec, kBitVec}, ssRet.str());
+    addTermReduceSym(op, {kBitVec, kBitVec}, kBitVec, ssRet.str());
 #endif
   }
   // overflow predicates
@@ -809,7 +810,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             {kBitVec},
             kBool,
             smtZEq("x2", "($smt_builtin_z_pow2 ($smt_builtin_z_dec x1))"));
-  addTermReduceSym("bvusubo", {kBitVec, kBitVec}, "(bvult x1 x2)");
+  addTermReduceSym("bvusubo", {kBitVec, kBitVec}, kBool, "(bvult x1 x2)");
 #if 0
   addLitSym("bvssubo",
             {kBitVec, kBitVec},
@@ -819,7 +820,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                         "$smt_builtin_z_zero)) (bvsaddo s (bvneg t)))")));
 #else
   addTermReduceSym("bvssubo",
-                   {kBitVec, kBitVec},
+                   {kBitVec, kBitVec}, kBool,
                    "(ite (bvnego x2) (bvsge x1 (@bv 0 (@bvsize x1))) "
                    "(bvsaddo x1 (bvneg x2)))");
 #endif
@@ -832,7 +833,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                                  "($sm_binary x1 $smt_builtin_z_zero))))")));
 #else
   addTermReduceSym("bvsdivo",
-                   {kBitVec, kBitVec},
+                   {kBitVec, kBitVec}, kBool,
                    "(and (bvnego x1) (= x2 (bvnot (@bv 0 (@bvsize x1)))))");
 #endif
   // arith/BV conversions
@@ -1010,27 +1011,27 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_auxDef["@re_unfold_pos_component"] = ssRePosUnfold.str();
   // note that negative indices are silently treated as 0 here
   addEunoiaReduceSym("@re_unfold_pos_component",
-                     {kT, kT, kT},
+                     {kAny, kAny, kAny},
                      smtToSmtEmbed("($eo_to_smt_re_unfold_pos_component ($eo_to_smt x1) "
                      "($eo_to_smt x2) ($eo_to_smt_nat x3))", true));
   // sequences
-  addReduceSym("seq.empty", {kType}, "($smtx_empty_seq x1)");
+  addReduceSym("seq.empty", {kType}, kAny, "($smtx_empty_seq x1)");
   d_recReduce.insert("seq.empty");
   d_specialCases["seq.empty"].emplace_back(
       "(seq.empty (Seq Char))", "($sm_string $smt_builtin_str_empty)");
-  addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
-  addRecReduceSym("seq.nth", {kT, kInt}, "($smtx_seq_nth e1 e2)");
+  addRecReduceSym("seq.unit", {kAny}, kAny, "($smtx_seq_unit e1)");
+  addRecReduceSym("seq.nth", {kAny, kInt}, kAny, "($smtx_seq_nth e1 e2)");
   // sets
   // (Set T) is modelled as (Array T Bool).
   addTypeSym("Set", {kType});
-  addReduceSym("set.empty", {kType}, "($smtx_empty_set x1)");
+  addReduceSym("set.empty", {kType}, kAny, "($smtx_empty_set x1)");
   d_recReduce.insert("set.empty");
-  addTermReduceSym("set.singleton", {kT}, "($smtx_set_singleton x1)");
-  addTermReduceSym("set.inter", {kT, kT}, "($smtx_set_inter x1 x2)");
-  addTermReduceSym("set.minus", {kT, kT}, "($smtx_set_minus x1 x2)");
-  addTermReduceSym("set.union", {kT, kT}, "($smtx_set_union x1 x2)");
-  addTermReduceSym("set.member", {kT, kT}, "($smtx_map_select x2 x1)");
-  addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
+  addTermReduceSym("set.singleton", {kAny}, kAny, "($smtx_set_singleton x1)");
+  addTermReduceSym("set.inter", {kAny, kAny}, kAny, "($smtx_set_inter x1 x2)");
+  addTermReduceSym("set.minus", {kAny, kAny}, kAny, "($smtx_set_minus x1 x2)");
+  addTermReduceSym("set.union", {kAny, kAny}, kAny, "($smtx_set_union x1 x2)");
+  addTermReduceSym("set.member", {kAny, kAny}, kAny, "($smtx_map_select x2 x1)");
+  addTermReduceSym("set.subset", {kAny, kAny}, kBool, "(= (set.inter x1 x2) x1)");
   std::stringstream ssSetsChoose;
   ssSetsChoose
       << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (set.choose x1))))) ";
@@ -1038,7 +1039,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssSetsChoose << "($sm_apply ($sm_choice $smt_builtin_str_vname T) ";
   ssSetsChoose << smtToSmtEmbed("(set.member i ($eo_to_smt x1))", true)
                << ")))";
-  addEunoiaReduceSym("set.choose", {kT, kT}, ssSetsChoose.str());
+  addEunoiaReduceSym("set.choose", {kAny, kAny}, ssSetsChoose.str());
   std::stringstream ssSetsIsSingleton;
   ssSetsIsSingleton
       << "(eo::define (($T ($eo_to_smt_type ($eo_typeof (set.choose x1))))) ";
@@ -1047,7 +1048,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssSetsIsSingleton << smtToSmtEmbed("(= ($eo_to_smt x1) (set.singleton i))",
                                      true)
                     << ")))";
-  addEunoiaReduceSym("set.is_singleton", {kT}, ssSetsIsSingleton.str());
+  addEunoiaReduceSym("set.is_singleton", {kAny}, ssSetsIsSingleton.str());
   // more concise?
   // addEunoiaReduceSym("set.is_singleton", {kT}, "($eo_to_smt (= x1
   // (set.singleton (set.choose x1))))");
@@ -1059,12 +1060,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssSetsDiff << smtToSmtEmbed(
       "(not (= (set.member i ($eo_to_smt x1)) (set.member i ($eo_to_smt x2))))",
       true) << ")))";
-  addEunoiaReduceSym("@sets_deq_diff", {kT, kT}, ssSetsDiff.str());
+  addEunoiaReduceSym("@sets_deq_diff", {kAny, kAny}, ssSetsDiff.str());
   std::stringstream ssIsEmptyRet;
   ssIsEmptyRet << "($vsm_bool "
                << smtValueEq("e1", "($smtx_empty_set ($smtx_typeof_value e1))")
                << ")";
-  addRecReduceSym("set.is_empty", {kT}, ssIsEmptyRet.str());
+  addRecReduceSym("set.is_empty", {kAny}, kBool, ssIsEmptyRet.str());
 #if 0
   addEunoiaReduceSym(
       "set.insert",
@@ -1090,7 +1091,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       smtToSmtEmbed(
           "(ite (= ($eo_to_smt x1) #b1) ($eo_to_smt x2) ($eo_to_smt x3))",
           true));
-  addTermReduceSym("bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) #b1 #b0)");
+  addTermReduceSym("bvcomp", {kBitVec, kBitVec}, kT, "(ite (= x1 x2) #b1 #b0)");
   addEunoiaReduceSym(
       "bvultbv",
       {kBitVec, kBitVec, kBitVec},
@@ -1210,15 +1211,6 @@ void ModelSmt::addConstFoldSym(const std::string& sym,
   d_symConstFold[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
 
-void ModelSmt::addQuantifier(const std::string& sym,
-                             const std::vector<Kind>& args)
-{
-  // always call hard-coded method, without pre-evaluation
-  std::stringstream ret;
-  ret << "($smtx_model_eval_" << sym << " (" << sym << " x1 x2 ))";
-  addReduceSym(sym, args, ret.str());
-}
-
 void ModelSmt::addLitBinSym(const std::string& sym,
                             const std::vector<Kind>& args,
                             const std::string& retWidth,
@@ -1247,12 +1239,14 @@ void ModelSmt::addLitSym(const std::string& sym,
 
 void ModelSmt::addTermReduceSym(const std::string& sym,
                                 const std::vector<Kind>& args,
+                                
+                    Kind ret,
                                 const std::string& retTerm)
 {
   std::cout << "(echo \"trim-defs-cmd (depends " << sym << " " << retTerm
             << ")\")" << std::endl;
   // the specification is SMT syntax, convert to embedding names here
-  addReduceSym(sym, args, smtToSmtEmbed(retTerm));
+  addReduceSym(sym, args, ret, smtToSmtEmbed(retTerm));
 }
 
 void ModelSmt::addEunoiaReduceSym(const std::string& sym,
@@ -1271,13 +1265,15 @@ void ModelSmt::addEunoiaReduceSym(const std::string& sym,
 
 void ModelSmt::addReduceSym(const std::string& sym,
                             const std::vector<Kind>& args,
+                            Kind ret,
                             const std::string& retTerm)
 {
-  d_symReduce[sym] = std::pair<std::vector<Kind>, std::string>(args, retTerm);
+  d_symReduce[sym] = std::tuple<std::vector<Kind>, Kind, std::string>(args, ret, retTerm);
 }
 
 void ModelSmt::addRecReduceSym(const std::string& sym,
                                const std::vector<Kind>& args,
+                               Kind ret,
                                const std::string& retTerm)
 {
   d_recReduce.insert(sym);
@@ -1289,7 +1285,7 @@ void ModelSmt::addRecReduceSym(const std::string& sym,
     ssend << ")";
   }
   ss << retTerm << ssend.str();
-  addReduceSym(sym, args, ss.str());
+  addReduceSym(sym, args, ret, ss.str());
 }
 
 void ModelSmt::bind(const std::string& name, const Expr& e)
@@ -1364,20 +1360,24 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
         name, args, ret, std::get<2>(its->second));
     return;
   }
-  std::map<std::string, std::pair<std::vector<Kind>, std::string>>::iterator
+  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>>::iterator
       itst = d_symReduce.find(name);
   if (itst != d_symReduce.end())
   {
-    printDecl(name, itst->second.first, Kind::PARAM, nopqArgs);
+    std::vector<Kind>& args = std::get<0>(itst->second);
+    Kind ret = std::get<1>(itst->second);
+    printTypeof(name, args, ret);
+    std::string sret = std::get<2>(itst->second);
+    printDecl(name, args, Kind::PARAM, nopqArgs);
     if (d_recReduce.find(name) != d_recReduce.end()
-        || itst->second.first.empty())
+        || args.empty())
     {
-      printModelEvalCallBase(name, itst->second.first, itst->second.second);
+      printModelEvalCallBase(name, args, sret);
     }
     else
     {
-      printModelEvalCall(name, itst->second.first);
-      printTermReduce(name, itst->second.first, itst->second.second);
+      printModelEvalCall(name, args);
+      printTermReduce(name, args, sret);
     }
     return;
   }
