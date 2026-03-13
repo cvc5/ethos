@@ -207,6 +207,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   Kind kType = Kind::TYPE;
   Kind kRegLan = Kind::EVAL_TO_STRING;
   Kind kList = Kind::EVAL_CONS;
+  // these don't matter, just need a unique identifier
+  d_kSet = Kind::EVAL_LIST_SETOF;
+  d_kSeq = Kind::EVAL_LIST_LENGTH;
+  d_kArray = Kind::EVAL_LIST_NTH;
   // Kind kVarList = Kind::VARIABLE;
   d_kindToEoPrefix[kBool] = "bool";
   d_kindToEoPrefix[kInt] = "numeral";
@@ -305,6 +309,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("select", {kAny, kAny}, kAny, "($smtx_map_select x1 x2)");
   addTermReduceSym(
       "store", {kAny, kAny, kAny}, kAny, "($smtx_map_store x1 x2 x3)");
+
+  std::stringstream ssTypeOfSelect;
+  printAuxTypeProgram("select",
+                      {d_kArray, kAny},
+                      "($smt_builtin_ite ($smt_builtin_Teq x1 x3) x2 $tsm_none)",
+                      ssTypeOfSelect);
+  d_typeCase["select"] = ssTypeOfSelect.str();
   // array constants??
   // FIXME: needs to embed type
   // addReduceSym(
@@ -2012,24 +2023,41 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
     if (paramCount > 1)
     {
       progParams << " ";
+    }     
+    if (isTypeProg)
+    {
+      if (ka == Kind::BINARY)
+      {
+        progCases << " ($tsm_BitVec x" << (paramCount + 1) << ")";
+        progParams << " (x" << (paramCount + 1) << " $smt_builtin_Int)";
+        paramCount++;
+        continue;
+      }
+      else if (ka==d_kSet || ka==d_kSeq)
+      {
+        progCases << " ($tsm_" << (ka==d_kSet ? "Set" : "Seq") << " x" << (paramCount + 1) << ")";
+        progParams << " (x" << (paramCount + 1) << " $smt_Type)";
+        paramCount++;
+        continue;
+      }
+      else if (ka==d_kArray)
+      {
+        progCases << " ($tsm_Array x" << (paramCount + 1) << " x" << (paramCount + 2) << ")";
+        progParams << " (x" << (paramCount + 1) << " $smt_Type)";
+        progParams << " (x" << (paramCount + 2) << " $smt_Type)";
+        paramCount = paramCount + 2;
+        continue;
+      }
+      if (!printTypeInternal("", ka, progCases))
+      {
+        progParams << " (x" << (paramCount + 1) << " $smt_Type)";
+        progCases << " x" << (paramCount + 1);
+        paramCount++;
+      }
+      continue;
     }
     if (d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end())
     {
-      if (isTypeProg)
-      {
-        if (ka == Kind::BINARY)
-        {
-          progCases << "($tsm_BitVec x" << (paramCount + 1) << ")";
-          progParams << " (x" << (paramCount + 1) << " $smt_builtin_Int)";
-          paramCount++;
-          continue;
-        }
-        if (!printTypeInternal("", ka, progCases))
-        {
-          Assert(false) << "Unknown kind for type program: " << ka;
-        }
-        continue;
-      }
       paramCount++;
       progCases << " ($vsm_";
       if (ka == Kind::BINARY)

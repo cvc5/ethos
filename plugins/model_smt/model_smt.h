@@ -268,6 +268,10 @@ class ModelSmt : public StdPlugin
                               const std::string& ret);
   /** Print type internal */
   bool printTypeInternal(const std::string& name, Kind k, std::ostream& out);
+  /** Kinds */
+  Kind d_kSet;
+  Kind d_kArray;
+  Kind d_kSeq;
 };
 
 }  // namespace ethos
