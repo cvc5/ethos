@@ -2885,8 +2885,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;
 
-
-
 (program $smtx_typeof_ite ((T $smt_Type) (U $smt_Type) (V $smt_Type))
   :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
   (
@@ -2974,6 +2972,10 @@
   (($smtx_typeof_arith_overload_op_2 T U) $tsm_none)
   )
 )
+
+
+
+
 (program $smtx_typeof
   ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (d $smt_Datatype)
    (i $smt_builtin_Nat) (j $smt_builtin_Nat)

@@ -232,9 +232,12 @@ class ModelSmt : public StdPlugin
    * SMT-LIB types.
    */
   std::map<std::string, std::vector<Kind>> d_symTypes;
-  /** Special cases */
+  /** Special cases: d_typeCase is an auxiliary program which will be called */
   std::map<std::string, std::string> d_typeCase;
+  /** Specifies a SmtType to fill in as the return */
   std::map<std::string, std::string> d_typeRetCase;
+  /** Specifies a custom return from $smtx_typeof */
+  std::map<std::string, std::string> d_typeFullCase;
   /**
    * SMT-LIB symbols with "normal" evaluation, we give their argument kinds
    * and their return kind.
@@ -275,6 +278,8 @@ class ModelSmt : public StdPlugin
   Kind d_kSet;
   Kind d_kArray;
   Kind d_kSeq;
+  Kind d_kBit;
+  Kind d_kIntQuote;
 };
 
 }  // namespace ethos
