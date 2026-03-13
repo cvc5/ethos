@@ -1894,6 +1894,8 @@ void ModelSmt::finalize()
   replace(finalSmt, "$EO_TO_SMT_TYPE_CASES$", d_eoToSmtType.str());
   replace(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
   replace(finalSmt, "$SMT_TYPE_CONSTRUCTORS$", d_smtTypes.str());
+  replace(finalSmt, "$SMT_TYPEOF_CASES$", d_smtTypeof.str());
+  replace(finalSmt, "$SMT_TYPEOF_AUX$", d_smtTypeofAux.str());
 
   std::stringstream ssoe;
   ssoe << s_plugin_path << "plugins/model_smt/model_smt_gen.eo";

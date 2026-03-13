@@ -205,6 +205,9 @@ class ModelSmt : public StdPlugin
   /** Term and type constructors */
   std::stringstream d_smtTerms;
   std::stringstream d_smtTypes;
+  /** SMT type rules for terms */
+  std::stringstream d_smtTypeof;
+  std::stringstream d_smtTypeofAux;
   /** Declarations seen */
   std::vector<std::pair<std::string, Expr>> d_declSeen;
   /** Special cases, printed prior to symbol */

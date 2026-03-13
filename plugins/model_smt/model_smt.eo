@@ -654,6 +654,21 @@ $SMT_TYPE_CONSTRUCTORS$
   ; datatype we are processing is closed.
   ($smtx_typeof_dt_cons_value_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) n))
 
+  
+
+(program $smtx_typeof_dt_cons_rec
+  ((T $smt_Type) (U $smt_Type) (d $smt_Datatype) (c $smt_DatatypeCons) (n $smt_builtin_Nat))
+  :signature ($smt_Type $smt_Datatype $smt_builtin_Nat) $smt_Type
+  (
+  (($smtx_typeof_dt_cons_rec T ($dt_sum $dtc_unit d) $smt_builtin_n_zero) T)
+  (($smtx_typeof_dt_cons_rec T ($dt_sum ($dtc_cons U c) d) $smt_builtin_n_zero)
+    ($tsm_Map U ($smtx_typeof_dt_cons_rec T ($dt_sum c d) $smt_builtin_n_zero)))
+  (($smtx_typeof_dt_cons_rec T ($dt_sum c d) ($smt_builtin_n_succ n))
+    ($smtx_typeof_dt_cons_rec T d n))
+  (($smtx_typeof_dt_cons_rec T d n) $tsm_none)
+  )
+)
+
 ; returns the return type of the selector n,m of datatype d.
 (program $smtx_ret_typeof_sel
   ((T $smt_Type) (n $smt_builtin_Nat) (m $smt_builtin_Nat) (c $smt_DatatypeCons) (d $smt_Datatype))
@@ -1058,7 +1073,84 @@ $SMT_EVAL_CASES$
   )
 )
 
+;;;;;;;;;;;;;;;;;;;;;;
 
+$SMT_TYPEOF_AUX$
+
+(program $smtx_typeof_ite ((T $smt_Type) (U $smt_Type) (V $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_ite $tsm_Bool U V) ($smt_builtin_ite ($smt_builtin_Teq U V) U $tsm_none))
+  (($smtx_typeof_ite T U V)         $tsm_none)
+  )
+)
+
+(program $smtx_typeof_= ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_= T U) ($smt_builtin_ite ($smt_builtin_Teq T U) $tsm_Bool $tsm_none))
+  )
+)
+
+(program $smtx_typeof_apply ((T $smt_Type) (U $smt_Type) (V $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_apply ($tsm_Map T U) V)  ($smt_builtin_ite ($smt_builtin_Teq T V) U $tsm_none))
+  (($smtx_typeof_apply T U)               $tsm_none)
+  )
+)
+
+(program $smtx_typeof
+  ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (d $smt_Datatype)
+   (i $smt_builtin_Nat) (j $smt_builtin_Nat)
+   (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int)
+   (m $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
+   ; generic parameters that may appear in terms to pattern match
+   (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
+  :signature ($smt_Term) $smt_Type
+  (
+  (($smtx_typeof ($sm_bool b))      $tsm_Bool)
+  (($smtx_typeof ($sm_numeral n))   $tsm_Int)
+  (($smtx_typeof ($sm_rational r))  $tsm_Real)
+  (($smtx_typeof ($sm_string s))    $tsm_String)
+  (($smtx_typeof ($sm_binary w n))
+    ; must be legal width and value
+    ($smt_builtin_ite 
+      ($smt_builtin_and
+        ($smt_builtin_z_<= $smt_builtin_z_zero w)
+        ($smt_builtin_z_= n ($smt_builtin_mod_total n ($smt_builtin_z_pow2 w))))
+      ($tsm_BitVec w)
+      $tsm_none))
+$SMT_TYPEOF_CASES$
+  (($smtx_typeof ($sm_ite x1 x2 x3))
+    ($smtx_typeof_ite ($smtx_typeof x1) ($smtx_typeof x2) ($smtx_typeof x3)))
+  (($smtx_typeof ($sm_= x1 x2))
+    ($smtx_typeof_= ($smtx_typeof x1) ($smtx_typeof x2)))
+  ; quantifiers
+  (($smtx_typeof ($sm_apply ($sm_exists s T) x1))
+    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
+  (($smtx_typeof ($sm_apply ($sm_forall s T) x1))
+    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
+  (($smtx_typeof ($sm_apply ($sm_lambda s T) x1))
+    (eo::define ((T1 ($smtx_typeof x1)))
+    ($smt_builtin_ite ($smt_builtin_Teq T1 $tsm_none) $tsm_none ($tsm_Map T T1))))
+  (($smtx_typeof ($sm_apply ($sm_choice s T) x1))
+    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_none) $tsm_none T))
+  ; datatypes
+  (($smtx_typeof ($sm_DtCons s d i))
+    ($smtx_typeof_dt_cons_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) i))
+  (($smtx_typeof ($sm_apply ($sm_DtSel s d i j) x1))
+    ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel ($smtx_dt_substitute s d d) i j)))
+  (($smtx_typeof ($sm_apply ($sm_DtTester s d i) x1))
+    ($tsm_Map ($tsm_Datatype s d) $tsm_Bool))
+  ; other
+  (($smtx_typeof ($sm_apply f x1)) ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
+  (($smtx_typeof ($sm_Const v T)) T)
+  (($smtx_typeof ($sm_UConst i T)) T)
+  (($smtx_typeof x1)   $tsm_none)
+  )
+)
+  
 ;;;;;;;;;;;;;;;;;;;;;;
 
 ; auxiliary definitions for defining $eo_to_smt / $eo_to_smt_type
