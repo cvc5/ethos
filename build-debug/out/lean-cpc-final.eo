@@ -309,7 +309,8 @@
 (define $tsm_RegLan () $emb_tsm.RegLan)
 (declare-parameterized-const $emb_tsm.BitVec ((w $smt_builtin_Int :opaque)) $smt_Type)
 (define $tsm_BitVec ((w $smt_builtin_Int)) ($emb_tsm.BitVec w))
-(declare-parameterized-const $emb_tsm.Map ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
+(declare-parameterized-const $emb_tsm.Map 
+  ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
 (define $tsm_Map ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
 (declare-parameterized-const $emb_tsm.DtConsType
   ((Ti $smt_Type :opaque) (Te $smt_Type :opaque))
@@ -676,7 +677,7 @@
   )
 )
 (program $smtx_model_eval_and
-  ((x1 $smt_builtin_Bool) (x2 $smt_builtin_Bool) (t1 $smt_Value) (t2 $smt_Value))
+  ((x1 $smt_builtin_Bool)(x2 $smt_builtin_Bool) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_model_eval_and ($vsm_bool x1) ($vsm_bool x2)) ($vsm_bool ($smt_apply_2 "and" x1 x2)))

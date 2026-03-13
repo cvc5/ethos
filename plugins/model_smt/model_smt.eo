@@ -178,9 +178,19 @@ $SMT_TERM_CONSTRUCTORS$
 (declare-parameterized-const $emb_tsm.BitVec ((w $smt_builtin_Int :opaque)) $smt_Type)
 (define $tsm_BitVec ((w $smt_builtin_Int)) ($emb_tsm.BitVec w))
 
-; The Map type
-(declare-parameterized-const $emb_tsm.Map ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
+; The Map type (for values)
+(declare-parameterized-const $emb_tsm.Map 
+  ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
 (define $tsm_Map ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
+
+; The Array type (for terms)
+(declare-parameterized-const $emb_tsm.Array 
+  ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
+(define $tsm_Array ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Array Ti Te))
+
+; The Set type (for terms)
+(declare-parameterized-const $emb_tsm.Set ((T $smt_Type :opaque)) $smt_Type)
+(define $tsm_Set ((T $smt_Type)) ($emb_tsm.Set T))
 
 ; The type of partially applied datatype constructors
 (declare-parameterized-const $emb_tsm.DtConsType

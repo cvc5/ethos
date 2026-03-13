@@ -168,11 +168,16 @@ class ModelSmt : public StdPlugin
                            const std::string& ret,
                            size_t& paramCount,
                            std::ostream& progCases,
-                           std::ostream& progParams);
+                           std::ostream& progParams,
+                           bool isTypeProg=false);
   void printAuxProgram(const std::string& name,
                        const std::vector<Kind>& args,
                        std::stringstream& progCases,
                        std::stringstream& progParams);
+  void printAuxTypeProgram(const std::string& name,
+                       const std::vector<Kind>& args,
+                      const std::string& retType,
+                       std::stringstream& out);
   /**
    * Print program where zeroRet and succRet should use parameters
    * n, v1 .... vm, where n is the predecessor Nat (only used in succRet)

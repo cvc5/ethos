@@ -478,13 +478,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                "($smt_builtin_binary_concat x1 x2 x3 x4)",
                false);
   std::stringstream ssTypeOfConcat;
-  ssTypeOfConcat << "(program $smtx_typeof_concat ((T $smt_Type) (U $smt_Type) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))" << std::endl;
-  ssTypeOfConcat << "  :signature ($smt_Type $smt_Type) $smt_Type" << std::endl;
-  ssTypeOfConcat << "  (" << std::endl;
-  ssTypeOfConcat << "  (($smtx_typeof_concat ($tsm_BitVec n1) ($tsm_BitVec n2)) ($tsm_BitVec ($smt_builtin_z_+ n1 n2)))" << std::endl;
-  ssTypeOfConcat << "  (($smtx_typeof_concat T U) $tsm_none)" << std::endl;
-  ssTypeOfConcat << "  )" << std::endl;
-  ssTypeOfConcat << ")" << std::endl;
+  printAuxTypeProgram("concat", {kBitVec, kBitVec}, "($tsm_BitVec ($smt_builtin_z_+ x1 x2))", ssTypeOfConcat);
   d_typeCase["concat"] = ssTypeOfConcat.str();
   std::stringstream ssUgtRet;
   ssUgtRet << "($vsm_bool " << smtZLt("x4", "x2") << ")";
@@ -1429,7 +1423,7 @@ void ModelSmt::printDecl(const std::string& name,
     // note that if we are a builtin type, we don't need to print the embedding
     // declaration
     if (name == "Int" || name == "Real" || name == "Char" || name == "BitVec"
-        || name == "Seq" || name == "RegLan")
+        || name == "Seq" || name == "RegLan" || name == "Array" || name == "Set")
     {
       out = &tmp;
     }
@@ -1762,6 +1756,33 @@ void ModelSmt::printAuxProgram(const std::string& name,
                       << progSig.str() << ")" << std::endl;
 }
 
+void ModelSmt::printAuxTypeProgram(const std::string& name,
+                      const std::vector<Kind>& args,
+                      const std::string& retType,
+                      std::stringstream& out)
+{
+  std::stringstream progName;
+  progName << "$smtx_typeof_" << name;
+  std::stringstream outParams;
+  std::stringstream outSig;
+  std::vector<Kind> defaultArgs;
+  for (size_t i=0, nargs=args.size(); i<nargs; i++)
+  {
+    outSig << (i>0 ? " " : "") << "$smt_Type";
+    defaultArgs.push_back(Kind::NONE);
+  }
+  std::stringstream outCases;
+  size_t paramCount = 0;
+  printAuxProgramCase(progName.str(), args, retType, paramCount, outCases, outParams, true);
+  printAuxProgramCase(progName.str(), defaultArgs, "$tsm_none", paramCount, outCases, outParams, true);
+  out << "(program $smtx_typeof_" << name << " (" << outParams.str() << ")" << std::endl;
+  out << "  :signature (" << outSig.str() << ") $smt_Type" << std::endl;
+  out << "  (" << std::endl;
+  out << outCases.str();
+  out << "  )" << std::endl;
+  out << ")" << std::endl;
+}
+
 void ModelSmt::printAuxNatRecProgram(const std::string& name,
                                      const std::vector<Kind>& args,
                                      const std::string& zeroRet,
@@ -1937,19 +1958,34 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
                                    const std::string& ret,
                                    size_t& paramCount,
                                    std::ostream& progCases,
-                                   std::ostream& progParams)
+                                   std::ostream& progParams, bool isTypeProg)
 {
   progCases << "  ((" << name;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
     Kind ka = args[i - 1];
-    paramCount++;
     if (paramCount > 1)
     {
       progParams << " ";
     }
     if (d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end())
     {
+      if (isTypeProg)
+      {
+        if (ka == Kind::BINARY)
+        {
+          progCases << "($tsm_BitVec x" << (paramCount + 1) << ")";
+          progParams << " (x" << (paramCount + 1) << " $smt_builtin_Int)";
+          paramCount++;
+          continue;
+        }
+        if (!printTypeInternal("", ka, progCases))
+        {
+          Assert(false) << "Unknown kind for type program: " << ka;
+        }
+        continue;
+      }
+      paramCount++;
       progCases << " ($vsm_";
       if (ka == Kind::BINARY)
       {
@@ -1966,6 +2002,7 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
     }
     else
     {
+      paramCount++;
       progCases << " x" << paramCount;
       progParams << "(x" << paramCount << " $smt_Value)";
     }
