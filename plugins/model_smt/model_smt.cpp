@@ -580,7 +580,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("sign_extend", {kInt, kBitVec}, ssSExtRet.str());
 #else
   addLitSym("sign_extend",
-            {kInt, kBitVec},
+            {d_kIntQuote, kBitVec},
             kT,
             smtGuard(smtZLeq("$smt_builtin_z_zero", "x1"),
                      "($vsm_mk_binary ($smt_builtin_z_+ x1 x2) "
@@ -1132,11 +1132,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "(not (= (set.member i ($eo_to_smt x1)) (set.member i ($eo_to_smt x2))))",
       true) << ")))";
   addEunoiaReduceSym("@sets_deq_diff", {kAny, kAny}, ssSetsDiff.str());
-  std::stringstream ssIsEmptyRet;
-  ssIsEmptyRet << "($vsm_bool "
-               << smtValueEq("e1", "($smtx_empty_set ($smtx_typeof_value e1))")
-               << ")";
-  addRecReduceSym("set.is_empty", {kAny}, kBool, ssIsEmptyRet.str());
+  addEunoiaReduceSym("set.is_empty", {kAny},
+                     smtToSmtEmbed("(= ($eo_to_smt x1) (set.empty ($smtx_typeof ($eo_to_smt x1))))", true));
 #if 0
   addEunoiaReduceSym(
       "set.insert",
@@ -1248,8 +1245,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym(
       "@strings_num_occur",
       {kT, kT},
-      "(div (- (str.len ($eo_to_smt x1)) (str.len (str.replace_all ($eo_to_smt "
-      "x1) ($eo_to_smt x2) $sm_string_empty))) (str.len ($eo_to_smt x2)))");
+      smtToSmtEmbed("(div (- (str.len ($eo_to_smt x1)) (str.len (str.replace_all ($eo_to_smt "
+      "x1) ($eo_to_smt x2) $sm_string_empty))) (str.len ($eo_to_smt x2)))", true));
   // FIXME: unhandled
   d_symIgnore["@strings_num_occur_re"] = true;
   d_symIgnore["@strings_occur_index"] = true;
