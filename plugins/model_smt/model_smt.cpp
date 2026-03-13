@@ -307,15 +307,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // arrays
   addTypeSym("Array", {kType, kType});
   addTermReduceSym("select", {kAny, kAny}, kAny, "($smtx_map_select x1 x2)");
+  addAuxTypeProgram("select",
+                      {d_kArray, kAny},
+                      "($smt_builtin_ite ($smt_builtin_Teq x1 x3) x2 $tsm_none)");
   addTermReduceSym(
       "store", {kAny, kAny, kAny}, kAny, "($smtx_map_store x1 x2 x3)");
-
-  std::stringstream ssTypeOfSelect;
-  printAuxTypeProgram("select",
-                      {d_kArray, kAny},
-                      "($smt_builtin_ite ($smt_builtin_Teq x1 x3) x2 $tsm_none)",
-                      ssTypeOfSelect);
-  d_typeCase["select"] = ssTypeOfSelect.str();
+  addAuxTypeProgram("store",
+                      {d_kArray, kAny, kAny},
+                      "($smt_builtin_ite ($smt_builtin_Teq x1 x3) ($smt_builtin_ite ($smt_builtin_Teq x2 x4) ($tsm_Array x1 x2) $tsm_none) $tsm_none)");
   // array constants??
   // FIXME: needs to embed type
   // addReduceSym(
@@ -495,12 +494,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                smtZAdd("x1", "x3"),
                "($smt_builtin_binary_concat x1 x2 x3 x4)",
                false);
-  std::stringstream ssTypeOfConcat;
-  printAuxTypeProgram("concat",
+  addAuxTypeProgram("concat",
                       {kBitVec, kBitVec},
-                      "($tsm_BitVec ($smt_builtin_z_+ x1 x2))",
-                      ssTypeOfConcat);
-  d_typeCase["concat"] = ssTypeOfConcat.str();
+                      "($tsm_BitVec ($smt_builtin_z_+ x1 x2))");
   std::stringstream ssUgtRet;
   ssUgtRet << "($vsm_bool " << smtZLt("x4", "x2") << ")";
   addLitSym("bvugt",
@@ -1045,21 +1041,21 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_recReduce.insert("seq.empty");
   d_specialCases["seq.empty"].emplace_back(
       "(seq.empty (Seq Char))", "($sm_string $smt_builtin_str_empty)");
-  addRecReduceSym("seq.unit", {kAny}, kAny, "($smtx_seq_unit e1)");
-  addRecReduceSym("seq.nth", {kAny, kInt}, kAny, "($smtx_seq_nth e1 e2)");
+  addRecReduceSym("seq.unit", {kAny}, d_kSeq, "($smtx_seq_unit e1)");
+  addRecReduceSym("seq.nth", {d_kSeq, kInt}, kAny, "($smtx_seq_nth e1 e2)");
   // sets
   // (Set T) is modelled as (Array T Bool).
   addTypeSym("Set", {kType});
   addReduceSym("set.empty", {kType}, kAny, "($smtx_empty_set x1)");
   d_recReduce.insert("set.empty");
-  addTermReduceSym("set.singleton", {kAny}, kAny, "($smtx_set_singleton x1)");
-  addTermReduceSym("set.inter", {kAny, kAny}, kAny, "($smtx_set_inter x1 x2)");
-  addTermReduceSym("set.minus", {kAny, kAny}, kAny, "($smtx_set_minus x1 x2)");
-  addTermReduceSym("set.union", {kAny, kAny}, kAny, "($smtx_set_union x1 x2)");
+  addTermReduceSym("set.singleton", {kAny}, d_kSet, "($smtx_set_singleton x1)");
+  addTermReduceSym("set.inter", {d_kSet, d_kSet}, d_kSet, "($smtx_set_inter x1 x2)");
+  addTermReduceSym("set.minus", {d_kSet, d_kSet}, d_kSet, "($smtx_set_minus x1 x2)");
+  addTermReduceSym("set.union", {d_kSet, d_kSet}, d_kSet, "($smtx_set_union x1 x2)");
   addTermReduceSym(
-      "set.member", {kAny, kAny}, kAny, "($smtx_map_select x2 x1)");
+      "set.member", {kAny, d_kSet}, kBool, "($smtx_map_select x2 x1)");
   addTermReduceSym(
-      "set.subset", {kAny, kAny}, kBool, "(= (set.inter x1 x2) x1)");
+      "set.subset", {d_kSet, d_kSet}, kBool, "(= (set.inter x1 x2) x1)");
   std::stringstream ssSetsChoose;
   ssSetsChoose
       << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (set.choose x1))))) ";
@@ -1828,6 +1824,15 @@ void ModelSmt::printAuxTypeProgram(const std::string& name,
   out << ")" << std::endl;
 }
 
+void ModelSmt::addAuxTypeProgram(const std::string& name,
+                           const std::vector<Kind>& args,
+                           const std::string& retType)
+{
+  std::stringstream out;
+  printAuxTypeProgram(name, args, retType, out);
+  d_typeCase[name] = out.str();
+}
+
 void ModelSmt::printAuxNatRecProgram(const std::string& name,
                                      const std::vector<Kind>& args,
                                      const std::string& zeroRet,
@@ -1951,6 +1956,22 @@ void ModelSmt::printTypeof(const std::string& name,
     else if (printTypeInternal(name, ret, rets))
     {
       d_smtTypeof << "($smtx_typeof_bv_op_2_ret" << ssArgs.str() << " "
+                  << rets.str() << "))" << std::endl;
+      return;
+    }
+  }
+  else if (args.size() == 2 && args[0] == d_kSet && args[1] == d_kSet)
+  {
+    std::stringstream rets;
+    if (ret == d_kSet || ret == Kind::ANY)
+    {
+      d_smtTypeof << "($smtx_typeof_sets_op_2" << ssArgs.str() << "))"
+                  << std::endl;
+      return;
+    }
+    else if (printTypeInternal(name, ret, rets))
+    {
+      d_smtTypeof << "($smtx_typeof_sets_op_2_ret" << ssArgs.str() << " "
                   << rets.str() << "))" << std::endl;
       return;
     }

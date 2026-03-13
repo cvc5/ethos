@@ -178,6 +178,9 @@ class ModelSmt : public StdPlugin
                            const std::vector<Kind>& args,
                            const std::string& retType,
                            std::stringstream& out);
+  void addAuxTypeProgram(const std::string& name,
+                           const std::vector<Kind>& args,
+                           const std::string& retType);
   /**
    * Print program where zeroRet and succRet should use parameters
    * n, v1 .... vm, where n is the predecessor Nat (only used in succRet)

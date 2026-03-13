@@ -2930,6 +2930,25 @@
   )
 )
 
+(program $smtx_typeof_sets_op_2 ((x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_sets_op_2 ($tsm_Set x1) ($tsm_Set x2))
+    ($smt_builtin_ite ($smt_builtin_Teq x1 x2) ($tsm_Set x1) $tsm_none))
+  (($smtx_typeof_sets_op_2 x1 x2) $tsm_none)
+  )
+)
+
+(program $smtx_typeof_sets_op_2_ret
+  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_sets_op_2_ret ($tsm_Set x1) ($tsm_Set x2) U)
+    ($smt_builtin_ite ($smt_builtin_Teq x1 x2) U $tsm_none))
+  (($smtx_typeof_sets_op_2_ret T U V) $tsm_none)
+  )
+)
+
 (program $smtx_typeof_bv_op_1 ((T $smt_Type) (n $smt_builtin_Int))
   :signature ($smt_Type) $smt_Type
   (
