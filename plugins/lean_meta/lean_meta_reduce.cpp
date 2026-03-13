@@ -276,7 +276,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
 void LeanMetaReduce::printEmbTerm(const Expr& body,
                                   std::ostream& os,
                                   MetaKind tinit,
-                    bool maybeLetify)
+                                  bool maybeLetify)
 {
   std::map<const ExprValue*, size_t> lbind;
   if (maybeLetify && d_state.getOptions().d_printDag)
@@ -288,7 +288,7 @@ void LeanMetaReduce::printEmbTerm(const Expr& body,
     for (const Expr& l : ll)
     {
       // if its just an $smt_apply_0, don't print
-      if (isSmtApplyApp(l) && l.getNumChildren()==2)
+      if (isSmtApplyApp(l) && l.getNumChildren() == 2)
       {
         lbind.erase(l.getValue());
         continue;
@@ -310,12 +310,12 @@ void LeanMetaReduce::printEmbTerm(const Expr& body,
   }
   printEmbTermInternal(body, os, tinit, lbind);
 }
-void LeanMetaReduce::printEmbTermInternal(const Expr& body,
-                                  std::ostream& os,
-                                  MetaKind tinit,
-                                          std::map<const ExprValue*, size_t>& lbind)
+void LeanMetaReduce::printEmbTermInternal(
+    const Expr& body,
+    std::ostream& os,
+    MetaKind tinit,
+    std::map<const ExprValue*, size_t>& lbind)
 {
-
   std::map<Expr, std::string>::const_iterator it;
   std::map<Expr, MetaKind>::const_iterator ittc;
   std::map<std::pair<Expr, MetaKind>, size_t> cparen;
@@ -362,7 +362,7 @@ void LeanMetaReduce::printEmbTermInternal(const Expr& body,
       continue;
     }
     itl = lbind.find(cur.first.getValue());
-    if (itl!=lbind.end())
+    if (itl != lbind.end())
     {
       os << "_v" << itl->second;
       if (itc != cparen.end())

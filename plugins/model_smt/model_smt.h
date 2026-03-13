@@ -49,7 +49,7 @@ class ModelSmt : public StdPlugin
    */
   void addTermReduceSym(const std::string& sym,
                         const std::vector<Kind>& args,
-                    Kind ret,
+                        Kind ret,
                         const std::string& retTerm);
   /**
    * Add function that should be eliminated in the Eunoia to SMT-LIB term
@@ -67,7 +67,7 @@ class ModelSmt : public StdPlugin
    */
   void addRecReduceSym(const std::string& sym,
                        const std::vector<Kind>& args,
-                        Kind ret,
+                       Kind ret,
                        const std::string& retTerm);
   /**
    * Add function whose evaluation is
@@ -169,15 +169,15 @@ class ModelSmt : public StdPlugin
                            size_t& paramCount,
                            std::ostream& progCases,
                            std::ostream& progParams,
-                           bool isTypeProg=false);
+                           bool isTypeProg = false);
   void printAuxProgram(const std::string& name,
                        const std::vector<Kind>& args,
                        std::stringstream& progCases,
                        std::stringstream& progParams);
   void printAuxTypeProgram(const std::string& name,
-                       const std::vector<Kind>& args,
-                      const std::string& retType,
-                       std::stringstream& out);
+                           const std::vector<Kind>& args,
+                           const std::string& retType,
+                           std::stringstream& out);
   /**
    * Print program where zeroRet and succRet should use parameters
    * n, v1 .... vm, where n is the predecessor Nat (only used in succRet)
@@ -187,7 +187,9 @@ class ModelSmt : public StdPlugin
                              const std::vector<Kind>& args,
                              const std::string& zeroRet,
                              const std::string& succRet);
-  void printTypeof(const std::string& name, const std::vector<Kind>& args, Kind ret);
+  void printTypeof(const std::string& name,
+                   const std::vector<Kind>& args,
+                   Kind ret);
 
   void printTermInternal(Kind k, const std::string& term, std::ostream& os);
   /** Finalize declaration, main entry point for calling methods above */
@@ -244,7 +246,8 @@ class ModelSmt : public StdPlugin
    * SMT-LIB symbols that have simple term-level reductions, we use x1 ... xn as
    * references to the arguments.
    */
-  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>> d_symReduce;
+  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>>
+      d_symReduce;
   /** those marked rec reduce */
   std::unordered_set<std::string> d_recReduce;
   /**

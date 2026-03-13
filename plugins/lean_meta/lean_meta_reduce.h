@@ -77,11 +77,11 @@ class LeanMetaReduce : public StdPlugin
   void printEmbTerm(const Expr& c,
                     std::ostream& os,
                     MetaKind tinit = MetaKind::NONE,
-                    bool maybeLetify=true);
+                    bool maybeLetify = true);
   void printEmbTermInternal(const Expr& c,
-                    std::ostream& os,
-                    MetaKind tinit,
-                    std::map<const ExprValue*, size_t>& lbind);
+                            std::ostream& os,
+                            MetaKind tinit,
+                            std::map<const ExprValue*, size_t>& lbind);
   void finalizePrograms();
   /**
    * Write program definition to d_defs. For consistency this is also called
