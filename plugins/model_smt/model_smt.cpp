@@ -251,7 +251,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       {kBool, kAny, kAny},
       "($sm_ite ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
   addTermReduceSym("distinct", {kAny, kAny}, kBool, "(not (= x1 x2))");
-  d_typeRetCase["distinct"] = "($smtx_typeof_= ($smtx_typeof x1) ($smtx_typeof x2))";
+  d_typeFullCase["distinct"] = "($smtx_typeof_= ($smtx_typeof x1) ($smtx_typeof x2))";
   // Booleans
   addConstFoldSym("and", {kBool, kBool}, kBool);
   addConstFoldSym("or", {kBool, kBool}, kBool);
@@ -318,6 +318,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("**_total", {kInt, kInt}, kInt);
   addConstFoldSym("to_int", {kReal}, kInt);
   addConstFoldSym("to_real", {kT}, kReal);
+  d_typeFullCase["to_real"] = "(eo::define ((T ($smtx_typeof x1))) ($smt_builtin_ite ($smt_builtin_Teq T $tsm_Int) $tsm_Real ($smt_builtin_ite ($smt_builtin_Teq T $tsm_Real) $tsm_Real $tsm_none)))";
   addTermReduceSym("divisible", {kInt, kInt}, kBool, "(= (mod_total x2 x1) 0)");
   // arrays
   addTypeSym("Array", {kType, kType});
@@ -501,9 +502,15 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssExtractRet << smtZSub(smtZAdd("x1", "$smt_builtin_z_one"), "x2");
   ssExtractRet << " ($smt_builtin_binary_extract x3 x4 x1 x2))";
   addLitSym("extract",
-            {kInt, kInt, kBitVec},
+            {d_kIntQuote, d_kIntQuote, kBitVec},
             kT,
             smtGuard(ssExtractCond.str(), ssExtractRet.str()));
+  std::string ssExtractType =
+  smtGuardType("($smt_builtin_z_<= $smt_builtin_z_zero x2)",
+  smtGuardType("($smt_builtin_z_<= x2 x1)",
+  smtGuardType("($smt_builtin_z_< x1 x3)",
+               "($tsm_BitVec ($smt_builtin_z_inc ($smt_builtin_z_- x2 x1)))")));
+  addAuxTypeProgram("extract", {d_kIntQuote, d_kIntQuote, kBitVec}, ssExtractType);
   addLitBinSym("concat",
                {kBitVec, kBitVec},
                smtZAdd("x1", "x3"),
@@ -542,10 +549,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("bvsgt", {kBitVec, kBitVec}, kBool, ssSgtRet.str());
 #endif
   addLitSym("zero_extend",
-            {kInt, kBitVec},
+            {d_kIntQuote, kBitVec},
             kT,
             smtGuard(smtZLeq("$smt_builtin_z_zero", "x1"),
                      "($vsm_binary ($smt_builtin_z_+ x1 x2) x3)"));
+  addAuxTypeProgram("zero_extend",
+                      {d_kIntQuote, kBitVec},
+                      smtGuardType(smtZLeq("$smt_builtin_z_zero", "x1"),
+                               "($tsm_BitVec ($smt_builtin_z_+ x1 x2))"));
 #if 0
   std::stringstream ssSExtRet;
   ssSExtRet << "(eo::define ((wm1 " << smtToSmtEmbed("(- ($sm_numeral x2) 1)")
@@ -574,6 +585,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             smtGuard(smtZLeq("$smt_builtin_z_zero", "x1"),
                      "($vsm_mk_binary ($smt_builtin_z_+ x1 x2) "
                      "($smt_builtin_binary_uts x2 x3))"));
+  addAuxTypeProgram("sign_extend",
+                      {d_kIntQuote, kBitVec},
+                      smtGuardType(smtZLeq("$smt_builtin_z_zero", "x1"),
+                               "($tsm_BitVec ($smt_builtin_z_+ x1 x2))"));
 #endif
 #if 0
   std::stringstream ssAshrRet;
@@ -882,7 +897,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
   addLitSym("sbv_to_int", {kBitVec}, kInt, "($smt_builtin_binary_uts x1 x2)");
-  addLitSym("int_to_bv", {kInt, kInt}, kT, "($vsm_mk_binary x1 x2)");
+  addLitSym("int_to_bv", {d_kIntQuote, kInt}, kT, "($vsm_mk_binary x1 x2)");
+  addAuxTypeProgram("int_to_bv",
+                      {d_kIntQuote, kInt},
+                      smtGuardType("($smt_builtin_z_<= $smt_builtin_z_zero x1)", "($tsm_BitVec x1)"));
   // Quantifiers
   // one variable at a time, $sm_exists is hardcoded
   addEunoiaReduceSym(
@@ -1068,6 +1086,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("seq.unit", {kAny}, d_kSeq, "($smtx_seq_unit e1)");
   d_typeFullCase["seq.unit"] = smtGuardType1("($smtx_typeof x1)", "($tsm_Set ($smtx_typeof x1))");
   addRecReduceSym("seq.nth", {d_kSeq, kInt}, kAny, "($smtx_seq_nth e1 e2)");
+  addAuxTypeProgram("seq.nth", {d_kSeq, kInt}, "x1");
   // sets
   // (Set T) is modelled as (Array T Bool).
   addTypeSym("Set", {kType});
@@ -1180,7 +1199,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
           true));
 #endif
   // utility guards for negative widths, which do not evaluate
-  addLitSym("@bv", {kInt, kInt}, kT, "($vsm_mk_binary x2 x1)");
+  addLitSym("@bv", {d_kIntQuote, d_kIntQuote}, kT, "($vsm_mk_binary x2 x1)");
+  addAuxTypeProgram("@bv", {d_kIntQuote, d_kIntQuote}, 
+                    smtGuardType("($smt_builtin_z_<= $smt_builtin_z_zero x2)",
+                                 "($tsm_BitVec x1)"));
   addEunoiaReduceSym(
       "@bit",
       {kInt, kBitVec},
