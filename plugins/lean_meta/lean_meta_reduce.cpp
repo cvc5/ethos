@@ -540,11 +540,10 @@ void LeanMetaReduce::finalizePrograms()
   for (size_t i = 0, nprogs = d_progDefs.size(); i < nprogs; i++)
   {
     Expr prog = d_progDefs[i];
-#if 1
     bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
     Expr def = d_progToDef[prog];
     finalizeProgram(prog, def, isDefine);
-#else
+/*
     // Trying to minimize mutual blocks....
     Expr prog = d_progDefs[i];
     if (progProcessed.find(prog) != progProcessed.end())
@@ -605,7 +604,7 @@ void LeanMetaReduce::finalizePrograms()
       }
       waiting.clear();
     }
-#endif
+*/
   }
   Assert(waiting.empty());
 }

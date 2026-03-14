@@ -2549,14 +2549,7 @@
   ; TODO: lambdas should invoke extensionality
   (($smtx_model_eval_= ($vsm_map m1) ($vsm_map m2))
     ($smt_apply_2 "veq_ext" ($vsm_map m1) ($vsm_map m2)))
-  (($smtx_model_eval_= t1 t2)
-    (eo::define ((T1 ($smtx_typeof_value t1)))
-    (eo::define ((T2 ($smtx_typeof_value t2)))
-      ($smt_builtin_ite ($smt_builtin_Teq T1 T2)
-        ($smt_builtin_ite ($smt_builtin_Teq T1 $tsm_none)
-          $vsm_not_value
-          ($vsm_bool ($smt_builtin_veq t1 t2)))
-        $vsm_not_value))))
+  (($smtx_model_eval_= t1 t2) ($vsm_bool ($smt_builtin_veq t1 t2)))
   )
 )
 
@@ -2567,12 +2560,7 @@
   ((v $smt_Value) (i $smt_Value) (m $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_map_select ($vsm_map m) i)
-    ; must ensure type is correct
-    ($smt_builtin_ite
-      ($smt_builtin_Teq ($smtx_index_typeof_map ($smtx_typeof_map_value m)) ($smtx_typeof_value i))
-      ($smtx_msm_lookup m i)
-      $vsm_not_value))
+  (($smtx_map_select ($vsm_map m) i) ($smtx_msm_lookup m i))
   (($smtx_map_select v i)            $vsm_not_value)
   )
 )
@@ -2726,26 +2714,21 @@
   :signature ($smt_Model $smt_builtin_String $smt_Datatype $smt_builtin_Nat $smt_builtin_Nat $smt_Value) $smt_Value
   (
   (($smtx_model_eval_dt_sel M s d n m v)
-    (eo::define ((vT ($smtx_typeof_value v)))
-    ; must ensure its type is T
-    ($smt_builtin_ite ($smt_builtin_Teq vT ($tsm_Datatype s d))
-      ; check if the head of the apply term is ($vsm_DtCons s d n)
-      ($smt_builtin_ite ($smt_builtin_veq ($vsm_apply_head v) ($vsm_DtCons s d n))
-        ($vsm_apply_arg_nth v m)
-        ; wrongly applied selector
-        ; we introduce an uninterpreted function wrong_apply_sel : (-> Int Int D T)
-        ; where (wrong_apply_sel_id n m) is the uninterpreted function corresponding
-        ; to wrong applications of the m^th selector of the n^th constructor of the datatype of v.
+    ; check if the head of the apply term is ($vsm_DtCons s d n)
+    ($smt_builtin_ite ($smt_builtin_veq ($vsm_apply_head v) ($vsm_DtCons s d n))
+      ($vsm_apply_arg_nth v m)
+      ; wrongly applied selector
+      ; we introduce an uninterpreted function wrong_apply_sel : (-> Int Int D T)
+      ; where (wrong_apply_sel_id n m) is the uninterpreted function corresponding
+      ; to wrong applications of the m^th selector of the n^th constructor of the datatype of v.
+      ($smtx_map_select
         ($smtx_map_select
           ($smtx_map_select
-            ($smtx_map_select
-              ($smtx_model_lookup M ($smt_apply_0 "wrong_apply_sel_id")
-                ($tsm_Map $tsm_Int ($tsm_Map $tsm_Int ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel d n m)))))
-              ($vsm_numeral ($smt_builtin_n_to_z n)))
-            ($vsm_numeral ($smt_builtin_n_to_z m)))
-          v))
-      ; ill typed term
-      $vsm_not_value)))
+            ($smtx_model_lookup M ($smt_apply_0 "wrong_apply_sel_id")
+              ($tsm_Map $tsm_Int ($tsm_Map $tsm_Int ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel d n m)))))
+            ($vsm_numeral ($smt_builtin_n_to_z n)))
+          ($vsm_numeral ($smt_builtin_n_to_z m)))
+        v)))
   )
 )
 
@@ -2754,12 +2737,8 @@
   :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Nat $smt_Value) $smt_Value
   (
   (($smtx_model_eval_dt_tester s d n v1)
-    ; must ensure its type is correct
-    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value v1) ($tsm_Datatype s d))
-      ; check if the head of the apply term is ($vsm_DtCons s d n)
-      ($vsm_bool ($smt_builtin_veq ($vsm_apply_head v1) ($vsm_DtCons s d n)))
-      ; ill typed term
-      $vsm_not_value))
+    ; check if the head of the apply term is ($vsm_DtCons s d n)
+    ($vsm_bool ($smt_builtin_veq ($vsm_apply_head v1) ($vsm_DtCons s d n))))
   )
 )
 
@@ -2776,10 +2755,7 @@
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   ; If a Herbrand interpretation, apply it to the next value.
-  (($smtx_model_eval_apply ($vsm_apply f v) i)
-    (eo::define ((vv ($vsm_apply ($vsm_apply f v) i)))
-      ; must ensure the type is correct
-      ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value vv) $tsm_none) $vsm_not_value vv)))
+  (($smtx_model_eval_apply ($vsm_apply f v) i) ($vsm_apply ($vsm_apply f v) i))
   ; The function evaluated to a map value, call the map lookup.
   (($smtx_model_eval_apply ($vsm_map m) i) ($smtx_map_select ($vsm_map m) i))
   ; Lambda case
@@ -2834,14 +2810,7 @@
   (($smtx_model_eval M ($sm_numeral n))   ($vsm_numeral n))
   (($smtx_model_eval M ($sm_rational r))  ($vsm_rational r))
   (($smtx_model_eval M ($sm_string s))    ($vsm_string s))
-  (($smtx_model_eval M ($sm_binary w n))
-    ; must be legal width and value
-    ($smt_builtin_ite 
-      ($smt_builtin_and
-        ($smt_builtin_z_<= $smt_builtin_z_zero w)
-        ($smt_builtin_z_= n ($smt_builtin_mod_total n ($smt_builtin_z_pow2 w))))
-      ($vsm_binary w n)
-      $vsm_not_value))
+  (($smtx_model_eval M ($sm_binary w n))  ($vsm_binary w n))
   ; evaluation of standard SMT symbols
   ; These calls will reference helper methods above, e.g. of the form
   ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
@@ -2885,6 +2854,14 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;
 
+; returns U if T is not none
+(program $smtx_typeof_guard ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_guard T U) ($smt_builtin_ite ($smt_builtin_Teq T $tsm_none) $tsm_none U))
+  )
+)
+
 (program $smtx_typeof_ite ((T $smt_Type) (U $smt_Type) (V $smt_Type))
   :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
   (
@@ -2896,14 +2873,15 @@
 (program $smtx_typeof_= ((T $smt_Type) (U $smt_Type))
   :signature ($smt_Type $smt_Type) $smt_Type
   (
-  (($smtx_typeof_= T U) ($smt_builtin_ite ($smt_builtin_Teq T U) $tsm_Bool $tsm_none))
+  (($smtx_typeof_= T U) ($smtx_typeof_guard T ($smt_builtin_ite ($smt_builtin_Teq T U) $tsm_Bool $tsm_none)))
   )
 )
 
 (program $smtx_typeof_apply ((T $smt_Type) (U $smt_Type) (V $smt_Type))
   :signature ($smt_Type $smt_Type) $smt_Type
   (
-  (($smtx_typeof_apply ($tsm_Map T U) V)  ($smt_builtin_ite ($smt_builtin_Teq T V) U $tsm_none))
+  (($smtx_typeof_apply ($tsm_Map T U) V)
+    ($smtx_typeof_guard T ($smt_builtin_ite ($smt_builtin_Teq T V) U $tsm_none)))
   (($smtx_typeof_apply T U)               $tsm_none)
   )
 )
@@ -3011,13 +2989,13 @@
     ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
   (($smtx_typeof ($sm_apply ($sm_lambda s T) x1))
     (eo::define ((T1 ($smtx_typeof x1)))
-    ($smt_builtin_ite ($smt_builtin_Teq T1 $tsm_none) $tsm_none ($tsm_Map T T1))))
-  (($smtx_typeof ($sm_apply ($sm_choice s T) x1))
-    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_none) $tsm_none T))
+    ($smtx_typeof_guard T1 ($tsm_Map T T1))))
+  (($smtx_typeof ($sm_apply ($sm_choice s T) x1)) ($smtx_typeof_guard ($smtx_typeof x1) T))
   ; datatypes
   (($smtx_typeof ($sm_DtCons s d i))
     ($smtx_typeof_dt_cons_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) i))
   (($smtx_typeof ($sm_apply ($sm_DtSel s d i j) x1))
+    ; TODO: well founded???
     ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel ($smtx_dt_substitute s d d) i j)))
   (($smtx_typeof ($sm_apply ($sm_DtTester s d i) x1))
     ($tsm_Map ($tsm_Datatype s d) $tsm_Bool))
@@ -3244,6 +3222,19 @@
   )
 )
 
+(program $eo_model_interprets ((M $smt_Model) (F Bool) (v $smt_Value))
+  :signature ($smt_Model Bool $smt_Value) Bool
+  (
+  (($eo_model_interprets M F v)
+    (eo::define ((G ($eo_to_smt F)))
+    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof G) $tsm_Bool)
+      ($smt_builtin_ite ($smt_builtin_veq ($smtx_model_eval M G) v)
+        true
+        false)
+      false)))
+  )
+)
+
 ; program: $eo_model_sat
 ; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
 ; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
@@ -3251,13 +3242,13 @@
 (program $eo_model_sat ((M $smt_Model) (F Bool))
   :signature ($smt_Model Bool) Bool
   (
-  (($eo_model_sat M F) ($smt_builtin_ite ($smt_builtin_veq ($smtx_model_eval M ($eo_to_smt F)) $vsm_true) true false))
+  (($eo_model_sat M F) ($eo_model_interprets M F $vsm_true))
   )
 )
 (program $eo_model_unsat ((M $smt_Model) (F Bool))
   :signature ($smt_Model Bool) Bool
   (
-  (($eo_model_unsat M F) ($smt_builtin_ite ($smt_builtin_veq ($smtx_model_eval M ($eo_to_smt F)) $vsm_false) true false))
+  (($eo_model_unsat M F) ($eo_model_interprets M F $vsm_false))
   )
 )
 
