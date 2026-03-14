@@ -371,7 +371,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("re.opt",
                    {kRegLan},
                    kRegLan,
-                   "(re.union x1 (str.to_re $sm_string_empty))");
+                   "(re.union x1 (str.to_re $vsm_string_empty))");
   addConstFoldSym("re.comp", {kRegLan}, kRegLan);
   addConstFoldSym("re.++", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.inter", {kRegLan, kRegLan}, kRegLan);
