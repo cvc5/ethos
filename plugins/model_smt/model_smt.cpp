@@ -277,7 +277,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym(">", {kT, kT}, kBool, "(< x2 x1)");
   addConstFoldSym("<", {kT, kT}, kBool);
   // addConstFoldSym("is_int", {kReal}, kBool);
-  addTermReduceSym("is_int", {kReal}, kInt, "(= (to_real (to_int x1)) x1)");
+  addTermReduceSym("is_int", {kReal}, kBool, "(= (to_real (to_int x1)) x1)");
   addConstFoldSym("/_total", {kT, kT}, kReal);
   addConstFoldSym("div_total", {kInt, kInt}, kInt);
   addConstFoldSym("mod_total", {kInt, kInt}, kInt);
@@ -854,12 +854,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                     true));
   // sequences
   addReduceSym("seq.empty", {kType}, kAny, "($smtx_empty_seq x1)");
-  d_typeFullCase["seq.empty"] = "($tsm_Set x1)";
+  d_typeFullCase["seq.empty"] = "($tsm_Seq x1)";
   d_recReduce.insert("seq.empty");
   d_specialCases["seq.empty"].emplace_back(
       "(seq.empty (Seq Char))", "($sm_string $smt_builtin_str_empty)");
   addRecReduceSym("seq.unit", {kAny}, d_kSeq, "($smtx_seq_unit e1)");
-  d_typeFullCase["seq.unit"] = smtGuardType1("($smtx_typeof x1)", "($tsm_Set ($smtx_typeof x1))");
+  d_typeFullCase["seq.unit"] = smtGuardType1("($smtx_typeof x1)", "($tsm_Seq ($smtx_typeof x1))");
   addRecReduceSym("seq.nth", {d_kSeq, kInt}, kAny, "($smtx_seq_nth e1 e2)");
   addAuxTypeProgram("seq.nth", {d_kSeq, kInt}, "x1");
   // sets
@@ -1807,10 +1807,20 @@ void ModelSmt::printTypeof(const std::string& name,
   }
   else if (args.size() == 2 && args[0] == Kind::PARAM && args[1] == Kind::PARAM)
   {
-    // mixed arithmetic
-    d_smtTypeof << "($smtx_typeof_arith_overload_op_2" << ssArgs.str() << "))"
+    std::stringstream rets;
+    if (ret==Kind::PARAM)
+    {
+      // mixed arithmetic
+      d_smtTypeof << "($smtx_typeof_arith_overload_op_2" << ssArgs.str() << "))"
                 << std::endl;
-    return;
+      return;
+    }
+    else if (printTypeInternal(name, ret, rets))
+    {
+      d_smtTypeof << "($smtx_typeof_arith_overload_op_2_ret" << ssArgs.str() << " "
+                  << rets.str() << "))" << std::endl;
+      return;
+    }
   }
   std::stringstream ssRet;
   std::stringstream ssRetEnd;

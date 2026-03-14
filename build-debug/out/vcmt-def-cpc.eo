@@ -883,9 +883,9 @@
     ($smtx_model_eval_= ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
   
   (($smtx_model_eval M ($sm_apply ($sm_exists s T) x1))
-    ($smt_apply_4 "tforall" M s T x1))
-  (($smtx_model_eval M ($sm_apply ($sm_forall s T) x1))
     ($smt_apply_4 "texists" M s T x1))
+  (($smtx_model_eval M ($sm_apply ($sm_forall s T) x1))
+    ($smt_apply_4 "tforall" M s T x1))
   (($smtx_model_eval M ($sm_apply ($sm_lambda s T) x1)) ($vsm_lambda s T x1))
   (($smtx_model_eval M ($sm_apply ($sm_choice s T) x1))
     ($smt_apply_4 "tchoice" M s T x1))
@@ -978,10 +978,10 @@
   
   (($smtx_typeof ($sm_DtCons s d i))
     ($smtx_typeof_dt_cons_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) i))
-  (($smtx_typeof ($sm_apply ($sm_DtSel s d i j) x1))
+  (($smtx_typeof ($sm_DtSel s d i j))
     
     ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel ($smtx_dt_substitute s d d) i j)))
-  (($smtx_typeof ($sm_apply ($sm_DtTester s d i) x1))
+  (($smtx_typeof ($sm_DtTester s d i))
     ($tsm_Map ($tsm_Datatype s d) $tsm_Bool))
   
   (($smtx_typeof ($sm_apply f x1)) ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))

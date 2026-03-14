@@ -679,9 +679,9 @@
     ($smtx_model_eval_= ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
   
   (($smtx_model_eval M ($sm_apply ($sm_exists s T) x1))
-    ($smt_apply_4 "tforall" M s T x1))
-  (($smtx_model_eval M ($sm_apply ($sm_forall s T) x1))
     ($smt_apply_4 "texists" M s T x1))
+  (($smtx_model_eval M ($sm_apply ($sm_forall s T) x1))
+    ($smt_apply_4 "tforall" M s T x1))
   (($smtx_model_eval M ($sm_apply ($sm_lambda s T) x1)) ($vsm_lambda s T x1))
   (($smtx_model_eval M ($sm_apply ($sm_choice s T) x1))
     ($smt_apply_4 "tchoice" M s T x1))
