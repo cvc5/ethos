@@ -377,11 +377,11 @@ end
 
 inductive smt_model_interprets : SmtModel -> SmtTerm -> Bool -> Prop
   | intro_true  (M : SmtModel) (t : SmtTerm) :
-      (__smtx_typeof t) = (SmtType.Bool true) ->
+      (__smtx_typeof t) = SmtType.Bool ->
       (__smtx_model_eval M t) = (SmtValue.Boolean true) ->
       (smt_model_interprets M t true)
   | intro_false (M : SmtModel) (t : SmtTerm) :
-      (__smtx_typeof t) = (SmtType.Bool true) ->
+      (__smtx_typeof t) = SmtType.Bool ->
       (__smtx_model_eval M t) = (SmtValue.Boolean false)->
       smt_model_interprets M t false
 
