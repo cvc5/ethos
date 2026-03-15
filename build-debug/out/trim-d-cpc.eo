@@ -1120,58 +1120,6 @@
   )
 )
 
-(program $eo_typeof_dt_cons_rec
-  ((T $eo_Term) (U $eo_Term) (d $eo_Datatype) (c $eo_DatatypeCons) (n $smt_builtin_Nat))
-  :signature ($eo_Term $eo_Datatype $smt_builtin_Nat) $eo_Term
-  (
-  (($eo_typeof_dt_cons_rec T ($edt_sum $edtc_unit d) $smt_builtin_n_zero) T)
-  (($eo_typeof_dt_cons_rec T ($edt_sum ($edtc_cons U c) d) $smt_builtin_n_zero)
-    (-> U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $smt_builtin_n_zero)))
-  (($eo_typeof_dt_cons_rec T ($edt_sum c d) ($smt_builtin_n_succ n))
-    ($eo_typeof_dt_cons_rec T d n))
-  )
-)
-  
-(program $eo_typeof_dt_sel_return
-  ((d $eo_Datatype) (c $eo_DatatypeCons) (T $eo_Term) (n $smt_builtin_Nat) (m $smt_builtin_Nat))
-  :signature ($eo_Datatype $smt_builtin_Nat $smt_builtin_Nat) $eo_Term
-  (
-  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_n_zero $smt_builtin_n_zero)
-    T)
-  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_n_zero ($smt_builtin_n_succ m))
-    ($eo_typeof_dt_sel_return ($edt_sum c d) $smt_builtin_n_zero m))
-  (($eo_typeof_dt_sel_return ($edt_sum c d) ($smt_builtin_n_succ n) m)
-    ($eo_typeof_dt_sel_return d n m))
-  )
-)
-
-; program: $eo_typeof
-; implements: eo::typeof
-(program $eo_typeof
-  ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int)
-   (i $smt_builtin_Nat) (j $smt_builtin_Nat) (w $smt_builtin_Int) (r $smt_builtin_Rat)
-   (s $smt_builtin_String) (d $eo_Datatype))
-  :signature ($eo_Term) $eo_Term
-  (
-  (($eo_typeof ($eot_bool b))                 Bool)
-  (($eo_typeof ($eot_numeral n))              ($eo_lit_type_Numeral ($eot_numeral n)))
-  (($eo_typeof ($eot_rational r))             ($eo_lit_type_Rational ($eot_rational r)))
-  (($eo_typeof ($eot_string s))               ($eo_lit_type_String ($eot_string s)))
-  (($eo_typeof ($eot_binary w n))             ($eo_lit_type_Binary ($eot_binary w n)))
-  (($eo_typeof ($eot_Var s T))                T)
-  (($eo_typeof ($eot_DatatypeType s d))       Type)
-  (($eo_typeof ($eot_DtCons s d i))
-    ($eo_typeof_dt_cons_rec ($eot_DatatypeType s d) ($eo_dt_substitute s d d) i))
-  (($eo_typeof ($eot_DtSel s d i j))
-    ; TODO: ensure types, well-foundedness of d??
-    (-> ($eot_DatatypeType s d) ($eo_typeof_dt_sel_return ($eo_dt_substitute s d d) i j)))
-  (($eo_typeof ($eot_USort i))                Type)
-  (($eo_typeof ($eot_UConst i T))             T)
-  ; otherwise, invoke the routine for user types from the signature.
-  (($eo_typeof t)                            ($eo_typeof_main t))
-  )
-)
-
 ; fwd-decl: $eo_dt_constructors_main
 ; note: This method returns the constructors for all user defined terms.
 (program $eo_dt_constructors_main () :signature ($eo_Term) $eo_Term)
@@ -1603,107 +1551,6 @@
 )
 
 
-;;; type checking
-
-; program: $eo_typeof_apply
-(program $eo_typeof_apply ((T Type) (U Type) (V Type))
-  :signature (Type Type) Type
-  (
-  (($eo_typeof_apply (-> T U) V) (eo::requires T V U))
-  )
-)
-
-; non-ground type defintions
-
-; program: $eo_typeof_=
-(program $eo_typeof_= ((A Type))
-  :signature (Type) Type
-  (
-  (($eo_typeof_= A) (-> A Bool))
-  )
-)
-
-
-; program: $eo_typeof_fun_type
-; Calling ($eo_typeof_fun_type Ut Tt) returns the type of (-> U T), 
-; given that U has type Ut and T has type Tt. 
-(program $eo_typeof_fun_type ()
-  :signature (Type Type) Type
-  (
-  (($eo_typeof_fun_type Type Type) Type)
-  )
-)
-
-; program: $eo_typeof_main
-; This defines the type rules for non-builtin terms. It is used as a subroutine
-; of the final $eo_typeof routine, defined in eo_builtin_smt.eo.
-(program $eo_typeof_main
-  (($eo_T Type) ($eo_U Type) ($eo_V Type) ($eo_W Type) 
-   ($eo_f (-> $eo_U $eo_V $eo_T)) ($eo_x $eo_U) ($eo_t $eo_T)
-   ($eo_W1 Type) ($eo_x1 $eo_W1)
-   ($eo_W2 Type) ($eo_x2 $eo_W2)
-   ($eo_W3 Type) ($eo_x3 $eo_W3)
-   ($eo_W4 Type) ($eo_x4 $eo_W4)) ; assumes functions can be monomorphized with at most 4 arguments
-  :signature ($eo_T) Type
-  (
-  (($eo_typeof_main Type)                   Type)
-  (($eo_typeof_main (-> $eo_T $eo_U))
-    ; requires both children are types
-    ($eo_typeof_fun_type ($eo_typeof $eo_T) ($eo_typeof $eo_U)))
-  (($eo_typeof_main Bool)                   Type)
-  (($eo_typeof_main true)                   Bool)
-  (($eo_typeof_main false)                  Bool)
-  ; TODO: auto-generate these?
-  (($eo_typeof_main $eo_List)               Type)
-  (($eo_typeof_main $eo_List_nil)           $eo_List)
-  (($eo_typeof_main ($eo_List_cons $eo_x1)) (-> $eo_List $eo_List))
-  ; type-rule: Int
-  (($eo_typeof_main Int) Type)
-  ; type-rule: Real
-  (($eo_typeof_main Real) Type)
-  ; type-rule: BitVec
-  (($eo_typeof_main BitVec) (-> Int Type))
-  ; type-rule: Char
-  (($eo_typeof_main Char) Type)
-  ; type-rule: Seq
-  (($eo_typeof_main Seq) (-> Type Type))
-  ; type-rule: not
-  (($eo_typeof_main not) (-> Bool Bool))
-  ; type-rule: and
-  (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
-  ; type-rule: =
-  (($eo_typeof_main (= $eo_x1)) ($eo_typeof_= ($eo_typeof $eo_x1)))
-
-  (($eo_typeof_main ($eo_f $eo_x))          ($eo_typeof_apply ($eo_typeof $eo_f) ($eo_typeof $eo_x)))
-  )
-)
-
-(program $eo_lit_type_Numeral ((T Type) (t T))
-  :signature (T) Type
-  (
-  (($eo_lit_type_Numeral t) Int)
-  )
-)
-(program $eo_lit_type_Rational ((T Type) (t T))
-  :signature (T) Type
-  (
-  (($eo_lit_type_Rational t) Real)
-  )
-)
-(program $eo_lit_type_Binary ((T Type) (t T))
-  :signature (T) Type
-  (
-  (($eo_lit_type_Binary t) (BitVec (eo::len t)))
-  )
-)
-(program $eo_lit_type_String ((T Type) (t T))
-  :signature (T) Type
-  (
-  (($eo_lit_type_String t) (Seq Char))
-  )
-)
-
-
 ;;; datatype constructors
 
 ; TODO: meta semantics for arbitrary unknown datatypes?
@@ -1757,6 +1604,150 @@
   ; builtin case of $eo_List
   (($eo_is_list_nil $eo_List_cons $eo_List_nil) true)
   (($eo_is_list_nil f nil)                      false)
+  )
+)
+
+;;; types
+
+(program $eo_typeof_dt_cons_rec
+  ((T $eo_Term) (U $eo_Term) (d $eo_Datatype) (c $eo_DatatypeCons) (n $smt_builtin_Nat))
+  :signature ($eo_Term $eo_Datatype $smt_builtin_Nat) $eo_Term
+  (
+  (($eo_typeof_dt_cons_rec T ($edt_sum $edtc_unit d) $smt_builtin_n_zero) T)
+  (($eo_typeof_dt_cons_rec T ($edt_sum ($edtc_cons U c) d) $smt_builtin_n_zero)
+    (-> U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $smt_builtin_n_zero)))
+  (($eo_typeof_dt_cons_rec T ($edt_sum c d) ($smt_builtin_n_succ n))
+    ($eo_typeof_dt_cons_rec T d n))
+  )
+)
+
+(program $eo_typeof_dt_sel_return
+  ((d $eo_Datatype) (c $eo_DatatypeCons) (T $eo_Term) (n $smt_builtin_Nat) (m $smt_builtin_Nat))
+  :signature ($eo_Datatype $smt_builtin_Nat $smt_builtin_Nat) $eo_Term
+  (
+  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_n_zero $smt_builtin_n_zero)
+    T)
+  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_n_zero ($smt_builtin_n_succ m))
+    ($eo_typeof_dt_sel_return ($edt_sum c d) $smt_builtin_n_zero m))
+  (($eo_typeof_dt_sel_return ($edt_sum c d) ($smt_builtin_n_succ n) m)
+    ($eo_typeof_dt_sel_return d n m))
+  )
+)
+
+; program: $eo_typeof_apply
+(program $eo_typeof_apply ((T Type) (U Type) (V Type))
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_apply (-> T U) V) (eo::requires T V U))
+  )
+)
+
+; non-ground type defintions
+
+; program: $eo_typeof_fun_type
+; Calling ($eo_typeof_fun_type Ut Tt) returns the type of (-> U T),
+; given that U has type Ut and T has type Tt.
+(program $eo_typeof_fun_type ()
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_fun_type Type Type) Type)
+  )
+)
+
+(program $eo_lit_type_Numeral ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_Numeral t) Int)
+  )
+)
+(program $eo_lit_type_Rational ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_Rational t) Real)
+  )
+)
+(program $eo_lit_type_Binary ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_Binary t) (BitVec (eo::len t)))
+  )
+)
+(program $eo_lit_type_String ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_String t) (Seq Char))
+  )
+)
+
+
+; program: $eo_typeof_=
+(program $eo_typeof_= ((A Type))
+  :signature (Type) Type
+  (
+  (($eo_typeof_= A) (-> A Bool))
+  )
+)
+
+
+; program: $eo_typeof
+; implements: eo::typeof
+(program $eo_typeof
+  ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int)
+   (i $smt_builtin_Nat) (j $smt_builtin_Nat) (w $smt_builtin_Int) (r $smt_builtin_Rat)
+   (s $smt_builtin_String) (d $eo_Datatype)
+   ($eo_T Type) ($eo_U Type) ($eo_V Type) ($eo_W Type)
+   ($eo_f (-> $eo_U $eo_V $eo_T)) ($eo_x $eo_U) ($eo_t $eo_T)
+   ($eo_W1 Type) ($eo_x1 $eo_W1)
+   ($eo_W2 Type) ($eo_x2 $eo_W2)
+   ($eo_W3 Type) ($eo_x3 $eo_W3)
+   ($eo_W4 Type) ($eo_x4 $eo_W4)) ; assumes functions can be monomorphized with at most 4 arguments
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_typeof ($eot_bool b))                 Bool)
+  (($eo_typeof ($eot_numeral n))              ($eo_lit_type_Numeral ($eot_numeral n)))
+  (($eo_typeof ($eot_rational r))             ($eo_lit_type_Rational ($eot_rational r)))
+  (($eo_typeof ($eot_string s))               ($eo_lit_type_String ($eot_string s)))
+  (($eo_typeof ($eot_binary w n))             ($eo_lit_type_Binary ($eot_binary w n)))
+  (($eo_typeof ($eot_Var s T))                T)
+  (($eo_typeof ($eot_DatatypeType s d))       Type)
+  (($eo_typeof ($eot_DtCons s d i))
+    ($eo_typeof_dt_cons_rec ($eot_DatatypeType s d) ($eo_dt_substitute s d d) i))
+  (($eo_typeof ($eot_DtSel s d i j))
+    ; TODO: ensure types, well-foundedness of d??
+    (-> ($eot_DatatypeType s d) ($eo_typeof_dt_sel_return ($eo_dt_substitute s d d) i j)))
+  (($eo_typeof ($eot_USort i))                Type)
+  (($eo_typeof ($eot_UConst i T))             T)
+  ; otherwise, invoke the routine for user types from the signature.
+  (($eo_typeof Type)                          Type)
+  (($eo_typeof (-> $eo_T $eo_U))
+    ; requires both children are types
+    ($eo_typeof_fun_type ($eo_typeof $eo_T) ($eo_typeof $eo_U)))
+  (($eo_typeof Bool)                          Type)
+  (($eo_typeof true)                          Bool)
+  (($eo_typeof false)                         Bool)
+  ; TODO: auto-generate these?
+  (($eo_typeof $eo_List)                      Type)
+  (($eo_typeof $eo_List_nil)                  $eo_List)
+  (($eo_typeof ($eo_List_cons $eo_x1))        (-> $eo_List $eo_List))
+  ; type-rule: Int
+  (($eo_typeof Int) Type)
+  ; type-rule: Real
+  (($eo_typeof Real) Type)
+  ; type-rule: BitVec
+  (($eo_typeof BitVec) (-> Int Type))
+  ; type-rule: Char
+  (($eo_typeof Char) Type)
+  ; type-rule: Seq
+  (($eo_typeof Seq) (-> Type Type))
+  ; type-rule: not
+  (($eo_typeof not) (-> Bool Bool))
+  ; type-rule: and
+  (($eo_typeof and) (-> Bool (-> Bool Bool)))
+  ; type-rule: =
+  (($eo_typeof (= $eo_x1)) ($eo_typeof_= ($eo_typeof $eo_x1)))
+
+  (($eo_typeof ($eo_f $eo_x))
+    ($eo_typeof_apply ($eo_typeof $eo_f) ($eo_typeof $eo_x)))
   )
 )
 

@@ -437,7 +437,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     // std::cout << "Partial app that has ground type: " << pattern <<
     // std::endl;
     // we now write the pattern matching for the derived pattern.
-    d_eoTypeof << "  (($eo_typeof_main ";
+    d_eoTypeof << "  (($eo_typeof ";
     printTerm(pattern, d_eoTypeof);
     d_eoTypeof << ") ";
     if (ngArgs > 0)
@@ -474,7 +474,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   }
   else
   {
-    d_eoTypeof << "  (($eo_typeof_main " << e << ") ";
+    d_eoTypeof << "  (($eo_typeof " << e << ") ";
     printTerm(ct, d_eoTypeof);
     d_eoTypeof << ")" << std::endl;
   }

@@ -346,9 +346,6 @@
 ; fwd-decl: $eo_reverse_hash
 (declare-fun $eo_reverse_hash (Int) eo.Term)
 
-; fwd-decl: $eo_typeof_main
-(declare-fun $eo_typeof_main (eo.Term) eo.Term)
-
 ; fwd-decl: $eo_lit_type_Numeral
 (declare-fun $eo_lit_type_Numeral (eo.Term) eo.Term)
 
@@ -383,6 +380,24 @@
     edt.null
 )) :pattern (($eo_dt_substitute x1 x2 x3)))) :named sm.axiom.$eo_dt_substitute))
 
+; program: $mk_symm
+(define-fun $mk_symm ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) (= (eo.Apply.arg1 (eo.Apply.arg1 x1)) eo.=))
+    (eo.Apply (eo.Apply eo.= (eo.Apply.arg2 x1)) (eo.Apply.arg2 (eo.Apply.arg1 x1)))
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg2 x1)) ((_ is eo.Apply) (eo.Apply.arg1 (eo.Apply.arg2 x1))) (= (eo.Apply.arg1 (eo.Apply.arg1 (eo.Apply.arg2 x1))) eo.=) (= (eo.Apply.arg1 x1) eo.not))
+    (eo.Apply eo.not (eo.Apply (eo.Apply eo.= (eo.Apply.arg2 (eo.Apply.arg2 x1))) (eo.Apply.arg2 (eo.Apply.arg1 (eo.Apply.arg2 x1)))))
+    eo.Stuck))))
+
+; program: $eo_prog_symm
+(define-fun $eo_prog_symm ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite ((_ is eo.$eo_pf) x1)
+    ($mk_symm (eo.$eo_pf.arg1 x1))
+    eo.Stuck)))
+
 ; program: $eo_typeof_dt_cons_rec
 (declare-fun $eo_typeof_dt_cons_rec (eo.Term edt.Datatype Nat) eo.Term)
 (assert (! (forall ((x1 eo.Term) (x2 edt.Datatype) (x3 Nat))
@@ -411,69 +426,12 @@
     ($eo_typeof_dt_sel_return (edt.sum.arg2 x1) (nat.succ.arg1 x2) x3)
     eo.Stuck))))) :pattern (($eo_typeof_dt_sel_return x1 x2 x3)))) :named sm.axiom.$eo_typeof_dt_sel_return))
 
-; program: $eo_typeof
-(assert (! (forall ((x1 eo.Term))
-  (! (= ($eo_typeof x1)
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite ((_ is eo.Boolean) x1)
-    eo.Bool
-  (ite ((_ is eo.Numeral) x1)
-    ($eo_lit_type_Numeral (eo.Numeral (eo.Numeral.arg1 x1)))
-  (ite ((_ is eo.Rational) x1)
-    ($eo_lit_type_Rational (eo.Rational (eo.Rational.arg1 x1)))
-  (ite ((_ is eo.String) x1)
-    ($eo_lit_type_String (eo.String (eo.String.arg1 x1)))
-  (ite ((_ is eo.Binary) x1)
-    ($eo_lit_type_Binary (eo.Binary (eo.Binary.arg1 x1) (eo.Binary.arg2 x1)))
-  (ite ((_ is eo.Var) x1)
-    (eo.Var.arg2 x1)
-  (ite ((_ is eo.DatatypeType) x1)
-    eo.Type
-  (ite ((_ is eo.DtCons) x1)
-    ($eo_typeof_dt_cons_rec (eo.DatatypeType (eo.DtCons.arg1 x1) (eo.DtCons.arg2 x1)) ($eo_dt_substitute (eo.DtCons.arg1 x1) (eo.DtCons.arg2 x1) (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1))
-  (ite ((_ is eo.DtSel) x1)
-    (eo.Apply (eo.Apply eo.FunType (eo.DatatypeType (eo.DtSel.arg1 x1) (eo.DtSel.arg2 x1))) ($eo_typeof_dt_sel_return ($eo_dt_substitute (eo.DtSel.arg1 x1) (eo.DtSel.arg2 x1) (eo.DtSel.arg2 x1)) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1)))
-  (ite ((_ is eo.USort) x1)
-    eo.Type
-  (ite ((_ is eo.UConst) x1)
-    (eo.UConst.arg2 x1)
-  (ite true
-    ($eo_typeof_main x1)
-    eo.Stuck)))))))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
-
-; program: $mk_symm
-(define-fun $mk_symm ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) (= (eo.Apply.arg1 (eo.Apply.arg1 x1)) eo.=))
-    (eo.Apply (eo.Apply eo.= (eo.Apply.arg2 x1)) (eo.Apply.arg2 (eo.Apply.arg1 x1)))
-  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg2 x1)) ((_ is eo.Apply) (eo.Apply.arg1 (eo.Apply.arg2 x1))) (= (eo.Apply.arg1 (eo.Apply.arg1 (eo.Apply.arg2 x1))) eo.=) (= (eo.Apply.arg1 x1) eo.not))
-    (eo.Apply eo.not (eo.Apply (eo.Apply eo.= (eo.Apply.arg2 (eo.Apply.arg2 x1))) (eo.Apply.arg2 (eo.Apply.arg1 (eo.Apply.arg2 x1)))))
-    eo.Stuck))))
-
-; program: $eo_prog_symm
-(define-fun $eo_prog_symm ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite ((_ is eo.$eo_pf) x1)
-    ($mk_symm (eo.$eo_pf.arg1 x1))
-    eo.Stuck)))
-
 ; program: $eo_typeof_apply
 (define-fun $eo_typeof_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.FunType) (eo.Apply.arg1 (eo.Apply.arg1 x1))))
     ($eo_requires (eo.Apply.arg2 (eo.Apply.arg1 x1)) x2 (eo.Apply.arg2 x1))
-    eo.Stuck)))
-
-; program: $eo_typeof_=
-(define-fun $eo_typeof_= ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    (eo.Apply (eo.Apply eo.FunType x1) eo.Bool)
     eo.Stuck)))
 
 ; program: $eo_typeof_fun_type
@@ -483,47 +441,6 @@
   (ite (and (= x1 eo.Type) (= x2 eo.Type))
     eo.Type
     eo.Stuck)))
-
-; program: $eo_typeof_main
-(assert (! (forall ((x1 eo.Term))
-  (! (= ($eo_typeof_main x1)
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite (= x1 eo.Type)
-    eo.Type
-  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.FunType) (eo.Apply.arg1 (eo.Apply.arg1 x1))))
-    ($eo_typeof_fun_type ($eo_typeof (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($eo_typeof (eo.Apply.arg2 x1)))
-  (ite (= x1 eo.Bool)
-    eo.Type
-  (ite (= x1 (eo.Boolean true))
-    eo.Bool
-  (ite (= x1 (eo.Boolean false))
-    eo.Bool
-  (ite (= x1 eo.$eo_List)
-    eo.Type
-  (ite (= x1 eo.$eo_List_nil)
-    eo.$eo_List
-  (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.$eo_List_cons))
-    (eo.Apply (eo.Apply eo.FunType eo.$eo_List) eo.$eo_List)
-  (ite (= x1 eo.Int)
-    eo.Type
-  (ite (= x1 eo.Real)
-    eo.Type
-  (ite (= x1 eo.BitVec)
-    (eo.Apply (eo.Apply eo.FunType eo.Int) eo.Type)
-  (ite (= x1 eo.Char)
-    eo.Type
-  (ite (= x1 eo.Seq)
-    (eo.Apply (eo.Apply eo.FunType eo.Type) eo.Type)
-  (ite (= x1 eo.not)
-    (eo.Apply (eo.Apply eo.FunType eo.Bool) eo.Bool)
-  (ite (= x1 eo.and)
-    (eo.Apply (eo.Apply eo.FunType eo.Bool) (eo.Apply (eo.Apply eo.FunType eo.Bool) eo.Bool))
-  (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.=))
-    ($eo_typeof_= ($eo_typeof (eo.Apply.arg2 x1)))
-  (ite ((_ is eo.Apply) x1)
-    ($eo_typeof_apply ($eo_typeof (eo.Apply.arg1 x1)) ($eo_typeof (eo.Apply.arg2 x1)))
-    eo.Stuck))))))))))))))))))) :pattern (($eo_typeof_main x1)))) :named sm.axiom.$eo_typeof_main))
 
 ; program: $eo_lit_type_Numeral
 (assert (! (forall ((x1 eo.Term))
@@ -560,6 +477,77 @@
   (ite true
     (eo.Apply eo.Seq eo.Char)
     eo.Stuck))) :pattern (($eo_lit_type_String x1)))) :named sm.axiom.$eo_lit_type_String))
+
+; program: $eo_typeof_=
+(define-fun $eo_typeof_= ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite true
+    (eo.Apply (eo.Apply eo.FunType x1) eo.Bool)
+    eo.Stuck)))
+
+; program: $eo_typeof
+(assert (! (forall ((x1 eo.Term))
+  (! (= ($eo_typeof x1)
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite ((_ is eo.Boolean) x1)
+    eo.Bool
+  (ite ((_ is eo.Numeral) x1)
+    ($eo_lit_type_Numeral (eo.Numeral (eo.Numeral.arg1 x1)))
+  (ite ((_ is eo.Rational) x1)
+    ($eo_lit_type_Rational (eo.Rational (eo.Rational.arg1 x1)))
+  (ite ((_ is eo.String) x1)
+    ($eo_lit_type_String (eo.String (eo.String.arg1 x1)))
+  (ite ((_ is eo.Binary) x1)
+    ($eo_lit_type_Binary (eo.Binary (eo.Binary.arg1 x1) (eo.Binary.arg2 x1)))
+  (ite ((_ is eo.Var) x1)
+    (eo.Var.arg2 x1)
+  (ite ((_ is eo.DatatypeType) x1)
+    eo.Type
+  (ite ((_ is eo.DtCons) x1)
+    ($eo_typeof_dt_cons_rec (eo.DatatypeType (eo.DtCons.arg1 x1) (eo.DtCons.arg2 x1)) ($eo_dt_substitute (eo.DtCons.arg1 x1) (eo.DtCons.arg2 x1) (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1))
+  (ite ((_ is eo.DtSel) x1)
+    (eo.Apply (eo.Apply eo.FunType (eo.DatatypeType (eo.DtSel.arg1 x1) (eo.DtSel.arg2 x1))) ($eo_typeof_dt_sel_return ($eo_dt_substitute (eo.DtSel.arg1 x1) (eo.DtSel.arg2 x1) (eo.DtSel.arg2 x1)) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1)))
+  (ite ((_ is eo.USort) x1)
+    eo.Type
+  (ite ((_ is eo.UConst) x1)
+    (eo.UConst.arg2 x1)
+  (ite (= x1 eo.Type)
+    eo.Type
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.FunType) (eo.Apply.arg1 (eo.Apply.arg1 x1))))
+    ($eo_typeof_fun_type ($eo_typeof (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($eo_typeof (eo.Apply.arg2 x1)))
+  (ite (= x1 eo.Bool)
+    eo.Type
+  (ite (= x1 (eo.Boolean true))
+    eo.Bool
+  (ite (= x1 (eo.Boolean false))
+    eo.Bool
+  (ite (= x1 eo.$eo_List)
+    eo.Type
+  (ite (= x1 eo.$eo_List_nil)
+    eo.$eo_List
+  (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.$eo_List_cons))
+    (eo.Apply (eo.Apply eo.FunType eo.$eo_List) eo.$eo_List)
+  (ite (= x1 eo.Int)
+    eo.Type
+  (ite (= x1 eo.Real)
+    eo.Type
+  (ite (= x1 eo.BitVec)
+    (eo.Apply (eo.Apply eo.FunType eo.Int) eo.Type)
+  (ite (= x1 eo.Char)
+    eo.Type
+  (ite (= x1 eo.Seq)
+    (eo.Apply (eo.Apply eo.FunType eo.Type) eo.Type)
+  (ite (= x1 eo.not)
+    (eo.Apply (eo.Apply eo.FunType eo.Bool) eo.Bool)
+  (ite (= x1 eo.and)
+    (eo.Apply (eo.Apply eo.FunType eo.Bool) (eo.Apply (eo.Apply eo.FunType eo.Bool) eo.Bool))
+  (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.=))
+    ($eo_typeof_= ($eo_typeof (eo.Apply.arg2 x1)))
+  (ite ((_ is eo.Apply) x1)
+    ($eo_typeof_apply ($eo_typeof (eo.Apply.arg1 x1)) ($eo_typeof (eo.Apply.arg2 x1)))
+    eo.Stuck)))))))))))))))))))))))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
 
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (smm.SmtModel eo.Term) eo.Term)

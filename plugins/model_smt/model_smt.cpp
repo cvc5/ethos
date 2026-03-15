@@ -384,11 +384,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       smtToSmtEmbed("(str.to_re $vsm_string_empty)"),
       smtToSmtEmbed("(re.++ ($smtx_model_eval_re.^_rec n x1) x1)"));
   addLitSym("re.^",
-            {kInt, kRegLan},
+            {d_kIntQuote, kRegLan},
             kT,
             smtToSmtEmbed("($smtx_model_eval_re.^_rec "
                                    "($smt_builtin_z_to_n x1) ($vsm_re x2))"));
-  d_typeRetCase["re.^"] = smtGuardType(smtZLeq("$smt_builtin_z_zero", "x1"), "$tsm_RegLan");
+  addAuxTypeProgram("re.^", {d_kIntQuote, kRegLan}, smtGuardType(smtZLeq("$smt_builtin_z_zero", "x1"), "$tsm_RegLan"));
   std::stringstream ssReLoopRet;
   ssReLoopRet << "(ite (> ($vsm_numeral x1) ($vsm_numeral x2))";
   ssReLoopRet << " ($vsm_re ($smt_apply_0 \"re.none\"))";
@@ -404,10 +404,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                         smtToSmtEmbed("(re.^ x1 x3)"),
                         smtToSmtEmbed(ssReLoopRetRec.str()));
   addLitSym("re.loop",
-            {kInt, kInt, kRegLan},
+            {d_kIntQuote, d_kIntQuote, kRegLan},
             kT,
             smtToSmtEmbed(ssReLoopRet.str()));
-  d_typeRetCase["re.loop"] = smtGuardType(smtZLeq("$smt_builtin_z_zero", "x1"), smtGuardType(smtZLeq("$smt_builtin_z_zero", "x2"), "$tsm_RegLan"));
+  addAuxTypeProgram("re.loop", {d_kIntQuote, d_kIntQuote, kRegLan}, smtGuardType(smtZLeq("$smt_builtin_z_zero", "x1"), smtGuardType(smtZLeq("$smt_builtin_z_zero", "x2"), "$tsm_RegLan")));
   // RE operators
   addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
   addConstFoldSym("str.indexof_re", {kString, kRegLan, kInt}, kInt);
