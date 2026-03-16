@@ -850,7 +850,8 @@ $SMT_TYPE_CONSTRUCTORS$
 (define $smtx_empty_seq ((T $smt_Type)) ($vsm_seq ($ssm_empty T)))
 
 ; Sequence unit
-(define $smtx_seq_unit ((e $smt_Value)) ($vsm_seq ($ssm_cons e ($ssm_empty ($smtx_typeof_value e)))))
+(define $smtx_seq_unit ((e $smt_Value))
+  ($vsm_seq ($ssm_cons e ($ssm_empty ($smtx_typeof_value e)))))
 
 ; Sequence nth
 (program $smtx_seq_nth
@@ -859,6 +860,25 @@ $SMT_TYPE_CONSTRUCTORS$
   (
   (($smtx_seq_nth ($vsm_seq s) ($vsm_numeral n)) ($smtx_ssm_seq_nth s n))
   (($smtx_seq_nth v1 v2) $vsm_not_value)
+  )
+)
+
+;;; Bit-vectors
+
+(program $smtx_bv_sizeof_type ((x1 $smt_builtin_Int) (t1 $smt_Value))
+  :signature ($smt_Type) $smt_builtin_Int
+  (
+  (($smtx_bv_sizeof_type ($tsm_BitVec x1)) x1)
+  (($smtx_bv_sizeof_type t1) $smt_builtin_z_neg_one)
+  )
+)
+
+(program $smtx_bv_sizeof_value
+  ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (t1 $smt_Value))
+  :signature ($smt_Value) $smt_builtin_Int
+  (
+  (($smtx_bv_sizeof_value ($vsm_binary x1 x2)) x1)
+  (($smtx_bv_sizeof_value t1) $smt_builtin_z_neg_one)
   )
 )
 

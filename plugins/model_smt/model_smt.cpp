@@ -125,6 +125,10 @@ std::string smtGuardType1(const std::string& nonNullType, const std::string& val
   ss << "($smt_builtin_ite ($smt_builtin_Teq " <<nonNullType << " $tsm_none) $tsm_none " << val << ")";
   return ss.str();
 }
+std::string smtBvSizeofValue(const std::string& str)
+{
+  return "($vsm_numeral ($smtx_bv_sizeof_value " + str + "))";
+}
 
 /**
  * Makes s and t be in the context of the return term, used to specify the
@@ -482,9 +486,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // the following operators require a mix of literal evaluation and term
   // reduction
   std::stringstream ssSgtRet;
-  ssSgtRet << "(eo::define (($wm1 (- (@bvsize x1) 1))) ";
+  ssSgtRet << "(eo::define (($wm1 (- " << smtBvSizeofValue("x1") << " 1))) ";
   ssSgtRet << "(eo::define (($msb1 (= (extract $wm1 $wm1 x1) #b1))) ";
-  ssSgtRet << "(eo::define (($wm2 (- (@bvsize x2) 1))) ";
+  ssSgtRet << "(eo::define (($wm2 (- " << smtBvSizeofValue("x2") << " 1))) ";
   ssSgtRet << "(eo::define (($msb2 (= (extract $wm2 $wm2 x2) #b1))) ";
   ssSgtRet
       << "(or (and (not $msb1) $msb2) (and (= $msb1 $msb2) (bvugt x1 x2)))";
@@ -508,7 +512,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                       smtGuardType(smtZLeq("$smt_builtin_z_zero", "x1"),
                                "($tsm_BitVec ($smt_builtin_z_+ x1 x2))"));
   std::stringstream ssAshrRet;
-  ssAshrRet << "(eo::define (($wm1 " << "(- (@bvsize x1) 1)"
+  ssAshrRet << "(eo::define (($wm1 " << "(- " << smtBvSizeofValue("x1") << " 1)"
             << ")) ";
   ssAshrRet << "(ite (= (extract $wm1 $wm1 x1) #b0) (bvlshr "
                "x1 x2) (bvnot "
@@ -588,7 +592,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
     std::stringstream ssRetEnd;
     std::string op;
     std::stringstream ssTermRet;
-    ssRet << "(eo::define (($wm1 (- (@bvsize x1) 1))) ";
+    ssRet << "(eo::define (($wm1 (- " << smtBvSizeofValue("x1") << " 1))) ";
     ssRet << "(eo::define (($msb_s (= (extract $wm1 $wm1 x1) #b1))) ";
     ssRet << "(eo::define (($msb_t (= (extract $wm1 $wm1 x2) #b1))) ";
     ssRetEnd << ")))";
@@ -622,7 +626,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       ssRet << "(eo::define (($u " << "(bvurem $abs_s $abs_t"
             << "))) ";
       ssRetEnd << ")))";
-      ssTermRet << "(ite (= $u (@bv 0 (@bvsize x1))) $u";
+      ssTermRet << "(ite (= $u (@bv 0 " << smtBvSizeofValue("x1") << ")) $u";
       ssTermRet << " (ite (and (not $msb_s) (not $msb_t)) $u";
       ssTermRet << " (ite (and $msb_s (not $msb_t)) (bvadd (bvneg $u) x2)";
       ssTermRet << " (ite (and (not $msb_s) $msb_t) (bvadd $u x2)";
@@ -663,12 +667,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("bvssubo",
                    {kBitVec, kBitVec},
                    kBool,
-                   "(ite (bvnego x2) (bvsge x1 (@bv 0 (@bvsize x1))) "
+                   "(ite (bvnego x2) (bvsge x1 (@bv 0 " + smtBvSizeofValue("x1") + ")) "
                    "(bvsaddo x1 (bvneg x2)))");
   addTermReduceSym("bvsdivo",
                    {kBitVec, kBitVec},
                    kBool,
-                   "(and (bvnego x1) (= x2 (bvnot (@bv 0 (@bvsize x1)))))");
+                   "(and (bvnego x1) (= x2 (bvnot (@bv 0 " + smtBvSizeofValue("x1") + "))))");
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
   addLitSym("sbv_to_int", {kBitVec}, kInt, "($smt_builtin_binary_uts x1 x2)");
@@ -935,18 +939,19 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       {kBitVec, kBitVec, kBitVec},
       smtToSmtEmbed("(ite (bvslt ($eo_to_smt x1) ($eo_to_smt x2)) #b1 #b0)",
                     true));
-  addLitSym("@bvsize", {kBitVec}, kInt, "x1");
+  //addLitSym("@bvsize", {kBitVec}, kInt, "x1");
+  addEunoiaReduceSym("@bvsize", {kBitVec}, "($sm_numeral ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))))");
   addEunoiaReduceSym(
       "bvredor",
       {kBitVec},
       smtToSmtEmbed(
-          "(bvnot (bvcomp ($eo_to_smt x1) (@bv 0 (@bvsize ($eo_to_smt x1)))))",
+          "(bvnot (bvcomp ($eo_to_smt x1) (@bv 0 ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))))))",
           true));
   addEunoiaReduceSym(
       "bvredand",
       {kBitVec},
       smtToSmtEmbed(
-          "(bvcomp ($eo_to_smt x1) (bvnot (@bv 0 (@bvsize ($eo_to_smt x1)))))",
+          "(bvcomp ($eo_to_smt x1) (bvnot (@bv 0 ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))))))",
           true));
   // utility guards for negative widths, which do not evaluate
   addLitSym("@bv", {d_kIntQuote, d_kIntQuote}, kT, "($vsm_binary_mod_w x2 x1)");
