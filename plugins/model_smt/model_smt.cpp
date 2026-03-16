@@ -626,7 +626,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       ssRet << "(eo::define (($u " << "(bvurem $abs_s $abs_t"
             << "))) ";
       ssRetEnd << ")))";
-      ssTermRet << "(ite (= $u (@bv 0 " << smtBvSizeofValue("x1") << ")) $u";
+      ssTermRet << "(ite (= $u ($vsm_binary " << smtBvSizeofValue("x1") << " 0)) $u";
       ssTermRet << " (ite (and (not $msb_s) (not $msb_t)) $u";
       ssTermRet << " (ite (and $msb_s (not $msb_t)) (bvadd (bvneg $u) x2)";
       ssTermRet << " (ite (and (not $msb_s) $msb_t) (bvadd $u x2)";
@@ -667,12 +667,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("bvssubo",
                    {kBitVec, kBitVec},
                    kBool,
-                   "(ite (bvnego x2) (bvsge x1 (@bv 0 " + smtBvSizeofValue("x1") + ")) "
+                   "(ite (bvnego x2) (bvsge x1 ($vsm_binary " + smtBvSizeofValue("x1") + " 0)) "
                    "(bvsaddo x1 (bvneg x2)))");
   addTermReduceSym("bvsdivo",
                    {kBitVec, kBitVec},
                    kBool,
-                   "(and (bvnego x1) (= x2 (bvnot (@bv 0 " + smtBvSizeofValue("x1") + "))))");
+                   "(and (bvnego x1) (= x2 (bvnot ($vsm_binary " + smtBvSizeofValue("x1") + " 0))))");
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
   addLitSym("sbv_to_int", {kBitVec}, kInt, "($smt_builtin_binary_uts x1 x2)");

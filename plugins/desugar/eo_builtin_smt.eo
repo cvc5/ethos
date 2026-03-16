@@ -726,10 +726,6 @@
 (define $eo_is_var ((x $eo_Term))
   ($eo_is_eq ($eo_var ($eo_nameof x) ($eo_typeof x)) x))
 
-; fwd-decl: $eo_typeof_main
-; note: This method returns the type for all user defined terms.
-(program $eo_typeof_main () :signature ($eo_Term) $eo_Term)
-
 ; forward declarations for literal type rules
 (program $eo_lit_type_Numeral ((T Type)) :signature (T) Type)
 (program $eo_lit_type_Rational ((T Type)) :signature (T) Type)

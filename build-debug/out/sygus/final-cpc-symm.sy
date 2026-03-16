@@ -519,10 +519,6 @@
     ($eo_typeof_fun_type ($eo_typeof (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($eo_typeof (eo.Apply.arg2 x1)))
   (ite (= x1 eo.Bool)
     eo.Type
-  (ite (= x1 (eo.Boolean true))
-    eo.Bool
-  (ite (= x1 (eo.Boolean false))
-    eo.Bool
   (ite (= x1 eo.$eo_List)
     eo.Type
   (ite (= x1 eo.$eo_List_nil)
@@ -547,7 +543,7 @@
     ($eo_typeof_= ($eo_typeof (eo.Apply.arg2 x1)))
   (ite ((_ is eo.Apply) x1)
     ($eo_typeof_apply ($eo_typeof (eo.Apply.arg1 x1)) ($eo_typeof (eo.Apply.arg2 x1)))
-    eo.Stuck)))))))))))))))))))))))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
+    eo.Stuck)))))))))))))))))))))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
 
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (smm.SmtModel eo.Term) eo.Term)

@@ -576,8 +576,6 @@ $EO_TYPEOF_NGROUND_DEFS$
     ; requires both children are types
     ($eo_typeof_fun_type ($eo_typeof $eo_T) ($eo_typeof $eo_U)))
   (($eo_typeof Bool)                          Type)
-  (($eo_typeof true)                          Bool)
-  (($eo_typeof false)                         Bool)
   ; TODO: auto-generate these?
   (($eo_typeof $eo_List)                      Type)
   (($eo_typeof $eo_List_nil)                  $eo_List)
