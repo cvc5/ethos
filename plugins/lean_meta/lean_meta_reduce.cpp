@@ -1223,6 +1223,7 @@ bool LeanMetaReduce::echo(const std::string& msg)
       }
       else
       {
+        d_thms << ":" << std::endl;
         pcs << cleanId(eosc);
       }
       d_thms << "  (Not (eo_interprets ";
