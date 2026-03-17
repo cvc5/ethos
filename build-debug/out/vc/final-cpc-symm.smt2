@@ -905,12 +905,14 @@
     (tsm.Map (tsm.Datatype (sm.DtTester.arg1 x1) (sm.DtTester.arg2 x1)) tsm.Bool)
   (ite ((_ is sm.Apply) x1)
     ($smtx_typeof_apply ($smtx_typeof (sm.Apply.arg1 x1)) ($smtx_typeof (sm.Apply.arg2 x1)))
+  (ite ((_ is sm.Var) x1)
+    (sm.Var.arg2 x1)
   (ite ((_ is sm.Const) x1)
     (sm.Const.arg2 x1)
   (ite ((_ is sm.UConst) x1)
     (sm.UConst.arg2 x1)
     tsm.None
-)))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
+))))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
 
 ; fwd-decl: $eo_to_smt_type
 (declare-fun $eo_to_smt_type (eo.Term) tsm.Type)

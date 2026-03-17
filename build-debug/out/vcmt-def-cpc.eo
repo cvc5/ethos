@@ -977,8 +977,9 @@
     ($tsm_Map ($tsm_Datatype s d) $tsm_Bool))
   
   (($smtx_typeof ($sm_apply f x1)) ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
-  (($smtx_typeof ($sm_Const v T)) T)
-  (($smtx_typeof ($sm_UConst i T)) T)
+  (($smtx_typeof ($sm_Var s T))     T)
+  (($smtx_typeof ($sm_Const v T))   T)
+  (($smtx_typeof ($sm_UConst i T))  T)
   (($smtx_typeof x1)   $tsm_none)
   )
 )
