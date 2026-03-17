@@ -674,6 +674,11 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     out = &d_eoIsObjDefs;
   }
+  if (vname == "$smtx_model_eval")
+  {
+    decl << "noncomputable ";
+    out = &d_smt;
+  }
   decl << "def " << cleanId(vname);
   size_t macroStartArg = 1;
   bool macroSuccess = true;
@@ -1120,6 +1125,7 @@ void LeanMetaReduce::finalizeSmtModel()
   replace(finalLean, "$LEAN_SMT_TERM_DEF$", d_smtDt.str());
   replace(finalLean, "$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str());
   replace(finalLean, "$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str());
+  replace(finalLean, "$LEAN_SMT_EVAL$", d_smt.str());
   std::stringstream sso;
   sso << s_plugin_path << "plugins/lean_meta/lean_meta_smt_model_gen.lean";
   Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;

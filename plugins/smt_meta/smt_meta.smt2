@@ -137,10 +137,10 @@ $SM_TYPE_DECL$
 (define-fun tcmp ((a eo.Term) (b eo.Term)) Bool (< (thash a) (thash b)))
 
 ; forward declarations
-(declare-fun texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
-(declare-fun tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
-(declare-fun tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
-(declare-fun tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (vsm.Value vsm.Value) vsm.Value)
   
@@ -171,20 +171,20 @@ $SM_DEFS$
 
 ; exists
 (assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
-  (! (= (texists M s T F)
+  (! (= (eval_texists M s T F)
      (ite (texists_eq M s T F (vsm.Boolean true)) (vsm.Boolean true)
      (ite (tforall_eq M s T F (vsm.Boolean false)) (vsm.Boolean false)
        vsm.NotValue)))
-  :pattern ((texists M s T F))))
+  :pattern ((eval_texists M s T F))))
   :named smtx.texists.def))
   
 ; forall
 (assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
-  (! (= (tforall M s T F)
+  (! (= (eval_tforall M s T F)
      (ite (texists_eq M s T F (vsm.Boolean false)) (vsm.Boolean false)
      (ite (tforall_eq M s T F (vsm.Boolean true)) (vsm.Boolean true)
        vsm.NotValue)))
-  :pattern ((tforall M s T F))))
+  :pattern ((eval_tforall M s T F))))
   :named smtx.tforall.def))
 
 ; choice
@@ -192,9 +192,9 @@ $SM_DEFS$
 ; that substituting with choice also makes it true.
 (assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
   (! (=> (texists_eq M s T F (vsm.Boolean true))
-      (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const (tchoice M s T F) T) F))
+      (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const (eval_tchoice M s T F) T) F))
          (vsm.Boolean true)))
-  :pattern ((tchoice M s T F))))
+  :pattern ((eval_tchoice M s T F))))
   :named smtx.tchoice.def))
 
 ; whether two values are extensionally equal

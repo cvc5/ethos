@@ -121,6 +121,7 @@ class LeanMetaReduce : public StdPlugin
   std::stringstream d_eoChecker;
   /** SMT definitions */
   std::stringstream d_smtDefs;
+  std::stringstream d_smt;
   std::stringstream d_smtDt;
   std::stringstream d_smtTypeDt;
   std::stringstream d_smtValueDt;

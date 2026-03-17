@@ -297,10 +297,10 @@
 (define-fun tcmp ((a eo.Term) (b eo.Term)) Bool (< (thash a) (thash b)))
 
 ; forward declarations
-(declare-fun texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
-(declare-fun tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
-(declare-fun tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
-(declare-fun tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (vsm.Value vsm.Value) vsm.Value)
   
@@ -821,13 +821,13 @@
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.Apply) (sm.Apply.arg1 x2)) (= (sm.Apply.arg1 (sm.Apply.arg1 x2)) sm.=))
     ($smtx_model_eval_= ($smtx_model_eval x1 (sm.Apply.arg2 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.exists) (sm.Apply.arg1 x2)))
-    (texists x1 (sm.exists.arg1 (sm.Apply.arg1 x2)) (sm.exists.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
+    (eval_texists x1 (sm.exists.arg1 (sm.Apply.arg1 x2)) (sm.exists.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.forall) (sm.Apply.arg1 x2)))
-    (tforall x1 (sm.forall.arg1 (sm.Apply.arg1 x2)) (sm.forall.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
+    (eval_tforall x1 (sm.forall.arg1 (sm.Apply.arg1 x2)) (sm.forall.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.lambda) (sm.Apply.arg1 x2)))
     (vsm.Lambda (sm.lambda.arg1 (sm.Apply.arg1 x2)) (sm.lambda.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.choice) (sm.Apply.arg1 x2)))
-    (tchoice x1 (sm.choice.arg1 (sm.Apply.arg1 x2)) (sm.choice.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
+    (eval_tchoice x1 (sm.choice.arg1 (sm.Apply.arg1 x2)) (sm.choice.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
   (ite ((_ is sm.DtCons) x2)
     ($smtx_model_eval_dt_cons (sm.DtCons.arg1 x2) (sm.DtCons.arg2 x2) (sm.DtCons.arg3 x2))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.DtSel) (sm.Apply.arg1 x2)))
@@ -896,7 +896,7 @@
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.lambda) (sm.Apply.arg1 x1)))
     ($smtx_typeof_guard ($smtx_typeof (sm.Apply.arg2 x1)) (tsm.Map (sm.lambda.arg2 (sm.Apply.arg1 x1)) ($smtx_typeof (sm.Apply.arg2 x1))))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.choice) (sm.Apply.arg1 x1)))
-    ($smtx_typeof_guard ($smtx_typeof (sm.Apply.arg2 x1)) (sm.choice.arg2 (sm.Apply.arg1 x1)))
+    (ite (Teq ($smtx_typeof (sm.Apply.arg2 x1)) tsm.Bool) (sm.choice.arg2 (sm.Apply.arg1 x1)) tsm.None)
   (ite ((_ is sm.DtCons) x1)
     ($smtx_typeof_dt_cons_rec (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_dt_substitute (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1) (sm.DtCons.arg2 x1)) (sm.DtCons.arg3 x1))
   (ite ((_ is sm.DtSel) x1)
@@ -1049,20 +1049,20 @@
 
 ; exists
 (assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
-  (! (= (texists M s T F)
+  (! (= (eval_texists M s T F)
      (ite (texists_eq M s T F (vsm.Boolean true)) (vsm.Boolean true)
      (ite (tforall_eq M s T F (vsm.Boolean false)) (vsm.Boolean false)
        vsm.NotValue)))
-  :pattern ((texists M s T F))))
+  :pattern ((eval_texists M s T F))))
   :named smtx.texists.def))
   
 ; forall
 (assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
-  (! (= (tforall M s T F)
+  (! (= (eval_tforall M s T F)
      (ite (texists_eq M s T F (vsm.Boolean false)) (vsm.Boolean false)
      (ite (tforall_eq M s T F (vsm.Boolean true)) (vsm.Boolean true)
        vsm.NotValue)))
-  :pattern ((tforall M s T F))))
+  :pattern ((eval_tforall M s T F))))
   :named smtx.tforall.def))
 
 ; choice
@@ -1070,9 +1070,9 @@
 ; that substituting with choice also makes it true.
 (assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
   (! (=> (texists_eq M s T F (vsm.Boolean true))
-      (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const (tchoice M s T F) T) F))
+      (= ($smtx_model_eval M ($smtx_substitute s T (sm.Const (eval_tchoice M s T F) T) F))
          (vsm.Boolean true)))
-  :pattern ((tchoice M s T F))))
+  :pattern ((eval_tchoice M s T F))))
   :named smtx.tchoice.def))
 
 ; whether two values are extensionally equal
