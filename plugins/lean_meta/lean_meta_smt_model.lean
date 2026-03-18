@@ -354,11 +354,7 @@ def __smtx_model_key (s : smt_lit_String) (T : SmtType) : SmtModelKey :=
 
 def __smtx_model_lookup (M : SmtModel) (s : smt_lit_String) (T : SmtType) : SmtValue :=
   match M (__smtx_model_key s T) with
-  | some v =>
-      if __smtx_typeof_value v = T then
-        v
-      else
-        SmtValue.NotValue
+  | some v => v
   | none => SmtValue.NotValue
 
 def __smtx_model_push (M : SmtModel) (s : smt_lit_String) (T : SmtType) (v : SmtValue) : SmtModel :=
