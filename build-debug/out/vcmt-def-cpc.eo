@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 291
+; #trim-defs: 292
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -66,6 +66,7 @@
 (define $smt_builtin_n_zero () ($smt_apply_0 "nat.zero"))
 (define $smt_builtin_n_succ ((x1 $smt_builtin_Nat)) ($smt_apply_1 "nat.succ" x1))
 (define $smt_builtin_n_to_z ((x1 $smt_builtin_Nat)) ($smt_apply_1 "nat.to_int" x1))
+(define $smt_builtin_to_uconst_id ((x1 $smt_builtin_Nat)) ($smt_apply_1 "uconst_id" x1))
 (declare-const $eo_Term Type)
 (define $smt_builtin_teq ((x1 $eo_Term) (x2 $eo_Term)) ($smt_apply_2 "teq" x1 x2))
 (declare-const $eo_DatatypeCons Type)
@@ -433,9 +434,9 @@
 (define $sm_Const
   ((v $smt_Value) (T $smt_Type)) ($emb_sm.Const v T))
 (declare-parameterized-const $emb_sm.UConst
-  ((n $smt_builtin_Nat :opaque) (T $smt_Type :opaque))
+  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque))
   $smt_Term)
-(define $sm_UConst ((n $smt_builtin_Nat) (T $smt_Type)) ($emb_sm.UConst n T))
+(define $sm_UConst ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.UConst s T))
 (declare-parameterized-const $emb_sm.not ((x1 $smt_Term)) $smt_Term)
 (define $sm_not ((x1 $smt_Term)) ($sm_apply $emb_sm.not x1))
 (declare-parameterized-const $emb_sm.and ((x1 $smt_Term) (x2 $smt_Term)) $smt_Term)
@@ -702,7 +703,7 @@
   )
 )
 (program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
-(program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_Int $smt_Type) $smt_Value)
+(program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_String $smt_Type) $smt_Value)
 (program $smtx_model_eval_ite
   ((t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
@@ -899,7 +900,7 @@
     ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value v) T)
       v
       $vsm_not_value))
-  (($smtx_model_eval M ($sm_UConst i T)) ($smtx_model_lookup M ($smt_builtin_n_to_z i) T))
+  (($smtx_model_eval M ($sm_UConst s T)) ($smtx_model_lookup M s T))
   (($smtx_model_eval M x1)   $vsm_not_value)
   )
 )
@@ -980,7 +981,7 @@
   (($smtx_typeof ($sm_apply f x1)) ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
   (($smtx_typeof ($sm_Var s T))     T)
   (($smtx_typeof ($sm_Const v T))   T)
-  (($smtx_typeof ($sm_UConst i T))  T)
+  (($smtx_typeof ($sm_UConst s T))  T)
   (($smtx_typeof x1)   $tsm_none)
   )
 )
@@ -1035,7 +1036,7 @@
   (($eo_to_smt ($eot_Var s T))       ($sm_Var s ($eo_to_smt_type T)))
   (($eo_to_smt ($eot_DtCons s d i))  ($sm_DtCons s ($eo_to_smt_datatype d) i))
   (($eo_to_smt ($eot_DtSel s d i j)) ($sm_DtSel s ($eo_to_smt_datatype d) i j))
-  (($eo_to_smt ($eot_UConst i T))    ($sm_UConst i ($eo_to_smt_type T)))
+  (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($smt_builtin_to_uconst_id i) ($eo_to_smt_type T)))
   (($eo_to_smt (not x1)) ($sm_not ($eo_to_smt x1)))
   (($eo_to_smt (and x1 x2)) ($sm_and ($eo_to_smt x1) ($eo_to_smt x2)))
   (($eo_to_smt (= x1 x2)) ($sm_= ($eo_to_smt x1) ($eo_to_smt x2)))

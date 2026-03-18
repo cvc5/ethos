@@ -33,12 +33,12 @@
   :pattern ((nat.to_int x))))
   :named smtx.nat.to_int.def))
   
-  
 ; uninterpreted constant identifier for builtin partial functions
-(define-fun /_by_zero_id () Int (- 1))
-(define-fun div_by_zero_id () Int (- 2))
-(define-fun mod_by_zero_id () Int (- 3))
-(define-fun wrong_apply_sel_id () Int (- 4))
+(define-fun /_by_zero_id () String "@/_by_zero")
+(define-fun div_by_zero_id () String "@div_by_zero")
+(define-fun mod_by_zero_id () String "@mod_by_zero")
+(define-fun wrong_apply_sel_id () String "@wrong_apply_sel")
+(define-fun uconst_id ((x Nat)) String (str.++ "@u." (str.from_int (nat.to_int x))))
 
 ; integer exponentiation is not handled by cvc5, axiomatize it
 (declare-fun zexp_total (Int Int) Int)
@@ -234,7 +234,7 @@
   ; smt-cons: Const
   (sm.Const (sm.Const.arg1 vsm.Value) (sm.Const.arg2 tsm.Type))
   ; smt-cons: UConst
-  (sm.UConst (sm.UConst.arg1 Nat) (sm.UConst.arg2 tsm.Type))
+  (sm.UConst (sm.UConst.arg1 String) (sm.UConst.arg2 tsm.Type))
   ; smt-cons: not
   (sm.not)
   ; smt-cons: and
@@ -699,7 +699,7 @@
 (declare-fun $smtx_model_eval (smm.SmtModel sm.Term) vsm.Value)
 
 ; fwd-decl: $smtx_model_lookup
-(declare-fun $smtx_model_lookup (smm.SmtModel Int tsm.Type) vsm.Value)
+(declare-fun $smtx_model_lookup (smm.SmtModel String tsm.Type) vsm.Value)
 
 ; program: $smtx_model_eval_ite
 (define-fun $smtx_model_eval_ite ((x1 vsm.Value) (x2 vsm.Value) (x3 vsm.Value)) vsm.Value
@@ -839,7 +839,7 @@
   (ite ((_ is sm.Const) x2)
     (ite (Teq ($smtx_typeof_value (sm.Const.arg1 x2)) (sm.Const.arg2 x2)) (sm.Const.arg1 x2) vsm.NotValue)
   (ite ((_ is sm.UConst) x2)
-    ($smtx_model_lookup x1 (nat.to_int (sm.UConst.arg1 x2)) (sm.UConst.arg2 x2))
+    ($smtx_model_lookup x1 (sm.UConst.arg1 x2) (sm.UConst.arg2 x2))
     vsm.NotValue
 )))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
 
@@ -978,7 +978,7 @@
   (ite ((_ is eo.DtSel) x1)
     (sm.DtSel (eo.DtSel.arg1 x1) ($eo_to_smt_datatype (eo.DtSel.arg2 x1)) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1))
   (ite ((_ is eo.UConst) x1)
-    (sm.UConst (eo.UConst.arg1 x1) ($eo_to_smt_type (eo.UConst.arg2 x1)))
+    (sm.UConst (uconst_id (eo.UConst.arg1 x1)) ($eo_to_smt_type (eo.UConst.arg2 x1)))
   (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.not))
     (sm.Apply sm.not ($eo_to_smt (eo.Apply.arg2 x1)))
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) (= (eo.Apply.arg1 (eo.Apply.arg1 x1)) eo.and))
@@ -1029,7 +1029,7 @@
 ;;; Meta-level properties of models
 
 ; models are well typed
-(assert (! (forall ((M smm.SmtModel) (id Int) (T tsm.Type))
+(assert (! (forall ((M smm.SmtModel) (id String) (T tsm.Type))
   (! (= ($smtx_typeof_value ($smtx_model_lookup M id T)) T)
   :pattern (($smtx_model_lookup M id T))))
   :named smtx.model_lookup_well_typed))

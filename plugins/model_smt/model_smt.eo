@@ -146,9 +146,9 @@
 
 ; uninterpreted constants
 (declare-parameterized-const $emb_sm.UConst
-  ((n $smt_builtin_Nat :opaque) (T $smt_Type :opaque))
+  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque))
   $smt_Term)
-(define $sm_UConst ((n $smt_builtin_Nat) (T $smt_Type)) ($emb_sm.UConst n T))
+(define $sm_UConst ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.UConst s T))
 
 ; all other ordinary term definitions
 $SMT_TERM_CONSTRUCTORS$
@@ -735,7 +735,7 @@ $SMT_TYPE_CONSTRUCTORS$
 ; Forward declaration of the main method defined by this signature.
 ; We use this to define $eo_model_sat.
 (program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
-(program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_Int $smt_Type) $smt_Value)
+(program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_String $smt_Type) $smt_Value)
 
 ;;; Core
 
@@ -1064,7 +1064,7 @@ $SMT_EVAL_CASES$
     ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value v) T)
       v
       $vsm_not_value))
-  (($smtx_model_eval M ($sm_UConst i T)) ($smtx_model_lookup M ($smt_builtin_n_to_z i) T))
+  (($smtx_model_eval M ($sm_UConst s T)) ($smtx_model_lookup M s T))
   (($smtx_model_eval M x1)   $vsm_not_value)
   )
 )
@@ -1229,7 +1229,7 @@ $SMT_TYPEOF_CASES$
   (($smtx_typeof ($sm_apply f x1)) ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
   (($smtx_typeof ($sm_Var s T))     T)
   (($smtx_typeof ($sm_Const v T))   T)
-  (($smtx_typeof ($sm_UConst i T))  T)
+  (($smtx_typeof ($sm_UConst s T))  T)
   (($smtx_typeof x1)   $tsm_none)
   )
 )
@@ -1417,6 +1417,8 @@ $EO_TO_SMT_TYPE_CASES$
   )
 )
 
+
+
 (program $eo_to_smt 
   ((b $smt_builtin_Bool) (n $smt_builtin_Int) (m $smt_builtin_Int) (r $smt_builtin_Rat)
    (s $smt_builtin_String) (w $smt_builtin_Int) (d $eo_Datatype)
@@ -1433,7 +1435,7 @@ $EO_TO_SMT_TYPE_CASES$
   (($eo_to_smt ($eot_Var s T))       ($sm_Var s ($eo_to_smt_type T)))
   (($eo_to_smt ($eot_DtCons s d i))  ($sm_DtCons s ($eo_to_smt_datatype d) i))
   (($eo_to_smt ($eot_DtSel s d i j)) ($sm_DtSel s ($eo_to_smt_datatype d) i j))
-  (($eo_to_smt ($eot_UConst i T))    ($sm_UConst i ($eo_to_smt_type T)))
+  (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($smt_builtin_to_uconst_id i) ($eo_to_smt_type T)))
 $EO_TO_SMT_CASES$
   ; TODO: maybe a datatype constructor or selector???
   (($eo_to_smt (f y))               ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))

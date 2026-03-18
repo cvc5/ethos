@@ -273,10 +273,12 @@ def smt_lit_re_all : smt_lit_RegLan := .star .allchar
 
 -- Partial semantics
 
-def smt_lit_qdiv_by_zero_id : smt_lit_Int := -1
-def smt_lit_div_by_zero_id : smt_lit_Int := -2
-def smt_lit_mod_by_zero_id : smt_lit_Int := -3
-def smt_lit_wrong_apply_sel_id : smt_lit_Int := -4
+def smt_lit_qdiv_by_zero_id : smt_lit_String := "@qdiv_by_zero"
+def smt_lit_div_by_zero_id : smt_lit_String := "@div_by_zero"
+def smt_lit_mod_by_zero_id : smt_lit_String := "@mod_by_zero"
+def smt_lit_wrong_apply_sel_id : smt_lit_String := "@wrong_apply_sel"
+def smt_lit_uconst_id : smt_lit_Nat -> smt_lit_String
+  | i => "@u." ++ toString i
 
 mutual
 
@@ -322,7 +324,7 @@ inductive SmtTerm : Type where
   | DtSel : smt_lit_String -> SmtDatatype -> smt_lit_Nat -> smt_lit_Nat -> SmtTerm
   | DtTester : smt_lit_String -> SmtDatatype -> smt_lit_Nat -> SmtTerm
   | Const : SmtValue -> SmtType -> SmtTerm
-  | UConst : smt_lit_Nat -> SmtType -> SmtTerm
+  | UConst : smt_lit_String -> SmtType -> SmtTerm
   | not : SmtTerm
   | and : SmtTerm
 
@@ -382,20 +384,35 @@ deriving Repr, DecidableEq, Inhabited
 end
 
 
-/-
-SMT-LIB model
--/
-abbrev SmtModel := Int -- FIXME
+/- SMT-LIB model -/
+structure SmtModelKey where
+  name : smt_lit_String
+  ty : SmtType
+deriving Repr, DecidableEq, Inhabited
 
+abbrev SmtModel := SmtModelKey -> Option SmtValue
 
--- FIXME:
--- (__smtx_model_lookup M n T) should return an arbitrary SMT value whose type
--- is T.
-def __smtx_model_lookup : SmtModel -> smt_lit_Int -> SmtType -> SmtValue
-  | _, _, _ => (SmtValue.Boolean true)
+def SmtModel.empty : SmtModel :=
+  fun _ => none
+
+def __smtx_model_key (s : smt_lit_String) (T : SmtType) : SmtModelKey :=
+  { name := s, ty := T }
+
+def __smtx_model_lookup (M : SmtModel) (s : smt_lit_String) (T : SmtType) : SmtValue :=
+  match M (__smtx_model_key s T) with
+  | some v =>
+      if __smtx_typeof_value v = T then
+        v
+      else
+        SmtValue.NotValue
+  | none => SmtValue.NotValue
 
 def __smtx_model_push (M : SmtModel) (s : smt_lit_String) (T : SmtType) (v : SmtValue) : SmtModel :=
-  M -- FIXME
+  fun k =>
+    if k = (__smtx_model_key s T) then
+      some v
+    else
+      M k
 
 /- Type equality -/
 def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
@@ -590,7 +607,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
   | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x1))
   | (SmtTerm.Const v T) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value v) T) v SmtValue.NotValue)
-  | (SmtTerm.UConst i T) => (__smtx_model_lookup M (smt_lit_nat_to_int i) T)
+  | (SmtTerm.UConst s T) => (__smtx_model_lookup M s T)
   | x1 => SmtValue.NotValue
 
 

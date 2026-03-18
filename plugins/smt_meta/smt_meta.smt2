@@ -33,12 +33,12 @@
   :pattern ((nat.to_int x))))
   :named smtx.nat.to_int.def))
   
-  
 ; uninterpreted constant identifier for builtin partial functions
-(define-fun /_by_zero_id () Int (- 1))
-(define-fun div_by_zero_id () Int (- 2))
-(define-fun mod_by_zero_id () Int (- 3))
-(define-fun wrong_apply_sel_id () Int (- 4))
+(define-fun /_by_zero_id () String "@/_by_zero")
+(define-fun div_by_zero_id () String "@div_by_zero")
+(define-fun mod_by_zero_id () String "@mod_by_zero")
+(define-fun wrong_apply_sel_id () String "@wrong_apply_sel")
+(define-fun uconst_id ((x Nat)) String (str.++ "@u." (str.from_int (nat.to_int x))))
 
 ; integer exponentiation is not handled by cvc5, axiomatize it
 (declare-fun zexp_total (Int Int) Int)
@@ -151,7 +151,7 @@ $SM_DEFS$
 ;;; Meta-level properties of models
 
 ; models are well typed
-(assert (! (forall ((M smm.SmtModel) (id Int) (T tsm.Type))
+(assert (! (forall ((M smm.SmtModel) (id String) (T tsm.Type))
   (! (= ($smtx_typeof_value ($smtx_model_lookup M id T)) T)
   :pattern (($smtx_model_lookup M id T))))
   :named smtx.model_lookup_well_typed))
