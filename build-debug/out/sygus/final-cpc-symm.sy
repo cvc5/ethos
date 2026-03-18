@@ -712,10 +712,8 @@
 
 ; program: $smtx_model_eval_=
 (define-fun $smtx_model_eval_= ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
-  (ite (and ((_ is vsm.Map) x1) ((_ is vsm.Map) x2))
-    (veq_ext (vsm.Map (vsm.Map.arg1 x1)) (vsm.Map (vsm.Map.arg1 x2)))
-    (vsm.Boolean (veq x1 x2))
-))
+    (veq_ext x1 x2)
+)
 
 ; program: $smtx_map_select
 (define-fun $smtx_map_select ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
@@ -1078,7 +1076,9 @@
 ; whether two values are extensionally equal
 (assert (! (forall ((v1 vsm.Value) (v2 vsm.Value))
   (! (= (veq_ext v1 v2)
-     (vsm.Boolean (forall ((i vsm.Value)) (= ($smtx_model_eval_apply v1 i) ($smtx_model_eval_apply v2 i)))))
+        (ite (and ((_ is vsm.Map) v1) ((_ is vsm.Map) v2))
+          (vsm.Boolean (forall ((i vsm.Value)) (= ($smtx_model_eval_apply v1 i) ($smtx_model_eval_apply v2 i))))
+          (vsm.Boolean (veq v1 v2))))
   :pattern ((veq_ext v1 v2))))
   :named smtx.veq_ext.def))
 

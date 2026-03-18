@@ -566,10 +566,8 @@ def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
   | t1, t2, t3 => SmtValue.NotValue
 
 
-def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Map m1), (SmtValue.Map m2) => (smt_lit_veq_ext (SmtValue.Map m1) (SmtValue.Map m2))
-  | t1, t2 => (SmtValue.Boolean (smt_lit_veq t1 t2))
-
+def __smtx_model_eval_eq (t1 : SmtValue) (t2 : SmtValue) : SmtValue :=
+  (smt_lit_veq_ext t1 t2)
 
 def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m), i => (__smtx_msm_lookup m i)

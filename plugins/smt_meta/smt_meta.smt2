@@ -200,7 +200,9 @@ $SM_DEFS$
 ; whether two values are extensionally equal
 (assert (! (forall ((v1 vsm.Value) (v2 vsm.Value))
   (! (= (veq_ext v1 v2)
-     (vsm.Boolean (forall ((i vsm.Value)) (= ($smtx_model_eval_apply v1 i) ($smtx_model_eval_apply v2 i)))))
+        (ite (and ((_ is vsm.Map) v1) ((_ is vsm.Map) v2))
+          (vsm.Boolean (forall ((i vsm.Value)) (= ($smtx_model_eval_apply v1 i) ($smtx_model_eval_apply v2 i))))
+          (vsm.Boolean (veq v1 v2))))
   :pattern ((veq_ext v1 v2))))
   :named smtx.veq_ext.def))
 

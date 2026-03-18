@@ -716,10 +716,7 @@
 (program $smtx_model_eval_= ((t1 $smt_Value) (t2 $smt_Value) (m1 $smt_Map) (m2 $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  
-  (($smtx_model_eval_= ($vsm_map m1) ($vsm_map m2))
-    ($smt_apply_2 "veq_ext" ($vsm_map m1) ($vsm_map m2)))
-  (($smtx_model_eval_= t1 t2) ($vsm_bool ($smt_builtin_veq t1 t2)))
+  (($smtx_model_eval_= t1 t2) ($smt_apply_2 "veq_ext" t1 t2))
   )
 )
 (program $smtx_map_select
