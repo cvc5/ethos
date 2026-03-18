@@ -784,7 +784,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                 << std::endl;
   ssQuantSkolem << "     ($eo_to_smt_quantifiers_skolemize" << std::endl;
   ssQuantSkolem
-      << "       ($smtx_substitute s T ($eo_to_smt_quantifiers_skolemize "
+      << "       ($eo_to_smt_substitute s T ($eo_to_smt_quantifiers_skolemize "
          "($sm_apply ($sm_exists s T) F) $smt_builtin_n_zero) F)"
       << std::endl;
   ssQuantSkolem << "       n))" << std::endl;

@@ -231,8 +231,6 @@
   (sm.DtSel (sm.DtSel.arg1 String) (sm.DtSel.arg2 dt.Datatype) (sm.DtSel.arg3 Nat) (sm.DtSel.arg4 Nat))
   ; smt-cons: DtTester
   (sm.DtTester (sm.DtTester.arg1 String) (sm.DtTester.arg2 dt.Datatype) (sm.DtTester.arg3 Nat))
-  ; smt-cons: Const
-  (sm.Const (sm.Const.arg1 vsm.Value) (sm.Const.arg2 tsm.Type))
   ; smt-cons: UConst
   (sm.UConst (sm.UConst.arg1 String) (sm.UConst.arg2 tsm.Type))
   ; smt-cons: not
@@ -726,35 +724,6 @@
     vsm.NotValue
 ))
 
-; program: $smtx_is_var
-(define-fun $smtx_is_var ((x1 String) (x2 tsm.Type) (x3 sm.Term)) Bool
-  (ite ((_ is sm.Var) x3)
-    (and (streq x1 (sm.Var.arg1 x3)) (Teq x2 (sm.Var.arg2 x3)))
-    false
-))
-
-; program: $smtx_is_binder_x
-(define-fun $smtx_is_binder_x ((x1 String) (x2 tsm.Type) (x3 sm.Term)) Bool
-  (ite ((_ is sm.exists) x3)
-    ($smtx_is_var x1 x2 (sm.Var (sm.exists.arg1 x3) (sm.exists.arg2 x3)))
-  (ite ((_ is sm.forall) x3)
-    ($smtx_is_var x1 x2 (sm.Var (sm.forall.arg1 x3) (sm.forall.arg2 x3)))
-  (ite ((_ is sm.lambda) x3)
-    ($smtx_is_var x1 x2 (sm.Var (sm.lambda.arg1 x3) (sm.lambda.arg2 x3)))
-  (ite ((_ is sm.choice) x3)
-    ($smtx_is_var x1 x2 (sm.Var (sm.choice.arg1 x3) (sm.choice.arg2 x3)))
-    false
-)))))
-
-; program: $smtx_substitute
-(declare-fun $smtx_substitute (String tsm.Type sm.Term sm.Term) sm.Term)
-(assert (! (forall ((x1 String) (x2 tsm.Type) (x3 sm.Term) (x4 sm.Term))
-  (! (= ($smtx_substitute x1 x2 x3 x4)
-  (ite ((_ is sm.Apply) x4)
-    (ite ($smtx_is_binder_x x1 x2 (sm.Apply.arg1 x4)) (sm.Apply (sm.Apply.arg1 x4) (sm.Apply.arg2 x4)) (sm.Apply ($smtx_substitute x1 x2 x3 (sm.Apply.arg1 x4)) ($smtx_substitute x1 x2 x3 (sm.Apply.arg2 x4))))
-    (ite ($smtx_is_var x1 x2 x4) x3 x4)
-)) :pattern (($smtx_substitute x1 x2 x3 x4)))) :named sm.axiom.$smtx_substitute))
-
 ; program: $smtx_model_eval_dt_cons
 (define-fun $smtx_model_eval_dt_cons ((x1 String) (x2 dt.Datatype) (x3 Nat)) vsm.Value
     (ite (Teq ($smtx_typeof_dt_cons_value_rec (tsm.Datatype x1 x2) ($smtx_dt_substitute x1 x2 x2) x3) tsm.None) vsm.NotValue (vsm.DtCons x1 x2 x3))
@@ -909,12 +878,10 @@
     ($smtx_typeof_apply ($smtx_typeof (sm.Apply.arg1 x1)) ($smtx_typeof (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Var) x1)
     (sm.Var.arg2 x1)
-  (ite ((_ is sm.Const) x1)
-    (sm.Const.arg2 x1)
   (ite ((_ is sm.UConst) x1)
     (sm.UConst.arg2 x1)
     tsm.None
-))))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
+)))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
 
 ; fwd-decl: $eo_to_smt_type
 (declare-fun $eo_to_smt_type (eo.Term) tsm.Type)
@@ -1030,12 +997,6 @@
 
 ;;; Meta-level properties of models
 
-; models are well typed
-;(assert (! (forall ((M smm.SmtModel) (id String) (T tsm.Type))
-;  (! (= ($smtx_typeof_value ($smtx_model_lookup M id T)) T)
-;  :pattern (($smtx_model_lookup M id T))))
-;  :named smtx.model_lookup_well_typed))
-; models are well typed
 (assert (! (forall ((M smm.SmtModel) (id String) (T tsm.Type))
   (! (= ($smtx_model_lookup M id T) (select M (tuple id T)))
   :pattern (($smtx_model_lookup M id T))))

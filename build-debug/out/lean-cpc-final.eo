@@ -547,9 +547,6 @@
   (($smtx_model_eval_apply ($vsm_map m) i) ($smtx_map_select ($vsm_map m) i))
   
   
-    
-    
-  
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )
 )

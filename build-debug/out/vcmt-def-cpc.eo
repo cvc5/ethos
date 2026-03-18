@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 292
+; #trim-defs: 287
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -429,10 +429,6 @@
   $smt_Term)
 (define $sm_DtTester ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Nat))
   ($emb_sm.DtTester s d ci))
-(declare-parameterized-const $emb_sm.Const
-  ((v $smt_Value :opaque) (T $smt_Type :opaque)) $smt_Term)
-(define $sm_Const
-  ((v $smt_Value) (T $smt_Type)) ($emb_sm.Const v T))
 (declare-parameterized-const $emb_sm.UConst
   ((s $smt_builtin_String :opaque) (T $smt_Type :opaque))
   $smt_Term)
@@ -727,46 +723,6 @@
   (($smtx_map_select v i)            $vsm_not_value)
   )
 )
-(program $smtx_is_var
-  ((x $smt_Term) (s1 $smt_builtin_String) (T1 $smt_Type)
-   (s2 $smt_builtin_String) (T2 $smt_Type))
-  :signature ($smt_builtin_String $smt_Type $smt_Term) $smt_builtin_Bool
-  (
-  (($smtx_is_var s1 T1 ($sm_Var s2 T2)) 
-    ($smt_builtin_and ($smt_builtin_str_= s1 s2) ($smt_builtin_Teq T1 T2)))
-  (($smtx_is_var s1 T1 x) $smt_builtin_false)
-  )
-)
-(program $smtx_is_binder_x 
-  ((x $smt_Term) (s1 $smt_builtin_String) (T1 $smt_Type)
-   (s2 $smt_builtin_String) (T2 $smt_Type))
-  :signature ($smt_builtin_String $smt_Type $smt_Term) $smt_builtin_Bool
-  (
-  (($smtx_is_binder_x s1 T1 ($sm_exists s2 T2)) 
-    ($smtx_is_var s1 T1 ($sm_Var s2 T2)))
-  (($smtx_is_binder_x s1 T1 ($sm_forall s2 T2))
-    ($smtx_is_var s1 T1 ($sm_Var s2 T2)))
-  (($smtx_is_binder_x s1 T1 ($sm_lambda s2 T2))
-    ($smtx_is_var s1 T1 ($sm_Var s2 T2)))
-  (($smtx_is_binder_x s1 T1 ($sm_choice s2 T2))
-    ($smtx_is_var s1 T1 ($sm_Var s2 T2)))
-  (($smtx_is_binder_x s1 T1 x) $smt_builtin_false)
-  )
-)
-(program $smtx_substitute
-  ((s $smt_builtin_String) (T $smt_Type) (u $smt_Term)
-   (f $smt_Term) (a $smt_Term) (z $smt_Term))
-  :signature ($smt_builtin_String $smt_Type $smt_Term $smt_Term) $smt_Term
-  (
-  (($smtx_substitute s T u ($sm_apply f a))
-    ($smt_builtin_ite ($smtx_is_binder_x s T f)
-      ($sm_apply f a) 
-      ($sm_apply ($smtx_substitute s T u f) ($smtx_substitute s T u a))))
-  (($smtx_substitute s T u z)
-    
-    ($smt_builtin_ite ($smtx_is_var s T z) u z))
-  )
-)
 (program $smtx_model_eval_dt_cons
   ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Nat))
   :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Nat) $smt_Value
@@ -821,9 +777,6 @@
   
   (($smtx_model_eval_apply ($vsm_map m) i) ($smtx_map_select ($vsm_map m) i))
   
-  
-    
-    
   
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )
@@ -972,7 +925,6 @@
   
   (($smtx_typeof ($sm_apply f x1)) ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
   (($smtx_typeof ($sm_Var s T))     T)
-  (($smtx_typeof ($sm_Const v T))   T)
   (($smtx_typeof ($sm_UConst s T))  T)
   (($smtx_typeof x1)   $tsm_none)
   )
