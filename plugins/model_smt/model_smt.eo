@@ -1396,7 +1396,7 @@ $EO_TO_SMT_TYPE_CASES$
   (
   (($eo_to_smt_lambda $eo_List_nil F) F)
   (($eo_to_smt_lambda ($eo_List ($eot_Var s T) vs) F)
-    ($sm_apply ($sm_lambda s ($eo_to_smt_type T)) ($eo_to_smt_exists vs F)))
+    ($sm_apply ($sm_lambda s ($eo_to_smt_type T)) ($eo_to_smt_lambda vs F)))
   (($eo_to_smt_lambda vs F) $sm_none)
   )
 )
