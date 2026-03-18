@@ -1088,7 +1088,10 @@ bool SmtMetaReduce::echo(const std::string& msg)
         MetaKind tk = getTypeMetaKind(vt[i - 1]);
         if (tk != MetaKind::EUNOIA)
         {
-          call << " 0";
+          d_smtVc << "(declare-fun M" << i << " () ";
+          printMetaType(vt[i - 1], d_smtVc);
+          d_smtVc << ")" << std::endl;
+          call << " M" << i;
           continue;
         }
         std::stringstream varName;

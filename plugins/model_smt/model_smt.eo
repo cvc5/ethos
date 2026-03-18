@@ -1055,13 +1055,8 @@ $SMT_EVAL_CASES$
   ; All interpreted f should be handled in the evaluation cases above.
   (($smtx_model_eval M ($sm_apply f x1))
     ($smtx_model_eval_apply ($smtx_model_eval M f) ($smtx_model_eval M x1)))
-  ; Constants, which carry their value. They additionally guard their value
-  ; to ensure it has type T.
-  (($smtx_model_eval M ($sm_Const v T))
-    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof_value v) T)
-      v
-      $vsm_not_value))
-  (($smtx_model_eval M ($sm_UConst s T)) ($smtx_model_lookup M s T))
+  (($smtx_model_eval M ($sm_Var s T))     ($smtx_model_lookup M s T))
+  (($smtx_model_eval M ($sm_UConst s T))  ($smtx_model_lookup M s T))
   (($smtx_model_eval M x1)   $vsm_not_value)
   )
 )
