@@ -7,6 +7,7 @@ ethos 0.2.3 prerelease
 - Updates to the external plugin interface.
 - The identifier `Type` is no longer treated as a keyword in proofs and reference files.
 - The command `declare-sort` is now allowed in proof files.
+- The builtin `eo::to_str` no longer prints rationals, decimals, or bitvectors. It now only evaluates on strings and numeral code points.
 
 ethos 0.2.2
 ===========
@@ -91,4 +92,3 @@ https://github.com/cvc5/ethos
 ## Documentation
 
 https://github.com/cvc5/ethos/blob/main/user_manual.md
-

@@ -1,13 +1,10 @@
-; The lines with decimals and hexadecimals are commented out since
-; we can't do options in regression tests, these pass with:
-; `--no-normalize-dec --no-normalize-hex`
+; This file checks the remaining eo::to_str behavior on numerals and strings,
+; and that other literal kinds remain unevaluated.
 
 (declare-const Real Type)
 (declare-consts <rational> Real)
-;(declare-consts <decimal> Real)
 (declare-const BitVec Type)
 (declare-consts <binary> BitVec)
-;(declare-consts <hexadecimal> BitVec)
 (declare-const String Type)
 (declare-consts <string> String)
 
@@ -18,14 +15,14 @@
   :requires (((eo::to_str x) s))
   :conclusion (ok x))
 
-;(step @p0 (ok 1.1) :rule test_to_str :args (1.1 "1.1"))
-(step @p1 (ok 2/12) :rule test_to_str :args (2/12 "1/6"))
-(step @p2 (ok #b001) :rule test_to_str :args (#b001 "#b001"))
-;(step @p3 (ok #xab) :rule test_to_str :args (#xAB "#xab"))
-(step @p4 (ok "abc") :rule test_to_str :args ("abc" "abc"))
+(step @p1 (ok 65) :rule test_to_str :args (65 "A"))
+(step @p2 (ok "abc") :rule test_to_str :args ("abc" "abc"))
 
-
-;(step @p0 (ok 1.123456789) :rule test_to_str :args (1.123456789 "1.123456789"))
-;(step @p0 (ok 12345.0) :rule test_to_str :args (12345.0 "12345.0"))
-;(step @p00 (ok 12345.1) :rule test_to_str :args (12345.1 "12345.1"))
-;(step @p0 (ok 123456789.0) :rule test_to_str :args (123456789.0 "123456789.0"))
+(declare-const test_q
+  (eo::requires (eo::is_ok (eo::to_str 2/12)) false Bool))
+(declare-const test_bin
+  (eo::requires (eo::is_ok (eo::to_str #b001)) false Bool))
+(declare-const test_invalid_neg
+  (eo::requires (eo::is_ok (eo::to_str -1)) false Bool))
+(declare-const test_invalid_large
+  (eo::requires (eo::is_ok (eo::to_str 200000)) false Bool))
