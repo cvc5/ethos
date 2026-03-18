@@ -371,11 +371,72 @@ def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
 def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)
 
-/- extentional equality for values -/
-def smt_lit_veq_ext : SmtValue -> SmtValue -> SmtValue
-  | _, _ => (SmtValue.Boolean true) -- FIXME
+macro_rules
+  | `(smt_lit_veq_ext $v1 $v2) => do
+      let lookupId := Lean.mkIdent `__smtx_msm_lookup
+      `(by
+          classical
+          exact
+            let lhs := $v1
+            let rhs := $v2
+            match lhs, rhs with
+            | SmtValue.Map m1, SmtValue.Map m2 =>
+                if hExt :
+                    ∀ v : SmtValue,
+                      $lookupId m1 v = $lookupId m2 v then
+                  SmtValue.Boolean true
+                else
+                  SmtValue.Boolean false
+            | _, _ =>
+                SmtValue.Boolean (smt_lit_veq lhs rhs))
+  | `(smt_lit_eval_texists $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `__smtx_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      `(by
+          classical
+          exact
+            if h :
+                ∃ v : SmtValue,
+                  $typeofValueId v = $T ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+  | `(smt_lit_eval_tforall $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `__smtx_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      `(by
+          classical
+          exact
+            if h :
+                ∀ v : SmtValue,
+                  $typeofValueId v = $T ->
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+  | `(smt_lit_eval_tchoice $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `__smtx_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      `(by
+          classical
+          exact
+            if hSat :
+                ∃ v : SmtValue,
+                  $typeofValueId v = $T ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              Classical.choose hSat
+            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T then
+              Classical.choose hTy
+            else
+              SmtValue.NotValue)
 
 /- Definition of SMT-LIB model semantics -/
+
+noncomputable section
 
 mutual
 
@@ -383,45 +444,7 @@ $LEAN_SMT_EVAL_DEFS$
 
 end
 
-macro_rules
-  | `(smt_lit_eval_texists $M $s $T $body) => do
-      let evalId := Lean.mkIdent `__smtx_model_eval
-      `(by
-          classical
-          exact
-            if h :
-                ∃ v : SmtValue,
-                  __smtx_typeof_value v = $T ∧
-                    $evalId (__smtx_model_push $M $s $T v) $body = (SmtValue.Boolean true) then
-              SmtValue.Boolean true
-            else
-              SmtValue.Boolean false)
-  | `(smt_lit_eval_tforall $M $s $T $body) => do
-      let evalId := Lean.mkIdent `__smtx_model_eval
-      `(by
-          classical
-          exact
-            if h :
-                ∀ v : SmtValue,
-                  __smtx_typeof_value v = $T ->
-                    $evalId (__smtx_model_push $M $s $T v) $body = (SmtValue.Boolean true) then
-              SmtValue.Boolean true
-            else
-              SmtValue.Boolean false)
-  | `(smt_lit_eval_tchoice $M $s $T $body) => do
-      let evalId := Lean.mkIdent `__smtx_model_eval
-      `(by
-          classical
-          exact
-            if hSat :
-                ∃ v : SmtValue,
-                  __smtx_typeof_value v = $T ∧
-                    $evalId (__smtx_model_push $M $s $T v) $body = (SmtValue.Boolean true) then
-              Classical.choose hSat
-            else if hTy : ∃ v : SmtValue, __smtx_typeof_value v = $T then
-              Classical.choose hTy
-            else
-              SmtValue.NotValue)
+end
 
 $LEAN_SMT_EVAL$
 
