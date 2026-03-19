@@ -2498,6 +2498,7 @@
 ; We use this to define $eo_model_sat.
 (program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
 (program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_String $smt_Type) $smt_Value)
+(program $smtx_model_update () :signature ($smt_Model $smt_builtin_String $smt_Type $smt_Value) $smt_Model)
 
 ;;; Core
 
@@ -3191,7 +3192,7 @@
   (
   (($eo_to_smt_lambda $eo_List_nil F) F)
   (($eo_to_smt_lambda ($eo_List ($eot_Var s T) vs) F)
-    ($sm_apply ($sm_lambda s ($eo_to_smt_type T)) ($eo_to_smt_exists vs F)))
+    ($sm_apply ($sm_lambda s ($eo_to_smt_type T)) ($eo_to_smt_lambda vs F)))
   (($eo_to_smt_lambda vs F) $sm_none)
   )
 )
@@ -3272,7 +3273,7 @@
   (($eovc_symm F $eoM) (eo::define ((_v0 ($eo_prog_symm ($eo_pf F)))) (eo::requires ($eo_typeof F) Bool (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_typeof _v0) Bool (eo::requires ($eo_model_unsat $eoM _v0) true true))))))
   )
 )
-(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_substitute $mk_vsm_bool $mk_sm_const ")
+(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $mk_vsm_bool $mk_sm_const ")
 
 
 

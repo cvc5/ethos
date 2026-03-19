@@ -124,9 +124,6 @@ $SM_TYPE_DECL$
 ; models
 (define-sort smk.SmtModelKey () (Tuple String tsm.Type))
 (define-sort smm.SmtModel () (Array smk.SmtModelKey vsm.Value))
-(define-fun $smtx_model_update
-  ((M smm.SmtModel) (id String) (T tsm.Type) (v vsm.Value)) smm.SmtModel
-  (store M (tuple id T) v))
 
 (define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
 (define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))
@@ -158,6 +155,11 @@ $SM_DEFS$
   (! (= ($smtx_model_lookup M id T) (select M (tuple id T)))
   :pattern (($smtx_model_lookup M id T))))
   :named smtx.model_lookup_def))
+
+(assert (! (forall ((M smm.SmtModel) (id String) (T tsm.Type) (v vsm.Value))
+  (! (= ($smtx_model_update M id T v) (store M (tuple id T) v))
+  :pattern (($smtx_model_update M id T v))))
+  :named smtx.model_update_def))
 
 ; true iff there exists a value of type T that when substituted into F
 ; is evaluated as tgt. Note that we do not check the type of T here,

@@ -730,6 +730,7 @@ $SMT_TYPE_CONSTRUCTORS$
 ; We use this to define $eo_model_sat.
 (program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
 (program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_String $smt_Type) $smt_Value)
+(program $smtx_model_update () :signature ($smt_Model $smt_builtin_String $smt_Type $smt_Value) $smt_Model)
 
 ;;; Core
 

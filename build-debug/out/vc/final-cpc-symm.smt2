@@ -282,9 +282,6 @@
 ; models
 (define-sort smk.SmtModelKey () (Tuple String tsm.Type))
 (define-sort smm.SmtModel () (Array smk.SmtModelKey vsm.Value))
-(define-fun $smtx_model_update
-  ((M smm.SmtModel) (id String) (T tsm.Type) (v vsm.Value)) smm.SmtModel
-  (store M (tuple id T) v))
 
 (define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
 (define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))
@@ -703,6 +700,9 @@
 ; fwd-decl: $smtx_model_lookup
 (declare-fun $smtx_model_lookup (smm.SmtModel String tsm.Type) vsm.Value)
 
+; fwd-decl: $smtx_model_update
+(declare-fun $smtx_model_update (smm.SmtModel String tsm.Type vsm.Value) smm.SmtModel)
+
 ; program: $smtx_model_eval_ite
 (define-fun $smtx_model_eval_ite ((x1 vsm.Value) (x2 vsm.Value) (x3 vsm.Value)) vsm.Value
   (ite (and ((_ is vsm.Boolean) x1) (= (vsm.Boolean.arg1 x1) true))
@@ -1001,6 +1001,11 @@
   (! (= ($smtx_model_lookup M id T) (select M (tuple id T)))
   :pattern (($smtx_model_lookup M id T))))
   :named smtx.model_lookup_def))
+
+(assert (! (forall ((M smm.SmtModel) (id String) (T tsm.Type) (v vsm.Value))
+  (! (= ($smtx_model_update M id T v) (store M (tuple id T) v))
+  :pattern (($smtx_model_update M id T v))))
+  :named smtx.model_update_def))
 
 ; true iff there exists a value of type T that when substituted into F
 ; is evaluated as tgt. Note that we do not check the type of T here,
