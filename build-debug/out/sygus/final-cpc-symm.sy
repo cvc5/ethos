@@ -300,6 +300,7 @@
 (declare-fun eval_tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_tapply (smm.SmtModel vsm.Value vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (vsm.Value vsm.Value) vsm.Value)
   
@@ -813,7 +814,7 @@
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.DtTester) (sm.Apply.arg1 x2)))
     ($smtx_model_eval_dt_tester (sm.DtTester.arg1 (sm.Apply.arg1 x2)) (sm.DtTester.arg2 (sm.Apply.arg1 x2)) (sm.DtTester.arg3 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite ((_ is sm.Apply) x2)
-    ($smtx_model_eval_apply ($smtx_model_eval x1 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
+    (eval_tapply x1 ($smtx_model_eval x1 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite ((_ is sm.Var) x2)
     ($smtx_model_lookup x1 (sm.Var.arg1 x2) (sm.Var.arg2 x2))
   (ite ((_ is sm.UConst) x2)
@@ -1055,6 +1056,17 @@
          (vsm.Boolean true)))
   :pattern ((eval_tchoice M s T F))))
   :named smtx.tchoice.def))
+
+; apply
+(assert (! (forall ((M smm.SmtModel) (f vsm.Value) (a vsm.Value))
+  (! (= (eval_tapply M f a)
+     (ite ((_ is vsm.Lambda) f)
+        ($smtx_model_eval
+          ($smtx_model_update M (vsm.Lambda.arg1 f) (vsm.Lambda.arg2 f) a)
+            (vsm.Lambda.arg3 f))
+        ($smtx_model_eval_apply f a)))
+  :pattern ((eval_tapply M f a))))
+  :named smtx.tapply.def))
 
 ; whether two values are extensionally equal
 (assert (! (forall ((v1 vsm.Value) (v2 vsm.Value))
