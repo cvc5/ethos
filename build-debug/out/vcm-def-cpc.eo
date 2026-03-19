@@ -2189,8 +2189,12 @@
 (define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
   ($emb_dt.sum c d))
 
-; forward declaration
+; forward declarations
 (program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
+(program $smtx_typeof () :signature ($smt_Term) $smt_Type)
+(program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
+(program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_String $smt_Type) $smt_Value)
+(program $smtx_model_update () :signature ($smt_Model $smt_builtin_String $smt_Type $smt_Value) $smt_Model)
 
 ;;; Map utilities
 
@@ -2464,12 +2468,11 @@
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Type rules for values
 
-; NOTE: $vsm_lambda is unhandled
 (program $smtx_typeof_value
   ((v $smt_Value) (f $smt_Value) (d $smt_Datatype)
    (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (i $smt_builtin_Nat)
    (q $smt_builtin_Real) (s $smt_builtin_String) (r $smt_builtin_RegLan)
-   (m $smt_Map) (ss $smt_Seq))
+   (m $smt_Map) (ss $smt_Seq) (T $smt_Type) (t $smt_Term))
   :signature ($smt_Value) $smt_Type
   (
   (($smtx_typeof_value ($vsm_bool b))     $tsm_Bool)
@@ -2483,6 +2486,11 @@
   (($smtx_typeof_value ($vsm_re r))       $tsm_RegLan)
   (($smtx_typeof_value ($vsm_map m))      ($smtx_typeof_map_value m))
   (($smtx_typeof_value ($vsm_seq ss))     ($smtx_typeof_seq_value ss))
+  (($smtx_typeof_value ($vsm_lambda s T t))
+    (eo::define ((U ($smtx_typeof t)))
+      ($smt_builtin_ite ($smt_builtin_Teq T $tsm_none) $tsm_none
+      ($smt_builtin_ite ($smt_builtin_Teq U $tsm_none) $tsm_none
+        ($tsm_Map T U)))))
   (($smtx_typeof_value ($vsm_DtCons s d i))
     ($smtx_typeof_dt_cons_value s d i))
   (($smtx_typeof_value ($vsm_apply f v))
@@ -2493,12 +2501,6 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Model semantics
-
-; Forward declaration of the main method defined by this signature.
-; We use this to define $eo_model_sat.
-(program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
-(program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_String $smt_Type) $smt_Value)
-(program $smtx_model_update () :signature ($smt_Model $smt_builtin_String $smt_Type $smt_Value) $smt_Model)
 
 ;;; Core
 
@@ -2769,7 +2771,11 @@
     ($smt_apply_4 "eval_texists" M s T x1))
   (($smtx_model_eval M ($sm_apply ($sm_forall s T) x1))
     ($smt_apply_4 "eval_tforall" M s T x1))
+  ; standalone lambda
   (($smtx_model_eval M ($sm_apply ($sm_lambda s T) x1)) ($vsm_lambda s T x1))
+  ; apply lambda case
+  (($smtx_model_eval M ($sm_apply ($sm_apply ($sm_lambda s T) x1) x2))
+    ($smtx_model_eval ($smtx_model_update M s T ($smtx_model_eval M x2)) x1))
   (($smtx_model_eval M ($sm_apply ($sm_choice s T) x1))
     ($smt_apply_4 "eval_tchoice" M s T x1))
   ; datatypes

@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 299
+; #trim-defs: 300
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -398,6 +398,9 @@
   $smt_Datatype)
 (define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
   ($emb_dt.sum c d))
+(program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
+(program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_String $smt_Type) $smt_Value)
+(program $smtx_model_update () :signature ($smt_Model $smt_builtin_String $smt_Type $smt_Value) $smt_Model)
 (program $smtx_msm_lookup
   ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
@@ -467,8 +470,6 @@
   (($smtx_ret_typeof_sel d n m) $tsm_none)
   )
 )
-(program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
-(program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_String $smt_Type) $smt_Value)
 (program $smtx_model_eval_ite
   ((t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
@@ -598,7 +599,11 @@
     ($smt_apply_4 "eval_texists" M s T x1))
   (($smtx_model_eval M ($sm_apply ($sm_forall s T) x1))
     ($smt_apply_4 "eval_tforall" M s T x1))
+  
   (($smtx_model_eval M ($sm_apply ($sm_lambda s T) x1)) ($vsm_lambda s T x1))
+  
+  (($smtx_model_eval M ($sm_apply ($sm_apply ($sm_lambda s T) x1) x2))
+    ($smtx_model_eval ($smtx_model_update M s T ($smtx_model_eval M x2)) x1))
   (($smtx_model_eval M ($sm_apply ($sm_choice s T) x1))
     ($smt_apply_4 "eval_tchoice" M s T x1))
   
