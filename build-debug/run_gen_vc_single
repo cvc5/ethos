@@ -56,7 +56,11 @@ check_status
 rm -f $TMP_TRIM_OUT
 }
 
-echo "********* Verifying the correctness of $TARGET *********"
+if [[ "$USE_SYGUS" == "ON" ]]; then
+  echo "********* Searching for counterexamples of $TARGET via sygus *********"
+else
+  echo "********* Verifying the correctness of $TARGET via smt2 *********"
+fi
 
 # trim dependencies with respect to the proof rule
 echo "**** smt_meta: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
@@ -133,9 +137,9 @@ else
 
   BASE_ARGS="--macros-quant --re-first-class"
   
-  #echo "**** smt_meta: Run the final verification condition with unsat cores"
-  #$CVC5 $VC_OUT --dump-unsat-cores $BASE_ARGS #--parse-only
-  #check_status
+  echo "**** smt_meta: Run the final verification condition with unsat cores"
+  $CVC5 $VC_OUT --dump-unsat-cores $BASE_ARGS #--parse-only
+  check_status
 
   echo "**** smt_meta: Run the final verification condition with proofs"
   $CVC5 $VC_OUT --check-proofs --stats-internal $BASE_ARGS |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount|finalProof::totalRuleCount|finalProof::ruleUnhandled|finalProof::trust)'

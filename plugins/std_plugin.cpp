@@ -28,7 +28,7 @@ std::string StdPlugin::s_plugin_path =
 bool StdPlugin::optionFlattenEval() { return false; }
 // this ensures that the types of premises and conclusion must be Bool to
 // witness unsoundness
-bool StdPlugin::optionVcUseTypeof() { return true; }
+bool StdPlugin::optionVcUseTypeof() { return false; }
 // strict means we are not debugging completeness
 bool StdPlugin::optionVcUseModelStrict() { return true; }
 // uses trigger in final encoding

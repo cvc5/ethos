@@ -1776,7 +1776,7 @@
 (program $eovc_symm (($eoM $smt_Model) (F Bool))
   :signature (Bool $smt_Model) Bool
   (
-  (($eovc_symm F $eoM) (eo::define ((_v0 ($eo_prog_symm ($eo_pf F)))) (eo::requires ($eo_typeof F) Bool (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_typeof _v0) Bool (eo::requires ($eo_model_unsat $eoM _v0) true true))))))
+  (($eovc_symm F $eoM) (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_model_unsat $eoM ($eo_prog_symm ($eo_pf F))) true true)))
   )
 )
 (echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply ")
