@@ -433,21 +433,6 @@ macro_rules
               Classical.choose hTy
             else
               SmtValue.NotValue)
-  | `(smt_lit_eval_tapply $M $f $x) => do
-      let applyId := Lean.mkIdent `__smtx_model_eval_apply
-      let evalId := Lean.mkIdent `__smtx_model_eval
-      let pushId := Lean.mkIdent `__smtx_model_push
-      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      `(by
-          classical
-          exact
-            let fv := $f
-            let xv := $x
-            match fv with
-            | (SmtValue.Lambda s T body) =>
-                $evalId ($pushId $M s T xv) body
-            | _ =>
-                $applyId fv xv)
 
 /- Definition of SMT-LIB model semantics -/
 

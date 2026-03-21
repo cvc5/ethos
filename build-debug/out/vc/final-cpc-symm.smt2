@@ -174,8 +174,6 @@
   (vsm.Seq (vsm.Seq.arg1 ssm.Seq))
   ; smt-cons: RegLan
   (vsm.RegLan (vsm.RegLan.arg1 RegLan))
-  ; smt-cons: Lambda
-  (vsm.Lambda (vsm.Lambda.arg1 String) (vsm.Lambda.arg2 tsm.Type) (vsm.Lambda.arg3 sm.Term))
   ; smt-cons: DtCons
   (vsm.DtCons (vsm.DtCons.arg1 String) (vsm.DtCons.arg2 dt.Datatype) (vsm.DtCons.arg3 Nat))
   ; smt-cons: Apply
@@ -221,8 +219,6 @@
   (sm.exists (sm.exists.arg1 String) (sm.exists.arg2 tsm.Type))
   ; smt-cons: forall
   (sm.forall (sm.forall.arg1 String) (sm.forall.arg2 tsm.Type))
-  ; smt-cons: lambda
-  (sm.lambda (sm.lambda.arg1 String) (sm.lambda.arg2 tsm.Type))
   ; smt-cons: choice
   (sm.choice (sm.choice.arg1 String) (sm.choice.arg2 tsm.Type))
   ; smt-cons: DtCons
@@ -700,14 +696,12 @@
     ($smtx_typeof_map_value (vsm.Map.arg1 x1))
   (ite ((_ is vsm.Seq) x1)
     ($smtx_typeof_seq_value (vsm.Seq.arg1 x1))
-  (ite ((_ is vsm.Lambda) x1)
-    (ite (Teq (vsm.Lambda.arg2 x1) tsm.None) tsm.None (ite (Teq ($smtx_typeof (vsm.Lambda.arg3 x1)) tsm.None) tsm.None (tsm.Map (vsm.Lambda.arg2 x1) ($smtx_typeof (vsm.Lambda.arg3 x1)))))
   (ite ((_ is vsm.DtCons) x1)
     ($smtx_typeof_dt_cons_value_rec (tsm.Datatype (vsm.DtCons.arg1 x1) (vsm.DtCons.arg2 x1)) ($smtx_dt_substitute (vsm.DtCons.arg1 x1) (vsm.DtCons.arg2 x1) (vsm.DtCons.arg2 x1)) (vsm.DtCons.arg3 x1))
   (ite ((_ is vsm.Apply) x1)
     ($smtx_typeof_apply_value ($smtx_typeof_value (vsm.Apply.arg1 x1)) ($smtx_typeof_value (vsm.Apply.arg2 x1)))
     tsm.None
-)))))))))))) :pattern (($smtx_typeof_value x1)))) :named sm.axiom.$smtx_typeof_value))
+))))))))))) :pattern (($smtx_typeof_value x1)))) :named sm.axiom.$smtx_typeof_value))
 
 ; program: $smtx_model_eval_ite
 (define-fun $smtx_model_eval_ite ((x1 vsm.Value) (x2 vsm.Value) (x3 vsm.Value)) vsm.Value
@@ -801,8 +795,6 @@
     (eval_texists x1 (sm.exists.arg1 (sm.Apply.arg1 x2)) (sm.exists.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.forall) (sm.Apply.arg1 x2)))
     (eval_tforall x1 (sm.forall.arg1 (sm.Apply.arg1 x2)) (sm.forall.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
-  (ite (and ((_ is sm.Apply) x2) ((_ is sm.lambda) (sm.Apply.arg1 x2)))
-    (vsm.Lambda (sm.lambda.arg1 (sm.Apply.arg1 x2)) (sm.lambda.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.choice) (sm.Apply.arg1 x2)))
     (eval_tchoice x1 (sm.choice.arg1 (sm.Apply.arg1 x2)) (sm.choice.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
   (ite ((_ is sm.DtCons) x2)
@@ -812,13 +804,13 @@
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.DtTester) (sm.Apply.arg1 x2)))
     ($smtx_model_eval_dt_tester (sm.DtTester.arg1 (sm.Apply.arg1 x2)) (sm.DtTester.arg2 (sm.Apply.arg1 x2)) (sm.DtTester.arg3 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite ((_ is sm.Apply) x2)
-    (eval_tapply x1 ($smtx_model_eval x1 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
+    ($smtx_model_eval_apply ($smtx_model_eval x1 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite ((_ is sm.Var) x2)
     ($smtx_model_lookup x1 (sm.Var.arg1 x2) (sm.Var.arg2 x2))
   (ite ((_ is sm.UConst) x2)
     ($smtx_model_lookup x1 (sm.UConst.arg1 x2) (sm.UConst.arg2 x2))
     vsm.NotValue
-)))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
+))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_typeof_guard
 (define-fun $smtx_typeof_guard ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
@@ -869,8 +861,6 @@
     (ite (Teq ($smtx_typeof (sm.Apply.arg2 x1)) tsm.Bool) tsm.Bool tsm.None)
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.forall) (sm.Apply.arg1 x1)))
     (ite (Teq ($smtx_typeof (sm.Apply.arg2 x1)) tsm.Bool) tsm.Bool tsm.None)
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.lambda) (sm.Apply.arg1 x1)))
-    ($smtx_typeof_guard ($smtx_typeof (sm.Apply.arg2 x1)) (tsm.Map (sm.lambda.arg2 (sm.Apply.arg1 x1)) ($smtx_typeof (sm.Apply.arg2 x1))))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.choice) (sm.Apply.arg1 x1)))
     (ite (Teq ($smtx_typeof (sm.Apply.arg2 x1)) tsm.Bool) (sm.choice.arg2 (sm.Apply.arg1 x1)) tsm.None)
   (ite ((_ is sm.DtCons) x1)
@@ -886,7 +876,7 @@
   (ite ((_ is sm.UConst) x1)
     (sm.UConst.arg2 x1)
     tsm.None
-)))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
+))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
 
 ; fwd-decl: $eo_to_smt_type
 (declare-fun $eo_to_smt_type (eo.Term) tsm.Type)
@@ -1054,17 +1044,6 @@
          (vsm.Boolean true)))
   :pattern ((eval_tchoice M s T F))))
   :named smtx.tchoice.def))
-
-; apply
-(assert (! (forall ((M smm.SmtModel) (f vsm.Value) (a vsm.Value))
-  (! (= (eval_tapply M f a)
-     (ite ((_ is vsm.Lambda) f)
-        ($smtx_model_eval
-          ($smtx_model_update M (vsm.Lambda.arg1 f) (vsm.Lambda.arg2 f) a)
-            (vsm.Lambda.arg3 f))
-        ($smtx_model_eval_apply f a)))
-  :pattern ((eval_tapply M f a))))
-  :named smtx.tapply.def))
 
 ; whether two values are extensionally equal
 (assert (! (forall ((v1 vsm.Value) (v2 vsm.Value))

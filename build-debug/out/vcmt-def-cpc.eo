@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 289
+; #trim-defs: 285
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -403,9 +403,6 @@
 (declare-parameterized-const $emb_sm.forall
   ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
 (define $sm_forall ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.forall s T))
-(declare-parameterized-const $emb_sm.lambda
-  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
-(define $sm_lambda ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.lambda s T))
 (declare-parameterized-const $emb_sm.choice
   ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
 (define $sm_choice ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.choice s T))
@@ -498,11 +495,6 @@
 (define $vsm_seq ((s $smt_Seq)) ($emb_vsm.Seq s))
 (declare-parameterized-const $emb_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
 (define $vsm_re ((r $smt_builtin_RegLan)) ($emb_vsm.RegLan r))
-(declare-parameterized-const $emb_vsm.Lambda 
-  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque) (t $smt_Term :opaque)) $smt_Value)
-(define $vsm_lambda 
-  ((s $smt_builtin_String) (T $smt_Type) (t $smt_Term)) 
-  ($emb_vsm.Lambda s T t))
 (declare-parameterized-const $emb_vsm.DtCons
   ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) (ci $smt_builtin_Nat :opaque))
   $smt_Value)
@@ -695,11 +687,6 @@
   (($smtx_typeof_value ($vsm_re r))       $tsm_RegLan)
   (($smtx_typeof_value ($vsm_map m))      ($smtx_typeof_map_value m))
   (($smtx_typeof_value ($vsm_seq ss))     ($smtx_typeof_seq_value ss))
-  (($smtx_typeof_value ($vsm_lambda s T t))
-    (eo::define ((U ($smtx_typeof t)))
-      ($smt_builtin_ite ($smt_builtin_Teq T $tsm_none) $tsm_none
-      ($smt_builtin_ite ($smt_builtin_Teq U $tsm_none) $tsm_none
-        ($tsm_Map T U)))))
   (($smtx_typeof_value ($vsm_DtCons s d i))
     ($smtx_typeof_dt_cons_value s d i))
   (($smtx_typeof_value ($vsm_apply f v))
@@ -836,9 +823,6 @@
     ($smt_apply_4 "eval_texists" M s T x1))
   (($smtx_model_eval M ($sm_apply ($sm_forall s T) x1))
     ($smt_apply_4 "eval_tforall" M s T x1))
-  
-  
-  (($smtx_model_eval M ($sm_apply ($sm_lambda s T) x1)) ($vsm_lambda s T x1))
   (($smtx_model_eval M ($sm_apply ($sm_choice s T) x1))
     ($smt_apply_4 "eval_tchoice" M s T x1))
   
@@ -852,7 +836,7 @@
   
   
   (($smtx_model_eval M ($sm_apply f x1))
-    ($smt_apply_3 "eval_tapply" M ($smtx_model_eval M f) ($smtx_model_eval M x1)))
+    ($smtx_model_eval_apply ($smtx_model_eval M f) ($smtx_model_eval M x1)))
   (($smtx_model_eval M ($sm_Var s T))     ($smtx_model_lookup M s T))
   (($smtx_model_eval M ($sm_UConst s T))  ($smtx_model_lookup M s T))
   (($smtx_model_eval M x1)   $vsm_not_value)
@@ -918,9 +902,6 @@
     ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
   (($smtx_typeof ($sm_apply ($sm_forall s T) x1))
     ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
-  (($smtx_typeof ($sm_apply ($sm_lambda s T) x1))
-    (eo::define ((T1 ($smtx_typeof x1)))
-    ($smtx_typeof_guard T1 ($tsm_Map T T1))))
   (($smtx_typeof ($sm_apply ($sm_choice s T) x1))
     ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) T $tsm_none))
   
@@ -994,7 +975,6 @@
   (($eo_to_smt (and x1 x2)) ($sm_and ($eo_to_smt x1) ($eo_to_smt x2)))
   (($eo_to_smt (= x1 x2)) ($sm_= ($eo_to_smt x1) ($eo_to_smt x2)))
 
-  
   (($eo_to_smt (f y))               ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
   (($eo_to_smt y)                   $sm_none)
   )

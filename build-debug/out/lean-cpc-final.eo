@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 299
+; #trim-defs: 295
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -257,9 +257,6 @@
 (declare-parameterized-const $emb_sm.forall
   ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
 (define $sm_forall ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.forall s T))
-(declare-parameterized-const $emb_sm.lambda
-  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
-(define $sm_lambda ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.lambda s T))
 (declare-parameterized-const $emb_sm.choice
   ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
 (define $sm_choice ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.choice s T))
@@ -344,11 +341,6 @@
   ($emb_vsm.Binary w v))
 (declare-parameterized-const $emb_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
 (define $vsm_map ((m $smt_Map)) ($emb_vsm.Map m))
-(declare-parameterized-const $emb_vsm.Lambda 
-  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque) (t $smt_Term :opaque)) $smt_Value)
-(define $vsm_lambda 
-  ((s $smt_builtin_String) (T $smt_Type) (t $smt_Term)) 
-  ($emb_vsm.Lambda s T t))
 (declare-parameterized-const $emb_vsm.DtCons
   ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) (ci $smt_builtin_Nat :opaque))
   $smt_Value)
@@ -598,9 +590,6 @@
     ($smt_apply_4 "eval_texists" M s T x1))
   (($smtx_model_eval M ($sm_apply ($sm_forall s T) x1))
     ($smt_apply_4 "eval_tforall" M s T x1))
-  
-  
-  (($smtx_model_eval M ($sm_apply ($sm_lambda s T) x1)) ($vsm_lambda s T x1))
   (($smtx_model_eval M ($sm_apply ($sm_choice s T) x1))
     ($smt_apply_4 "eval_tchoice" M s T x1))
   
@@ -614,7 +603,7 @@
   
   
   (($smtx_model_eval M ($sm_apply f x1))
-    ($smt_apply_3 "eval_tapply" M ($smtx_model_eval M f) ($smtx_model_eval M x1)))
+    ($smtx_model_eval_apply ($smtx_model_eval M f) ($smtx_model_eval M x1)))
   (($smtx_model_eval M ($sm_Var s T))     ($smtx_model_lookup M s T))
   (($smtx_model_eval M ($sm_UConst s T))  ($smtx_model_lookup M s T))
   (($smtx_model_eval M x1)   $vsm_not_value)
@@ -676,7 +665,6 @@
   (($eo_to_smt (and x1 x2)) ($sm_and ($eo_to_smt x1) ($eo_to_smt x2)))
   (($eo_to_smt (= x1 x2)) ($sm_= ($eo_to_smt x1) ($eo_to_smt x2)))
 
-  
   (($eo_to_smt (f y))               ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
   (($eo_to_smt y)                   $sm_none)
   )
