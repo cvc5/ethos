@@ -467,7 +467,7 @@ inductive smt_interprets : SmtTerm -> Bool -> Prop
       (exists M : SmtModel, (smt_model_interprets M t true)) ->
       smt_interprets t true
   | intro_false (t : SmtTerm) :
-      (forall M : SmtModel, (smt_model_interprets M t false))->
+      (forall M : SmtModel, ¬ (smt_model_interprets M t true))->
       smt_interprets t false
 
 /- FIXME inductive smt_model_well_typed : SmtModel -> Prop, based on smt axiom -/
