@@ -24,11 +24,6 @@ std::string StdPlugin::s_plugin_path =
     "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 #endif
 
-// enables eager elimination of nested evaluation, ite, and requires
-bool StdPlugin::optionFlattenEval() { return false; }
-// this ensures that the types of premises and conclusion must be Bool to
-// witness unsoundness
-bool StdPlugin::optionVcUseTypeof() { return false; }
 // strict means we are not debugging completeness
 bool StdPlugin::optionVcUseModelStrict() { return true; }
 // uses trigger in final encoding

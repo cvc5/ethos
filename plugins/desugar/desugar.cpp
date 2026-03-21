@@ -56,15 +56,9 @@ Desugar::Desugar(State& s)
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_sat", modelSatType);
   d_peoModelUnsat =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_unsat", modelSatType);
-  Expr modelTypeofType = d_state.mkProgramType({d_boolType}, ttype);
-  d_peoModelTypeof =
-      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_typeof", modelTypeofType);
-  Expr modelIsInputType = d_state.mkProgramType({d_boolType}, d_boolType);
   Expr eoRequireEqType = d_state.mkProgramType({anyT, anyT, anyT2}, anyT2);
   d_peoRequiresEq =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_eq", eoRequireEqType);
-  d_peoRequiresDeq = d_state.mkSymbol(
-      Kind::PROGRAM_CONST, "$eo_requires_deq", eoRequireEqType);
   Expr eoProvenType =
       d_state.mkProgramType({d_state.mkProofType()}, d_state.mkBoolType());
   d_peoProven =
@@ -114,14 +108,7 @@ void Desugar::finalizeProgram(const Expr& prog,
 {
   std::map<Expr, Expr> typeMap;
   std::vector<std::pair<Expr, Expr>> allDefs;
-  if (StdPlugin::optionFlattenEval())
-  {
-    allDefs = FlattenEval::flattenProgram(d_state, prog, progDef, typeMap);
-  }
-  else
-  {
-    allDefs.emplace_back(prog, progDef);
-  }
+  allDefs.emplace_back(prog, progDef);
   for (std::pair<Expr, Expr>& d : allDefs)
   {
     Expr p = d.first;
@@ -681,10 +668,6 @@ void Desugar::finalizeRule(const Expr& e)
   Expr modelVar = d_state.mkSymbol(Kind::PARAM, "$eoM", modelVarType);
   // require that the conclusion is not satisfied
   unsound = mkRequiresModelSat(modelVar, false, conclusion, unsound);
-  if (StdPlugin::optionVcUseTypeof())
-  {
-    unsound = mkRequiresModelTypeofBool(conclusion, unsound);
-  }
   // require that each premise is satisfied
   for (size_t i = 0, nargs = progCase.getNumChildren(); i < nargs; i++)
   {
@@ -692,10 +675,6 @@ void Desugar::finalizeRule(const Expr& e)
     if (progCase[ii].getKind() == Kind::PROOF)
     {
       unsound = mkRequiresModelSat(modelVar, true, progCase[ii][0], unsound);
-      if (StdPlugin::optionVcUseTypeof())
-      {
-        unsound = mkRequiresModelTypeofBool(progCase[ii][0], unsound);
-      }
     }
   }
   std::vector<Expr> uvars = Expr::getVariables(unsound);
@@ -991,15 +970,6 @@ Expr Desugar::mkRequiresModelSat(const Expr& m,
     // return mkRequiresEq(t1, t2, ret, true);
     return d_null;
   }
-}
-
-Expr Desugar::mkRequiresModelTypeofBool(const Expr& test, const Expr& ret)
-{
-  std::vector<Expr> modelTypeofArgs;
-  modelTypeofArgs.push_back(d_peoModelTypeof);
-  modelTypeofArgs.push_back(test);
-  Expr t1 = d_state.mkExpr(Kind::APPLY, modelTypeofArgs);
-  return mkRequiresEq(t1, d_boolType, ret);
 }
 
 Expr Desugar::mkRequiresEq(const Expr& t1,

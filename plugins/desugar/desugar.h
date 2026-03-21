@@ -98,7 +98,6 @@ class Desugar : public StdPlugin
                           bool tgt,
                           const Expr& test,
                           const Expr& ret);
-  Expr mkRequiresModelTypeofBool(const Expr& test, const Expr& ret);
   Expr mkRequiresEq(const Expr& t1,
                     const Expr& t2,
                     const Expr& ret,
@@ -151,9 +150,7 @@ class Desugar : public StdPlugin
 
   Expr d_peoModelSat;
   Expr d_peoModelUnsat;
-  Expr d_peoModelTypeof;
   Expr d_peoRequiresEq;
-  Expr d_peoRequiresDeq;
   size_t d_eoDtConsParamCount;
   Expr d_peoProven;
   Expr d_peoPf;

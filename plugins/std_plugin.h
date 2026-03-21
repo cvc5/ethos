@@ -66,8 +66,6 @@ class StdPlugin : public Plugin
   size_t d_typeVarCounter;
   static std::string s_plugin_path;
   /** Standard configurations for the reduction */
-  static bool optionFlattenEval();
-  static bool optionVcUseTypeof();
   static bool optionVcUseModelStrict();
   static bool optionSmtMetaUseTriggers();
   static bool optionSmtMetaDebugConjecture();
