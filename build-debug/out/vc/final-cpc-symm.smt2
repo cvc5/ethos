@@ -294,14 +294,6 @@
   
 ;;; Relevant definitions
 
-; program: $eo_proven
-(define-fun $eo_proven ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite ((_ is eo.$eo_pf) x1)
-    (eo.$eo_pf.arg1 x1)
-    eo.Stuck)))
-
 ; program: $eo_mk_apply
 (define-fun $eo_mk_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
@@ -314,12 +306,6 @@
 (define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
     (ite (teq x1 x2) (ite (not (teq x1 eo.Stuck)) x3 eo.Stuck) eo.Stuck)
 )
-
-; fwd-decl: $smtx_hash
-(declare-fun $smtx_hash (eo.Term) Int)
-
-; fwd-decl: $eo_reverse_hash
-(declare-fun $eo_reverse_hash (Int) eo.Term)
 
 ; program: $mk_symm
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term

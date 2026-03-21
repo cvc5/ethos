@@ -28,13 +28,6 @@
 (declare-const $eo_Proof Type)
 ; Constructor of proofs, takes a formula that is proven.
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
-; Extracts the proven formula from a proof term.
-(program $eo_proven ((F Bool))
-  :signature ($eo_Proof) Bool
-  (
-  (($eo_proven ($eo_pf F)) F)
-  )
-)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; literal types
 

@@ -31,6 +31,8 @@ cp $OUT_DIR/lean/SmtModel.lean $TEST_DIR/Cpc/SmtModel.lean
 cp $OUT_DIR/lean/Spec.lean $TEST_DIR/Cpc/Spec.lean
 cp $OUT_DIR/lean/Lemmas.lean $TEST_DIR/Cpc/Lemmas.lean
 
+./install_logos_mini
+
 cd ~/ethos/smtlibTests/logos-tests
 
 for FILE in *.smt2; do
@@ -43,3 +45,5 @@ for FILE in *.smt2; do
   cp temp.lean /local/ajreynol/lean/cpc/examples/test-$BASE_NAME.cpc.lean
   rm -f temp.lean
 done
+
+

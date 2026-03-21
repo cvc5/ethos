@@ -448,27 +448,27 @@ end
 
 $LEAN_SMT_EVAL$
 
-inductive smt_model_interprets : SmtModel -> SmtTerm -> Bool -> Prop
+inductive smt_interprets : SmtModel -> SmtTerm -> Bool -> Prop
   | intro_true  (M : SmtModel) (t : SmtTerm) :
       (__smtx_typeof t) = SmtType.Bool ->
       (__smtx_model_eval M t) = (SmtValue.Boolean true) ->
-      (smt_model_interprets M t true)
+      (smt_interprets M t true)
   | intro_false (M : SmtModel) (t : SmtTerm) :
       (__smtx_typeof t) = SmtType.Bool ->
       (__smtx_model_eval M t) = (SmtValue.Boolean false)->
-      smt_model_interprets M t false
+      smt_interprets M t false
 
 /-
 SMT interpretation is satisfiability, i.e. the existence of a model
 interpreting the free constants.
 -/
-inductive smt_interprets : SmtTerm -> Bool -> Prop
+inductive smt_satisfiability : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
-      (exists M : SmtModel, (smt_model_interprets M t true)) ->
-      smt_interprets t true
+      (exists M : SmtModel, (smt_interprets M t true)) ->
+      smt_satisfiability t true
   | intro_false (t : SmtTerm) :
-      (forall M : SmtModel, ¬ (smt_model_interprets M t true))->
-      smt_interprets t false
+      (forall M : SmtModel, ¬ (smt_interprets M t true))->
+      smt_satisfiability t false
 
 /- FIXME inductive smt_model_well_typed : SmtModel -> Prop, based on smt axiom -/
 

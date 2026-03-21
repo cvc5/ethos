@@ -28,13 +28,6 @@
 (declare-const $eo_Proof Type)
 ; Constructor of proofs, takes a formula that is proven.
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
-; Extracts the proven formula from a proof term.
-(program $eo_proven ((F Bool))
-  :signature ($eo_Proof) Bool
-  (
-  (($eo_proven ($eo_pf F)) F)
-  )
-)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; literal types
 
@@ -1779,7 +1772,7 @@
   (($eovc_symm F $eoM) (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_model_unsat $eoM ($eo_prog_symm ($eo_pf F))) true true)))
   )
 )
-(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply ")
+(echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply ")
 
 
 

@@ -1218,7 +1218,7 @@ bool LeanMetaReduce::echo(const std::string& msg)
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
     if (ctype == ConjectureType::VC)
     {
-      d_thms << "theorem correct_" << cleanId(eosc) << " ";
+      d_thms << "theorem correct_" << cleanId(eosc) << " (M : SmtModel) ";
       Expr def = d_state.getProgram(vv.getValue());
       Expr vt = vv.getType();
       std::stringstream pcs;
@@ -1232,7 +1232,7 @@ bool LeanMetaReduce::echo(const std::string& msg)
           d_thms << (i > 1 ? " " : "") << "x" << i;
           if (getTypeMetaKind(vt[i - 1]) == MetaKind::PROOF)
           {
-            conds << "  (eo_interprets x" << i << " true) ->" << std::endl;
+            conds << "  (eo_interprets M x" << i << " true) ->" << std::endl;
             progArgs << (i > 1 ? " " : "") << "(Proof.pf x" << i << ")";
           }
           else
