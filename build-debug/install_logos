@@ -23,11 +23,13 @@ cp $OUT_DIR/lean/Logos.lean $LOGOS_DIR/Cpc/Logos.lean
 cp $OUT_DIR/lean/SmtEval.lean $LOGOS_DIR/Cpc/SmtEval.lean
 cp $OUT_DIR/lean/SmtModel.lean $LOGOS_DIR/Cpc/SmtModel.lean
 cp $OUT_DIR/lean/Spec.lean $LOGOS_DIR/Cpc/Spec.lean
+cp $OUT_DIR/lean/Lemmas.lean $LOGOS_DIR/Cpc/Lemmas.lean
 
 cp $OUT_DIR/lean/Logos.lean $TEST_DIR/Cpc/Logos.lean
 cp $OUT_DIR/lean/SmtEval.lean $TEST_DIR/Cpc/SmtEval.lean
 cp $OUT_DIR/lean/SmtModel.lean $TEST_DIR/Cpc/SmtModel.lean
 cp $OUT_DIR/lean/Spec.lean $TEST_DIR/Cpc/Spec.lean
+cp $OUT_DIR/lean/Lemmas.lean $TEST_DIR/Cpc/Lemmas.lean
 
 cd ~/ethos/smtlibTests/logos-tests
 

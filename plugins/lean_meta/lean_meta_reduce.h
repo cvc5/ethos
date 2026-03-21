@@ -99,6 +99,7 @@ class LeanMetaReduce : public StdPlugin
   void finalizeChecker();
   void finalizeSmtModel();
   void finalizeSpec();
+  void finalizeLemmas();
   /**
    * ctx impacts __eo_lit vs. __smt_lit
    */

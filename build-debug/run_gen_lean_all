@@ -9,6 +9,7 @@ STD_LEAN_CHECKER_OUT=../plugins/lean_meta/lean_meta_checker_gen.lean
 STD_LEAN_SMT_EVAL=../plugins/lean_meta/lean_meta_smt_eval.lean
 STD_LEAN_SMT_MODEL_OUT=../plugins/lean_meta/lean_meta_smt_model_gen.lean
 STD_LEAN_SPEC_OUT=../plugins/lean_meta/lean_meta_spec_gen.lean
+STD_LEAN_LEMMAS_OUT=../plugins/lean_meta/lean_meta_lemmas_gen.lean
 # the name of a EO signature
 # INPUT = $1
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
@@ -71,6 +72,7 @@ cp $STD_LEAN_CHECKER_OUT $OUT_DIR/lean/Logos.lean
 cp $STD_LEAN_SMT_EVAL $OUT_DIR/lean/SmtEval.lean
 cp $STD_LEAN_SMT_MODEL_OUT $OUT_DIR/lean/SmtModel.lean
 cp $STD_LEAN_SPEC_OUT $OUT_DIR/lean/Spec.lean
+cp $STD_LEAN_LEMMAS_OUT $OUT_DIR/lean/Lemmas.lean
 
 #echo "**** lean_meta: Verify cvc5 parses"
 #$CVC5 $VC_OUT --parse-only

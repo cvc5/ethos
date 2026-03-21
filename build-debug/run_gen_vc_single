@@ -133,9 +133,9 @@ else
 
   BASE_ARGS="--macros-quant --re-first-class"
   
-  echo "**** smt_meta: Run the final verification condition with unsat cores"
-  $CVC5 $VC_OUT --dump-unsat-cores $BASE_ARGS #--parse-only
-  check_status
+  #echo "**** smt_meta: Run the final verification condition with unsat cores"
+  #$CVC5 $VC_OUT --dump-unsat-cores $BASE_ARGS #--parse-only
+  #check_status
 
   echo "**** smt_meta: Run the final verification condition with proofs"
   $CVC5 $VC_OUT --check-proofs --stats-internal $BASE_ARGS |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount|finalProof::totalRuleCount|finalProof::ruleUnhandled|finalProof::trust)'

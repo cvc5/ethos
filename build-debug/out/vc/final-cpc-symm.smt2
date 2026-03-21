@@ -803,8 +803,6 @@
     (eval_tforall x1 (sm.forall.arg1 (sm.Apply.arg1 x2)) (sm.forall.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.lambda) (sm.Apply.arg1 x2)))
     (vsm.Lambda (sm.lambda.arg1 (sm.Apply.arg1 x2)) (sm.lambda.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
-  (ite (and ((_ is sm.Apply) x2) ((_ is sm.Apply) (sm.Apply.arg1 x2)) ((_ is sm.lambda) (sm.Apply.arg1 (sm.Apply.arg1 x2))))
-    ($smtx_model_eval ($smtx_model_update x1 (sm.lambda.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x2))) (sm.lambda.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 x2))) (sm.Apply.arg2 (sm.Apply.arg1 x2)))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.choice) (sm.Apply.arg1 x2)))
     (eval_tchoice x1 (sm.choice.arg1 (sm.Apply.arg1 x2)) (sm.choice.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
   (ite ((_ is sm.DtCons) x2)
@@ -820,7 +818,7 @@
   (ite ((_ is sm.UConst) x2)
     ($smtx_model_lookup x1 (sm.UConst.arg1 x2) (sm.UConst.arg2 x2))
     vsm.NotValue
-))))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
+)))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_typeof_guard
 (define-fun $smtx_typeof_guard ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type

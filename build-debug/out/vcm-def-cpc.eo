@@ -2772,10 +2772,8 @@
   (($smtx_model_eval M ($sm_apply ($sm_forall s T) x1))
     ($smt_apply_4 "eval_tforall" M s T x1))
   ; standalone lambda
+  ; note that apply lambda (beta reduction) is part of the main handling of apply
   (($smtx_model_eval M ($sm_apply ($sm_lambda s T) x1)) ($vsm_lambda s T x1))
-  ; apply lambda case
-  (($smtx_model_eval M ($sm_apply ($sm_apply ($sm_lambda s T) x1) x2))
-    ($smtx_model_eval ($smtx_model_update M s T ($smtx_model_eval M x2)) x1))
   (($smtx_model_eval M ($sm_apply ($sm_choice s T) x1))
     ($smt_apply_4 "eval_tchoice" M s T x1))
   ; datatypes
