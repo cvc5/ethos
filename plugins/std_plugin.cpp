@@ -25,7 +25,7 @@ std::string StdPlugin::s_plugin_path =
 #endif
 
 // strict means we are not debugging completeness
-bool StdPlugin::optionVcUseModelStrict() { return true; }
+bool StdPlugin::optionVcUseModelStrict() { return false; }
 // uses trigger in final encoding
 bool StdPlugin::optionSmtMetaUseTriggers() { return true; }
 // makes conjecture easy to debug models

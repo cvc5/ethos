@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 257
+; #trim-defs: 256
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -147,6 +147,8 @@
 )
 (define $smt_builtin_is_ok ((x $eo_Term))
   ($smt_builtin_not ($smt_builtin_teq x $eot_stuck)))
+(define $eo_is_ok ((x $eo_Term))
+  ($eot_bool ($smt_builtin_is_ok x)))
 (define $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
   ($smt_builtin_ite ($smt_builtin_teq x1 x2)
     ($smt_builtin_ite ($smt_builtin_is_ok x1) x3 $eot_stuck)
@@ -169,7 +171,6 @@
 )
 (declare-const $smt_Model Type)
 (program $eo_model_sat () :signature ($smt_Model Bool) Bool)
-(program $eo_model_unsat () :signature ($smt_Model Bool) Bool)
 (declare-const $smt_Term Type)
 (declare-const $smt_Type Type)
 (define $smt_builtin_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($smt_apply_2 "Teq" x1 x2))
@@ -811,16 +812,10 @@
   (($eo_model_sat M F) ($eo_model_interprets M F $vsm_true))
   )
 )
-(program $eo_model_unsat ((M $smt_Model) (F Bool))
-  :signature ($smt_Model Bool) Bool
-  (
-  (($eo_model_unsat M F) ($eo_model_interprets M F $vsm_false))
-  )
-)
 (program $eovc_symm (($eoM $smt_Model) (F Bool))
   :signature (Bool $smt_Model) Bool
   (
-  (($eovc_symm F $eoM) (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_model_unsat $eoM ($eo_prog_symm ($eo_pf F))) true true)))
+  (($eovc_symm F $eoM) (eo::define ((_v0 ($eo_prog_symm ($eo_pf F)))) (eo::requires ($eo_model_sat $eoM F) true (eo::requires (eo::is_ok _v0) true (eo::requires ($eo_model_sat $eoM _v0) false true)))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply ")

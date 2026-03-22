@@ -128,6 +128,7 @@ class LeanMetaReduce : public StdPlugin
   std::stringstream d_smtValueDt;
   std::stringstream d_cmdDt;
   std::stringstream d_ruleDt;
+  std::stringstream d_lemmaAuxDef;
   /** Declares seen */
   std::set<Expr> d_declSeen;
   /** List of program definitions */

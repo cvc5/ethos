@@ -955,20 +955,30 @@ Expr Desugar::mkRequiresModelSat(const Expr& m,
                                  const Expr& test,
                                  const Expr& ret)
 {
-  std::vector<Expr> modelSatArgs;
-  modelSatArgs.push_back(tgt ? d_peoModelSat : d_peoModelUnsat);
-  modelSatArgs.push_back(m);
-  modelSatArgs.push_back(test);
-  Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
   if (StdPlugin::optionVcUseModelStrict())
   {
+    std::vector<Expr> modelSatArgs;
+    modelSatArgs.push_back(tgt ? d_peoModelSat : d_peoModelUnsat);
+    modelSatArgs.push_back(m);
+    modelSatArgs.push_back(test);
+    Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
     return mkRequiresEq(t1, d_state.mkBool(true), ret);
   }
   else
   {
-    // FIXME
-    // return mkRequiresEq(t1, t2, ret, true);
-    return d_null;
+    std::vector<Expr> modelSatArgs;
+    modelSatArgs.push_back(d_peoModelSat);
+    modelSatArgs.push_back(m);
+    modelSatArgs.push_back(test);
+    Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
+    if (tgt)
+    {
+      return mkRequiresEq(t1, d_state.mkBool(true), ret);
+    }
+    Expr rr = mkRequiresEq(t1, d_state.mkBool(tgt), ret);
+    Expr isOk = d_state.mkExprSimple(Kind::EVAL_IS_OK, {test});
+    rr = mkRequiresEq(isOk, d_state.mkBool(true), rr);
+    return rr;
   }
 }
 

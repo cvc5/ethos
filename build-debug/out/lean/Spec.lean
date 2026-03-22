@@ -23,14 +23,14 @@ This is to be defined externally.
 -/
 abbrev ObjectTerm := SmtTerm
 
+abbrev ObjectModel := SmtModel
+
 /-
 A predicate defining a relation on terms in the object language and Booleans
 such that (s,b) is true if s evaluates to b.
 This is to be defined externally.
 -/
 abbrev obj_interprets := smt_interprets
-
-abbrev ObjectModel := SmtModel
 
 /-
 Definitions for eo_is_obj
@@ -70,7 +70,9 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.DtSel s d i j) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
   | (Term.UConst i T) => (SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T))
   | (Term.Apply Term.not x1) => (SmtTerm.Apply SmtTerm.not (__eo_to_smt x1))
+  | (Term.Apply (Term.Apply Term.or x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.and x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply Term.imp x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.eq x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
   | y => SmtTerm.None

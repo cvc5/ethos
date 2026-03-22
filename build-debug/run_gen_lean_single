@@ -58,7 +58,7 @@ echo "********* Generating Lean for $TARGET in $INPUT *********"
 
 # trim dependencies with respect to the proof rule
 echo "**** lean_meta: Run ethos + trim-defs on $INPUT and \"$TARGET\" to $INIT_TRIM"
-INIT_DEPS="and"
+INIT_DEPS="and =>"
 trim_defs $INPUT $TARGET $INIT_DEPS >/dev/null
 check_status
 cp $STD_TRIM_OUT $INIT_TRIM

@@ -302,6 +302,11 @@
     (eo.Apply x1 x2)
     eo.Stuck)))
 
+; program: $eo_is_ok
+(define-fun $eo_is_ok ((x1 eo.Term)) eo.Term
+    (eo.Boolean (not (teq x1 eo.Stuck)))
+)
+
 ; program: $eo_requires
 (define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
     (ite (teq x1 x2) (ite (not (teq x1 eo.Stuck)) x3 eo.Stuck) eo.Stuck)
@@ -327,9 +332,6 @@
 
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (smm.SmtModel eo.Term) eo.Term)
-
-; fwd-decl: $eo_model_unsat
-(declare-fun $eo_model_unsat (smm.SmtModel eo.Term) eo.Term)
 
 ; program: $vsm_apply_head
 (declare-fun $vsm_apply_head (vsm.Value) vsm.Value)
@@ -755,21 +757,12 @@
     ($eo_model_interprets x1 x2 (vsm.Boolean true))
     eo.Stuck))) :pattern (($eo_model_sat x1 x2)))) :named sm.axiom.$eo_model_sat))
 
-; program: $eo_model_unsat
-(assert (! (forall ((x1 smm.SmtModel) (x2 eo.Term))
-  (! (= ($eo_model_unsat x1 x2)
-  (ite (= x2 eo.Stuck)
-    eo.Stuck
-  (ite true
-    ($eo_model_interprets x1 x2 (vsm.Boolean false))
-    eo.Stuck))) :pattern (($eo_model_unsat x1 x2)))) :named sm.axiom.$eo_model_unsat))
-
 ; program: $eovc_symm
 (define-fun $eovc_symm ((x1 eo.Term) (x2 smm.SmtModel)) eo.Term
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires ($eo_model_sat x2 x1) (eo.Boolean true) ($eo_requires ($eo_model_unsat x2 ($eo_prog_symm (eo.$eo_pf x1))) (eo.Boolean true) (eo.Boolean true)))
+    ($eo_requires ($eo_model_sat x2 x1) (eo.Boolean true) ($eo_requires ($eo_is_ok ($eo_prog_symm (eo.$eo_pf x1))) (eo.Boolean true) ($eo_requires ($eo_model_sat x2 ($eo_prog_symm (eo.$eo_pf x1))) (eo.Boolean false) (eo.Boolean true))))
     eo.Stuck)))
 
 

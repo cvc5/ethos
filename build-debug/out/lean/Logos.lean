@@ -103,7 +103,9 @@ inductive Term : Type where
   | USort : eo_lit_Nat -> Term
   | UConst : eo_lit_Nat -> Term -> Term
   | not : Term
+  | or : Term
   | and : Term
+  | imp : Term
   | eq : Term
 
 deriving Repr, DecidableEq, Inhabited, Ord

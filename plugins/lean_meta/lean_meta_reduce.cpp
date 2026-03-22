@@ -674,6 +674,10 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     out = &d_eoIsObjDefs;
   }
+  else if (vname.compare(0, 8, "$eo_lem_") == 0)
+  {
+    out = &d_lemmaAuxDef;
+  }
   if (vname == "$smtx_model_eval")
   {
     decl << "noncomputable ";
@@ -1164,6 +1168,7 @@ void LeanMetaReduce::finalizeLemmas()
   ss << in.rdbuf();
   std::string finalLean = ss.str();
   replace(finalLean, "$LEAN_THMS$", d_thms.str());
+  replace(finalLean, "$LEAN_LEMMA_AUX_DEFS$", d_lemmaAuxDef.str());
   std::stringstream sso;
   sso << s_plugin_path << "plugins/lean_meta/lean_meta_lemmas_gen.lean";
   Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
@@ -1250,8 +1255,9 @@ bool LeanMetaReduce::echo(const std::string& msg)
         d_thms << ":" << std::endl;
         pcs << cleanId(eosc);
       }
-      d_thms << "  (Not (eo_interprets ";
-      d_thms << pcs.str() << " false)) :=" << std::endl;
+      d_thms << "  (Not (" << pcs.str() << " = Term.Stuck)) ->" << std::endl;
+      d_thms << "  (eo_interprets M ";
+      d_thms << pcs.str() << " true) :=" << std::endl;
       d_thms << "by" << std::endl;
       d_thms << "  sorry" << std::endl;
       d_thms << std::endl;
