@@ -115,6 +115,11 @@ std::string smtIte(const std::string& guard,
   return ss.str();
 }
 
+std::string smtGuard(const std::string& guard, const std::string& val)
+{
+  return smtIte(guard, val, "$sm_none");
+}
+
 std::string smtGuardType(const std::string& guard, const std::string& val)
 {
   return smtIte(guard, val, "$tsm_none");
@@ -954,10 +959,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
           "(bvcomp ($eo_to_smt x1) (bvnot ($sm_binary ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))) $smt_builtin_z_zero)))",
           true));
   // utility guards for negative widths, which do not evaluate
-  addLitSym("@bv", {d_kIntQuote, d_kIntQuote}, kT, "($vsm_binary_mod_w x2 x1)");
-  addAuxTypeProgram("@bv", {d_kIntQuote, d_kIntQuote},
-                    smtGuardType("($smt_builtin_z_<= $smt_builtin_z_zero x2)",
-                                 "($tsm_BitVec x1)"));
+  addEunoiaReduceSym("@bv", {d_kIntQuote, d_kIntQuote}, smtGuard("($smt_builtin_z_<= $smt_builtin_z_zero x2)","($sm_binary_mod_w x2 x1)"));
   addEunoiaReduceSym(
       "@bit",
       {kInt, kBitVec},

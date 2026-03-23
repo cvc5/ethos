@@ -64,7 +64,9 @@
 ; helpers
 (define $sm_binary_bit_false () ($sm_binary $smt_builtin_z_one $smt_builtin_z_zero))
 (define $sm_binary_bit_true () ($sm_binary $smt_builtin_z_one $smt_builtin_z_one))
-
+(define $sm_binary_mod_w ((w $smt_builtin_Int) (v $smt_builtin_Int))
+  ($sm_binary w ($smt_builtin_mod_total v ($smt_builtin_z_pow2 w))))
+  
 ; An application of a Eunoia term
 (declare-parameterized-const $emb_sm.Apply
   ((f $smt_Term :opaque) (a $smt_Term :opaque))

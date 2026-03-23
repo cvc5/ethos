@@ -25,7 +25,7 @@ std::string StdPlugin::s_plugin_path =
 #endif
 
 // strict means we are not debugging completeness
-bool StdPlugin::optionVcUseModelStrict() { return false; }
+bool StdPlugin::optionVcUseModelStrict() { return true; }
 // uses trigger in final encoding
 bool StdPlugin::optionSmtMetaUseTriggers() { return true; }
 // makes conjecture easy to debug models
@@ -43,6 +43,9 @@ ConjectureType StdPlugin::optionSmtMetaConjectureType() const
 bool StdPlugin::optionSmtMetaSygusGrammar() { return true; }
 // whether the sygus grammar is designed to enumerate well-typed terms
 bool StdPlugin::optionSmtMetaSygusGrammarWellTyped() { return true; }
+// this ensures that the types of premises and conclusion must be Bool to
+// witness unsoundness
+bool StdPlugin::optionVcUseTypeof() { return true; }
 
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {

@@ -72,6 +72,7 @@ class StdPlugin : public Plugin
   ConjectureType optionSmtMetaConjectureType() const;
   static bool optionSmtMetaSygusGrammar();
   static bool optionSmtMetaSygusGrammarWellTyped();
+  static bool optionVcUseTypeof();
 };
 
 }  // namespace ethos
