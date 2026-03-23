@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 331
+; #trim-defs: 329
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -883,8 +883,6 @@
 (define $so_assume_push ((F Bool)) ($emb_so.assume_push F))
 (declare-parameterized-const $emb_so.proven ((F Bool :opaque)) $eo_StateObj)
 (define $so_proven ((F Bool)) ($emb_so.proven F))
-(declare-const $emb_so.Stuck $eo_StateObj)
-(define $so_stuck () $emb_so.Stuck)
 (declare-const $emb_s.nil $eo_State)
 (define $s_nil () $emb_s.nil)
 (declare-const $emb_s.Stuck $eo_State)
@@ -898,7 +896,6 @@
   (($eo_StateObj_proven ($so_assume F)) F)
   (($eo_StateObj_proven ($so_assume_push F)) F)
   (($eo_StateObj_proven ($so_proven F)) F)
-  (($eo_StateObj_proven $so_stuck) $eot_stuck)
   )
 )
 (program $eo_state_proven_nth ((so $eo_StateObj) (s $eo_State) (n $eoT_Index))

@@ -41,8 +41,6 @@
 (define $so_assume_push ((F Bool)) ($emb_so.assume_push F))
 (declare-parameterized-const $emb_so.proven ((F Bool :opaque)) $eo_StateObj)
 (define $so_proven ((F Bool)) ($emb_so.proven F))
-(declare-const $emb_so.Stuck $eo_StateObj)
-(define $so_stuck () $emb_so.Stuck)
 
 
 (declare-const $emb_s.nil $eo_State)
@@ -59,7 +57,6 @@
   (($eo_StateObj_proven ($so_assume F)) F)
   (($eo_StateObj_proven ($so_assume_push F)) F)
   (($eo_StateObj_proven ($so_proven F)) F)
-  (($eo_StateObj_proven $so_stuck) $eot_stuck)
   )
 )
 

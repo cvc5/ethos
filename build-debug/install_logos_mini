@@ -1,0 +1,33 @@
+#!/bin/bash
+
+OUT_DIR=./out
+LOGOS_DIR=~/logos
+SUB_DIR=CpcMini
+
+function check_status()
+{
+status=$?
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
+}
+
+echo "********* Generating Mini-Lean signature *********"
+./run_gen_lean "symm contra refl scope trans"
+check_status
+
+cp $OUT_DIR/lean/Logos.lean $LOGOS_DIR/$SUB_DIR/Logos.lean
+cp $OUT_DIR/lean/SmtEval.lean $LOGOS_DIR/$SUB_DIR/SmtEval.lean
+cp $OUT_DIR/lean/SmtModel.lean $LOGOS_DIR/$SUB_DIR/SmtModel.lean
+cp $OUT_DIR/lean/Spec.lean $LOGOS_DIR/$SUB_DIR/Spec.lean
+cp $OUT_DIR/lean/Lemmas.lean $LOGOS_DIR/$SUB_DIR/Lemmas.lean
+
+
+cd ~/logos/CpcMini/
+
+for FILE in *.lean; do
+  sed -i 's/import Cpc\./import CpcMini\./g' $FILE
+done
+

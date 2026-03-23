@@ -152,7 +152,6 @@ inductive CStateObj : Type where
   | assume : Term -> CStateObj
   | assume_push : Term -> CStateObj
   | proven : Term -> CStateObj
-  | Stuck : CStateObj
 deriving Repr, Inhabited
 
 /-
