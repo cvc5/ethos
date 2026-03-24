@@ -2078,7 +2078,6 @@
 ; A value denoting a sequence.
 (declare-parameterized-const $emb_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
 (define $vsm_seq ((s $smt_Seq)) ($emb_vsm.Seq s))
-(define $vsm_string_empty () ($vsm_seq ($smt_apply_1 "as seq.empty" $tsm_String)))
 
 ; A char (for strings)
 (declare-parameterized-const $emb_vsm.Char
@@ -2145,6 +2144,7 @@
 (declare-parameterized-const $emb_ssm.empty ((T $smt_Type :opaque)) $smt_Seq)
 (define $ssm_empty ((T $smt_Type)) ($emb_ssm.empty T))
 
+(define $vsm_string_empty () ($vsm_seq ($ssm_empty $tsm_Char)))
 
 ;;; Constructors for SMT-LIB datatypes and datatype constructors
 

@@ -96,31 +96,6 @@ def smt_lit_str_to_upper : smt_lit_String -> smt_lit_String
   | s => s.toUpper
 def smt_lit_str_to_lower : smt_lit_String -> smt_lit_String
   | s => s.toLower
-def smt_lit_str_update : smt_lit_String -> smt_lit_Int -> smt_lit_String -> smt_lit_String
-  | s, i, t =>
-      if i < 0 || smt_lit_str_len s <= i then
-        s
-      else
-        let idx := Int.toNat i
-        String.ofList <| s.toList.take idx ++ t.toList ++ s.toList.drop (idx + 1)
-def smt_lit_str_rev : smt_lit_String -> smt_lit_String
-  | s => String.ofList s.toList.reverse
-def smt_lit_str_replace_first (s pat repl : smt_lit_String) : smt_lit_String :=
-  if pat = "" then
-    repl ++ s
-  else
-    let idx := smt_lit_str_indexof s pat 0
-    if idx < 0 then
-      s
-    else
-      let n := Int.toNat idx
-      String.ofList <| s.toList.take n ++ repl.toList ++ s.toList.drop (n + pat.length)
-def smt_lit_str_replace : smt_lit_String -> smt_lit_String -> smt_lit_String -> smt_lit_String
-  | s, t1, t2 => smt_lit_str_replace_first s t1 t2
-def smt_lit_str_replace_all : smt_lit_String -> smt_lit_String -> smt_lit_String -> smt_lit_String
-  | s, t1, t2 => s.replace t1 t2
-def smt_lit_str_contains : smt_lit_String -> smt_lit_String -> smt_lit_Bool
-  | s, t => s.contains t
 
 -- Regular expressions
 

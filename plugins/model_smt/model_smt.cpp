@@ -378,7 +378,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("re.*", {kRegLan}, kRegLan);
   // addConstFoldSym("re.+", {kRegLan}, kRegLan);
   addTermReduceSym("re.+", {kRegLan}, kRegLan, "(re.++ x1 (re.* x1))");
-  // addConstFoldSym("re.opt", {kRegLan}, kRegLan);
   addTermReduceSym("re.opt",
                    {kRegLan},
                    kRegLan,
