@@ -923,7 +923,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   :signature ($smt_Term $smt_Term) $smt_Term
   (
   (($eo_to_smt_@bv ($sm_numeral x1) ($sm_numeral x2))
-    (ite ($smt_builtin_z_<= $smt_builtin_z_zero x2) ($sm_binary_mod_w x2 x1) $sm_none))
+    ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero x2) ($sm_binary_mod_w x2 x1) $sm_none))
   (($eo_to_smt_@bv t1 t2) $sm_none)
   )
 ))";
