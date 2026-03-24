@@ -337,9 +337,18 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.++", {d_kSeq, d_kSeq}, d_kSeq);
   addConstFoldSym("str.len", {d_kSeq}, kInt);
   addConstFoldSym("str.substr", {d_kSeq, kInt, kInt}, d_kSeq);
+  addAuxTypeProgram("str.substr",
+                      {d_kSeq, kInt, kInt},
+                      "($tsm_Seq x1)");
   // addConstFoldSym("str.at", {kString, kInt}, kString);
   addTermReduceSym("str.at", {d_kSeq, kInt}, kString, "(str.substr x1 x2 1)");
+  addAuxTypeProgram("str.at",
+                      {d_kSeq, kInt},
+                      "($tsm_Seq x1)");
   addConstFoldSym("str.indexof", {d_kSeq, d_kSeq, kInt}, kInt);
+  addAuxTypeProgram("str.indexof",
+                      {d_kSeq, d_kSeq, kInt},
+                      "($smt_builtin_ite ($smt_builtin_Teq x1 x2) ($tsm_Seq x1) $tsm_none)");
   addConstFoldSym("str.replace", {d_kSeq, d_kSeq, d_kSeq}, d_kSeq);
   addConstFoldSym("str.replace_all", {d_kSeq, d_kSeq, d_kSeq}, d_kSeq);
   addConstFoldSym("str.from_code", {kInt}, kString);
@@ -732,6 +741,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym("@array_deq_diff", {kT, kT}, ssArrayDiff.str());
   // strings
   addConstFoldSym("str.update", {d_kSeq, kInt, d_kSeq}, d_kSeq);
+  addAuxTypeProgram("str.update",
+                      {d_kSeq, kInt, d_kSeq},
+                      "($smt_builtin_ite ($smt_builtin_Teq x1 x2) ($tsm_Seq x1) $tsm_none)");
   addConstFoldSym("str.rev", {d_kSeq}, d_kSeq);
   addConstFoldSym("str.to_lower", {kString}, kString);
   addConstFoldSym("str.to_upper", {kString}, kString);
@@ -1911,10 +1923,11 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
         paramCount++;
         continue;
       }
+      progCases << " ";
       if (!printTypeInternal("", ka, progCases))
       {
         progParams << " (x" << (paramCount + 1) << " $smt_Type)";
-        progCases << " x" << (paramCount + 1);
+        progCases << "x" << (paramCount + 1);
         paramCount++;
       }
       continue;
