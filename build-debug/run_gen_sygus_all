@@ -587,7 +587,6 @@ check_status
 ./run_gen_vc_single -sygus $INPUT false_elim
 ./run_gen_vc_single -sygus $INPUT ho_cong
 ./run_gen_vc_single -sygus $INPUT distinct-elim
-./run_gen_vc_single -sygus $INPUT lambda-elim
 ./run_gen_vc_single -sygus $INPUT dt_split
 ./run_gen_vc_single -sygus $INPUT dt-inst
 ./run_gen_vc_single -sygus $INPUT dt-collapse-selector

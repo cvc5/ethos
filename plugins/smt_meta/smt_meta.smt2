@@ -127,6 +127,7 @@ $SM_TYPE_DECL$
 (declare-fun pack_seq (tsm.Type (Seq vsm.Value)) ssm.Seq)
 (declare-fun unpack_string (ssm.Seq) String)
 (declare-fun pack_string (String) ssm.Seq)
+(declare-fun char_of_value (vsm.Value) String)
 
 (assert (! (forall ((x ssm.Seq))
   (! (= (unpack_seq x) 
@@ -143,6 +144,28 @@ $SM_TYPE_DECL$
       (ssm.empty T)))
   :pattern ((pack_seq T x))))
   :named smtx.pack_seq.def))
+
+(assert (! (forall ((x ssm.Seq))
+  (! (= (unpack_string x)
+    (ite ((_ is ssm.cons) x)
+      (str.++ (char_of_value (ssm.cons.arg1 x)) (unpack_string (ssm.cons.arg2 x)))
+      ""))
+  :pattern ((unpack_string x))))
+  :named smtx.unpack_string.def))
+
+(assert (! (forall ((x String))
+  (! (= (pack_string x)
+    (ite (> (str.len x) 0)
+      (ssm.cons (vsm.Char (str.to_code (str.substr x 0 1))) (pack_string (str.substr x 1 (- (str.len x) 1))))
+      (ssm.empty tsm.Char)))
+  :pattern ((pack_string x))))
+  :named smtx.pack_string.def))
+
+(assert (! (forall ((x vsm.Value))
+  (! (= (char_of_value x)
+    (ite ((_ is vsm.Char) x) (str.from_code (vsm.Char.arg1 x)) ""))
+  :pattern ((char_of_value x))))
+  :named smtx.char_of_value.def))
 
 ; models
 (define-sort smk.SmtModelKey () (Tuple String tsm.Type))

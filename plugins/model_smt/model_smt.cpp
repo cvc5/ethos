@@ -348,7 +348,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.indexof", {d_kSeq, d_kSeq, kInt}, kInt);
   addAuxTypeProgram("str.indexof",
                       {d_kSeq, d_kSeq, kInt},
-                      "($smt_builtin_ite ($smt_builtin_Teq x1 x2) ($tsm_Seq x1) $tsm_none)");
+                      "($smt_builtin_ite ($smt_builtin_Teq x1 x2) $tsm_Int $tsm_none)");
   addConstFoldSym("str.replace", {d_kSeq, d_kSeq, d_kSeq}, d_kSeq);
   addConstFoldSym("str.replace_all", {d_kSeq, d_kSeq, d_kSeq}, d_kSeq);
   addConstFoldSym("str.from_code", {kInt}, kString);
