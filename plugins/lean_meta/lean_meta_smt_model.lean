@@ -488,7 +488,7 @@ def smt_lit_seq_len : List SmtValue -> smt_lit_Int
 def smt_lit_seq_concat : List SmtValue -> List SmtValue -> List SmtValue
   | x, y => x ++ y
   
-def smt_lit_seq_substr (xs : List SmtValue) (i : smt_lit_Int) (n : smt_lit_Int) : List SmtValue :=
+def smt_lit_seq_extract (xs : List SmtValue) (i : smt_lit_Int) (n : smt_lit_Int) : List SmtValue :=
   let len : smt_lit_Int := Int.ofNat xs.length
   if i < 0 || n <= 0 || i >= len then
     []

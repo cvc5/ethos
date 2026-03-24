@@ -122,6 +122,28 @@ $SM_TYPE_DECL$
   )
 )
 
+; sequences and string conversions
+(declare-fun unpack_seq (ssm.Seq) (Seq vsm.Value))
+(declare-fun pack_seq (tsm.Type (Seq vsm.Value)) ssm.Seq)
+(declare-fun unpack_string (ssm.Seq) String)
+(declare-fun pack_string (String) ssm.Seq)
+
+(assert (! (forall ((x ssm.Seq))
+  (! (= (unpack_seq x) 
+    (ite ((_ is ssm.cons) x) 
+      (seq.++ (seq.unit (ssm.cons.arg1 x)) (unpack_seq (ssm.cons.arg2 x)))
+      (as seq.empty (Seq vsm.Value))))
+  :pattern ((unpack_seq x))))
+  :named smtx.unpack_seq.def))
+  
+(assert (! (forall ((T tsm.Type) (x (Seq vsm.Value)))
+  (! (= (pack_seq T x) 
+    (ite (> (seq.len x) 0)
+      (ssm.cons (seq.nth x 0) (pack_seq T (seq.extract x 1 (- (seq.len x) 1))))
+      (ssm.empty T)))
+  :pattern ((pack_seq T x))))
+  :named smtx.pack_seq.def))
+
 ; models
 (define-sort smk.SmtModelKey () (Tuple String tsm.Type))
 (define-sort smm.SmtModel () (Array smk.SmtModelKey vsm.Value))

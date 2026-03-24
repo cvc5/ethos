@@ -1440,7 +1440,9 @@ void ModelSmt::printConstFold(const std::string& name,
   }
   else if (name.compare(0, 4, "str.")==0 && args[0]==d_kSeq)
   {
-    opName << "seq." << name.substr(4);
+    // mismatch str.substr vs seq.extract
+    std::string oname = name.substr(4);
+    opName << "seq." << (oname=="substr" ? "extract" : oname);
   }
   else
   {
