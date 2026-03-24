@@ -234,7 +234,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToEoPrefix[kInt] = "numeral";
   d_kindToEoPrefix[d_kIntQuote] = "numeral";
   d_kindToEoPrefix[kReal] = "rational";
-  d_kindToEoPrefix[kString] = "string";
+  d_kindToEoPrefix[kString] = "seq";
   d_kindToEoPrefix[kBitVec] = "binary";
   d_kindToEoPrefix[kRegLan] = "re";
   d_kindToType[kBool] = "Bool";
@@ -332,8 +332,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTypeSym("Seq", {kType});
   addTypeSym("Char", {});
   addTypeSym("RegLan", {});
-  addConstFoldSym("str.++", {kString, kString}, kString);
-  addConstFoldSym("str.len", {kString}, kInt);
+  addConstFoldSym("str.++", {d_kSeq, d_kSeq}, d_kSeq);
+  addConstFoldSym("str.len", {d_kSeq}, kInt);
   addConstFoldSym("str.substr", {kString, kInt, kInt}, kString);
   // addConstFoldSym("str.at", {kString, kInt}, kString);
   addTermReduceSym("str.at", {kString, kInt}, kString, "(str.substr x1 x2 1)");
@@ -749,8 +749,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "@strings_stoi_non_digit",
       {kString},
       smtToSmtEmbed("(str.indexof_re ($eo_to_smt x1) (re.comp (re.range "
-                    "(string $smt_builtin_str_c0) (string "
-                    "$smt_builtin_str_c9))) 0)",
+                    "(seq.unit ($sm_numeral $smt_builtin_z_c0)) (seq.unit "
+                    "($sm_numeral $smt_builtin_z_c9)))) 0)",
                     true));
   std::stringstream ssStringsDeqDiff;
   ssStringsDeqDiff
@@ -824,8 +824,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addReduceSym("seq.empty", {kType}, kAny, "($smtx_empty_seq x1)");
   d_typeFullCase["seq.empty"] = "($tsm_Seq x1)";
   d_recReduce.insert("seq.empty");
-  d_specialCases["seq.empty"].emplace_back(
-      "(seq.empty (Seq Char))", "($sm_string $smt_builtin_str_empty)");
+  //d_specialCases["seq.empty"].emplace_back(
+  //    "(seq.empty (Seq Char))", "($sm_string $smt_builtin_str_empty)");
   addRecReduceSym("seq.unit", {kAny}, d_kSeq, "($smtx_seq_unit e1)");
   d_typeFullCase["seq.unit"] = smtGuardType1("($smtx_typeof x1)", "($tsm_Seq ($smtx_typeof x1))");
   addRecReduceSym("seq.nth", {d_kSeq, kInt}, kAny, "($smtx_seq_nth e1 e2)");
@@ -923,7 +923,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   :signature ($smt_Term $smt_Term) $smt_Term
   (
   (($eo_to_smt_@bv ($sm_numeral x1) ($sm_numeral x2))
-    (ite ($smt_builtin_z_<= $smt_builtin_z_zero x2) ($sm_binary_mod_w x2 x1) $sm_none))
+    ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero x2) ($sm_binary_mod_w x2 x1) $sm_none))
   (($eo_to_smt_@bv t1 t2) $sm_none)
   )
 ))";
@@ -974,7 +974,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "@strings_num_occur",
       {kT, kT},
       smtToSmtEmbed("(div (- (str.len ($eo_to_smt x1)) (str.len (str.replace_all ($eo_to_smt "
-      "x1) ($eo_to_smt x2) $sm_string_empty))) (str.len ($eo_to_smt x2)))", true));
+      "x1) ($eo_to_smt x2) (seq.empty $tsm_String)))) (str.len ($eo_to_smt x2)))", true));
   // FIXME: unhandled
   d_symIgnore["@strings_num_occur_re"] = true;
   d_symIgnore["@strings_occur_index"] = true;

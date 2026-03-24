@@ -51,12 +51,6 @@
 ; helpers
 (define $sm_q_zero () ($sm_rational $smt_builtin_q_zero))
 
-(declare-parameterized-const $emb_sm.String
-  ((s $smt_builtin_String :opaque)) $smt_Term)
-(define $sm_string ((s $smt_builtin_String)) ($emb_sm.String s))
-; helpers
-(define $sm_string_empty () ($emb_sm.String $smt_builtin_str_empty))
-
 (declare-parameterized-const $emb_sm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 (define $sm_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
@@ -300,12 +294,6 @@ $SMT_TYPE_CONSTRUCTORS$
 ; helpers
 (define $vsm_q_zero () ($vsm_rational $smt_builtin_q_zero))
 
-(declare-parameterized-const $emb_vsm.String
-  ((s $smt_builtin_String :opaque)) $smt_Value)
-(define $vsm_string ((s $smt_builtin_String)) ($emb_vsm.String s))
-; helpers
-(define $vsm_string_empty () ($emb_vsm.String $smt_builtin_str_empty))
-
 (declare-parameterized-const $emb_vsm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Value)
 (define $vsm_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
@@ -328,6 +316,7 @@ $SMT_TYPE_CONSTRUCTORS$
 ; A value denoting a sequence.
 (declare-parameterized-const $emb_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
 (define $vsm_seq ((s $smt_Seq)) ($emb_vsm.Seq s))
+(define $vsm_string_empty () ($vsm_seq ($smt_apply_1 "as seq.empty" $tsm_String)))
 
 ; A value denoting a regular language.
 (declare-parameterized-const $emb_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
@@ -705,7 +694,6 @@ $SMT_TYPE_CONSTRUCTORS$
   (($smtx_typeof_value ($vsm_bool b))     $tsm_Bool)
   (($smtx_typeof_value ($vsm_numeral n))  $tsm_Int)
   (($smtx_typeof_value ($vsm_rational q)) $tsm_Real)
-  (($smtx_typeof_value ($vsm_string s))   $tsm_String)
   (($smtx_typeof_value ($vsm_binary w n))
     ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w) 
       ($tsm_BitVec w)
@@ -958,7 +946,6 @@ $SMT_EVAL_PROGS$
   (($smtx_model_eval M ($sm_bool b))      ($vsm_bool b))
   (($smtx_model_eval M ($sm_numeral n))   ($vsm_numeral n))
   (($smtx_model_eval M ($sm_rational r))  ($vsm_rational r))
-  (($smtx_model_eval M ($sm_string s))    ($vsm_string s))
   (($smtx_model_eval M ($sm_binary w n))  ($vsm_binary w n))
   ; evaluation of standard SMT symbols
   ; These calls will reference helper methods above, e.g. of the form
@@ -1117,7 +1104,6 @@ $SMT_TYPEOF_AUX$
   (($smtx_typeof ($sm_bool b))      $tsm_Bool)
   (($smtx_typeof ($sm_numeral n))   $tsm_Int)
   (($smtx_typeof ($sm_rational r))  $tsm_Real)
-  (($smtx_typeof ($sm_string s))    $tsm_String)
   (($smtx_typeof ($sm_binary w n))
     ; must be legal width and value
     ($smt_builtin_ite 
@@ -1388,6 +1374,13 @@ $EO_TO_SMT_TYPE_CASES$
   )
 )
 
+(program $eo_to_smt_string ((s $smt_builtin_String))
+  :signature ($smt_builtin_String) $smt_Term
+  (
+  (($eo_to_smt_string s) $sm_none) ; FIXME
+  )
+)
+
 (program $eo_to_smt 
   ((b $smt_builtin_Bool) (n $smt_builtin_Int) (m $smt_builtin_Int) (r $smt_builtin_Rat)
    (s $smt_builtin_String) (w $smt_builtin_Int) (d $eo_Datatype)
@@ -1399,7 +1392,7 @@ $EO_TO_SMT_TYPE_CASES$
   (($eo_to_smt ($eot_bool b))        ($sm_bool b))
   (($eo_to_smt ($eot_numeral n))     ($sm_numeral n))
   (($eo_to_smt ($eot_rational r))    ($sm_rational r))
-  (($eo_to_smt ($eot_string s))      ($sm_string s))
+  (($eo_to_smt ($eot_string s))      ($eo_to_smt_string s))
   (($eo_to_smt ($eot_binary w n))    ($sm_binary w n))
   (($eo_to_smt ($eot_Var s T))       ($sm_Var s ($eo_to_smt_type T)))
   (($eo_to_smt ($eot_DtCons s d i))  ($sm_DtCons s ($eo_to_smt_datatype d) i))

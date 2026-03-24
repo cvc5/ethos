@@ -18,6 +18,7 @@
 (define-fun qneg ((x Real)) Real (- x))
 (define-fun zdiv_total ((x Int) (y Int)) Real (/_total (to_real x) (to_real y)))
 (define-fun qdiv_total ((x Real) (y Real)) Real (/_total x y))
+(define-sort Char () Int)
 (define-fun streq ((x String) (y String)) Bool (= x y))
 
 (declare-datatype Nat ((nat.zero) (nat.succ (nat.succ.arg1 Nat))))

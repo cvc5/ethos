@@ -18,6 +18,7 @@
 (define-fun qneg ((x Real)) Real (- x))
 (define-fun zdiv_total ((x Int) (y Int)) Real (/_total (to_real x) (to_real y)))
 (define-fun qdiv_total ((x Real) (y Real)) Real (/_total x y))
+(define-sort Char () Int)
 (define-fun streq ((x String) (y String)) Bool (= x y))
 
 (declare-datatype Nat ((nat.zero) (nat.succ (nat.succ.arg1 Nat))))
@@ -156,8 +157,6 @@
   (vsm.Numeral (vsm.Numeral.arg1 Int))
   ; smt-cons: Rational
   (vsm.Rational (vsm.Rational.arg1 Rat))
-  ; smt-cons: String
-  (vsm.String (vsm.String.arg1 String))
   ; smt-cons: Binary
   (vsm.Binary (vsm.Binary.arg1 Int) (vsm.Binary.arg2 Int))
   ; smt-cons: Map
@@ -195,8 +194,6 @@
   (sm.Numeral (sm.Numeral.arg1 Int))
   ; smt-cons: Rational
   (sm.Rational (sm.Rational.arg1 Rat))
-  ; smt-cons: String
-  (sm.String (sm.String.arg1 String))
   ; smt-cons: Binary
   (sm.Binary (sm.Binary.arg1 Int) (sm.Binary.arg2 Int))
   ; smt-cons: Apply
@@ -470,8 +467,6 @@
     tsm.Int
   (ite ((_ is vsm.Rational) x1)
     tsm.Real
-  (ite ((_ is vsm.String) x1)
-    (tsm.Seq tsm.Char)
   (ite ((_ is vsm.Binary) x1)
     (ite (zleq 0 (vsm.Binary.arg1 x1)) (tsm.BitVec (vsm.Binary.arg1 x1)) tsm.None)
   (ite ((_ is vsm.RegLan) x1)
@@ -485,7 +480,7 @@
   (ite ((_ is vsm.Apply) x1)
     ($smtx_typeof_apply_value ($smtx_typeof_value (vsm.Apply.arg1 x1)) ($smtx_typeof_value (vsm.Apply.arg2 x1)))
     tsm.None
-))))))))))) :pattern (($smtx_typeof_value x1)))) :named sm.axiom.$smtx_typeof_value))
+)))))))))) :pattern (($smtx_typeof_value x1)))) :named sm.axiom.$smtx_typeof_value))
 
 ; program: $smtx_model_eval_ite
 (define-fun $smtx_model_eval_ite ((x1 vsm.Value) (x2 vsm.Value) (x3 vsm.Value)) vsm.Value
@@ -563,8 +558,6 @@
     (vsm.Numeral (sm.Numeral.arg1 x2))
   (ite ((_ is sm.Rational) x2)
     (vsm.Rational (sm.Rational.arg1 x2))
-  (ite ((_ is sm.String) x2)
-    (vsm.String (sm.String.arg1 x2))
   (ite ((_ is sm.Binary) x2)
     (vsm.Binary (sm.Binary.arg1 x2) (sm.Binary.arg2 x2))
   (ite (and ((_ is sm.Apply) x2) (= (sm.Apply.arg1 x2) sm.not))
@@ -594,7 +587,7 @@
   (ite ((_ is sm.UConst) x2)
     ($smtx_model_lookup x1 (sm.UConst.arg1 x2) (sm.UConst.arg2 x2))
     vsm.NotValue
-))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
+)))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_typeof_guard
 (define-fun $smtx_typeof_guard ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
@@ -629,8 +622,6 @@
     tsm.Int
   (ite ((_ is sm.Rational) x1)
     tsm.Real
-  (ite ((_ is sm.String) x1)
-    (tsm.Seq tsm.Char)
   (ite ((_ is sm.Binary) x1)
     (ite (and (zleq 0 (sm.Binary.arg1 x1)) (zeq (sm.Binary.arg2 x1) (mod_total (sm.Binary.arg2 x1) (int.pow2 (sm.Binary.arg1 x1))))) (tsm.BitVec (sm.Binary.arg1 x1)) tsm.None)
   (ite (and ((_ is sm.Apply) x1) (= (sm.Apply.arg1 x1) sm.not))
@@ -660,7 +651,7 @@
   (ite ((_ is sm.UConst) x1)
     (sm.UConst.arg2 x1)
     tsm.None
-))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
+)))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
 
 ; fwd-decl: $eo_to_smt_type
 (declare-fun $eo_to_smt_type (eo.Term) tsm.Type)
@@ -705,6 +696,11 @@
     tsm.None
 ))))))))) :pattern (($eo_to_smt_type x1)))) :named sm.axiom.$eo_to_smt_type))
 
+; program: $eo_to_smt_string
+(define-fun $eo_to_smt_string ((x1 String)) sm.Term
+    sm.None
+)
+
 ; program: $eo_to_smt
 (declare-fun $eo_to_smt (eo.Term) sm.Term)
 (assert (! (forall ((x1 eo.Term))
@@ -716,7 +712,7 @@
   (ite ((_ is eo.Rational) x1)
     (sm.Rational (eo.Rational.arg1 x1))
   (ite ((_ is eo.String) x1)
-    (sm.String (eo.String.arg1 x1))
+    ($eo_to_smt_string (eo.String.arg1 x1))
   (ite ((_ is eo.Binary) x1)
     (sm.Binary (eo.Binary.arg1 x1) (eo.Binary.arg2 x1))
   (ite ((_ is eo.Var) x1)
