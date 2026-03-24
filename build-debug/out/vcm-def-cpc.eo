@@ -2841,21 +2841,26 @@
   )
 )
 
+(program $smtx_typeof_seq_op_1 ((x1 $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_1 ($tsm_Seq x1)) ($tsm_Seq x1) )
+  (($smtx_typeof_seq_op_1 x1) $tsm_none)
+  )
+)
+(program $smtx_typeof_seq_op_1_ret ((x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_1_ret ($tsm_Seq x1) x2) x2)
+  (($smtx_typeof_seq_op_1_ret x1 x2) $tsm_none)
+  )
+)
 (program $smtx_typeof_seq_op_2 ((x1 $smt_Type) (x2 $smt_Type))
   :signature ($smt_Type $smt_Type) $smt_Type
   (
   (($smtx_typeof_seq_op_2 ($tsm_Seq x1) ($tsm_Seq x2))
     ($smt_builtin_ite ($smt_builtin_Teq x1 x2) ($tsm_Seq x1) $tsm_none))
   (($smtx_typeof_seq_op_2 x1 x2) $tsm_none)
-  )
-)
-(program $smtx_typeof_seq_op_3 ((x1 $smt_Type) (x2 $smt_Type) (x3 $smt_Type))
-  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_seq_op_3 ($tsm_Seq x1) ($tsm_Seq x2) ($tsm_Seq x3))
-    ($smt_builtin_ite ($smt_builtin_Teq x1 x2) 
-    ($smt_builtin_ite ($smt_builtin_Teq x2 x3) ($tsm_Seq x1) $tsm_none) $tsm_none))
-  (($smtx_typeof_seq_op_3 x1 x2 x3) $tsm_none)
   )
 )
 (program $smtx_typeof_seq_op_2_ret
@@ -2865,6 +2870,15 @@
   (($smtx_typeof_seq_op_2_ret ($tsm_Seq x1) ($tsm_Seq x2) T)
     ($smt_builtin_ite ($smt_builtin_Teq x1 x2) T $tsm_none))
   (($smtx_typeof_seq_op_2_ret T U V) $tsm_none)
+  )
+)
+(program $smtx_typeof_seq_op_3 ((x1 $smt_Type) (x2 $smt_Type) (x3 $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_3 ($tsm_Seq x1) ($tsm_Seq x2) ($tsm_Seq x3))
+    ($smt_builtin_ite ($smt_builtin_Teq x1 x2) 
+    ($smt_builtin_ite ($smt_builtin_Teq x2 x3) ($tsm_Seq x1) $tsm_none) $tsm_none))
+  (($smtx_typeof_seq_op_3 x1 x2 x3) $tsm_none)
   )
 )
 

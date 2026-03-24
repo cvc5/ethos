@@ -1759,80 +1759,64 @@ void ModelSmt::printTypeof(const std::string& name,
     d_smtTypeof << ssArgs.str() << "))";
     return;
   }
-  if (args.size() == 2 && args[0] == Kind::BINARY && args[1] == Kind::BINARY)
+  Kind kuniform = args.empty() ? Kind::NONE : args[0];
+  for (Kind k : args)
+  {
+    if (k!=kuniform)
+    {
+      kuniform = Kind::NONE;
+      break;
+    }
+  }
+  if (kuniform == Kind::BINARY)
   {
     std::stringstream rets;
     if (ret == Kind::BINARY || ret == Kind::ANY)
     {
-      d_smtTypeof << "($smtx_typeof_bv_op_2" << ssArgs.str() << "))"
+      d_smtTypeof << "($smtx_typeof_bv_op_" << args.size() << ssArgs.str() << "))"
                   << std::endl;
       return;
     }
     else if (printTypeInternal(name, ret, rets))
     {
-      d_smtTypeof << "($smtx_typeof_bv_op_2_ret" << ssArgs.str() << " "
+      d_smtTypeof << "($smtx_typeof_bv_op_" << args.size() << "_ret" << ssArgs.str() << " "
                   << rets.str() << "))" << std::endl;
       return;
     }
   }
-  else if (args.size() == 1 && args[0] == Kind::BINARY
-      && (ret == Kind::BINARY || ret == Kind::ANY))
-  {
-    d_smtTypeof << "($smtx_typeof_bv_op_1" << ssArgs.str() << "))" << std::endl;
-    return;
-  }
-  else if (args.size() == 1 && args[0] == Kind::BINARY)
-  {
-    std::stringstream rets;
-    if (printTypeInternal(name, ret, rets))
-    {
-      d_smtTypeof << "($smtx_typeof_bv_op_1_ret" << ssArgs.str() << " "
-                  << rets.str() << "))" << std::endl;
-      return;
-    }
-  }
-  else if (args.size() == 2 && args[0] == d_kSet && args[1] == d_kSet)
+  else if (kuniform == d_kSet)
   {
     std::stringstream rets;
     if (ret == d_kSet || ret == Kind::ANY)
     {
-      d_smtTypeof << "($smtx_typeof_sets_op_2" << ssArgs.str() << "))"
+      d_smtTypeof << "($smtx_typeof_sets_op_" << args.size() << ssArgs.str() << "))"
                   << std::endl;
       return;
     }
     else if (printTypeInternal(name, ret, rets))
     {
-      d_smtTypeof << "($smtx_typeof_sets_op_2_ret" << ssArgs.str() << " "
+      d_smtTypeof << "($smtx_typeof_sets_op_" << args.size() << "_ret" << ssArgs.str() << " "
                   << rets.str() << "))" << std::endl;
       return;
     }
   }
-  else if (args.size() == 2 && args[0] == d_kSeq && args[1] == d_kSeq)
+  if (kuniform == d_kSeq)
   {
     if (ret == d_kSeq || ret == Kind::ANY)
     {
-      d_smtTypeof << "($smtx_typeof_seq_op_2" << ssArgs.str() << "))"
+      d_smtTypeof << "($smtx_typeof_seq_op_" << args.size() << ssArgs.str() << "))"
                   << std::endl;
       return;
     }
     std::stringstream rets;
     if (printTypeInternal(name, ret, rets))
     {
-      d_smtTypeof << "($smtx_typeof_seq_op_2_ret" << ssArgs.str() << " "
+      d_smtTypeof << "($smtx_typeof_seq_op_" << args.size() << "_ret" << ssArgs.str() << " "
                   << rets.str() << "))" << std::endl;
       return;
     }
   }
-  else if (args.size() == 3 && args[0] == d_kSeq && args[1] == d_kSeq && args[2] == d_kSeq)
-  {
-    if (ret == d_kSeq || ret == Kind::ANY)
-    {
-      d_smtTypeof << "($smtx_typeof_seq_op_3" << ssArgs.str() << "))"
-                  << std::endl;
-      return;
-    }
-  }
-  else if (args.size() == 2 && args[0] == Kind::PARAM && args[1] == Kind::PARAM)
+  if (args.size() == 2 && kuniform == Kind::PARAM)
   {
     std::stringstream rets;
     if (ret==Kind::PARAM)
