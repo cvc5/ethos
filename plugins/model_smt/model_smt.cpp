@@ -481,7 +481,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   smtGuardType("($smt_builtin_z_<= $smt_builtin_z_zero x2)",
   smtGuardType("($smt_builtin_z_<= x2 x1)",
   smtGuardType("($smt_builtin_z_< x1 x3)",
-               "($tsm_BitVec ($smt_builtin_z_inc ($smt_builtin_z_- x2 x1)))")));
+               "($tsm_BitVec ($smt_builtin_z_inc ($smt_builtin_z_- x1 x2)))")));
   addAuxTypeProgram("extract", {d_kIntQuote, d_kIntQuote, kBitVec}, ssExtractType);
   addLitBinSym("concat",
                {kBitVec, kBitVec},
@@ -841,7 +841,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   //    "(seq.empty (Seq Char))", "($sm_string $smt_builtin_str_empty)");
   addRecReduceSym("seq.unit", {kAny}, d_kSeq, "($smtx_seq_unit e1)");
   d_typeFullCase["seq.unit"] = smtGuardType1("($smtx_typeof x1)", "($tsm_Seq ($smtx_typeof x1))");
-  addRecReduceSym("seq.nth", {d_kSeq, kInt}, kAny, "($smtx_seq_nth e1 e2)");
+  addRecReduceSym("seq.nth", {d_kSeq, kInt}, kAny, "($smtx_seq_nth M e1 e2)");
   addAuxTypeProgram("seq.nth", {d_kSeq, kInt}, "x1");
   // sets
   // (Set T) is modelled as (Array T Bool).

@@ -39,6 +39,7 @@
 (define-fun div_by_zero_id () String "@div_by_zero")
 (define-fun mod_by_zero_id () String "@mod_by_zero")
 (define-fun wrong_apply_sel_id () String "@wrong_apply_sel")
+(define-fun oob_seq_nth_id () String "@oob_seq_nth")
 (define-fun uconst_id ((x Nat)) String (str.++ "@u." (str.from_int (nat.to_int x))))
 
 ; integer exponentiation is not handled by cvc5, axiomatize it

@@ -253,6 +253,7 @@ def smt_lit_qdiv_by_zero_id : smt_lit_String := "@qdiv_by_zero"
 def smt_lit_div_by_zero_id : smt_lit_String := "@div_by_zero"
 def smt_lit_mod_by_zero_id : smt_lit_String := "@mod_by_zero"
 def smt_lit_wrong_apply_sel_id : smt_lit_String := "@wrong_apply_sel"
+def smt_lit_oob_seq_nth_id : smt_lit_String := "@oob_seq_nth"
 def smt_lit_uconst_id : smt_lit_Nat -> smt_lit_String
   | i => "@u." ++ toString i
 

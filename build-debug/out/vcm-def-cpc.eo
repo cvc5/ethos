@@ -2297,13 +2297,13 @@
 ;;; Utilities for Sequence values
 
 (program $smtx_ssm_seq_nth
-  ((v $smt_Value) (vs $smt_Seq) (n $smt_builtin_Int) (T $smt_Type))
-  :signature ($smt_Seq $smt_builtin_Int) $smt_Value
+  ((v $smt_Value) (vs $smt_Seq) (n $smt_builtin_Int) (T $smt_Type) (d $smt_Value))
+  :signature ($smt_Seq $smt_builtin_Int $smt_Value) $smt_Value
   (
-  (($smtx_ssm_seq_nth ($ssm_empty T) n)                       $vsm_not_value)
-  (($smtx_ssm_seq_nth ($ssm_cons v vs) $smt_builtin_z_zero)   v)
-  (($smtx_ssm_seq_nth ($ssm_cons v vs) n)
-    ($smtx_ssm_seq_nth vs ($smt_builtin_z_dec n)))
+  (($smtx_ssm_seq_nth ($ssm_empty T) n d)                     d)
+  (($smtx_ssm_seq_nth ($ssm_cons v vs) $smt_builtin_z_zero d) v)
+  (($smtx_ssm_seq_nth ($ssm_cons v vs) n d)
+    ($smtx_ssm_seq_nth vs ($smt_builtin_z_dec n) d))
   )
 )
 
@@ -2594,13 +2594,29 @@
 (define $smtx_seq_unit ((e $smt_Value))
   ($vsm_seq ($ssm_cons e ($ssm_empty ($smtx_typeof_value e)))))
 
+(program $smtx_seq_nth_wrong
+  ((M $smt_Model) (s $smt_Seq) (n $smt_builtin_Int) (T $smt_Type))
+  :signature ($smt_Model $smt_Seq $smt_builtin_Int $smt_Type) $smt_Value
+  (
+  (($smtx_seq_nth_wrong M s n ($tsm_Seq T))      
+    ($smtx_map_select
+      ($smtx_map_select
+        ($smtx_model_lookup M ($smt_apply_0 "oob_seq_nth_id")
+          ($tsm_Map ($tsm_Seq T) ($tsm_Map $tsm_Int T)))
+        ($vsm_seq s))
+      ($vsm_numeral n)))
+  (($smtx_seq_nth_wrong M s n T)  $vsm_not_value)
+  )
+)
+
 ; Sequence nth
 (program $smtx_seq_nth
-  ((s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
+  ((M $smt_Model) (s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Model $smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_seq_nth ($vsm_seq s) ($vsm_numeral n)) ($smtx_ssm_seq_nth s n))
-  (($smtx_seq_nth v1 v2) $vsm_not_value)
+  (($smtx_seq_nth M ($vsm_seq s) ($vsm_numeral n)) 
+    ($smtx_ssm_seq_nth s n ($smtx_seq_nth_wrong M s n ($smtx_typeof_seq_value s))))
+  (($smtx_seq_nth M v1 v2) $vsm_not_value)
   )
 )
 
