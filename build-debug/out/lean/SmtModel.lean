@@ -477,6 +477,36 @@ macro_rules
             else
               SmtValue.NotValue)
 
+def __smtx_ssm_seq_unpack : SmtSeq -> List SmtValue
+  | (SmtSeq.cons v vs) => v :: (__smtx_ssm_seq_unpack vs)
+  | (SmtSeq.empty _) => []
+
+
+def __smtx_ssm_seq_pack (T : SmtType) : List SmtValue -> SmtSeq
+  | [] => (SmtSeq.empty T)
+  | v :: vs => (SmtSeq.cons v (__smtx_ssm_seq_pack T vs))
+
+
+def __smtx_ssm_char_values_of_string (s : smt_lit_String) : List SmtValue :=
+  s.toList.map SmtValue.Char
+
+
+def __smtx_ssm_char_of_value : SmtValue -> Char
+  | (SmtValue.Char c) => c
+  | _ => Char.ofNat 0
+
+
+def __smtx_ssm_string_of_char_values (xs : List SmtValue) : smt_lit_String :=
+  String.ofList (xs.map __smtx_ssm_char_of_value)
+
+
+def __smtx_value_pack_seq (T : SmtType) (xs : List SmtValue) : SmtValue :=
+  (SmtValue.Seq (__smtx_ssm_seq_pack T xs))
+
+
+def __smtx_value_pack_char_seq (s : smt_lit_String) : SmtValue :=
+  (__smtx_value_pack_seq SmtType.Char (__smtx_ssm_char_values_of_string s))
+
 /- Definition of SMT-LIB model semantics -/
 
 noncomputable section

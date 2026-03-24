@@ -235,6 +235,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToEoPrefix[d_kIntQuote] = "numeral";
   d_kindToEoPrefix[kReal] = "rational";
   d_kindToEoPrefix[kString] = "seq";
+  d_kindToEoPrefix[d_kSeq] = "seq";
   d_kindToEoPrefix[kBitVec] = "binary";
   d_kindToEoPrefix[kRegLan] = "re";
   d_kindToType[kBool] = "Bool";
@@ -242,6 +243,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToType[kInt] = "Int";
   d_kindToType[kReal] = "Real";
   d_kindToType[kString] = "String";
+  d_kindToType[d_kSeq] = "Seq";
   d_kindToType[kBitVec] = "Binary";
   d_kindToType[kRegLan] = "RegLan";
   // All SMT-LIB symbols require having their semantics defined here.
@@ -334,12 +336,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTypeSym("RegLan", {});
   addConstFoldSym("str.++", {d_kSeq, d_kSeq}, d_kSeq);
   addConstFoldSym("str.len", {d_kSeq}, kInt);
-  addConstFoldSym("str.substr", {kString, kInt, kInt}, kString);
+  addConstFoldSym("str.substr", {d_kSeq, kInt, kInt}, d_kSeq);
   // addConstFoldSym("str.at", {kString, kInt}, kString);
-  addTermReduceSym("str.at", {kString, kInt}, kString, "(str.substr x1 x2 1)");
-  addConstFoldSym("str.indexof", {kString, kString, kInt}, kInt);
-  addConstFoldSym("str.replace", {kString, kString, kString}, kString);
-  addConstFoldSym("str.replace_all", {kString, kString, kString}, kString);
+  addTermReduceSym("str.at", {d_kSeq, kInt}, kString, "(str.substr x1 x2 1)");
+  addConstFoldSym("str.indexof", {d_kSeq, d_kSeq, kInt}, kInt);
+  addConstFoldSym("str.replace", {d_kSeq, d_kSeq, d_kSeq}, d_kSeq);
+  addConstFoldSym("str.replace_all", {d_kSeq, d_kSeq, d_kSeq}, d_kSeq);
   addConstFoldSym("str.from_code", {kInt}, kString);
   addConstFoldSym("str.to_code", {kString}, kInt);
   addConstFoldSym("str.from_int", {kInt}, kString);
@@ -350,7 +352,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             << " (str.to_code x1)) (<= (str.to_code x1) ($vsm_numeral "
             << smtZ(57) << ")))";
   addTermReduceSym("str.is_digit", {kString}, kBool, ssIsDigit.str());
-  addConstFoldSym("str.contains", {kString, kString}, kBool);
+  addConstFoldSym("str.contains", {d_kSeq, d_kSeq}, kBool);
   // addConstFoldSym("str.suffixof", {kString, kString}, kBool);
   // reduce
   addTermReduceSym(
@@ -730,8 +732,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
               << ")))";
   addEunoiaReduceSym("@array_deq_diff", {kT, kT}, ssArrayDiff.str());
   // strings
-  addConstFoldSym("str.update", {kString, kInt, kString}, kString);
-  addConstFoldSym("str.rev", {kString}, kString);
+  addConstFoldSym("str.update", {d_kSeq, kInt, d_kSeq}, d_kSeq);
+  addConstFoldSym("str.rev", {d_kSeq}, d_kSeq);
   addConstFoldSym("str.to_lower", {kString}, kString);
   addConstFoldSym("str.to_upper", {kString}, kString);
   std::stringstream ssItosRes;
@@ -1457,7 +1459,14 @@ void ModelSmt::printConstFold(const std::string& name,
       Kind ka = args[i - 1];
       instArgs.push_back(ka == Kind::PARAM ? kas : ka);
       tmpParamCount++;
-      retArgs << " x" << tmpParamCount;
+      if (ka==Kind::STRING)
+      {
+        retArgs << " ($smt_apply_1 \"seq_to_string\" x" <<tmpParamCount << ")";
+      }
+      else
+      {
+        retArgs << " x" << tmpParamCount;
+      }
     }
     // print the return term
     Kind kr = kret == Kind::PARAM ? kas : kret;
@@ -1780,6 +1789,31 @@ void ModelSmt::printTypeof(const std::string& name,
       return;
     }
   }
+  else if (args.size() == 2 && args[0] == d_kSeq && args[1] == d_kSeq)
+  {
+    if (ret == d_kSeq || ret == Kind::ANY)
+    {
+      d_smtTypeof << "($smtx_typeof_seq_op_2" << ssArgs.str() << "))"
+                  << std::endl;
+      return;
+    }
+    std::stringstream rets;
+    if (printTypeInternal(name, ret, rets))
+    {
+      d_smtTypeof << "($smtx_typeof_seq_op_2_ret" << ssArgs.str() << " "
+                  << rets.str() << "))" << std::endl;
+      return;
+    }
+  }
+  else if (args.size() == 3 && args[0] == d_kSeq && args[1] == d_kSeq && args[2] == d_kSeq)
+  {
+    if (ret == d_kSeq || ret == Kind::ANY)
+    {
+      d_smtTypeof << "($smtx_typeof_seq_op_3" << ssArgs.str() << "))"
+                  << std::endl;
+      return;
+    }
+  }
   else if (args.size() == 2 && args[0] == Kind::PARAM && args[1] == Kind::PARAM)
   {
     std::stringstream rets;
@@ -1897,8 +1931,16 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
         continue;
       }
       progCases << d_kindToEoPrefix[ka] << " x" << paramCount << ")";
-      progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka]
-                 << ")";
+      progParams << "(x" << paramCount;
+      if (ka==d_kSeq)
+      {
+        progParams << " $smt_Seq";
+      }
+      else
+      {
+        progParams << " $smt_builtin_" << d_kindToType[ka];
+      }
+      progParams << ")";
     }
     else
     {
