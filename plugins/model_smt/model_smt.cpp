@@ -772,32 +772,20 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      {kType, kInt, kInt},
                      smtToSmtEmbed(ssWitnessStringLength.str(), true));
   // curried choice as an auxiliary program
-  std::stringstream ssQuantSkolem;
-  ssQuantSkolem << "(program $eo_to_smt_quantifiers_skolemize" << std::endl;
-  ssQuantSkolem << "  ((s $smt_builtin_String) (T $smt_Type) (F $smt_Term) (n "
-                   "$smt_builtin_Nat) (t $smt_Term))"
-                << std::endl;
-  ssQuantSkolem << "  :signature ($smt_Term $smt_builtin_Nat) $smt_Term"
-                << std::endl;
-  ssQuantSkolem << "  (" << std::endl;
-  ssQuantSkolem << "  (($eo_to_smt_quantifiers_skolemize ($sm_apply "
-                   "($sm_exists s T) F) $smt_builtin_n_zero)"
-                << std::endl;
-  ssQuantSkolem << "     ($sm_apply ($sm_choice s T) F))" << std::endl;
-  ssQuantSkolem << "  (($eo_to_smt_quantifiers_skolemize ($sm_apply "
-                   "($sm_exists s T) F) ($smt_builtin_n_succ n))"
-                << std::endl;
-  ssQuantSkolem << "     ($eo_to_smt_quantifiers_skolemize" << std::endl;
-  ssQuantSkolem
-      << "       ($eo_to_smt_substitute s T ($eo_to_smt_quantifiers_skolemize "
-         "($sm_apply ($sm_exists s T) F) $smt_builtin_n_zero) F)"
-      << std::endl;
-  ssQuantSkolem << "       n))" << std::endl;
-  ssQuantSkolem << "  (($eo_to_smt_quantifiers_skolemize F t) $sm_none)"
-                << std::endl;
-  ssQuantSkolem << "  )" << std::endl;
-  ssQuantSkolem << ")" << std::endl;
-  d_auxDef["@quantifiers_skolemize"] = ssQuantSkolem.str();
+  d_auxDef["@quantifiers_skolemize"] = R"(
+(program $eo_to_smt_quantifiers_skolemize
+  ((s $smt_builtin_String) (T $smt_Type) (F $smt_Term) (n $smt_builtin_Nat) (t $smt_Term))
+  :signature ($smt_Term $smt_builtin_Nat) $smt_Term
+  (
+  (($eo_to_smt_quantifiers_skolemize ($sm_apply ($sm_exists s T) F) $smt_builtin_n_zero)
+     ($sm_apply ($sm_choice s T) F))
+  (($eo_to_smt_quantifiers_skolemize ($sm_apply ($sm_exists s T) F) ($smt_builtin_n_succ n))
+     ($eo_to_smt_quantifiers_skolemize
+       ($eo_to_smt_substitute s T ($eo_to_smt_quantifiers_skolemize ($sm_apply ($sm_exists s T) F) $smt_builtin_n_zero) F)
+       n))
+  (($eo_to_smt_quantifiers_skolemize F t) $sm_none)
+  )
+))";
   // note that negative indices are silently treated as 0 here
   d_specialCases["@quantifiers_skolemize"].emplace_back(
       "(@quantifiers_skolemize (forall x1 x2) x3)",
@@ -807,53 +795,24 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_symIgnore["@quantifiers_skolemize"] = true;
 
   // re pos unfold
-  std::stringstream ssRePosUnfold;
-  ssRePosUnfold << "(program $eo_to_smt_re_unfold_pos_component" << std::endl;
-  ssRePosUnfold << "  ((s $smt_Term) (r1 $smt_Term) (r2 $smt_Term) (n "
-                   "$smt_builtin_Nat) (t $smt_Term))"
-                << std::endl;
-  ssRePosUnfold
-      << "  :signature ($smt_Term $smt_Term $smt_builtin_Nat) $smt_Term"
-      << std::endl;
-  ssRePosUnfold << "  (" << std::endl;
-  ssRePosUnfold << "  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) "
-                   "$smt_builtin_n_zero)"
-                << std::endl;
-  ssRePosUnfold
-      << "    (eo::define ((x ($sm_Var $smt_builtin_str_vname $tsm_String)))"
-      << std::endl;
-  ssRePosUnfold << "    (eo::define ((xrem "
-                << smtToSmtEmbed(
-                       "(str.substr s (str.len x) (- (str.len s) (str.len x)))",
-                       true)
-                << "))" << std::endl;
-  ssRePosUnfold
-      << "      ($sm_apply ($sm_choice $smt_builtin_str_vname $tsm_String)"
-      << std::endl;
-  ssRePosUnfold << "        "
-                << smtToSmtEmbed(
-                       "(and (= s (str.++ x xrem)) (and (str.in_re x r1) "
-                       "(str.in_re xrem r2)))",
-                       true)
-                << "))))" << std::endl;
-  ssRePosUnfold << "  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) "
-                   "($smt_builtin_n_succ n))"
-                << std::endl;
-  ssRePosUnfold << "    (eo::define ((k ($eo_to_smt_re_unfold_pos_component s "
-                   "($sm_re.++ r1 r2) $smt_builtin_n_zero)))"
-                << std::endl;
-  ssRePosUnfold << "      ($eo_to_smt_re_unfold_pos_component" << std::endl;
-  ssRePosUnfold << "        "
-                << smtToSmtEmbed(
-                       "(str.substr s (str.len k) (- (str.len s) (str.len k)))",
-                       true)
-                << std::endl;
-  ssRePosUnfold << "        r2 n)))" << std::endl;
-  ssRePosUnfold << "  (($eo_to_smt_re_unfold_pos_component s r1 n) $sm_none)"
-                << std::endl;
-  ssRePosUnfold << "  )" << std::endl;
-  ssRePosUnfold << ")" << std::endl;
-  d_auxDef["@re_unfold_pos_component"] = ssRePosUnfold.str();
+  d_auxDef["@re_unfold_pos_component"] = R"(
+(program $eo_to_smt_re_unfold_pos_component
+  ((s $smt_Term) (r1 $smt_Term) (r2 $smt_Term) (n $smt_builtin_Nat) (t $smt_Term))
+  :signature ($smt_Term $smt_Term $smt_builtin_Nat) $smt_Term
+  (
+  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) $smt_builtin_n_zero)
+    (eo::define ((x ($sm_Var $smt_builtin_str_vname $tsm_String)))
+    (eo::define ((xrem ($sm_str.substr s ($sm_str.len x) ($sm_- ($sm_str.len s) ($sm_str.len x)))))
+      ($sm_apply ($sm_choice $smt_builtin_str_vname $tsm_String)
+        ($sm_and ($sm_= s ($sm_str.++ x xrem)) ($sm_and ($sm_str.in_re x r1) ($sm_str.in_re xrem r2)))))))
+  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) ($smt_builtin_n_succ n))
+    (eo::define ((k ($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) $smt_builtin_n_zero)))
+      ($eo_to_smt_re_unfold_pos_component
+        ($sm_str.substr s ($sm_str.len k) ($sm_- ($sm_str.len s) ($sm_str.len k)))
+        r2 n)))
+  (($eo_to_smt_re_unfold_pos_component s r1 n) $sm_none)
+  )
+))";
   // note that negative indices are silently treated as 0 here
   addEunoiaReduceSym(
       "@re_unfold_pos_component",
@@ -959,15 +918,15 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
           "(bvcomp ($eo_to_smt x1) (bvnot ($sm_binary ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))) $smt_builtin_z_zero)))",
           true));
   d_auxDef["@bv"] = R"(
-  (program $eo_to_smt_@bv
-    ((x1 $smt_builtin_Int)(x2 $smt_builtin_Int) (t1 $smt_Term) (t2 $smt_Term))
-    :signature ($smt_Term $smt_Term) $smt_Term
-    (
-    (($eo_to_smt_@bv ($sm_numeral x1) ($sm_numeral x2))
-      (ite ($smt_builtin_z_<= $smt_builtin_z_zero x2) ($sm_binary_mod_w x2 x1) $sm_none))
-    (($eo_to_smt_@bv t1 t2) $sm_none)
-    )
-  ))";
+(program $eo_to_smt_@bv
+  ((x1 $smt_builtin_Int)(x2 $smt_builtin_Int) (t1 $smt_Term) (t2 $smt_Term))
+  :signature ($smt_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_@bv ($sm_numeral x1) ($sm_numeral x2))
+    (ite ($smt_builtin_z_<= $smt_builtin_z_zero x2) ($sm_binary_mod_w x2 x1) $sm_none))
+  (($eo_to_smt_@bv t1 t2) $sm_none)
+  )
+))";
   addEunoiaReduceSym("@bv", {d_kIntQuote, d_kIntQuote}, "($eo_to_smt_@bv ($eo_to_smt x1) ($eo_to_smt x2))");
   addEunoiaReduceSym(
       "@bit",
