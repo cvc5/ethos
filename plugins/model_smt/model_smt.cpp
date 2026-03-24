@@ -958,8 +958,17 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       smtToSmtEmbed(
           "(bvcomp ($eo_to_smt x1) (bvnot ($sm_binary ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))) $smt_builtin_z_zero)))",
           true));
-  // utility guards for negative widths, which do not evaluate
-  addEunoiaReduceSym("@bv", {d_kIntQuote, d_kIntQuote}, smtGuard("($smt_builtin_z_<= $smt_builtin_z_zero x2)","($sm_binary_mod_w x2 x1)"));
+  d_auxDef["@bv"] = R"(
+  (program $eo_to_smt_@bv
+    ((x1 $smt_builtin_Int)(x2 $smt_builtin_Int) (t1 $smt_Term) (t2 $smt_Term))
+    :signature ($smt_Term $smt_Term) $smt_Term
+    (
+    (($eo_to_smt_@bv ($sm_numeral x1) ($sm_numeral x2))
+      (ite ($smt_builtin_z_<= $smt_builtin_z_zero x2) ($sm_binary_mod_w x2 x1) $sm_none))
+    (($eo_to_smt_@bv t1 t2) $sm_none)
+    )
+  ))";
+  addEunoiaReduceSym("@bv", {d_kIntQuote, d_kIntQuote}, "($eo_to_smt_@bv ($eo_to_smt x1) ($eo_to_smt x2))");
   addEunoiaReduceSym(
       "@bit",
       {kInt, kBitVec},
