@@ -163,6 +163,8 @@
   (vsm.Map (vsm.Map.arg1 msm.Map))
   ; smt-cons: Seq
   (vsm.Seq (vsm.Seq.arg1 ssm.Seq))
+  ; smt-cons: Char
+  (vsm.Char (vsm.Char.arg1 Char))
   ; smt-cons: RegLan
   (vsm.RegLan (vsm.RegLan.arg1 RegLan))
   ; smt-cons: DtCons
@@ -475,12 +477,14 @@
     ($smtx_typeof_map_value (vsm.Map.arg1 x1))
   (ite ((_ is vsm.Seq) x1)
     ($smtx_typeof_seq_value (vsm.Seq.arg1 x1))
+  (ite ((_ is vsm.Char) x1)
+    tsm.Char
   (ite ((_ is vsm.DtCons) x1)
     ($smtx_typeof_dt_cons_value_rec (tsm.Datatype (vsm.DtCons.arg1 x1) (vsm.DtCons.arg2 x1)) ($smtx_dt_substitute (vsm.DtCons.arg1 x1) (vsm.DtCons.arg2 x1) (vsm.DtCons.arg2 x1)) (vsm.DtCons.arg3 x1))
   (ite ((_ is vsm.Apply) x1)
     ($smtx_typeof_apply_value ($smtx_typeof_value (vsm.Apply.arg1 x1)) ($smtx_typeof_value (vsm.Apply.arg2 x1)))
     tsm.None
-)))))))))) :pattern (($smtx_typeof_value x1)))) :named sm.axiom.$smtx_typeof_value))
+))))))))))) :pattern (($smtx_typeof_value x1)))) :named sm.axiom.$smtx_typeof_value))
 
 ; program: $smtx_model_eval_ite
 (define-fun $smtx_model_eval_ite ((x1 vsm.Value) (x2 vsm.Value) (x3 vsm.Value)) vsm.Value

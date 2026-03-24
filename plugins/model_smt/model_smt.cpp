@@ -1438,6 +1438,10 @@ void ModelSmt::printConstFold(const std::string& name,
     // e.g. in spite of having name $eoo_-.2, we use "-" as the invocation.
     opName << ito->second;
   }
+  else if (name.compare(0, 4, "str.")==0 && args[0]==d_kSeq)
+  {
+    opName << "seq." << name.substr(4);
+  }
   else
   {
     opName << name;
@@ -1459,9 +1463,10 @@ void ModelSmt::printConstFold(const std::string& name,
       Kind ka = args[i - 1];
       instArgs.push_back(ka == Kind::PARAM ? kas : ka);
       tmpParamCount++;
-      if (ka==Kind::STRING)
+      if (ka==Kind::STRING || ka==d_kSeq)
       {
-        retArgs << " ($smt_apply_1 \"seq_to_string\" x" <<tmpParamCount << ")";
+        retArgs << " ($smt_apply_1 \"unpack_";
+        retArgs << (ka==Kind::STRING ? "string" : "seq") << "\" x" <<tmpParamCount << ")";
       }
       else
       {
@@ -1471,6 +1476,18 @@ void ModelSmt::printConstFold(const std::string& name,
     // print the return term
     Kind kr = kret == Kind::PARAM ? kas : kret;
     std::stringstream ssret;
+    std::stringstream ssretEnd;
+    if (kr==Kind::STRING || kr==d_kSeq)
+    {
+      ssret << " ($smt_apply_" << (kr==d_kSeq ? 2 : 1) << " \"pack_";
+      ssret << (kr==Kind::STRING ? "string" : "seq");
+      ssret << "\" ";
+      if (kr==d_kSeq)
+      {
+        ssret << "($smtx_typeof_seq_value x1) ";
+      }
+      ssretEnd << ")";
+    }
     if (isOverloadArith)
     {
       ssret << "($smt_builtin_" << (kas == Kind::NUMERAL ? "z" : "q") << "_"
@@ -1484,7 +1501,7 @@ void ModelSmt::printConstFold(const std::string& name,
     {
       ssret << "($smt_apply_" << args.size() << " \"" << opName.str() << "\"";
     }
-    ssret << retArgs.str() << ")";
+    ssret << retArgs.str() << ")" << ssretEnd.str();
     // print the term with the right type
     std::stringstream fssret;
     printTermInternal(kr, ssret.str(), fssret);

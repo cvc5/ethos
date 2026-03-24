@@ -2454,7 +2454,7 @@
 (program $smtx_typeof_value
   ((v $smt_Value) (f $smt_Value) (d $smt_Datatype)
    (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (i $smt_builtin_Nat)
-   (q $smt_builtin_Real) (s $smt_builtin_String) (r $smt_builtin_RegLan)
+   (q $smt_builtin_Real) (s $smt_builtin_String) (r $smt_builtin_RegLan) (c $smt_builtin_Char)
    (m $smt_Map) (ss $smt_Seq) (T $smt_Type) (t $smt_Term))
   :signature ($smt_Value) $smt_Type
   (
@@ -2468,6 +2468,7 @@
   (($smtx_typeof_value ($vsm_re r))       $tsm_RegLan)
   (($smtx_typeof_value ($vsm_map m))      ($smtx_typeof_map_value m))
   (($smtx_typeof_value ($vsm_seq ss))     ($smtx_typeof_seq_value ss))
+  (($smtx_typeof_value ($vsm_char c))     $tsm_Char)
   (($smtx_typeof_value ($vsm_DtCons s d i))
     ($smtx_typeof_dt_cons_value s d i))
   (($smtx_typeof_value ($vsm_apply f v))
