@@ -91,7 +91,6 @@ cd ../..
 ./run_gen_vc_single $INPUT distinct-elim
 ./run_gen_vc_single $INPUT distinct-true
 ./run_gen_vc_single $INPUT distinct-false
-./run_gen_vc_single $INPUT lambda-elim
 ./run_gen_vc_single $INPUT arith_sum_ub
 ./run_gen_vc_single $INPUT arith_mult_pos
 ./run_gen_vc_single $INPUT arith_mult_neg

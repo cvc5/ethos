@@ -10,6 +10,7 @@ abbrev smt_lit_Bool := SmtEval.smt_lit_Bool
 abbrev smt_lit_Int := SmtEval.smt_lit_Int
 abbrev smt_lit_Rat := SmtEval.smt_lit_Rat
 abbrev smt_lit_String := SmtEval.smt_lit_String
+abbrev smt_lit_Char := Char
 
 inductive SmtRegLan : Type where
   | empty : SmtRegLan
@@ -95,31 +96,6 @@ def smt_lit_str_to_upper : smt_lit_String -> smt_lit_String
   | s => s.toUpper
 def smt_lit_str_to_lower : smt_lit_String -> smt_lit_String
   | s => s.toLower
-def smt_lit_str_update : smt_lit_String -> smt_lit_Int -> smt_lit_String -> smt_lit_String
-  | s, i, t =>
-      if i < 0 || smt_lit_str_len s <= i then
-        s
-      else
-        let idx := Int.toNat i
-        String.ofList <| s.toList.take idx ++ t.toList ++ s.toList.drop (idx + 1)
-def smt_lit_str_rev : smt_lit_String -> smt_lit_String
-  | s => String.ofList s.toList.reverse
-def smt_lit_str_replace_first (s pat repl : smt_lit_String) : smt_lit_String :=
-  if pat = "" then
-    repl ++ s
-  else
-    let idx := smt_lit_str_indexof s pat 0
-    if idx < 0 then
-      s
-    else
-      let n := Int.toNat idx
-      String.ofList <| s.toList.take n ++ repl.toList ++ s.toList.drop (n + pat.length)
-def smt_lit_str_replace : smt_lit_String -> smt_lit_String -> smt_lit_String -> smt_lit_String
-  | s, t1, t2 => smt_lit_str_replace_first s t1 t2
-def smt_lit_str_replace_all : smt_lit_String -> smt_lit_String -> smt_lit_String -> smt_lit_String
-  | s, t1, t2 => s.replace t1 t2
-def smt_lit_str_contains : smt_lit_String -> smt_lit_String -> smt_lit_Bool
-  | s, t => s.contains t
 
 -- Regular expressions
 
@@ -277,6 +253,7 @@ def smt_lit_qdiv_by_zero_id : smt_lit_String := "@qdiv_by_zero"
 def smt_lit_div_by_zero_id : smt_lit_String := "@div_by_zero"
 def smt_lit_mod_by_zero_id : smt_lit_String := "@mod_by_zero"
 def smt_lit_wrong_apply_sel_id : smt_lit_String := "@wrong_apply_sel"
+def smt_lit_oob_seq_nth_id : smt_lit_String := "@oob_seq_nth"
 def smt_lit_uconst_id : smt_lit_Nat -> smt_lit_String
   | i => "@u." ++ toString i
 
@@ -338,10 +315,10 @@ inductive SmtValue : Type where
   | Boolean : smt_lit_Bool -> SmtValue
   | Numeral : smt_lit_Int -> SmtValue
   | Rational : smt_lit_Rat -> SmtValue
-  | String : smt_lit_String -> SmtValue
   | Binary : smt_lit_Int -> smt_lit_Int -> SmtValue
   | Map : SmtMap -> SmtValue
   | Seq : SmtSeq -> SmtValue
+  | Char : smt_lit_Char -> SmtValue
   | RegLan : smt_lit_RegLan -> SmtValue
   | DtCons : smt_lit_String -> SmtDatatype -> smt_lit_Nat -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
@@ -478,7 +455,7 @@ macro_rules
               Classical.choose hTy
             else
               SmtValue.NotValue)
-
+  
 /- Definition of SMT-LIB model semantics -/
 
 noncomputable section
@@ -556,11 +533,11 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Boolean b) => SmtType.Bool
   | (SmtValue.Numeral n) => SmtType.Int
   | (SmtValue.Rational q) => SmtType.Real
-  | (SmtValue.String s) => (SmtType.Seq SmtType.Char)
   | (SmtValue.Binary w n) => (smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec w) SmtType.None)
   | (SmtValue.RegLan r) => SmtType.RegLan
   | (SmtValue.Map m) => (__smtx_typeof_map_value m)
   | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
+  | (SmtValue.Char c) => SmtType.Char
   | (SmtValue.DtCons s d i) => (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i)
   | (SmtValue.Apply f v) => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
   | v => SmtType.None
@@ -655,6 +632,134 @@ def __smtx_typeof : SmtTerm -> SmtType
 
 
 
+def smt_lit_unpack_seq : SmtSeq -> List SmtValue
+  | (SmtSeq.cons v vs) => v :: (smt_lit_unpack_seq vs)
+  | (SmtSeq.empty _) => []
+
+
+def smt_lit_pack_seq (T : SmtType) : List SmtValue -> SmtSeq
+  | [] => (SmtSeq.empty T)
+  | v :: vs => (SmtSeq.cons v (smt_lit_pack_seq T vs))
+
+
+def __smtx_ssm_char_values_of_string (s : smt_lit_String) : List SmtValue :=
+  s.toList.map SmtValue.Char
+
+def __smtx_ssm_char_of_value : SmtValue -> Char
+  | (SmtValue.Char c) => c
+  | _ => Char.ofNat 0
+
+def __smtx_ssm_string_of_char_values (xs : List SmtValue) : smt_lit_String :=
+  String.ofList (xs.map __smtx_ssm_char_of_value)
+
+def smt_lit_unpack_string (x : SmtSeq) : smt_lit_String :=
+  (__smtx_ssm_string_of_char_values (smt_lit_unpack_seq x))
+
+def smt_lit_pack_string (s : smt_lit_String) : SmtSeq :=
+  (smt_lit_pack_seq SmtType.Char (__smtx_ssm_char_values_of_string s))
+
+  
+def __smtx_value_eqb (v1 : SmtValue) (v2 : SmtValue) : smt_lit_Bool :=
+  match __smtx_model_eval_eq v1 v2 with
+  | (SmtValue.Boolean b) => b
+  | _ => false
+
+
+def smt_lit_seq_prefix_eq : List SmtValue -> List SmtValue -> smt_lit_Bool
+  | [], _ => true
+  | _ :: _, [] => false
+  | v1 :: vs1, v2 :: vs2 => (__smtx_value_eqb v1 v2) && (smt_lit_seq_prefix_eq vs1 vs2)
+
+
+def smt_lit_seq_len : List SmtValue -> smt_lit_Int
+  | x => Int.ofNat x.length
+
+def smt_lit_seq_concat : List SmtValue -> List SmtValue -> List SmtValue
+  | x, y => x ++ y
+  
+def smt_lit_seq_extract (xs : List SmtValue) (i : smt_lit_Int) (n : smt_lit_Int) : List SmtValue :=
+  let len : smt_lit_Int := Int.ofNat xs.length
+  if i < 0 || n <= 0 || i >= len then
+    []
+  else
+    let start : Nat := Int.toNat i
+    let take : Nat := Int.toNat (min n (len - i))
+    (xs.drop start).take take
+
+
+def smt_lit_seq_indexof_rec (xs pat : List SmtValue) (i fuel : Nat) : smt_lit_Int :=
+  match fuel with
+  | 0 => -1
+  | fuel + 1 =>
+      if smt_lit_seq_prefix_eq pat xs then
+        Int.ofNat i
+      else
+        match xs with
+        | [] => -1
+        | _ :: ys => (smt_lit_seq_indexof_rec ys pat (i + 1) fuel)
+
+
+def smt_lit_seq_indexof (xs pat : List SmtValue) (i : smt_lit_Int) : smt_lit_Int :=
+  if i < 0 then
+    -1
+  else
+    let start := Int.toNat i
+    let patLen := pat.length
+    let xsLen := xs.length
+    if h : start + patLen <= xsLen then
+      (smt_lit_seq_indexof_rec (xs.drop start) pat start (xsLen - (start + patLen) + 1))
+    else
+      -1
+
+
+def smt_lit_seq_replace (xs pat repl : List SmtValue) : List SmtValue :=
+  match pat with
+  | [] => repl ++ xs
+  | _ =>
+      let idx := smt_lit_seq_indexof xs pat 0
+      if idx < 0 then
+        xs
+      else
+        let n := Int.toNat idx
+        (xs.take n) ++ repl ++ (xs.drop (n + pat.length))
+
+
+def smt_lit_seq_replace_all_aux (fuel : Nat) (pat repl : List SmtValue) :
+    List SmtValue -> List SmtValue
+  | xs =>
+      match fuel with
+      | 0 => xs
+      | fuel + 1 =>
+          match pat with
+          | [] => xs
+          | _ =>
+              let idx := smt_lit_seq_indexof xs pat 0
+              if idx < 0 then
+                xs
+              else
+                let n := Int.toNat idx
+                (xs.take n) ++ repl ++
+                  (smt_lit_seq_replace_all_aux fuel pat repl (xs.drop (n + pat.length)))
+
+
+def smt_lit_seq_replace_all (xs pat repl : List SmtValue) : List SmtValue :=
+  (smt_lit_seq_replace_all_aux (xs.length + 1) pat repl xs)
+
+
+def smt_lit_seq_update (xs : List SmtValue) (i : smt_lit_Int) (ys : List SmtValue) : List SmtValue :=
+  let len : smt_lit_Int := Int.ofNat xs.length
+  if i < 0 || len <= i then
+    xs
+  else
+    let idx := Int.toNat i
+    (xs.take idx) ++ ys ++ (xs.drop (idx + 1))
+    
+def smt_lit_seq_rev : List SmtValue -> List SmtValue
+  | xs => xs.reverse
+  
+def smt_lit_seq_contains (xs pat : List SmtValue) : smt_lit_Bool :=
+  (0 <= (smt_lit_seq_indexof xs pat 0))
+
 end
 
 end
@@ -663,7 +768,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
   | (SmtTerm.Numeral n) => (SmtValue.Numeral n)
   | (SmtTerm.Rational r) => (SmtValue.Rational r)
-  | (SmtTerm.String s) => (SmtValue.String s)
+  | (SmtTerm.String s) => (SmtValue.Seq (smt_lit_pack_string s))
   | (SmtTerm.Binary w n) => (SmtValue.Binary w n)
   | (SmtTerm.Apply SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or x1) x2) => (__smtx_model_eval_or (__smtx_model_eval M x1) (__smtx_model_eval M x2))

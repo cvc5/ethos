@@ -169,6 +169,7 @@
 (define $smt_builtin_Real () ($smt_type_0 "Real"))
 (define $smt_builtin_Rat () ($smt_type_0 "Rat"))
 (define $smt_builtin_String () ($smt_type_0 "String"))
+(define $smt_builtin_Char () ($smt_type_0 "Char"))
 (define $smt_builtin_RegLan () ($smt_type_0 "RegLan"))
 (define $smt_builtin_true () ($smt_apply_0 "true"))
 (define $smt_builtin_false () ($smt_apply_0 "false"))
@@ -182,8 +183,8 @@
 (define $smt_builtin_str_empty () ($smt_apply_0 """"""))
 (define $smt_builtin_str_tuple_name () ($smt_apply_0 """@Tuple"""))
 (define $smt_builtin_str_vname () ($smt_apply_0 """@x"""))
-(define $smt_builtin_str_c0 () ($smt_apply_0 """0"""))
-(define $smt_builtin_str_c9 () ($smt_apply_0 """9"""))
+(define $smt_builtin_z_c0 () ($smt_apply_0 "48"))
+(define $smt_builtin_z_c9 () ($smt_apply_0 "57"))
 (define $smt_builtin_str_= ((x1 $smt_builtin_String) (x2 $smt_builtin_String)) ($smt_apply_2 "streq" x1 x2))
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
@@ -1811,9 +1812,7 @@
 (declare-parameterized-const $emb_sm.String
   ((s $smt_builtin_String :opaque)) $smt_Term)
 (define $sm_string ((s $smt_builtin_String)) ($emb_sm.String s))
-; helpers
-(define $sm_string_empty () ($emb_sm.String $smt_builtin_str_empty))
-
+  
 (declare-parameterized-const $emb_sm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 (define $sm_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
@@ -2061,12 +2060,6 @@
 ; helpers
 (define $vsm_q_zero () ($vsm_rational $smt_builtin_q_zero))
 
-(declare-parameterized-const $emb_vsm.String
-  ((s $smt_builtin_String :opaque)) $smt_Value)
-(define $vsm_string ((s $smt_builtin_String)) ($emb_vsm.String s))
-; helpers
-(define $vsm_string_empty () ($emb_vsm.String $smt_builtin_str_empty))
-
 (declare-parameterized-const $emb_vsm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Value)
 (define $vsm_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
@@ -2089,6 +2082,11 @@
 ; A value denoting a sequence.
 (declare-parameterized-const $emb_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
 (define $vsm_seq ((s $smt_Seq)) ($emb_vsm.Seq s))
+
+; A char (for strings)
+(declare-parameterized-const $emb_vsm.Char
+  ((c $smt_builtin_Char :opaque)) $smt_Value)
+(define $vsm_char ((c $smt_builtin_Char)) ($emb_vsm.Char c))
 
 ; A value denoting a regular language.
 (declare-parameterized-const $emb_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
@@ -2150,6 +2148,7 @@
 (declare-parameterized-const $emb_ssm.empty ((T $smt_Type :opaque)) $smt_Seq)
 (define $ssm_empty ((T $smt_Type)) ($emb_ssm.empty T))
 
+(define $vsm_string_empty () ($vsm_seq ($ssm_empty $tsm_Char)))
 
 ;;; Constructors for SMT-LIB datatypes and datatype constructors
 
@@ -2298,13 +2297,13 @@
 ;;; Utilities for Sequence values
 
 (program $smtx_ssm_seq_nth
-  ((v $smt_Value) (vs $smt_Seq) (n $smt_builtin_Int) (T $smt_Type))
-  :signature ($smt_Seq $smt_builtin_Int) $smt_Value
+  ((v $smt_Value) (vs $smt_Seq) (n $smt_builtin_Int) (T $smt_Type) (d $smt_Value))
+  :signature ($smt_Seq $smt_builtin_Int $smt_Value) $smt_Value
   (
-  (($smtx_ssm_seq_nth ($ssm_empty T) n)                       $vsm_not_value)
-  (($smtx_ssm_seq_nth ($ssm_cons v vs) $smt_builtin_z_zero)   v)
-  (($smtx_ssm_seq_nth ($ssm_cons v vs) n)
-    ($smtx_ssm_seq_nth vs ($smt_builtin_z_dec n)))
+  (($smtx_ssm_seq_nth ($ssm_empty T) n d)                     d)
+  (($smtx_ssm_seq_nth ($ssm_cons v vs) $smt_builtin_z_zero d) v)
+  (($smtx_ssm_seq_nth ($ssm_cons v vs) n d)
+    ($smtx_ssm_seq_nth vs ($smt_builtin_z_dec n) d))
   )
 )
 
@@ -2459,14 +2458,13 @@
 (program $smtx_typeof_value
   ((v $smt_Value) (f $smt_Value) (d $smt_Datatype)
    (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (i $smt_builtin_Nat)
-   (q $smt_builtin_Real) (s $smt_builtin_String) (r $smt_builtin_RegLan)
+   (q $smt_builtin_Real) (s $smt_builtin_String) (r $smt_builtin_RegLan) (c $smt_builtin_Char)
    (m $smt_Map) (ss $smt_Seq) (T $smt_Type) (t $smt_Term))
   :signature ($smt_Value) $smt_Type
   (
   (($smtx_typeof_value ($vsm_bool b))     $tsm_Bool)
   (($smtx_typeof_value ($vsm_numeral n))  $tsm_Int)
   (($smtx_typeof_value ($vsm_rational q)) $tsm_Real)
-  (($smtx_typeof_value ($vsm_string s))   $tsm_String)
   (($smtx_typeof_value ($vsm_binary w n))
     ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w) 
       ($tsm_BitVec w)
@@ -2474,6 +2472,7 @@
   (($smtx_typeof_value ($vsm_re r))       $tsm_RegLan)
   (($smtx_typeof_value ($vsm_map m))      ($smtx_typeof_map_value m))
   (($smtx_typeof_value ($vsm_seq ss))     ($smtx_typeof_seq_value ss))
+  (($smtx_typeof_value ($vsm_char c))     $tsm_Char)
   (($smtx_typeof_value ($vsm_DtCons s d i))
     ($smtx_typeof_dt_cons_value s d i))
   (($smtx_typeof_value ($vsm_apply f v))
@@ -2595,13 +2594,29 @@
 (define $smtx_seq_unit ((e $smt_Value))
   ($vsm_seq ($ssm_cons e ($ssm_empty ($smtx_typeof_value e)))))
 
+(program $smtx_seq_nth_wrong
+  ((M $smt_Model) (s $smt_Seq) (n $smt_builtin_Int) (T $smt_Type))
+  :signature ($smt_Model $smt_Seq $smt_builtin_Int $smt_Type) $smt_Value
+  (
+  (($smtx_seq_nth_wrong M s n ($tsm_Seq T))      
+    ($smtx_map_select
+      ($smtx_map_select
+        ($smtx_model_lookup M ($smt_apply_0 "oob_seq_nth_id")
+          ($tsm_Map ($tsm_Seq T) ($tsm_Map $tsm_Int T)))
+        ($vsm_seq s))
+      ($vsm_numeral n)))
+  (($smtx_seq_nth_wrong M s n T)  $vsm_not_value)
+  )
+)
+
 ; Sequence nth
 (program $smtx_seq_nth
-  ((s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
+  ((M $smt_Model) (s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Model $smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_seq_nth ($vsm_seq s) ($vsm_numeral n)) ($smtx_ssm_seq_nth s n))
-  (($smtx_seq_nth v1 v2) $vsm_not_value)
+  (($smtx_seq_nth M ($vsm_seq s) ($vsm_numeral n)) 
+    ($smtx_ssm_seq_nth s n ($smtx_seq_nth_wrong M s n ($smtx_typeof_seq_value s))))
+  (($smtx_seq_nth M v1 v2) $vsm_not_value)
   )
 )
 
@@ -2737,7 +2752,7 @@
   (($smtx_model_eval M ($sm_bool b))      ($vsm_bool b))
   (($smtx_model_eval M ($sm_numeral n))   ($vsm_numeral n))
   (($smtx_model_eval M ($sm_rational r))  ($vsm_rational r))
-  (($smtx_model_eval M ($sm_string s))    ($vsm_string s))
+  (($smtx_model_eval M ($sm_string s))    ($vsm_seq ($smt_apply_1 "pack_string" s)))
   (($smtx_model_eval M ($sm_binary w n))  ($vsm_binary w n))
   ; evaluation of standard SMT symbols
   ; These calls will reference helper methods above, e.g. of the form
@@ -2844,6 +2859,47 @@
   (($smtx_typeof_sets_op_2_ret ($tsm_Set x1) ($tsm_Set x2) T)
     ($smt_builtin_ite ($smt_builtin_Teq x1 x2) T $tsm_none))
   (($smtx_typeof_sets_op_2_ret T U V) $tsm_none)
+  )
+)
+
+(program $smtx_typeof_seq_op_1 ((x1 $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_1 ($tsm_Seq x1)) ($tsm_Seq x1) )
+  (($smtx_typeof_seq_op_1 x1) $tsm_none)
+  )
+)
+(program $smtx_typeof_seq_op_1_ret ((x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_1_ret ($tsm_Seq x1) x2) x2)
+  (($smtx_typeof_seq_op_1_ret x1 x2) $tsm_none)
+  )
+)
+(program $smtx_typeof_seq_op_2 ((x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_2 ($tsm_Seq x1) ($tsm_Seq x2))
+    ($smt_builtin_ite ($smt_builtin_Teq x1 x2) ($tsm_Seq x1) $tsm_none))
+  (($smtx_typeof_seq_op_2 x1 x2) $tsm_none)
+  )
+)
+(program $smtx_typeof_seq_op_2_ret
+  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_2_ret ($tsm_Seq x1) ($tsm_Seq x2) T)
+    ($smt_builtin_ite ($smt_builtin_Teq x1 x2) T $tsm_none))
+  (($smtx_typeof_seq_op_2_ret T U V) $tsm_none)
+  )
+)
+(program $smtx_typeof_seq_op_3 ((x1 $smt_Type) (x2 $smt_Type) (x3 $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_3 ($tsm_Seq x1) ($tsm_Seq x2) ($tsm_Seq x3))
+    ($smt_builtin_ite ($smt_builtin_Teq x1 x2) 
+    ($smt_builtin_ite ($smt_builtin_Teq x2 x3) ($tsm_Seq x1) $tsm_none) $tsm_none))
+  (($smtx_typeof_seq_op_3 x1 x2 x3) $tsm_none)
   )
 )
 
@@ -3175,6 +3231,7 @@
   (($eo_to_smt_lambda vs F) $sm_none)
   )
 )
+
 
 (program $eo_to_smt 
   ((b $smt_builtin_Bool) (n $smt_builtin_Int) (m $smt_builtin_Int) (r $smt_builtin_Rat)
