@@ -188,6 +188,7 @@ $SM_TYPE_DECL$
 (declare-fun eval_texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun typeof_tchoice (tsm.Type) tsm.Type)
 (declare-fun eval_tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tapply (smm.SmtModel vsm.Value vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
@@ -252,7 +253,16 @@ $SM_DEFS$
   :pattern ((eval_tchoice M s T F))))
   :named smtx.tchoice.def))
 
-; whether two values are extensionally equal
+; typeof choice, must be an inhabitant, else it is ill-typed.
+(assert (! (forall ((T tsm.Type))
+  (! (= (typeof_tchoice T) 
+    (ite (exists ((v vsm.Value)) (= ($smtx_typeof_value v) T))
+      T
+      tsm.None))
+  :pattern ((typeof_tchoice T))))
+  :named smtx.typeof_tchoice.def))
+  
+; whether two map values are extensionally equal
 (assert (! (forall ((v1 msm.Map) (v2 msm.Map))
   (! (= (veq_ext v1 v2)
         (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))

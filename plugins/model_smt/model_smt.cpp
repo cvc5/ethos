@@ -1497,7 +1497,7 @@ void ModelSmt::printConstFold(const std::string& name,
       ssret << "\" ";
       if (kr==d_kSeq)
       {
-        ssret << "($smtx_typeof_seq_value x1) ";
+        ssret << "($smtx_elem_typeof_seq_value x1) ";
       }
       ssretEnd << ")";
     }

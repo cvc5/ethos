@@ -33,11 +33,15 @@ abbrev obj_interprets := smt_interprets
 /-
 Definitions for eo_is_obj
 -/
+noncomputable section
+
 mutual
 
 $LEAN_EO_IS_OBJ_DEFS$
 
-end 
+end
+
+end
 
 /-
 An inductive predicate defining the correspondence between Eunoia terms

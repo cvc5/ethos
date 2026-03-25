@@ -404,6 +404,15 @@ macro_rules
               Classical.choose hTy
             else
               SmtValue.NotValue)
+  | `(smt_lit_typeof_tchoice $T) => do
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      `(by
+          classical
+          exact
+            if hTy : ∃ v : SmtValue, $typeofValueId v = $T then
+              $T
+            else
+              SmtType.None)
   
 /- Definition of SMT-LIB model semantics -/
 

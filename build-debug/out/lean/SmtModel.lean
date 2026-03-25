@@ -275,6 +275,7 @@ inductive SmtType : Type where
   | Datatype : smt_lit_String -> SmtDatatype -> SmtType
   | TypeRef : smt_lit_String -> SmtType
   | USort : smt_lit_Nat -> SmtType
+  | DtConsType : SmtType -> SmtType -> SmtType
 
 deriving Repr, DecidableEq, Inhabited
 
@@ -448,6 +449,15 @@ macro_rules
               Classical.choose hTy
             else
               SmtValue.NotValue)
+  | `(smt_lit_typeof_tchoice $T) => do
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      `(by
+          classical
+          exact
+            if hTy : ∃ v : SmtValue, $typeofValueId v = $T then
+              $T
+            else
+              SmtType.None)
   
 /- Definition of SMT-LIB model semantics -/
 
@@ -501,14 +511,14 @@ def __smtx_dt_substitute (s : smt_lit_String) (d : SmtDatatype) : SmtDatatype ->
 
 def __smtx_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> smt_lit_Nat -> SmtType
   | (SmtDatatype.sum SmtDatatypeCons.unit d), smt_lit_nat_zero => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), smt_lit_nat_zero => (SmtType.Map U (__smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) smt_lit_nat_zero))
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), smt_lit_nat_zero => (SmtType.DtConsType U (__smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) smt_lit_nat_zero))
   | (SmtDatatype.sum c d), (smt_lit_nat_succ n) => (__smtx_typeof_dt_cons_value_rec T d n)
   | d, n => SmtType.None
 
 
 def __smtx_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> smt_lit_Nat -> SmtType
   | (SmtDatatype.sum SmtDatatypeCons.unit d), smt_lit_nat_zero => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), smt_lit_nat_zero => (SmtType.Map U (__smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) smt_lit_nat_zero))
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), smt_lit_nat_zero => (SmtType.DtConsType U (__smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) smt_lit_nat_zero))
   | (SmtDatatype.sum c d), (smt_lit_nat_succ n) => (__smtx_typeof_dt_cons_rec T d n)
   | d, n => SmtType.None
 
@@ -521,7 +531,7 @@ def __smtx_ret_typeof_sel : SmtDatatype -> smt_lit_Nat -> smt_lit_Nat -> SmtType
 
 
 def __smtx_typeof_apply_value : SmtType -> SmtType -> SmtType
-  | (SmtType.Map T U), V => (__smtx_typeof_guard T (smt_lit_ite (smt_lit_Teq T V) U SmtType.None))
+  | (SmtType.DtConsType T U), V => (__smtx_typeof_guard T (smt_lit_ite (smt_lit_Teq T V) U SmtType.None))
   | T, U => SmtType.None
 
 
@@ -562,9 +572,6 @@ def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
   | v, i => SmtValue.NotValue
 
 
-def __smtx_model_eval_dt_cons (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Nat) : SmtValue :=
-  (smt_lit_ite (smt_lit_Teq (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) n) SmtType.None) SmtValue.NotValue (SmtValue.DtCons s d n))
-
 def __smtx_model_eval_dt_sel (M : SmtModel) (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Nat) (m : smt_lit_Nat) (v : SmtValue) : SmtValue :=
   (smt_lit_ite (smt_lit_veq (__vsm_apply_head v) (SmtValue.DtCons s d n)) (__vsm_apply_arg_nth v m) (__smtx_map_select (__smtx_map_select (__smtx_map_select (__smtx_model_lookup M smt_lit_wrong_apply_sel_id (SmtType.Map SmtType.Int (SmtType.Map SmtType.Int (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel d n m))))) (SmtValue.Numeral (smt_lit_nat_to_int n))) (SmtValue.Numeral (smt_lit_nat_to_int m))) v))
 
@@ -572,6 +579,7 @@ def __smtx_model_eval_dt_tester (s : smt_lit_String) (d : SmtDatatype) (n : smt_
   (SmtValue.Boolean (smt_lit_veq (__vsm_apply_head v1) (SmtValue.DtCons s d n)))
 
 def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
   | (SmtValue.Map m), i => (__smtx_map_select (SmtValue.Map m) i)
   | v, i => SmtValue.NotValue
@@ -605,6 +613,7 @@ def __smtx_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
 
 def __smtx_typeof_apply : SmtType -> SmtType -> SmtType
   | (SmtType.Map T U), V => (__smtx_typeof_guard T (smt_lit_ite (smt_lit_Teq T V) U SmtType.None))
+  | (SmtType.DtConsType T U), V => (__smtx_typeof_guard T (smt_lit_ite (smt_lit_Teq T V) U SmtType.None))
   | T, U => SmtType.None
 
 
@@ -622,10 +631,10 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_typeof_eq (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
   | (SmtTerm.Apply (SmtTerm.forall s T) x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
-  | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Bool) T SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Bool) (smt_lit_typeof_tchoice T) SmtType.None)
   | (SmtTerm.DtCons s d i) => (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i)
-  | (SmtTerm.DtSel s d i j) => (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel (__smtx_dt_substitute s d d) i j))
-  | (SmtTerm.DtTester s d i) => (SmtType.Map (SmtType.Datatype s d) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_typeof_apply (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel (__smtx_dt_substitute s d d) i j)) (__smtx_typeof x1))
+  | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_typeof_apply (SmtType.Map (SmtType.Datatype s d) SmtType.Bool) (__smtx_typeof x1))
   | (SmtTerm.Apply f x1) => (__smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x1))
   | (SmtTerm.Var s T) => T
   | (SmtTerm.UConst s T) => T
@@ -781,7 +790,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (smt_lit_eval_texists M s T x1)
   | (SmtTerm.Apply (SmtTerm.forall s T) x1) => (smt_lit_eval_tforall M s T x1)
   | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (smt_lit_eval_tchoice M s T x1)
-  | (SmtTerm.DtCons s d i) => (__smtx_model_eval_dt_cons s d i)
+  | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
   | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x1))

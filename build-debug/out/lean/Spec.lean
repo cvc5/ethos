@@ -35,6 +35,8 @@ abbrev obj_interprets := smt_interprets
 /-
 Definitions for eo_is_obj
 -/
+noncomputable section
+
 mutual
 
 def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
@@ -80,7 +82,9 @@ def __eo_to_smt : Term -> SmtTerm
 
 
 
-end 
+end
+
+end
 
 /-
 An inductive predicate defining the correspondence between Eunoia terms
