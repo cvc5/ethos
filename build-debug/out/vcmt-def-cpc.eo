@@ -514,10 +514,25 @@
   (($smtx_model_eval_ite t1 t2 t3)          $vsm_not_value)
   )
 )
-(program $smtx_model_eval_= ((t1 $smt_Value) (t2 $smt_Value) (m1 $smt_Map) (m2 $smt_Map))
+(program $smtx_model_eval_=
+  ((v1 $smt_Value) (v2 $smt_Value) (f1 $smt_Value) (f2 $smt_Value)
+   (T1 $smt_Type) (T2 $smt_Type) (m1 $smt_Map) (m2 $smt_Map)
+   (vs1 $smt_Seq) (vs2 $smt_Seq))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_model_eval_= t1 t2) ($smt_apply_2 "veq_ext" t1 t2))
+  (($smtx_model_eval_= ($vsm_map m1) ($vsm_map m2)) ($vsm_bool ($smt_apply_2 "veq_ext" m1 m2)))
+  (($smtx_model_eval_= ($vsm_seq ($ssm_empty T1)) ($vsm_seq ($ssm_empty T2))) $vsm_true)
+  (($smtx_model_eval_= ($vsm_seq ($ssm_cons v1 vs1)) ($vsm_seq ($ssm_cons v2 vs2)))
+    ($vsm_bool
+      ($smt_builtin_and
+        ($smt_builtin_veq ($smtx_model_eval_= v1 v2) $vsm_true)
+        ($smt_builtin_veq ($smtx_model_eval_= ($vsm_seq vs1) ($vsm_seq vs2)) $vsm_true))))
+  (($smtx_model_eval_= ($vsm_apply f1 v1) ($vsm_apply f2 v2))
+    ($vsm_bool
+      ($smt_builtin_and
+        ($smt_builtin_veq ($smtx_model_eval_= f1 f2) $vsm_true)
+        ($smt_builtin_veq ($smtx_model_eval_= v1 v2) $vsm_true))))
+  (($smtx_model_eval_= v1 v2) ($vsm_bool ($smt_builtin_veq v1 v2)))
   )
 )
 (program $smtx_map_select

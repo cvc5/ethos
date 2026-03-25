@@ -335,7 +335,7 @@
 (declare-fun eval_tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tapply (smm.SmtModel vsm.Value vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
-(declare-fun veq_ext (vsm.Value vsm.Value) vsm.Value)
+(declare-fun veq_ext (msm.Map msm.Map) Bool)
   
 ;;; Relevant definitions
 
@@ -542,9 +542,19 @@
 )))
 
 ; program: $smtx_model_eval_=
-(define-fun $smtx_model_eval_= ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
-    (veq_ext x1 x2)
-)
+(declare-fun $smtx_model_eval_= (vsm.Value vsm.Value) vsm.Value)
+(assert (! (forall ((x1 vsm.Value) (x2 vsm.Value))
+  (! (= ($smtx_model_eval_= x1 x2)
+  (ite (and ((_ is vsm.Map) x1) ((_ is vsm.Map) x2))
+    (vsm.Boolean (veq_ext (vsm.Map.arg1 x1) (vsm.Map.arg1 x2)))
+  (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.empty) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.empty) (vsm.Seq.arg1 x2)))
+    (vsm.Boolean true)
+  (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.cons) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.cons) (vsm.Seq.arg1 x2)))
+    (vsm.Boolean (and (veq ($smtx_model_eval_= (ssm.cons.arg1 (vsm.Seq.arg1 x1)) (ssm.cons.arg1 (vsm.Seq.arg1 x2))) (vsm.Boolean true)) (veq ($smtx_model_eval_= (vsm.Seq (ssm.cons.arg2 (vsm.Seq.arg1 x1))) (vsm.Seq (ssm.cons.arg2 (vsm.Seq.arg1 x2)))) (vsm.Boolean true))))
+  (ite (and ((_ is vsm.Apply) x1) ((_ is vsm.Apply) x2))
+    (vsm.Boolean (and (veq ($smtx_model_eval_= (vsm.Apply.arg1 x1) (vsm.Apply.arg1 x2)) (vsm.Boolean true)) (veq ($smtx_model_eval_= (vsm.Apply.arg2 x1) (vsm.Apply.arg2 x2)) (vsm.Boolean true))))
+    (vsm.Boolean (veq x1 x2))
+))))) :pattern (($smtx_model_eval_= x1 x2)))) :named sm.axiom.$smtx_model_eval_=))
 
 ; program: $smtx_map_select
 (define-fun $smtx_map_select ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
@@ -875,11 +885,9 @@
   :named smtx.tchoice.def))
 
 ; whether two values are extensionally equal
-(assert (! (forall ((v1 vsm.Value) (v2 vsm.Value))
+(assert (! (forall ((v1 msm.Map) (v2 msm.Map))
   (! (= (veq_ext v1 v2)
-        (ite (and ((_ is vsm.Map) v1) ((_ is vsm.Map) v2))
-          (vsm.Boolean (forall ((i vsm.Value)) (= ($smtx_model_eval_apply v1 i) ($smtx_model_eval_apply v2 i))))
-          (vsm.Boolean (veq v1 v2))))
+        (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))
   :pattern ((veq_ext v1 v2))))
   :named smtx.veq_ext.def))
 

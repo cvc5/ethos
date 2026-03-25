@@ -349,23 +349,17 @@ def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)
 
 macro_rules
-  | `(smt_lit_veq_ext $v1 $v2) => do
+  | `(smt_lit_veq_ext $m1 $m2) => do
       let lookupId := Lean.mkIdent `__smtx_msm_lookup
       `(by
           classical
           exact
-            let lhs := $v1
-            let rhs := $v2
-            match lhs, rhs with
-            | SmtValue.Map m1, SmtValue.Map m2 =>
-                if hExt :
-                    ∀ v : SmtValue,
-                      $lookupId m1 v = $lookupId m2 v then
-                  SmtValue.Boolean true
-                else
-                  SmtValue.Boolean false
-            | _, _ =>
-                SmtValue.Boolean (smt_lit_veq lhs rhs))
+            if hExt :
+                ∀ v : SmtValue,
+                  $lookupId $m1 v = $lookupId $m2 v then
+              true
+            else
+              false)
   | `(smt_lit_eval_texists $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `__smtx_model_push

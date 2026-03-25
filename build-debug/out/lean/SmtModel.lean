@@ -393,23 +393,17 @@ def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)
 
 macro_rules
-  | `(smt_lit_veq_ext $v1 $v2) => do
+  | `(smt_lit_veq_ext $m1 $m2) => do
       let lookupId := Lean.mkIdent `__smtx_msm_lookup
       `(by
           classical
           exact
-            let lhs := $v1
-            let rhs := $v2
-            match lhs, rhs with
-            | SmtValue.Map m1, SmtValue.Map m2 =>
-                if hExt :
-                    ∀ v : SmtValue,
-                      $lookupId m1 v = $lookupId m2 v then
-                  SmtValue.Boolean true
-                else
-                  SmtValue.Boolean false
-            | _, _ =>
-                SmtValue.Boolean (smt_lit_veq lhs rhs))
+            if hExt :
+                ∀ v : SmtValue,
+                  $lookupId $m1 v = $lookupId $m2 v then
+              true
+            else
+              false)
   | `(smt_lit_eval_texists $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `__smtx_model_push
@@ -548,8 +542,17 @@ def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
   | t1, t2, t3 => SmtValue.NotValue
 
 
-def __smtx_model_eval_eq (t1 : SmtValue) (t2 : SmtValue) : SmtValue :=
-  (smt_lit_veq_ext t1 t2)
+def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Map m1), (SmtValue.Map m2) => (SmtValue.Boolean (smt_lit_veq_ext m1 m2))
+  | (SmtValue.Seq (SmtSeq.empty T1)), (SmtValue.Seq (SmtSeq.empty T2)) => (SmtValue.Boolean true)
+  | (SmtValue.Seq (SmtSeq.cons v1 vs1)), (SmtValue.Seq (SmtSeq.cons v2 vs2)) => 
+    let _v0 := (SmtValue.Boolean true)
+    (SmtValue.Boolean (smt_lit_and (smt_lit_veq (__smtx_model_eval_eq v1 v2) _v0) (smt_lit_veq (__smtx_model_eval_eq (SmtValue.Seq vs1) (SmtValue.Seq vs2)) _v0)))
+  | (SmtValue.Apply f1 v1), (SmtValue.Apply f2 v2) => 
+    let _v0 := (SmtValue.Boolean true)
+    (SmtValue.Boolean (smt_lit_and (smt_lit_veq (__smtx_model_eval_eq f1 f2) _v0) (smt_lit_veq (__smtx_model_eval_eq v1 v2) _v0)))
+  | v1, v2 => (SmtValue.Boolean (smt_lit_veq v1 v2))
+
 
 def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m), i => (__smtx_msm_lookup m i)

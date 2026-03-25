@@ -191,7 +191,7 @@ $SM_TYPE_DECL$
 (declare-fun eval_tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tapply (smm.SmtModel vsm.Value vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
-(declare-fun veq_ext (vsm.Value vsm.Value) vsm.Value)
+(declare-fun veq_ext (msm.Map msm.Map) Bool)
   
 ;;; Relevant definitions
 
@@ -253,11 +253,9 @@ $SM_DEFS$
   :named smtx.tchoice.def))
 
 ; whether two values are extensionally equal
-(assert (! (forall ((v1 vsm.Value) (v2 vsm.Value))
+(assert (! (forall ((v1 msm.Map) (v2 msm.Map))
   (! (= (veq_ext v1 v2)
-        (ite (and ((_ is vsm.Map) v1) ((_ is vsm.Map) v2))
-          (vsm.Boolean (forall ((i vsm.Value)) (= ($smtx_model_eval_apply v1 i) ($smtx_model_eval_apply v2 i))))
-          (vsm.Boolean (veq v1 v2))))
+        (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))
   :pattern ((veq_ext v1 v2))))
   :named smtx.veq_ext.def))
 
