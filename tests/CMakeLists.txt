@@ -110,7 +110,8 @@ set(ethos_test_file_list
     opaque-inst.eo
     opaque-inst2.eo
     mutual-rec.eo
-    push-pop.eo
+    push-pop-proof.pf
+    reference-push-pop.pf
     bv-extract-smt3.eo
     distinct_value_testers.eo
     gt_eval.eo
@@ -179,7 +180,21 @@ macro(ethos_test file)
   set_tests_properties(${file} PROPERTIES TIMEOUT 40)
 endmacro()
 
+macro(ethos_fail_test file regex)
+  add_test(
+    NAME ${file}
+    COMMAND
+      bash
+      ${CMAKE_CURRENT_LIST_DIR}/run_expect_fail.sh
+      $<TARGET_FILE:ethos>
+      ${CMAKE_CURRENT_LIST_DIR}/${file}
+      ${regex}
+  )
+  set_tests_properties(${file} PROPERTIES TIMEOUT 40)
+endmacro()
+
 foreach(file ${ethos_test_file_list})
   ethos_test(${file})
 endforeach()
 
+ethos_fail_test(push-pop-signature.eo "Expected Eunoia command")

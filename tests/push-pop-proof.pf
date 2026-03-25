@@ -1,14 +1,4 @@
-(include "Builtin-theory.eo")
-
-; REFL
-(declare-rule refl ((T Type) (t T))
-    :premises ()
-    :args (t)
-    :conclusion (= t t)
-)
-
-(declare-const Int Type)
-(declare-const b Int)
+(include "push-pop-setup.eo")
 
 (push)
 (declare-const a Bool)

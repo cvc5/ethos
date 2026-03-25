@@ -278,6 +278,35 @@ void State::popAssumptionScope()
   // pop the parsing scope
   popScope();
 }
+
+void State::pushReferenceScope()
+{
+  d_referenceAssertSizeCtx.push_back(d_referenceAssertList.size());
+}
+
+void State::popReferenceScope()
+{
+  if (d_referenceAssertSizeCtx.empty())
+  {
+    EO_FATAL() << "State::popReferenceScope: empty context";
+  }
+  size_t lastSize = d_referenceAssertSizeCtx.back();
+  d_referenceAssertSizeCtx.pop_back();
+  while (d_referenceAssertList.size() > lastSize)
+  {
+    Expr aa = d_referenceAssertList.back();
+    d_referenceAssertList.pop_back();
+    std::unordered_map<const ExprValue*, size_t>::iterator it =
+        d_referenceAssertCount.find(aa.getValue());
+    Assert(it != d_referenceAssertCount.end() && it->second > 0);
+    it->second--;
+    if (it->second == 0)
+    {
+      d_referenceAssertCount.erase(it);
+    }
+  }
+}
+
 bool State::includeFile(const std::string& s, bool isSignature)
 {
   return includeFile(s, isSignature, false, d_null);
@@ -462,7 +491,8 @@ bool State::addAssumption(const Expr& a)
       {
         aa = mkExpr(Kind::APPLY, {d_referenceNf, a});
       }
-      return d_referenceAsserts.find(aa.getValue()) != d_referenceAsserts.end();
+      return d_referenceAssertCount.find(aa.getValue())
+             != d_referenceAssertCount.end();
     }
   }
   return true;
@@ -475,7 +505,7 @@ void State::addReferenceAssert(const Expr& a)
   {
     aa = mkExpr(Kind::APPLY, {d_referenceNf, a});
   }
-  d_referenceAsserts.insert(aa.getValue());
+  d_referenceAssertCount[aa.getValue()]++;
   // ensure ref count
   d_referenceAssertList.push_back(aa);
 }

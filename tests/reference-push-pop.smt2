@@ -1,0 +1,7 @@
+(set-logic ALL)
+(push)
+(declare-fun y () Int)
+(pop)
+(declare-fun x () Int)
+(assert (> x 0))
+(check-sat)

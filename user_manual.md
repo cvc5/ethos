@@ -123,6 +123,10 @@ The following commands are supported for declaring and defining types and terms.
 
 - `(reset)` removes all declarations and definitions and resets the global scope. This command is similar in nature to its counterpart in SMT-LIB.
 
+- `(push <numeral>?)` pushes the current declaration scope one or more levels, where the default is `1`. This command is accepted in proof files and in reference files, but not in signature files.
+
+- `(pop <numeral>?)` pops the current declaration scope one or more levels, where the default is `1`. This command is accepted in proof files and in reference files, but not in signature files.
+
 The Eunoia language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 
 - `(define <symbol> (<typed-param>*) <term> <attr>*)`, defines `<symbol>` to be a lambda term whose arguments and body are given by the command, or just an arbitrary term defined by the provided the body, if the argument list is empty (i.e., it may be a non-function term). Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided. It is also possible to provide attributes to the definition: e.g. `:type`, which instructs the checker to perform type checking on the given term (see [type checking define](#tcdefine)).
@@ -2017,6 +2021,7 @@ When Ethos encounters a command of the form `(reference <string>)`, the checker 
 In particular, when the command `(reference "file.smt2")` is read, Ethos will parse `file.smt2`.
 The definitions and declaration commands in this file will be treated as normal, that is, they will populate the symbol table of Ethos as they normally would if they were to appear in an `*.eo` input.
 The commands of the form `(assert F)` will add `F` to a set of formulas we will refer to as the _reference assertions_.
+The commands `push` and `pop` update the current scope while parsing the reference file.
 Other commands in `file.smt2` (e.g. `set-logic`, `set-option`, and so on) will be ignored.
 
 If ethos has read a reference file, then for each command of the form `(assume <symbol> G)`, ethos will check whether `G` occurs in the set of parsed reference assertions.
@@ -2024,7 +2029,7 @@ If it does not, then an error is thrown indicating that the proof is assuming a 
 
 > __Note:__ Only one reference command can be executed for each run of ethos.
 
-> __Note:__ Incremental `*.smt2` inputs are not supported as reference files in the current version of ethos.
+> __Note:__ Full incremental `*.smt2` inputs are not supported as reference files in the current version of ethos. In particular, assumptions are matched against the assertions that remain active after the reference file finishes parsing.
 
 ### Validation up to Normalization
 
@@ -2111,6 +2116,7 @@ Their expected syntax is `<smtlib2-command>*`.
 - _Signature files_ are files that given via command line option that have extension `*.eo`, or those that are included via the command `include`. Like proof files, their expected syntax is `<eo-command>*`.
 
 As mentioned, the first two kinds of file inputs take into account options concerning the normalization of terms (e.g. `--normalize-num`), while signature files do not.
+The commands `push` and `pop` are parsed in proof files and in reference files; they are rejected in signature files.
 When streaming input to Ethos, we assume the input is being given for a proof file.
 
 ```smt
@@ -2123,7 +2129,9 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*) |
     (define <symbol> (<typed-param>*) <term> <attr>*) |
     (include <string>) |
+    (pop <numeral>?) |
     (program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+)) |
+    (push <numeral>?) |
     (reference <string> <symbol>?) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
     (step-pop <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
@@ -2149,6 +2157,8 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (define-const <symbol> <term>) |
     (define-fun <symbol> (<typed-param>*) <type> <term>) |
     (define-sort <symbol> (<symbol>*) <type>) |
+    (pop <numeral>?) |
+    (push <numeral>?) |
     (set-info <attr>) |
     (set-logic <symbol>) |
     <common-command>

@@ -69,6 +69,10 @@ class State
   void pushAssumptionScope();
   /** Pop assumption scope */
   void popAssumptionScope();
+  /** Push reference assertion scope */
+  void pushReferenceScope();
+  /** Pop reference assertion scope */
+  void popReferenceScope();
   /** include file, if not already done, return false if error */
   bool includeFile(const std::string& s, bool isSignature);
   /** include file, possibly as a reference */
@@ -402,10 +406,12 @@ class State
   bool d_hasReference;
   /** The reference normalization function, if it exists */
   Expr d_referenceNf;
-  /** Reference asserts */
-  std::unordered_set<const ExprValue*> d_referenceAsserts;
+  /** Active reference asserts and their multiplicity in the current stack */
+  std::unordered_map<const ExprValue*, size_t> d_referenceAssertCount;
   /** Reference assert list */
   std::vector<Expr> d_referenceAssertList;
+  /** Reference assert stack */
+  std::vector<size_t> d_referenceAssertSizeCtx;
   //--------------------- garbage collection
   /** The current set of expression values to delete */
   std::vector<ExprValue*> d_toDelete;
