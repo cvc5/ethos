@@ -244,8 +244,6 @@
   (tsm.BitVec (tsm.BitVec.arg1 Int))
   ; smt-cons: Map
   (tsm.Map (tsm.Map.arg1 tsm.Type) (tsm.Map.arg2 tsm.Type))
-  ; smt-cons: DtConsType
-  (tsm.DtConsType (tsm.DtConsType.arg1 tsm.Type) (tsm.DtConsType.arg2 tsm.Type))
   ; smt-cons: Seq
   (tsm.Seq (tsm.Seq.arg1 tsm.Type))
   ; smt-cons: Char
@@ -469,7 +467,7 @@
   (ite (and (= x2 dt.null) (= x3 nat.zero))
     x1
   (ite (and ((_ is dt.sum) x2) ((_ is dtc.cons) (dt.sum.arg1 x2)) (= x3 nat.zero))
-    (tsm.DtConsType (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_value_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) nat.zero))
+    (tsm.Map (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_value_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) nat.zero))
   (ite (and ((_ is dt.sum) x2) ((_ is nat.succ) x3))
     ($smtx_typeof_dt_cons_value_rec x1 (dt.sum.arg2 x2) (nat.succ.arg1 x3))
     tsm.None
@@ -503,8 +501,8 @@
 
 ; program: $smtx_typeof_apply_value
 (define-fun $smtx_typeof_apply_value ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
-  (ite ((_ is tsm.DtConsType) x1)
-    (ite (Teq (tsm.DtConsType.arg1 x1) x2) (tsm.DtConsType.arg2 x1) tsm.None)
+  (ite ((_ is tsm.Map) x1)
+    (ite (Teq (tsm.Map.arg1 x1) x2) (tsm.Map.arg2 x1) tsm.None)
     tsm.None
 ))
 

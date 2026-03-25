@@ -762,8 +762,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "@strings_stoi_non_digit",
       {kString},
       smtToSmtEmbed("(str.indexof_re ($eo_to_smt x1) (re.comp (re.range "
-                    "(seq.unit ($sm_numeral $smt_builtin_z_c0)) (seq.unit "
-                    "($sm_numeral $smt_builtin_z_c9)))) 0)",
+                    "($sm_string $smt_builtin_str_c0) ($sm_string "
+                    "$smt_builtin_str_c9))) 0)",
                     true));
   std::stringstream ssStringsDeqDiff;
   ssStringsDeqDiff
