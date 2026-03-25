@@ -411,6 +411,11 @@
 ; fwd-decl: $smtx_model_update
 (declare-fun $smtx_model_update (smm.SmtModel String tsm.Type vsm.Value) smm.SmtModel)
 
+; program: $smtx_typeof_guard
+(define-fun $smtx_typeof_guard ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
+    (ite (Teq x1 tsm.None) tsm.None x2)
+)
+
 ; program: $smtx_msm_lookup
 (declare-fun $smtx_msm_lookup (msm.Map vsm.Value) vsm.Value)
 (assert (! (forall ((x1 msm.Map) (x2 vsm.Value))
@@ -464,7 +469,7 @@
 (declare-fun $smtx_typeof_dt_cons_value_rec (tsm.Type dt.Datatype Nat) tsm.Type)
 (assert (! (forall ((x1 tsm.Type) (x2 dt.Datatype) (x3 Nat))
   (! (= ($smtx_typeof_dt_cons_value_rec x1 x2 x3)
-  (ite (and (= x2 dt.null) (= x3 nat.zero))
+  (ite (and ((_ is dt.sum) x2) (= (dt.sum.arg1 x2) dtc.unit) (= x3 nat.zero))
     x1
   (ite (and ((_ is dt.sum) x2) ((_ is dtc.cons) (dt.sum.arg1 x2)) (= x3 nat.zero))
     (tsm.Map (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_value_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) nat.zero))
@@ -502,7 +507,7 @@
 ; program: $smtx_typeof_apply_value
 (define-fun $smtx_typeof_apply_value ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
   (ite ((_ is tsm.Map) x1)
-    (ite (Teq (tsm.Map.arg1 x1) x2) (tsm.Map.arg2 x1) tsm.None)
+    ($smtx_typeof_guard (tsm.Map.arg1 x1) (ite (Teq (tsm.Map.arg1 x1) x2) (tsm.Map.arg2 x1) tsm.None))
     tsm.None
 ))
 
@@ -650,11 +655,6 @@
     ($smtx_model_lookup x1 (sm.UConst.arg1 x2) (sm.UConst.arg2 x2))
     vsm.NotValue
 ))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
-
-; program: $smtx_typeof_guard
-(define-fun $smtx_typeof_guard ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
-    (ite (Teq x1 tsm.None) tsm.None x2)
-)
 
 ; program: $smtx_typeof_ite
 (define-fun $smtx_typeof_ite ((x1 tsm.Type) (x2 tsm.Type) (x3 tsm.Type)) tsm.Type

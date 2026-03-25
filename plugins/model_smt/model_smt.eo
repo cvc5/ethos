@@ -408,12 +408,23 @@ $SMT_TYPE_CONSTRUCTORS$
 (define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
   ($emb_dt.sum c d))
 
-; forward declarations
+;;; forward declarations
+
 (program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
 (program $smtx_typeof () :signature ($smt_Term) $smt_Type)
 (program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
 (program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_String $smt_Type) $smt_Value)
 (program $smtx_model_update () :signature ($smt_Model $smt_builtin_String $smt_Type $smt_Value) $smt_Model)
+
+;;; utilities
+
+; returns U if T is not none
+(program $smtx_typeof_guard ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_guard T U) ($smt_builtin_ite ($smt_builtin_Teq T $tsm_none) $tsm_none U))
+  )
+)
 
 ;;; Map utilities
 
@@ -631,7 +642,7 @@ $SMT_TYPE_CONSTRUCTORS$
   ((T $smt_Type) (U $smt_Type) (n $smt_builtin_Nat) (c $smt_DatatypeCons) (d $smt_Datatype))
   :signature ($smt_Type $smt_Datatype $smt_builtin_Nat) $smt_Type
   (
-  (($smtx_typeof_dt_cons_value_rec T $dt_null $smt_builtin_n_zero) T)
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum $dtc_unit d) $smt_builtin_n_zero) T)
   (($smtx_typeof_dt_cons_value_rec T ($dt_sum ($dtc_cons U c) d) $smt_builtin_n_zero)
     ($tsm_Map U ($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) $smt_builtin_n_zero)))
   (($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) ($smt_builtin_n_succ n))
@@ -681,7 +692,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (
   ; can partially apply datatype constructors
   (($smtx_typeof_apply_value ($tsm_Map T U) V)
-    ($smt_builtin_ite ($smt_builtin_Teq T V) U $tsm_none))
+    ($smtx_typeof_guard T ($smt_builtin_ite ($smt_builtin_Teq T V) U $tsm_none)))
   (($smtx_typeof_apply_value T U) $tsm_none)
   )
 )
@@ -1017,14 +1028,6 @@ $SMT_EVAL_CASES$
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;
-
-; returns U if T is not none
-(program $smtx_typeof_guard ((T $smt_Type) (U $smt_Type))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_guard T U) ($smt_builtin_ite ($smt_builtin_Teq T $tsm_none) $tsm_none U))
-  )
-)
 
 (program $smtx_typeof_ite ((T $smt_Type) (U $smt_Type) (V $smt_Type))
   :signature ($smt_Type $smt_Type $smt_Type) $smt_Type

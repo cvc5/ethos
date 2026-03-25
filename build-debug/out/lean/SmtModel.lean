@@ -466,6 +466,9 @@ def __vsm_apply_arg_nth : SmtValue -> smt_lit_Nat -> SmtValue
   | a, n => SmtValue.NotValue
 
 
+def __smtx_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
+  (smt_lit_ite (smt_lit_Teq T SmtType.None) SmtType.None U)
+
 def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
   | (SmtMap.cons j e m), i => (smt_lit_ite (smt_lit_veq j i) e (__smtx_msm_lookup m i))
   | (SmtMap.default T e), i => e
@@ -497,7 +500,7 @@ def __smtx_dt_substitute (s : smt_lit_String) (d : SmtDatatype) : SmtDatatype ->
 
 
 def __smtx_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> smt_lit_Nat -> SmtType
-  | SmtDatatype.null, smt_lit_nat_zero => T
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), smt_lit_nat_zero => T
   | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), smt_lit_nat_zero => (SmtType.Map U (__smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) smt_lit_nat_zero))
   | (SmtDatatype.sum c d), (smt_lit_nat_succ n) => (__smtx_typeof_dt_cons_value_rec T d n)
   | d, n => SmtType.None
@@ -518,7 +521,7 @@ def __smtx_ret_typeof_sel : SmtDatatype -> smt_lit_Nat -> smt_lit_Nat -> SmtType
 
 
 def __smtx_typeof_apply_value : SmtType -> SmtType -> SmtType
-  | (SmtType.Map T U), V => (smt_lit_ite (smt_lit_Teq T V) U SmtType.None)
+  | (SmtType.Map T U), V => (__smtx_typeof_guard T (smt_lit_ite (smt_lit_Teq T V) U SmtType.None))
   | T, U => SmtType.None
 
 
@@ -591,9 +594,6 @@ def __smtx_model_eval_and : SmtValue -> SmtValue -> SmtValue
 
 def __smtx_model_eval_imp (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   (__smtx_model_eval_or (__smtx_model_eval_not x1) x2)
-
-def __smtx_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
-  (smt_lit_ite (smt_lit_Teq T SmtType.None) SmtType.None U)
 
 def __smtx_typeof_ite : SmtType -> SmtType -> SmtType -> SmtType
   | SmtType.Bool, U, V => (smt_lit_ite (smt_lit_Teq U V) U SmtType.None)
