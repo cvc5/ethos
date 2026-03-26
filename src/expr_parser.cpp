@@ -1076,7 +1076,7 @@ void ExprParser::parseAttributeList(
         break;
       case Kind::LAMBDA:
       {
-        Assert (!e.isNull());
+        Assert(!e.isNull());
         if (a==Attr::TYPE)
         {
           handled = true;
@@ -1084,11 +1084,11 @@ void ExprParser::parseAttributeList(
           // run type checking
           typeCheck(e, val);
         }
-        else if (a==Attr::IS_EQ)
+        else if (a == Attr::IS_EQ)
         {
           handled = true;
           val = parseExpr();
-          if (e!=val)
+          if (e != val)
           {
             std::stringstream msg;
             msg << "Terms are not equal:" << std::endl;
