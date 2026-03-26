@@ -7,7 +7,7 @@ ethos 0.2.3 prerelease
 - Updates to the external plugin interface.
 - The identifier `Type` is no longer treated as a keyword in proofs and reference files.
 - The command `declare-sort` is now allowed in proof files.
-- Fixes a bug where the charecter code point `\u{30000}` was incorrectly
+- Fixes a bug where the character code point `\u{30000}` was incorrectly
   treated as a valid code point.
 
 ethos 0.2.2
