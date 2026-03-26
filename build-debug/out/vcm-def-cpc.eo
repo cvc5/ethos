@@ -2112,13 +2112,17 @@
   (($vsm_apply_head a)                a)
   )
 )
-(program $vsm_apply_arg_nth ((f $smt_Value) (a $smt_Value) (n $smt_builtin_Nat))
-  :signature ($smt_Value $smt_builtin_Nat) $smt_Value
+
+; ($vsm_apply_arg_nth v n npos), where we are getting the n^th argument,
+; npos is the current position we are at + 1.
+(program $vsm_apply_arg_nth 
+  ((f $smt_Value) (a $smt_Value) (n $smt_builtin_Nat) (npos $smt_builtin_Nat))
+  :signature ($smt_Value $smt_builtin_Nat $smt_builtin_Nat) $smt_Value
   (
-  (($vsm_apply_arg_nth ($vsm_apply f a) $smt_builtin_n_zero) a)
-  (($vsm_apply_arg_nth ($vsm_apply f a) ($smt_builtin_n_succ n))
-      ($vsm_apply_arg_nth f n))
-  (($vsm_apply_arg_nth a n) $vsm_not_value)
+  (($vsm_apply_arg_nth ($vsm_apply f a) n ($smt_builtin_n_succ npos))
+    ($smt_builtin_ite ($smt_builtin_n_= n npos) a
+      ($vsm_apply_arg_nth f n npos)))
+  (($vsm_apply_arg_nth a n npos) $vsm_not_value)
   )
 )
 
@@ -2449,16 +2453,24 @@
 )
 
 ; returns the return type of the selector n,m of datatype d.
-(program $smtx_ret_typeof_sel
+(program $smtx_ret_typeof_sel_rec
   ((T $smt_Type) (n $smt_builtin_Nat) (m $smt_builtin_Nat) (c $smt_DatatypeCons) (d $smt_Datatype))
   :signature ($smt_Datatype $smt_builtin_Nat $smt_builtin_Nat) $smt_Type
   (
-  (($smtx_ret_typeof_sel ($dt_sum ($dtc_cons T c) d) $smt_builtin_n_zero $smt_builtin_n_zero) T)
-  (($smtx_ret_typeof_sel ($dt_sum ($dtc_cons T c) d) $smt_builtin_n_zero ($smt_builtin_n_succ m))
-    ($smtx_ret_typeof_sel ($dt_sum c d) $smt_builtin_n_zero m))
-  (($smtx_ret_typeof_sel ($dt_sum c d) ($smt_builtin_n_succ n) m)
-    ($smtx_ret_typeof_sel d n m))
-  (($smtx_ret_typeof_sel d n m) $tsm_none)
+  (($smtx_ret_typeof_sel_rec ($dt_sum ($dtc_cons T c) d) $smt_builtin_n_zero $smt_builtin_n_zero) T)
+  (($smtx_ret_typeof_sel_rec ($dt_sum ($dtc_cons T c) d) $smt_builtin_n_zero ($smt_builtin_n_succ m))
+    ($smtx_ret_typeof_sel_rec ($dt_sum c d) $smt_builtin_n_zero m))
+  (($smtx_ret_typeof_sel_rec ($dt_sum c d) ($smt_builtin_n_succ n) m)
+    ($smtx_ret_typeof_sel_rec d n m))
+  (($smtx_ret_typeof_sel_rec d n m) $tsm_none)
+  )
+)
+
+(program $smtx_ret_typeof_sel
+  ((s $smt_builtin_String) (n $smt_builtin_Nat) (m $smt_builtin_Nat) (d $smt_Datatype))
+  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Nat $smt_builtin_Nat) $smt_Type
+  (
+  (($smtx_ret_typeof_sel s d n m) ($smtx_ret_typeof_sel_rec ($smtx_dt_substitute s d d) n m))
   )
 )
 
@@ -2683,7 +2695,7 @@
   (($smtx_model_eval_dt_sel M s d n m v)
     ; check if the head of the apply term is ($vsm_DtCons s d n)
     ($smt_builtin_ite ($smt_builtin_veq ($vsm_apply_head v) ($vsm_DtCons s d n))
-      ($vsm_apply_arg_nth v m)
+      ($vsm_apply_arg_nth v m ($smtx_dt_num_sels d n))
       ; wrongly applied selector
       ; we introduce an uninterpreted function wrong_apply_sel : (-> Int Int D T)
       ; where (wrong_apply_sel_id n m) is the uninterpreted function corresponding
@@ -2692,7 +2704,7 @@
         ($smtx_map_select
           ($smtx_map_select
             ($smtx_model_lookup M ($smt_apply_0 "wrong_apply_sel_id")
-              ($tsm_Map $tsm_Int ($tsm_Map $tsm_Int ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel d n m)))))
+              ($tsm_Map $tsm_Int ($tsm_Map $tsm_Int ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel s d n m)))))
             ($vsm_numeral ($smt_builtin_n_to_z n)))
           ($vsm_numeral ($smt_builtin_n_to_z m)))
         v)))
@@ -2999,7 +3011,7 @@
   (($smtx_typeof ($sm_apply ($sm_DtSel s d i j) x1))
     ; TODO: well founded???
     ($smtx_typeof_apply 
-      ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel ($smtx_dt_substitute s d d) i j))
+      ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel s d i j))
       ($smtx_typeof x1)))
   (($smtx_typeof ($sm_apply ($sm_DtTester s d i) x1))
     ($smtx_typeof_apply 

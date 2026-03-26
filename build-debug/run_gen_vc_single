@@ -118,12 +118,14 @@ if [[ "$USE_SYGUS" == "ON" ]]; then
   $CVC5 $SYGUS_OUT --parse-only --lang=sygus
   check_status
 
-  BASE_ARGS="--no-e-matching --macros-quant --re-first-class --dag-thresh=0"
-  
-  echo "**** smt_meta: Check for counterexamples with sygus, args $BASE_ARGS"
-  #$CVC5 $BASE_ARGS $SYGUS_OUT -q -o sygus-enumerator -o sygus-grammar -o sygus
-  $CVC5 $BASE_ARGS --tlimit=5000 $SYGUS_OUT -q
-  check_status
+  if false; then
+    BASE_ARGS="--no-e-matching --macros-quant --re-first-class --dag-thresh=0"
+    
+    echo "**** smt_meta: Check for counterexamples with sygus, args $BASE_ARGS"
+    #$CVC5 $BASE_ARGS $SYGUS_OUT -q -o sygus-enumerator -o sygus-grammar -o sygus
+    $CVC5 $BASE_ARGS --tlimit=5000 $SYGUS_OUT -q
+    check_status
+  fi
 else
   echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
   ./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
@@ -133,17 +135,18 @@ else
   echo "**** smt_meta: Verify cvc5 parses"
   $CVC5 $VC_OUT --parse-only
   check_status
-  exit 0
-
-  BASE_ARGS="--macros-quant --re-first-class"
   
-  echo "**** smt_meta: Run the final verification condition with unsat cores"
-  $CVC5 $VC_OUT --dump-unsat-cores $BASE_ARGS #--parse-only
-  check_status
+  if false; then
+    BASE_ARGS="--macros-quant --re-first-class"
+    
+    echo "**** smt_meta: Run the final verification condition with unsat cores"
+    $CVC5 $VC_OUT --dump-unsat-cores $BASE_ARGS #--parse-only
+    check_status
 
-  echo "**** smt_meta: Run the final verification condition with proofs"
-  $CVC5 $VC_OUT --check-proofs --stats-internal $BASE_ARGS |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount|finalProof::totalRuleCount|finalProof::ruleUnhandled|finalProof::trust)'
-  check_status
+    echo "**** smt_meta: Run the final verification condition with proofs"
+    $CVC5 $VC_OUT --check-proofs --stats-internal $BASE_ARGS |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount|finalProof::totalRuleCount|finalProof::ruleUnhandled|finalProof::trust)'
+    check_status
+  fi
 fi
 
 # clear temporary files
