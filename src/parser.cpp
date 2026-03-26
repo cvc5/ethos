@@ -11,7 +11,9 @@
 namespace ethos {
 
 Parser::Parser(State& s, bool isSignature, bool isReference)
-    : d_lex(!isSignature && s.getOptions().d_parseLet),  // only consider let when reference parsing
+    // only (optionally) lex let when reference parsing, only lex Type if
+    // signature.
+    : d_lex(!isSignature && s.getOptions().d_parseLet, isSignature),
       d_state(s),
       d_eparser(d_lex, d_state, isSignature),
       d_cmdParser(d_lex, d_state, d_eparser, isReference)

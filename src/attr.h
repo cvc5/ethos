@@ -21,7 +21,6 @@ enum class Attr
   NONE = 0,
 
   IMPLICIT,
-  REQUIRES,
   // inspecting define
   TYPE,
   IS_EQ,

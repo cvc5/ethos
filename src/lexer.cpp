@@ -25,9 +25,14 @@ std::ostream& operator<<(std::ostream& o, const Span& l)
   return o << l.d_start << "-" << l.d_end;
 }
 
-Lexer::Lexer(bool lexLet)
-    : d_lexLet(lexLet), d_isInteractive(false), d_bufferPos(0), d_bufferEnd(0),
-      d_peekedChar(false), d_chPeeked(0)
+Lexer::Lexer(bool lexLet, bool lexType)
+    : d_lexLet(lexLet),
+      d_lexType(lexType),
+      d_isInteractive(false),
+      d_bufferPos(0),
+      d_bufferEnd(0),
+      d_peekedChar(false),
+      d_chPeeked(0)
 {
   for (int32_t ch = 'a'; ch <= 'z'; ++ch)
   {
@@ -457,7 +462,8 @@ Token Lexer::tokenizeCurrentSymbol() const
       }
       break;
     case 'T':
-      if (d_token.size() == 4 && d_token[1] == 'y' && d_token[2] == 'p' && d_token[3] == 'e')
+      if (d_lexType && d_token.size() == 4 && d_token[1] == 'y'
+          && d_token[2] == 'p' && d_token[3] == 'e')
       {
         return Token::TYPE;
       }

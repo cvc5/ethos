@@ -32,7 +32,6 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::DECLARE_DATATYPES: o << "DECLARE_DATATYPES"; break;
     case Token::DECLARE_FUN: o << "DECLARE_FUN"; break;
     case Token::DECLARE_PARAMETERIZED_CONST: o << "DECLARE_PARAMETERIZED_CONST"; break;
-    case Token::DECLARE_ORACLE_FUN: o << "DECLARE_ORACLE_FUN"; break;
     case Token::DECLARE_RULE: o << "DECLARE_RULE"; break;
     case Token::DECLARE_SORT: o << "DECLARE_SORT"; break;
     case Token::DECLARE_TYPE: o << "DECLARE_TYPE"; break;

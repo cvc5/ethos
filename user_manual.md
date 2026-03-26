@@ -2134,6 +2134,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (declare-const <symbol> <type> <attr>*)
     (declare-datatype <symbol> <datatype-dec>) |
     (declare-datatypes (<sort-dec>^n) (<datatype-dec>^n)) |
+    (declare-sort <symbol> <numeral>) |
     (echo <string>?) |
     (exit) |
     (reset) |
@@ -2145,7 +2146,6 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (check-sat) |
     (check-sat-assuming (<term>*)) |
     (declare-fun <symbol> (<type>*) <type> <attr>*) |
-    (declare-sort <symbol> <numeral>) |
     (define-const <symbol> <term>) |
     (define-fun <symbol> (<typed-param>*) <type> <term>) |
     (define-sort <symbol> (<symbol>*) <type>) |

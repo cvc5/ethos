@@ -91,6 +91,15 @@ class State
   bool markConstructorKind(const Expr& v, Attr a, const Expr& cons);
   /** Define program, where v is PROGRAM_CONST and prog is PROGRAM. */
   void defineProgram(const Expr& v, const Expr& prog);
+  /** Define, called when a define command is parsed.
+   * @param name The name of the define.
+   * @param e The expression name is defined to be.
+   */
+  void define(const std::string& name, const Expr& e);
+  /** Echo, called when an echo command is parsed.
+   * @param msg The message of the echo command.
+   */
+  void echo(const std::string& msg);
   //--------------------------------------
   /** Type */
   Expr mkType();
@@ -152,6 +161,24 @@ class State
    * otherwise.
    */
   Expr mkList(const std::vector<Expr>& args);
+  /**
+   * Make disambiguated type. This constructs the type of a symbol which we
+   * expect to be written as (as <symbol> <type>), which is parsed as an
+   * opaque application of that symbol to that type as its first argument. This
+   * method returns a type of the form (-> (Quote x) ($eo_disamb_type_<name> x))
+   * where $eo_disamb_type_<name> is a program defined by this method, and x
+   * has type Type.
+   *
+   * @param disambPat The pattern which is expected as the second argument to
+   *                  "as" above.
+   * @param ret The return type, whose free parameters are a subset of the free
+   *            parameters of disambPat. This is typically either disambPat,
+   *            or a function type whose return type is disambPat.
+   * @param name The name of the symbol we are disambiguating.
+   */
+  Expr mkDisambiguatedType(const Expr& disambPat,
+                           const Expr& ret,
+                           const std::string& name);
   //--------------------------------------
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
@@ -169,24 +196,40 @@ class State
   /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
   /**
-   * Get proof rule arguments, which determines the argument list to a proof
-   * rule in a step or step-pop. This takes into account whether the rule was
-   * marked :premise-list, :conclusion-explicit, or :assumption (for step-pop
-   * commands).
-   * @param children The vector of children to populate.
+   * Notify assume, called when an assume command is parsed.
+   * @param name The name of the assumption.
+   * @param proven The formula that it assumes.
+   * @param isPush true iff the assumption was from an assume-push command.
+   */
+  void notifyAssume(const std::string& name, Expr& proven, bool isPush);
+  /**
+   * Notify step, called when a step command is parsed.
+   * This method determines the argument list to a proof rule in a step or
+   * step-pop and computes the result of what the step proves. This takes into
+   * account whether the rule was marked :premise-list, :conclusion-explicit,
+   * or :assumption (for step-pop commands), or whether the plugin can provide
+   * the result.
+   * Note that result may be a term that is not of type Bool. This check is
+   * instead done in the parser.
+   * @param name The name of the step.
    * @param rule The proof rule being applied.
    * @param proven The conclusion of the proof rule, if provided.
    * @param premises The provided premises of the proof rule.
    * @param args The provided arguments of the proof rule.
    * @param isPop Whether we were a step-pop.
-   * @return true if we successfully populated the arguments to the proof rule.
+   * @param result The result proven by the step.
+   * @param err If provided, details on errors are printed to this stream.
+   * @return true if we successfully computed result. Otherwise, a proof
+   * checking error should be thrown.
    */
-  bool getProofRuleArguments(std::vector<Expr>& children,
-                             Expr& rule,
-                             Expr& proven,
-                             std::vector<Expr>& premises,
-                             std::vector<Expr>& args,
-                             bool isPop);
+  bool notifyStep(const std::string& name,
+                  Expr& rule,
+                  Expr& proven,
+                  std::vector<Expr>& premises,
+                  std::vector<Expr>& args,
+                  bool isPop,
+                  Expr& result,
+                  std::ostream* err = nullptr);
   /** Get the program */
   Expr getProgram(const ExprValue* ev);
   /** */
