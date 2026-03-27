@@ -124,6 +124,7 @@ set(ethos_test_file_list
     disamb-arith.eo
     opaque-inline.eo
     implicit-then-var.eo
+    is_eq.eo
     simple-reference.eo
     simple-quant-reference.eo
     simple-lra-reference.eo
@@ -169,6 +170,7 @@ set(ethos_test_file_list
     further-notes-attr.eo
     list-non-singleton.eo
     list-non-singleton-left.eo
+    code-point-oob.eo
 )
 
 macro(ethos_test file)

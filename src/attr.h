@@ -21,7 +21,9 @@ enum class Attr
   NONE = 0,
 
   IMPLICIT,
+  // inspecting define
   TYPE,
+  IS_EQ,
   // properties of rules
   SORRY,
 
