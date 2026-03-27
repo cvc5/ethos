@@ -836,8 +836,6 @@ inductive smt_satisfiability : SmtTerm -> Bool -> Prop
       (forall M : SmtModel, ¬ (smt_interprets M t true))->
       smt_satisfiability t false
 
-/- FIXME inductive smt_model_well_typed : SmtModel -> Prop, based on smt axiom -/
-
 /- ---------------------------------------------- -/
 
 end Smtm

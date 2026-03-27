@@ -86,6 +86,9 @@ inductive Term : Type where
   | BitVec : Term
   | Char : Term
   | Seq : Term
+  | __eo_List : Term
+  | __eo_List_nil : Term
+  | __eo_List_cons : Term
   | Bool : Term
   | Boolean : eo_lit_Bool -> Term
   | Numeral : eo_lit_Int -> Term
@@ -98,6 +101,7 @@ inductive Term : Type where
   | FunType : Term
   | Var : eo_lit_String -> Term -> Term
   | DatatypeType : eo_lit_String -> Datatype -> Term
+  | DatatypeTypeRef : eo_lit_String -> Term
   | DtCons : eo_lit_String -> Datatype -> eo_lit_Nat -> Term
   | DtSel : eo_lit_String -> Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
   | USort : eo_lit_Nat -> Term
@@ -160,8 +164,9 @@ partial def __eo_mk_apply : Term -> Term -> Term
 partial def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
   (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w)))
 
-partial def __eo_is_ok : Term -> Term
-  | x => (Term.Boolean (eo_lit_not (eo_lit_teq x Term.Stuck)))
+partial def __eo_is_bool_type : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x => (__eo_eq (__eo_typeof x) Term.Bool)
 
 
 partial def __eo_ite : Term -> Term -> Term -> Term
@@ -180,10 +185,27 @@ partial def __eo_and : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
+partial def __eo_len : Term -> Term
+  | (Term.String s1) => (Term.Numeral (eo_lit_str_len s1))
+  | (Term.Binary w n1) => (Term.Numeral w)
+  | _ => Term.Stuck
+
+
 partial def __eo_eq : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | t, s => (Term.Boolean (eo_lit_teq s t))
+
+
+partial def __eo_dtc_substitute (s : eo_lit_String) (d : Datatype) : DatatypeCons -> DatatypeCons
+  | (DatatypeCons.cons (Term.DatatypeType s2 d2) c) => (DatatypeCons.cons (Term.DatatypeType s2 (eo_lit_ite (eo_lit_streq s s2) d2 (__eo_dt_substitute s d d2))) (__eo_dtc_substitute s d c))
+  | (DatatypeCons.cons T c) => (DatatypeCons.cons (eo_lit_ite (eo_lit_teq T (Term.DatatypeTypeRef s)) (Term.DatatypeType s d) T) (__eo_dtc_substitute s d c))
+  | DatatypeCons.unit => DatatypeCons.unit
+
+
+partial def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> Datatype
+  | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_substitute s d c) (__eo_dt_substitute s d d2))
+  | Datatype.null => Datatype.null
 
 
 partial def __eo_prog_contra : Proof -> Proof -> Term
@@ -199,6 +221,89 @@ partial def __mk_symm : Term -> Term
 
 partial def __eo_prog_symm : Proof -> Term
   | (Proof.pf F) => (__mk_symm F)
+  | _ => Term.Stuck
+
+
+partial def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Nat -> Term
+  | Term.Stuck , _ , _  => Term.Stuck
+  | T, (Datatype.sum DatatypeCons.unit d), eo_lit_nat_zero => T
+  | T, (Datatype.sum (DatatypeCons.cons U c) d), eo_lit_nat_zero => (Term.Apply (Term.Apply Term.FunType U) (__eo_typeof_dt_cons_rec T (Datatype.sum c d) eo_lit_nat_zero))
+  | T, (Datatype.sum c d), (eo_lit_nat_succ n) => (__eo_typeof_dt_cons_rec T d n)
+  | _, _, _ => Term.Stuck
+
+
+partial def __eo_typeof_dt_sel_return : Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
+  | (Datatype.sum (DatatypeCons.cons T c) d), eo_lit_nat_zero, eo_lit_nat_zero => T
+  | (Datatype.sum (DatatypeCons.cons T c) d), eo_lit_nat_zero, (eo_lit_nat_succ m) => (__eo_typeof_dt_sel_return (Datatype.sum c d) eo_lit_nat_zero m)
+  | (Datatype.sum c d), (eo_lit_nat_succ n), m => (__eo_typeof_dt_sel_return d n m)
+  | _, _, _ => Term.Stuck
+
+
+partial def __eo_typeof_apply : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply Term.FunType T) U), V => (__eo_requires T V U)
+  | _, _ => Term.Stuck
+
+
+partial def __eo_typeof_fun_type : Term -> Term -> Term
+  | Term.Type, Term.Type => Term.Type
+  | _, _ => Term.Stuck
+
+
+partial def __eo_lit_type_Numeral : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | t => Term.Int
+
+
+partial def __eo_lit_type_Rational : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | t => Term.Real
+
+
+partial def __eo_lit_type_Binary : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | t => (__eo_mk_apply Term.BitVec (__eo_len t))
+
+
+partial def __eo_lit_type_String : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | t => (Term.Apply Term.Seq Term.Char)
+
+
+partial def __eo_typeof_eq : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | A => (Term.Apply (Term.Apply Term.FunType A) Term.Bool)
+
+
+partial def __eo_typeof : Term -> Term
+  | (Term.Boolean b) => Term.Bool
+  | (Term.Numeral n) => (__eo_lit_type_Numeral (Term.Numeral n))
+  | (Term.Rational r) => (__eo_lit_type_Rational (Term.Rational r))
+  | (Term.String s) => (__eo_lit_type_String (Term.String s))
+  | (Term.Binary w n) => (__eo_lit_type_Binary (Term.Binary w n))
+  | (Term.Var s T) => T
+  | (Term.DatatypeType s d) => Term.Type
+  | (Term.DtCons s d i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
+  | (Term.DtSel s d i j) => (Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s d)) (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j))
+  | (Term.USort i) => Term.Type
+  | (Term.UConst i T) => T
+  | Term.Type => Term.Type
+  | (Term.Apply (Term.Apply Term.FunType __eo_T) __eo_U) => (__eo_typeof_fun_type (__eo_typeof __eo_T) (__eo_typeof __eo_U))
+  | Term.Bool => Term.Type
+  | Term.__eo_List => Term.Type
+  | Term.__eo_List_nil => Term.__eo_List
+  | (Term.Apply Term.__eo_List_cons __eo_x1) => (Term.Apply (Term.Apply Term.FunType Term.__eo_List) Term.__eo_List)
+  | Term.Int => Term.Type
+  | Term.Real => Term.Type
+  | Term.BitVec => (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Type)
+  | Term.Char => Term.Type
+  | Term.Seq => (Term.Apply (Term.Apply Term.FunType Term.Type) Term.Type)
+  | Term.not => (Term.Apply (Term.Apply Term.FunType Term.Bool) Term.Bool)
+  | Term.or => (Term.Apply (Term.Apply Term.FunType Term.Bool) (Term.Apply (Term.Apply Term.FunType Term.Bool) Term.Bool))
+  | Term.and => (Term.Apply (Term.Apply Term.FunType Term.Bool) (Term.Apply (Term.Apply Term.FunType Term.Bool) Term.Bool))
+  | Term.imp => (Term.Apply (Term.Apply Term.FunType Term.Bool) (Term.Apply (Term.Apply Term.FunType Term.Bool) Term.Bool))
+  | (Term.Apply Term.eq __eo_x1) => (__eo_typeof_eq (__eo_typeof __eo_x1))
+  | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
   | _ => Term.Stuck
 
 
@@ -284,8 +389,13 @@ def __eo_state_is_closed : CState -> eo_lit_Bool
   | s => false
 
 
+def __eo_push_assume_check : Term -> Term -> CState -> CState
+  | (Term.Boolean true), F, s => (CState.cons (CStateObj.assume_push F) s)
+  | b, F, s => CState.Stuck
+
+
 def __eo_push_assume : Term -> CState -> CState
-  | F, s => (CState.cons (CStateObj.assume_push F) s)
+  | F, s => (__eo_push_assume_check (__eo_is_bool_type F) F s)
 
 
 def __eo_push_proven_check : Term -> Term -> CState -> CState
@@ -294,7 +404,7 @@ def __eo_push_proven_check : Term -> Term -> CState -> CState
 
 
 def __eo_push_proven : Term -> CState -> CState
-  | F, s => (__eo_push_proven_check (__eo_is_ok F) F s)
+  | F, s => (__eo_push_proven_check (__eo_is_bool_type F) F s)
 
 
 def __eo_invoke_cmd_check_proven : CState -> Term -> CState

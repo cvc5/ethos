@@ -80,11 +80,19 @@
   )
 )
 
+; push a formula F proven by a step to the state if the given check was true
+(program $eo_push_assume_check ((F Bool) (s $eo_State) (b Bool))
+  :signature (Bool Bool $eo_State) $eo_State
+  (
+  (($eo_push_assume_check true F s)   ($s_cons ($so_assume_push F) s))
+  (($eo_push_assume_check b F s)      $s_stuck)
+  )
+)
 ; push an assumption to the state
 (program $eo_push_assume ((F Bool) (s $eo_State))
   :signature (Bool $eo_State) $eo_State
   (
-  (($eo_push_assume F s) ($s_cons ($so_assume_push F) s))
+  (($eo_push_assume F s) ($eo_push_assume_check ($eo_is_bool_type F) F s))
   )
 )
 ; push a formula F proven by a step to the state if the given check was true
@@ -100,7 +108,7 @@
 (program $eo_push_proven ((F Bool) (s $eo_State))
   :signature (Bool $eo_State) $eo_State
   (
-  (($eo_push_proven F s)  ($eo_push_proven_check (eo::is_ok F) F s))
+  (($eo_push_proven F s)  ($eo_push_proven_check ($eo_is_bool_type F) F s))
   )
 )
 
