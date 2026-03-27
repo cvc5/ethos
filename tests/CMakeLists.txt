@@ -180,7 +180,23 @@ macro(ethos_test file)
   set_tests_properties(${file} PROPERTIES TIMEOUT 40)
 endmacro()
 
+macro(ethos_fail_test file regex)
+  add_test(
+    NAME ${file}
+    COMMAND
+      ${CMAKE_COMMAND}
+      "-DTEST_BINARY=$<TARGET_FILE:ethos>"
+      "-DTEST_FILE=${CMAKE_CURRENT_LIST_DIR}/${file}"
+      "-DTEST_WORKDIR=${CMAKE_SOURCE_DIR}"
+      "-DEXPECT_REGEX=${regex}"
+      -P ${CMAKE_CURRENT_LIST_DIR}/expect_error.cmake
+  )
+  set_tests_properties(${file} PROPERTIES TIMEOUT 40)
+endmacro()
+
 foreach(file ${ethos_test_file_list})
   ethos_test(${file})
 endforeach()
 
+ethos_fail_test(parser-overflow-declare-sort.eo
+                "Numerals must fit into 32-bit unsigned integers")
