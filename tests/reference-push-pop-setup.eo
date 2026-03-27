@@ -1,0 +1,3 @@
+(declare-const Int Type)
+(declare-const > (-> Int Int Bool))
+(declare-consts <numeral> Int)
