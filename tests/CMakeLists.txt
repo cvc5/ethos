@@ -169,6 +169,7 @@ set(ethos_test_file_list
     further-notes-attr.eo
     list-non-singleton.eo
     list-non-singleton-left.eo
+    code-point-oob.eo
 )
 
 macro(ethos_test file)
