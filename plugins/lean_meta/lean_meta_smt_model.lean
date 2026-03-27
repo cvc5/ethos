@@ -404,21 +404,16 @@ macro_rules
               Classical.choose hTy
             else
               SmtValue.NotValue)
-  | `(smt_lit_typeof_tchoice $T) => do
-      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      `(by
-          classical
-          exact
-            if hTy : ∃ v : SmtValue, $typeofValueId v = $T then
-              $T
-            else
-              SmtType.None)
-  
+
 /- Definition of SMT-LIB model semantics -/
 
 noncomputable section
 
 mutual
+
+def smt_lit_inhabited_type (T : SmtType) : smt_lit_Bool := by
+  classical
+  exact decide (∃ v : SmtValue, __smtx_typeof_value v = T)
 
 $LEAN_SMT_EVAL_DEFS$
 

@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 359
+; #trim-defs: 360
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -609,6 +609,12 @@
   (($smtx_typeof_guard T U) ($smt_builtin_ite ($smt_builtin_Teq T $tsm_none) $tsm_none U))
   )
 )
+(program $smtx_typeof_guard_inhabited ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_guard_inhabited T U) ($smt_builtin_ite ($smt_apply_1 "inhabited_type" T) U $tsm_none))
+  )
+)
 (program $smtx_msm_lookup
   ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
@@ -1001,7 +1007,7 @@
   (($smtx_typeof ($sm_apply ($sm_forall s T) x1))
     ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
   (($smtx_typeof ($sm_apply ($sm_choice s T) x1))
-    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) ($smt_apply_1 "typeof_tchoice" T) $tsm_none))
+    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_inhabited T T) $tsm_none))
   
   (($smtx_typeof ($sm_DtCons s d i))
     ($smtx_typeof_dt_cons_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) i))
@@ -1016,8 +1022,8 @@
       ($smtx_typeof x1)))
   
   (($smtx_typeof ($sm_apply f x1)) ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
-  (($smtx_typeof ($sm_Var s T))     T)
-  (($smtx_typeof ($sm_UConst s T))  T)
+  (($smtx_typeof ($sm_Var s T))     ($smtx_typeof_guard_inhabited T T))
+  (($smtx_typeof ($sm_UConst s T))  ($smtx_typeof_guard_inhabited T T))
   (($smtx_typeof x1)   $tsm_none)
   )
 )

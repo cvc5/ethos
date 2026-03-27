@@ -334,7 +334,7 @@
 (declare-fun eval_texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
-(declare-fun typeof_tchoice (tsm.Type) tsm.Type)
+(declare-fun inhabited_type (tsm.Type) Bool)
 (declare-fun eval_tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tapply (smm.SmtModel vsm.Value vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
@@ -415,6 +415,11 @@
 ; program: $smtx_typeof_guard
 (define-fun $smtx_typeof_guard ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
     (ite (Teq x1 tsm.None) tsm.None x2)
+)
+
+; program: $smtx_typeof_guard_inhabited
+(define-fun $smtx_typeof_guard_inhabited ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
+    (ite (inhabited_type x1) x2 tsm.None)
 )
 
 ; program: $smtx_msm_lookup
@@ -726,7 +731,7 @@
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.forall) (sm.Apply.arg1 x1)))
     (ite (Teq ($smtx_typeof (sm.Apply.arg2 x1)) tsm.Bool) tsm.Bool tsm.None)
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.choice) (sm.Apply.arg1 x1)))
-    (ite (Teq ($smtx_typeof (sm.Apply.arg2 x1)) tsm.Bool) (typeof_tchoice (sm.choice.arg2 (sm.Apply.arg1 x1))) tsm.None)
+    (ite (Teq ($smtx_typeof (sm.Apply.arg2 x1)) tsm.Bool) ($smtx_typeof_guard_inhabited (sm.choice.arg2 (sm.Apply.arg1 x1)) (sm.choice.arg2 (sm.Apply.arg1 x1))) tsm.None)
   (ite ((_ is sm.DtCons) x1)
     ($smtx_typeof_dt_cons_rec (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_dt_substitute (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1) (sm.DtCons.arg2 x1)) (sm.DtCons.arg3 x1))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtSel) (sm.Apply.arg1 x1)))
@@ -736,9 +741,9 @@
   (ite ((_ is sm.Apply) x1)
     ($smtx_typeof_apply ($smtx_typeof (sm.Apply.arg1 x1)) ($smtx_typeof (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Var) x1)
-    (sm.Var.arg2 x1)
+    ($smtx_typeof_guard_inhabited (sm.Var.arg2 x1) (sm.Var.arg2 x1))
   (ite ((_ is sm.UConst) x1)
-    (sm.UConst.arg2 x1)
+    ($smtx_typeof_guard_inhabited (sm.UConst.arg2 x1) (sm.UConst.arg2 x1))
     tsm.None
 ))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
 
@@ -911,12 +916,10 @@
 
 ; typeof choice, must be an inhabitant, else it is ill-typed.
 (assert (! (forall ((T tsm.Type))
-  (! (= (typeof_tchoice T) 
-    (ite (exists ((v vsm.Value)) (= ($smtx_typeof_value v) T))
-      T
-      tsm.None))
-  :pattern ((typeof_tchoice T))))
-  :named smtx.typeof_tchoice.def))
+  (! (= (inhabited_type T) 
+    (exists ((v vsm.Value)) (= ($smtx_typeof_value v) T)))
+  :pattern ((inhabited_type T))))
+  :named smtx.inhabited_type.def))
   
 ; whether two map values are extensionally equal
 (assert (! (forall ((v1 msm.Map) (v2 msm.Map))

@@ -835,7 +835,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                     true));
   // sequences
   addReduceSym("seq.empty", {kType}, kAny, "($smtx_empty_seq x1)");
-  d_typeFullCase["seq.empty"] = "($tsm_Seq x1)";
+  d_typeFullCase["seq.empty"] = "($smtx_typeof_guard_inhabited x1 ($tsm_Seq x1))";
   d_recReduce.insert("seq.empty");
   //d_specialCases["seq.empty"].emplace_back(
   //    "(seq.empty (Seq Char))", "($sm_string $smt_builtin_str_empty)");
@@ -847,7 +847,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // (Set T) is modelled as (Array T Bool).
   addTypeSym("Set", {kType});
   addReduceSym("set.empty", {kType}, kAny, "($smtx_empty_set x1)");
-  d_typeFullCase["set.empty"] = "($tsm_Set x1)";
+  d_typeFullCase["set.empty"] = "($smtx_typeof_guard_inhabited x1 ($tsm_Set x1))";
   d_recReduce.insert("set.empty");
   addTermReduceSym("set.singleton", {kAny}, d_kSet, "($smtx_set_singleton x1)");
   d_typeFullCase["set.singleton"] = smtGuardType1("($smtx_typeof x1)", "($tsm_Set ($smtx_typeof x1))");
