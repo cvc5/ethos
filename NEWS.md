@@ -11,6 +11,8 @@ ethos 0.2.3 prerelease
 - Adds support for an attribute `:is_eq` to test whether a defined term is equal to another.
 - Fixes a bug where the character code point `\u{30000}` was incorrectly
   treated as a valid code point.
+- Fixes issue in the parser which did not guard for overflow of 32 bit unsigned
+  values.
 
 
 ethos 0.2.2
