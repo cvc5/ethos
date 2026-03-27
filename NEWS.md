@@ -9,6 +9,8 @@ ethos 0.2.3 prerelease
 - The command `declare-sort` is now allowed in proof files.
 - Fixes a bug where the character code point `\u{30000}` was incorrectly
   treated as a valid code point.
+- Fixes issue in the parser which did not guard for overflow of 32 bit unsigned
+  values.
 
 ethos 0.2.2
 ===========
