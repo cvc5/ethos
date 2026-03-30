@@ -152,6 +152,22 @@ std::string StdPlugin::getOutputPath(const std::string& relativePath)
   return path;
 }
 
+void StdPlugin::copyResourceToOutput(const std::string& relativePath)
+{
+  std::ifstream in(getResourcePath(relativePath));
+  if (!in.is_open())
+  {
+    EO_FATAL() << "StdPlugin: failed to open resource " << relativePath;
+  }
+  std::string outPath = getOutputPath(relativePath);
+  std::ofstream out(outPath);
+  if (!out.is_open())
+  {
+    EO_FATAL() << "StdPlugin: failed to open output " << outPath;
+  }
+  out << in.rdbuf();
+}
+
 std::string StdPlugin::s_plugin_path = StdPlugin::initializePluginPath();
 std::string StdPlugin::s_plugin_output_path =
     StdPlugin::initializePluginOutputPath();

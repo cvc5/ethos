@@ -74,6 +74,8 @@ class StdPlugin : public Plugin
   static std::string getResourcePath(const std::string& relativePath);
   /** Get a path relative to the generated output root */
   static std::string getOutputPath(const std::string& relativePath);
+  /** Copy a static resource into the generated output tree */
+  static void copyResourceToOutput(const std::string& relativePath);
   /** Standard configurations for the reduction */
   static bool optionVcUseModelStrict();
   static bool optionSmtMetaUseTriggers();

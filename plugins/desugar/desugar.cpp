@@ -856,6 +856,9 @@ void Desugar::finalize()
   // Verification conditions for *all* proof rules are ready now
   // TODO: make this manual?
   replace(finalEo, "$EO_VC$", d_eoVc.str());
+  // Make generated desugar files self-contained within the output tree.
+  copyResourceToOutput("plugins/desugar/eo_builtin_smt.eo");
+  copyResourceToOutput("plugins/desugar/smt_embed.eo");
   std::string outPath = getOutputPath("plugins/desugar/eo_desugar_gen.eo");
   std::cout << "Write core-defs    " << outPath << std::endl;
   std::ofstream oute(outPath);
