@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Generate SyGuS queries for every discovered rule in the default or explicit INPUT.
+# Usage: run_gen_sygus_all [INPUT]
+# Output: writes stage EO files under tools/eoc/out/ and final queries under
+# tools/eoc/out/sygus/.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

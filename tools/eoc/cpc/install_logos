@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Generate the full CPC Lean package and install it into local Logos trees.
+# Usage: install_logos
+# Output: reads generated Lean files from tools/eoc/out/lean/ and copies them
+# to $LOGOS_DIR/Cpc and $TEST_DIR/Cpc, then optionally regenerates example
+# files from $LOGOS_TESTS_DIR when that directory exists.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

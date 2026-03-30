@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Shared helper library for the CPC compatibility wrappers in this directory.
+# Source this file from the wrapper scripts; it is not meant to be run directly.
+# The wrappers default to publishing stage and final artifacts in tools/eoc/out.
 # shellcheck shell=bash
 
 EOC_COMPAT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Generate one SyGuS query for RULE on the default CPC input.
+# Usage: run_gen_sygus RULE
+# Output: writes stage EO files under tools/eoc/out/ and, on success, a final
+# query in tools/eoc/out/sygus/final-*.sy.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

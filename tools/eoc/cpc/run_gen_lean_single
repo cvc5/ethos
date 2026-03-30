@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Generate Lean output for selected RULE names from an explicit INPUT.
+# Usage: run_gen_lean_single INPUT RULE [RULE ...]
+# Output: writes stage EO files and final Lean files under tools/eoc/out/.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

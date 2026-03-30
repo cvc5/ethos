@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Generate SMT VCs for the supplied rule names on the default CPC input.
+# Usage: run_gen_vc RULE [RULE ...]
+# Output: writes stage EO files under tools/eoc/out/ and final SMT2 files under
+# tools/eoc/out/vc/.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Run only the trim-defs stage for an explicit INPUT and one or more TARGETs.
+# Usage: run_trim_defs INPUT TARGET [TARGET ...]
+# Output: writes tools/eoc/out/trim_defs/trim_gen.eo.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

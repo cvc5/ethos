@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Generate the proof-checking equivalence SMT query for an explicit INPUT.
+# Usage: run_gen_pc_valid INPUT
+# Output: writes tools/eoc/out/desugar-pcv.eo and
+# tools/eoc/out/pcv/check-<input>.smt2.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
