@@ -25,6 +25,9 @@ Useful environment variables:
 - `EOC_CPC_INPUT=/path/to/Cpc.eo` to override the default CPC signature.
 - `EOC_ALETHE_INPUT=/path/to/Alethe.eo` to override the default Alethe
   signature.
+- `LOGOS_DIR`, `TEST_DIR`, `LOGOS_TESTS_DIR`, `CVC5_LOGOS`, and
+  `CPC_GEN_LOGOS_CMD` to override the legacy `install_logos` destinations and
+  helper command.
 
 Examples:
 
@@ -33,3 +36,8 @@ tools/eoc/cpc/run_gen_vc_single tests/Booleans-rules.eo and_intro
 EOC_CPC_INPUT=tests/Booleans-rules.eo tools/eoc/cpc/run_gen_vc_all_cpc
 BUILD_DIR=build EOC_NO_BUILD=1 tools/eoc/cpc/run_gen_lean_all
 ```
+
+Compatibility scripts restored from the old workflow:
+
+- `install_logos`
+- `install_logos_mini`

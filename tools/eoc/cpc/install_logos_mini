@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
+
+BUILD_DIR="$(eoc_build_dir)"
+LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
+SUB_DIR="${SUB_DIR:-CpcMini}"
+read -r -a MINI_TARGETS <<< "${MINI_TARGETS:-symm contra refl scope trans}"
+
+echo "********* Generating Mini-Lean signature *********"
+"$SCRIPT_DIR/run_gen_lean" "${MINI_TARGETS[@]}"
+
+eoc_copy_lean_outputs "$LOGOS_DIR/$SUB_DIR" "$BUILD_DIR"
+
+if [[ -d "$LOGOS_DIR/$SUB_DIR" ]]; then
+  (
+    cd "$LOGOS_DIR/$SUB_DIR"
+    shopt -s nullglob
+    for file in *.lean; do
+      sed -i 's/import Cpc\./import CpcMini\./g' "$file"
+    done
+  )
+fi

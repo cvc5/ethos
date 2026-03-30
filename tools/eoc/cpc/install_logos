@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
+
+BUILD_DIR="$(eoc_build_dir)"
+LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
+TEST_DIR="${TEST_DIR:-/local/ajreynol/lean/cpc}"
+LOGOS_TESTS_DIR="${LOGOS_TESTS_DIR:-$HOME/ethos/smtlibTests/logos-tests}"
+CVC5_LOGOS="${CVC5_LOGOS:-$HOME/bin/cvc5-logos}"
+CPC_GEN_LOGOS_CMD="${CPC_GEN_LOGOS_CMD:-cpc_gen_logos.sh}"
+
+echo "********* Generating Lean signature *********"
+"$SCRIPT_DIR/run_gen_lean_all"
+
+eoc_copy_lean_outputs "$LOGOS_DIR/Cpc" "$BUILD_DIR"
+eoc_copy_lean_outputs "$TEST_DIR/Cpc" "$BUILD_DIR"
+
+"$SCRIPT_DIR/install_logos_mini"
+
+if [[ -d "$LOGOS_TESTS_DIR" ]]; then
+  (
+    cd "$LOGOS_TESTS_DIR"
+    shopt -s nullglob
+    for file in *.smt2; do
+      base_file="$(basename "$file")"
+      base_name="${base_file%.*}"
+      echo "Generating $CVC5_LOGOS $PWD/$file to $LOGOS_DIR/examples/test-$base_name.cpc.lean"
+      "$CPC_GEN_LOGOS_CMD" "$CVC5_LOGOS" "$file" > temp.lean
+      mkdir -p "$LOGOS_DIR/examples" "$TEST_DIR/examples"
+      cp temp.lean "$LOGOS_DIR/examples/test-$base_name.cpc.lean"
+      cp temp.lean "$TEST_DIR/examples/test-$base_name.cpc.lean"
+      rm -f temp.lean
+    done
+  )
+fi

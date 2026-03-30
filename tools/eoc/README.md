@@ -233,10 +233,11 @@ python3 tools/eoc/driver.py lean --build-dir build --all INPUT
 ls build/out/lean
 ```
 
-If you previously used `install_logos` or `install_logos_mini`, the EOC part
-of that workflow is just the `lean` command above. Copying the generated Lean
-files into another repository is now intentionally left as a local/manual step
-instead of a repo-specific script with hard-coded paths.
+If you previously used `install_logos` or `install_logos_mini`, compatibility
+wrappers now live under `tools/eoc/cpc/`. They still run the `lean` pipeline
+through `driver.py`, then copy the generated Lean files into your downstream
+Logos trees using the old default paths unless you override them with
+environment variables.
 
 ### Manually inspect or debug intermediate files
 
@@ -268,7 +269,7 @@ build/src/ethos-eoc --plugin.smt-meta-sygus build/out/vcmt-def-booleans-rules.eo
 | `debug_smt_meta` | Run `build/src/ethos-eoc` directly on files in `<build-dir>/out/` while debugging a late stage |
 | `run_test_plugin` | Use `desugar`, `vc`, `pc-valid`, or direct `ethos-eoc` invocations shown above |
 | `run_sygus_cex FILE.sy` | Invoke your preferred solver directly on `<build-dir>/out/sygus/final-*.sy` |
-| `install_logos` / `install_logos_mini` | Use `lean`, then copy files from `<build-dir>/out/lean/` in your local downstream workflow |
+| `install_logos` / `install_logos_mini` | `tools/eoc/cpc/install_logos` / `tools/eoc/cpc/install_logos_mini` |
 
 The old wrapper scripts have been removed so the repository only exposes one
 supported EOC interface.
