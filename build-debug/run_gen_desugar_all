@@ -1,34 +1,12 @@
 #!/bin/bash
 
-OUT_DIR=./out
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BUILD_DIR="${BUILD_DIR:-$(pwd)}"
+INPUT="${1:-../../cvc5-ajr/proofs/eo/cpc/Cpc.eo}"
+ARGS=(desugar --build-dir "$BUILD_DIR" "$INPUT")
 
-STD_DESUGAR_OUT=./out/plugins/desugar/eo_desugar_gen.eo
-
-# the name of a EO signature
-INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
-
-DESUGAR=$OUT_DIR/desugar.eo
-
-function check_status()
-{
-status=$?
-if [[ $status -eq 0 ]]; then
-  echo "success"
-else
-  exit $status
+if [[ "${EOC_NO_BUILD:-0}" != "0" ]]; then
+  ARGS+=(--no-build)
 fi
-}
 
-echo "**** Compile ethos"
-cmake --build . --target ethos-eoc -j4
-check_status
-
-echo "**** smt_meta: Run ethos + desugar on $INPUT to generate $STD_DESUGAR_OUT"
-./src/ethos-eoc --plugin.desugar-vc $INPUT >/dev/null
-check_status
-cp $STD_DESUGAR_OUT $DESUGAR
-
-echo "**** smt_meta: Verify it parses"
-./src/ethos-eoc $DESUGAR
-
-rm -f $STD_DESUGAR_OUT
+exec python3 "$SCRIPT_DIR/eoc_driver.py" "${ARGS[@]}"

@@ -1,35 +1,10 @@
 #!/bin/bash
 
-# ****** THIS IS THE MAIN ENTRY POINT FOR VERIFICATION OF EUNOIA **********
-
-# To run this script:
-# ./run_gen_vc <proof-rule-name>
-
-# This will generate a *.smt2 file that encodes the soundness of that proof
-# rule. If the generated *.smt2 is unsat, then the proof rule is shown to be
-# sound by this toolchain.
-
-# Example: (for haniel.smt2)
-# ./run_gen_lean "symm and_elim chain_m_resolution cong scope process_scope implies_elim resolution reordering cnf_and_pos cnf_and_neg"
-
-# The name of a EO signature
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BUILD_DIR="${BUILD_DIR:-$(pwd)}"
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
-#INPUT="../../cvc5-ajr/proofs/eo/alethe/alethe.eo"
-# should be the name of a constant or proof rule in $INPUT
-TARGET=$@
 
-function check_status()
-{
-status=$?
-if [[ $status -eq 0 ]]; then
-  echo "success"
-else
-  exit $status
-fi
-}
+ARGS=(lean --build-dir "$BUILD_DIR" "$INPUT")
+ARGS+=("$@")
 
-echo "**** Compile ethos"
-cmake --build . --target ethos-eoc -j4
-check_status
-
-./run_gen_lean_single $INPUT $@
+exec python3 "$SCRIPT_DIR/eoc_driver.py" "${ARGS[@]}"

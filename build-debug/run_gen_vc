@@ -1,31 +1,13 @@
 #!/bin/bash
 
-# ****** THIS IS THE MAIN ENTRY POINT FOR VERIFICATION OF EUNOIA **********
-
-# To run this script:
-# ./run_gen_vc <proof-rule-name>
-
-# This will generate a *.smt2 file that encodes the soundness of that proof
-# rule. If the generated *.smt2 is unsat, then the proof rule is shown to be
-# sound by this toolchain.
-
-# The name of a EO signature
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BUILD_DIR="${BUILD_DIR:-$(pwd)}"
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
-#INPUT="../../cvc5-ajr/proofs/eo/alethe/alethe.eo"
-# $@ should be the name of >=1 constant or proof rule in $INPUT
 
-function check_status()
-{
-status=$?
-if [[ $status -eq 0 ]]; then
-  echo "success"
-else
-  exit $status
+ARGS=(batch --build-dir "$BUILD_DIR" vc "$INPUT")
+if [[ "${EOC_SKIP_CVC5:-0}" != "0" ]]; then
+  ARGS+=(--skip-cvc5)
 fi
-}
+ARGS+=("$@")
 
-echo "**** Compile ethos"
-cmake --build . --target ethos-eoc -j4
-check_status
-
-./run_gen_vc_single $INPUT $@
+exec python3 "$SCRIPT_DIR/eoc_driver.py" "${ARGS[@]}"

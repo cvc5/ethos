@@ -1,38 +1,15 @@
 #!/bin/bash
 
-TMP_FILE=temp_trim.eo
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BUILD_DIR="${BUILD_DIR:-$(pwd)}"
+ARGS=(trim-defs --build-dir "$BUILD_DIR")
 
-#echo "**** Compile ethos"
-#make -j4
-
-echo "**** run_trim_defs: Write EO to $TMP_FILE"
-# the name of a EO signature
-INPUT=$1
-shift
-# output file
-STD_TRIM_OUT=./out/plugins/trim_defs/trim_gen.eo
-
-echo "(include \"$INPUT\")" > $TMP_FILE
-
-# add commands for each argument
-while [[ $# -gt 0 ]]; do
-  TARGET="$1"
-  echo "(echo \"trim-defs $TARGET\")" >> $TMP_FILE
-  shift
-done
-
-echo "**** run_trim_defs: Run ethos + trim-defs on $TMP_FILE"
-./src/ethos-eoc --plugin.trim-defs $TMP_FILE
-
-#echo "**** Verify it parses"
-#./src/ethos-eoc $OUT_FILE
-
-status=$?
-
-rm -f $TMP_FILE
-
-if [[ $status -eq 0 ]]; then
-  echo "success"
-else
-  exit $status
+if [[ "${EOC_NO_BUILD:-0}" != "0" ]]; then
+  ARGS+=(--no-build)
 fi
+
+ARGS+=("$1")
+shift
+ARGS+=("$@")
+
+exec python3 "$SCRIPT_DIR/eoc_driver.py" "${ARGS[@]}"
