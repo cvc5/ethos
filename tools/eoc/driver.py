@@ -2,8 +2,7 @@
 """
 Unified driver for the optional Eunoia-to-SMT2/Lean compilation pipeline.
 
-This is the canonical source-tree entrypoint for the EOC workflow. The
-legacy wrappers in build-debug/ delegate here for compatibility.
+This is the canonical source-tree entrypoint for the EOC workflow.
 """
 
 from __future__ import annotations

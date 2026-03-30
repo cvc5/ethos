@@ -1,8 +1,0 @@
-#!/bin/bash
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-echo "mkscripts is deprecated: batch wrappers now discover rules directly from the input signature." >&2
-echo "Printing the discovered rule list instead." >&2
-
-exec python3 "$SCRIPT_DIR/eoc_driver.py" list-rules "$@"
