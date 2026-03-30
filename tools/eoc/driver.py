@@ -19,6 +19,7 @@ from typing import Iterable, Optional
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
+DEFAULT_FINAL_OUT_DIR = SCRIPT_DIR / "out"
 DEFAULT_CVC5 = Path("~/bin/cvc5-test").expanduser()
 
 DECLARE_RULE_RE = re.compile(r"^\(declare-rule\s+([^\s(]+)")
@@ -137,13 +138,20 @@ def splice_matching_line(path: Path, needle: str, replacement_path: Path) -> Non
 
 
 class Pipeline:
-    def __init__(self, build_dir: Path, jobs: int, cvc5: Optional[Path]):
+    def __init__(
+        self,
+        build_dir: Path,
+        final_out_dir: Path,
+        jobs: int,
+        cvc5: Optional[Path],
+    ):
         self.build_dir = build_dir.resolve()
+        self.final_out_dir = final_out_dir.resolve()
         self.jobs = jobs
         self.cvc5 = cvc5
         self.binary = self.build_dir / "src" / "ethos-eoc"
-        self.out_dir = self.build_dir / "out"
-        self.plugin_out_dir = self.out_dir / "plugins"
+        self.work_dir = self.build_dir / "out"
+        self.plugin_out_dir = self.work_dir / "plugins"
 
     def run(
         self,
@@ -192,7 +200,7 @@ class Pipeline:
         if not target.is_absolute():
             target = self.build_dir / target
         try:
-            return os.path.relpath(str(target), str(self.out_dir))
+            return os.path.relpath(str(target), str(self.work_dir))
         except ValueError:
             return str(target)
 
@@ -210,7 +218,7 @@ class Pipeline:
         return Path(input_name).stem.lower()
 
     def trim_defs(self, input_name: str, targets: list[str], output_file: Path) -> Path:
-        temp_trim = self.out_dir / "temp_trim.eo"
+        temp_trim = self.work_dir / "temp_trim.eo"
         temp_trim.parent.mkdir(parents=True, exist_ok=True)
         pieces = [f'(include "{self.relative_input_from_out(input_name)}")\n']
         pieces.append((REPO_ROOT / "plugins" / "model_smt" / "term_reduce_deps.eo").read_text())
@@ -292,7 +300,7 @@ class Pipeline:
         return output_file
 
     def lean(self, input_file: Path) -> Path:
-        out_lean = self.out_dir / "lean"
+        out_lean = self.final_out_dir / "lean"
         out_lean.mkdir(parents=True, exist_ok=True)
         self.ethos(["--plugin.lean-meta", self.binary_path_arg(input_file)], quiet=True)
         shutil.copyfile(
@@ -332,12 +340,12 @@ class Pipeline:
         if build_first:
             self.build()
         stem = self.stage_name(input_name)
-        init_trim = self.out_dir / f"trim-{stem}.eo"
-        init_desugar = self.out_dir / f"trim-d-{stem}.eo"
-        vcm_defs = self.out_dir / f"vcm-def-{stem}.eo"
-        vcmt_defs = self.out_dir / f"vcmt-def-{stem}.eo"
+        init_trim = self.work_dir / f"trim-{stem}.eo"
+        init_desugar = self.work_dir / f"trim-d-{stem}.eo"
+        vcm_defs = self.work_dir / f"vcm-def-{stem}.eo"
+        vcmt_defs = self.work_dir / f"vcmt-def-{stem}.eo"
         suffix = "sy" if sygus else "smt2"
-        final_out = self.out_dir / ("sygus" if sygus else "vc") / f"final-{stem}-{target}.{suffix}"
+        final_out = self.final_out_dir / ("sygus" if sygus else "vc") / f"final-{stem}-{target}.{suffix}"
 
         print(
             f"********* {'Searching for counterexamples of' if sygus else 'Verifying the correctness of'} {target} {'via sygus' if sygus else 'via smt2'} *********"
@@ -380,8 +388,8 @@ class Pipeline:
             f"********* Generating Lean for {input_name if all_targets else ' '.join(targets) + ' in ' + input_name} *********"
         )
         if all_targets:
-            init_desugar = self.out_dir / f"lean-{stem}-desugar.eo"
-            final_defs = self.out_dir / f"lean-{stem}-final.eo"
+            init_desugar = self.work_dir / f"lean-{stem}-desugar.eo"
+            final_defs = self.work_dir / f"lean-{stem}-final.eo"
             print(f"**** lean_meta: Run ethos + desugar on {input_name} to generate {init_desugar}")
             self.desugar(
                 input_name,
@@ -394,13 +402,13 @@ class Pipeline:
             self.model_smt(init_desugar, final_defs)
             print("**** lean_meta: Verify ethos parses")
             self.parse_file(final_defs)
-            print(f"**** lean_meta: Generate Lean from {final_defs} to {self.out_dir / 'lean'}")
+            print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
             return self.lean(final_defs)
 
-        init_trim = self.out_dir / f"lean-{stem}-trim.eo"
-        init_desugar = self.out_dir / f"lean-{stem}-desugar.eo"
-        vcm_defs = self.out_dir / f"lean-{stem}-defs.eo"
-        final_defs = self.out_dir / f"lean-{stem}-final.eo"
+        init_trim = self.work_dir / f"lean-{stem}-trim.eo"
+        init_desugar = self.work_dir / f"lean-{stem}-desugar.eo"
+        vcm_defs = self.work_dir / f"lean-{stem}-defs.eo"
+        final_defs = self.work_dir / f"lean-{stem}-final.eo"
         print(
             f'**** lean_meta: Run ethos + trim-defs on {input_name} and "{" ".join(targets)}" to {init_trim}'
         )
@@ -420,13 +428,13 @@ class Pipeline:
         self.trim_defs(self.binary_path_arg(vcm_defs), target_progs, final_defs)
         print("**** lean_meta: Verify ethos parses")
         self.parse_file(final_defs)
-        print(f"**** lean_meta: Generate Lean from {final_defs} to {self.out_dir / 'lean'}")
+        print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
         return self.lean(final_defs)
 
     def run_desugar(self, input_name: str, *, build_first: bool) -> Path:
         if build_first:
             self.build()
-        output = self.out_dir / "desugar.eo"
+        output = self.final_out_dir / "desugar.eo"
         print(f"**** smt_meta: Run ethos + desugar on {input_name} to generate {output}")
         self.desugar(input_name, output, use_vc_plugin=True, deps=None, plugin_label=None)
         print("**** smt_meta: Verify it parses")
@@ -442,9 +450,9 @@ class Pipeline:
     ) -> Path:
         if build_first:
             self.build()
-        init_desugar = self.out_dir / "desugar-pcv.eo"
+        init_desugar = self.work_dir / "desugar-pcv.eo"
         input_file = Path(input_name)
-        final_out = self.out_dir / "pcv" / f"check-{input_file.name}.smt2"
+        final_out = self.final_out_dir / "pcv" / f"check-{input_file.name}.smt2"
         print(f"********* Validating equivalence of proof checking for {input_name} *********")
         print(f"**** smt_meta: Run ethos + desugar on {input_name} to generate {init_desugar}")
         self.desugar(input_name, init_desugar, use_vc_plugin=False, deps=None, plugin_label=None)
@@ -458,13 +466,13 @@ class Pipeline:
     def run_trim_only(self, input_name: str, targets: list[str], *, build_first: bool) -> Path:
         if build_first:
             self.build()
-        output = self.plugin_generated("trim_defs/trim_gen.eo")
+        output = self.final_out_dir / "trim_defs" / "trim_gen.eo"
         print(f"**** run_trim_defs: Run ethos + trim-defs on {input_name}")
         self.trim_defs(input_name, targets, output)
         return output
 
     def clean_final_dir(self, mode: str) -> None:
-        target_dir = self.out_dir / mode
+        target_dir = self.final_out_dir / mode
         if not target_dir.exists():
             return
         for child in target_dir.iterdir():
@@ -488,6 +496,11 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         "--build-dir",
         default=os.getcwd(),
         help="Build directory containing src/ethos-eoc and out/.",
+    )
+    parser.add_argument(
+        "--final-out-dir",
+        default=None,
+        help="Directory for final published outputs. Defaults to $EOC_FINAL_OUT_DIR or tools/eoc/out.",
     )
     parser.add_argument("--jobs", type=int, default=4, help="Parallel build jobs.")
     parser.add_argument(
@@ -569,10 +582,24 @@ def main(argv: list[str]) -> int:
     if getattr(args, "rules_file", None) is not None:
         args.rules_file = str(resolve_path_arg(args.rules_file, cwd=invocation_cwd))
 
+    if getattr(args, "final_out_dir", None) is not None:
+        final_out_dir = resolve_path_arg(args.final_out_dir, cwd=invocation_cwd)
+    else:
+        final_out_env = os.environ.get("EOC_FINAL_OUT_DIR")
+        if final_out_env:
+            final_out_dir = resolve_path_arg(final_out_env, cwd=invocation_cwd)
+        else:
+            final_out_dir = DEFAULT_FINAL_OUT_DIR
+
     cvc5 = None if getattr(args, "skip_cvc5", False) else resolve_cvc5(
         getattr(args, "cvc5", None), cwd=invocation_cwd
     )
-    pipeline = Pipeline(Path(getattr(args, "build_dir", os.getcwd())), getattr(args, "jobs", 4), cvc5)
+    pipeline = Pipeline(
+        Path(getattr(args, "build_dir", os.getcwd())),
+        final_out_dir,
+        getattr(args, "jobs", 4),
+        cvc5,
+    )
     build_first = not getattr(args, "no_build", False)
 
     try:

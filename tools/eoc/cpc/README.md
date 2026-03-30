@@ -25,6 +25,7 @@ Useful environment variables:
 - `EOC_CPC_INPUT=/path/to/Cpc.eo` to override the default CPC signature.
 - `EOC_ALETHE_INPUT=/path/to/Alethe.eo` to override the default Alethe
   signature.
+- `EOC_FINAL_OUT_DIR=/path/to/out` to override the published output tree.
 - `LOGOS_DIR`, `TEST_DIR`, `LOGOS_TESTS_DIR`, `CVC5_LOGOS`, and
   `CPC_GEN_LOGOS_CMD` to override the legacy `install_logos` destinations and
   helper command.

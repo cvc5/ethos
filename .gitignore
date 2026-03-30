@@ -1,4 +1,6 @@
 build
 build-debug
+tools/eoc/out
+tools/eoc/__pycache__
 .vscode
 .DS_Store

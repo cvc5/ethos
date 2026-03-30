@@ -42,20 +42,36 @@ python3 tools/eoc/driver.py vc --build-dir build tests/Booleans-rules.eo and_int
 ```
 
 The input path `tests/Booleans-rules.eo` is interpreted relative to the
-repository root, while generated outputs go under `build/out`.
+repository root. Intermediate working files go under `build/out`, while final
+published outputs go under `tools/eoc/out` by default.
 
 ## Output layout
 
-The driver assumes the standard EOC output location produced by the
-`ethos-eoc` CMake target:
+The driver uses two output trees:
+
+- `<build-dir>/out/` for intermediate EO files and plugin-generated working
+  files
+- `tools/eoc/out/` for final published outputs, unless overridden with
+  `--final-out-dir` or `EOC_FINAL_OUT_DIR`
+
+Working files:
 
 ```text
 <build-dir>/out/
-  desugar.eo
   trim-*.eo
   trim-d-*.eo
   vcm-def-*.eo
   vcmt-def-*.eo
+  plugins/
+    ...
+```
+
+Final outputs:
+
+```text
+tools/eoc/out/
+  desugar.eo
+  trim_defs/trim_gen.eo
   vc/final-*.smt2
   sygus/final-*.sy
   pcv/check-*.smt2
@@ -65,8 +81,6 @@ The driver assumes the standard EOC output location produced by the
     SmtModel.lean
     Spec.lean
     Lemmas.lean
-  plugins/
-    ...
 ```
 
 ## Quick start
@@ -163,7 +177,7 @@ Whole signature:
 python3 tools/eoc/driver.py lean --build-dir build --all INPUT
 ```
 
-Generated files are written to `<build-dir>/out/lean/`.
+Generated files are written to `tools/eoc/out/lean/` by default.
 
 ### `desugar`
 
@@ -176,7 +190,7 @@ python3 tools/eoc/driver.py desugar --build-dir build INPUT
 Output:
 
 ```text
-<build-dir>/out/desugar.eo
+tools/eoc/out/desugar.eo
 ```
 
 ### `pc-valid`
@@ -190,7 +204,7 @@ python3 tools/eoc/driver.py pc-valid --build-dir build INPUT
 Output:
 
 ```text
-<build-dir>/out/pcv/check-<input>.smt2
+tools/eoc/out/pcv/check-<input>.smt2
 ```
 
 ### `trim-defs`
@@ -230,7 +244,7 @@ python3 tools/eoc/driver.py batch --build-dir build sygus INPUT --all-rules --cl
 
 ```bash
 python3 tools/eoc/driver.py lean --build-dir build --all INPUT
-ls build/out/lean
+ls tools/eoc/out/lean
 ```
 
 If you previously used `install_logos` or `install_logos_mini`, compatibility
@@ -268,7 +282,7 @@ build/src/ethos-eoc --plugin.smt-meta-sygus build/out/vcmt-def-booleans-rules.eo
 | `mkscripts INPUT` | `python3 tools/eoc/driver.py list-rules INPUT` |
 | `debug_smt_meta` | Run `build/src/ethos-eoc` directly on files in `<build-dir>/out/` while debugging a late stage |
 | `run_test_plugin` | Use `desugar`, `vc`, `pc-valid`, or direct `ethos-eoc` invocations shown above |
-| `run_sygus_cex FILE.sy` | Invoke your preferred solver directly on `<build-dir>/out/sygus/final-*.sy` |
+| `run_sygus_cex FILE.sy` | Invoke your preferred solver directly on `tools/eoc/out/sygus/final-*.sy` |
 | `install_logos` / `install_logos_mini` | `tools/eoc/cpc/install_logos` / `tools/eoc/cpc/install_logos_mini` |
 
 The old wrapper scripts have been removed so the repository only exposes one
@@ -301,6 +315,5 @@ Either:
 
 ### I want to inspect the generated artifacts directly
 
-Look in `<build-dir>/out/` first. The driver keeps both intermediate EO files
-and final SMT2/SyGuS/Lean outputs there specifically so later stages are easy
-to debug and reuse.
+Look in `tools/eoc/out/` for final published artifacts and `<build-dir>/out/`
+for the intermediate EO stages that feed later plugins.

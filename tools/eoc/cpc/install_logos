@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 BUILD_DIR="$(eoc_build_dir)"
+FINAL_OUT_DIR="$(eoc_final_out_dir)"
 LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
 TEST_DIR="${TEST_DIR:-/local/ajreynol/lean/cpc}"
 LOGOS_TESTS_DIR="${LOGOS_TESTS_DIR:-$HOME/ethos/smtlibTests/logos-tests}"
@@ -14,8 +15,8 @@ CPC_GEN_LOGOS_CMD="${CPC_GEN_LOGOS_CMD:-cpc_gen_logos.sh}"
 echo "********* Generating Lean signature *********"
 "$SCRIPT_DIR/run_gen_lean_all"
 
-eoc_copy_lean_outputs "$LOGOS_DIR/Cpc" "$BUILD_DIR"
-eoc_copy_lean_outputs "$TEST_DIR/Cpc" "$BUILD_DIR"
+eoc_copy_lean_outputs "$LOGOS_DIR/Cpc" "$FINAL_OUT_DIR"
+eoc_copy_lean_outputs "$TEST_DIR/Cpc" "$FINAL_OUT_DIR"
 
 "$SCRIPT_DIR/install_logos_mini"
 

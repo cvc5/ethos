@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 BUILD_DIR="$(eoc_build_dir)"
+FINAL_OUT_DIR="$(eoc_final_out_dir)"
 LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
 SUB_DIR="${SUB_DIR:-CpcMini}"
 read -r -a MINI_TARGETS <<< "${MINI_TARGETS:-symm contra refl scope trans}"
@@ -12,7 +13,7 @@ read -r -a MINI_TARGETS <<< "${MINI_TARGETS:-symm contra refl scope trans}"
 echo "********* Generating Mini-Lean signature *********"
 "$SCRIPT_DIR/run_gen_lean" "${MINI_TARGETS[@]}"
 
-eoc_copy_lean_outputs "$LOGOS_DIR/$SUB_DIR" "$BUILD_DIR"
+eoc_copy_lean_outputs "$LOGOS_DIR/$SUB_DIR" "$FINAL_OUT_DIR"
 
 if [[ -d "$LOGOS_DIR/$SUB_DIR" ]]; then
   (

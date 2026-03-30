@@ -7,6 +7,7 @@ EOC_REPO_ROOT="$(cd "$EOC_COMPAT_DIR/../../.." && pwd)"
 EOC_DRIVER="$EOC_TOOLS_DIR/driver.py"
 EOC_DEFAULT_CPC_INPUT="$EOC_REPO_ROOT/../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
 EOC_DEFAULT_ALETHE_INPUT="$EOC_REPO_ROOT/../AletheInEunoia/signature/Alethe.eo"
+EOC_DEFAULT_FINAL_OUT_DIR="$EOC_TOOLS_DIR/out"
 
 eoc_default_build_dir() {
   if [[ -x "$PWD/src/ethos-eoc" ]]; then
@@ -26,6 +27,10 @@ eoc_cpc_input() {
 
 eoc_alethe_input() {
   printf '%s\n' "${EOC_ALETHE_INPUT:-$EOC_DEFAULT_ALETHE_INPUT}"
+}
+
+eoc_final_out_dir() {
+  printf '%s\n' "${EOC_FINAL_OUT_DIR:-$EOC_DEFAULT_FINAL_OUT_DIR}"
 }
 
 eoc_add_no_build() {
@@ -60,8 +65,8 @@ eoc_run_driver() {
 
 eoc_copy_lean_outputs() {
   local dest_dir="$1"
-  local build_dir="$2"
-  local lean_dir="$build_dir/out/lean"
+  local final_out_dir="$2"
+  local lean_dir="$final_out_dir/lean"
 
   mkdir -p "$dest_dir"
   cp "$lean_dir/Logos.lean" "$dest_dir/Logos.lean"
