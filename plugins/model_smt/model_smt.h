@@ -228,10 +228,12 @@ class ModelSmt : public StdPlugin
   std::map<std::string, std::string> d_auxDef;
   /** Auxiliary definitions on $SMT_EVAL_PROGS$ */
   std::map<std::string, std::string> d_auxSmtEval;
-  /**
-   * SMT-LIB types.
-   */
+  /** SMT-LIB types. */
   std::map<std::string, std::vector<Kind>> d_symTypes;
+  //--------
+  /** special case for eo_to_smt return, for smt supported symbols */
+  std::map<std::string, std::string> d_eoToSmtFullCase;
+  //-------- for defining SMT term type rules
   /** Special cases: d_typeCase is an auxiliary program which will be called */
   std::map<std::string, std::string> d_typeCase;
   /** Specifies a SmtType to fill in as the return */

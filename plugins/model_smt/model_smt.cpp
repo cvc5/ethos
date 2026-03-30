@@ -834,11 +834,17 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                     "($eo_to_smt x2) ($eo_to_smt_nat x3))",
                     true));
   // sequences
-  addReduceSym("seq.empty", {kType}, kAny, "($smtx_empty_seq x1)");
+  addRecReduceSym("seq.empty", {kType}, kAny, "($smtx_empty_seq x1)");
   d_typeFullCase["seq.empty"] = "($smtx_typeof_guard_inhabited x1 ($tsm_Seq x1))";
-  d_recReduce.insert("seq.empty");
-  //d_specialCases["seq.empty"].emplace_back(
-  //    "(seq.empty (Seq Char))", "($sm_string $smt_builtin_str_empty)");
+  d_auxDef["seq.empty"] = R"(
+(program $eo_to_smt_seq.empty ((T $smt_Type))
+  :signature ($smt_Type) $smt_Term
+  (
+  (($eo_to_smt_seq.empty ($tsm_Seq T)) ($sm_seq.empty T))
+  (($eo_to_smt_seq.empty T) $sm_none)
+  )
+))";
+  d_eoToSmtFullCase["seq.empty"] = "($eo_to_smt_seq.empty ($eo_to_smt_type x1))";
   addRecReduceSym("seq.unit", {kAny}, d_kSeq, "($smtx_seq_unit e1)");
   d_typeFullCase["seq.unit"] = smtGuardType1("($smtx_typeof x1)", "($tsm_Seq ($smtx_typeof x1))");
   addRecReduceSym("seq.nth", {d_kSeq, kInt}, kAny, "($smtx_seq_nth M e1 e2)");
@@ -846,9 +852,17 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // sets
   // (Set T) is modelled as (Array T Bool).
   addTypeSym("Set", {kType});
-  addReduceSym("set.empty", {kType}, kAny, "($smtx_empty_set x1)");
+  addRecReduceSym("set.empty", {kType}, kAny, "($smtx_empty_set x1)");
   d_typeFullCase["set.empty"] = "($smtx_typeof_guard_inhabited x1 ($tsm_Set x1))";
-  d_recReduce.insert("set.empty");
+  d_auxDef["set.empty"] = R"(
+(program $eo_to_smt_set.empty ((T $smt_Type))
+  :signature ($smt_Type) $smt_Term
+  (
+  (($eo_to_smt_set.empty ($tsm_Set T)) ($sm_set.empty T))
+  (($eo_to_smt_set.empty T) $sm_none)
+  )
+))";
+  d_eoToSmtFullCase["set.empty"] = "($eo_to_smt_set.empty ($eo_to_smt_type x1))";
   addTermReduceSym("set.singleton", {kAny}, d_kSet, "($smtx_set_singleton x1)");
   d_typeFullCase["set.singleton"] = smtGuardType1("($smtx_typeof x1)", "($tsm_Set ($smtx_typeof x1))");
   addTermReduceSym("set.inter", {d_kSet, d_kSet}, d_kSet, "($smtx_set_inter x1 x2)");
@@ -1090,8 +1104,11 @@ void ModelSmt::addRecReduceSym(const std::string& sym,
   std::stringstream ssend;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
-    ss << "(eo::define ((e" << i << " ($smtx_model_eval M x" << i << "))) ";
-    ssend << ")";
+    if (args[i-1]!=Kind::TYPE)
+    {
+      ss << "(eo::define ((e" << i << " ($smtx_model_eval M x" << i << "))) ";
+      ssend << ")";
+    }
   }
   ss << retTerm << ssend.str();
   addReduceSym(sym, args, ret, ss.str());
@@ -1325,8 +1342,16 @@ void ModelSmt::printDecl(const std::string& name,
   (*out) << "(define " << macroName.str() << " (" << macroVarList.str();
   (*out) << ") " << sret << ")" << std::endl;
   std::string eoToSmtPat = sApply(name, eoToSmtPatArgs.str());
-  std::string eoToSmtRet = sApply(macroName.str(), eoToSmtRetArgs.str());
-  // if a term declaration, write the mapping in eo_to_smt
+  std::string eoToSmtRet;
+  std::map<std::string, std::string>::iterator itf = d_eoToSmtFullCase.find(name);
+  if (itf!=d_eoToSmtFullCase.end())
+  {
+    eoToSmtRet = itf->second;
+  }
+  else
+  {
+    eoToSmtRet = sApply(macroName.str(), eoToSmtRetArgs.str());
+  }
   if (ret == Kind::TYPE)
   {
     d_eoToSmtType << "  (($eo_to_smt_type " << eoToSmtPat << ") " << eoToSmtRet
@@ -1334,6 +1359,7 @@ void ModelSmt::printDecl(const std::string& name,
   }
   else
   {
+    // if a term declaration, write the mapping in eo_to_smt
     d_eoToSmt << "  (($eo_to_smt " << eoToSmtPat << ") " << eoToSmtRet << ")"
               << std::endl;
   }
