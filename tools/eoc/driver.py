@@ -394,7 +394,7 @@ class Pipeline:
         self.model_smt(init_desugar, vcm_defs)
         print(f"**** smt_meta: Run ethos + trim-deps on {vcm_defs} to generate {vcmt_defs}")
         self.trim_defs(self.binary_path_arg(vcm_defs), [f"$eovc_{target}"], vcmt_defs)
-        print("**** smt_meta: Verify ethos parses")
+        print(f"**** smt_meta: Verify ethos parses {vcmt_defs}")
         self.parse_file(vcmt_defs)
         if sygus:
             print(f"**** smt_meta: Generate sygus from {vcmt_defs} to {final_out}")
