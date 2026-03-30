@@ -852,12 +852,12 @@
    (s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Nat) (T $smt_Type) (t $smt_Term))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
+  (($smtx_model_eval_apply v $vsm_not_value)    $vsm_not_value)
   
   (($smtx_model_eval_apply ($vsm_DtCons s d n) i) ($vsm_apply ($vsm_DtCons s d n) i))
   (($smtx_model_eval_apply ($vsm_apply f v) i) ($vsm_apply ($vsm_apply f v) i))
   
   (($smtx_model_eval_apply ($vsm_map m) i) ($smtx_map_select ($vsm_map m) i))
-  
   
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )

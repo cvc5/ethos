@@ -2750,12 +2750,12 @@
    (s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Nat) (T $smt_Type) (t $smt_Term))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
+  (($smtx_model_eval_apply v $vsm_not_value)    $vsm_not_value)
   ; If a Herbrand interpretation, apply it to the next value.
   (($smtx_model_eval_apply ($vsm_DtCons s d n) i) ($vsm_apply ($vsm_DtCons s d n) i))
   (($smtx_model_eval_apply ($vsm_apply f v) i) ($vsm_apply ($vsm_apply f v) i))
   ; The function evaluated to a map value, call the map lookup.
   (($smtx_model_eval_apply ($vsm_map m) i) ($smtx_map_select ($vsm_map m) i))
-  ; FIXME: Lambda case
   ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )

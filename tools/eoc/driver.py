@@ -436,7 +436,7 @@ class Pipeline:
             )
             print(f"**** lean_meta: Run ethos + model-smt on {init_desugar} to generate {final_defs}")
             self.model_smt(init_desugar, final_defs)
-            print("**** lean_meta: Verify ethos parses")
+            print(f"**** lean_meta: Verify ethos parses {final_defs}")
             self.parse_file(final_defs)
             print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
             return self.lean(final_defs)
@@ -462,7 +462,7 @@ class Pipeline:
         target_progs = [f"$eo_prog_{target}" for target in targets]
         print(f"**** lean_meta: Run ethos + trim-deps on {vcm_defs} to generate {final_defs}")
         self.trim_defs(self.binary_path_arg(vcm_defs), target_progs, final_defs)
-        print("**** lean_meta: Verify ethos parses")
+        print(f"**** lean_meta: Verify ethos parses {final_defs}")
         self.parse_file(final_defs)
         print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
         return self.lean(final_defs)

@@ -1070,25 +1070,6 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   (*out) << std::endl;
 }
 
-void LeanMetaReduce::finalizeStandalone()
-{
-  // make the final Lean encoding
-  // plugins/lean_meta/lean_meta.lean is the standalone test
-  std::ifstream in(getResourcePath("plugins/lean_meta/lean_meta.lean"));
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  std::string finalLean = ss.str();
-  replace(finalLean, "$LEAN_DEFS$", d_defs.str());
-  replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
-  replace(finalLean, "$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str());
-  replace(finalLean, "$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str());
-  replace(finalLean, "$LEAN_CHECKER_DEFS$", d_eoChecker.str());
-  std::string outPath = getOutputPath("plugins/lean_meta/lean_meta_gen.lean");
-  Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
-  std::ofstream out(outPath);
-  out << finalLean;
-}
-
 void LeanMetaReduce::finalizeChecker()
 {
   // make the final Lean encoding
@@ -1182,7 +1163,6 @@ void LeanMetaReduce::finalize()
   {
     d_ruleDt << "  | none : CRule" << std::endl;
   }
-  finalizeStandalone();
   // versions that split
   finalizeChecker();
   finalizeSmtModel();

@@ -611,6 +611,8 @@
 
 ; program: $smtx_model_eval_apply
 (define-fun $smtx_model_eval_apply ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
+  (ite (= x2 vsm.NotValue)
+    vsm.NotValue
   (ite ((_ is vsm.DtCons) x1)
     (vsm.Apply (vsm.DtCons (vsm.DtCons.arg1 x1) (vsm.DtCons.arg2 x1) (vsm.DtCons.arg3 x1)) x2)
   (ite ((_ is vsm.Apply) x1)
@@ -618,7 +620,7 @@
   (ite ((_ is vsm.Map) x1)
     ($smtx_map_select (vsm.Map (vsm.Map.arg1 x1)) x2)
     vsm.NotValue
-))))
+)))))
 
 ; fwd-decl: $smtx_model_eval_not
 (declare-fun $smtx_model_eval_not (vsm.Value) vsm.Value)
