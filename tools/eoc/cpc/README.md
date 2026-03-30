@@ -33,10 +33,14 @@ Useful environment variables:
 Examples:
 
 ```bash
-tools/eoc/cpc/run_gen_vc_single tests/Booleans-rules.eo and_intro
-EOC_CPC_INPUT=tests/Booleans-rules.eo tools/eoc/cpc/run_gen_vc_all_cpc
+tools/eoc/cpc/run_gen_vc --solve resolution
+EOC_CPC_INPUT=tests/Booleans-rules.eo tools/eoc/cpc/run_gen_vc_all --solve
 BUILD_DIR=build EOC_NO_BUILD=1 tools/eoc/cpc/run_gen_lean_all
 ```
+
+`run_gen_vc`, `run_gen_vc_all`, `run_gen_sygus`, and `run_gen_sygus_all`
+accept `--solve` to run the configured `cvc5` executable on the generated
+artifact after any parse check.
 
 Compatibility scripts restored from the old workflow:
 

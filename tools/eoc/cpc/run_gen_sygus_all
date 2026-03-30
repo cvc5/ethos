@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Generate SyGuS queries for every discovered rule in the default or explicit INPUT.
-# Usage: run_gen_sygus_all [INPUT]
+# Usage: run_gen_sygus_all [--solve] [INPUT]
 # Output: writes stage EO files under tools/eoc/out/ and final queries under
 # tools/eoc/out/sygus/.
 set -euo pipefail
@@ -9,10 +9,17 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 BUILD_DIR="$(eoc_build_dir)"
-INPUT="${1:-$(eoc_cpc_input)}"
-ARGS=(batch --build-dir "$BUILD_DIR" --clean sygus "$INPUT" --all-rules)
+ARGS=(batch --build-dir "$BUILD_DIR" --clean sygus "" --all-rules)
 
 eoc_add_no_build
 eoc_add_skip_cvc5
+eoc_extract_solve_flag "$@"
+
+if (( ${#EOC_FILTERED_ARGS[@]} > 1 )); then
+  echo "usage: $0 [--solve] [INPUT]" >&2
+  exit 2
+fi
+INPUT="${EOC_FILTERED_ARGS[0]:-$(eoc_cpc_input)}"
+ARGS[5]="$INPUT"
 
 eoc_exec_driver "${ARGS[@]}"

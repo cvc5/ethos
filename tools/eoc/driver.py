@@ -190,6 +190,13 @@ class Pipeline:
             cmd.append("--lang=sygus")
         self.run(cmd)
 
+    def solve_smt(self, filename: Path, *, sygus: bool = False) -> None:
+        cvc5 = self.ensure_cvc5()
+        cmd = [str(cvc5), str(filename)]
+        if sygus:
+            cmd.append("--lang=sygus")
+        self.run(cmd)
+
     def validate_pc(self, filename: Path) -> None:
         cvc5 = self.ensure_cvc5()
         self.run([str(cvc5), str(filename), "--parse-only"])
@@ -290,13 +297,18 @@ class Pipeline:
         *,
         sygus: bool,
         validate_with_cvc5: bool,
+        solve_with_cvc5: bool,
     ) -> Path:
         option = "--plugin.smt-meta-sygus" if sygus else "--plugin.smt-meta"
         self.ethos([option, self.binary_path_arg(input_file)], quiet=True)
         output_file.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(self.plugin_generated("smt_meta/smt_meta_gen.smt2"), output_file)
         if validate_with_cvc5:
+            print(f"**** smt_meta: Verify cvc5 parses {output_file}")
             self.validate_smt(output_file, sygus=sygus)
+        if solve_with_cvc5:
+            print(f"**** smt_meta: Run cvc5 on {output_file}")
+            self.solve_smt(output_file, sygus=sygus)
         return output_file
 
     def lean(self, input_file: Path) -> Path:
@@ -336,6 +348,7 @@ class Pipeline:
         sygus: bool,
         build_first: bool,
         validate_with_cvc5: bool,
+        solve_with_cvc5: bool,
     ) -> Path:
         if build_first:
             self.build()
@@ -370,7 +383,13 @@ class Pipeline:
             print(f"**** smt_meta: Generate sygus from {vcmt_defs} to {final_out}")
         else:
             print(f"**** smt_meta: Generate SMT2 from {vcmt_defs} to {final_out}")
-        self.smt_meta(vcmt_defs, final_out, sygus=sygus, validate_with_cvc5=validate_with_cvc5)
+        self.smt_meta(
+            vcmt_defs,
+            final_out,
+            sygus=sygus,
+            validate_with_cvc5=validate_with_cvc5,
+            solve_with_cvc5=solve_with_cvc5,
+        )
         return final_out
 
     def run_lean(
@@ -529,6 +548,11 @@ def main(argv: list[str]) -> int:
     vc.add_argument("input")
     vc.add_argument("target")
     vc.add_argument("--sygus", action="store_true")
+    vc.add_argument(
+        "--solve",
+        action="store_true",
+        help="Run cvc5 on the generated VC or SyGuS file after optional parse checks.",
+    )
 
     lean = subparsers.add_parser("lean", help="Generate Lean output for selected rules.")
     add_common_args(lean)
@@ -569,6 +593,11 @@ def main(argv: list[str]) -> int:
     batch.add_argument("--rules-file")
     batch.add_argument("--clean", action="store_true", help="Delete existing final outputs first.")
     batch.add_argument(
+        "--solve",
+        action="store_true",
+        help="Run cvc5 on each generated VC or SyGuS file after optional parse checks.",
+    )
+    batch.add_argument(
         "--keep-going",
         action="store_true",
         help="Continue after a failing rule and report all failures.",
@@ -591,9 +620,8 @@ def main(argv: list[str]) -> int:
         else:
             final_out_dir = DEFAULT_FINAL_OUT_DIR
 
-    cvc5 = None if getattr(args, "skip_cvc5", False) else resolve_cvc5(
-        getattr(args, "cvc5", None), cwd=invocation_cwd
-    )
+    need_cvc5 = not getattr(args, "skip_cvc5", False) or getattr(args, "solve", False)
+    cvc5 = resolve_cvc5(getattr(args, "cvc5", None), cwd=invocation_cwd) if need_cvc5 else None
     pipeline = Pipeline(
         Path(getattr(args, "build_dir", os.getcwd())),
         final_out_dir,
@@ -610,6 +638,7 @@ def main(argv: list[str]) -> int:
                 sygus=args.sygus,
                 build_first=build_first,
                 validate_with_cvc5=not args.skip_cvc5,
+                solve_with_cvc5=args.solve,
             )
         elif args.command == "lean":
             if not args.all and not args.targets:
@@ -655,6 +684,7 @@ def main(argv: list[str]) -> int:
                         sygus=args.mode == "sygus",
                         build_first=False,
                         validate_with_cvc5=not args.skip_cvc5,
+                        solve_with_cvc5=args.solve,
                     )
                 except subprocess.CalledProcessError:
                     failures.append(rule)

@@ -48,6 +48,22 @@ eoc_add_skip_cvc5() {
   fi
 }
 
+eoc_extract_solve_flag() {
+  local saw_solve=0
+  local arg
+  EOC_FILTERED_ARGS=()
+  for arg in "$@"; do
+    if [[ "$arg" == "--solve" ]]; then
+      saw_solve=1
+    else
+      EOC_FILTERED_ARGS+=("$arg")
+    fi
+  done
+  if (( saw_solve )); then
+    ARGS+=(--solve)
+  fi
+}
+
 eoc_require_args() {
   local usage="$1"
   local expected="$2"

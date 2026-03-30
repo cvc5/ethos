@@ -138,6 +138,7 @@ Useful options:
 
 - `--sygus`: generate a SyGuS query instead of SMT2
 - `--skip-cvc5`: skip parse checks with `cvc5`
+- `--solve`: run `cvc5` on the generated VC or SyGuS file after optional parse checks
 - `--no-build`: do not rebuild `ethos-eoc` first
 - `--cvc5 /path/to/cvc5`: override the solver used for parse checks
 
@@ -156,6 +157,7 @@ Useful options:
 - `--clean`: remove old files from `out/vc` or `out/sygus` first
 - `--keep-going`: continue after failures and report all failed rules
 - `--skip-cvc5`
+- `--solve`
 - `--no-build`
 
 ### `lean`
