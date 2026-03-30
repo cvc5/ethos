@@ -708,8 +708,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ///----- non standard extensions and skolems
   // builtin
   // one variable at a time, $sm_lambda is hardcoded
-  addEunoiaReduceSym(
-      "lambda", {kT, kT}, "($eo_to_smt_lambda x1 ($eo_to_smt x2))");
+  //addEunoiaReduceSym(
+  //    "lambda", {kT, kT}, "($eo_to_smt_lambda x1 ($eo_to_smt x2))");
   addEunoiaReduceSym("@purify", {kT}, "($eo_to_smt x1)");
   // arithmetic
   addConstFoldSym("int.pow2", {kInt}, kInt);
@@ -1002,12 +1002,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       {kT, kT},
       smtToSmtEmbed("(div (- (str.len ($eo_to_smt x1)) (str.len (str.replace_all ($eo_to_smt "
       "x1) ($eo_to_smt x2) (seq.empty $tsm_String)))) (str.len ($eo_to_smt x2)))", true));
+  // ignore, not in proof rules (NOTE: could be SMT const?)
+  d_symIgnore["@const"] = true;
   // FIXME: unhandled
   d_symIgnore["@strings_num_occur_re"] = true;
   d_symIgnore["@strings_occur_index"] = true;
   d_symIgnore["@strings_occur_index_re"] = true;
   d_symIgnore["@strings_replace_all_result"] = true;
-  d_symIgnore["@const"] = true;
+  d_symIgnore["lambda"] = true;
 
   // for alethe
   addEunoiaReduceSym("@cl", {kT, kT}, "($eo_to_smt (or x1 x2))");

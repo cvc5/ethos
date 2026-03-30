@@ -1886,9 +1886,9 @@
 (define $sm_forall ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.forall s T))
   
 ; lambda
-(declare-parameterized-const $emb_sm.lambda
-  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
-(define $sm_lambda ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.lambda s T))
+;(declare-parameterized-const $emb_sm.lambda
+;  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
+;(define $sm_lambda ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.lambda s T))
 
 ; choice
 (declare-parameterized-const $emb_sm.choice
@@ -3305,23 +3305,23 @@
   :signature ($eo_List $smt_Term) $smt_Term
   (
   (($eo_to_smt_exists $eo_List_nil F) F)
-  (($eo_to_smt_exists ($eo_List ($eot_Var s T) vs) F)
+  (($eo_to_smt_exists ($eo_List_cons ($eot_Var s T) vs) F)
     ($sm_apply ($sm_exists s ($eo_to_smt_type T)) ($eo_to_smt_exists vs F)))
   (($eo_to_smt_exists vs F) $sm_none)
   )
 )
 
 ; NOTE: maybe combine with above?
-(program $eo_to_smt_lambda
-  ((s $smt_builtin_String) (T $eo_Term) (vs $eo_List :list) (F $eo_Term))
-  :signature ($eo_List $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_lambda $eo_List_nil F) F)
-  (($eo_to_smt_lambda ($eo_List ($eot_Var s T) vs) F)
-    ($sm_apply ($sm_lambda s ($eo_to_smt_type T)) ($eo_to_smt_lambda vs F)))
-  (($eo_to_smt_lambda vs F) $sm_none)
-  )
-)
+;(program $eo_to_smt_lambda
+;  ((s $smt_builtin_String) (T $eo_Term) (vs $eo_List :list) (F $eo_Term))
+;  :signature ($eo_List $smt_Term) $smt_Term
+;  (
+;  (($eo_to_smt_lambda $eo_List_nil F) F)
+;  (($eo_to_smt_lambda ($eo_List ($eot_Var s T) vs) F)
+;    ($sm_apply ($sm_lambda s ($eo_to_smt_type T)) ($eo_to_smt_lambda vs F)))
+;  (($eo_to_smt_lambda vs F) $sm_none)
+;  )
+;)
 
 
 (program $eo_to_smt 
