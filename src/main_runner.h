@@ -6,24 +6,21 @@
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
  ******************************************************************************/
+#ifndef ETHOS_MAIN_RUNNER_H
+#define ETHOS_MAIN_RUNNER_H
 
-#include "main_runner.h"
+#include <memory>
 
-#include "base/check.h"
+#include "plugin.h"
+#include "state.h"
 
-using namespace ethos;
+namespace ethos {
 
-namespace {
+using PluginFactory = std::unique_ptr<Plugin> (*)(Options&, State&);
 
-std::unique_ptr<Plugin> createPlugin(Options& opts, State&)
-{
-  if (hasPluginRequest(opts))
-  {
-    EO_FATAL() << "Error: plugin options are only available in ethos-eoc";
-  }
-  return nullptr;
-}
+bool hasPluginRequest(const Options& opts);
+int runMain(int argc, char* argv[], PluginFactory pluginFactory);
 
-}  // namespace
+}  // namespace ethos
 
-int main(int argc, char* argv[]) { return runMain(argc, argv, createPlugin); }
+#endif
