@@ -171,6 +171,9 @@ class Pipeline:
             stdout=stdout,
         )
 
+    def format_cmd(self, cmd: list[str]) -> str:
+        return shlex.join(cmd)
+
     def build(self) -> None:
         self.run(
             ["cmake", "--build", ".", "--target", "ethos-eoc", f"-j{self.jobs}"]
@@ -186,25 +189,33 @@ class Pipeline:
             )
         return self.cvc5
 
-    def validate_smt(self, filename: Path, *, sygus: bool = False) -> None:
-        cvc5 = self.ensure_cvc5()
-        cmd = [str(cvc5), str(filename), "--parse-only"]
+    def cvc5_validate_cmd(self, filename: Path, *, sygus: bool = False) -> list[str]:
+        cmd = [str(self.ensure_cvc5()), str(filename), "--parse-only"]
         if sygus:
             cmd.append("--lang=sygus")
-        self.run(cmd)
+        return cmd
 
-    def solve_smt(self, filename: Path, *, sygus: bool = False) -> None:
-        cvc5 = self.ensure_cvc5()
-        cmd = [str(cvc5), str(filename)]
+    def cvc5_solve_cmd(self, filename: Path, *, sygus: bool = False) -> list[str]:
+        cmd = [str(self.ensure_cvc5()), str(filename)]
         if sygus:
             cmd.append("--lang=sygus")
         cmd.extend(self.solve_args)
-        self.run(cmd)
+        return cmd
+
+    def cvc5_pc_validate_cmds(self, filename: Path) -> tuple[list[str], list[str]]:
+        cvc5 = str(self.ensure_cvc5())
+        return ([cvc5, str(filename), "--parse-only"], [cvc5, str(filename)])
+
+    def validate_smt(self, filename: Path, *, sygus: bool = False) -> None:
+        self.run(self.cvc5_validate_cmd(filename, sygus=sygus))
+
+    def solve_smt(self, filename: Path, *, sygus: bool = False) -> None:
+        self.run(self.cvc5_solve_cmd(filename, sygus=sygus))
 
     def validate_pc(self, filename: Path) -> None:
-        cvc5 = self.ensure_cvc5()
-        self.run([str(cvc5), str(filename), "--parse-only"])
-        self.run([str(cvc5), str(filename)])
+        parse_cmd, solve_cmd = self.cvc5_pc_validate_cmds(filename)
+        self.run(parse_cmd)
+        self.run(solve_cmd)
 
     def relative_input_from_out(self, input_name: str) -> str:
         target = Path(input_name)
@@ -308,10 +319,12 @@ class Pipeline:
         output_file.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(self.plugin_generated("smt_meta/smt_meta_gen.smt2"), output_file)
         if validate_with_cvc5:
-            print(f"**** smt_meta: Verify cvc5 parses {output_file}")
+            cmd = self.cvc5_validate_cmd(output_file, sygus=sygus)
+            print(f"**** smt_meta: Verify cvc5 parses via {self.format_cmd(cmd)}")
             self.validate_smt(output_file, sygus=sygus)
         if solve_with_cvc5:
-            print(f"**** smt_meta: Run cvc5 on {output_file}")
+            cmd = self.cvc5_solve_cmd(output_file, sygus=sygus)
+            print(f"**** smt_meta: Run cvc5 via {self.format_cmd(cmd)}")
             self.solve_smt(output_file, sygus=sygus)
         return output_file
 
@@ -480,9 +493,17 @@ class Pipeline:
         print(f"**** smt_meta: Run ethos + desugar on {input_name} to generate {init_desugar}")
         self.desugar(input_name, init_desugar, use_vc_plugin=False, deps=None, plugin_label=None)
         print(f"**** smt_meta: Generate SMT2 from {init_desugar} to {final_out}")
-        self.smt_meta(init_desugar, final_out, sygus=False, validate_with_cvc5=False)
+        self.smt_meta(
+            init_desugar,
+            final_out,
+            sygus=False,
+            validate_with_cvc5=False,
+            solve_with_cvc5=False,
+        )
         if validate_with_cvc5:
-            print("**** smt_meta: Verify cvc5 parses")
+            parse_cmd, solve_cmd = self.cvc5_pc_validate_cmds(final_out)
+            print(f"**** smt_meta: Verify cvc5 parses via {self.format_cmd(parse_cmd)}")
+            print(f"**** smt_meta: Run cvc5 via {self.format_cmd(solve_cmd)}")
             self.validate_pc(final_out)
         return final_out
 
@@ -670,6 +691,12 @@ def main(argv: list[str]) -> int:
             )
         elif args.command == "desugar":
             pipeline.run_desugar(args.input, build_first=build_first)
+        elif args.command == "pc-valid":
+            pipeline.run_pc_valid(
+                args.input,
+                build_first=build_first,
+                validate_with_cvc5=not args.skip_cvc5,
+            )
         elif args.command == "trim-defs":
             pipeline.run_trim_only(
                 args.input,
