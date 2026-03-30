@@ -150,8 +150,8 @@ class Pipeline:
         self.jobs = jobs
         self.cvc5 = cvc5
         self.binary = self.build_dir / "src" / "ethos-eoc"
-        self.work_dir = self.build_dir / "out"
-        self.plugin_out_dir = self.work_dir / "plugins"
+        self.stage_out_dir = self.final_out_dir
+        self.plugin_out_dir = self.build_dir / "out" / "plugins"
 
     def run(
         self,
@@ -200,7 +200,7 @@ class Pipeline:
         if not target.is_absolute():
             target = self.build_dir / target
         try:
-            return os.path.relpath(str(target), str(self.work_dir))
+            return os.path.relpath(str(target), str(self.stage_out_dir))
         except ValueError:
             return str(target)
 
@@ -218,7 +218,7 @@ class Pipeline:
         return Path(input_name).stem.lower()
 
     def trim_defs(self, input_name: str, targets: list[str], output_file: Path) -> Path:
-        temp_trim = self.work_dir / "temp_trim.eo"
+        temp_trim = self.stage_out_dir / "temp_trim.eo"
         temp_trim.parent.mkdir(parents=True, exist_ok=True)
         pieces = [f'(include "{self.relative_input_from_out(input_name)}")\n']
         pieces.append((REPO_ROOT / "plugins" / "model_smt" / "term_reduce_deps.eo").read_text())
@@ -340,10 +340,10 @@ class Pipeline:
         if build_first:
             self.build()
         stem = self.stage_name(input_name)
-        init_trim = self.work_dir / f"trim-{stem}.eo"
-        init_desugar = self.work_dir / f"trim-d-{stem}.eo"
-        vcm_defs = self.work_dir / f"vcm-def-{stem}.eo"
-        vcmt_defs = self.work_dir / f"vcmt-def-{stem}.eo"
+        init_trim = self.stage_out_dir / f"trim-{stem}.eo"
+        init_desugar = self.stage_out_dir / f"trim-d-{stem}.eo"
+        vcm_defs = self.stage_out_dir / f"vcm-def-{stem}.eo"
+        vcmt_defs = self.stage_out_dir / f"vcmt-def-{stem}.eo"
         suffix = "sy" if sygus else "smt2"
         final_out = self.final_out_dir / ("sygus" if sygus else "vc") / f"final-{stem}-{target}.{suffix}"
 
@@ -388,8 +388,8 @@ class Pipeline:
             f"********* Generating Lean for {input_name if all_targets else ' '.join(targets) + ' in ' + input_name} *********"
         )
         if all_targets:
-            init_desugar = self.work_dir / f"lean-{stem}-desugar.eo"
-            final_defs = self.work_dir / f"lean-{stem}-final.eo"
+            init_desugar = self.stage_out_dir / f"lean-{stem}-desugar.eo"
+            final_defs = self.stage_out_dir / f"lean-{stem}-final.eo"
             print(f"**** lean_meta: Run ethos + desugar on {input_name} to generate {init_desugar}")
             self.desugar(
                 input_name,
@@ -405,10 +405,10 @@ class Pipeline:
             print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
             return self.lean(final_defs)
 
-        init_trim = self.work_dir / f"lean-{stem}-trim.eo"
-        init_desugar = self.work_dir / f"lean-{stem}-desugar.eo"
-        vcm_defs = self.work_dir / f"lean-{stem}-defs.eo"
-        final_defs = self.work_dir / f"lean-{stem}-final.eo"
+        init_trim = self.stage_out_dir / f"lean-{stem}-trim.eo"
+        init_desugar = self.stage_out_dir / f"lean-{stem}-desugar.eo"
+        vcm_defs = self.stage_out_dir / f"lean-{stem}-defs.eo"
+        final_defs = self.stage_out_dir / f"lean-{stem}-final.eo"
         print(
             f'**** lean_meta: Run ethos + trim-defs on {input_name} and "{" ".join(targets)}" to {init_trim}'
         )
@@ -450,7 +450,7 @@ class Pipeline:
     ) -> Path:
         if build_first:
             self.build()
-        init_desugar = self.work_dir / "desugar-pcv.eo"
+        init_desugar = self.stage_out_dir / "desugar-pcv.eo"
         input_file = Path(input_name)
         final_out = self.final_out_dir / "pcv" / f"check-{input_file.name}.smt2"
         print(f"********* Validating equivalence of proof checking for {input_name} *********")

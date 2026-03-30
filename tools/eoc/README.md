@@ -42,35 +42,32 @@ python3 tools/eoc/driver.py vc --build-dir build tests/Booleans-rules.eo and_int
 ```
 
 The input path `tests/Booleans-rules.eo` is interpreted relative to the
-repository root. Intermediate working files go under `build/out`, while final
-published outputs go under `tools/eoc/out` by default.
+repository root. The driver writes its EO stage files and final published
+outputs under `tools/eoc/out` by default.
 
 ## Output layout
 
 The driver uses two output trees:
 
-- `<build-dir>/out/` for intermediate EO files and plugin-generated working
-  files
-- `tools/eoc/out/` for final published outputs, unless overridden with
-  `--final-out-dir` or `EOC_FINAL_OUT_DIR`
+- `tools/eoc/out/` for stage EO files and final published outputs, unless
+  overridden with `--final-out-dir` or `EOC_FINAL_OUT_DIR`
+- `<build-dir>/out/plugins/` for plugin-private generated files consumed by the
+  driver
 
-Working files:
+Published and stage files:
 
 ```text
-<build-dir>/out/
+tools/eoc/out/
   trim-*.eo
   trim-d-*.eo
   vcm-def-*.eo
   vcmt-def-*.eo
-  plugins/
-    ...
-```
-
-Final outputs:
-
-```text
-tools/eoc/out/
   desugar.eo
+  desugar-pcv.eo
+  lean-*-trim.eo
+  lean-*-desugar.eo
+  lean-*-defs.eo
+  lean-*-final.eo
   trim_defs/trim_gen.eo
   vc/final-*.smt2
   sygus/final-*.sy
@@ -249,21 +246,21 @@ ls tools/eoc/out/lean
 
 If you previously used `install_logos` or `install_logos_mini`, compatibility
 wrappers now live under `tools/eoc/cpc/`. They still run the `lean` pipeline
-through `driver.py`, then copy the generated Lean files into your downstream
-Logos trees using the old default paths unless you override them with
-environment variables.
+through `driver.py`, then copy the generated Lean files from `tools/eoc/out/lean`
+into your downstream Logos trees using the old default paths unless you
+override them with environment variables.
 
 ### Manually inspect or debug intermediate files
 
-The driver writes intermediate EO files into `<build-dir>/out/`. You can pass
-those directly to `ethos-eoc` if you want to debug a later stage manually.
+The driver writes the staged EO files into `tools/eoc/out/`. You can pass those
+directly to `ethos-eoc` if you want to debug a later stage manually.
 
 Examples:
 
 ```bash
-build/src/ethos-eoc build/out/trim-d-booleans-rules.eo
-build/src/ethos-eoc --plugin.smt-meta build/out/vcmt-def-booleans-rules.eo
-build/src/ethos-eoc --plugin.smt-meta-sygus build/out/vcmt-def-booleans-rules.eo
+build/src/ethos-eoc tools/eoc/out/trim-d-booleans-rules.eo
+build/src/ethos-eoc --plugin.smt-meta tools/eoc/out/vcmt-def-booleans-rules.eo
+build/src/ethos-eoc --plugin.smt-meta-sygus tools/eoc/out/vcmt-def-booleans-rules.eo
 ```
 
 ## Migration from the old `build-debug` scripts
@@ -280,7 +277,7 @@ build/src/ethos-eoc --plugin.smt-meta-sygus build/out/vcmt-def-booleans-rules.eo
 | `run_gen_pc_valid INPUT` | `python3 tools/eoc/driver.py pc-valid --build-dir build INPUT` |
 | `run_trim_defs INPUT TARGET...` | `python3 tools/eoc/driver.py trim-defs --build-dir build INPUT TARGET...` |
 | `mkscripts INPUT` | `python3 tools/eoc/driver.py list-rules INPUT` |
-| `debug_smt_meta` | Run `build/src/ethos-eoc` directly on files in `<build-dir>/out/` while debugging a late stage |
+| `debug_smt_meta` | Run `build/src/ethos-eoc` directly on files in `tools/eoc/out/` while debugging a late stage |
 | `run_test_plugin` | Use `desugar`, `vc`, `pc-valid`, or direct `ethos-eoc` invocations shown above |
 | `run_sygus_cex FILE.sy` | Invoke your preferred solver directly on `tools/eoc/out/sygus/final-*.sy` |
 | `install_logos` / `install_logos_mini` | `tools/eoc/cpc/install_logos` / `tools/eoc/cpc/install_logos_mini` |
@@ -315,5 +312,14 @@ Either:
 
 ### I want to inspect the generated artifacts directly
 
-Look in `tools/eoc/out/` for final published artifacts and `<build-dir>/out/`
-for the intermediate EO stages that feed later plugins.
+Look in `tools/eoc/out/` for both the staged EO artifacts and the final
+published outputs. The plugin-private scratch files remain under
+`<build-dir>/out/plugins/`.
+```
+
+Plugin-private outputs:
+
+```text
+<build-dir>/out/plugins/
+  ...
+```
