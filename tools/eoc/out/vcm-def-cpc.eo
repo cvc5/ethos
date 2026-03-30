@@ -339,6 +339,7 @@
   ($smt_apply_4 "binary_extract" w n x1 x2))
 
 
+
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term).
 ; Opaque arguments of a symbol X will be an argument of the constructor eo.X.
@@ -1184,6 +1185,7 @@
   (($eo_dt_selectors t) ($eo_dt_selectors_main t))
   )
 )
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; desugar core
 

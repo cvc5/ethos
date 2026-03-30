@@ -1,0 +1,3696 @@
+; This file is used for bootstrapping the semantics of Eunoia.
+; We use a naming convention where eo:: operators are defined as ordinary
+; programs with prefix $eo_. We additionally setup further desugaring
+; to be done in later stages. Overall, this includes:
+; 1. Definition of the builtin Eunoia list.
+; 2. A definition of $eo_eq.
+; 3. Definition of derived list operators.
+; 4. Definition of $eo_cons and (a template for) $eo_nil.
+; 5. Definition of a template of $eo_typeof_main, which is used in
+;    part to define $eo_typeof.
+; 6. Templates for $eo_dt_constructors_main and $eo_dt_selectors_main, which are
+;    used to define $eo_dt_constructors and $eo_dt_selectors.
+; 7. A placeholder command echo "include eo_builtin_smt" to specify
+;    where further eo:: builtins should be defined.
+; 8. Placeholders for defining a test environment for analyzing properties
+;    of proof rules ($eo_model_eval/$eo_model_typeof/$eo_model_is_input).
+; This file contains templates $EO_*$ which are automatically filled in
+; by user definitions. This includes:
+; 1. The literal type definitions (EO_LITERAL_TYPE_DECL).
+; 2. All user declarations and definitions (EO_DEFS).
+; 3. Cases of $eo_dt_constructors_main, $eo_dt_selectors_main, $eo_nil,
+;    $eo_typeof_main.
+; 4. A verification condition (EO_VC).
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; proofs
+
+; The return type of proof rules.
+(declare-const $eo_Proof Type)
+; Constructor of proofs, takes a formula that is proven.
+(declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; literal types
+
+; declare: Int
+(declare-const Int Type)
+; type-rules: NUMERAL
+(declare-consts <numeral> Int)
+; type-rules: NUMERAL
+(define $eo_Numeral () Int)
+; declare: Real
+(declare-const Real Type)
+; type-rules: RATIONAL
+(declare-consts <rational> Real)
+; type-rules: RATIONAL
+(define $eo_Rational () Real)
+; declare: BitVec
+(declare-const BitVec (-> Int Type))
+; type-rules: BINARY
+(declare-consts <binary> (BitVec (eo::len eo::self)))
+; (approx) type-rules: BINARY
+(define $eo_Binary () (BitVec 1))
+; declare: Char
+(declare-const Char Type)
+; declare: Seq
+(declare-const Seq (-> Type Type))
+; type-rules: STRING
+(declare-consts <string> (Seq Char))
+; type-rules: STRING
+(define $eo_String () (Seq Char))
+
+
+;;; $eo_List
+
+; The builtin Eunoia list.
+(declare-const $eo_List Type)
+(declare-const $eo_List_nil $eo_List)
+(declare-parameterized-const $eo_List_cons ((T Type :implicit))
+  (-> T $eo_List $eo_List))
+
+;;; forward declarations
+
+; forward declaration
+(program $eo_typeof ((T Type)) :signature (T) Type)
+
+; forward declaration
+(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
+  :signature ((-> T U V) (eo::quote W)) W)
+
+; forward declaration
+(program $eo_is_list_nil ((T Type) (V Type))
+  :signature ((-> T V V) V) Bool)
+
+; forward declaration
+(program $eo_dt_constructors () :signature (Type) $eo_List)
+
+; forward declaration
+(program $eo_dt_selectors ((T Type)) :signature (T) $eo_List)
+
+;;; core utilities
+
+; The methods in this section are temporary definitions to eliminate
+; dependencies on other builtin constructs.
+
+; note: This is used to ensure signature does not depend on ite.
+(program $eo_prepend_if ((T Type) (V Type) (x T) (f (-> T V V)) (res V))
+  :signature (Bool (-> T V V) V V) V
+  (
+  (($eo_prepend_if true f x res)  (f x res))
+  (($eo_prepend_if false f x res) res)
+  )
+)
+
+;;; Core SMT-like builtins
+
+; We use a "lazy" include style that allows this file to
+; be parsable without including the file.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; eo_builtin_smt
+
+; This will contain the definitions of eo::add, etc.
+; It is (for now) specific to a deep embedding into SMT.
+; This file defines the semantics of Eunoia operators that require calling
+; SMT-LIB like computations.
+
+; Embedding into SMT operators, which defines $smt_builtin_*, $smt_apply_* etc.
+; This file defines a deep embedding of SMT-LIB into Eunoia.
+; It has the following uses:
+; 1. To give an SMT-LIB specific bootstrapping of the SMT-LIB inspired builtin
+;    Eunoia functions, e.g. $eo_add.
+; 2. It is used to define the end signature for defining the model semantics of
+;    SMT-LIB.
+
+; The type of $smt_apply_* terms.
+; If a term has this type, we know it is an SMT-LIB type,
+; but we don't know which one from ordinary type checking.
+(declare-const $smt_BuiltinType Type)
+
+;;; Deep embedding of SMT-LIB operator applications into Eunoia
+
+; Apply the SMT operator named "op" to x1, x2, and so on.
+; Assumes arity of SMT-LIB operators are at most 5.
+(declare-parameterized-const $smt_type_0
+  (($smt_id Type :implicit) (op $smt_id :opaque))
+  Type)
+(declare-parameterized-const $smt_type_1
+  (($smt_id Type :implicit) (W1 Type :implicit) (op $smt_id :opaque) (x1 W1 :opaque))
+  Type)
+(declare-parameterized-const $smt_type_2
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque))
+  Type)
+; A datatype we are using in the final embedding
+(declare-parameterized-const $smt_datatype
+  (($smt_id Type :implicit) (op $smt_id :opaque))
+  Type)
+(declare-parameterized-const $smt_apply_0
+  (($smt_id Type :implicit) (op $smt_id :opaque))
+  $smt_BuiltinType)
+(declare-parameterized-const $smt_apply_1
+  (($smt_id Type :implicit) (W1 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque)) $smt_BuiltinType)
+(declare-parameterized-const $smt_apply_2
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $smt_BuiltinType)
+(declare-parameterized-const $smt_apply_3
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque)) $smt_BuiltinType)
+(declare-parameterized-const $smt_apply_4
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
+   (W3 Type :implicit) (W4 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque)) $smt_BuiltinType)
+(declare-parameterized-const $smt_apply_5
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
+   (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $smt_BuiltinType)
+
+(define $smt_builtin_Bool () ($smt_type_0 "Bool"))
+(define $smt_builtin_Int () ($smt_type_0 "Int"))
+(define $smt_builtin_Real () ($smt_type_0 "Real"))
+(define $smt_builtin_Rat () ($smt_type_0 "Rat"))
+(define $smt_builtin_String () ($smt_type_0 "String"))
+(define $smt_builtin_Char () ($smt_type_0 "Char"))
+(define $smt_builtin_RegLan () ($smt_type_0 "RegLan"))
+(define $smt_builtin_true () ($smt_apply_0 "true"))
+(define $smt_builtin_false () ($smt_apply_0 "false"))
+(define $smt_builtin_ite ((W Type :implicit) (b $smt_builtin_Bool) (x1 W) (x2 W)) ($smt_apply_3 "ite" b x1 x2))
+(define $smt_builtin_z_zero () ($smt_apply_0 "0"))
+(define $smt_builtin_z_one () ($smt_apply_0 "1"))
+(define $smt_builtin_z_two () ($smt_apply_0 "2"))
+; strings
+(define $smt_builtin_z_max_code () ($smt_apply_0 "196608"))
+(define $smt_builtin_z_max_width () ($smt_apply_0 "4294967296"))
+(define $smt_builtin_str_empty () ($smt_apply_0 """"""))
+(define $smt_builtin_str_tuple_name () ($smt_apply_0 """@Tuple"""))
+(define $smt_builtin_str_vname () ($smt_apply_0 """@x"""))
+(define $smt_builtin_str_c0 () ($smt_apply_0 """0"""))
+(define $smt_builtin_str_c9 () ($smt_apply_0 """9"""))
+(define $smt_builtin_str_= ((x1 $smt_builtin_String) (x2 $smt_builtin_String)) ($smt_apply_2 "streq" x1 x2))
+(define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
+(define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
+(define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or" b1 b2))
+(define $smt_builtin_xor ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "xor" b1 b2))
+(define $smt_builtin_iff ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "iff" b1 b2))
+; Integer operators
+; These assume zeq, zleq, zlt, zplus, zmult, zneg are defined as =, <=, <, +, *, -
+(define $smt_builtin_z_= ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zeq" x1 x2))
+(define $smt_builtin_z_<= ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zleq" x1 x2))
+(define $smt_builtin_z_< ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zlt" x1 x2))
+(define $smt_builtin_z_+ ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zplus" x1 x2))
+(define $smt_builtin_z_* ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zmult" x1 x2))
+(define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
+(define $smt_builtin_z_- ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_z_+ x1 ($smt_builtin_z_neg x2)))
+(define $smt_builtin_z_pow2 ((W Type :implicit) (x1 W)) ($smt_apply_1 "int.pow2" x1))
+(define $smt_builtin_z_piand ((W Type :implicit) (x1 W) (x2 W) (x3 W)) ($smt_apply_3 "piand" x1 x2 x3))
+; Real operators
+; These assume qleq, qlt, qplus, qmult, qneg are defined as <=, <, +, *, -
+(define $smt_builtin_q_= ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qeq" x1 x2))
+(define $smt_builtin_q_<= ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qleq" x1 x2))
+(define $smt_builtin_q_< ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qlt" x1 x2))
+(define $smt_builtin_q_+ ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qplus" x1 x2))
+(define $smt_builtin_q_* ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qmult" x1 x2))
+(define $smt_builtin_q_neg ((x1 $smt_builtin_Real)) ($smt_apply_1 "qneg" x1))
+(define $smt_builtin_q_- ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_builtin_q_+ x1 ($smt_builtin_q_neg x2)))
+; other arithmetic
+(define $smt_builtin_z_to_real ((x1 $smt_builtin_Int)) ($smt_apply_1 "to_real" x1))
+(define $smt_builtin_q_to_real ((x1 $smt_builtin_Real)) x1)
+(define $smt_builtin_z_/_total ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "mk_rational" x1 x2))
+(define $smt_builtin_q_/_total ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qdiv_total" x1 x2))
+(define $smt_builtin_q_zero () ($smt_builtin_z_/_total $smt_builtin_z_zero $smt_builtin_z_one))
+(define $smt_builtin_div_total ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "div_total" x1 x2))
+(define $smt_builtin_mod_total ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "mod_total" x1 x2))
+(define $smt_builtin_z_**_total ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zexp_total" x1 x2))
+(define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
+(define $smt_builtin_z_inc ((x1 $smt_builtin_Int)) ($smt_builtin_z_+ x1 $smt_builtin_z_one))
+(define $smt_builtin_z_dec ((x1 $smt_builtin_Int)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
+; natural numbers
+(define $smt_builtin_Nat () ($smt_datatype "Nat"))
+(define $smt_builtin_n_zero () ($smt_apply_0 "nat.zero"))
+(define $smt_builtin_n_succ ((x1 $smt_builtin_Nat)) ($smt_apply_1 "nat.succ" x1))
+(define $smt_builtin_n_= ((x1 $smt_builtin_Nat) (x2 $smt_builtin_Nat)) ($smt_apply_2 "nateq" x1 x2))
+(define $smt_builtin_z_to_n ((x1 $smt_builtin_Int)) ($smt_apply_1 "int.to_nat" x1))
+(define $smt_builtin_n_to_z ((x1 $smt_builtin_Nat)) ($smt_apply_1 "nat.to_int" x1))
+; uconst utility
+(define $smt_builtin_to_uconst_id ((x1 $smt_builtin_Nat)) ($smt_apply_1 "uconst_id" x1))
+
+; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
+(define $smt_apply_nary_3
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
+   (op $smt_id) (x1 W1) (x2 W2) (x3 W3))
+  ($smt_apply_2 op x1 ($smt_apply_2 op x2 x3)))
+
+;;; Defining parametric bitvector operators
+
+; The operators in this section are needed to reason about the parametric
+; operations on the Eunoia binary literal type.
+
+; define: $smt_builtin_bit
+; return: >
+;   true iff the i^th bit of a binary with integer value x is set. Note this
+;   method is agnostic to bitwidth.
+(define $smt_builtin_bit ((x $smt_builtin_Int) (i $smt_builtin_Int))
+  ($smt_apply_2 "bit" x i))
+
+; define: $smt_builtin_msb
+; return: >
+;   true iff the most significant bit of the binary of width w and value n is
+;   set.
+(define $smt_builtin_msb ((w $smt_builtin_Int) (n $smt_builtin_Int))
+  ($smt_apply_2 "msb" w n))
+
+; define: $smt_builtin_binary_and
+; return: >
+;   The integer value of the binary value obtained by taking the bitwise and of
+;   binary literals ($eo_binary w n1) and ($eo_binary w n2). This value will be
+;   taken modulo 2^w.
+; note: >
+;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
+(define $smt_builtin_binary_and
+  ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  ($smt_apply_3 "binary_and" w n1 n2))
+
+; define: $smt_builtin_binary_or
+; return: >
+;   The integer value of the binary value obtained by taking the bitwise or of
+;   binary literals ($eo_binary w n1) and ($eo_binary w n2). This is equal to
+;   n1+n2-($smt_builtin_binary_and w n1 n2). This value will be taken modulo 2^w.
+; note: >
+;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
+(define $smt_builtin_binary_or
+  ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  ($smt_apply_3 "binary_or" w n1 n2))
+
+; define: $smt_builtin_binary_xor
+; return: >
+;   The integer value of the binary value obtained by taking the bitwise xor of
+;   binary literals ($eo_binary w n1) and ($eo_binary w n2). This is equal to
+;   n1+n2-(2*($smt_builtin_binary_and w n1 n2)). This value will be taken modulo 2^w.
+; note: >
+;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
+(define $smt_builtin_binary_xor
+  ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  ($smt_apply_3 "binary_xor" w n1 n2))
+
+; define: $smt_builtin_binary_not
+; return: >
+;   The integer value of the binary value obtained by taking bitwise not of
+;   the binary literal ($eo_binary w n). This is equal to 2^w-(1+n). This value
+;   will be taken modulo 2^w.
+; note: >
+;   Assumes that 0 <= n < 2^w, 0 <= w.
+(define $smt_builtin_binary_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
+  ($smt_apply_2 "binary_not" w n))
+
+; define: $smt_builtin_binary_max
+; return: >
+;   The integer value of the maximum unsigned binary value of width w. This is
+;   equal to 2^w-1.
+(define $smt_builtin_binary_max ((w $smt_builtin_Int))
+  ($smt_apply_1 "binary_max" w))
+
+; define: $smt_builtin_binary_uts
+; return: >
+;   The conversion of n from unsigned to signed integer, which is
+;   2*(n mod 2^w-1) - n.
+(define $smt_builtin_binary_uts ((w $smt_builtin_Int) (n $smt_builtin_Int))
+  ($smt_apply_2 "binary_uts" w n))
+
+; define: $smt_builtin_binary_concat
+; return: >
+;   The integer value of the binary value obtained by concatenating binary
+;   literals ($eo_binary w1 n1) and ($eo_binary w2 n2). This is equal to
+;   n1*2^w2 + n2. Note the return value does not depend on w1. This value will
+;   be taken modulo 2^(w1+w2).
+; note: >
+;   Assumes that 0 <= n1 < 2^w1, 0 <= n2 < 2^w2, 0 <= w1, 0 <= w2.
+(define $smt_builtin_binary_concat
+  ((w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (w2 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  ($smt_apply_4 "binary_concat" w1 n1 w2 n2))
+
+; define: $smt_builtin_binary_extract
+; return: >
+;   The integer value of the binary value obtained by extracting bits x1
+;   through x2 (inclusive) of binary literal ($eo_binary w n). This is equal
+;   to (div n 2^x1). This value will be taken modulo 2^(1+x2-x1).
+; note: >
+;   Assumes that 0 <= n < 2^w, 0 <= x1 <= x2 < w.
+(define $smt_builtin_binary_extract
+  ((w $smt_builtin_Int) (n $smt_builtin_Int) (x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
+  ($smt_apply_4 "binary_extract" w n x1 x2))
+
+
+
+; In this signature, we heavily use references to the Datatypes corresponding
+; to the final deep embeddings of Eunoia terms (eo.Term).
+; Opaque arguments of a symbol X will be an argument of the constructor eo.X.
+; We introduce datatype constructors for this datatype ($emb_X).
+; It is important that we mark their arguments as :opaque, as this
+; correctly models the pattern matching in the smt-meta later.
+; Note that these datatypes will be renamed and replaced by their definitions
+; which is hardcoded into smt_meta.smt2.
+
+;;; Final deep embedding datatypes
+
+; Now, we introduce placeholders for the final deep embedding.
+
+; A Eunoia term.
+; This will be replaced by the datatype eo.Term in the final encoding.
+(declare-const $eo_Term Type)
+; Assumes that teq is defined to be equality over eo.Term
+(define $smt_builtin_teq ((x1 $eo_Term) (x2 $eo_Term)) ($smt_apply_2 "teq" x1 x2))
+; Assumes that thash is defined to be an arbitary function (-> eo.Term Int)
+(define $smt_builtin_thash ((x1 $eo_Term)) ($smt_apply_1 "thash" x1))
+(define $smt_builtin_tcmp ((x1 $eo_Term) (x2 $eo_Term)) ($smt_apply_2 "tcmp" x1 x2))
+
+; A datatype constructor
+(declare-const $eo_DatatypeCons Type)
+
+; A datatype
+(declare-const $eo_Datatype Type)
+
+;;; Eunoia datatype constructors
+
+; The Boolean type
+(declare-const $emb_Bool $eo_Term)
+(define $eot_Bool () $emb_Bool)
+
+; the literal types
+(declare-parameterized-const $emb_Boolean
+  ((b $smt_builtin_Bool :opaque)) $eo_Term)
+(define $eot_bool ((x $smt_builtin_Bool))
+  ($emb_Boolean x))
+
+(declare-parameterized-const $emb_Numeral
+  ((n $smt_builtin_Int :opaque)) $eo_Term)
+(define $eot_numeral ((x $smt_builtin_Int))
+  ($emb_Numeral x))
+
+(declare-parameterized-const $emb_Rational
+  ((r $smt_builtin_Rat :opaque)) $eo_Term)
+(define $eot_rational ((x $smt_builtin_Rat))
+  ($emb_Rational x))
+
+(declare-parameterized-const $emb_String
+  ((s $smt_builtin_String :opaque)) $eo_Term)
+(define $eot_string ((x $smt_builtin_String))
+  ($emb_String x))
+
+(declare-parameterized-const $emb_Binary
+  ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $eo_Term)
+; define: $eot_binary
+; note: >
+;   This should be used in pattern matching only, where it is assume that
+;   it will match "legal" binary values only.
+(define $eot_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
+  ($emb_Binary w v))
+
+; The type of types
+(declare-const $emb_Type $eo_Term)
+(define $eot_Type () $emb_Type)
+
+; The Eunoia representation of "stuckness".
+(declare-const $emb_Stuck $eo_Term)
+(define $eot_stuck () $emb_Stuck)
+
+; An application of a Eunoia term
+(declare-parameterized-const $emb_Apply
+  ((f $eo_Term :opaque) (a $eo_Term :opaque))
+  $eo_Term)
+(define $eot_apply ((x $eo_Term) (y $eo_Term)) ($emb_Apply x y))
+
+; Function type, which Eunoia function type reduces to
+(declare-parameterized-const $emb_FunType () $eo_Term)
+(define $eot_fun_type () $emb_FunType)
+
+; Represents a Eunoia variable in the final deep embedding.
+(declare-parameterized-const $emb_Var
+  ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
+  $eo_Term)
+(define $eot_Var ((s $smt_builtin_String) (T $eo_Term))
+  ($emb_Var s T))
+
+(declare-parameterized-const $emb_DatatypeType
+  ((s $smt_builtin_String :opaque) (d $eo_Datatype :opaque))
+  $eo_Term)
+(define $eot_DatatypeType ((s $smt_builtin_String) (d $eo_Datatype))
+  ($emb_DatatypeType s d))
+
+(declare-parameterized-const $emb_DatatypeTypeRef 
+  ((s $smt_builtin_String :opaque))
+  $eo_Term)
+(define $eot_DatatypeTypeRef ((s $smt_builtin_String))
+  ($emb_DatatypeTypeRef s))
+
+; the ci^th constructor of datatype T.
+(declare-parameterized-const $emb_DtCons
+  ((s $smt_builtin_String :opaque) (d $eo_Datatype :opaque)
+   (ci $smt_builtin_Nat :opaque))
+  $eo_Term)
+(define $eot_DtCons
+  ((s $smt_builtin_String) (d $eo_Datatype) (ci $smt_builtin_Nat))
+  ($emb_DtCons s d ci))
+
+; the selector of the ai^th argument of the ci^th constructor of datatype T.
+(declare-parameterized-const $emb_DtSel
+  ((s $smt_builtin_String :opaque) (d $eo_Datatype :opaque)
+   (ci $smt_builtin_Nat :opaque) (ai $smt_builtin_Nat :opaque))
+  $eo_Term)
+(define $eot_DtSel
+  ((s $smt_builtin_String) (d $eo_Datatype) (ci $smt_builtin_Nat)
+   (ai $smt_builtin_Nat))
+  ($emb_DtSel s d ci ai))
+  
+; uninterpreted sorts
+(declare-parameterized-const $emb_USort ((n $smt_builtin_Nat :opaque)) $eo_Term)
+(define $eot_USort ((n $smt_builtin_Nat)) ($emb_USort n))
+  
+; uninterpreted constants
+(declare-parameterized-const $emb_UConst
+  ((n $smt_builtin_Nat :opaque) (T $eo_Term :opaque))
+  $eo_Term)
+(define $eot_UConst
+  ((n $smt_builtin_Nat) (T $eo_Term))
+  ($emb_UConst n T))
+
+;;; Constructors for SMT-LIB datatypes and datatype constructors
+
+; A constructor having no arguments
+(declare-const $emb_edtc.unit $eo_DatatypeCons)
+(define $edtc_unit () $emb_edtc.unit)
+
+; A constructor having at least one argument
+; It takes the type of that argument and a constructor specifying the remaining
+; arguments.
+(declare-parameterized-const $emb_edtc.cons
+  ((T $eo_Term :opaque) (c $eo_DatatypeCons :opaque))
+  $eo_DatatypeCons)
+(define $edtc_cons ((T $eo_Term) (c $eo_DatatypeCons))
+  ($emb_edtc.cons T c))
+
+; A datatype having no constructors
+(declare-const $emb_edt.null $eo_Datatype)
+(define $edt_null () $emb_edt.null)
+  
+; A datatype having at least one constructor
+(declare-parameterized-const $emb_edt.sum
+  ((c $eo_DatatypeCons :opaque) (d $eo_Datatype :opaque))
+  $eo_Datatype)
+(define $edt_sum ((c $eo_DatatypeCons) (d $eo_Datatype))
+  ($emb_edt.sum c d))
+
+;;; Utilities
+
+; return: The embedding of (-> T1 T2).
+; note: Since the Eunoia function type is an atomic term, this becomes a
+;       curried apply.
+(define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term))
+  ($eot_apply ($eot_apply $eot_fun_type T1) T2))
+
+; note: This definition is only used if we are not eagerly flattening evaluation
+; This ensures that stuckness "propagates" through ordinary constant applications.
+(program $eo_mk_apply ((x1 $eo_Term) (x2 $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_mk_apply x1 x2) ($eot_apply x1 x2))
+  )
+)
+
+;;; Defining parametric bitvector operators
+
+; The operators in this section are needed to reason about the parametric
+; operations on the Eunoia binary literal type.
+
+; define: $eo_empty_binary
+(define $eo_empty_binary ()
+  ($eot_binary $smt_builtin_z_zero $smt_builtin_z_zero))
+
+; note: Assumes 0 <= w, makes n legal. We cannot handle errors with
+;       w here since we cannot return stuckness.
+(define $eo_binary_mod_w ((w $smt_builtin_Int) (n $smt_builtin_Int))
+  ($eot_binary w ($smt_builtin_mod_total n ($smt_builtin_z_pow2 w))))
+
+; program: $eo_mk_binary
+; return: >
+;   A "legal" binary value ($eo_mk_binary w n1), where 0 <= n1 < 2^w, n1 is
+;   congruent mod 2^w to n if w is positive, or stuck otherwise.
+; note: >
+;   All binaries considered by Eunoia should run through this method to ensure
+;   they are legal. We alternatively use ($eo_binary_mod_w w n) if
+;   we are sure that w is legal but not n.
+(program $eo_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
+  :signature ($smt_builtin_Int $smt_builtin_Int) $eo_Term
+  (
+  (($eo_mk_binary w n)
+    ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w)
+      ($eo_binary_mod_w w n)  ; ensure that n is legal
+      $eot_stuck))
+  )
+)
+
+;;;;;; Eunoia builtin
+
+(program $eo_typeof () :signature ($eo_Term) $eo_Term)
+
+(program $eo_is_bool_type ((T Type) (x T))
+  :signature (T) Bool
+  (
+  (($eo_is_bool_type x) (eo::eq ($eo_typeof x) Bool))
+  )
+)
+
+; We are now ready to define the builtins of Eunoia.
+; We define all the Eunoia builtins here that are best to
+; define in terms of SMT-LIB operators.
+
+;;; Is okay
+
+; Returns SMT-LIB builtin true/false if x is stuck
+(define $smt_builtin_is_ok ((x $eo_Term))
+  ($smt_builtin_not ($smt_builtin_teq x $eot_stuck)))
+
+; program: $eo_is_ok
+; implements: eo::is_ok
+(define $eo_is_ok ((x $eo_Term))
+  ($eot_bool ($smt_builtin_is_ok x)))
+
+; program: $eo_ite
+; implements: eo::ite
+; note: This definition is only used if we are not eagerly flattening evaluation
+(define $eo_ite ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
+  ($smt_builtin_ite ($smt_builtin_teq x1 true)
+    x2
+  ($smt_builtin_ite ($smt_builtin_teq x1 false)
+    x3
+    $eot_stuck)))
+
+; program: $eo_requires
+; implements: eo::requires
+; note: This definition is only used if we are not eagerly flattening evaluation
+(define $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
+  ($smt_builtin_ite ($smt_builtin_teq x1 x2)
+    ($smt_builtin_ite ($smt_builtin_is_ok x1) x3 $eot_stuck)
+    $eot_stuck))
+
+;;; Boolean operators
+
+; program: $eo_not
+; implements: eo::not
+(program $eo_not ((T Type) (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int))
+  :signature (T) T
+  (
+  (($eo_not ($eot_bool b))     ($eot_bool ($smt_builtin_not b)))
+  (($eo_not ($eot_binary w n)) ($eo_binary_mod_w w ($smt_builtin_binary_not w n)))
+  )
+)
+
+; program: $eo_and
+; implements: eo::and
+(program $eo_and
+  ((T Type) (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)
+   (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature (T T) T
+  (
+  (($eo_and ($eot_bool b1) ($eot_bool b2))
+     ($eot_bool ($smt_builtin_and b1 b2)))
+  (($eo_and ($eot_binary w1 n1) ($eot_binary w2 n2))
+    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+      ($eo_binary_mod_w w1 ($smt_builtin_binary_and w1 n1 n2))))
+  )
+)
+
+; program: $eo_or
+; implements: eo::or
+(program $eo_or
+  ((T Type) (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)
+   (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature (T T) T
+  (
+  (($eo_or ($eot_bool b1) ($eot_bool b2))
+     ($eot_bool ($smt_builtin_or b1 b2)))
+  (($eo_or ($eot_binary w1 n1) ($eot_binary w2 n2))
+    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+     ($eo_binary_mod_w w1 ($smt_builtin_binary_or w1 n1 n2))))
+  )
+)
+
+; program: $eo_xor
+; implements: eo::xor
+(program $eo_xor
+  ((T Type) (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)
+   (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature (T T) T
+  (
+  (($eo_xor ($eot_bool b1) ($eot_bool b2))
+     ($eot_bool ($smt_apply_2 "xor" b1 b2)))
+  (($eo_xor ($eot_binary w1 n1) ($eot_binary w2 n2))
+    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+     ($eo_binary_mod_w w1 ($smt_builtin_binary_or w1 n1 n2))))
+  )
+)
+
+;;; Arithmetic operators
+
+; program: $eo_add
+; implements: eo::add
+(program $eo_add
+  ((T Type) (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Rat) (r2 $smt_builtin_Rat))
+  :signature (T T) T
+  (
+  (($eo_add ($eot_numeral n1) ($eot_numeral n2))
+    ($eot_numeral ($smt_builtin_z_+ n1 n2)))
+  (($eo_add ($eot_rational r1) ($eot_rational r2))
+    ($eot_rational ($smt_builtin_q_+ r1 r2)))
+  (($eo_add ($eot_binary w1 n1) ($eot_binary w2 n2))
+    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+      ($eo_binary_mod_w w1 ($smt_builtin_z_+ n1 n2))))  ; don't need to recheck bitwidth
+  )
+)
+
+(program $eo_mul
+  ((T Type) (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Rat) (r2 $smt_builtin_Rat))
+  :signature (T T) T
+  (
+  (($eo_mul ($eot_numeral n1) ($eot_numeral n2))
+    ($eot_numeral ($smt_builtin_z_* n1 n2)))
+  (($eo_mul ($eot_rational r1) ($eot_rational r2))
+    ($eot_rational ($smt_builtin_q_* r1 r2)))
+  (($eo_mul ($eot_binary w1 n1) ($eot_binary w2 n2))
+    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+      ($eo_binary_mod_w w1 ($smt_builtin_z_* n1 n2))))
+  )
+)
+
+(program $eo_qdiv
+  ((T Type) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int)
+   (r1 $smt_builtin_Rat) (r2 $smt_builtin_Rat))
+  :signature (T T) $eo_Term
+  (
+  (($eo_qdiv ($eot_numeral n1) ($eot_numeral n2))
+    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
+      $eot_stuck
+      ($eot_rational ($smt_builtin_z_/_total n1 n2))))
+  (($eo_qdiv ($eot_rational r1) ($eot_rational r2))
+    ($smt_builtin_ite ($smt_builtin_q_= $smt_builtin_q_zero r2)
+      $eot_stuck
+      ($eot_rational ($smt_builtin_q_/_total r1 r2))))
+  )
+)
+
+
+(program $eo_zdiv
+  ((T Type) (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature (T T) T
+  (
+  (($eo_zdiv ($eot_numeral n1) ($eot_numeral n2))
+    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
+      $eot_stuck
+      ($eot_numeral ($smt_builtin_div_total n1 n2))))
+  (($eo_zdiv ($eot_binary w1 n1) ($eot_binary w2 n2))
+    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+      ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
+        ($eot_binary w1 ($smt_builtin_binary_max w1))
+        ($eo_binary_mod_w w1 ($smt_builtin_div_total n1 n2)))))
+  )
+)
+
+(program $eo_zmod
+  ((T Type) (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature (T T) T
+  (
+  (($eo_zmod ($eot_numeral n1) ($eot_numeral n2))
+    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
+      $eot_stuck
+      ($eot_numeral ($smt_builtin_mod_total n1 n2))))
+  (($eo_zmod ($eot_binary w1 n1) ($eot_binary w2 n2))
+    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+      ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
+        ($eot_binary w1 n1)
+        ($eo_binary_mod_w w1 ($smt_builtin_mod_total n1 n2)))))
+  )
+)
+
+(program $eo_is_neg ((T Type) (n1 $smt_builtin_Int) (r1 $smt_builtin_Rat))
+  :signature (T) Bool
+  (
+  (($eo_is_neg ($eot_numeral n1))
+    ($eot_bool ($smt_builtin_z_< n1 $smt_builtin_z_zero)))
+  (($eo_is_neg ($eot_rational r1))
+    ($eot_bool ($smt_builtin_q_< r1 $smt_builtin_q_zero)))
+  )
+)
+
+; program: $eo_neg
+; implements: eo::neg
+(program $eo_neg ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (r1 $smt_builtin_Rat))
+  :signature (T) T
+  (
+  (($eo_neg ($eot_numeral n1))
+    ($eot_numeral ($smt_builtin_z_neg n1)))
+  (($eo_neg ($eot_rational r1))
+    ($eot_rational ($smt_builtin_q_neg r1)))
+  (($eo_neg ($eot_binary w n1))
+    ($eo_binary_mod_w w ($smt_builtin_z_neg n1)))
+  )
+)
+
+
+;;; String operators
+
+; program: $eo_len
+; implements: eo::len
+(program $eo_len ((T Type) (s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int))
+  :signature (T) $eo_Term
+  (
+  (($eo_len ($eot_string s1))
+    ($eot_numeral ($smt_apply_1 "str.len" s1)))
+  (($eo_len ($eot_binary w n1))
+    ($eot_numeral w))
+  )
+)
+
+; program: $eo_concat
+; implements: eo::concat
+(program $eo_concat
+  ((w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (w2 $smt_builtin_Int) (n2 $smt_builtin_Int)
+   (s1 $smt_builtin_String) (s2 $smt_builtin_String))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_concat ($eot_string s1) ($eot_string s2))
+     ($eot_string ($smt_apply_2 "str.++" s1 s2)))
+  (($eo_concat ($eot_binary w1 n1) ($eot_binary w2 n2))
+     ($eo_mk_binary ($smt_builtin_z_+ w1 w2) ($smt_builtin_binary_concat w1 n1 w2 n2)))
+  )
+)
+
+; program: $eo_extract
+; implements: eo::extract
+(program $eo_extract
+  ((s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (n3 $smt_builtin_Int))
+  :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_extract ($eot_string s1) ($eot_numeral n2) ($eot_numeral n3))
+     ($eot_string ($smt_apply_3 "str.substr" s1 n2 ($smt_builtin_z_inc ($smt_builtin_z_- n3 n2)))))
+  (($eo_extract ($eot_binary w n1) ($eot_numeral n2) ($eot_numeral n3))
+    (eo::define ((nw ($smt_builtin_z_- n3 n2)))
+    ($smt_builtin_ite ($smt_builtin_or ($smt_builtin_z_< n2 $smt_builtin_z_zero) ($smt_builtin_z_< nw $smt_builtin_z_zero))
+      $eo_empty_binary
+      ($eo_mk_binary
+        ($smt_builtin_z_inc nw)
+        ($smt_builtin_binary_extract w n1 n2 n3)))))
+  )
+)
+
+; program: $eo_find
+; implements: eo::find
+(program $eo_find ((s1 $smt_builtin_String) (s2 $smt_builtin_String))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_find ($eot_string s1) ($eot_string s2))
+     ($eot_numeral ($smt_apply_3 "str.indexof" s1 s2 $smt_builtin_z_zero)))
+  )
+)
+
+;;; Conversion operators
+
+; program: $eo_to_z
+; implements: eo::to_z
+(program $eo_to_z ((n1 $smt_builtin_Int) (r1 $smt_builtin_Rat) (s1 $smt_builtin_String) (w $smt_builtin_Int))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_to_z ($eot_numeral n1))   ($eot_numeral n1))
+  (($eo_to_z ($eot_rational r1))  ($eot_numeral ($smt_apply_1 "to_int" r1)))
+  (($eo_to_z ($eot_string s1))
+    ($smt_builtin_ite
+      ($smt_builtin_z_= $smt_builtin_z_one ($smt_apply_1 "str.len" s1))
+      ($eot_numeral ($smt_apply_1 "str.to_code" s1))
+      $eot_stuck))
+  (($eo_to_z ($eot_binary w n1))     ($eot_numeral n1))
+  )
+)
+
+; program: $eo_to_q
+; implements: eo::to_q
+(program $eo_to_q ((n1 $smt_builtin_Int) (r1 $smt_builtin_Rat) (s1 $smt_builtin_String) (w $smt_builtin_Int))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_to_q ($eot_numeral n1))   ($eot_rational ($smt_apply_1 "to_real" n1)))
+  (($eo_to_q ($eot_rational r1))  ($eot_rational r1))
+  )
+)
+
+; program: $eo_to_bin
+; implements: eo::to_bin
+(program $eo_to_bin ((w $smt_builtin_Int) (w1 $smt_builtin_Int) (n1 $smt_builtin_Int))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_to_bin ($eot_numeral w) ($eot_numeral n1))
+    ; the upper bound is enforced here
+    ($smt_builtin_ite ($smt_builtin_z_<= w $smt_builtin_z_max_width)
+      ($eo_mk_binary w n1)
+      $eot_stuck))
+  (($eo_to_bin ($eot_numeral w) ($eot_binary w1 n1))
+    ; the upper bound is enforced here
+    ($smt_builtin_ite ($smt_builtin_z_<= w $smt_builtin_z_max_width)
+      ($eo_mk_binary w n1)
+      $eot_stuck))
+  )
+)
+
+; program: $eo_to_str
+; implements: eo::to_str
+(program $eo_to_str ((n1 $smt_builtin_Int) (s1 $smt_builtin_String))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_to_str ($eot_numeral n1))
+    ($smt_builtin_ite
+      ($smt_builtin_and ($smt_builtin_z_<= $smt_builtin_z_zero n1) ($smt_builtin_z_< n1 $smt_builtin_z_max_code))
+      ($eot_string ($smt_apply_1 "str.from_code" n1))
+      $eot_stuck))
+  (($eo_to_str ($eot_string s1)) ($eot_string s1))
+  ; TODO: technically others here
+  )
+)
+
+;;; Testers
+
+;;; $eo_is_eq
+
+;;; $eo_eq
+
+; program: $eo_eq
+; implements: eo::eq
+(program $eo_eq ((t $eo_Term) (s $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_eq t s) ($eot_bool ($smt_builtin_teq s t)))
+  )
+)
+
+; Returns true if t and s are equivalent values (ground and fully evaluated).
+; define: $eo_is_eq
+; implements: eo::is_eq
+(define $eo_is_eq ((t $eo_Term) (s $eo_Term))
+  ($eot_bool ($smt_apply_nary_3 "and"
+    ($smt_builtin_is_ok t)
+    ($smt_builtin_is_ok s)
+    ($smt_builtin_teq s t))))
+
+;;; $eo_is_bool
+
+; Returns true if x is a Boolean literal.
+(program $eo_is_bool_internal ((x $eo_Term) (b $smt_builtin_Bool))
+  :signature ($eo_Term) Bool
+  (
+  (($eo_is_bool_internal ($eot_bool b))  true)
+  (($eo_is_bool_internal x)                false)
+  )
+)
+
+; Returns true if x is a Boolean literal.
+; define: $eo_is_bool
+; implements: eo::is_bool
+(define $eo_is_bool ((t $eo_Term))
+  ($eot_bool ($smt_builtin_and ($smt_builtin_is_ok t)
+    ($smt_builtin_teq ($eo_is_bool_internal t) true))))
+
+;;; $eo_is_z
+
+; Returns true if x is a numeral literal.
+(program $eo_is_z_internal ((x $eo_Term) (n $smt_builtin_Int))
+  :signature ($eo_Term) Bool
+  (
+  (($eo_is_z_internal ($eot_numeral n))  true)
+  (($eo_is_z_internal x)                false)
+  )
+)
+
+; Returns true if x is a numeral literal.
+; define: $eo_is_z
+; implements: eo::is_z
+(define $eo_is_z ((t $eo_Term))
+  ($eot_bool ($smt_builtin_and ($smt_builtin_is_ok t)
+    ($smt_builtin_teq ($eo_is_z_internal t) true))))
+
+;;; $eo_is_q
+
+; Returns true if x is a rational literal.
+(program $eo_is_q_internal ((x $eo_Term) (r $smt_builtin_Rat))
+  :signature ($eo_Term) Bool
+  (
+  (($eo_is_q_internal ($eot_rational r))  true)
+  (($eo_is_q_internal x)                 false)
+  )
+)
+
+; Returns true if x is a rational literal.
+; define: $eo_is_q
+; implements: eo::is_q
+(define $eo_is_q ((t $eo_Term))
+  ($eot_bool ($smt_builtin_and ($smt_builtin_is_ok t)
+    ($smt_builtin_teq ($eo_is_q_internal t) true))))
+
+
+;;; $eo_is_bin
+
+; Returns true if x is a binary literal.
+(program $eo_is_bin_internal ((x $eo_Term) (w $smt_builtin_Int) (n $smt_builtin_Int))
+  :signature ($eo_Term) Bool
+  (
+  (($eo_is_bin_internal ($eot_binary w n))  true)
+  (($eo_is_bin_internal x)                 false)
+  )
+)
+
+; Returns true if x is a binary literal.
+; define: $eo_is_bin
+; implements: eo::is_bin
+(define $eo_is_bin ((t $eo_Term))
+  ($eot_bool ($smt_builtin_and ($smt_builtin_is_ok t)
+    ($smt_builtin_teq ($eo_is_bin_internal t) true))))
+
+;;; $eo_is_str
+
+; Returns true if x is a string literal.
+(program $eo_is_str_internal ((x $eo_Term) (s $smt_builtin_String))
+  :signature ($eo_Term) Bool
+  (
+  (($eo_is_str_internal ($eot_string s)) true)
+  (($eo_is_str_internal x)                 false)
+  )
+)
+
+; Returns true if x is a string literal.
+; define: $eo_is_str
+; implements: eo::is_str
+(define $eo_is_str ((t $eo_Term))
+  ($eot_bool ($smt_builtin_and ($smt_builtin_is_ok t)
+    ($smt_builtin_teq ($eo_is_str_internal t) true))))
+
+;;; Derived arithmetic
+
+; final-decl: $smtx_hash
+; note: this is defined axiomatically in the final smt2 encoding.
+(program $smtx_hash ((T Type)) :signature (T) $smt_builtin_Int)
+
+; program: $eo_hash
+; implements: eo::hash
+; note: this invokes the underconstrained function above as an oracle.
+(program $eo_hash ((T Type) (t T))
+  :signature (T) $eo_Term
+  (
+  (($eo_hash t) ($eot_numeral ($smt_builtin_thash t)))
+  )
+)
+
+; final-decl: $eo_reverse_hash
+; note: this is the inverse of $smtx_hash, which will be defined axiomatically.
+(program $eo_reverse_hash () :signature ($smt_builtin_Int) $eo_Term)
+
+; The SMT-LIB comparison of two Eunoia or SMT-LIB terms.
+(define $smtx_cmp ((T Type :implicit) (a T) (b T))
+  ($smt_builtin_z_<= ($smtx_hash a) ($smtx_hash b)))
+
+
+;;; $eo_gt
+
+; Compare arithmetic greater than. Assumes x and y are values.
+; Returns true if x > y.
+; define: $eo_gt
+; implements: eo::gt
+(define $eo_gt ((x $eo_Term) (y $eo_Term))
+  ($eo_is_neg ($eo_add ($eo_neg x) y)))
+
+
+;;; $eo_cmp
+
+; An arbitrary deterministic comparison of terms. Returns true if a > b based
+; on this ordering.
+; define: $eo_cmp
+; implements: eo::cmp
+(program $eo_cmp ((a $eo_Term) (b $eo_Term))
+  :signature ($eo_Term $eo_Term) Bool
+  (
+  (($eo_cmp a b) ($eot_bool ($smt_builtin_tcmp a b)))
+  )
+)
+
+;;; since eo_typeof depends on literal predicates, typeof is only now ready.
+
+; program: $eo_var
+; implements: eo::var
+(program $eo_var ((s $smt_builtin_String) (T $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_var ($eot_string s) T)
+    ; we use the hash of the type T to identify the variable
+    ($eo_requires ($eo_typeof T) Type ($eot_Var s T)))
+  )
+)
+
+; program: $eo_nameof
+; implements: eo::nameof
+(program $eo_nameof ((s $smt_builtin_String) (T $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_nameof ($eot_Var s T)) ($eot_string s))
+  )
+)
+
+; Returns true if x is a variable.
+; define: $eo_is_var
+; implements: eo::is_var
+(define $eo_is_var ((x $eo_Term))
+  ($eo_is_eq ($eo_var ($eo_nameof x) ($eo_typeof x)) x))
+
+; forward declarations for literal type rules
+(program $eo_lit_type_Numeral ((T Type)) :signature (T) Type)
+(program $eo_lit_type_Rational ((T Type)) :signature (T) Type)
+(program $eo_lit_type_Binary ((T Type)) :signature (T) Type)
+(program $eo_lit_type_String ((T Type)) :signature (T) Type)
+
+
+; forward declaration
+
+(program $eo_dt_substitute ()
+  :signature ($smt_builtin_String $eo_Datatype $eo_Datatype) $eo_Datatype)
+  
+; Replaces ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
+; of a datatype constructor.
+; Note that this assumes there is no nested recursion, i.e. occurrences of
+; ($eot_DatatypeTypeRef s) that are beneath applications of other types.
+(program $eo_dtc_substitute
+  ((s $smt_builtin_String) (d $eo_Datatype) (T $eo_Term) (c $eo_DatatypeCons)
+   (s2 $smt_builtin_String) (d2 $eo_Datatype))
+  :signature ($smt_builtin_String $eo_Datatype $eo_DatatypeCons) $eo_DatatypeCons
+  (
+  (($eo_dtc_substitute s d ($edtc_cons ($eot_DatatypeType s2 d2) c))
+    ; possible mutual recursion, subsitute into the datatype, unless there is
+    ; name shadowing
+    ($edtc_cons ($eot_DatatypeType s2
+      ($smt_builtin_ite ($smt_builtin_str_= s s2) d2 ($eo_dt_substitute s d d2)))
+      ($eo_dtc_substitute s d c)))
+  (($eo_dtc_substitute s d ($edtc_cons T c))
+    ($edtc_cons
+      ; if it is a recursive reference to the type we are substituting, replace
+      ($smt_builtin_ite ($smt_builtin_teq T ($eot_DatatypeTypeRef s))
+        ($eot_DatatypeType s d)
+        T)
+      ($eo_dtc_substitute s d c)))
+  (($eo_dtc_substitute s d $edtc_unit) $edtc_unit)
+  )
+)
+
+; Substitutes ($eot_TypeRef s) by ($eo_Datatype s d) in all arguments
+; of datatype constructors of a datatype.
+; Note that this assumes there is no nested recursion, i.e. occurrences of
+; ($tsm_TypeRef s) that are beneath applications of other types.
+(program $eo_dt_substitute
+  ((s $smt_builtin_Int) (d $eo_Datatype) (c $eo_DatatypeCons) (d2 $eo_Datatype))
+  :signature ($smt_builtin_String $eo_Datatype $eo_Datatype) $eo_Datatype
+  (
+  (($eo_dt_substitute s d ($edt_sum c d2))
+    ($edt_sum ($eo_dtc_substitute s d c) ($eo_dt_substitute s d d2)))
+  (($eo_dt_substitute s d $edt_null) $edt_null)
+  )
+)
+
+; fwd-decl: $eo_dt_constructors_main
+; note: This method returns the constructors for all user defined terms.
+(program $eo_dt_constructors_main () :signature ($eo_Term) $eo_Term)
+
+(program $eo_datatype_constructors_rec
+  ((s $smt_builtin_String) (d $eo_Datatype) (c $eo_DatatypeCons)
+   (d2 $eo_Datatype) (i $smt_builtin_Nat))
+  :signature ($smt_builtin_String $eo_Datatype $eo_Datatype $smt_builtin_Nat) $eo_List
+  (
+  (($eo_datatype_constructors_rec s d ($edt_sum c d2) i)
+    ($eo_List_cons ($eot_DtCons s d i)
+      ($eo_datatype_constructors_rec s d d2 ($smt_builtin_n_succ i))))
+  ; assumes d2 is $edt_null
+  (($eo_datatype_constructors_rec s d d2 i) $eo_List_nil)
+  )
+)
+
+; program: $eo_dt_constructors
+; implements: eo::dt_constructors
+(program $eo_dt_constructors
+  ((s $smt_builtin_String) (d $eo_Datatype) (T $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  ; a user-defined datatype
+  (($eo_dt_constructors ($eot_DatatypeType s d))
+    ($eo_datatype_constructors_rec s d d $smt_builtin_n_zero))
+  ; otherwise, a datatype declared in the signature
+  (($eo_dt_constructors T) ($eo_dt_constructors_main T))
+  )
+)
+
+; fwd-decl: $eo_dt_selectors_main
+; note: This method returns the constructors for all user defined terms.
+(program $eo_dt_selectors_main () :signature ($eo_Term) $eo_Term)
+
+(program $eo_datatype_cons_selectors_rec
+  ((s $smt_builtin_String) (d $eo_Datatype) (n $smt_builtin_Nat)
+   (U $eo_Term) (c $eo_DatatypeCons) (d2 $eo_Datatype)
+   (ci $smt_builtin_Nat) (ai $smt_builtin_Nat))
+  :signature ($smt_builtin_String $eo_Datatype $smt_builtin_Nat $eo_Datatype $smt_builtin_Nat $smt_builtin_Nat) $eo_List
+  (
+  (($eo_datatype_cons_selectors_rec s d n ($edt_sum $edtc_unit d2) $smt_builtin_n_zero ai)
+     $eo_List_nil)
+  (($eo_datatype_cons_selectors_rec s d n ($edt_sum ($edtc_cons U c) d2) $smt_builtin_n_zero ai)
+    ($eo_List_cons ($eot_DtSel s d n ai)
+      ($eo_datatype_cons_selectors_rec s d n d2 $smt_builtin_n_zero ($smt_builtin_n_succ ai))))
+  (($eo_datatype_cons_selectors_rec s d n ($edt_sum c d2) ($smt_builtin_n_succ ci) ai)
+    ($eo_datatype_cons_selectors_rec s d n d2 ci ai))
+  )
+)
+
+; program: $eo_dt_selectors
+; implements: eo::dt_selectors
+(program $eo_dt_selectors 
+  ((s $smt_builtin_String) (d $eo_Datatype) (n $smt_builtin_Int) (t $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  ; a constructor of a user-defined datatype
+  (($eo_dt_selectors ($eot_DtCons s d n))
+    ($eo_datatype_cons_selectors_rec s d n d n $smt_builtin_n_zero))
+  ; otherwise, a datatype constructor declared in the signature
+  (($eo_dt_selectors t) ($eo_dt_selectors_main t))
+  )
+)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; desugar core
+
+;;;;;; List operators
+
+;;; $eo_is_list
+
+; Note: a helper for $eo_is_list.
+(program $eo_get_nil_rec
+  ((T Type) (U Type) (V Type)
+   (f (-> T V V)) (g (-> T V V)) (x T) (y V) (nil V))
+  :signature ((-> T V V) V) Bool
+  (
+  (($eo_get_nil_rec f (g x y)) (eo::requires f g ($eo_get_nil_rec f y)))
+  (($eo_get_nil_rec f nil)     (eo::requires ($eo_is_list_nil f nil) true nil))
+  )
+)
+
+; Note: >
+;   This does not correspond to a builtin operator. It is used as a helper
+;   to define the preconditions for most of the operators below.
+(program $eo_is_list
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x V))
+  :signature ((-> T U V) V) Bool
+  (
+  (($eo_is_list f x) (eo::is_ok ($eo_get_nil_rec f x)))
+  )
+)
+
+;;; $eo_cons
+
+; define: $eo_cons
+; implements: eo::cons
+(define $eo_cons
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (W1 Type :implicit) (W2 Type :implicit)
+   (f (-> T U V)) (e W1) (a W2))
+  (eo::requires ($eo_is_list f a) true (f e a)))
+
+;;; $eo_get_elements
+
+; Note: a helper for $eo_get_elements.
+(program $eo_get_elements_rec
+  ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
+   (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
+  :signature (X) $eo_List
+  (
+  (($eo_get_elements_rec (f x y)) ($eo_List_cons x ($eo_get_elements_rec y)))
+  (($eo_get_elements_rec nil)     $eo_List_nil)
+  )
+)
+
+; Note: >
+;   This does not correspond to a builtin operator. It is used as a helper
+;   to define eo_list_minclude below.
+(define $eo_get_elements
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_get_elements_rec a)))
+
+;;; $eo_list_len
+
+; Note: a helper for $eo_list_len.
+(program $eo_list_len_rec
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x T) (y U) (nil W))
+  :signature (W) $eo_Numeral
+  (
+  (($eo_list_len_rec (f x y))  (eo::add 1 ($eo_list_len_rec y)))
+  (($eo_list_len_rec nil)      0)
+  )
+)
+
+; define: $eo_list_len
+; implements: eo::list_len
+(define $eo_list_len
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_len_rec a)))
+
+;;; $eo_list_concat
+
+; Note: a helper for $eo_list_concat.
+(program $eo_list_concat_rec
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T V V)) (x W) (y U) (z U) (nil U))
+  :signature (U U) U
+  (
+  (($eo_list_concat_rec (f x y) z)  (f x ($eo_list_concat_rec y z)))
+  (($eo_list_concat_rec nil z)      z)
+  )
+)
+
+; define: $eo_list_concat
+; implements: eo::list_concat
+(define $eo_list_concat
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a U) (b U))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_concat_rec a b))))
+
+;;; $eo_list_nth
+
+; Note: a helper for $eo_list_nth.
+(program $eo_list_nth_rec
+  ((T Type) (U Type) (f (-> T T T)) (x U) (y U) (n $eo_Numeral))
+  :signature (U $eo_Numeral) U
+  (
+  (($eo_list_nth_rec (f x y) 0)  x)
+  (($eo_list_nth_rec (f x y) n)  ($eo_list_nth_rec y (eo::add n -1)))
+  )
+)
+
+; define: $eo_list_nth
+; implements: eo::list_nth
+(define $eo_list_nth
+  ((T Type :implicit) (U Type :implicit)
+   (f (-> T T T)) (a U) (n $eo_Numeral))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_nth_rec a n)))
+
+;;; $eo_list_find
+
+; Note: a helper for $eo_list_find.
+(program $eo_list_find_rec
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n $eo_Numeral))
+  :signature (W X $eo_Numeral) $eo_Numeral
+  (
+  (($eo_list_find_rec (f x y) z n)  (eo::ite (eo::eq x z) n
+                                      ($eo_list_find_rec y z (eo::add n 1))))
+  (($eo_list_find_rec nil z n)      -1)
+  )
+)
+
+; define: $eo_list_find
+; implements: eo::list_find
+(define $eo_list_find
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (W1 Type :implicit) (W2 Type :implicit)
+   (f (-> T U V)) (a W1) (e W2))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_find_rec a e 0)))
+
+;;; $eo_list_rev
+
+; Note: a helper for $eo_list_rev.
+(program $eo_list_rev_rec
+  ((T Type) (U Type) (V Type) (W Type)
+   (f (-> T V V)) (x W) (y U) (nil U) (acc U))
+  :signature (U U) U
+  (
+    (($eo_list_rev_rec (f x y) acc) ($eo_list_rev_rec y (f x acc)))
+    (($eo_list_rev_rec nil acc)      acc)
+  )
+)
+
+; define: $eo_list_rev
+; implements: eo::list_rev
+(define $eo_list_rev
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a U))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_rev_rec a ($eo_get_nil_rec f a))))
+
+;;; $eo_list_erase
+
+; Note: a helper for $eo_list_erase.
+(program $eo_list_erase_rec
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T V V)) (x W) (y U) (z X) (nil U))
+  :signature (U X) U
+  (
+  (($eo_list_erase_rec (f x y) z)   (eo::ite (eo::eq x z) y
+                                      (f x ($eo_list_erase_rec y z))))
+  (($eo_list_erase_rec nil z)       nil)
+  )
+)
+
+; define: $eo_list_erase
+; implements: eo::list_erase
+(define $eo_list_erase
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T V V)) (a U) (e W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_erase_rec a e)))
+
+;;; $eo_list_erase_all
+
+; Note: a helper for $eo_list_erase_all.
+(program $eo_list_erase_all_rec
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T V V)) (x W) (y U) (z X) (nil W))
+  :signature (U X) U
+  (
+  (($eo_list_erase_all_rec (f x y) z)  ($eo_prepend_if (eo::not (eo::eq z x))
+                                            f x ($eo_list_erase_all_rec y z)))
+  (($eo_list_erase_all_rec nil z)       nil)
+  )
+)
+
+; define: $eo_list_erase_all
+; implements: eo::list_erase_all
+(define $eo_list_erase_all
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T V V)) (a U) (e W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_erase_all_rec a e)))
+
+;;; $eo_list_setof
+
+; Note: a helper for $eo_list_setof.
+(program $eo_list_setof_rec
+  ((T Type) (U Type) (V Type) (W Type)
+   (f (-> T V V)) (x W) (y U) (nil U))
+  :signature (U) U
+  (
+  (($eo_list_setof_rec (f x y))  (f x ($eo_list_setof_rec ($eo_list_erase_all f y x))))
+  (($eo_list_setof_rec nil)      nil)
+  )
+)
+
+; define: $eo_list_setof
+; implements: eo::list_setof
+(define $eo_list_setof
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (f (-> T V V)) (a U))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_setof_rec a)))
+
+;;; $eo_list_minclude
+
+; program: $eo_list_minclude_rec
+; - y $eo_List: The first list.
+; - z $eo_List: The second list.
+; - rmLast Bool: false if we failed to remove the last element of y from z.
+; return: true iff we successfully remove all elements of y from z.
+; note: a helper for $eo_list_minclude.
+(program $eo_list_minclude_rec
+  ((T Type) (x T) (y $eo_List :list) (z $eo_List))
+  :signature ($eo_List $eo_List Bool) Bool
+  (
+  (($eo_list_minclude_rec y z false)            false)
+  (($eo_list_minclude_rec ($eo_List_cons x y) z true)
+    (eo::define ((res ($eo_list_erase $eo_List_cons z x)))
+      ; pass true iff we successfully removed x from z.
+      ($eo_list_minclude_rec y res (eo::not (eo::eq res z)))))
+  (($eo_list_minclude_rec $eo_List_nil z true)  true)
+  )
+)
+
+; define: $eo_list_minclude
+; implements: eo::list_minclude
+; Note: >
+;   Since $eo_list_erase is a key submethod for defining $eo_list_minclude,
+;   and $eo_list_erase requires functions (-> T V V), we convert the elements
+;   of both lists to builtin lists $eo_List using the auxiliary method
+;   $eo_get_elements in this definition.
+(define $eo_list_minclude
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (W1 Type :implicit) (W2 Type :implicit)
+   (f (-> T U V)) (a W1) (b W2))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_minclude_rec ($eo_get_elements f a) ($eo_get_elements f b) true))))
+
+;;; $eo_list_meq
+
+; define: $eo_list_meq
+; implements: eo::list_meq
+(define $eo_list_meq
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (W1 Type :implicit) (W2 Type :implicit)
+   (f (-> T U V)) (a W1) (b W2))
+  (eo::and ($eo_list_minclude f a b) ($eo_list_minclude f b a)))
+
+;;; $eo_list_diff
+
+; Note: a helper for $eo_list_diff.
+(program $eo_list_diff_rec
+  ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
+  :signature (V V) V
+  (
+  (($eo_list_diff_rec (f x y) z)  (eo::define ((res ($eo_list_erase f z x)))
+                                    ($eo_prepend_if (eo::eq res z)
+                                      f x ($eo_list_diff_rec y res))))
+  (($eo_list_diff_rec nil z)      nil)
+  )
+)
+
+; define: $eo_list_diff
+; implements: eo::list_diff
+(define $eo_list_diff
+  ((T Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a V) (b V))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_diff_rec a b))))
+
+;;; $eo_list_inter
+
+; Note: a helper for $eo_list_inter
+(program $eo_list_inter_rec
+  ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
+  :signature (V V) V
+  (
+  (($eo_list_inter_rec (f x y) z) (eo::define ((res ($eo_list_erase f z x)))
+                                    ($eo_prepend_if (eo::not (eo::eq res z))
+                                      f x ($eo_list_inter_rec y res))))
+  (($eo_list_inter_rec nil z)     nil)
+  )
+)
+
+; define: $eo_list_inter
+; implements: eo::list_inter
+(define $eo_list_inter
+  ((T Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a V) (b V))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_inter_rec a b))))
+
+;;; $eo_list_singleton_elim
+
+; Note: a helper for $eo_list_singleton_elim.
+(program $eo_list_singleton_elim_2
+  ((T Type) (f (-> T T T)) (x T) (y T))
+  :signature (T) T
+  (
+  (($eo_list_singleton_elim_2 (f x y))  (eo::ite ($eo_is_list_nil f y) x (f x y)))
+  (($eo_list_singleton_elim_2 y)        y)
+  )
+)
+
+; define: $eo_list_singleton_elim
+; implements: eo::list_singleton_elim
+(define $eo_list_singleton_elim
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_singleton_elim_2 a)))
+
+; all further definitions
+
+; declare: not
+(declare-const not (-> Bool Bool))
+; declare: or
+(declare-const or (-> Bool (-> Bool Bool)))
+; declare: and
+(declare-const and (-> Bool (-> Bool Bool)))
+; declare: =>
+(declare-const => (-> Bool (-> Bool Bool)))
+; declare: =
+(declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
+; program: $eo_prog_contra
+(program $eo_prog_contra ((F Bool))
+  :signature ($eo_Proof $eo_Proof) Bool
+  (
+  (($eo_prog_contra ($eo_pf F) ($eo_pf (not F))) false)
+  )
+)
+; program: $mk_symm
+(program $mk_symm ((T Type) (t2 T) (t1 T))
+  :signature (Bool) Bool
+  (
+  (($mk_symm (_ (= t1) t2)) (_ (= t2) t1))
+  (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
+  )
+)
+; program: $eo_prog_symm
+(program $eo_prog_symm ((F Bool))
+  :signature ($eo_Proof) Bool
+  (
+  (($eo_prog_symm ($eo_pf F)) ($mk_symm F))
+  )
+)
+
+
+;;; datatype constructors
+
+; TODO: meta semantics for arbitrary unknown datatypes?
+
+; program: $eo_dt_constructors_main
+(program $eo_dt_constructors_main
+  ((T Type))
+  :signature (Type) $eo_List
+  (
+
+  )
+)
+
+; program: $eo_dt_selectors_main
+(program $eo_dt_selectors_main ((T Type) (t T))
+  :signature (T) $eo_List
+  (
+
+  )
+)
+
+;;; eo::nil definitions
+
+
+
+; program: $eo_nil
+; implements: eo::nil
+(program $eo_nil
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)))
+  :signature ((-> T U V) (eo::quote W)) W
+  (
+  (($eo_nil or T) false)
+  (($eo_nil and T) true)
+
+  ; builtin case of $eo_List
+  (($eo_nil $eo_List_cons $eo_List) $eo_List_nil)
+  )
+)
+
+;;; $eo_is_list_nil
+; Note: a helper for $eo_is_list_rec.
+; We have that ($eo_is_list_nil f x) is equivalent to
+; (eo::eq (eo::nil f (eo::typeof x)) x). We custom define
+; it for the common case when the nil terminator does not depend
+; on the type, which avoids the use of eo::typeof.
+(program $eo_is_list_nil
+  ((T Type) (V Type) (f (-> T V V)) (nil V))
+  :signature ((-> T V V) V) Bool
+  (
+  (($eo_is_list_nil or false) true)
+  (($eo_is_list_nil and true) true)
+
+  ; builtin case of $eo_List
+  (($eo_is_list_nil $eo_List_cons $eo_List_nil) true)
+  (($eo_is_list_nil f nil)                      false)
+  )
+)
+
+;;; types
+
+(program $eo_typeof_dt_cons_rec
+  ((T $eo_Term) (U $eo_Term) (d $eo_Datatype) (c $eo_DatatypeCons) (n $smt_builtin_Nat))
+  :signature ($eo_Term $eo_Datatype $smt_builtin_Nat) $eo_Term
+  (
+  (($eo_typeof_dt_cons_rec T ($edt_sum $edtc_unit d) $smt_builtin_n_zero) T)
+  (($eo_typeof_dt_cons_rec T ($edt_sum ($edtc_cons U c) d) $smt_builtin_n_zero)
+    (-> U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $smt_builtin_n_zero)))
+  (($eo_typeof_dt_cons_rec T ($edt_sum c d) ($smt_builtin_n_succ n))
+    ($eo_typeof_dt_cons_rec T d n))
+  )
+)
+
+(program $eo_typeof_dt_sel_return
+  ((d $eo_Datatype) (c $eo_DatatypeCons) (T $eo_Term) (n $smt_builtin_Nat) (m $smt_builtin_Nat))
+  :signature ($eo_Datatype $smt_builtin_Nat $smt_builtin_Nat) $eo_Term
+  (
+  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_n_zero $smt_builtin_n_zero)
+    T)
+  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_n_zero ($smt_builtin_n_succ m))
+    ($eo_typeof_dt_sel_return ($edt_sum c d) $smt_builtin_n_zero m))
+  (($eo_typeof_dt_sel_return ($edt_sum c d) ($smt_builtin_n_succ n) m)
+    ($eo_typeof_dt_sel_return d n m))
+  )
+)
+
+; program: $eo_typeof_apply
+(program $eo_typeof_apply ((T Type) (U Type) (V Type))
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_apply (-> T U) V) (eo::requires T V U))
+  )
+)
+
+; non-ground type defintions
+
+; program: $eo_typeof_fun_type
+; Calling ($eo_typeof_fun_type Ut Tt) returns the type of (-> U T),
+; given that U has type Ut and T has type Tt.
+(program $eo_typeof_fun_type ()
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_fun_type Type Type) Type)
+  )
+)
+
+(program $eo_lit_type_Numeral ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_Numeral t) Int)
+  )
+)
+(program $eo_lit_type_Rational ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_Rational t) Real)
+  )
+)
+(program $eo_lit_type_Binary ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_Binary t) (BitVec (eo::len t)))
+  )
+)
+(program $eo_lit_type_String ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_String t) (Seq Char))
+  )
+)
+
+
+; program: $eo_typeof_=
+(program $eo_typeof_= ((A Type))
+  :signature (Type) Type
+  (
+  (($eo_typeof_= A) (-> A Bool))
+  )
+)
+
+
+; program: $eo_typeof
+; implements: eo::typeof
+(program $eo_typeof
+  ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int)
+   (i $smt_builtin_Nat) (j $smt_builtin_Nat) (w $smt_builtin_Int) (r $smt_builtin_Rat)
+   (s $smt_builtin_String) (d $eo_Datatype)
+   ($eo_T Type) ($eo_U Type) ($eo_V Type) ($eo_W Type)
+   ($eo_f (-> $eo_U $eo_V $eo_T)) ($eo_x $eo_U) ($eo_t $eo_T)
+   ($eo_W1 Type) ($eo_x1 $eo_W1)
+   ($eo_W2 Type) ($eo_x2 $eo_W2)
+   ($eo_W3 Type) ($eo_x3 $eo_W3)
+   ($eo_W4 Type) ($eo_x4 $eo_W4)) ; assumes functions can be monomorphized with at most 4 arguments
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_typeof ($eot_bool b))                 Bool)
+  (($eo_typeof ($eot_numeral n))              ($eo_lit_type_Numeral ($eot_numeral n)))
+  (($eo_typeof ($eot_rational r))             ($eo_lit_type_Rational ($eot_rational r)))
+  (($eo_typeof ($eot_string s))               ($eo_lit_type_String ($eot_string s)))
+  (($eo_typeof ($eot_binary w n))             ($eo_lit_type_Binary ($eot_binary w n)))
+  (($eo_typeof ($eot_Var s T))                T)
+  (($eo_typeof ($eot_DatatypeType s d))       Type)
+  (($eo_typeof ($eot_DtCons s d i))
+    ($eo_typeof_dt_cons_rec ($eot_DatatypeType s d) ($eo_dt_substitute s d d) i))
+  (($eo_typeof ($eot_DtSel s d i j))
+    ; TODO: ensure types, well-foundedness of d??
+    (-> ($eot_DatatypeType s d) ($eo_typeof_dt_sel_return ($eo_dt_substitute s d d) i j)))
+  (($eo_typeof ($eot_USort i))                Type)
+  (($eo_typeof ($eot_UConst i T))             T)
+  ; otherwise, invoke the routine for user types from the signature.
+  (($eo_typeof Type)                          Type)
+  (($eo_typeof (-> $eo_T $eo_U))
+    ; requires both children are types
+    ($eo_typeof_fun_type ($eo_typeof $eo_T) ($eo_typeof $eo_U)))
+  (($eo_typeof Bool)                          Type)
+  ; TODO: auto-generate these?
+  (($eo_typeof $eo_List)                      Type)
+  (($eo_typeof $eo_List_nil)                  $eo_List)
+  (($eo_typeof ($eo_List_cons $eo_x1))        (-> $eo_List $eo_List))
+  ; type-rule: Int
+  (($eo_typeof Int) Type)
+  ; type-rule: Real
+  (($eo_typeof Real) Type)
+  ; type-rule: BitVec
+  (($eo_typeof BitVec) (-> Int Type))
+  ; type-rule: Char
+  (($eo_typeof Char) Type)
+  ; type-rule: Seq
+  (($eo_typeof Seq) (-> Type Type))
+  ; type-rule: not
+  (($eo_typeof not) (-> Bool Bool))
+  ; type-rule: or
+  (($eo_typeof or) (-> Bool (-> Bool Bool)))
+  ; type-rule: and
+  (($eo_typeof and) (-> Bool (-> Bool Bool)))
+  ; type-rule: =>
+  (($eo_typeof =>) (-> Bool (-> Bool Bool)))
+  ; type-rule: =
+  (($eo_typeof (= $eo_x1)) ($eo_typeof_= ($eo_typeof $eo_x1)))
+
+  (($eo_typeof ($eo_f $eo_x))
+    ($eo_typeof_apply ($eo_typeof $eo_f) ($eo_typeof $eo_x)))
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_smt
+
+; The following functions may be used to define the verification condition we
+; will write below.
+
+; An SMT model.
+(declare-const $smt_Model Type)
+
+; A placeholder for asking whether a formula evaluates to true in a model.
+(program $eo_model_sat () :signature ($smt_Model Bool) Bool)
+; A placeholder for asking whether a formula evaluates to false in a model.
+(program $eo_model_unsat () :signature ($smt_Model Bool) Bool)
+
+; We will include the definition of the above functions here.
+; This file defines SMT-LIB model semantics in Eunoia.
+; The programs in this file operate on datatypes that correspond to
+; a deep embedding of SMT-LIB values.
+; In particular, we use the following types:
+; 1. $smt_Value, the type of SMT-LIB values.
+; 2. Further types defining specific SMT-LIB values, e.g. $smt_Map.
+
+;;;;;; SMT terms
+
+; An SMT term.
+(declare-const $smt_Term Type)
+
+; An SMT type.
+(declare-const $smt_Type Type)
+; utilities
+; Assumes that Teq is defined to be equality over $smt_Type
+(define $smt_builtin_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($smt_apply_2 "Teq" x1 x2))
+
+; A datatype constructor
+(declare-const $smt_DatatypeCons Type)
+
+; A datatype
+(declare-const $smt_Datatype Type)
+
+; An SMT-LIB value.
+(declare-const $smt_Value Type)
+; utilities
+; Assumes that veq is defined to be equality over $smt_Value
+(define $smt_builtin_veq ((x1 $smt_Value) (x2 $smt_Value)) ($smt_apply_2 "veq" x1 x2))
+
+;;;;;; SMT term constructors
+
+(declare-const $emb_sm.None $smt_Term)
+(define $sm_none () $emb_sm.None)
+
+; the literal types
+(declare-parameterized-const $emb_sm.Boolean
+  ((b $smt_builtin_Bool :opaque)) $smt_Term)
+(define $sm_bool ((b $smt_builtin_Bool)) ($emb_sm.Boolean b))
+
+(declare-parameterized-const $emb_sm.Numeral
+  ((n $smt_builtin_Int :opaque)) $smt_Term)
+(define $sm_numeral ((n $smt_builtin_Int)) ($emb_sm.Numeral n))
+; helpers
+(define $sm_z_zero () ($sm_numeral $smt_builtin_z_zero))
+(define $sm_z_one () ($sm_numeral $smt_builtin_z_one))
+
+(declare-parameterized-const $emb_sm.Rational
+  ((r $smt_builtin_Rat :opaque)) $smt_Term)
+(define $sm_rational ((r $smt_builtin_Rat)) ($emb_sm.Rational r))
+; helpers
+(define $sm_q_zero () ($sm_rational $smt_builtin_q_zero))
+
+(declare-parameterized-const $emb_sm.String
+  ((s $smt_builtin_String :opaque)) $smt_Term)
+(define $sm_string ((s $smt_builtin_String)) ($emb_sm.String s))
+  
+(declare-parameterized-const $emb_sm.Binary
+  ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
+(define $sm_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
+  ($emb_sm.Binary w v))
+; helpers
+(define $sm_binary_bit_false () ($sm_binary $smt_builtin_z_one $smt_builtin_z_zero))
+(define $sm_binary_bit_true () ($sm_binary $smt_builtin_z_one $smt_builtin_z_one))
+(define $sm_binary_mod_w ((w $smt_builtin_Int) (v $smt_builtin_Int))
+  ($sm_binary w ($smt_builtin_mod_total v ($smt_builtin_z_pow2 w))))
+  
+; An application of a Eunoia term
+(declare-parameterized-const $emb_sm.Apply
+  ((f $smt_Term :opaque) (a $smt_Term :opaque))
+  $smt_Term)
+(define $sm_apply ((x $smt_Term) (y $smt_Term)) ($emb_sm.Apply x y))
+
+; Represents a SMT-LIB variable in the final deep embedding.
+(declare-parameterized-const $emb_sm.Var
+  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque))
+  $smt_Term)
+(define $sm_Var ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.Var s T))
+
+; ITE
+(declare-parameterized-const $emb_sm.ite
+  ((x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term))
+  $smt_Term)
+(define $sm_ite ((x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term))
+  ($sm_apply ($sm_apply ($sm_apply $emb_sm.ite x1) x2) x3))
+
+; equality
+(declare-parameterized-const $emb_sm.= ((x1 $smt_Term) (x2 $smt_Term)) $smt_Term)
+(define $sm_= ((x1 $smt_Term) (x2 $smt_Term))
+  ($sm_apply ($sm_apply $emb_sm.= x1) x2))
+
+; exists
+; this takes the variable to quantify over, which should then be applied
+; to a formula, similarly for the other quantifiers
+(declare-parameterized-const $emb_sm.exists
+  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
+(define $sm_exists ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.exists s T))
+
+; forall
+(declare-parameterized-const $emb_sm.forall
+  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
+(define $sm_forall ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.forall s T))
+  
+; lambda
+(declare-parameterized-const $emb_sm.lambda
+  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
+(define $sm_lambda ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.lambda s T))
+
+; choice
+(declare-parameterized-const $emb_sm.choice
+  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque)) $smt_Term)
+(define $sm_choice ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.choice s T))
+
+; the ci^th constructor of datatype ($tsm_Datatype s d).
+(declare-parameterized-const $emb_sm.DtCons
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)
+   (ci $smt_builtin_Nat :opaque)) 
+  $smt_Term)
+(define $sm_DtCons 
+  ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Nat))
+  ($emb_sm.DtCons s d ci))
+
+; The selector of the ai^th argument of the ci^th constructor of datatype
+; ($tsm_Datatype s d).
+(declare-parameterized-const $emb_sm.DtSel
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) 
+   (ci $smt_builtin_Nat :opaque) (ai $smt_builtin_Nat :opaque))
+  $smt_Term)
+(define $sm_DtSel 
+  ((s $smt_builtin_String) (d $smt_Datatype)
+   (ci $smt_builtin_Nat) (ai $smt_builtin_Nat))
+  ($emb_sm.DtSel s d ci ai))
+
+; the tester of the ci^th constructor of datatype ($tsm_Datatype s d).
+(declare-parameterized-const $emb_sm.DtTester
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) (ci $smt_builtin_Nat :opaque))
+  $smt_Term)
+(define $sm_DtTester ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Nat))
+  ($emb_sm.DtTester s d ci))
+
+; uninterpreted constants
+(declare-parameterized-const $emb_sm.UConst
+  ((s $smt_builtin_String :opaque) (T $smt_Type :opaque))
+  $smt_Term)
+(define $sm_UConst ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.UConst s T))
+
+; all other ordinary term definitions
+(declare-parameterized-const $emb_sm.not ((x1 $smt_Term)) $smt_Term)
+(define $sm_not ((x1 $smt_Term)) ($sm_apply $emb_sm.not x1))
+(declare-parameterized-const $emb_sm.or ((x1 $smt_Term) (x2 $smt_Term)) $smt_Term)
+(define $sm_or ((x1 $smt_Term) (x2 $smt_Term)) ($sm_apply ($sm_apply $emb_sm.or x1) x2))
+(declare-parameterized-const $emb_sm.and ((x1 $smt_Term) (x2 $smt_Term)) $smt_Term)
+(define $sm_and ((x1 $smt_Term) (x2 $smt_Term)) ($sm_apply ($sm_apply $emb_sm.and x1) x2))
+(declare-parameterized-const $emb_sm.=> ((x1 $smt_Term) (x2 $smt_Term)) $smt_Term)
+(define $sm_=> ((x1 $smt_Term) (x2 $smt_Term)) ($sm_apply ($sm_apply $emb_sm.=> x1) x2))
+
+
+;;;;;; SMT type constructors
+
+(declare-const $emb_tsm.None $smt_Type)
+(define $tsm_none () $emb_tsm.None)
+
+; The Boolean type
+(declare-const $emb_tsm.Bool $smt_Type)
+(define $tsm_Bool () $emb_tsm.Bool)
+
+; The Integer type
+(declare-const $emb_tsm.Int $smt_Type)
+(define $tsm_Int () $emb_tsm.Int)
+
+; The Real type
+(declare-const $emb_tsm.Real $smt_Type)
+(define $tsm_Real () $emb_tsm.Real)
+
+; The RegLan type
+(declare-const $emb_tsm.RegLan $smt_Type)
+(define $tsm_RegLan () $emb_tsm.RegLan)
+
+; The Bitvector type
+(declare-parameterized-const $emb_tsm.BitVec ((w $smt_builtin_Int :opaque)) $smt_Type)
+(define $tsm_BitVec ((w $smt_builtin_Int)) ($emb_tsm.BitVec w))
+
+; The Map type (for values)
+(declare-parameterized-const $emb_tsm.Map 
+  ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
+(define $tsm_Map ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
+
+; The Array type (for terms)
+(define $tsm_Array ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
+
+; The Set type (for terms)
+(define $tsm_Set ((T $smt_Type)) ($emb_tsm.Map T $tsm_Bool))
+
+; The Sequence type
+(declare-parameterized-const $emb_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
+(define $tsm_Seq ((T $smt_Type)) ($emb_tsm.Seq T))
+
+; The Char type
+(declare-const $emb_tsm.Char $smt_Type)
+(define $tsm_Char () $emb_tsm.Char)
+
+; The String, type a sequence of chars
+(define $tsm_String () ($tsm_Seq $tsm_Char))
+
+; A datatype is a type containing (1) its name, and (2) its structure.
+; Its name can be understood as a binder under which ($tsm_TypeRef <name>) is
+; a recursive reference to the (most recently bound) instance of a datatype
+; with the given name.
+; For example, the recursive datatype for a list of integers:
+; (declare-datatype List ((cons (head Int) (tail List)) (nil)))
+; Would have the following syntax:
+; ($tsm_Datatype "List" d)
+; Where d is the datatype spec:
+; ($dt_sum
+;   ($dtc_cons $tsm_Int ($dtc_cons ($tsm_TypeRef "List") $dtc_unit)) ; cons
+;   ($dt_sum
+;      $dtc_unit ; nil
+;      $dt_null))
+; Note that names of constructors and selectors are not represented in the AST.
+; To express constructor terms, we give an index, such that cons/nil are terms:
+;   ($sm_DtCons "List" d 0), ($sm_DtCons "List" d 1).
+; The types of these constructors are:
+;   ($sm_DtCons "List" d 0) : (-> $tsm_Int ($tsm_Datatype "List" d) ($tsm_Datatype "List" d))
+;   ($sm_DtCons "List" d 1) : ($tsm_Datatype "List" d)
+; The list (1,2) is the term:
+; ($sm_apply 
+;    ($sm_apply ($sm_DtCons "List" d 0) ($sm_numeral 1))
+;    ($sm_apply
+;       ($sm_apply ($sm_DtCons "List" d 0) ($sm_numeral 2)) 
+;       ($sm_DtCons "List" d 1)))
+; The selectors head/tail for this datatype give indices to the constructor
+; and argument position they refer to:
+;   ($sm_DtSel "List" d 0 0) ($sm_DtSel "List" d 0 1).
+; Note this also permits mutual recursion, e.g. for SMT datatype:
+; (declare-datatypes ((List 0) (Tree 0))
+;   (((cons (head Tree) (tail List)) (nil))
+;    ((node (children List)) (leaf))))
+; this is represented as:
+; (eo::define ((Tree
+;    ($tsm_Datatype "Tree"
+;      ($dt_sum 
+;        ($dtc_cons ($tsm_TypeRef "List") $dtc_unit) ; node
+;        ($dt_sum
+;          $dtc_unit ; leaf
+;          $dt_null)))))
+;   ($tsm_Datatype "List"
+;      ($dt_sum
+;        ($dtc_cons Tree ($dtc_cons ($tsm_TypeRef "List") $dtc_unit)) ; cons
+;        ($dt_sum 
+;           $dtc_unit ; nil
+;           $dt_null))))
+(declare-parameterized-const $emb_tsm.Datatype 
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque)) $smt_Type)
+(define $tsm_Datatype ((s $smt_builtin_String) (d $smt_Datatype))
+  ($emb_tsm.Datatype s d))
+  
+(declare-parameterized-const $emb_tsm.TypeRef
+  ((s $smt_builtin_String :opaque)) $smt_Type)
+(define $tsm_TypeRef ((s $smt_builtin_String)) ($emb_tsm.TypeRef s))
+
+; uninterpreted sorts
+(declare-parameterized-const $emb_tsm.USort ((n $smt_builtin_Nat :opaque)) $smt_Type)
+(define $tsm_USort ((n $smt_builtin_Nat)) ($emb_tsm.USort n))
+
+; Partially applied datatype constructors
+(declare-parameterized-const $emb_tsm.DtConsType 
+  ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
+(define $tsm_DtConsType ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.DtConsType Ti Te))
+
+; all other ordinary type definitions
+
+
+;;;;;; SMT values
+
+; The type used to define values for functions, arrays and sets in SMT-LIB.
+(declare-const $smt_Map Type)
+
+; The type used to define values for sequences in SMT-LIB.
+(declare-const $smt_Seq Type)
+
+;;; SMT value datatype constructors
+
+; Denotes a failure case for values.
+(declare-const $emb_vsm.NotValue $smt_Value)
+(define $vsm_not_value () $emb_vsm.NotValue)
+
+; the literal types
+(declare-parameterized-const $emb_vsm.Boolean
+  ((b $smt_builtin_Bool :opaque)) $smt_Value)
+(define $vsm_bool ((b $smt_builtin_Bool)) ($emb_vsm.Boolean b))
+; helpers
+(define $vsm_true () ($vsm_bool $smt_builtin_true))
+(define $vsm_false () ($vsm_bool $smt_builtin_false))
+
+(declare-parameterized-const $emb_vsm.Numeral
+  ((n $smt_builtin_Int :opaque)) $smt_Value)
+(define $vsm_numeral ((n $smt_builtin_Int)) ($emb_vsm.Numeral n))
+; helpers
+(define $vsm_z_zero () ($vsm_numeral $smt_builtin_z_zero))
+(define $vsm_z_one () ($vsm_numeral $smt_builtin_z_one))
+
+(declare-parameterized-const $emb_vsm.Rational
+  ((r $smt_builtin_Rat :opaque)) $smt_Value)
+(define $vsm_rational ((r $smt_builtin_Rat)) ($emb_vsm.Rational r))
+; helpers
+(define $vsm_q_zero () ($vsm_rational $smt_builtin_q_zero))
+
+(declare-parameterized-const $emb_vsm.Binary
+  ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Value)
+(define $vsm_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
+  ($emb_vsm.Binary w v))
+; utilities
+(define $vsm_binary_empty () ($vsm_binary $smt_builtin_z_zero $smt_builtin_z_zero))
+(define $vsm_binary_bit_false () ($vsm_binary $smt_builtin_z_one $smt_builtin_z_zero))
+(define $vsm_binary_bit_true () ($vsm_binary $smt_builtin_z_one $smt_builtin_z_one))
+(define $vsm_binary_mod_w ((w $smt_builtin_Int) (v $smt_builtin_Int))
+  ($emb_vsm.Binary w ($smt_builtin_mod_total v ($smt_builtin_z_pow2 w))))
+(define $vsm_mk_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
+  ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w)
+    ($vsm_binary_mod_w w v)
+    $vsm_not_value))
+  
+; A value denoting a map.
+(declare-parameterized-const $emb_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
+(define $vsm_map ((m $smt_Map)) ($emb_vsm.Map m))
+
+; A value denoting a sequence.
+(declare-parameterized-const $emb_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
+(define $vsm_seq ((s $smt_Seq)) ($emb_vsm.Seq s))
+
+; A char (for strings)
+(declare-parameterized-const $emb_vsm.Char
+  ((c $smt_builtin_Char :opaque)) $smt_Value)
+(define $vsm_char ((c $smt_builtin_Char)) ($emb_vsm.Char c))
+
+; A value denoting a regular language.
+(declare-parameterized-const $emb_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
+(define $vsm_re ((r $smt_builtin_RegLan)) ($emb_vsm.RegLan r))
+
+; A constructor value
+(declare-parameterized-const $emb_vsm.DtCons
+  ((s $smt_builtin_String :opaque) (d $smt_Datatype :opaque) (ci $smt_builtin_Nat :opaque))
+  $smt_Value)
+(define $vsm_DtCons ((s $smt_builtin_String) (d $smt_Datatype) (ci $smt_builtin_Nat))
+  ($emb_vsm.DtCons s d ci))
+  
+; Apply values (for Herbrand interpretations).
+(declare-parameterized-const $emb_vsm.Apply
+  ((f $smt_Value :opaque) (a $smt_Value :opaque))
+  $smt_Value)
+(define $vsm_apply ((f $smt_Value) (a $smt_Value))
+  ($emb_vsm.Apply f a))
+; utilities
+(program $vsm_apply_head ((f $smt_Value) (a $smt_Value))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($vsm_apply_head ($vsm_apply f a)) ($vsm_apply_head f))
+  (($vsm_apply_head a)                a)
+  )
+)
+
+; ($vsm_apply_arg_nth v n npos), where we are getting the n^th argument,
+; npos is the current position we are at + 1.
+(program $vsm_apply_arg_nth 
+  ((f $smt_Value) (a $smt_Value) (n $smt_builtin_Nat) (npos $smt_builtin_Nat))
+  :signature ($smt_Value $smt_builtin_Nat $smt_builtin_Nat) $smt_Value
+  (
+  (($vsm_apply_arg_nth ($vsm_apply f a) n ($smt_builtin_n_succ npos))
+    ($smt_builtin_ite ($smt_builtin_n_= n npos) a
+      ($vsm_apply_arg_nth f n npos)))
+  (($vsm_apply_arg_nth a n npos) $vsm_not_value)
+  )
+)
+
+;;; SMT map value datatype constructors
+
+; Constructs a map value where i is mapped to e.
+(declare-parameterized-const $emb_msm.cons
+  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
+  $smt_Map)
+(define $msm_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
+  ($emb_msm.cons i e m))
+
+; Constructs a map value where all indices are mapped to e.
+(declare-parameterized-const $emb_msm.default
+  ((T $smt_Type :opaque) (e $smt_Value :opaque))
+  $smt_Map)
+(define $msm_default ((T $smt_Type) (e $smt_Value)) ($emb_msm.default T e))
+
+;;; SMT sequence value datatype constructors
+
+(declare-parameterized-const $emb_ssm.cons
+  ((i $smt_Value :opaque) (s $smt_Seq :opaque))
+  $smt_Seq)
+(define $ssm_cons ((i $smt_Value) (s $smt_Seq)) ($emb_ssm.cons i s))
+
+(declare-parameterized-const $emb_ssm.empty ((T $smt_Type :opaque)) $smt_Seq)
+(define $ssm_empty ((T $smt_Type)) ($emb_ssm.empty T))
+
+(define $vsm_string_empty () ($vsm_seq ($ssm_empty $tsm_Char)))
+
+;;; Constructors for SMT-LIB datatypes and datatype constructors
+
+; A constructor having no arguments
+(declare-const $emb_dtc.unit $smt_DatatypeCons)
+(define $dtc_unit () $emb_dtc.unit)
+
+; A constructor having at least one argument
+; It takes the type of that argument and a constructor specifying the remaining
+; arguments.
+(declare-parameterized-const $emb_dtc.cons
+  ((T $smt_Type :opaque) (c $smt_DatatypeCons :opaque))
+  $smt_DatatypeCons)
+(define $dtc_cons ((T $smt_Type) (c $smt_DatatypeCons))
+  ($emb_dtc.cons T c))
+
+; A datatype having no constructors
+(declare-const $emb_dt.null $smt_Datatype)
+(define $dt_null () $emb_dt.null)
+  
+; A datatype having at least one constructor
+(declare-parameterized-const $emb_dt.sum
+  ((c $smt_DatatypeCons :opaque) (d $smt_Datatype :opaque))
+  $smt_Datatype)
+(define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
+  ($emb_dt.sum c d))
+
+;;; forward declarations
+
+(program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
+(program $smtx_typeof () :signature ($smt_Term) $smt_Type)
+(program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
+(program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_String $smt_Type) $smt_Value)
+(program $smtx_model_update () :signature ($smt_Model $smt_builtin_String $smt_Type $smt_Value) $smt_Model)
+
+;;; utilities
+
+; returns U if T is not none
+(program $smtx_typeof_guard ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_guard T U) ($smt_builtin_ite ($smt_builtin_Teq T $tsm_none) $tsm_none U))
+  )
+)
+
+; returns U if T is inhabited
+(program $smtx_typeof_guard_inhabited ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_guard_inhabited T U) ($smt_builtin_ite ($smt_apply_1 "inhabited_type" T) U $tsm_none))
+  )
+)
+
+;;; Map utilities
+
+; Get the default for the map
+(program $smtx_msm_get_default
+  ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Map) $smt_Value
+  (
+  (($smtx_msm_get_default ($msm_cons j e m))  ($smtx_msm_get_default m))
+  (($smtx_msm_get_default ($msm_default T e)) e)
+  )
+)
+
+; This program looks up the value of a term in a map.
+; This is used for function evaluation.
+(program $smtx_msm_lookup
+  ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Map $smt_Value) $smt_Value
+  (
+  (($smtx_msm_lookup ($msm_cons j e m) i)  ($smt_builtin_ite ($smt_builtin_veq j i) e ($smtx_msm_lookup m i)))
+  (($smtx_msm_lookup ($msm_default T e) i) e)
+  )
+)
+
+; updates the map with a new entry, maintaining ordered-ness
+;(program $smtx_msm_update
+;  ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (m $smt_Map))
+;  :signature ($smt_Map $smt_Value $smt_Value) $smt_Map
+;  (
+;  (($smtx_msm_update ($msm_cons j e1 m) i e2)
+;    ($smt_builtin_ite ($smt_builtin_veq j i)
+;      ; we overwrite if same index
+;      ($msm_cons i e2 m)
+;      ; otherwise, we check the hash to retain sortedness
+;      ($smt_builtin_ite ($smtx_value_cmp j i)
+;        ($msm_cons i e2 ($msm_cons j e1 m))
+;        ($msm_cons j e1 ($smtx_msm_update m i e2)))))
+;  (($smtx_msm_update ($msm_default T e1) i e2)
+;    ($smt_builtin_ite ($smt_builtin_veq e1 e2)
+;      ; we are redundant wrt the default value
+;      ($msm_default T e1)
+;      ($msm_cons i e2 ($msm_default T e1))))
+;  )
+;)
+(define $smtx_msm_update ((m $smt_Map) (i $smt_Value) (e $smt_Value))
+  ($msm_cons i e m))
+
+; Returns the type of the map value or tsm_none
+(program $smtx_typeof_map_value
+  ((i $smt_Value) (e $smt_Value) (m $smt_Map) (T $smt_Type))
+  :signature ($smt_Map) $smt_Type
+  (
+  (($smtx_typeof_map_value ($msm_cons i e m))
+    (eo::define ((mT ($smtx_typeof_map_value m)))
+    ($smt_builtin_ite ($smt_builtin_Teq ($tsm_Map ($smtx_typeof_value i) ($smtx_typeof_value e)) mT)
+      mT
+      $tsm_none)))
+  (($smtx_typeof_map_value ($msm_default T e))  ($tsm_Map T ($smtx_typeof_value e)))
+  )
+)
+
+(program $smtx_index_typeof_map ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_index_typeof_map ($tsm_Map T U)) T)
+  (($smtx_index_typeof_map T) $tsm_none)
+  )
+)
+
+(program $smtx_elem_typeof_map ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_elem_typeof_map ($tsm_Map T U)) U)
+  (($smtx_elem_typeof_map T) $tsm_none)
+  )
+)
+
+
+;;; Map as sets
+
+; A set is a mapping to Bool.
+; The empty set maps all to false.
+;(define $tsm_Set ((T $smt_Type)) ($tsm_Map T $tsm_Bool))
+(define $smtx_elem_typeof_set ((T $smt_Type)) ($smtx_index_typeof_map T))
+
+(define $msm_empty_set ((T $smt_Type)) ($msm_default T $vsm_false))
+; Inserting sets e to true.
+(define $smtx_mss_mk_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e $vsm_true))
+(define $smtx_mss_insert ((e $smt_Value) (m $smt_Map)) ($msm_cons e $vsm_true m))
+(define $smtx_mss_member ((e $smt_Value) (m $smt_Map))
+  ($smt_builtin_veq ($smtx_msm_lookup m e) $vsm_true))
+
+; Helper for computing binary set operators.
+; Takes a flag isInter and maps m1, m2, macc.
+; If isInter is true, then we add to macc elements that are in both m1 and m2.
+; If isInter is false, then we add to macc elements that are in the difference of m1 and m2.
+(program $smtx_mss_op_internal
+  ((T $smt_Type) (m1 $smt_Map) (m2 $smt_Map) (acc $smt_Map) (e $smt_Value)
+   (efalse $smt_Value) (etrue $smt_Value) (isInter $smt_builtin_Bool))
+  :signature ($smt_builtin_Bool $smt_Map $smt_Map $smt_Map) $smt_Map
+  (
+  ; note we don't insist on true/false here, to ensure the function is total
+  (($smtx_mss_op_internal isInter ($msm_default T efalse) m2 acc) acc)
+  (($smtx_mss_op_internal isInter ($msm_cons e etrue m1) m2 acc)
+    ($smtx_mss_op_internal isInter m1 m2
+      ($smt_builtin_ite
+        ($smt_builtin_iff ($smtx_mss_member e m2) isInter)
+        ($smtx_mss_mk_insert e acc)
+        acc)))
+  )
+)
+
+;;; Utilities for Sequence values
+
+(program $smtx_ssm_seq_nth
+  ((v $smt_Value) (vs $smt_Seq) (n $smt_builtin_Int) (T $smt_Type) (d $smt_Value))
+  :signature ($smt_Seq $smt_builtin_Int $smt_Value) $smt_Value
+  (
+  (($smtx_ssm_seq_nth ($ssm_empty T) n d)                     d)
+  (($smtx_ssm_seq_nth ($ssm_cons v vs) $smt_builtin_z_zero d) v)
+  (($smtx_ssm_seq_nth ($ssm_cons v vs) n d)
+    ($smtx_ssm_seq_nth vs ($smt_builtin_z_dec n) d))
+  )
+)
+
+; Returns the type of the map value or tsm_none
+(program $smtx_typeof_seq_value
+  ((v $smt_Value) (vs $smt_Seq) (T $smt_Type))
+  :signature ($smt_Seq) $smt_Type
+  (
+  (($smtx_typeof_seq_value ($ssm_cons v vs))
+    (eo::define ((sT ($smtx_typeof_seq_value vs)))
+    ($smt_builtin_ite ($smt_builtin_Teq ($tsm_Seq ($smtx_typeof_value v)) sT)
+      sT
+      $tsm_none)))
+  (($smtx_typeof_seq_value ($ssm_empty T)) ($tsm_Seq T))
+  )
+)
+
+(program $smtx_elem_typeof_seq_value
+  ((v $smt_Value) (vs $smt_Seq) (T $smt_Type))
+  :signature ($smt_Seq) $smt_Type
+  (
+  (($smtx_elem_typeof_seq_value ($ssm_cons v vs)) ($smtx_elem_typeof_seq_value vs))
+  (($smtx_elem_typeof_seq_value ($ssm_empty T)) T)
+  )
+)
+
+;; datatypes
+
+(program $smtx_dtc_concat
+  ((U $smt_Type) (c1 $smt_DatatypeCons) (c2 $smt_DatatypeCons))
+  :signature ($smt_DatatypeCons $smt_DatatypeCons) $smt_DatatypeCons
+  (
+  (($smtx_dtc_concat ($dtc_cons U c1) c2) ($dtc_cons U ($smtx_dtc_concat c1 c2)))
+  (($smtx_dtc_concat $dtc_unit c2)        c2)
+  )
+)
+
+(program $smtx_dtc_num_sels ((U $smt_Type) (c $smt_DatatypeCons))
+  :signature ($smt_DatatypeCons) $smt_builtin_Nat
+  (
+  (($smtx_dtc_num_sels ($dtc_cons U c)) ($smt_builtin_n_succ ($smtx_dtc_num_sels c)))
+  (($smtx_dtc_num_sels $dtc_unit)       $smt_builtin_n_zero)
+  )
+)
+
+(program $smtx_dt_num_sels ((c $smt_DatatypeCons) (d $smt_Datatype) (n $smt_builtin_Nat))
+  :signature ($smt_Datatype $smt_builtin_Nat) $smt_builtin_Nat
+  (
+  (($smtx_dt_num_sels ($dt_sum c d) $smt_builtin_n_zero) ($smtx_dtc_num_sels c))
+  (($smtx_dt_num_sels ($dt_sum c d) ($smt_builtin_n_succ n))
+     ($smtx_dt_num_sels d n))
+  (($smtx_dt_num_sels $dt_null n)                        $smt_builtin_n_zero)
+  )
+)
+
+; forward declaration
+(program $smtx_dt_substitute ()
+  :signature ($smt_builtin_String $smt_Datatype $smt_Datatype) $smt_Datatype)
+  
+; Replaces ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
+; of a datatype constructor.
+; Note that this assumes there is no nested recursion, i.e. occurrences of
+; ($tsm_TypeRef s) that are beneath applications of other types.
+(program $smtx_dtc_substitute
+  ((s $smt_builtin_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons)
+   (s2 $smt_builtin_String) (d2 $smt_Datatype))
+  :signature ($smt_builtin_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
+  (
+  (($smtx_dtc_substitute s d ($dtc_cons ($tsm_Datatype s2 d2) c))
+    ; possible mutual recursion, subsitute into the datatype, unless there is
+    ; name shadowing
+    ($dtc_cons ($tsm_Datatype s2
+      ($smt_builtin_ite ($smt_builtin_str_= s s2) d2 ($smtx_dt_substitute s d d2)))
+      ($smtx_dtc_substitute s d c)))
+  (($smtx_dtc_substitute s d ($dtc_cons T c))
+    ($dtc_cons
+      ; if it is a recursive reference to the type we are substituting, replace
+      ($smt_builtin_ite ($smt_builtin_Teq T ($tsm_TypeRef s))
+        ($tsm_Datatype s d)
+        T)
+      ($smtx_dtc_substitute s d c)))
+  (($smtx_dtc_substitute s d $dtc_unit) $dtc_unit)
+  )
+)
+
+; ($smtx_dt_substitute s d d2)
+; Substitutes ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
+; of datatype constructors of a datatype d2.
+; Note that this assumes there is no nested recursion, i.e. occurrences of
+; ($tsm_TypeRef s) that are beneath applications of other types.
+(program $smtx_dt_substitute
+  ((s $smt_builtin_String) (d $smt_Datatype) (c $smt_DatatypeCons) (d2 $smt_Datatype))
+  :signature ($smt_builtin_String $smt_Datatype $smt_Datatype) $smt_Datatype
+  (
+  (($smtx_dt_substitute s d ($dt_sum c d2))
+    ($dt_sum ($smtx_dtc_substitute s d c) ($smtx_dt_substitute s d d2)))
+  (($smtx_dt_substitute s d $dt_null) $dt_null)
+  )
+)
+
+(program $smtx_typeof_dt_cons_value_rec
+  ((T $smt_Type) (U $smt_Type) (n $smt_builtin_Nat) (c $smt_DatatypeCons) (d $smt_Datatype))
+  :signature ($smt_Type $smt_Datatype $smt_builtin_Nat) $smt_Type
+  (
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum $dtc_unit d) $smt_builtin_n_zero) T)
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum ($dtc_cons U c) d) $smt_builtin_n_zero)
+    ($tsm_DtConsType U ($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) $smt_builtin_n_zero)))
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) ($smt_builtin_n_succ n))
+    ($smtx_typeof_dt_cons_value_rec T d n))
+  (($smtx_typeof_dt_cons_value_rec T d n) $tsm_none)
+  )
+)
+
+(define $smtx_typeof_dt_cons_value
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Int))
+  ; substitute ($tsm_TypeRef s) to ($tsm_Datatype s d), which ensures the
+  ; datatype we are processing is closed.
+  ($smtx_typeof_dt_cons_value_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) n))
+
+  
+
+(program $smtx_typeof_dt_cons_rec
+  ((T $smt_Type) (U $smt_Type) (d $smt_Datatype) (c $smt_DatatypeCons) (n $smt_builtin_Nat))
+  :signature ($smt_Type $smt_Datatype $smt_builtin_Nat) $smt_Type
+  (
+  (($smtx_typeof_dt_cons_rec T ($dt_sum $dtc_unit d) $smt_builtin_n_zero) T)
+  (($smtx_typeof_dt_cons_rec T ($dt_sum ($dtc_cons U c) d) $smt_builtin_n_zero)
+    ($tsm_DtConsType U ($smtx_typeof_dt_cons_rec T ($dt_sum c d) $smt_builtin_n_zero)))
+  (($smtx_typeof_dt_cons_rec T ($dt_sum c d) ($smt_builtin_n_succ n))
+    ($smtx_typeof_dt_cons_rec T d n))
+  (($smtx_typeof_dt_cons_rec T d n) $tsm_none)
+  )
+)
+
+; returns the return type of the selector n,m of datatype d.
+(program $smtx_ret_typeof_sel_rec
+  ((T $smt_Type) (n $smt_builtin_Nat) (m $smt_builtin_Nat) (c $smt_DatatypeCons) (d $smt_Datatype))
+  :signature ($smt_Datatype $smt_builtin_Nat $smt_builtin_Nat) $smt_Type
+  (
+  (($smtx_ret_typeof_sel_rec ($dt_sum ($dtc_cons T c) d) $smt_builtin_n_zero $smt_builtin_n_zero) T)
+  (($smtx_ret_typeof_sel_rec ($dt_sum ($dtc_cons T c) d) $smt_builtin_n_zero ($smt_builtin_n_succ m))
+    ($smtx_ret_typeof_sel_rec ($dt_sum c d) $smt_builtin_n_zero m))
+  (($smtx_ret_typeof_sel_rec ($dt_sum c d) ($smt_builtin_n_succ n) m)
+    ($smtx_ret_typeof_sel_rec d n m))
+  (($smtx_ret_typeof_sel_rec d n m) $tsm_none)
+  )
+)
+
+(program $smtx_ret_typeof_sel
+  ((s $smt_builtin_String) (n $smt_builtin_Nat) (m $smt_builtin_Nat) (d $smt_Datatype))
+  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Nat $smt_builtin_Nat) $smt_Type
+  (
+  (($smtx_ret_typeof_sel s d n m) ($smtx_ret_typeof_sel_rec ($smtx_dt_substitute s d d) n m))
+  )
+)
+
+; program: $smtx_typeof_apply_value
+(program $smtx_typeof_apply_value ((T $smt_Type) (U $smt_Type) (V $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  ; can partially apply datatype constructors but *not* maps
+  (($smtx_typeof_apply_value ($tsm_DtConsType T U) V)
+    ($smtx_typeof_guard T ($smt_builtin_ite ($smt_builtin_Teq T V) U $tsm_none)))
+  (($smtx_typeof_apply_value T U) $tsm_none)
+  )
+)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Type rules for values
+
+(program $smtx_typeof_value
+  ((v $smt_Value) (f $smt_Value) (d $smt_Datatype)
+   (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (i $smt_builtin_Nat)
+   (q $smt_builtin_Real) (s $smt_builtin_String) (r $smt_builtin_RegLan) (c $smt_builtin_Char)
+   (m $smt_Map) (ss $smt_Seq) (T $smt_Type) (t $smt_Term))
+  :signature ($smt_Value) $smt_Type
+  (
+  (($smtx_typeof_value ($vsm_bool b))     $tsm_Bool)
+  (($smtx_typeof_value ($vsm_numeral n))  $tsm_Int)
+  (($smtx_typeof_value ($vsm_rational q)) $tsm_Real)
+  (($smtx_typeof_value ($vsm_binary w n))
+    ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w) 
+      ($tsm_BitVec w)
+      $tsm_none))
+  (($smtx_typeof_value ($vsm_re r))       $tsm_RegLan)
+  (($smtx_typeof_value ($vsm_map m))      ($smtx_typeof_map_value m))
+  (($smtx_typeof_value ($vsm_seq ss))     ($smtx_typeof_seq_value ss))
+  (($smtx_typeof_value ($vsm_char c))     $tsm_Char)
+  (($smtx_typeof_value ($vsm_DtCons s d i))
+    ($smtx_typeof_dt_cons_value s d i))
+  (($smtx_typeof_value ($vsm_apply f v))
+    ($smtx_typeof_apply_value ($smtx_typeof_value f) ($smtx_typeof_value v)))
+  (($smtx_typeof_value v)                 $tsm_none)
+  )
+)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Model semantics
+
+;;; Core
+
+; ITE branches to the appropriate child.
+; return: The evaluation of an ite application.
+(program $smtx_model_eval_ite
+  ((t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
+  :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_ite $vsm_true t2 t3)   t2)
+  (($smtx_model_eval_ite $vsm_false t2 t3)  t3)
+  (($smtx_model_eval_ite t1 t2 t3)          $vsm_not_value)
+  )
+)
+
+; Equality insists on valueness and then reduces to an equality over datatypes
+; in the deep embedding (vsm.Value), meaning it works for all types, including
+; functions and uninterpreted sorts where values are not represented by terms.
+; Note that the valueness predicate ensures this is sound. Moreover note that
+; we do not invoke the type checker here. This means that if an ill-typed
+; equality was given as input to this method, it would always evaluate to false.
+; The caller of this method is responsible for ensuring that this behavior is
+; either avoided or admissible.
+; return: The evaluation of an equality application.
+(program $smtx_model_eval_=
+  ((v1 $smt_Value) (v2 $smt_Value) (f1 $smt_Value) (f2 $smt_Value)
+   (T1 $smt_Type) (T2 $smt_Type) (m1 $smt_Map) (m2 $smt_Map)
+   (vs1 $smt_Seq) (vs2 $smt_Seq))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_= ($vsm_map m1) ($vsm_map m2)) ($vsm_bool ($smt_apply_2 "veq_ext" m1 m2)))
+  (($smtx_model_eval_= ($vsm_seq ($ssm_empty T1)) ($vsm_seq ($ssm_empty T2))) $vsm_true)
+  (($smtx_model_eval_= ($vsm_seq ($ssm_cons v1 vs1)) ($vsm_seq ($ssm_cons v2 vs2)))
+    ($vsm_bool
+      ($smt_builtin_and
+        ($smt_builtin_veq ($smtx_model_eval_= v1 v2) $vsm_true)
+        ($smt_builtin_veq ($smtx_model_eval_= ($vsm_seq vs1) ($vsm_seq vs2)) $vsm_true))))
+  (($smtx_model_eval_= ($vsm_apply f1 v1) ($vsm_apply f2 v2))
+    ($vsm_bool
+      ($smt_builtin_and
+        ($smt_builtin_veq ($smtx_model_eval_= f1 f2) $vsm_true)
+        ($smt_builtin_veq ($smtx_model_eval_= v1 v2) $vsm_true))))
+  (($smtx_model_eval_= v1 v2) ($vsm_bool ($smt_builtin_veq v1 v2)))
+  )
+)
+
+;;; Functions, arrays
+
+; Array select
+(program $smtx_map_select
+  ((v $smt_Value) (i $smt_Value) (m $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_map_select ($vsm_map m) i) ($smtx_msm_lookup m i))
+  (($smtx_map_select v i)            $vsm_not_value)
+  )
+)
+
+; Array store
+(program $smtx_map_store
+  ((v $smt_Value) (i $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_map_store ($vsm_map m) i e) ($vsm_map ($smtx_msm_update m i e)))
+  (($smtx_map_store v i e)            $vsm_not_value)
+  )
+)
+
+;;; Sets
+
+; Empty set
+(define $smtx_empty_set ((T $smt_Type)) ($vsm_map ($msm_empty_set T)))
+
+; Set singleton
+; return the singleton set whose type is T and contains e.
+(define $smtx_set_singleton ((e $smt_Value))
+  ($vsm_map ($smtx_mss_insert e ($msm_empty_set ($smtx_typeof_value e)))))
+
+; Set intersection
+; return the intersection of two set values.
+(program $smtx_set_inter
+  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_set_inter ($vsm_map m1) ($vsm_map m2))
+    ; m1 intersected m2 starting with empty set.
+    ($vsm_map ($smtx_mss_op_internal $smt_builtin_true m1 m2 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))))))
+  (($smtx_set_inter v1 v2)  $vsm_not_value)
+  )
+)
+
+; Set minus
+; return the set minus of two set values.
+(program $smtx_set_minus
+  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_set_minus ($vsm_map m1) ($vsm_map m2))
+    ; m1 minus m2 starting with empty set.
+    ($vsm_map ($smtx_mss_op_internal $smt_builtin_false m1 m2 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))))))
+  (($smtx_set_minus v1 v2)  $vsm_not_value)
+  )
+)
+
+; Set union
+; return the union of two set values.
+(program $smtx_set_union
+  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_set_union ($vsm_map m1) ($vsm_map m2))
+    ; m1 minus the empty set starting with m2.
+    ($vsm_map ($smtx_mss_op_internal $smt_builtin_false m1 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))) m2)))
+  (($smtx_set_union v1 v2)  $vsm_not_value)
+  )
+)
+
+;;; Sequences
+
+; Empty sequence
+(define $smtx_empty_seq ((T $smt_Type)) ($vsm_seq ($ssm_empty T)))
+
+; Sequence unit
+(define $smtx_seq_unit ((e $smt_Value))
+  ($vsm_seq ($ssm_cons e ($ssm_empty ($smtx_typeof_value e)))))
+
+(program $smtx_seq_nth_wrong
+  ((M $smt_Model) (s $smt_Seq) (n $smt_builtin_Int) (T $smt_Type))
+  :signature ($smt_Model $smt_Seq $smt_builtin_Int $smt_Type) $smt_Value
+  (
+  (($smtx_seq_nth_wrong M s n ($tsm_Seq T))      
+    ($smtx_map_select
+      ($smtx_map_select
+        ($smtx_model_lookup M ($smt_apply_0 "oob_seq_nth_id")
+          ($tsm_Map ($tsm_Seq T) ($tsm_Map $tsm_Int T)))
+        ($vsm_seq s))
+      ($vsm_numeral n)))
+  (($smtx_seq_nth_wrong M s n T)  $vsm_not_value)
+  )
+)
+
+; Sequence nth
+(program $smtx_seq_nth
+  ((M $smt_Model) (s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Model $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_seq_nth M ($vsm_seq s) ($vsm_numeral n)) 
+    ($smtx_ssm_seq_nth s n ($smtx_seq_nth_wrong M s n ($smtx_typeof_seq_value s))))
+  (($smtx_seq_nth M v1 v2) $vsm_not_value)
+  )
+)
+
+;;; Bit-vectors
+
+(program $smtx_bv_sizeof_type ((x1 $smt_builtin_Int) (t1 $smt_Value))
+  :signature ($smt_Type) $smt_builtin_Int
+  (
+  (($smtx_bv_sizeof_type ($tsm_BitVec x1)) x1)
+  (($smtx_bv_sizeof_type t1) $smt_builtin_z_neg_one)
+  )
+)
+
+(program $smtx_bv_sizeof_value
+  ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (t1 $smt_Value))
+  :signature ($smt_Value) $smt_builtin_Int
+  (
+  (($smtx_bv_sizeof_value ($vsm_binary x1 x2)) x1)
+  (($smtx_bv_sizeof_value t1) $smt_builtin_z_neg_one)
+  )
+)
+
+;;; Datatypes
+
+(program $smtx_model_eval_dt_sel
+  ((M $smt_Model) (n $smt_builtin_Nat) (m $smt_builtin_Nat) (v $smt_Value)
+   (s $smt_builtin_String) (d $smt_Datatype))
+  :signature ($smt_Model $smt_builtin_String $smt_Datatype $smt_builtin_Nat $smt_builtin_Nat $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_dt_sel M s d n m v)
+    ; check if the head of the apply term is ($vsm_DtCons s d n)
+    ($smt_builtin_ite ($smt_builtin_veq ($vsm_apply_head v) ($vsm_DtCons s d n))
+      ($vsm_apply_arg_nth v m ($smtx_dt_num_sels d n))
+      ; wrongly applied selector
+      ; we introduce an uninterpreted function wrong_apply_sel : (-> Int Int D T)
+      ; where (wrong_apply_sel_id n m) is the uninterpreted function corresponding
+      ; to wrong applications of the m^th selector of the n^th constructor of the datatype of v.
+      ($smtx_map_select
+        ($smtx_map_select
+          ($smtx_map_select
+            ($smtx_model_lookup M ($smt_apply_0 "wrong_apply_sel_id")
+              ($tsm_Map $tsm_Int ($tsm_Map $tsm_Int ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel s d n m)))))
+            ($vsm_numeral ($smt_builtin_n_to_z n)))
+          ($vsm_numeral ($smt_builtin_n_to_z m)))
+        v)))
+  )
+)
+
+(program $smtx_model_eval_dt_tester
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Nat) (v1 $smt_Value))
+  :signature ($smt_builtin_String $smt_Datatype $smt_builtin_Nat $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_dt_tester s d n v1)
+    ; check if the head of the apply term is ($vsm_DtCons s d n)
+    ($vsm_bool ($smt_builtin_veq ($vsm_apply_head v1) ($vsm_DtCons s d n))))
+  )
+)
+
+; apply 
+
+; program: $smtx_model_eval_apply
+; We call ($smtx_model_eval_apply value_f value_i) when
+; evaluating (f i) whose values are value_f and value_i
+; respectively. If value_f is a map value, then we extract
+; the map and call the map lookup routine.
+(program $smtx_model_eval_apply
+  ((m $smt_Map) (i $smt_Value) (f $smt_Value) (v $smt_Value)
+   (s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Nat) (T $smt_Type) (t $smt_Term))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  ; If a Herbrand interpretation, apply it to the next value.
+  (($smtx_model_eval_apply ($vsm_DtCons s d n) i) ($vsm_apply ($vsm_DtCons s d n) i))
+  (($smtx_model_eval_apply ($vsm_apply f v) i) ($vsm_apply ($vsm_apply f v) i))
+  ; The function evaluated to a map value, call the map lookup.
+  (($smtx_model_eval_apply ($vsm_map m) i) ($smtx_map_select ($vsm_map m) i))
+  ; FIXME: Lambda case
+  ; The function did not evaluate to a map value, we fail.
+  (($smtx_model_eval_apply v i)                 $vsm_not_value)
+  )
+)
+;;; Other model evaluation functions
+
+(program $smtx_model_eval_not () :signature ($smt_Value) $smt_Value)
+(program $smtx_model_eval_or () :signature ($smt_Value $smt_Value) $smt_Value)
+(program $smtx_model_eval_and () :signature ($smt_Value $smt_Value) $smt_Value)
+(program $smtx_model_eval_=> () :signature ($smt_Value $smt_Value) $smt_Value)
+
+
+(program $smtx_model_eval_not
+  ((x1 $smt_builtin_Bool) (t1 $smt_Value))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_not ($vsm_bool x1)) ($vsm_bool ($smt_apply_1 "not" x1)))
+  (($smtx_model_eval_not t1) $vsm_not_value)
+  )
+)
+(program $smtx_model_eval_or
+  ((x1 $smt_builtin_Bool)(x2 $smt_builtin_Bool) (t1 $smt_Value) (t2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_or ($vsm_bool x1) ($vsm_bool x2)) ($vsm_bool ($smt_apply_2 "or" x1 x2)))
+  (($smtx_model_eval_or t1 t2) $vsm_not_value)
+  )
+)
+(program $smtx_model_eval_and
+  ((x1 $smt_builtin_Bool)(x2 $smt_builtin_Bool) (t1 $smt_Value) (t2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_and ($vsm_bool x1) ($vsm_bool x2)) ($vsm_bool ($smt_apply_2 "and" x1 x2)))
+  (($smtx_model_eval_and t1 t2) $vsm_not_value)
+  )
+)
+(program $smtx_model_eval_=>
+  ((x1 $smt_Value)(x2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_=> x1 x2) ($smtx_model_eval_or ($smtx_model_eval_not x1) x2))
+  )
+)
+
+
+; An evaluator for all terms that we can reason about models.
+; This is a recursive call.
+; invariant: this must be a total function
+; invariant: unless this method returns $vsm_not_value, it must be such that
+;            it represents a unique SMT-LIB value, i.e. ($vsm_term t) is
+;            forbidden unless t denotes a value.
+(program $smtx_model_eval
+  ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (d $smt_Datatype)
+   (i $smt_builtin_Nat) (j $smt_builtin_Nat)
+   (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int)
+   (m $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
+   ; generic parameters that may appear in terms to pattern match
+   (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
+  :signature ($smt_Model $smt_Term) $smt_Value
+  (
+
+  (($smtx_model_eval M ($sm_bool b))      ($vsm_bool b))
+  (($smtx_model_eval M ($sm_numeral n))   ($vsm_numeral n))
+  (($smtx_model_eval M ($sm_rational r))  ($vsm_rational r))
+  (($smtx_model_eval M ($sm_string s))    ($vsm_seq ($smt_apply_1 "pack_string" s)))
+  (($smtx_model_eval M ($sm_binary w n))  ($vsm_binary w n))
+  ; evaluation of standard SMT symbols
+  ; These calls will reference helper methods above, e.g. of the form
+  ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
+  (($smtx_model_eval M ($sm_not x1)) ($smtx_model_eval_not ($smtx_model_eval M x1)))
+  (($smtx_model_eval M ($sm_or x1 x2)) ($smtx_model_eval_or ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+  (($smtx_model_eval M ($sm_and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+  (($smtx_model_eval M ($sm_=> x1 x2)) ($smtx_model_eval_=> ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+
+  (($smtx_model_eval M ($sm_ite x1 x2 x3))
+    ($smtx_model_eval_ite ($smtx_model_eval M x1) ($smtx_model_eval M x2) ($smtx_model_eval M x3)))
+  (($smtx_model_eval M ($sm_= x1 x2))
+    ($smtx_model_eval_= ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+  ; quantifiers
+  (($smtx_model_eval M ($sm_apply ($sm_exists s T) x1))
+    ($smt_apply_4 "eval_texists" M s T x1))
+  (($smtx_model_eval M ($sm_apply ($sm_forall s T) x1))
+    ($smt_apply_4 "eval_tforall" M s T x1))
+  (($smtx_model_eval M ($sm_apply ($sm_choice s T) x1))
+    ($smt_apply_4 "eval_tchoice" M s T x1))
+  ; datatypes
+  (($smtx_model_eval M ($sm_DtCons s d i)) ($vsm_DtCons s d i))
+  (($smtx_model_eval M ($sm_apply ($sm_DtSel s d i j) x1))
+    ($smtx_model_eval_dt_sel M s d i j ($smtx_model_eval M x1)))
+  (($smtx_model_eval M ($sm_apply ($sm_DtTester s d i) x1))
+    ($smtx_model_eval_dt_tester s d i ($smtx_model_eval M x1)))
+  ; Apply case. We evaluate f and x1 separately and then call the
+  ; $smtx_model_eval_apply above. We expect f to be an uninterpreted
+  ; function whose model evaluation is an SMT-LIB map in this case.
+  ; All interpreted f should be handled in the evaluation cases above.
+  (($smtx_model_eval M ($sm_apply f x1))
+    ($smtx_model_eval_apply ($smtx_model_eval M f) ($smtx_model_eval M x1)))
+  (($smtx_model_eval M ($sm_Var s T))     ($smtx_model_lookup M s T))
+  (($smtx_model_eval M ($sm_UConst s T))  ($smtx_model_lookup M s T))
+  (($smtx_model_eval M x1)   $vsm_not_value)
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;
+
+(program $smtx_typeof_ite ((T $smt_Type) (U $smt_Type) (V $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_ite $tsm_Bool U V) ($smt_builtin_ite ($smt_builtin_Teq U V) U $tsm_none))
+  (($smtx_typeof_ite T U V)         $tsm_none)
+  )
+)
+
+(program $smtx_typeof_= ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_= T U) ($smtx_typeof_guard T ($smt_builtin_ite ($smt_builtin_Teq T U) $tsm_Bool $tsm_none)))
+  )
+)
+
+(program $smtx_typeof_apply ((T $smt_Type) (U $smt_Type) (V $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_apply ($tsm_Map T U) V)
+    ($smtx_typeof_guard T ($smt_builtin_ite ($smt_builtin_Teq T V) U $tsm_none)))
+  (($smtx_typeof_apply ($tsm_DtConsType T U) V)
+    ($smtx_typeof_guard T ($smt_builtin_ite ($smt_builtin_Teq T V) U $tsm_none)))
+  (($smtx_typeof_apply T U)               $tsm_none)
+  )
+)
+
+(program $smtx_typeof_bv_op_2
+  ((T $smt_Type) (U $smt_Type) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_bv_op_2 ($tsm_BitVec n1) ($tsm_BitVec n2))
+    ($smt_builtin_ite ($smt_builtin_z_= n1 n2) ($tsm_BitVec n1) $tsm_none))
+  (($smtx_typeof_bv_op_2 T U) $tsm_none)
+  )
+)
+
+(program $smtx_typeof_bv_op_2_ret
+  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_bv_op_2_ret ($tsm_BitVec n1) ($tsm_BitVec n2) U)
+    ($smt_builtin_ite ($smt_builtin_z_= n1 n2) U $tsm_none))
+  (($smtx_typeof_bv_op_2_ret T U V) $tsm_none)
+  )
+)
+
+(program $smtx_typeof_sets_op_2 ((x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_sets_op_2 ($tsm_Set x1) ($tsm_Set x2))
+    ($smt_builtin_ite ($smt_builtin_Teq x1 x2) ($tsm_Set x1) $tsm_none))
+  (($smtx_typeof_sets_op_2 x1 x2) $tsm_none)
+  )
+)
+
+(program $smtx_typeof_sets_op_2_ret
+  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_sets_op_2_ret ($tsm_Set x1) ($tsm_Set x2) T)
+    ($smt_builtin_ite ($smt_builtin_Teq x1 x2) T $tsm_none))
+  (($smtx_typeof_sets_op_2_ret T U V) $tsm_none)
+  )
+)
+
+(program $smtx_typeof_seq_op_1 ((x1 $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_1 ($tsm_Seq x1)) ($tsm_Seq x1) )
+  (($smtx_typeof_seq_op_1 x1) $tsm_none)
+  )
+)
+(program $smtx_typeof_seq_op_1_ret ((x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_1_ret ($tsm_Seq x1) x2) x2)
+  (($smtx_typeof_seq_op_1_ret x1 x2) $tsm_none)
+  )
+)
+(program $smtx_typeof_seq_op_2 ((x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_2 ($tsm_Seq x1) ($tsm_Seq x2))
+    ($smt_builtin_ite ($smt_builtin_Teq x1 x2) ($tsm_Seq x1) $tsm_none))
+  (($smtx_typeof_seq_op_2 x1 x2) $tsm_none)
+  )
+)
+(program $smtx_typeof_seq_op_2_ret
+  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_2_ret ($tsm_Seq x1) ($tsm_Seq x2) T)
+    ($smt_builtin_ite ($smt_builtin_Teq x1 x2) T $tsm_none))
+  (($smtx_typeof_seq_op_2_ret T U V) $tsm_none)
+  )
+)
+(program $smtx_typeof_seq_op_3 ((x1 $smt_Type) (x2 $smt_Type) (x3 $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_3 ($tsm_Seq x1) ($tsm_Seq x2) ($tsm_Seq x3))
+    ($smt_builtin_ite ($smt_builtin_Teq x1 x2) 
+    ($smt_builtin_ite ($smt_builtin_Teq x2 x3) ($tsm_Seq x1) $tsm_none) $tsm_none))
+  (($smtx_typeof_seq_op_3 x1 x2 x3) $tsm_none)
+  )
+)
+
+(program $smtx_typeof_bv_op_1 ((T $smt_Type) (n $smt_builtin_Int))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_typeof_bv_op_1 ($tsm_BitVec n)) ($tsm_BitVec n))
+  (($smtx_typeof_bv_op_1 T)               $tsm_none)
+  )
+)
+
+(program $smtx_typeof_bv_op_1_ret ((T $smt_Type) (U $smt_Type) (n $smt_builtin_Int))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_bv_op_1_ret ($tsm_BitVec n) T) T)
+  (($smtx_typeof_bv_op_1_ret T U)               $tsm_none)
+  )
+)
+
+(program $smtx_typeof_arith_overload_op_2
+  ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_arith_overload_op_2 $tsm_Int $tsm_Int) $tsm_Int)
+  (($smtx_typeof_arith_overload_op_2 $tsm_Real $tsm_Real) $tsm_Real)
+  (($smtx_typeof_arith_overload_op_2 T U) $tsm_none)
+  )
+)
+
+
+(program $smtx_typeof_arith_overload_op_2_ret
+  ((T $smt_Type) (U $smt_Type) (V $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_arith_overload_op_2_ret $tsm_Int $tsm_Int T) T)
+  (($smtx_typeof_arith_overload_op_2_ret $tsm_Real $tsm_Real T) T)
+  (($smtx_typeof_arith_overload_op_2_ret T U V) $tsm_none)
+  )
+)
+
+
+
+(program $smtx_typeof
+  ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (d $smt_Datatype)
+   (i $smt_builtin_Nat) (j $smt_builtin_Nat)
+   (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int)
+   (m $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
+   ; generic parameters that may appear in terms to pattern match
+   (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
+  :signature ($smt_Term) $smt_Type
+  (
+  (($smtx_typeof ($sm_bool b))      $tsm_Bool)
+  (($smtx_typeof ($sm_numeral n))   $tsm_Int)
+  (($smtx_typeof ($sm_rational r))  $tsm_Real)
+  (($smtx_typeof ($sm_string s))    $tsm_String)
+  (($smtx_typeof ($sm_binary w n))
+    ; must be legal width and value
+    ($smt_builtin_ite 
+      ($smt_builtin_and
+        ($smt_builtin_z_<= $smt_builtin_z_zero w)
+        ($smt_builtin_z_= n ($smt_builtin_mod_total n ($smt_builtin_z_pow2 w))))
+      ($tsm_BitVec w)
+      $tsm_none))
+  (($smtx_typeof ($sm_not x1)) ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
+  (($smtx_typeof ($sm_or x1 x2)) ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x2) $tsm_Bool) $tsm_Bool $tsm_none) $tsm_none))
+  (($smtx_typeof ($sm_and x1 x2)) ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x2) $tsm_Bool) $tsm_Bool $tsm_none) $tsm_none))
+  (($smtx_typeof ($sm_=> x1 x2)) ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x2) $tsm_Bool) $tsm_Bool $tsm_none) $tsm_none))
+
+  (($smtx_typeof ($sm_ite x1 x2 x3))
+    ($smtx_typeof_ite ($smtx_typeof x1) ($smtx_typeof x2) ($smtx_typeof x3)))
+  (($smtx_typeof ($sm_= x1 x2))
+    ($smtx_typeof_= ($smtx_typeof x1) ($smtx_typeof x2)))
+  ; quantifiers
+  (($smtx_typeof ($sm_apply ($sm_exists s T) x1))
+    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
+  (($smtx_typeof ($sm_apply ($sm_forall s T) x1))
+    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
+  (($smtx_typeof ($sm_apply ($sm_choice s T) x1))
+    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_inhabited T T) $tsm_none))
+  ; datatypes
+  (($smtx_typeof ($sm_DtCons s d i))
+    ($smtx_typeof_dt_cons_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) i))
+  (($smtx_typeof ($sm_apply ($sm_DtSel s d i j) x1))
+    ; TODO: well founded???
+    ($smtx_typeof_apply 
+      ($tsm_Map ($tsm_Datatype s d) ($smtx_ret_typeof_sel s d i j))
+      ($smtx_typeof x1)))
+  (($smtx_typeof ($sm_apply ($sm_DtTester s d i) x1))
+    ($smtx_typeof_apply 
+      ($tsm_Map ($tsm_Datatype s d) $tsm_Bool)
+      ($smtx_typeof x1)))
+  ; other
+  (($smtx_typeof ($sm_apply f x1)) ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
+  (($smtx_typeof ($sm_Var s T))     ($smtx_typeof_guard_inhabited T T))
+  (($smtx_typeof ($sm_UConst s T))  ($smtx_typeof_guard_inhabited T T))
+  (($smtx_typeof x1)   $tsm_none)
+  )
+)
+  
+;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+;;; Quantifiers
+
+(program $eo_to_smt_is_var
+  ((x $smt_Term) (s1 $smt_builtin_String) (T1 $smt_Type)
+   (s2 $smt_builtin_String) (T2 $smt_Type))
+  :signature ($smt_builtin_String $smt_Type $smt_Term) $smt_builtin_Bool
+  (
+  (($eo_to_smt_is_var s1 T1 ($sm_Var s2 T2))
+    ($smt_builtin_and ($smt_builtin_str_= s1 s2) ($smt_builtin_Teq T1 T2)))
+  (($eo_to_smt_is_var s1 T1 x) $smt_builtin_false)
+  )
+)
+
+; (x, y) returns true iff y is a binder for x.
+(program $eo_to_smt_is_binder_x
+  ((x $smt_Term) (s1 $smt_builtin_String) (T1 $smt_Type)
+   (s2 $smt_builtin_String) (T2 $smt_Type))
+  :signature ($smt_builtin_String $smt_Type $smt_Term) $smt_builtin_Bool
+  (
+  (($eo_to_smt_is_binder_x s1 T1 ($sm_exists s2 T2))
+    ($eo_to_smt_is_var s1 T1 ($sm_Var s2 T2)))
+  (($eo_to_smt_is_binder_x s1 T1 ($sm_forall s2 T2))
+    ($eo_to_smt_is_var s1 T1 ($sm_Var s2 T2)))
+  (($eo_to_smt_is_binder_x s1 T1 ($sm_choice s2 T2))
+    ($eo_to_smt_is_var s1 T1 ($sm_Var s2 T2)))
+  (($eo_to_smt_is_binder_x s1 T1 x) $smt_builtin_false)
+  )
+)
+
+; Substitution
+; program: $eo_to_smt_substitute
+; Used to define $smtx_eval_exists_rec.
+; ($eo_to_smt_substitute s T u t) returns the term t where the
+; variable ($sm_Var s T) is replaced by u.
+(program $eo_to_smt_substitute
+  ((s $smt_builtin_String) (T $smt_Type) (u $smt_Term)
+   (f $smt_Term) (a $smt_Term) (z $smt_Term))
+  :signature ($smt_builtin_String $smt_Type $smt_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_substitute s T u ($sm_apply f a))
+    ($smt_builtin_ite ($eo_to_smt_is_binder_x s T f)
+      ($sm_apply f a) ; avoid issues with shadowing
+      ($sm_apply ($eo_to_smt_substitute s T u f) ($eo_to_smt_substitute s T u a))))
+  (($eo_to_smt_substitute s T u z)
+    ; if x is z, we are now the constant with the given interpretation
+    ($smt_builtin_ite ($eo_to_smt_is_var s T z) u z))
+  )
+)
+
+; auxiliary definitions for defining $eo_to_smt / $eo_to_smt_type
+
+
+; helper for CPC Tuple
+; In $eo_to_smt_type, (Tuple x1 x2) returns
+;   ($eo_to_smt_type_tuple ($eo_to_smt_type x1) ($eo_to_smt_type x2))
+; and TupleUnit returns
+;   ($tsm_Datatype $smt_builtin_str_tuple_name ($dt_sum $dtc_unit $dt_null)).
+(program $eo_to_smt_type_tuple
+  ((U $smt_Type) (T $smt_Type) (s $smt_builtin_String) (c $smt_DatatypeCons))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($eo_to_smt_type_tuple U ($tsm_Datatype $smt_builtin_str_tuple_name ($dt_sum c $dt_null)))
+    ($tsm_Datatype $smt_builtin_str_tuple_name ($dt_sum ($dtc_cons U c) $dt_null)))
+  (($eo_to_smt_type_tuple U T) $tsm_none)
+  )
+)
+
+; forward declaration
+(program $eo_to_smt_type () :signature (Type) $smt_Type)
+
+(program $eo_to_smt_nat ((n $smt_builtin_Int) (t $eo_Term))
+  :signature ($eo_Term) $smt_builtin_Nat
+  (
+  (($eo_to_smt_nat ($eot_numeral n)) ($smt_builtin_z_to_n n))
+  (($eo_to_smt_nat t) $smt_builtin_n_zero)
+  )
+)
+
+(program $eo_to_smt_datatype_cons ((U $eo_Term) (c $eo_DatatypeCons))
+  :signature ($eo_DatatypeCons) $smt_DatatypeCons
+  (
+  (($eo_to_smt_datatype_cons $edtc_unit) $dtc_unit)
+  (($eo_to_smt_datatype_cons ($edtc_cons U c))
+    ($dtc_cons ($eo_to_smt_type U) ($eo_to_smt_datatype_cons c)))
+  )
+)
+
+(program $eo_to_smt_datatype ((c $eo_DatatypeCons) (d $eo_Datatype))
+  :signature ($eo_Datatype) $smt_Datatype
+  (
+  (($eo_to_smt_datatype ($edt_sum c d)) 
+    ($dt_sum ($eo_to_smt_datatype_cons c) ($eo_to_smt_datatype d)))
+  (($eo_to_smt_datatype $edt_null) $dt_null)
+  )
+)
+
+(program $eo_to_smt_type 
+  ((T Type) (n1 $smt_builtin_Int) (i $smt_builtin_Nat) (s $smt_builtin_String) (d $eo_Datatype)
+  (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
+  (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
+  :signature (Type) $smt_Type
+  (
+  (($eo_to_smt_type Bool)                     $tsm_Bool)
+  (($eo_to_smt_type ($eot_DatatypeType s d))  ($tsm_Datatype s ($eo_to_smt_datatype d)))
+  (($eo_to_smt_type ($eot_USort i))           ($tsm_USort i))
+  (($eo_to_smt_type Int) $tsm_Int)
+  (($eo_to_smt_type Real) $tsm_Real)
+  (($eo_to_smt_type (BitVec ($eot_numeral n1))) ($tsm_BitVec n1))
+  (($eo_to_smt_type Char) $tsm_Char)
+  (($eo_to_smt_type (Seq x1)) ($tsm_Seq ($eo_to_smt_type x1)))
+
+  (($eo_to_smt_type T)                      $tsm_none)
+  )
+)
+
+; helper for CPC tuple constructor
+; In eo_to_smt, (tuple x1 x2) returns
+;   ($sm_apply ($eo_to_smt_tuple_app_extend x1 ($eo_to_smt_type ($eo_typeof x2))) ($eo_to_smt x2))
+; and tuple.unit returns
+;   ($sm_DtCons $smt_builtin_str_tuple_name ($dt_sum $dtc_unit $dt_null) $smt_builtin_z_zero).
+; Given an application of (tuple a1 ... an), returns the same application
+; but where now tuple is the instance of the tuple constructor that expects
+; another argument of type T.
+(program $eo_to_smt_tuple_app_extend
+  ((t $smt_Term) (f $smt_Term) (a $smt_Term) (T $smt_Type) (s $smt_builtin_String) (c $smt_DatatypeCons))
+  :signature ($smt_Term $smt_Type) $smt_Term
+  (
+  (($eo_to_smt_tuple_app_extend ($sm_apply f a) T)
+    ($sm_apply ($eo_to_smt_tuple_app_extend f T) a))
+  (($eo_to_smt_tuple_app_extend ($sm_DtCons $smt_builtin_str_tuple_name ($dt_sum c $dt_null) $smt_builtin_n_zero) T)
+    ; extend the datatype with a new argument, we are still the first constructor
+    ($sm_DtCons
+      $smt_builtin_str_tuple_name
+      ($dt_sum ($smtx_dtc_concat c ($dtc_cons T $dtc_unit)) $dt_null)
+      $smt_builtin_n_zero))
+  (($eo_to_smt_tuple_app_extend s T) $sm_none)
+  )
+)
+
+
+; In eo_to_smt, (tuple.select x1 x2) returns
+;   ($eo_to_smt_tuple_select ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))
+(program $eo_to_smt_tuple_select
+  ((T $smt_Type) (d $smt_Datatype) (n $smt_builtin_Int) (t $smt_Term))
+  :signature ($smt_Type $smt_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_tuple_select ($tsm_Datatype $smt_builtin_str_tuple_name d) ($sm_numeral n) t)
+    ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero n)
+      ($sm_apply ($sm_DtSel $smt_builtin_str_tuple_name d $smt_builtin_n_zero ($smt_builtin_z_to_n n)) t)
+      $sm_none))
+  (($eo_to_smt_tuple_select T n t)                    $sm_none)
+  )
+)
+
+; In eo_to_smt, (is x1) returns ($eo_to_smt_tester ($eo_to_smt x1)).
+(program $eo_to_smt_tester
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Nat) (t $smt_Term))
+  :signature ($smt_Term) $smt_Term
+  (
+  (($eo_to_smt_tester ($sm_DtCons s d n))  ($sm_DtTester s d n))
+  (($eo_to_smt_tester t)                   $sm_none)
+  )
+)
+
+; ($eo_to_smt_updater_rec s mn k t u acc)
+; returns the constructor app that is equivalent to u
+; but where the selector s field is updated to t.
+(program $eo_to_smt_updater_rec
+  ((s $smt_builtin_String) (d $smt_Datatype) (n $smt_builtin_Nat) (m $smt_builtin_Nat)
+   (k $smt_builtin_Nat) (t $smt_Term) (u $smt_Term) (acc $smt_Term) (v $smt_Term))
+  :signature ($smt_Term $smt_builtin_Nat $smt_Term $smt_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_updater_rec ($sm_DtSel s d n m) $smt_builtin_n_zero t u acc) acc)
+  (($eo_to_smt_updater_rec ($sm_DtSel s d n m) ($smt_builtin_n_succ k) t u acc)
+    (eo::define ((arg ($smt_builtin_ite ($smt_builtin_n_= m k) t ($sm_apply ($sm_DtSel s d n m) u))))
+      ($eo_to_smt_updater_rec ($sm_DtSel s d n m) k t u ($sm_apply acc arg))))
+  (($eo_to_smt_updater_rec v k t u acc) $sm_none)
+  )
+)
+
+; (update x1 x2 x3) returns
+;   ($eo_to_smt_updater ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt_x3))
+(program $eo_to_smt_updater
+  ((s $smt_builtin_String) (d $smt_Datatype)
+   (n $smt_builtin_Int) (m $smt_builtin_Int) (sel $smt_Term) (t $smt_Term) (u $smt_Term))
+  :signature ($smt_Term $smt_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_updater ($sm_DtSel s d n m) t u)
+    (eo::define ((nargs ($smtx_dt_num_sels d n)))
+    ($sm_ite ($sm_apply ($sm_DtTester s d n) u)
+      ($eo_to_smt_updater_rec ($sm_DtSel s d n m) nargs t u ($sm_DtCons s d n))
+      u)))
+  (($eo_to_smt_updater sel t d)                     $sm_none)
+  )
+)
+
+
+; In eo_to_smt, (tuple.update x1 x2) returns
+;   ($eo_to_smt_tuple_update
+;     ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))
+(program $eo_to_smt_tuple_update
+  ((T $smt_Type) (d $smt_Datatype) (n $smt_builtin_Int) (t $smt_Term) (u $smt_Term))
+  :signature ($smt_Type $smt_Term $smt_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_tuple_update ($tsm_Datatype $smt_builtin_str_tuple_name d) ($sm_numeral n) t u)
+    ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero n)
+      ($eo_to_smt_updater ($sm_DtSel $smt_builtin_str_tuple_name d $smt_builtin_n_zero ($smt_builtin_z_to_n n)) t u)
+      $sm_none))
+  (($eo_to_smt_tuple_update T n t u)                    $sm_none)
+  )
+)
+
+(program $eo_to_smt_exists
+  ((s $smt_builtin_String) (T $eo_Term) (vs $eo_List :list) (F $eo_Term))
+  :signature ($eo_List $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_exists $eo_List_nil F) F)
+  (($eo_to_smt_exists ($eo_List ($eot_Var s T) vs) F)
+    ($sm_apply ($sm_exists s ($eo_to_smt_type T)) ($eo_to_smt_exists vs F)))
+  (($eo_to_smt_exists vs F) $sm_none)
+  )
+)
+
+; NOTE: maybe combine with above?
+(program $eo_to_smt_lambda
+  ((s $smt_builtin_String) (T $eo_Term) (vs $eo_List :list) (F $eo_Term))
+  :signature ($eo_List $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_lambda $eo_List_nil F) F)
+  (($eo_to_smt_lambda ($eo_List ($eot_Var s T) vs) F)
+    ($sm_apply ($sm_lambda s ($eo_to_smt_type T)) ($eo_to_smt_lambda vs F)))
+  (($eo_to_smt_lambda vs F) $sm_none)
+  )
+)
+
+
+(program $eo_to_smt 
+  ((b $smt_builtin_Bool) (n $smt_builtin_Int) (m $smt_builtin_Int) (r $smt_builtin_Rat)
+   (s $smt_builtin_String) (w $smt_builtin_Int) (d $eo_Datatype)
+   (T Type) (U Type) (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
+   (f (-> U T)) (y U) (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5)
+   (i $smt_builtin_Nat) (j $smt_builtin_Nat))
+  :signature (T) $smt_Term
+  (
+  (($eo_to_smt ($eot_bool b))        ($sm_bool b))
+  (($eo_to_smt ($eot_numeral n))     ($sm_numeral n))
+  (($eo_to_smt ($eot_rational r))    ($sm_rational r))
+  (($eo_to_smt ($eot_string s))      ($sm_string s))
+  (($eo_to_smt ($eot_binary w n))    ($sm_binary w n))
+  (($eo_to_smt ($eot_Var s T))       ($sm_Var s ($eo_to_smt_type T)))
+  (($eo_to_smt ($eot_DtCons s d i))  ($sm_DtCons s ($eo_to_smt_datatype d) i))
+  (($eo_to_smt ($eot_DtSel s d i j)) ($sm_DtSel s ($eo_to_smt_datatype d) i j))
+  (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($smt_builtin_to_uconst_id i) ($eo_to_smt_type T)))
+  (($eo_to_smt (not x1)) ($sm_not ($eo_to_smt x1)))
+  (($eo_to_smt (or x1 x2)) ($sm_or ($eo_to_smt x1) ($eo_to_smt x2)))
+  (($eo_to_smt (and x1 x2)) ($sm_and ($eo_to_smt x1) ($eo_to_smt x2)))
+  (($eo_to_smt (=> x1 x2)) ($sm_=> ($eo_to_smt x1) ($eo_to_smt x2)))
+  (($eo_to_smt (= x1 x2)) ($sm_= ($eo_to_smt x1) ($eo_to_smt x2)))
+
+  (($eo_to_smt (f y))               ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
+  (($eo_to_smt y)                   $sm_none)
+  )
+)
+
+(program $eo_model_interprets ((M $smt_Model) (F Bool) (v $smt_Value))
+  :signature ($smt_Model Bool $smt_Value) Bool
+  (
+  (($eo_model_interprets M F v)
+    (eo::define ((G ($eo_to_smt F)))
+    ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof G) $tsm_Bool)
+      ($smt_builtin_ite ($smt_builtin_veq ($smtx_model_eval M G) v)
+        true
+        false)
+      false)))
+  )
+)
+
+; program: $eo_model_sat
+; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
+; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
+; (term of Boolean type).
+(program $eo_model_sat ((M $smt_Model) (F Bool))
+  :signature ($smt_Model Bool) Bool
+  (
+  (($eo_model_sat M F) ($eo_model_interprets M F $vsm_true))
+  )
+)
+(program $eo_model_unsat ((M $smt_Model) (F Bool))
+  :signature ($smt_Model Bool) Bool
+  (
+  (($eo_model_unsat M F) ($eo_model_interprets M F $vsm_false))
+  )
+)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; checker
+
+;; ------------ checker
+;;; utilities
+
+; placeholders
+(define $eoT_Index () $smt_builtin_Int)
+
+(declare-const $eo_IndexList Type)
+(declare-const $emb_indl.nil $eo_IndexList)
+(define $eot_iln () $emb_indl.nil)
+(declare-parameterized-const $emb_indl.cons
+  ((i $eoT_Index :opaque) (il $eo_IndexList :opaque)) $eo_IndexList)
+(define $eot_ilc ((i $eoT_Index) (il $eo_IndexList)) ($emb_indl.cons i il))
+
+(declare-const $eo_ArgList Type)
+(declare-const $emb_al.nil $eo_ArgList)
+(define $eot_aln () $emb_al.nil)
+(declare-parameterized-const $emb_al.cons
+  ((i $eo_Term :opaque) (il $eo_ArgList :opaque)) $eo_ArgList)
+(define $eot_alc ((i $eo_Term) (il $eo_ArgList)) ($emb_al.cons i il))
+
+; for bool??
+(define $eoT_Result () $smt_builtin_Bool)
+
+;;; Types
+
+; A Eunoia rule
+(declare-const $eo_Rule Type)
+
+; A Eunoia command
+(declare-const $eo_Cmd Type)
+
+; The state
+(declare-const $eo_State Type)
+
+;;; Constructors for state
+
+; State
+(declare-const $eo_StateObj Type)
+(declare-parameterized-const $emb_so.assume ((F Bool :opaque)) $eo_StateObj)
+(define $so_assume ((F Bool)) ($emb_so.assume F))
+(declare-parameterized-const $emb_so.assume_push ((F Bool :opaque)) $eo_StateObj)
+(define $so_assume_push ((F Bool)) ($emb_so.assume_push F))
+(declare-parameterized-const $emb_so.proven ((F Bool :opaque)) $eo_StateObj)
+(define $so_proven ((F Bool)) ($emb_so.proven F))
+
+
+(declare-const $emb_s.nil $eo_State)
+(define $s_nil () $emb_s.nil)
+(declare-const $emb_s.Stuck $eo_State)
+(define $s_stuck () $emb_s.Stuck)
+(declare-parameterized-const $emb_s.cons
+  ((so $eo_StateObj :opaque) (s $eo_State :opaque)) $eo_State)
+(define $s_cons ((o $eo_StateObj) (tail $eo_State)) ($emb_s.cons o tail))
+
+(program $eo_StateObj_proven ((F Bool))
+  :signature ($eo_StateObj) Bool
+  (
+  (($eo_StateObj_proven ($so_assume F)) F)
+  (($eo_StateObj_proven ($so_assume_push F)) F)
+  (($eo_StateObj_proven ($so_proven F)) F)
+  )
+)
+
+(program $eo_state_proven_nth ((so $eo_StateObj) (s $eo_State) (n $eoT_Index))
+  :signature ($eo_State $eoT_Index) Bool
+  (
+  (($eo_state_proven_nth ($s_cons so s) $smt_builtin_z_zero) ($eo_StateObj_proven so))
+  (($eo_state_proven_nth ($s_cons so s) n) ($eo_state_proven_nth s ($smt_builtin_z_dec n)))
+  ; otherwise just return true
+  (($eo_state_proven_nth s n) true)
+  )
+)
+
+(program $eo_state_is_closed ((so $eo_StateObj) (s $eo_State) (F Bool))
+  :signature ($eo_State) $eoT_Result
+  (
+  (($eo_state_is_closed ($s_cons ($so_assume_push F) s)) $smt_builtin_false)
+  (($eo_state_is_closed ($s_cons so s)) ($eo_state_is_closed s))
+  (($eo_state_is_closed $s_nil) $smt_builtin_true)
+  (($eo_state_is_closed s) $smt_builtin_false)
+  )
+)
+
+; push a formula F proven by a step to the state if the given check was true
+(program $eo_push_assume_check ((F Bool) (s $eo_State) (b Bool))
+  :signature (Bool Bool $eo_State) $eo_State
+  (
+  (($eo_push_assume_check true F s)   ($s_cons ($so_assume_push F) s))
+  (($eo_push_assume_check b F s)      $s_stuck)
+  )
+)
+; push an assumption to the state
+(program $eo_push_assume ((F Bool) (s $eo_State))
+  :signature (Bool $eo_State) $eo_State
+  (
+  (($eo_push_assume F s) ($eo_push_assume_check ($eo_is_bool_type F) F s))
+  )
+)
+; push a formula F proven by a step to the state if the given check was true
+(program $eo_push_proven_check ((F Bool) (s $eo_State) (b Bool))
+  :signature (Bool Bool $eo_State) $eo_State
+  (
+  (($eo_push_proven_check true F s)   ($s_cons ($so_proven F) s))
+  (($eo_push_proven_check b F s)      $s_stuck)
+  )
+)
+; push a formula F proven by a step to the state
+; note we check ok, but don't check type Bool currently
+(program $eo_push_proven ((F Bool) (s $eo_State))
+  :signature (Bool $eo_State) $eo_State
+  (
+  (($eo_push_proven F s)  ($eo_push_proven_check ($eo_is_bool_type F) F s))
+  )
+)
+
+; constructs a formula based on a premise list constructor f, a premise list
+; and the current state.
+(program $eo_mk_premise_list
+  ((f (-> Bool Bool Bool)) (n $eoT_Index) (pl $eo_IndexList :list) (S $eo_State))
+  :signature ((-> Bool Bool Bool) $eo_IndexList $eo_State) Bool
+  (
+  (($eo_mk_premise_list f $emb_indl.nil S)          (eo::nil f Bool))
+  (($eo_mk_premise_list f ($emb_indl.cons n pl) S)  
+     (eo::cons f ($eo_state_proven_nth S n) ($eo_mk_premise_list f pl S)))
+  )
+)
+
+; Rule constructors
+
+(declare-const $emb_r.contra $eo_Rule)
+(declare-const $emb_r.symm $eo_Rule)
+
+
+; Command constructors
+
+; note that assume is not a command, instead formulas are input to 
+; $eo_is_refutation which create a list of assumes as preamble.
+(declare-parameterized-const $emb_cmd.assume_push ((x Bool :opaque)) $eo_Cmd)
+(define $cmd_assume_push ((x Bool)) ($emb_cmd.assume_push x))
+(declare-parameterized-const $emb_cmd.check_proven ((x Bool :opaque)) $eo_Cmd)
+(define $cmd_check_proven ((x Bool)) ($emb_cmd.check_proven x))
+(declare-parameterized-const $emb_cmd.step
+  ((r $eo_Rule :opaque) (args $eo_ArgList :opaque) (premises $eo_IndexList :opaque))
+  $eo_Cmd)
+(define $cmd_step
+  ((r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList))
+  ($emb_cmd.step r args premises))
+(declare-parameterized-const $emb_cmd.step_pop
+  ((r $eo_Rule :opaque) (args $eo_ArgList :opaque) (premises $eo_IndexList :opaque))
+  $eo_Cmd)
+(define $cmd_step_pop
+  ((r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList))
+  ($emb_cmd.step_pop r args premises))
+
+(program $eo_invoke_cmd_check_proven ((S $eo_State) (F Bool) (proven Bool))
+  :signature ($eo_State Bool) $eo_State
+  (
+  (($eo_invoke_cmd_check_proven ($s_cons ($so_proven F) S) proven)
+     ; check that it is equal to proven, push again
+     ($eo_push_proven_check (eo::eq F proven) F S))
+  (($eo_invoke_cmd_check_proven S proven) $s_stuck)
+  )
+)
+
+
+
+(program $eo_cmd_step_proven
+  ((r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList) (S $eo_State)
+   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
+   (T6 Type) (T7 Type) (T8 Type) (T9 Type) (T10 Type)
+   (a1 T1) (a2 T2) (a3 T3) (a4 T4) (a5 T5) (a6 T6) (a7 T7) (a8 T8) (a9 T9) (a10 T10)
+   (n1 $eoT_Index) (n2 $eoT_Index) (n3 $eoT_Index) (n4 $eoT_Index)
+   (n5 $eoT_Index) (n6 $eoT_Index) (n7 $eoT_Index) (n8 $eoT_Index))
+  :signature ($eo_State $eo_Rule $eo_ArgList $eo_IndexList) Bool
+  (
+  (($eo_cmd_step_proven S $emb_r.contra $eot_aln ($eot_ilc n1 ($eot_ilc n2 $eot_iln))) ($eo_prog_contra ($eo_pf ($eo_state_proven_nth S n1)) ($eo_pf ($eo_state_proven_nth S n2))))
+  (($eo_cmd_step_proven S $emb_r.symm $eot_aln ($eot_ilc n1 $eot_iln)) ($eo_prog_symm ($eo_pf ($eo_state_proven_nth S n1))))
+
+  (($eo_cmd_step_proven S r args premises) $eot_stuck)
+  )
+)
+
+(program $eo_cmd_step_pop_proven
+  ((r $eo_Rule) (A Bool) (args $eo_ArgList) (premises $eo_IndexList) (S $eo_State)
+   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
+   (T6 Type) (T7 Type) (T8 Type) (T9 Type) (T10 Type)
+   (a1 T1) (a2 T2) (a3 T3) (a4 T4) (a5 T5) (a6 T6) (a7 T7) (a8 T8) (a9 T9) (a10 T10)
+   (n1 $eoT_Index) (n2 $eoT_Index) (n3 $eoT_Index) (n4 $eoT_Index)
+   (n5 $eoT_Index) (n6 $eoT_Index) (n7 $eoT_Index) (n8 $eoT_Index))
+  :signature ($eo_State $eo_Rule $eo_ArgList Bool $eo_IndexList) Bool
+  (
+
+  (($eo_cmd_step_pop_proven S r args A premises) $eot_stuck)
+  )
+)
+
+(program $eo_invoke_cmd_step_pop
+  ((s $eo_State) (s2 $eo_State) (so $eo_StateObj) (A Bool)
+   (r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList))
+  :signature ($eo_State $eo_State $eo_Rule $eo_ArgList $eo_IndexList) $eo_State
+  (
+  (($eo_invoke_cmd_step_pop s ($s_cons ($so_assume_push A) s2) r args premises)
+    ; add the assumption as an argument
+    ($eo_push_proven ($eo_cmd_step_pop_proven s r args A premises) s2))
+  (($eo_invoke_cmd_step_pop s ($s_cons so s2) r args premises)
+    ($eo_invoke_cmd_step_pop s s2 r args premises))
+  (($eo_invoke_cmd_step_pop s s2 r args premises) $s_stuck)
+  )
+)
+
+(program $eo_invoke_cmd
+  ((proven Bool) (r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList)
+   (S $eo_State) (c $eo_Cmd))
+  :signature ($eo_State $eo_Cmd) $eo_State
+  (
+  (($eo_invoke_cmd $s_stuck c) $s_stuck)
+  (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume proven S))
+  (($eo_invoke_cmd S ($cmd_check_proven proven)) ($eo_invoke_cmd_check_proven S proven))
+  (($eo_invoke_cmd S ($cmd_step r args premises))
+    ($eo_push_proven ($eo_cmd_step_proven S r args premises) S))
+  (($eo_invoke_cmd S ($cmd_step_pop r args premises))
+    ($eo_invoke_cmd_step_pop S S r args premises))
+  )
+)
+
+(declare-const $eo_CmdList Type)
+(declare-const $emb_cmdl.nil $eo_CmdList)
+(declare-parameterized-const $emb_cmdl.cons
+  ((c $eo_Cmd :opaque) (cl $eo_CmdList :opaque)) $eo_CmdList)
+
+; Invoke a list of commands
+(program $eo_invoke_cmd_list ((S $eo_State) (c $eo_Cmd) (cmds $eo_CmdList))
+  :signature ($eo_State $eo_CmdList) $eo_State
+  (
+  (($eo_invoke_cmd_list S $emb_cmdl.nil) S)
+  (($eo_invoke_cmd_list S ($emb_cmdl.cons c cmds))
+     ($eo_invoke_cmd_list ($eo_invoke_cmd S c) cmds))
+  ;(($eo_invoke_cmd_list S cmds) $s_stuck)
+  )
+)
+
+(program $eo_state_is_refutation ((s $eo_State))
+  :signature ($eo_State) $eoT_Result
+  (
+  (($eo_state_is_refutation s) ($eo_state_is_closed ($eo_invoke_cmd_check_proven s false)))
+  )
+)
+
+(program $eo_invoke_assume_list
+  ((as Bool) (S $eo_State) (F Bool))
+  :signature ($eo_State Bool) $eo_State
+  (
+  (($eo_invoke_assume_list S (and F as))
+    ($s_cons ($so_assume F) ($eo_invoke_assume_list S as)))
+  (($eo_invoke_assume_list S true) S)
+  (($eo_invoke_assume_list S as) $s_stuck)
+  )
+)
+
+
+; Main entry point:
+; - as is a conjunction of formulas to assume.
+;   Note that this should always be an and-list, which will be interpreted
+;   as the top-level assertions.
+; - cs is a command list to invoke. Note the indices of premises should take
+; into account the size of as.
+(program $eo_checker_is_refutation ((as Bool) (cs $eo_CmdList))
+  :signature (Bool $eo_CmdList) $eoT_Result
+  (
+  (($eo_checker_is_refutation as cs)
+    ($eo_state_is_refutation ($eo_invoke_cmd_list ($eo_invoke_assume_list $s_nil as) cs)))
+  )
+)
+
+;;;;;;;;;;;;;; for the proof
+
+;(program $eo_lem_state_to_formula_rec ((s $eo_State) (F Bool) (F1 Bool) (F2 Bool) (F3 Bool))
+;  :signature ($eo_State Bool) Bool
+;  (
+;  (($eo_lem_state_to_formula_rec $s_nil F) F)
+;  (($eo_lem_state_to_formula_rec ($s_cons ($so_assume F) s) (=> F1 (=> F2 F3)))
+;    (=> (_ and F F1) (=> F2 F3)))
+;  (($eo_lem_state_to_formula_rec ($s_cons ($so_assume_push F) s) (=> F1 (=> F2 F3)))
+;    (=> F1 (=> (_ and F F2) F3)))
+;  (($eo_lem_state_to_formula_rec ($s_cons ($so_proven F) s) (=> F1 (=> F2 F3)))
+;    (=> F1 (=> F2 (_ and F F3))))
+;  (($eo_lem_state_to_formula_rec s F) $eot_stuck)
+;  )
+;)
+
+;(program $eo_lem_state_to_formula ((s $eo_State))
+;  :signature ($eo_State) Bool
+;  (
+;  (($eo_lem_state_to_formula s) ($eo_lem_state_to_formula_rec s (=> true (=> true true))))
+;  )
+;)
+;; ------------ checker end
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
+
+(echo "lean-meta $eo_prog_contra :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value ")
+(echo "lean-meta $eo_prog_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value ")
+
+
+

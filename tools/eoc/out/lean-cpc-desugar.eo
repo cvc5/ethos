@@ -339,6 +339,7 @@
   ($smt_apply_4 "binary_extract" w n x1 x2))
 
 
+
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term).
 ; Opaque arguments of a symbol X will be an argument of the constructor eo.X.
@@ -1185,6 +1186,7 @@
   )
 )
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; desugar core
 
 ;;;;;; List operators
@@ -1530,10 +1532,21 @@
 
 ; declare: not
 (declare-const not (-> Bool Bool))
+; declare: or
+(declare-const or (-> Bool (-> Bool Bool)))
 ; declare: and
 (declare-const and (-> Bool (-> Bool Bool)))
+; declare: =>
+(declare-const => (-> Bool (-> Bool Bool)))
 ; declare: =
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
+; program: $eo_prog_contra
+(program $eo_prog_contra ((F Bool))
+  :signature ($eo_Proof $eo_Proof) Bool
+  (
+  (($eo_prog_contra ($eo_pf F) ($eo_pf (not F))) false)
+  )
+)
 ; program: $mk_symm
 (program $mk_symm ((T Type) (t2 T) (t1 T))
   :signature (Bool) Bool
@@ -1582,6 +1595,7 @@
   ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)))
   :signature ((-> T U V) (eo::quote W)) W
   (
+  (($eo_nil or T) false)
   (($eo_nil and T) true)
 
   ; builtin case of $eo_List
@@ -1599,6 +1613,7 @@
   ((T Type) (V Type) (f (-> T V V)) (nil V))
   :signature ((-> T V V) V) Bool
   (
+  (($eo_is_list_nil or false) true)
   (($eo_is_list_nil and true) true)
 
   ; builtin case of $eo_List
@@ -1739,8 +1754,12 @@
   (($eo_typeof Seq) (-> Type Type))
   ; type-rule: not
   (($eo_typeof not) (-> Bool Bool))
+  ; type-rule: or
+  (($eo_typeof or) (-> Bool (-> Bool Bool)))
   ; type-rule: and
   (($eo_typeof and) (-> Bool (-> Bool Bool)))
+  ; type-rule: =>
+  (($eo_typeof =>) (-> Bool (-> Bool Bool)))
   ; type-rule: =
   (($eo_typeof (= $eo_x1)) ($eo_typeof_= ($eo_typeof $eo_x1)))
 
@@ -1767,20 +1786,309 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; checker
 
+;; ------------ checker
+;;; utilities
+
+; placeholders
+(define $eoT_Index () $smt_builtin_Int)
+
+(declare-const $eo_IndexList Type)
+(declare-const $emb_indl.nil $eo_IndexList)
+(define $eot_iln () $emb_indl.nil)
+(declare-parameterized-const $emb_indl.cons
+  ((i $eoT_Index :opaque) (il $eo_IndexList :opaque)) $eo_IndexList)
+(define $eot_ilc ((i $eoT_Index) (il $eo_IndexList)) ($emb_indl.cons i il))
+
+(declare-const $eo_ArgList Type)
+(declare-const $emb_al.nil $eo_ArgList)
+(define $eot_aln () $emb_al.nil)
+(declare-parameterized-const $emb_al.cons
+  ((i $eo_Term :opaque) (il $eo_ArgList :opaque)) $eo_ArgList)
+(define $eot_alc ((i $eo_Term) (il $eo_ArgList)) ($emb_al.cons i il))
+
+; for bool??
+(define $eoT_Result () $smt_builtin_Bool)
+
+;;; Types
+
+; A Eunoia rule
+(declare-const $eo_Rule Type)
+
+; A Eunoia command
+(declare-const $eo_Cmd Type)
+
+; The state
+(declare-const $eo_State Type)
+
+;;; Constructors for state
+
+; State
+(declare-const $eo_StateObj Type)
+(declare-parameterized-const $emb_so.assume ((F Bool :opaque)) $eo_StateObj)
+(define $so_assume ((F Bool)) ($emb_so.assume F))
+(declare-parameterized-const $emb_so.assume_push ((F Bool :opaque)) $eo_StateObj)
+(define $so_assume_push ((F Bool)) ($emb_so.assume_push F))
+(declare-parameterized-const $emb_so.proven ((F Bool :opaque)) $eo_StateObj)
+(define $so_proven ((F Bool)) ($emb_so.proven F))
+
+
+(declare-const $emb_s.nil $eo_State)
+(define $s_nil () $emb_s.nil)
+(declare-const $emb_s.Stuck $eo_State)
+(define $s_stuck () $emb_s.Stuck)
+(declare-parameterized-const $emb_s.cons
+  ((so $eo_StateObj :opaque) (s $eo_State :opaque)) $eo_State)
+(define $s_cons ((o $eo_StateObj) (tail $eo_State)) ($emb_s.cons o tail))
+
+(program $eo_StateObj_proven ((F Bool))
+  :signature ($eo_StateObj) Bool
+  (
+  (($eo_StateObj_proven ($so_assume F)) F)
+  (($eo_StateObj_proven ($so_assume_push F)) F)
+  (($eo_StateObj_proven ($so_proven F)) F)
+  )
+)
+
+(program $eo_state_proven_nth ((so $eo_StateObj) (s $eo_State) (n $eoT_Index))
+  :signature ($eo_State $eoT_Index) Bool
+  (
+  (($eo_state_proven_nth ($s_cons so s) $smt_builtin_z_zero) ($eo_StateObj_proven so))
+  (($eo_state_proven_nth ($s_cons so s) n) ($eo_state_proven_nth s ($smt_builtin_z_dec n)))
+  ; otherwise just return true
+  (($eo_state_proven_nth s n) true)
+  )
+)
+
+(program $eo_state_is_closed ((so $eo_StateObj) (s $eo_State) (F Bool))
+  :signature ($eo_State) $eoT_Result
+  (
+  (($eo_state_is_closed ($s_cons ($so_assume_push F) s)) $smt_builtin_false)
+  (($eo_state_is_closed ($s_cons so s)) ($eo_state_is_closed s))
+  (($eo_state_is_closed $s_nil) $smt_builtin_true)
+  (($eo_state_is_closed s) $smt_builtin_false)
+  )
+)
+
+; push a formula F proven by a step to the state if the given check was true
+(program $eo_push_assume_check ((F Bool) (s $eo_State) (b Bool))
+  :signature (Bool Bool $eo_State) $eo_State
+  (
+  (($eo_push_assume_check true F s)   ($s_cons ($so_assume_push F) s))
+  (($eo_push_assume_check b F s)      $s_stuck)
+  )
+)
+; push an assumption to the state
+(program $eo_push_assume ((F Bool) (s $eo_State))
+  :signature (Bool $eo_State) $eo_State
+  (
+  (($eo_push_assume F s) ($eo_push_assume_check ($eo_is_bool_type F) F s))
+  )
+)
+; push a formula F proven by a step to the state if the given check was true
+(program $eo_push_proven_check ((F Bool) (s $eo_State) (b Bool))
+  :signature (Bool Bool $eo_State) $eo_State
+  (
+  (($eo_push_proven_check true F s)   ($s_cons ($so_proven F) s))
+  (($eo_push_proven_check b F s)      $s_stuck)
+  )
+)
+; push a formula F proven by a step to the state
+; note we check ok, but don't check type Bool currently
+(program $eo_push_proven ((F Bool) (s $eo_State))
+  :signature (Bool $eo_State) $eo_State
+  (
+  (($eo_push_proven F s)  ($eo_push_proven_check ($eo_is_bool_type F) F s))
+  )
+)
+
+; constructs a formula based on a premise list constructor f, a premise list
+; and the current state.
+(program $eo_mk_premise_list
+  ((f (-> Bool Bool Bool)) (n $eoT_Index) (pl $eo_IndexList :list) (S $eo_State))
+  :signature ((-> Bool Bool Bool) $eo_IndexList $eo_State) Bool
+  (
+  (($eo_mk_premise_list f $emb_indl.nil S)          (eo::nil f Bool))
+  (($eo_mk_premise_list f ($emb_indl.cons n pl) S)  
+     (eo::cons f ($eo_state_proven_nth S n) ($eo_mk_premise_list f pl S)))
+  )
+)
+
+; Rule constructors
+
+(declare-const $emb_r.contra $eo_Rule)
+(declare-const $emb_r.symm $eo_Rule)
+
+
+; Command constructors
+
+; note that assume is not a command, instead formulas are input to 
+; $eo_is_refutation which create a list of assumes as preamble.
+(declare-parameterized-const $emb_cmd.assume_push ((x Bool :opaque)) $eo_Cmd)
+(define $cmd_assume_push ((x Bool)) ($emb_cmd.assume_push x))
+(declare-parameterized-const $emb_cmd.check_proven ((x Bool :opaque)) $eo_Cmd)
+(define $cmd_check_proven ((x Bool)) ($emb_cmd.check_proven x))
+(declare-parameterized-const $emb_cmd.step
+  ((r $eo_Rule :opaque) (args $eo_ArgList :opaque) (premises $eo_IndexList :opaque))
+  $eo_Cmd)
+(define $cmd_step
+  ((r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList))
+  ($emb_cmd.step r args premises))
+(declare-parameterized-const $emb_cmd.step_pop
+  ((r $eo_Rule :opaque) (args $eo_ArgList :opaque) (premises $eo_IndexList :opaque))
+  $eo_Cmd)
+(define $cmd_step_pop
+  ((r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList))
+  ($emb_cmd.step_pop r args premises))
+
+(program $eo_invoke_cmd_check_proven ((S $eo_State) (F Bool) (proven Bool))
+  :signature ($eo_State Bool) $eo_State
+  (
+  (($eo_invoke_cmd_check_proven ($s_cons ($so_proven F) S) proven)
+     ; check that it is equal to proven, push again
+     ($eo_push_proven_check (eo::eq F proven) F S))
+  (($eo_invoke_cmd_check_proven S proven) $s_stuck)
+  )
+)
+
+
+
+(program $eo_cmd_step_proven
+  ((r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList) (S $eo_State)
+   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
+   (T6 Type) (T7 Type) (T8 Type) (T9 Type) (T10 Type)
+   (a1 T1) (a2 T2) (a3 T3) (a4 T4) (a5 T5) (a6 T6) (a7 T7) (a8 T8) (a9 T9) (a10 T10)
+   (n1 $eoT_Index) (n2 $eoT_Index) (n3 $eoT_Index) (n4 $eoT_Index)
+   (n5 $eoT_Index) (n6 $eoT_Index) (n7 $eoT_Index) (n8 $eoT_Index))
+  :signature ($eo_State $eo_Rule $eo_ArgList $eo_IndexList) Bool
+  (
+  (($eo_cmd_step_proven S $emb_r.contra $eot_aln ($eot_ilc n1 ($eot_ilc n2 $eot_iln))) ($eo_prog_contra ($eo_pf ($eo_state_proven_nth S n1)) ($eo_pf ($eo_state_proven_nth S n2))))
+  (($eo_cmd_step_proven S $emb_r.symm $eot_aln ($eot_ilc n1 $eot_iln)) ($eo_prog_symm ($eo_pf ($eo_state_proven_nth S n1))))
+
+  (($eo_cmd_step_proven S r args premises) $eot_stuck)
+  )
+)
+
+(program $eo_cmd_step_pop_proven
+  ((r $eo_Rule) (A Bool) (args $eo_ArgList) (premises $eo_IndexList) (S $eo_State)
+   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
+   (T6 Type) (T7 Type) (T8 Type) (T9 Type) (T10 Type)
+   (a1 T1) (a2 T2) (a3 T3) (a4 T4) (a5 T5) (a6 T6) (a7 T7) (a8 T8) (a9 T9) (a10 T10)
+   (n1 $eoT_Index) (n2 $eoT_Index) (n3 $eoT_Index) (n4 $eoT_Index)
+   (n5 $eoT_Index) (n6 $eoT_Index) (n7 $eoT_Index) (n8 $eoT_Index))
+  :signature ($eo_State $eo_Rule $eo_ArgList Bool $eo_IndexList) Bool
+  (
+
+  (($eo_cmd_step_pop_proven S r args A premises) $eot_stuck)
+  )
+)
+
+(program $eo_invoke_cmd_step_pop
+  ((s $eo_State) (s2 $eo_State) (so $eo_StateObj) (A Bool)
+   (r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList))
+  :signature ($eo_State $eo_State $eo_Rule $eo_ArgList $eo_IndexList) $eo_State
+  (
+  (($eo_invoke_cmd_step_pop s ($s_cons ($so_assume_push A) s2) r args premises)
+    ; add the assumption as an argument
+    ($eo_push_proven ($eo_cmd_step_pop_proven s r args A premises) s2))
+  (($eo_invoke_cmd_step_pop s ($s_cons so s2) r args premises)
+    ($eo_invoke_cmd_step_pop s s2 r args premises))
+  (($eo_invoke_cmd_step_pop s s2 r args premises) $s_stuck)
+  )
+)
+
+(program $eo_invoke_cmd
+  ((proven Bool) (r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList)
+   (S $eo_State) (c $eo_Cmd))
+  :signature ($eo_State $eo_Cmd) $eo_State
+  (
+  (($eo_invoke_cmd $s_stuck c) $s_stuck)
+  (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume proven S))
+  (($eo_invoke_cmd S ($cmd_check_proven proven)) ($eo_invoke_cmd_check_proven S proven))
+  (($eo_invoke_cmd S ($cmd_step r args premises))
+    ($eo_push_proven ($eo_cmd_step_proven S r args premises) S))
+  (($eo_invoke_cmd S ($cmd_step_pop r args premises))
+    ($eo_invoke_cmd_step_pop S S r args premises))
+  )
+)
+
+(declare-const $eo_CmdList Type)
+(declare-const $emb_cmdl.nil $eo_CmdList)
+(declare-parameterized-const $emb_cmdl.cons
+  ((c $eo_Cmd :opaque) (cl $eo_CmdList :opaque)) $eo_CmdList)
+
+; Invoke a list of commands
+(program $eo_invoke_cmd_list ((S $eo_State) (c $eo_Cmd) (cmds $eo_CmdList))
+  :signature ($eo_State $eo_CmdList) $eo_State
+  (
+  (($eo_invoke_cmd_list S $emb_cmdl.nil) S)
+  (($eo_invoke_cmd_list S ($emb_cmdl.cons c cmds))
+     ($eo_invoke_cmd_list ($eo_invoke_cmd S c) cmds))
+  ;(($eo_invoke_cmd_list S cmds) $s_stuck)
+  )
+)
+
+(program $eo_state_is_refutation ((s $eo_State))
+  :signature ($eo_State) $eoT_Result
+  (
+  (($eo_state_is_refutation s) ($eo_state_is_closed ($eo_invoke_cmd_check_proven s false)))
+  )
+)
+
+(program $eo_invoke_assume_list
+  ((as Bool) (S $eo_State) (F Bool))
+  :signature ($eo_State Bool) $eo_State
+  (
+  (($eo_invoke_assume_list S (and F as))
+    ($s_cons ($so_assume F) ($eo_invoke_assume_list S as)))
+  (($eo_invoke_assume_list S true) S)
+  (($eo_invoke_assume_list S as) $s_stuck)
+  )
+)
+
+
+; Main entry point:
+; - as is a conjunction of formulas to assume.
+;   Note that this should always be an and-list, which will be interpreted
+;   as the top-level assertions.
+; - cs is a command list to invoke. Note the indices of premises should take
+; into account the size of as.
+(program $eo_checker_is_refutation ((as Bool) (cs $eo_CmdList))
+  :signature (Bool $eo_CmdList) $eoT_Result
+  (
+  (($eo_checker_is_refutation as cs)
+    ($eo_state_is_refutation ($eo_invoke_cmd_list ($eo_invoke_assume_list $s_nil as) cs)))
+  )
+)
+
+;;;;;;;;;;;;;; for the proof
+
+;(program $eo_lem_state_to_formula_rec ((s $eo_State) (F Bool) (F1 Bool) (F2 Bool) (F3 Bool))
+;  :signature ($eo_State Bool) Bool
+;  (
+;  (($eo_lem_state_to_formula_rec $s_nil F) F)
+;  (($eo_lem_state_to_formula_rec ($s_cons ($so_assume F) s) (=> F1 (=> F2 F3)))
+;    (=> (_ and F F1) (=> F2 F3)))
+;  (($eo_lem_state_to_formula_rec ($s_cons ($so_assume_push F) s) (=> F1 (=> F2 F3)))
+;    (=> F1 (=> (_ and F F2) F3)))
+;  (($eo_lem_state_to_formula_rec ($s_cons ($so_proven F) s) (=> F1 (=> F2 F3)))
+;    (=> F1 (=> F2 (_ and F F3))))
+;  (($eo_lem_state_to_formula_rec s F) $eot_stuck)
+;  )
+;)
+
+;(program $eo_lem_state_to_formula ((s $eo_State))
+;  :signature ($eo_State) Bool
+;  (
+;  (($eo_lem_state_to_formula s) ($eo_lem_state_to_formula_rec s (=> true (=> true true))))
+;  )
+;)
+;; ------------ checker end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 
-;; verification conditions
-
-; program: $eovc_symm
-(program $eovc_symm (($eoM $smt_Model) (F Bool))
-  :signature (Bool $smt_Model) Bool
-  (
-  (($eovc_symm F $eoM) (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_model_unsat $eoM ($eo_prog_symm ($eo_pf F))) true true)))
-  )
-)
-(echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply ")
+(echo "lean-meta $eo_prog_contra :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value ")
+(echo "lean-meta $eo_prog_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value ")
 
 
 
