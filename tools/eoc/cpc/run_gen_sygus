@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
+
+eoc_require_args "$0 RULE" 1 "$#"
+
+BUILD_DIR="$(eoc_build_dir)"
+INPUT="$(eoc_cpc_input)"
+ARGS=(vc --build-dir "$BUILD_DIR" --sygus "$INPUT" "$1")
+
+eoc_add_skip_cvc5
+
+eoc_exec_driver "${ARGS[@]}"

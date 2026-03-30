@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
+
+eoc_require_args "$0 RULE [RULE ...]" 1 "$#"
+
+BUILD_DIR="$(eoc_build_dir)"
+INPUT="$(eoc_cpc_input)"
+ARGS=(lean --build-dir "$BUILD_DIR" "$INPUT")
+
+ARGS+=("$@")
+eoc_exec_driver "${ARGS[@]}"

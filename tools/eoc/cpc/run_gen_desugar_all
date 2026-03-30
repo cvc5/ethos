@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
+
+BUILD_DIR="$(eoc_build_dir)"
+INPUT="${1:-$(eoc_cpc_input)}"
+ARGS=(desugar --build-dir "$BUILD_DIR" "$INPUT")
+
+eoc_add_no_build
+
+eoc_exec_driver "${ARGS[@]}"
