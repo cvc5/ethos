@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Generate SMT VCs for every discovered rule in the default or explicit CPC INPUT.
-# Usage: run_gen_vc_all_cpc [INPUT]
+# Usage: run_gen_vc_all [INPUT]
 # Output: writes stage EO files under tools/eoc/out/ and final SMT2 files under
 # tools/eoc/out/vc/.
 set -euo pipefail

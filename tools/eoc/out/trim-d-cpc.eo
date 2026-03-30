@@ -1530,25 +1530,13 @@
 
 ; all further definitions
 
-; declare: not
-(declare-const not (-> Bool Bool))
 ; declare: and
 (declare-const and (-> Bool (-> Bool Bool)))
-; declare: =
-(declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-; program: $mk_symm
-(program $mk_symm ((T Type) (t2 T) (t1 T))
-  :signature (Bool) Bool
+; program: $eo_prog_trust
+(program $eo_prog_trust (($eo_arg_0 Type) (P Bool) (F Bool))
+  :signature ($eo_arg_0 $eo_Proof) Bool
   (
-  (($mk_symm (_ (= t1) t2)) (_ (= t2) t1))
-  (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
-  )
-)
-; program: $eo_prog_symm
-(program $eo_prog_symm ((F Bool))
-  :signature ($eo_Proof) Bool
-  (
-  (($eo_prog_symm ($eo_pf F)) ($mk_symm F))
+  (($eo_prog_trust F ($eo_pf P)) F)
   )
 )
 
@@ -1682,13 +1670,6 @@
 )
 
 
-; program: $eo_typeof_=
-(program $eo_typeof_= ((A Type))
-  :signature (Type) Type
-  (
-  (($eo_typeof_= A) (-> A Bool))
-  )
-)
 
 
 ; program: $eo_typeof
@@ -1739,12 +1720,8 @@
   (($eo_typeof Char) Type)
   ; type-rule: Seq
   (($eo_typeof Seq) (-> Type Type))
-  ; type-rule: not
-  (($eo_typeof not) (-> Bool Bool))
   ; type-rule: and
   (($eo_typeof and) (-> Bool (-> Bool Bool)))
-  ; type-rule: =
-  (($eo_typeof (= $eo_x1)) ($eo_typeof_= ($eo_typeof $eo_x1)))
 
   (($eo_typeof ($eo_f $eo_x))
     ($eo_typeof_apply ($eo_typeof $eo_f) ($eo_typeof $eo_x)))
@@ -1775,14 +1752,6 @@
 
 ;; verification conditions
 
-; program: $eovc_symm
-(program $eovc_symm (($eoM $smt_Model) (F Bool))
-  :signature (Bool $smt_Model) Bool
-  (
-  (($eovc_symm F $eoM) (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_model_unsat $eoM ($eo_prog_symm ($eo_pf F))) true true)))
-  )
-)
-(echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply ")
 
 
 

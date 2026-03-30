@@ -622,12 +622,6 @@ def main(argv: list[str]) -> int:
             )
         elif args.command == "desugar":
             pipeline.run_desugar(args.input, build_first=build_first)
-        elif args.command == "pc-valid":
-            pipeline.run_pc_valid(
-                args.input,
-                build_first=build_first,
-                validate_with_cvc5=not args.skip_cvc5,
-            )
         elif args.command == "trim-defs":
             pipeline.run_trim_only(
                 args.input,
