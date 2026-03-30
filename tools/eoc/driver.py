@@ -202,20 +202,11 @@ class Pipeline:
         cmd.extend(self.solve_args)
         return cmd
 
-    def cvc5_pc_validate_cmds(self, filename: Path) -> tuple[list[str], list[str]]:
-        cvc5 = str(self.ensure_cvc5())
-        return ([cvc5, str(filename), "--parse-only"], [cvc5, str(filename)])
-
     def validate_smt(self, filename: Path, *, sygus: bool = False) -> None:
         self.run(self.cvc5_validate_cmd(filename, sygus=sygus))
 
     def solve_smt(self, filename: Path, *, sygus: bool = False) -> None:
         self.run(self.cvc5_solve_cmd(filename, sygus=sygus))
-
-    def validate_pc(self, filename: Path) -> None:
-        parse_cmd, solve_cmd = self.cvc5_pc_validate_cmds(filename)
-        self.run(parse_cmd)
-        self.run(solve_cmd)
 
     def relative_input_from_out(self, input_name: str) -> str:
         target = Path(input_name)
@@ -477,36 +468,6 @@ class Pipeline:
         self.parse_file(output)
         return output
 
-    def run_pc_valid(
-        self,
-        input_name: str,
-        *,
-        build_first: bool,
-        validate_with_cvc5: bool,
-    ) -> Path:
-        if build_first:
-            self.build()
-        init_desugar = self.stage_out_dir / "desugar-pcv.eo"
-        input_file = Path(input_name)
-        final_out = self.final_out_dir / "pcv" / f"check-{input_file.name}.smt2"
-        print(f"********* Validating equivalence of proof checking for {input_name} *********")
-        print(f"**** smt_meta: Run ethos + desugar on {input_name} to generate {init_desugar}")
-        self.desugar(input_name, init_desugar, use_vc_plugin=False, deps=None, plugin_label=None)
-        print(f"**** smt_meta: Generate SMT2 from {init_desugar} to {final_out}")
-        self.smt_meta(
-            init_desugar,
-            final_out,
-            sygus=False,
-            validate_with_cvc5=False,
-            solve_with_cvc5=False,
-        )
-        if validate_with_cvc5:
-            parse_cmd, solve_cmd = self.cvc5_pc_validate_cmds(final_out)
-            print(f"**** smt_meta: Verify cvc5 parses via {self.format_cmd(parse_cmd)}")
-            print(f"**** smt_meta: Run cvc5 via {self.format_cmd(solve_cmd)}")
-            self.validate_pc(final_out)
-        return final_out
-
     def run_trim_only(self, input_name: str, targets: list[str], *, build_first: bool) -> Path:
         if build_first:
             self.build()
@@ -593,12 +554,6 @@ def main(argv: list[str]) -> int:
     desugar = subparsers.add_parser("desugar", help="Generate a desugared EO file.")
     add_common_args(desugar)
     desugar.add_argument("input")
-
-    pc_valid = subparsers.add_parser(
-        "pc-valid", help="Generate and optionally validate a proof-checking SMT query."
-    )
-    add_common_args(pc_valid)
-    pc_valid.add_argument("input")
 
     trim = subparsers.add_parser("trim-defs", help="Run the trim-defs plugin only.")
     add_common_args(trim)
@@ -691,12 +646,6 @@ def main(argv: list[str]) -> int:
             )
         elif args.command == "desugar":
             pipeline.run_desugar(args.input, build_first=build_first)
-        elif args.command == "pc-valid":
-            pipeline.run_pc_valid(
-                args.input,
-                build_first=build_first,
-                validate_with_cvc5=not args.skip_cvc5,
-            )
         elif args.command == "trim-defs":
             pipeline.run_trim_only(
                 args.input,

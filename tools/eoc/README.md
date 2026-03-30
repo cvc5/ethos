@@ -63,7 +63,6 @@ tools/eoc/out/
   vcm-def-*.eo
   vcmt-def-*.eo
   desugar.eo
-  desugar-pcv.eo
   lean-*-trim.eo
   lean-*-desugar.eo
   lean-*-defs.eo
@@ -71,7 +70,6 @@ tools/eoc/out/
   trim_defs/trim_gen.eo
   vc/final-*.smt2
   sygus/final-*.sy
-  pcv/check-*.smt2
   lean/
     Logos.lean
     SmtEval.lean
@@ -194,20 +192,6 @@ Output:
 tools/eoc/out/desugar.eo
 ```
 
-### `pc-valid`
-
-Generate the SMT query used to compare proof-checking behavior.
-
-```bash
-python3 tools/eoc/driver.py pc-valid --build-dir build INPUT
-```
-
-Output:
-
-```text
-tools/eoc/out/pcv/check-<input>.smt2
-```
-
 ### `trim-defs`
 
 Run only the trim stage.
@@ -278,11 +262,10 @@ build/src/ethos-eoc --plugin.smt-meta-sygus tools/eoc/out/vcmt-def-booleans-rule
 | `run_gen_lean INPUT RULE...` | `python3 tools/eoc/driver.py lean --build-dir build INPUT RULE...` |
 | `run_gen_lean_all [INPUT]` | `python3 tools/eoc/driver.py lean --build-dir build --all INPUT` |
 | `run_gen_desugar_all [INPUT]` | `python3 tools/eoc/driver.py desugar --build-dir build INPUT` |
-| `run_gen_pc_valid INPUT` | `python3 tools/eoc/driver.py pc-valid --build-dir build INPUT` |
 | `run_trim_defs INPUT TARGET...` | `python3 tools/eoc/driver.py trim-defs --build-dir build INPUT TARGET...` |
 | `mkscripts INPUT` | `python3 tools/eoc/driver.py list-rules INPUT` |
 | `debug_smt_meta` | Run `build/src/ethos-eoc` directly on files in `tools/eoc/out/` while debugging a late stage |
-| `run_test_plugin` | Use `desugar`, `vc`, `pc-valid`, or direct `ethos-eoc` invocations shown above |
+| `run_test_plugin` | Use `desugar`, `vc`, or direct `ethos-eoc` invocations shown above |
 | `run_sygus_cex FILE.sy` | Invoke your preferred solver directly on `tools/eoc/out/sygus/final-*.sy` |
 | `install_logos` / `install_logos_mini` | `tools/eoc/cpc/install_logos` / `tools/eoc/cpc/install_logos_mini` |
 
