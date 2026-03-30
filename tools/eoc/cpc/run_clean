@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# runs scripts to match the expected state of temporary added files for debugging
+
+./run_gen_vc symm
+./run_gen_lean symm contra
+./run_gen_sygus symm
