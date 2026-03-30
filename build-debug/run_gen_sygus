@@ -25,8 +25,7 @@ fi
 }
 
 echo "**** Compile ethos"
-make -j4
+cmake --build . --target ethos-eoc -j4
 check_status
 
 ./run_gen_vc_single -sygus $INPUT $TARGET
-

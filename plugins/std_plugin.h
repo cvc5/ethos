@@ -65,6 +65,8 @@ class StdPlugin : public Plugin
   /** type variable counter */
   size_t d_typeVarCounter;
   static std::string s_plugin_path;
+  /** Determine the root containing the EOC plugin resources */
+  static std::string initializePluginPath();
   /** Standard configurations for the reduction */
   static bool optionVcUseModelStrict();
   static bool optionSmtMetaUseTriggers();

@@ -28,3 +28,5 @@ add_executable(ethos-eoc EXCLUDE_FROM_ALL
 
 target_link_libraries(ethos ${LIBRARIES})
 target_link_libraries(ethos-eoc ${LIBRARIES})
+target_compile_definitions(
+  ethos-eoc PRIVATE ETHOS_EOC_SOURCE_DIR="${PROJECT_SOURCE_DIR}")

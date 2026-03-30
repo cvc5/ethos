@@ -31,11 +31,11 @@ fi
 echo "********* Validating equivalence of proof checking for $INPUT *********"
 
 echo "**** Compile ethos"
-make -j4
+cmake --build . --target ethos-eoc -j4
 check_status
 
 echo "**** smt_meta: Run ethos + desugar on $INPUT to generate $INIT_DESUGAR"
-./src/ethos --plugin.desugar $INPUT >/dev/null
+./src/ethos-eoc --plugin.desugar $INPUT >/dev/null
 check_status
 cp $STD_DESUGAR_OUT $INIT_DESUGAR
 
@@ -47,7 +47,7 @@ sed -i "/(echo \"include eo_builtin_smt.*/{
 }" $INIT_DESUGAR
 
 echo "**** smt_meta: Generate SMT2 from $INIT_DESUGAR to $PC_VALID_OUT"
-./src/ethos --plugin.smt-meta $INIT_DESUGAR >/dev/null
+./src/ethos-eoc --plugin.smt-meta $INIT_DESUGAR >/dev/null
 check_status
 cp $STD_VC_OUT $PC_VALID_OUT
 

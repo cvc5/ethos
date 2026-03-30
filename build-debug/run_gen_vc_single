@@ -51,7 +51,7 @@ while [[ $# -gt 0 ]]; do
   echo "(echo \"trim-defs $TARGET_SYM\")" >> $TMP_TRIM_OUT
   shift
 done
-./src/ethos --plugin.trim-defs $TMP_TRIM_OUT
+./src/ethos-eoc --plugin.trim-defs $TMP_TRIM_OUT
 check_status
 rm -f $TMP_TRIM_OUT
 }
@@ -69,7 +69,7 @@ check_status
 cp $STD_TRIM_OUT $INIT_TRIM
 
 echo "**** smt_meta: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGAR"
-./src/ethos --plugin.desugar-vc $INIT_TRIM >/dev/null
+./src/ethos-eoc --plugin.desugar-vc $INIT_TRIM >/dev/null
 check_status
 # we will process verification conditions with smt-meta, which has these dependencies.
 DESUGAR_VC_DEPS="\$eot_Bool \$eot_Type \$eot_fun_type \$eot_apply \$eo_mk_apply \$smtx_typeof_value \$smtx_model_update \$smtx_model_eval_apply"
@@ -89,7 +89,7 @@ sed -i "/(include \"smt_embed.eo\")/{
 
 echo "**** smt_meta: Run ethos + model-smt on $INIT_DESUGAR to generate $VCM_DEF_DESUGAR"
 # now compute the model smt
-./src/ethos --plugin.model-smt $INIT_DESUGAR >/dev/null
+./src/ethos-eoc --plugin.model-smt $INIT_DESUGAR >/dev/null
 check_status
 cp $INIT_DESUGAR $VCM_DEF_DESUGAR
 # include the model semantics, which was generated above
@@ -105,12 +105,12 @@ check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 
 echo "**** smt_meta: Verify ethos parses"
-./src/ethos $VCMT_DEF_DESUGAR >/dev/null
+./src/ethos-eoc $VCMT_DEF_DESUGAR >/dev/null
 check_status
 
 if [[ "$USE_SYGUS" == "ON" ]]; then
   echo "**** smt_meta: Generate sygus from $VCMT_DEF_DESUGAR to $VC_OUT"
-  ./src/ethos --plugin.smt-meta-sygus $VCMT_DEF_DESUGAR >/dev/null
+  ./src/ethos-eoc --plugin.smt-meta-sygus $VCMT_DEF_DESUGAR >/dev/null
   check_status
   cp $STD_VC_OUT $SYGUS_OUT
 
@@ -128,7 +128,7 @@ if [[ "$USE_SYGUS" == "ON" ]]; then
   fi
 else
   echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
-  ./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
+  ./src/ethos-eoc --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
   check_status
   cp $STD_VC_OUT $VC_OUT
 

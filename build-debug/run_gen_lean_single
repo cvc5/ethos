@@ -49,7 +49,7 @@ while [[ $# -gt 0 ]]; do
   echo "(echo \"trim-defs $TARGET_SYM\")" >> $TMP_TRIM_OUT
   shift
 done
-./src/ethos --plugin.trim-defs $TMP_TRIM_OUT
+./src/ethos-eoc --plugin.trim-defs $TMP_TRIM_OUT
 check_status
 rm -f $TMP_TRIM_OUT
 }
@@ -64,7 +64,7 @@ check_status
 cp $STD_TRIM_OUT $INIT_TRIM
 
 echo "**** lean_meta: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGAR"
-./src/ethos --plugin.desugar $INIT_TRIM >/dev/null
+./src/ethos-eoc --plugin.desugar $INIT_TRIM >/dev/null
 check_status
 # we will process proof rules with lean-meta, which has these dependencies.
 DESUGAR_DEPS="\$eot_Bool \$eot_Type \$eot_fun_type \$eot_apply \$eo_mk_apply \$eo_eq \$eo_ite \$eo_requires \$eo_and \$eo_to_smt \$smtx_model_eval \$eo_checker_is_refutation and => \$eot_UConst \$eot_USort \$smtx_model_eval_apply \$smtx_typeof \$smtx_typeof_value"
@@ -85,7 +85,7 @@ sed -i "/(include \"smt_embed.eo\")/{
 
 echo "**** lean_meta: Run ethos + model-smt on $INIT_DESUGAR to generate $VCM_DEF_DESUGAR"
 # now compute the model smt
-./src/ethos --plugin.model-smt $INIT_DESUGAR >/dev/null
+./src/ethos-eoc --plugin.model-smt $INIT_DESUGAR >/dev/null
 check_status
 # make a copy of the current file, the current step will be included into it
 cp $INIT_DESUGAR $VCM_DEF_DESUGAR
@@ -103,11 +103,11 @@ check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 
 echo "**** lean_meta: Verify ethos parses"
-./src/ethos $VCMT_DEF_DESUGAR >/dev/null
+./src/ethos-eoc $VCMT_DEF_DESUGAR >/dev/null
 check_status
 
 echo "**** lean_meta: Generate Lean from $VCMT_DEF_DESUGAR to $OUT_DIR/lean/*.lean"
-./src/ethos --plugin.lean-meta $VCMT_DEF_DESUGAR >/dev/null
+./src/ethos-eoc --plugin.lean-meta $VCMT_DEF_DESUGAR >/dev/null
 check_status
 cp $STD_LEAN_CHECKER_OUT $OUT_DIR/lean/Logos.lean
 cp $STD_LEAN_SMT_EVAL $OUT_DIR/lean/SmtEval.lean

@@ -22,10 +22,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "**** run_trim_defs: Run ethos + trim-defs on $TMP_FILE"
-./src/ethos --plugin.trim-defs $TMP_FILE
+./src/ethos-eoc --plugin.trim-defs $TMP_FILE
 
 #echo "**** Verify it parses"
-#./src/ethos $OUT_FILE
+#./src/ethos-eoc $OUT_FILE
 
 status=$?
 

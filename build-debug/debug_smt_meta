@@ -11,11 +11,11 @@ fi
 }
 
 echo "**** Compile ethos"
-make -j4
+cmake --build . --target ethos-eoc -j4
 check_status
 
 echo "**** Debug"
-#./src/ethos ./out/vcmt-def-cpc.eo --plugin.smt-meta --no-print-dag $@
-get_backtrace ./src/ethos ./out/vcmt-def-cpc.eo --plugin.smt-meta-sygus --no-print-dag -t smt-meta -t smt-meta-sygus $@
+#./src/ethos-eoc ./out/vcmt-def-cpc.eo --plugin.smt-meta --no-print-dag $@
+get_backtrace ./src/ethos-eoc ./out/vcmt-def-cpc.eo --plugin.smt-meta-sygus --no-print-dag -t smt-meta -t smt-meta-sygus $@
 
-#get_backtrace ./src/ethos ./out/desugar-pcv.eo --plugin.smt-meta --no-print-dag -t smt-meta -t smt-meta-sygus $@
+#get_backtrace ./src/ethos-eoc ./out/desugar-pcv.eo --plugin.smt-meta --no-print-dag -t smt-meta -t smt-meta-sygus $@

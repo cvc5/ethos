@@ -12,7 +12,7 @@ fi
 }
 
 echo "**** Compile ethos"
-make -j4
+cmake --build . --target ethos-eoc -j4
 check_status
 
 echo "**** Clean previous benchmarks"

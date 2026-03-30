@@ -9,6 +9,7 @@
 
 #include "std_plugin.h"
 
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -17,12 +18,38 @@
 
 namespace ethos {
 
-#if 0
-std::string StdPlugin::s_plugin_path = "/home/andrew/ethos/";
+namespace {
+
+std::string normalizeDirectory(std::string path)
+{
+  if (path.empty())
+  {
+    return path;
+  }
+  if (path.back() != '/')
+  {
+    path.push_back('/');
+  }
+  return path;
+}
+
+}  // namespace
+
+std::string StdPlugin::initializePluginPath()
+{
+  const char* envPath = std::getenv("ETHOS_EOC_ROOT");
+  if (envPath != nullptr && envPath[0] != '\0')
+  {
+    return normalizeDirectory(envPath);
+  }
+#ifdef ETHOS_EOC_SOURCE_DIR
+  return normalizeDirectory(ETHOS_EOC_SOURCE_DIR);
 #else
-std::string StdPlugin::s_plugin_path =
-    "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+  return std::string();
 #endif
+}
+
+std::string StdPlugin::s_plugin_path = StdPlugin::initializePluginPath();
 
 // strict means we are not debugging completeness
 bool StdPlugin::optionVcUseModelStrict() { return true; }
@@ -50,6 +77,10 @@ bool StdPlugin::optionVcUseTypeof() { return true; }
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
   d_typeVarCounter = 0;
+  if (s_plugin_path.empty())
+  {
+    EO_FATAL() << "StdPlugin: unable to determine EOC resource root";
+  }
 }
 
 StdPlugin::~StdPlugin() {}

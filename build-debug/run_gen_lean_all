@@ -27,13 +27,13 @@ fi
 }
 
 echo "**** Compile ethos"
-make -j4
+cmake --build . --target ethos-eoc -j4
 check_status
 
 echo "********* Generating Lean for $INPUT *********"
 
 echo "**** lean_meta: Run ethos + desugar on $INPUT to generate $INIT_DESUGAR"
-./src/ethos --plugin.desugar $INPUT >/dev/null
+./src/ethos-eoc --plugin.desugar $INPUT >/dev/null
 check_status
 # we will process proof rules with lean-meta, which has these dependencies.
 DESUGAR_DEPS="\$eot_Bool \$eot_Type \$eot_fun_type \$eot_apply \$eo_mk_apply \$eo_eq \$eo_ite \$eo_requires \$eo_and \$eo_to_smt \$smtx_model_eval \$eo_checker_is_refutation and \$eot_UConst \$eot_USort \$smtx_typeof \$smtx_typeof_value"
@@ -52,7 +52,7 @@ sed -i "/(include \"smt_embed.eo\")/{
 }" $INIT_DESUGAR
 
 echo "**** lean_meta: Run ethos + model-smt on $INIT_DESUGAR to generate $VCM_DEF_DESUGAR"
-./src/ethos --plugin.model-smt $INIT_DESUGAR >/dev/null
+./src/ethos-eoc --plugin.model-smt $INIT_DESUGAR >/dev/null
 check_status
 cp $INIT_DESUGAR $VCM_DEF_DESUGAR
 # include the model semantics, which was generated above
@@ -62,11 +62,11 @@ sed -i "/(echo \"include eo_model_sat.*/{
 }" $VCM_DEF_DESUGAR
 
 echo "**** lean_meta: Verify ethos parses"
-./src/ethos $VCM_DEF_DESUGAR >/dev/null
+./src/ethos-eoc $VCM_DEF_DESUGAR >/dev/null
 check_status
 
 echo "**** lean_meta: Generate Lean from $VCM_DEF_DESUGAR to $OUT_DIR/lean/*.lean"
-./src/ethos --plugin.lean-meta $VCM_DEF_DESUGAR >/dev/null
+./src/ethos-eoc --plugin.lean-meta $VCM_DEF_DESUGAR >/dev/null
 check_status
 cp $STD_LEAN_CHECKER_OUT $OUT_DIR/lean/Logos.lean
 cp $STD_LEAN_SMT_EVAL $OUT_DIR/lean/SmtEval.lean
