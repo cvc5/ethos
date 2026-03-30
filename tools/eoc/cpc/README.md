@@ -40,7 +40,9 @@ BUILD_DIR=build EOC_NO_BUILD=1 tools/eoc/cpc/run_gen_lean_all
 
 `run_gen_vc`, `run_gen_vc_all`, `run_gen_sygus`, and `run_gen_sygus_all`
 accept `--solve` to run the configured `cvc5` executable on the generated
-artifact after any parse check.
+artifact after any parse check. They also accept `--solve-args="..."` to pass
+extra solver options through to that solve step, for example
+`--solve-args="--tlimit=1000 --seed=7"`.
 
 Compatibility scripts restored from the old workflow:
 

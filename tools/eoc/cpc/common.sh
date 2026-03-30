@@ -48,19 +48,45 @@ eoc_add_skip_cvc5() {
   fi
 }
 
-eoc_extract_solve_flag() {
+eoc_extract_solve_options() {
   local saw_solve=0
+  local saw_solve_args=0
+  local need_solve_args_value=0
+  local solve_args_value=""
   local arg
   EOC_FILTERED_ARGS=()
   for arg in "$@"; do
-    if [[ "$arg" == "--solve" ]]; then
-      saw_solve=1
-    else
-      EOC_FILTERED_ARGS+=("$arg")
+    if (( need_solve_args_value )); then
+      solve_args_value="$arg"
+      saw_solve_args=1
+      need_solve_args_value=0
+      continue
     fi
+    case "$arg" in
+      --solve)
+        saw_solve=1
+        ;;
+      --solve-args)
+        need_solve_args_value=1
+        ;;
+      --solve-args=*)
+        solve_args_value="${arg#--solve-args=}"
+        saw_solve_args=1
+        ;;
+      *)
+        EOC_FILTERED_ARGS+=("$arg")
+        ;;
+    esac
   done
+  if (( need_solve_args_value )); then
+    echo "error: --solve-args requires a value" >&2
+    exit 2
+  fi
   if (( saw_solve )); then
     ARGS+=(--solve)
+  fi
+  if (( saw_solve_args )); then
+    ARGS+=("--solve-args=$solve_args_value")
   fi
 }
 

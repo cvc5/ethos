@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Generate SMT VCs for the supplied rule names on the default CPC input.
-# Usage: run_gen_vc [--solve] RULE [RULE ...]
+# Usage: run_gen_vc [--solve] [--solve-args="ARGS"] RULE [RULE ...]
 # Output: writes stage EO files under tools/eoc/out/ and final SMT2 files under
 # tools/eoc/out/vc/.
 set -euo pipefail
@@ -13,7 +13,7 @@ INPUT="$(eoc_cpc_input)"
 ARGS=(batch --build-dir "$BUILD_DIR" vc "$INPUT")
 
 eoc_add_skip_cvc5
-eoc_extract_solve_flag "$@"
+eoc_extract_solve_options "$@"
 
 ARGS+=("${EOC_FILTERED_ARGS[@]}")
 eoc_exec_driver "${ARGS[@]}"

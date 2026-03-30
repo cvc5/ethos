@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Generate one SyGuS query for RULE on the default CPC input.
-# Usage: run_gen_sygus [--solve] RULE
+# Usage: run_gen_sygus [--solve] [--solve-args="ARGS"] RULE
 # Output: writes stage EO files under tools/eoc/out/ and, on success, a final
 # query in tools/eoc/out/sygus/final-*.sy.
 set -euo pipefail
@@ -13,9 +13,9 @@ INPUT="$(eoc_cpc_input)"
 ARGS=(vc --build-dir "$BUILD_DIR" --sygus "$INPUT")
 
 eoc_add_skip_cvc5
-eoc_extract_solve_flag "$@"
+eoc_extract_solve_options "$@"
 if (( ${#EOC_FILTERED_ARGS[@]} != 1 )); then
-  echo "usage: $0 [--solve] RULE" >&2
+  echo "usage: $0 [--solve] [--solve-args=\"ARGS\"] RULE" >&2
   exit 2
 fi
 ARGS+=("${EOC_FILTERED_ARGS[0]}")

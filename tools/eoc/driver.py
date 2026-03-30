@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -144,11 +145,13 @@ class Pipeline:
         final_out_dir: Path,
         jobs: int,
         cvc5: Optional[Path],
+        solve_args: list[str],
     ):
         self.build_dir = build_dir.resolve()
         self.final_out_dir = final_out_dir.resolve()
         self.jobs = jobs
         self.cvc5 = cvc5
+        self.solve_args = list(solve_args)
         self.binary = self.build_dir / "src" / "ethos-eoc"
         self.stage_out_dir = self.final_out_dir
         self.plugin_out_dir = self.build_dir / "out" / "plugins"
@@ -195,6 +198,7 @@ class Pipeline:
         cmd = [str(cvc5), str(filename)]
         if sygus:
             cmd.append("--lang=sygus")
+        cmd.extend(self.solve_args)
         self.run(cmd)
 
     def validate_pc(self, filename: Path) -> None:
@@ -553,6 +557,11 @@ def main(argv: list[str]) -> int:
         action="store_true",
         help="Run cvc5 on the generated VC or SyGuS file after optional parse checks.",
     )
+    vc.add_argument(
+        "--solve-args",
+        default="",
+        help="Shell-style string of extra options passed to cvc5 during --solve.",
+    )
 
     lean = subparsers.add_parser("lean", help="Generate Lean output for selected rules.")
     add_common_args(lean)
@@ -598,6 +607,11 @@ def main(argv: list[str]) -> int:
         help="Run cvc5 on each generated VC or SyGuS file after optional parse checks.",
     )
     batch.add_argument(
+        "--solve-args",
+        default="",
+        help="Shell-style string of extra options passed to cvc5 during --solve.",
+    )
+    batch.add_argument(
         "--keep-going",
         action="store_true",
         help="Continue after a failing rule and report all failures.",
@@ -622,11 +636,16 @@ def main(argv: list[str]) -> int:
 
     need_cvc5 = not getattr(args, "skip_cvc5", False) or getattr(args, "solve", False)
     cvc5 = resolve_cvc5(getattr(args, "cvc5", None), cwd=invocation_cwd) if need_cvc5 else None
+    try:
+        solve_args = shlex.split(getattr(args, "solve_args", "") or "")
+    except ValueError as err:
+        parser.error(f"invalid --solve-args: {err}")
     pipeline = Pipeline(
         Path(getattr(args, "build_dir", os.getcwd())),
         final_out_dir,
         getattr(args, "jobs", 4),
         cvc5,
+        solve_args,
     )
     build_first = not getattr(args, "no_build", False)
 
