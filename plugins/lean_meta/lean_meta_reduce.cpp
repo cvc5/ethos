@@ -1074,9 +1074,7 @@ void LeanMetaReduce::finalizeStandalone()
 {
   // make the final Lean encoding
   // plugins/lean_meta/lean_meta.lean is the standalone test
-  std::stringstream ssi;
-  ssi << s_plugin_path << "plugins/lean_meta/lean_meta.lean";
-  std::ifstream in(ssi.str());
+  std::ifstream in(getResourcePath("plugins/lean_meta/lean_meta.lean"));
   std::ostringstream ss;
   ss << in.rdbuf();
   std::string finalLean = ss.str();
@@ -1085,10 +1083,9 @@ void LeanMetaReduce::finalizeStandalone()
   replace(finalLean, "$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str());
   replace(finalLean, "$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str());
   replace(finalLean, "$LEAN_CHECKER_DEFS$", d_eoChecker.str());
-  std::stringstream sso;
-  sso << s_plugin_path << "plugins/lean_meta/lean_meta_gen.lean";
-  Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
-  std::ofstream out(sso.str());
+  std::string outPath = getOutputPath("plugins/lean_meta/lean_meta_gen.lean");
+  Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
+  std::ofstream out(outPath);
   out << finalLean;
 }
 
@@ -1096,9 +1093,7 @@ void LeanMetaReduce::finalizeChecker()
 {
   // make the final Lean encoding
   // plugins/lean_meta/lean_meta.lean is the standalone test
-  std::stringstream ssi;
-  ssi << s_plugin_path << "plugins/lean_meta/lean_meta_checker.lean";
-  std::ifstream in(ssi.str());
+  std::ifstream in(getResourcePath("plugins/lean_meta/lean_meta_checker.lean"));
   std::ostringstream ss;
   ss << in.rdbuf();
   std::string finalLean = ss.str();
@@ -1107,10 +1102,10 @@ void LeanMetaReduce::finalizeChecker()
   replace(finalLean, "$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str());
   replace(finalLean, "$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str());
   replace(finalLean, "$LEAN_CHECKER_DEFS$", d_eoChecker.str());
-  std::stringstream sso;
-  sso << s_plugin_path << "plugins/lean_meta/lean_meta_checker_gen.lean";
-  Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
-  std::ofstream out(sso.str());
+  std::string outPath =
+      getOutputPath("plugins/lean_meta/lean_meta_checker_gen.lean");
+  Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
+  std::ofstream out(outPath);
   out << finalLean;
 }
 
@@ -1118,9 +1113,8 @@ void LeanMetaReduce::finalizeSmtModel()
 {
   // make the final Lean encoding
   // plugins/lean_meta/lean_meta.lean is the standalone test
-  std::stringstream ssi;
-  ssi << s_plugin_path << "plugins/lean_meta/lean_meta_smt_model.lean";
-  std::ifstream in(ssi.str());
+  std::ifstream in(
+      getResourcePath("plugins/lean_meta/lean_meta_smt_model.lean"));
   std::ostringstream ss;
   ss << in.rdbuf();
   std::string finalLean = ss.str();
@@ -1130,10 +1124,10 @@ void LeanMetaReduce::finalizeSmtModel()
   replace(finalLean, "$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str());
   replace(finalLean, "$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str());
   replace(finalLean, "$LEAN_SMT_EVAL$", d_smt.str());
-  std::stringstream sso;
-  sso << s_plugin_path << "plugins/lean_meta/lean_meta_smt_model_gen.lean";
-  Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
-  std::ofstream out(sso.str());
+  std::string outPath =
+      getOutputPath("plugins/lean_meta/lean_meta_smt_model_gen.lean");
+  Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
+  std::ofstream out(outPath);
   out << finalLean;
 }
 
@@ -1141,19 +1135,17 @@ void LeanMetaReduce::finalizeSpec()
 {
   // make the final Lean encoding
   // plugins/lean_meta/lean_meta.lean is the standalone test
-  std::stringstream ssi;
-  ssi << s_plugin_path << "plugins/lean_meta/lean_meta_spec.lean";
-  std::ifstream in(ssi.str());
+  std::ifstream in(getResourcePath("plugins/lean_meta/lean_meta_spec.lean"));
   std::ostringstream ss;
   ss << in.rdbuf();
   std::string finalLean = ss.str();
   replace(finalLean, "$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str());
   replace(finalLean, "$LEAN_EO_IS_OBJ$", d_eoIsObj.str());
   replace(finalLean, "$LEAN_EO_IS_REFUTATION_DEF$", d_eoIsRef.str());
-  std::stringstream sso;
-  sso << s_plugin_path << "plugins/lean_meta/lean_meta_spec_gen.lean";
-  Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
-  std::ofstream out(sso.str());
+  std::string outPath =
+      getOutputPath("plugins/lean_meta/lean_meta_spec_gen.lean");
+  Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
+  std::ofstream out(outPath);
   out << finalLean;
 }
 
@@ -1161,18 +1153,16 @@ void LeanMetaReduce::finalizeLemmas()
 {
   // make the final Lean encoding
   // plugins/lean_meta/lean_meta.lean is the standalone test
-  std::stringstream ssi;
-  ssi << s_plugin_path << "plugins/lean_meta/lean_meta_lemmas.lean";
-  std::ifstream in(ssi.str());
+  std::ifstream in(getResourcePath("plugins/lean_meta/lean_meta_lemmas.lean"));
   std::ostringstream ss;
   ss << in.rdbuf();
   std::string finalLean = ss.str();
   replace(finalLean, "$LEAN_THMS$", d_thms.str());
   replace(finalLean, "$LEAN_LEMMA_AUX_DEFS$", d_lemmaAuxDef.str());
-  std::stringstream sso;
-  sso << s_plugin_path << "plugins/lean_meta/lean_meta_lemmas_gen.lean";
-  Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
-  std::ofstream out(sso.str());
+  std::string outPath =
+      getOutputPath("plugins/lean_meta/lean_meta_lemmas_gen.lean");
+  Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
+  std::ofstream out(outPath);
   out << finalLean;
 }
 

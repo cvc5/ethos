@@ -2,7 +2,7 @@
 
 OUT_DIR=./out
 
-STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
+STD_DESUGAR_OUT=./out/plugins/desugar/eo_desugar_gen.eo
 
 # the name of a EO signature
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"

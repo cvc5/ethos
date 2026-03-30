@@ -9,10 +9,13 @@
 
 #include "std_plugin.h"
 
+#include <cerrno>
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "state.h"
 
@@ -33,6 +36,80 @@ std::string normalizeDirectory(std::string path)
   return path;
 }
 
+std::string getParentDirectory(const std::string& path)
+{
+  std::string::size_type pos = path.find_last_of('/');
+  if (pos == std::string::npos)
+  {
+    return std::string();
+  }
+  if (pos == 0)
+  {
+    return "/";
+  }
+  return path.substr(0, pos);
+}
+
+void ensureDirectoryExists(const std::string& path)
+{
+  if (path.empty() || path == ".")
+  {
+    return;
+  }
+
+  std::stringstream current;
+  std::size_t start = 0;
+  if (path[0] == '/')
+  {
+    current << "/";
+    start = 1;
+  }
+
+  while (start < path.size())
+  {
+    std::size_t end = path.find('/', start);
+    std::string part = end == std::string::npos
+                           ? path.substr(start)
+                           : path.substr(start, end - start);
+    start = end == std::string::npos ? path.size() : end + 1;
+    if (part.empty() || part == ".")
+    {
+      continue;
+    }
+    if (part == "..")
+    {
+      if (current.tellp() != std::streampos(0)
+          && current.str().back() != '/')
+      {
+        current << "/";
+      }
+      current << "..";
+      continue;
+    }
+    if (current.tellp() != std::streampos(0) && current.str().back() != '/')
+    {
+      current << "/";
+    }
+    current << part;
+    std::string currPath = current.str();
+    struct stat sb;
+    if (stat(currPath.c_str(), &sb) == 0)
+    {
+      if (!S_ISDIR(sb.st_mode))
+      {
+        EO_FATAL() << "StdPlugin: path exists and is not a directory: "
+                   << currPath;
+      }
+      continue;
+    }
+    if (mkdir(currPath.c_str(), 0755) != 0 && errno != EEXIST)
+    {
+      EO_FATAL() << "StdPlugin: failed to create directory " << currPath
+                 << ", errno = " << errno;
+    }
+  }
+}
+
 }  // namespace
 
 std::string StdPlugin::initializePluginPath()
@@ -49,7 +126,35 @@ std::string StdPlugin::initializePluginPath()
 #endif
 }
 
+std::string StdPlugin::initializePluginOutputPath()
+{
+  const char* envPath = std::getenv("ETHOS_EOC_OUTPUT_DIR");
+  if (envPath != nullptr && envPath[0] != '\0')
+  {
+    return normalizeDirectory(envPath);
+  }
+#ifdef ETHOS_EOC_OUTPUT_DIR
+  return normalizeDirectory(ETHOS_EOC_OUTPUT_DIR);
+#else
+  return std::string();
+#endif
+}
+
+std::string StdPlugin::getResourcePath(const std::string& relativePath)
+{
+  return s_plugin_path + relativePath;
+}
+
+std::string StdPlugin::getOutputPath(const std::string& relativePath)
+{
+  std::string path = s_plugin_output_path + relativePath;
+  ensureDirectoryExists(getParentDirectory(path));
+  return path;
+}
+
 std::string StdPlugin::s_plugin_path = StdPlugin::initializePluginPath();
+std::string StdPlugin::s_plugin_output_path =
+    StdPlugin::initializePluginOutputPath();
 
 // strict means we are not debugging completeness
 bool StdPlugin::optionVcUseModelStrict() { return true; }
@@ -80,6 +185,10 @@ StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
   if (s_plugin_path.empty())
   {
     EO_FATAL() << "StdPlugin: unable to determine EOC resource root";
+  }
+  if (s_plugin_output_path.empty())
+  {
+    EO_FATAL() << "StdPlugin: unable to determine EOC output root";
   }
 }
 

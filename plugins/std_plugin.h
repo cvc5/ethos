@@ -65,8 +65,15 @@ class StdPlugin : public Plugin
   /** type variable counter */
   size_t d_typeVarCounter;
   static std::string s_plugin_path;
+  static std::string s_plugin_output_path;
   /** Determine the root containing the EOC plugin resources */
   static std::string initializePluginPath();
+  /** Determine the default directory for generated EOC artifacts */
+  static std::string initializePluginOutputPath();
+  /** Get a path relative to the source resource root */
+  static std::string getResourcePath(const std::string& relativePath);
+  /** Get a path relative to the generated output root */
+  static std::string getOutputPath(const std::string& relativePath);
   /** Standard configurations for the reduction */
   static bool optionVcUseModelStrict();
   static bool optionSmtMetaUseTriggers();

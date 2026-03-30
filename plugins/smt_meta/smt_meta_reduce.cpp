@@ -956,9 +956,7 @@ void SmtMetaReduce::finalize()
   };
 
   // make the final SMT-LIB encoding
-  std::stringstream ssi;
-  ssi << s_plugin_path << "plugins/smt_meta/smt_meta.smt2";
-  std::ifstream in(ssi.str());
+  std::ifstream in(getResourcePath("plugins/smt_meta/smt_meta.smt2"));
   std::ostringstream ss;
   ss << in.rdbuf();
   std::string finalSm = ss.str();
@@ -989,10 +987,9 @@ void SmtMetaReduce::finalize()
   replace(finalSm, "$SM_SEQ_DECL$", d_embedSeqDt.str());
   replace(finalSm, "$SM_EO_TERM_DECL$", d_embedEoTermDt.str());
 
-  std::stringstream sso;
-  sso << s_plugin_path << "plugins/smt_meta/smt_meta_gen.smt2";
-  Trace("smt-meta") << "Write smt2-defs " << sso.str() << std::endl;
-  std::ofstream out(sso.str());
+  std::string outPath = getOutputPath("plugins/smt_meta/smt_meta_gen.smt2");
+  Trace("smt-meta") << "Write smt2-defs " << outPath << std::endl;
+  std::ofstream out(outPath);
   out << finalSm;
 }
 

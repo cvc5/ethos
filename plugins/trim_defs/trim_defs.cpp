@@ -308,10 +308,9 @@ void TrimDefs::finalize()
   }
 
   // write the trimmed to file
-  std::stringstream sso;
-  sso << s_plugin_path << "plugins/trim_defs/trim_gen.eo";
-  std::cout << "Write trim-defs " << sso.str() << std::endl;
-  std::ofstream out(sso.str());
+  std::string outPath = getOutputPath("plugins/trim_defs/trim_gen.eo");
+  std::cout << "Write trim-defs " << outPath << std::endl;
+  std::ofstream out(outPath);
   out << ss.str();
 }
 

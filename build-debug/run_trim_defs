@@ -10,7 +10,7 @@ echo "**** run_trim_defs: Write EO to $TMP_FILE"
 INPUT=$1
 shift
 # output file
-STD_TRIM_OUT=../plugins/trim_defs/trim_gen.eo
+STD_TRIM_OUT=./out/plugins/trim_defs/trim_gen.eo
 
 echo "(include \"$INPUT\")" > $TMP_FILE
 

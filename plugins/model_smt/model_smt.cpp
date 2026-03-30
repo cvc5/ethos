@@ -2007,9 +2007,7 @@ void ModelSmt::finalize()
   // the final input to smt-meta.
 
   // now, go back and compile *.eo for the proof rules
-  std::stringstream ssis;
-  ssis << s_plugin_path << "plugins/model_smt/model_smt.eo";
-  std::ifstream ins(ssis.str());
+  std::ifstream ins(getResourcePath("plugins/model_smt/model_smt.eo"));
   std::ostringstream sss;
   sss << ins.rdbuf();
   std::string finalSmt = sss.str();
@@ -2025,10 +2023,8 @@ void ModelSmt::finalize()
   replace(finalSmt, "$SMT_TYPEOF_CASES$", d_smtTypeof.str());
   replace(finalSmt, "$SMT_TYPEOF_AUX$", d_smtTypeofAux.str());
 
-  std::stringstream ssoe;
-  ssoe << s_plugin_path << "plugins/model_smt/model_smt_gen.eo";
-  // std::cout << "Write smt-model    " << finalSmt.str() << std::endl;
-  std::ofstream oute(ssoe.str());
+  std::string outPath = getOutputPath("plugins/model_smt/model_smt_gen.eo");
+  std::ofstream oute(outPath);
   oute << finalSmt;
 }
 

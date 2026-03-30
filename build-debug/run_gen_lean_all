@@ -3,13 +3,13 @@
 CVC5=~/bin/cvc5-test
 OUT_DIR=./out
 
-STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
-STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
-STD_LEAN_CHECKER_OUT=../plugins/lean_meta/lean_meta_checker_gen.lean
+STD_DESUGAR_OUT=./out/plugins/desugar/eo_desugar_gen.eo
+STD_SMODEL_OUT=./out/plugins/model_smt/model_smt_gen.eo
+STD_LEAN_CHECKER_OUT=./out/plugins/lean_meta/lean_meta_checker_gen.lean
 STD_LEAN_SMT_EVAL=../plugins/lean_meta/lean_meta_smt_eval.lean
-STD_LEAN_SMT_MODEL_OUT=../plugins/lean_meta/lean_meta_smt_model_gen.lean
-STD_LEAN_SPEC_OUT=../plugins/lean_meta/lean_meta_spec_gen.lean
-STD_LEAN_LEMMAS_OUT=../plugins/lean_meta/lean_meta_lemmas_gen.lean
+STD_LEAN_SMT_MODEL_OUT=./out/plugins/lean_meta/lean_meta_smt_model_gen.lean
+STD_LEAN_SPEC_OUT=./out/plugins/lean_meta/lean_meta_spec_gen.lean
+STD_LEAN_LEMMAS_OUT=./out/plugins/lean_meta/lean_meta_lemmas_gen.lean
 # the name of a EO signature
 # INPUT = $1
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
@@ -57,7 +57,7 @@ check_status
 cp $INIT_DESUGAR $VCM_DEF_DESUGAR
 # include the model semantics, which was generated above
 sed -i "/(echo \"include eo_model_sat.*/{
-    r ../plugins/model_smt/model_smt_gen.eo
+    r $STD_SMODEL_OUT
     d
 }" $VCM_DEF_DESUGAR
 

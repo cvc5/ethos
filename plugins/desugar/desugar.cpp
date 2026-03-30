@@ -818,9 +818,7 @@ void Desugar::finalize()
   }
 
   // now, go back and compile *.eo for the proof rules
-  std::stringstream ssie;
-  ssie << s_plugin_path << "plugins/desugar/eo_desugar.eo";
-  std::ifstream ine(ssie.str());
+  std::ifstream ine(getResourcePath("plugins/desugar/eo_desugar.eo"));
   std::ostringstream sse;
   sse << ine.rdbuf();
   std::string finalEo = sse.str();
@@ -858,10 +856,9 @@ void Desugar::finalize()
   // Verification conditions for *all* proof rules are ready now
   // TODO: make this manual?
   replace(finalEo, "$EO_VC$", d_eoVc.str());
-  std::stringstream ssoe;
-  ssoe << s_plugin_path << "plugins/desugar/eo_desugar_gen.eo";
-  std::cout << "Write core-defs    " << ssoe.str() << std::endl;
-  std::ofstream oute(ssoe.str());
+  std::string outPath = getOutputPath("plugins/desugar/eo_desugar_gen.eo");
+  std::cout << "Write core-defs    " << outPath << std::endl;
+  std::ofstream oute(outPath);
   oute << finalEo;
   oute << std::endl;
 
