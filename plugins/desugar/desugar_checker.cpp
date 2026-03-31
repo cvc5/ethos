@@ -174,19 +174,6 @@ void DesugarChecker::printTerm(const Expr& e, std::ostream& os)
   d_desugar->printTerm(e, os);
 }
 
-void DesugarChecker::finalizeChecker(const std::string& finalEo)
-{
-  std::string outPath =
-      getOutputPath("plugins/desugar/eo_desugar_checker_gen.eo");
-  std::cout << "Write checker-defs    " << outPath << std::endl;
-  std::ofstream outec(outPath);
-  // include signature
-  outec << finalEo;
-  // then include the checker definition
-  output(outec);
-  outec << std::endl;
-}
-
 void DesugarChecker::output(std::ostream& out)
 {
   out << ";; ------------ checker" << std::endl;

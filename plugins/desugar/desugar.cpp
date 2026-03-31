@@ -850,7 +850,6 @@ void Desugar::finalize()
   }
   else
   {
-    d_dchecker.finalizeChecker(finalEo);
     replace(finalEo, "$EO_CHECKER$", "");
   }
   // Verification conditions for *all* proof rules are ready now
