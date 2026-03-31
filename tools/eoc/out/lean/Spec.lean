@@ -7,6 +7,8 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/- compatability helper, we use smt_lit, but may need eo_lit -/
+abbrev smt_lit_teq := eo_lit_teq
 
 /- Definitions for theorems -/
 

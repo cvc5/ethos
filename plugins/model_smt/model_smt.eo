@@ -1422,7 +1422,7 @@ $EO_TO_SMT_TYPE_CASES$
   (
   (($eo_to_smt_updater_rec ($sm_DtSel s d n m) $smt_builtin_n_zero t u acc) acc)
   (($eo_to_smt_updater_rec ($sm_DtSel s d n m) ($smt_builtin_n_succ k) t u acc)
-    (eo::define ((arg ($smt_builtin_ite ($smt_builtin_n_= m k) t ($sm_apply ($sm_DtSel s d n m) u))))
+    (eo::define ((arg ($smt_builtin_ite ($smt_builtin_n_= m k) u ($sm_apply ($sm_DtSel s d n m) t))))
       ($eo_to_smt_updater_rec ($sm_DtSel s d n m) k t u ($sm_apply acc arg))))
   (($eo_to_smt_updater_rec v k t u acc) $sm_none)
   )
@@ -1437,9 +1437,9 @@ $EO_TO_SMT_TYPE_CASES$
   (
   (($eo_to_smt_updater ($sm_DtSel s d n m) t u)
     (eo::define ((nargs ($smtx_dt_num_sels d n)))
-    ($sm_ite ($sm_apply ($sm_DtTester s d n) u)
+    ($sm_ite ($sm_apply ($sm_DtTester s d n) t)
       ($eo_to_smt_updater_rec ($sm_DtSel s d n m) nargs t u ($sm_DtCons s d n))
-      u)))
+      t)))
   (($eo_to_smt_updater sel t d)                     $sm_none)
   )
 )
