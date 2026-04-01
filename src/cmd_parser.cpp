@@ -38,6 +38,7 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["declare-const"] = Token::DECLARE_CONST;
   d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
+  d_table["declare-sort"] = Token::DECLARE_SORT;
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
   d_table["set-option"] = Token::SET_OPTION;
@@ -50,7 +51,6 @@ CmdParser::CmdParser(Lexer& lex,
     // only used in smt2 queries
     d_table["assert"] = Token::ASSERT;
     d_table["declare-fun"] = Token::DECLARE_FUN;
-    d_table["declare-sort"] = Token::DECLARE_SORT;
     d_table["define-const"] = Token::DEFINE_CONST;
     d_table["define-fun"] = Token::DEFINE_FUN;
     d_table["define-sort"] = Token::DEFINE_SORT;
@@ -139,7 +139,7 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> params;
       // attributes marked on variables
       std::map<ExprValue*, AttrMap> pattrMap;
-      if (tok == Token::DECLARE_FUN || tok == Token::DECLARE_ORACLE_FUN)
+      if (tok == Token::DECLARE_FUN)
       {
         sorts = d_eparser.parseTypeList();
       }
@@ -167,9 +167,7 @@ bool CmdParser::parseNextCommand()
       t = ret;
       if (!sorts.empty())
       {
-        t = (tok == Token::DECLARE_ORACLE_FUN)
-                ? d_state.mkProgramType(sorts, ret)
-                : d_state.mkFunctionType(sorts, ret);
+        t = d_state.mkFunctionType(sorts, ret);
       }
       std::vector<Expr> opaqueArgs;
       // process the parameter list

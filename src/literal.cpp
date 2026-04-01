@@ -432,7 +432,6 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
     case Kind::EVAL_TO_STRING:
       switch (ka)
       {
-        case Kind::DECIMAL:return Literal(String(args[0]->d_rat.toStringDecimal()));
         case Kind::NUMERAL:
         {
           // if integer is 0...num_codes-1, we convert to the string whose code
@@ -446,10 +445,8 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
               return Literal(String(vec));
             }
           }
+          break;
         }
-        case Kind::RATIONAL:return Literal(String(args[0]->toString()));
-        case Kind::HEXADECIMAL:return Literal(String("#x" + args[0]->toString()));
-        case Kind::BINARY:return Literal(String("#b" + args[0]->toString()));
         case Kind::STRING: return *args[0];break;
         default: break;
       }

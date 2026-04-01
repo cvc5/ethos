@@ -123,6 +123,7 @@ set(ethos_test_file_list
     disamb-arith.eo
     opaque-inline.eo
     implicit-then-var.eo
+    is_eq.eo
     simple-reference.eo
     simple-quant-reference.eo
     simple-lra-reference.eo
@@ -168,6 +169,7 @@ set(ethos_test_file_list
     further-notes-attr.eo
     list-non-singleton.eo
     list-non-singleton-left.eo
+    code-point-oob.eo
 )
 
 macro(ethos_test file)
@@ -179,7 +181,23 @@ macro(ethos_test file)
   set_tests_properties(${file} PROPERTIES TIMEOUT 40)
 endmacro()
 
+macro(ethos_fail_test file regex)
+  add_test(
+    NAME ${file}
+    COMMAND
+      ${CMAKE_COMMAND}
+      "-DTEST_BINARY=$<TARGET_FILE:ethos>"
+      "-DTEST_FILE=${CMAKE_CURRENT_LIST_DIR}/${file}"
+      "-DTEST_WORKDIR=${CMAKE_SOURCE_DIR}"
+      "-DEXPECT_REGEX=${regex}"
+      -P ${CMAKE_CURRENT_LIST_DIR}/expect_error.cmake
+  )
+  set_tests_properties(${file} PROPERTIES TIMEOUT 40)
+endmacro()
+
 foreach(file ${ethos_test_file_list})
   ethos_test(${file})
 endforeach()
 
+ethos_fail_test(parser-overflow-declare-sort.eo
+                "Numerals must fit into 32-bit unsigned integers")
