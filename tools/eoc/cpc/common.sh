@@ -112,12 +112,22 @@ eoc_copy_lean_outputs() {
   local dest_dir="$1"
   local final_out_dir="$2"
   local lean_dir="$final_out_dir/lean"
+  local rules_dir="$lean_dir/Rules"
+  local file
 
-  mkdir -p "$dest_dir"
+  mkdir -p "$dest_dir" "$dest_dir/Proofs" "$dest_dir/Proofs/Rules"
   cp "$lean_dir/Logos.lean" "$dest_dir/Logos.lean"
   cp "$lean_dir/SmtEval.lean" "$dest_dir/SmtEval.lean"
   cp "$lean_dir/SmtModel.lean" "$dest_dir/SmtModel.lean"
   cp "$lean_dir/Spec.lean" "$dest_dir/Spec.lean"
   cp "$lean_dir/Lemmas.lean" "$dest_dir/Lemmas.lean"
   cp "$lean_dir/RuleLemmas.lean" "$dest_dir/Proofs/RuleLemmas.lean"
+  if [[ -d "$rules_dir" ]]; then
+    (
+      shopt -s nullglob
+      for file in "$rules_dir"/*.lean; do
+        cp "$file" "$dest_dir/Proofs/Rules/$(basename "$file")"
+      done
+    )
+  fi
 }

@@ -176,7 +176,8 @@ Whole signature:
 python3 tools/eoc/driver.py lean --build-dir build --all INPUT
 ```
 
-Generated files are written to `tools/eoc/out/lean/` by default.
+Generated files are written to `tools/eoc/out/lean/` by default, including
+per-rule files in `tools/eoc/out/lean/Rules/`.
 
 ### `desugar`
 
@@ -235,8 +236,8 @@ ls tools/eoc/out/lean
 If you previously used `install_logos` or `install_logos_mini`, compatibility
 wrappers now live under `tools/eoc/cpc/`. They still run the `lean` pipeline
 through `driver.py`, then copy the generated Lean files from `tools/eoc/out/lean`
-into your downstream Logos trees using the old default paths unless you
-override them with environment variables.
+including `Rules/*.lean` into your downstream Logos trees using the old default
+paths unless you override them with environment variables.
 
 ### Manually inspect or debug intermediate files
 

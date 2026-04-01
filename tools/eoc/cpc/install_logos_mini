@@ -2,7 +2,8 @@
 # Generate the reduced CPC Lean package used for CpcMini-style downstream tests.
 # Usage: install_logos_mini
 # Output: reads generated Lean files from tools/eoc/out/lean/ and copies them
-# to $LOGOS_DIR/$SUB_DIR, then rewrites imports from Cpc.* to CpcMini.*.
+# to $LOGOS_DIR/$SUB_DIR, including per-rule files under Proofs/Rules/, then
+# rewrites imports from Cpc.* to CpcMini.*.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

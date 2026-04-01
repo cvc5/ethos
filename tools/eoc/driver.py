@@ -227,6 +227,32 @@ class Pipeline:
     def plugin_generated(self, relative_path: str) -> Path:
         return self.plugin_out_dir / relative_path
 
+    def clean_generated_lean_rule_outputs(self) -> None:
+        plugin_rule_dir = self.plugin_out_dir / "lean_meta" / "rules"
+        if not plugin_rule_dir.exists():
+            return
+        for child in plugin_rule_dir.iterdir():
+            if child.is_file() and child.name.startswith("lean_meta_rule_") and child.name.endswith("_gen.lean"):
+                child.unlink()
+
+    def publish_generated_lean_rule_outputs(self, lean_dir: Path) -> None:
+        plugin_rule_dir = self.plugin_out_dir / "lean_meta" / "rules"
+        final_rule_dir = lean_dir / "Rules"
+        if final_rule_dir.exists():
+            shutil.rmtree(final_rule_dir)
+        if not plugin_rule_dir.exists():
+            return
+        rule_files = sorted(plugin_rule_dir.glob("lean_meta_rule_*_gen.lean"))
+        if not rule_files:
+            return
+        final_rule_dir.mkdir(parents=True, exist_ok=True)
+        for rule_file in rule_files:
+            rule_name = rule_file.name[len("lean_meta_rule_") : -len("_gen.lean")]
+            if not rule_name:
+                continue
+            module_name = rule_name[:1].upper() + rule_name[1:]
+            shutil.copyfile(rule_file, final_rule_dir / f"{module_name}.lean")
+
     def stage_name(self, input_name: str) -> str:
         return Path(input_name).stem.lower()
 
@@ -322,6 +348,7 @@ class Pipeline:
     def lean(self, input_file: Path) -> Path:
         out_lean = self.final_out_dir / "lean"
         out_lean.mkdir(parents=True, exist_ok=True)
+        self.clean_generated_lean_rule_outputs()
         self.ethos(["--plugin.lean-meta", self.binary_path_arg(input_file)], quiet=True)
         shutil.copyfile(
             self.plugin_generated("lean_meta/lean_meta_checker_gen.lean"),
@@ -347,6 +374,7 @@ class Pipeline:
             self.plugin_generated("lean_meta/lean_meta_rule_lemmas_gen.lean"),
             out_lean / "RuleLemmas.lean",
         )
+        self.publish_generated_lean_rule_outputs(out_lean)
         return out_lean
 
     def parse_file(self, filename: Path) -> None:
