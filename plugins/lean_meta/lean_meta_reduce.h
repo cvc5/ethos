@@ -98,8 +98,8 @@ class LeanMetaReduce : public MetaReducePlugin
    */
   static std::string getEmbedName(const Expr& oApp,
                                   MetaKind ctx = MetaKind::EUNOIA);
-  static void printStepCase(std::ostream& out, const std::string& str, bool isPop);
-  static void printStepEmptyCase(std::ostream& out, const std::string& str, bool isPop);
+  void printStepCase(std::ostream& out, const std::string& str, bool isPop);
+  void printStepEmptyCase(std::ostream& out, const std::string& str, bool isPop);
   std::stringstream d_defs;
   std::stringstream d_eoIsObjDefs;
   std::stringstream d_thms;

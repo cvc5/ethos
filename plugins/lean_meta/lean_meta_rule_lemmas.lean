@@ -1,5 +1,5 @@
-import CpcMini.Proofs.CheckerCore
-import CpcMini.Proofs.Rules.Support
+import Cpc.Proofs.CheckerCore
+import Cpc.Proofs.Rules.Support
 $EO_RULE_LEMMA_INCLUDE$
 
 open Eo

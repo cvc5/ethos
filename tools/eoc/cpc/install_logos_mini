@@ -23,7 +23,7 @@ if [[ -d "$LOGOS_DIR/$SUB_DIR" ]]; then
   (
     cd "$LOGOS_DIR/$SUB_DIR"
     shopt -s nullglob
-    for file in *.lean; do
+    for file in $(find -type f -name '*.lean'); do
       sed -i 's/import Cpc\./import CpcMini\./g' "$file"
     done
   )

@@ -1053,7 +1053,6 @@ void LeanMetaReduce::printStepCase(std::ostream& out, const std::string& prule, 
 {
   std::stringstream thmName;
   thmName << "cmd_step_" << (isPop ? "pop_" : "") << prule << "_properties";
-  
   out << "  | " << prule << " =>" << std::endl;
   out << "      exact cmd_step_" << (isPop ? "pop_" : "") << "facts_of_rule_properties";
   out << (isPop ? " root tail A premises " : " M s premises hs ") << "<|" << std::endl;
@@ -1068,6 +1067,13 @@ void LeanMetaReduce::printStepCase(std::ostream& out, const std::string& prule, 
     out << "M hM s args premises" << std::endl;
     out << "          (by simpa using hCmdTrans) hPremisesBool hProg" << std::endl;
   }
+  std::stringstream ss;
+  ss << "plugins/lean_meta/rules/lean_meta_rule_" << prule << "_gen.lean";
+  const std::string outPath = emitResourceFile(
+      "plugins/lean_meta/lean_meta_rule.lean",
+      ss.str(),
+      {{"$LEAN_RULE$", prule}});
+  Trace("lean-meta") << "Write lean-defs rule " << outPath << std::endl;
 //  | contra =>
 //      exact cmd_step_facts_of_rule_properties M s premises hs <|
 //        cmd_step_contra_properties M hM s args premises
@@ -1155,9 +1161,10 @@ bool LeanMetaReduce::echo(const std::string& msg)
       std::string prule = progName.substr(10);
       std::string fileName = prule;
       fileName[0] = toupper(fileName[0]);
-      // FIXME: make this name correct based on passing option
+      // TODO: make this name correct based on passing option
       std::string calc = "Cpc";
       d_rlInclude << "import " << calc << ".Proofs.Rules." << fileName << std::endl;
+      // TODO: don't hardcode this
       if (prule=="scope")
       {
         printStepEmptyCase(d_rlIncludeStep, prule, false);
