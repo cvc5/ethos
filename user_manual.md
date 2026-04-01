@@ -510,7 +510,7 @@ in the example above.
 (define Q ((x Int) (y Int)) (>= x y))
 ```
 
-In the above example, `(>= x y z w)` is syntax sugar for `(and (>= x y) (>= y z) (>= z w))`,
+In the above example, `(>= x y z)` is syntax sugar for `(and (>= x y) (>= y z))`,
 whereas the term `(>= x y)` is not impacted by the annotation `:chainable` since it has fewer than 3 children.
 
 Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S`,
