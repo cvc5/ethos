@@ -343,6 +343,10 @@ class Pipeline:
             self.plugin_generated("lean_meta/lean_meta_lemmas_gen.lean"),
             out_lean / "Lemmas.lean",
         )
+        shutil.copyfile(
+            self.plugin_generated("lean_meta/lean_meta_rule_lemmas_gen.lean"),
+            out_lean / "RuleLemmas.lean",
+        )
         return out_lean
 
     def parse_file(self, filename: Path) -> None:

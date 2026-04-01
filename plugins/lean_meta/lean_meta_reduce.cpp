@@ -1011,11 +1011,18 @@ void LeanMetaReduce::finalizeSpec()
 
 void LeanMetaReduce::finalizeLemmas()
 {
-  const std::string outPath = emitResourceFile(
+  const std::string outPath0 = emitResourceFile(
       "plugins/lean_meta/lean_meta_lemmas.lean",
       "plugins/lean_meta/lean_meta_lemmas_gen.lean",
       {{"$LEAN_THMS$", d_thms.str()},
        {"$LEAN_LEMMA_AUX_DEFS$", d_lemmaAuxDef.str()}});
+  Trace("lean-meta") << "Write lean-defs " << outPath0 << std::endl;
+  const std::string outPath = emitResourceFile(
+      "plugins/lean_meta/lean_meta_rule_lemmas.lean",
+      "plugins/lean_meta/lean_meta_rule_lemmas_gen.lean",
+      {{"$EO_RULE_LEMMA_INCLUDE$", d_rlInclude.str()},
+       {"$EO_RULE_LEMMA_STEP_CASES$", d_rlIncludeStep.str()},
+       {"$EO_RULE_LEMMA_STEP_POP_CASES$", d_rlIncludeStepPop.str()}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }
 
@@ -1042,6 +1049,45 @@ void LeanMetaReduce::finalize()
   finalizeLemmas();
 }
 
+void LeanMetaReduce::printStepCase(std::ostream& out, const std::string& prule, bool isPop)
+{
+  std::stringstream thmName;
+  thmName << "cmd_step_" << (isPop ? "pop_" : "") << prule << "_properties";
+  
+  out << "  | " << prule << " =>" << std::endl;
+  out << "      exact cmd_step_" << (isPop ? "pop_" : "") << "facts_of_rule_properties";
+  out << (isPop ? " root tail A premises " : " M s premises hs ") << "<|" << std::endl;
+  out << "        " << thmName.str() << " ";
+  if (isPop)
+  {
+    out << "A root args premises" << std::endl;
+    out << "          hATrans hATy hPremisesTrans hPremisesTy hProg" << std::endl;
+  }
+  else
+  {
+    out << "M hM s args premises" << std::endl;
+    out << "          (by simpa using hCmdTrans) hPremisesBool hProg" << std::endl;
+  }
+//  | contra =>
+//      exact cmd_step_facts_of_rule_properties M s premises hs <|
+//        cmd_step_contra_properties M hM s args premises
+//          (by simpa using hCmdTrans) hPremisesBool hProg
+//  | scope =>
+//      exact cmd_step_pop_facts_of_rule_properties root tail A premises <|
+//        cmd_step_pop_scope_properties A root args premises
+//          hATrans hATy hPremisesTrans hPremisesTy hProg
+}
+
+void LeanMetaReduce::printStepEmptyCase(std::ostream& out, const std::string& prule, bool isPop)
+{
+  out << "  | " << prule << " =>" << std::endl;
+  out << "      exact False.elim (hProg (by simp [__eo_cmd_step_" << (isPop ? "pop_" : "") << "proven]))" << std::endl;
+//  | scope =>
+//      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+//  | contra =>
+//      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+}
+
 bool LeanMetaReduce::echo(const std::string& msg)
 {
   std::cout << "ECHO " << msg << std::endl;
@@ -1059,12 +1105,14 @@ bool LeanMetaReduce::echo(const std::string& msg)
       Assert(false) << "When making Lean theorem, could not find program "
                     << eosc;
     }
-    d_thms << "/- correctness theorem for " << cleanId(eosc) << " -/"
+    std::string progName = cleanId(eosc);
+    d_thms << "/- correctness theorem for " << progName << " -/"
            << std::endl;
     std::stringstream call;
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
     if (ctype == ConjectureType::VC)
     {
+// ------------------ old
       d_thms << "theorem correct_" << cleanId(eosc) << " (M : SmtModel) ";
       Expr def = d_state.getProgram(vv.getValue());
       Expr vt = vv.getType();
@@ -1103,6 +1151,23 @@ bool LeanMetaReduce::echo(const std::string& msg)
       d_thms << "by" << std::endl;
       d_thms << "  sorry" << std::endl;
       d_thms << std::endl;
+// ------------------ new
+      std::string prule = progName.substr(10);
+      std::string fileName = prule;
+      fileName[0] = toupper(fileName[0]);
+      // FIXME: make this name correct based on passing option
+      std::string calc = "Cpc";
+      d_rlInclude << "import " << calc << ".Proofs.Rules." << fileName << std::endl;
+      if (prule=="scope")
+      {
+        printStepEmptyCase(d_rlIncludeStep, prule, false);
+        printStepCase(d_rlIncludeStepPop, prule, true);
+      }
+      else
+      {
+        printStepCase(d_rlIncludeStep, prule, false);
+        printStepEmptyCase(d_rlIncludeStepPop, prule, true);
+      }
     }
     else
     {

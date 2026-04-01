@@ -119,4 +119,5 @@ eoc_copy_lean_outputs() {
   cp "$lean_dir/SmtModel.lean" "$dest_dir/SmtModel.lean"
   cp "$lean_dir/Spec.lean" "$dest_dir/Spec.lean"
   cp "$lean_dir/Lemmas.lean" "$dest_dir/Lemmas.lean"
+  cp "$lean_dir/RuleLemmas.lean" "$dest_dir/Proofs/RuleLemmas.lean"
 }
