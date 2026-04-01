@@ -1072,7 +1072,7 @@ void LeanMetaReduce::printStepCase(std::ostream& out, const std::string& prule, 
   const std::string outPath = emitResourceFile(
       "plugins/lean_meta/lean_meta_rule.lean",
       ss.str(),
-      {{"$LEAN_RULE$", prule}});
+      {{"$EO_RULE$", prule}});
   Trace("lean-meta") << "Write lean-defs rule " << outPath << std::endl;
 //  | contra =>
 //      exact cmd_step_facts_of_rule_properties M s premises hs <|
