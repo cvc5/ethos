@@ -14,8 +14,7 @@
 #include <sstream>
 #include <string>
 
-#include "../smt_meta/utils.h"
-#include "../std_plugin.h"
+#include "../meta_reduce_plugin.h"
 
 namespace ethos {
 
@@ -24,17 +23,15 @@ class TypeChecker;
 
 /**
  */
-class LeanMetaReduce : public StdPlugin
+class LeanMetaReduce : public MetaReducePlugin
 {
  public:
   LeanMetaReduce(State& s);
-  ~LeanMetaReduce();
+  ~LeanMetaReduce() override;
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Define */
   void define(const std::string& name, const Expr& e) override;
-  /** */
-  void bind(const std::string& name, const Expr& e) override;
   /** Finalize */
   void finalize() override;
   /**
@@ -45,10 +42,8 @@ class LeanMetaReduce : public StdPlugin
                      std::ostream& os,
                      MetaKind tctx = MetaKind::NONE) const;
   bool printMetaTypeKind(MetaKind k, std::ostream& os) const;
-  /** Get the name of expression e, expected to be an atomic term */
-  static std::string getName(const Expr& e);
-  /** Is e a datatype constructor embedding? */
-  static bool isEmbedCons(const Expr& e);
+  using MetaReducePlugin::getName;
+  using MetaReducePlugin::isEmbedCons;
   /**
    * Return the "meta-kind" of a type typ, based on its naming convention
    * introduced in the model_smt layer. In other words, we return the datatype
@@ -72,7 +67,7 @@ class LeanMetaReduce : public StdPlugin
   MetaKind getMetaKind(State& s, const Expr& e, std::string& cname) const;
 
  private:
-  MetaKind prefixToMetaKind(const std::string& str) const;
+  bool isBuiltinMetaSymbol(const std::string& sname) const override;
   void printEmbAtomicTerm(const Expr& c, std::ostream& os);
   void printEmbTerm(const Expr& c,
                     std::ostream& os,
@@ -92,9 +87,8 @@ class LeanMetaReduce : public StdPlugin
    * define command.
    */
   void finalizeProgram(const Expr& v, const Expr& prog, bool isDefine = false);
-  void finalizeDecl(const Expr& e);
+  void finalizeDecl(const Expr& e) override;
   static bool isProgram(const Expr& t);
-  static bool isSmtApplyApp(const Expr& oApp);
   void finalizeChecker();
   void finalizeSmtModel();
   void finalizeSpec();
@@ -104,10 +98,6 @@ class LeanMetaReduce : public StdPlugin
    */
   static std::string getEmbedName(const Expr& oApp,
                                   MetaKind ctx = MetaKind::EUNOIA);
-  /** Common constants */
-  Expr d_null;
-  std::map<std::string, MetaKind> d_prefixToMetaKind;
-  std::map<std::string, MetaKind> d_typeToMetaKind;
   std::stringstream d_defs;
   std::stringstream d_eoIsObjDefs;
   std::stringstream d_thms;
@@ -128,15 +118,10 @@ class LeanMetaReduce : public StdPlugin
   std::stringstream d_cmdDt;
   std::stringstream d_ruleDt;
   std::stringstream d_lemmaAuxDef;
-  /** Declares seen */
-  std::set<Expr> d_declSeen;
   /** List of program definitions */
   std::vector<Expr> d_progDefs;
   std::map<Expr, Expr> d_progToDef;
   std::set<Expr> d_progIsDefine;
-  /**
-   */
-  bool isProgramApp(const Expr& app);
   /**
    * Remove SMT-LIB identifier issues
    */

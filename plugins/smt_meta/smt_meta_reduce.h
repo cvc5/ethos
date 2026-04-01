@@ -13,9 +13,8 @@
 #include <set>
 #include <string>
 
-#include "../std_plugin.h"
+#include "../meta_reduce_plugin.h"
 #include "smt_meta_sygus.h"
-#include "utils.h"
 
 namespace ethos {
 
@@ -24,17 +23,15 @@ class TypeChecker;
 
 /**
  */
-class SmtMetaReduce : public StdPlugin
+class SmtMetaReduce : public MetaReducePlugin
 {
  public:
   SmtMetaReduce(State& s);
-  ~SmtMetaReduce();
+  ~SmtMetaReduce() override;
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Define */
   void define(const std::string& name, const Expr& e) override;
-  /** */
-  void bind(const std::string& name, const Expr& e) override;
   /** Finalize */
   void finalize() override;
   /**
@@ -44,10 +41,8 @@ class SmtMetaReduce : public StdPlugin
   bool printMetaType(const Expr& t,
                      std::ostream& os,
                      MetaKind tctx = MetaKind::NONE) const;
-  /** Get the name of expression e, expected to be an atomic term */
-  static std::string getName(const Expr& e);
-  /** Is e a datatype constructor embedding? */
-  static bool isEmbedCons(const Expr& e);
+  using MetaReducePlugin::getName;
+  using MetaReducePlugin::isEmbedCons;
   /**
    * Return the "meta-kind" of a type typ, based on its naming convention
    * introduced in the model_smt layer. In other words, we return the datatype
@@ -72,7 +67,7 @@ class SmtMetaReduce : public StdPlugin
   MetaKind getMetaKind(State& s, const Expr& e, std::string& cname) const;
 
  private:
-  MetaKind prefixToMetaKind(const std::string& str) const;
+  bool isBuiltinMetaSymbol(const std::string& sname) const override;
   bool printEmbPatternMatch(const Expr& c,
                             const std::string& initCtx,
                             std::ostream& os,
@@ -95,16 +90,10 @@ class SmtMetaReduce : public StdPlugin
    * define command.
    */
   void finalizeProgram(const Expr& v, const Expr& prog, bool isDefine = false);
-  void finalizeDecl(const Expr& e);
-  static bool isProgram(const Expr& t);
-  static bool isSmtApplyApp(const Expr& oApp);
+  void finalizeDecl(const Expr& e) override;
   static std::string getEmbedName(const Expr& oApp);
   /** Program declarations processed */
   std::set<Expr> d_progDeclProcessed;
-  /** Common constants */
-  Expr d_null;
-  std::map<std::string, MetaKind> d_prefixToMetaKind;
-  std::map<std::string, MetaKind> d_typeToMetaKind;
   std::stringstream d_defs;
   std::stringstream d_smtVc;
   // SMT-LIB term embedding
@@ -116,11 +105,6 @@ class SmtMetaReduce : public StdPlugin
   std::stringstream d_embedSeqDt;
   /** */
   std::map<std::pair<Expr, size_t>, MetaKind> d_metaKindArg;
-  /** Declares seen */
-  std::set<Expr> d_declSeen;
-  /**
-   */
-  bool isProgramApp(const Expr& app);
   /************* sygus *********/
   SmtMetaSygus d_smSygus;
 };

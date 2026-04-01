@@ -17,30 +17,9 @@
 
 namespace ethos {
 
-SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s), d_smSygus(s)
+SmtMetaReduce::SmtMetaReduce(State& s) : MetaReducePlugin(s), d_smSygus(s)
 {
   d_prefixToMetaKind["eo"] = MetaKind::EUNOIA;
-  d_prefixToMetaKind["edt"] = MetaKind::DATATYPE;
-  d_prefixToMetaKind["edtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
-  d_prefixToMetaKind["sm"] = MetaKind::SMT;
-  d_prefixToMetaKind["tsm"] = MetaKind::SMT_TYPE;
-  d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
-  d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
-  d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
-  d_prefixToMetaKind["dt"] = MetaKind::SMT_DATATYPE;
-  d_prefixToMetaKind["dtc"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
-  d_typeToMetaKind["$eo_Datatype"] = MetaKind::DATATYPE;
-  d_typeToMetaKind["$eo_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
-  // d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
-  d_typeToMetaKind["$smt_Model"] = MetaKind::SMT_MODEL;
-  d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
-  d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
-  d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
-  d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
-  d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
-  d_typeToMetaKind["$smt_Datatype"] = MetaKind::SMT_DATATYPE;
-  d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
-  d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
 
   if (StdPlugin::optionSmtMetaSygusGrammar())
   {
@@ -50,17 +29,10 @@ SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s), d_smSygus(s)
 
 SmtMetaReduce::~SmtMetaReduce() {}
 
-MetaKind SmtMetaReduce::prefixToMetaKind(const std::string& str) const
+bool SmtMetaReduce::isBuiltinMetaSymbol(const std::string& sname) const
 {
-  std::map<std::string, MetaKind>::const_iterator it =
-      d_prefixToMetaKind.find(str);
-  if (it != d_prefixToMetaKind.end())
-  {
-    return it->second;
-  }
-  return MetaKind::EUNOIA;
-  // Assert(false) << "Bad prefix \"" << str << "\"";
-  // return MetaKind::NONE;
+  return sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term"
+         || sname == "$eo_Datatype" || sname == "$eo_DatatypeCons";
 }
 
 bool SmtMetaReduce::printMetaType(const Expr& t,
@@ -322,35 +294,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     }
   } while (!visit.empty());
   return true;
-}
-
-std::string SmtMetaReduce::getName(const Expr& e)
-{
-  std::stringstream ss;
-  if (e.getNumChildren() == 0)
-  {
-    ss << e;
-  }
-  return ss.str();
-}
-
-bool SmtMetaReduce::isEmbedCons(const Expr& e)
-{
-  std::string sname = getName(e);
-  return (sname.compare(0, 5, "$emb_") == 0);
-}
-
-bool SmtMetaReduce::isSmtApplyApp(const Expr& oApp)
-{
-  if (oApp.getKind() != Kind::APPLY_OPAQUE || oApp.getNumChildren() <= 1
-      || oApp[1].getKind() != Kind::STRING)
-  {
-    return false;
-  }
-  std::string sname = getName(oApp[0]);
-  return (sname.compare(0, 11, "$smt_apply_") == 0
-          || sname.compare(0, 10, "$smt_type_") == 0
-          || sname.compare(0, 13, "$smt_datatype") == 0);
 }
 
 std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
@@ -763,82 +706,37 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
   // definition (although it would have been inlined) is still necessary to
   // define what eo::list_concat will desugar to. Also note this definition is
   // properly preserved by trim_defs which is agnostic to eo:: vs $eo_.
-  if (name.compare(0, 4, "$eo_") == 0)
-  {
-    Expr p = e;
-    if (p.getKind() == Kind::LAMBDA)
-    {
-      // dummy type
-      std::vector<Expr> argTypes;
-      Assert(e[0].getKind() == Kind::TUPLE);
-      Assert(e[0].getNumChildren() != 0);
-      for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
-      {
-        Expr aa = e[0][i];
-        argTypes.push_back(d_tc.getType(aa));
-      }
-      Expr body = e[1];
-      // Expr retType = d_tc.getType(body);
-      Trace("smt-meta") << "Look at define " << name << std::endl;
-      // if we fail to type check, just allocate a type variable
-      // retType = retType.isNull() ? allocateTypeVariable() : retType;
-      Expr retType = allocateTypeVariable();
-      Expr pt = d_state.mkProgramType(argTypes, retType);
-      Trace("smt-meta") << "....make program " << name
-                        << " for define, prog type is " << pt << std::endl;
-      // Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
-      Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, pt);
-      // We need to preserve definitions in the final VC.
-      // We reduce defines to a program e.g.
-      // (define foo ((x T)) (bar x))
-      //   becomes
-      // (program foo ((x T))
-      //   :signature (T) (eo::typeof (bar x))
-      //   (
-      //   ((foo x) (bar x))
-      //   )
-      // )
-      std::vector<Expr> appChildren;
-      appChildren.push_back(tmp);
-      for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
-      {
-        appChildren.push_back(e[0][i]);
-      }
-      Expr progApp = d_state.mkExprSimple(Kind::APPLY, appChildren);
-      Expr pcase = d_state.mkPair(progApp, e[1]);
-      Expr prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
-      Trace("smt-meta") << "...do program " << tmp << " / " << prog
-                        << " instead" << std::endl;
-      finalizeProgram(tmp, prog, true);
-      Trace("smt-meta") << "...finished lambda program" << std::endl;
-    }
-    else
-    {
-      d_defs << "(define-fun " << name << " () eo.Term";
-      d_defs << " ";
-      SelectorCtx ctx;
-      printEmbTerm(p, d_defs, ctx);
-      d_defs << ")" << std::endl;
-    }
-  }
-}
-
-void SmtMetaReduce::bind(const std::string& name, const Expr& e)
-{
-  if (e.getKind() != Kind::CONST)
+  if (name.compare(0, 4, "$eo_") != 0)
   {
     return;
   }
-  finalizeDecl(e);
+
+  Expr tmp;
+  Expr prog;
+  if (buildLambdaDefineProgram(name, e, tmp, prog))
+  {
+    Trace("smt-meta") << "Look at define " << name << std::endl;
+    Trace("smt-meta") << "...do program " << tmp << " / " << prog
+                      << " instead" << std::endl;
+    finalizeProgram(tmp, prog, true);
+    Trace("smt-meta") << "...finished lambda program" << std::endl;
+  }
+  else
+  {
+    d_defs << "(define-fun " << name << " () eo.Term";
+    d_defs << " ";
+    SelectorCtx ctx;
+    printEmbTerm(e, d_defs, ctx);
+    d_defs << ")" << std::endl;
+  }
 }
 
 void SmtMetaReduce::finalizeDecl(const Expr& e)
 {
-  if (d_declSeen.find(e) != d_declSeen.end())
+  if (!beginFinalizeDecl(e))
   {
     return;
   }
-  d_declSeen.insert(e);
   // first, determine which datatype (if any) this belongs to
   std::stringstream ss;
   ss << e;
@@ -945,24 +843,6 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
 
 void SmtMetaReduce::finalize()
 {
-  auto replace = [](std::string& txt,
-                    const std::string& tag,
-                    const std::string& replacement) {
-    auto pos = txt.find(tag);
-    if (pos != std::string::npos)
-    {
-      txt.replace(pos, tag.length(), replacement);
-    }
-  };
-
-  // make the final SMT-LIB encoding
-  std::ifstream in(getResourcePath("plugins/smt_meta/smt_meta.smt2"));
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  std::string finalSm = ss.str();
-
-  replace(finalSm, "$SM_DEFS$", d_defs.str());
-  replace(finalSm, "$SMT_VC$", d_smtVc.str());
   // TODO: this is only necessary for the old version
   if (d_embedTypeDt.str().empty())
   {
@@ -980,17 +860,18 @@ void SmtMetaReduce::finalize()
   {
     d_embedSeqDt << "  (ssm.None)" << std::endl;
   }
-  replace(finalSm, "$SM_TYPE_DECL$", d_embedTypeDt.str());
-  replace(finalSm, "$SM_TERM_DECL$", d_embedTermDt.str());
-  replace(finalSm, "$SM_VALUE_DECL$", d_embedValueDt.str());
-  replace(finalSm, "$SM_MAP_DECL$", d_embedMapDt.str());
-  replace(finalSm, "$SM_SEQ_DECL$", d_embedSeqDt.str());
-  replace(finalSm, "$SM_EO_TERM_DECL$", d_embedEoTermDt.str());
-
-  std::string outPath = getOutputPath("plugins/smt_meta/smt_meta_gen.smt2");
+  const std::string outPath = emitResourceFile(
+      "plugins/smt_meta/smt_meta.smt2",
+      "plugins/smt_meta/smt_meta_gen.smt2",
+      {{"$SM_DEFS$", d_defs.str()},
+       {"$SMT_VC$", d_smtVc.str()},
+       {"$SM_TYPE_DECL$", d_embedTypeDt.str()},
+       {"$SM_TERM_DECL$", d_embedTermDt.str()},
+       {"$SM_VALUE_DECL$", d_embedValueDt.str()},
+       {"$SM_MAP_DECL$", d_embedMapDt.str()},
+       {"$SM_SEQ_DECL$", d_embedSeqDt.str()},
+       {"$SM_EO_TERM_DECL$", d_embedEoTermDt.str()}});
   Trace("smt-meta") << "Write smt2-defs " << outPath << std::endl;
-  std::ofstream out(outPath);
-  out << finalSm;
 }
 
 bool SmtMetaReduce::echo(const std::string& msg)
@@ -1125,73 +1006,14 @@ bool SmtMetaReduce::echo(const std::string& msg)
 MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
                                         MetaKind elseKind) const
 {
-  Kind k = typ.getKind();
-  if (k == Kind::APPLY_OPAQUE)
-  {
-    std::string sname = getName(typ[0]);
-    if (sname.compare(0, 10, "$smt_type_") == 0)
-    {
-      return MetaKind::SMT_BUILTIN;
-    }
-    else if (sname.compare(0, 13, "$smt_datatype") == 0)
-    {
-      return MetaKind::SMT_BUILTIN_DATATYPE;
-    }
-  }
-  if (k == Kind::FUNCTION_TYPE)
-  {
-    return getTypeMetaKind(typ[typ.getNumChildren() - 1], elseKind);
-  }
-  std::string sname = getName(typ);
-  std::map<std::string, MetaKind>::const_iterator it =
-      d_typeToMetaKind.find(sname);
-  if (it != d_typeToMetaKind.end())
-  {
-    return it->second;
-  }
-  return elseKind;
+  return getTypeMetaKindFor(typ, elseKind, true);
 }
 
-MetaKind SmtMetaReduce::getMetaKind(State& s,
+MetaKind SmtMetaReduce::getMetaKind(State&,
                                     const Expr& e,
                                     std::string& cname) const
 {
-  std::string sname = getName(e);
-  if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term"
-      || sname == "$eo_Datatype" || sname == "$eo_DatatypeCons")
-  {
-    // internal-only symbol, e.g. one used for defining the deep embedding
-    cname = sname;
-    return MetaKind::SMT_BUILTIN;
-  }
-  // terms starting with @@ are considered Eunoia (not SMT-LIB).
-  // all symbols apart from $eo_Term that begin with $eo_ are Eunoia terms,
-  // e.g. $eo_Var, $eo_List, etc.
-  if (sname.compare(0, 2, "@@") == 0 || sname.compare(0, 4, "$eo_") == 0)
-  {
-    cname = sname;
-    return MetaKind::EUNOIA;
-  }
-  else if (sname.compare(0, 5, "$emb_") == 0)
-  {
-    size_t firstDot = sname.find('.');
-    if (firstDot == std::string::npos)
-    {
-      cname = sname.substr(5);
-      return MetaKind::EUNOIA;
-    }
-    std::string prefix = sname.substr(5, firstDot - 5);
-    cname = sname.substr(firstDot + 1);
-    return prefixToMetaKind(prefix);
-  }
-  cname = sname;
-  return MetaKind::EUNOIA;
-}
-
-bool SmtMetaReduce::isProgramApp(const Expr& app)
-{
-  return (app.getKind() == Kind::APPLY
-          && app[0].getKind() == Kind::PROGRAM_CONST);
+  return getMetaKindFor(e, cname);
 }
 
 }  // namespace ethos

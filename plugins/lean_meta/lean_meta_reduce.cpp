@@ -18,19 +18,9 @@
 
 namespace ethos {
 
-LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
+LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
 {
   d_typeToMetaKind["$eo_Term"] = MetaKind::EUNOIA;
-  d_typeToMetaKind["$eo_Datatype"] = MetaKind::DATATYPE;
-  d_typeToMetaKind["$eo_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
-  d_typeToMetaKind["$smt_Model"] = MetaKind::SMT_MODEL;
-  d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
-  d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
-  d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
-  d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
-  d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
-  d_typeToMetaKind["$smt_Datatype"] = MetaKind::SMT_DATATYPE;
-  d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
   d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
   d_typeToMetaKind["$eo_State"] = MetaKind::CHECKER_STATE;
   d_typeToMetaKind["$eo_StateObj"] = MetaKind::CHECKER_STATE_OBJ;
@@ -40,16 +30,6 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
   d_typeToMetaKind["$eo_Cmd"] = MetaKind::CHECKER_CMD;
   d_typeToMetaKind["$eo_CmdList"] = MetaKind::CHECKER_CMD_LIST;
   d_typeToMetaKind["$eo_ArgList"] = MetaKind::CHECKER_ARG_LIST;
-  d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
-  d_prefixToMetaKind["edt"] = MetaKind::DATATYPE;
-  d_prefixToMetaKind["edtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
-  d_prefixToMetaKind["sm"] = MetaKind::SMT;
-  d_prefixToMetaKind["tsm"] = MetaKind::SMT_TYPE;
-  d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
-  d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
-  d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
-  d_prefixToMetaKind["dt"] = MetaKind::SMT_DATATYPE;
-  d_prefixToMetaKind["dtc"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
   d_prefixToMetaKind["s"] = MetaKind::CHECKER_STATE;
   d_prefixToMetaKind["so"] = MetaKind::CHECKER_STATE_OBJ;
   d_prefixToMetaKind["r"] = MetaKind::CHECKER_RULE;
@@ -61,17 +41,10 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
 
 LeanMetaReduce::~LeanMetaReduce() {}
 
-MetaKind LeanMetaReduce::prefixToMetaKind(const std::string& str) const
+bool LeanMetaReduce::isBuiltinMetaSymbol(const std::string& sname) const
 {
-  std::map<std::string, MetaKind>::const_iterator it =
-      d_prefixToMetaKind.find(str);
-  if (it != d_prefixToMetaKind.end())
-  {
-    return it->second;
-  }
-  return MetaKind::EUNOIA;
-  // Assert(false) << "Bad prefix \"" << str << "\"";
-  // return MetaKind::NONE;
+  return sname.compare(0, 5, "$smt_") == 0
+         || d_typeToMetaKind.find(sname) != d_typeToMetaKind.end();
 }
 
 bool LeanMetaReduce::printMetaType(const Expr& t,
@@ -209,35 +182,6 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
       Assert(false) << "Unknown atomic term literal kind " << k;
     }
   }
-}
-
-std::string LeanMetaReduce::getName(const Expr& e)
-{
-  std::stringstream ss;
-  if (e.getNumChildren() == 0)
-  {
-    ss << e;
-  }
-  return ss.str();
-}
-
-bool LeanMetaReduce::isEmbedCons(const Expr& e)
-{
-  std::string sname = getName(e);
-  return (sname.compare(0, 5, "$emb_") == 0);
-}
-
-bool LeanMetaReduce::isSmtApplyApp(const Expr& oApp)
-{
-  if (oApp.getKind() != Kind::APPLY_OPAQUE || oApp.getNumChildren() <= 1
-      || oApp[1].getKind() != Kind::STRING)
-  {
-    return false;
-  }
-  std::string sname = getName(oApp[0]);
-  return (sname.compare(0, 11, "$smt_apply_") == 0
-          || sname.compare(0, 10, "$smt_type_") == 0
-          || sname.compare(0, 13, "$smt_datatype") == 0);
 }
 
 bool is_integer(const std::string& s)
@@ -904,82 +848,37 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
   // definition (although it would have been inlined) is still necessary to
   // define what eo::list_concat will desugar to. Also note this definition is
   // properly preserved by trim_defs which is agnostic to eo:: vs $eo_.
-  if (name.compare(0, 4, "$eo_") == 0)
-  {
-    Expr p = e;
-    if (p.getKind() == Kind::LAMBDA)
-    {
-      // dummy type
-      std::vector<Expr> argTypes;
-      Assert(e[0].getKind() == Kind::TUPLE);
-      Assert(e[0].getNumChildren() != 0);
-      for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
-      {
-        Expr aa = e[0][i];
-        argTypes.push_back(d_tc.getType(aa));
-      }
-      Expr body = e[1];
-      // Expr retType = d_tc.getType(body);
-      Trace("lean-meta") << "Look at define " << name << std::endl;
-      // if we fail to type check, just allocate a type variable
-      // retType = retType.isNull() ? allocateTypeVariable() : retType;
-      Expr retType = allocateTypeVariable();
-      Expr pt = d_state.mkProgramType(argTypes, retType);
-      Trace("lean-meta") << "....make program " << name
-                         << " for define, prog type is " << pt << std::endl;
-      // Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
-      Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, pt);
-      // We need to preserve definitions in the final VC.
-      // We reduce defines to a program e.g.
-      // (define foo ((x T)) (bar x))
-      //   becomes
-      // (program foo ((x T))
-      //   :signature (T) (eo::typeof (bar x))
-      //   (
-      //   ((foo x) (bar x))
-      //   )
-      // )
-      std::vector<Expr> appChildren;
-      appChildren.push_back(tmp);
-      for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
-      {
-        appChildren.push_back(e[0][i]);
-      }
-      Expr progApp = d_state.mkExprSimple(Kind::APPLY, appChildren);
-      Expr pcase = d_state.mkPair(progApp, e[1]);
-      Expr prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
-      Trace("lean-meta") << "...do program " << tmp << " / " << prog
-                         << " instead" << std::endl;
-      d_progDefs.emplace_back(tmp);
-      d_progToDef[tmp] = prog;
-      d_progIsDefine.insert(tmp);
-      Trace("lean-meta") << "...finished lambda program" << std::endl;
-    }
-    else
-    {
-      Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, d_state.mkAny());
-      d_progDefs.emplace_back(tmp);
-      d_progToDef[tmp] = p;
-    }
-  }
-}
-
-void LeanMetaReduce::bind(const std::string& name, const Expr& e)
-{
-  if (e.getKind() != Kind::CONST)
+  if (name.compare(0, 4, "$eo_") != 0)
   {
     return;
   }
-  finalizeDecl(e);
+
+  Expr tmp;
+  Expr prog;
+  if (buildLambdaDefineProgram(name, e, tmp, prog))
+  {
+    Trace("lean-meta") << "Look at define " << name << std::endl;
+    Trace("lean-meta") << "...do program " << tmp << " / " << prog
+                       << " instead" << std::endl;
+    d_progDefs.emplace_back(tmp);
+    d_progToDef[tmp] = prog;
+    d_progIsDefine.insert(tmp);
+    Trace("lean-meta") << "...finished lambda program" << std::endl;
+  }
+  else
+  {
+    Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, d_state.mkAny());
+    d_progDefs.emplace_back(tmp);
+    d_progToDef[tmp] = e;
+  }
 }
 
 void LeanMetaReduce::finalizeDecl(const Expr& e)
 {
-  if (d_declSeen.find(e) != d_declSeen.end())
+  if (!beginFinalizeDecl(e))
   {
     return;
   }
-  d_declSeen.insert(e);
   // first, determine which datatype (if any) this belongs to
   std::stringstream ss;
   ss << e;
@@ -1072,79 +971,49 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
 
 void LeanMetaReduce::finalizeChecker()
 {
-  // make the final Lean encoding
-  // plugins/lean_meta/lean_meta.lean is the standalone test
-  std::ifstream in(getResourcePath("plugins/lean_meta/lean_meta_checker.lean"));
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  std::string finalLean = ss.str();
-  replace(finalLean, "$LEAN_DEFS$", d_defs.str());
-  replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
-  replace(finalLean, "$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str());
-  replace(finalLean, "$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str());
-  replace(finalLean, "$LEAN_CHECKER_DEFS$", d_eoChecker.str());
-  std::string outPath =
-      getOutputPath("plugins/lean_meta/lean_meta_checker_gen.lean");
+  const std::string outPath = emitResourceFile(
+      "plugins/lean_meta/lean_meta_checker.lean",
+      "plugins/lean_meta/lean_meta_checker_gen.lean",
+      {{"$LEAN_DEFS$", d_defs.str()},
+       {"$LEAN_TERM_DEF$", d_embedTermDt.str()},
+       {"$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str()},
+       {"$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str()},
+       {"$LEAN_CHECKER_DEFS$", d_eoChecker.str()}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
-  std::ofstream out(outPath);
-  out << finalLean;
 }
 
 void LeanMetaReduce::finalizeSmtModel()
 {
-  // make the final Lean encoding
-  // plugins/lean_meta/lean_meta.lean is the standalone test
-  std::ifstream in(
-      getResourcePath("plugins/lean_meta/lean_meta_smt_model.lean"));
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  std::string finalLean = ss.str();
-  // smt layer
-  replace(finalLean, "$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str());
-  replace(finalLean, "$LEAN_SMT_TERM_DEF$", d_smtDt.str());
-  replace(finalLean, "$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str());
-  replace(finalLean, "$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str());
-  replace(finalLean, "$LEAN_SMT_EVAL$", d_smt.str());
-  std::string outPath =
-      getOutputPath("plugins/lean_meta/lean_meta_smt_model_gen.lean");
+  const std::string outPath = emitResourceFile(
+      "plugins/lean_meta/lean_meta_smt_model.lean",
+      "plugins/lean_meta/lean_meta_smt_model_gen.lean",
+      {{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
+       {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()},
+       {"$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str()},
+       {"$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str()},
+       {"$LEAN_SMT_EVAL$", d_smt.str()}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
-  std::ofstream out(outPath);
-  out << finalLean;
 }
 
 void LeanMetaReduce::finalizeSpec()
 {
-  // make the final Lean encoding
-  // plugins/lean_meta/lean_meta.lean is the standalone test
-  std::ifstream in(getResourcePath("plugins/lean_meta/lean_meta_spec.lean"));
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  std::string finalLean = ss.str();
-  replace(finalLean, "$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str());
-  replace(finalLean, "$LEAN_EO_IS_OBJ$", d_eoIsObj.str());
-  replace(finalLean, "$LEAN_EO_IS_REFUTATION_DEF$", d_eoIsRef.str());
-  std::string outPath =
-      getOutputPath("plugins/lean_meta/lean_meta_spec_gen.lean");
+  const std::string outPath = emitResourceFile(
+      "plugins/lean_meta/lean_meta_spec.lean",
+      "plugins/lean_meta/lean_meta_spec_gen.lean",
+      {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()},
+       {"$LEAN_EO_IS_OBJ$", d_eoIsObj.str()},
+       {"$LEAN_EO_IS_REFUTATION_DEF$", d_eoIsRef.str()}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
-  std::ofstream out(outPath);
-  out << finalLean;
 }
 
 void LeanMetaReduce::finalizeLemmas()
 {
-  // make the final Lean encoding
-  // plugins/lean_meta/lean_meta.lean is the standalone test
-  std::ifstream in(getResourcePath("plugins/lean_meta/lean_meta_lemmas.lean"));
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  std::string finalLean = ss.str();
-  replace(finalLean, "$LEAN_THMS$", d_thms.str());
-  replace(finalLean, "$LEAN_LEMMA_AUX_DEFS$", d_lemmaAuxDef.str());
-  std::string outPath =
-      getOutputPath("plugins/lean_meta/lean_meta_lemmas_gen.lean");
+  const std::string outPath = emitResourceFile(
+      "plugins/lean_meta/lean_meta_lemmas.lean",
+      "plugins/lean_meta/lean_meta_lemmas_gen.lean",
+      {{"$LEAN_THMS$", d_thms.str()},
+       {"$LEAN_LEMMA_AUX_DEFS$", d_lemmaAuxDef.str()}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
-  std::ofstream out(outPath);
-  out << finalLean;
 }
 
 void LeanMetaReduce::finalize()
@@ -1248,71 +1117,14 @@ bool LeanMetaReduce::isProgram(const Expr& t)
 
 MetaKind LeanMetaReduce::getTypeMetaKind(const Expr& typ) const
 {
-  Kind k = typ.getKind();
-  if (k == Kind::APPLY_OPAQUE)
-  {
-    std::string sname = getName(typ[0]);
-    if (sname.compare(0, 10, "$smt_type_") == 0)
-    {
-      return MetaKind::SMT_BUILTIN;
-    }
-    if (sname.compare(0, 13, "$smt_datatype") == 0)
-    {
-      return MetaKind::SMT_BUILTIN_DATATYPE;
-    }
-  }
-  std::string sname = getName(typ);
-  std::map<std::string, MetaKind>::const_iterator it =
-      d_typeToMetaKind.find(sname);
-  if (it != d_typeToMetaKind.end())
-  {
-    return it->second;
-  }
-  return MetaKind::EUNOIA;
+  return getTypeMetaKindFor(typ, MetaKind::EUNOIA, false);
 }
 
-MetaKind LeanMetaReduce::getMetaKind(State& s,
+MetaKind LeanMetaReduce::getMetaKind(State&,
                                      const Expr& e,
                                      std::string& cname) const
 {
-  std::string sname = getName(e);
-  if (sname.compare(0, 5, "$smt_") == 0
-      || d_typeToMetaKind.find(sname) != d_typeToMetaKind.end()
-      || sname == "$eo_Datatype" || sname == "$eo_DatatypeCons")
-  {
-    // internal-only symbol, e.g. one used for defining the deep embedding
-    cname = sname;
-    return MetaKind::SMT_BUILTIN;
-  }
-  // terms starting with @@ are considered Eunoia (not SMT-LIB).
-  // all symbols apart from $eo_Term that begin with $eo_ are Eunoia terms,
-  // e.g. $eo_Var, $eo_List, etc.
-  if (sname.compare(0, 2, "@@") == 0 || sname.compare(0, 4, "$eo_") == 0)
-  {
-    cname = sname;
-    return MetaKind::EUNOIA;
-  }
-  else if (isEmbedCons(e))
-  {
-    cname = sname.substr(5);
-    size_t firstDot = cname.find('.');
-    if (firstDot == std::string::npos)
-    {
-      return MetaKind::EUNOIA;
-    }
-    std::string prefix = cname.substr(0, firstDot);
-    cname = cname.substr(firstDot + 1);
-    return prefixToMetaKind(prefix);
-  }
-  cname = sname;
-  // even if SMT-LIB term, it is a Eunoia datatype
-  return MetaKind::EUNOIA;
-}
-
-bool LeanMetaReduce::isProgramApp(const Expr& app)
-{
-  return (app.getKind() == Kind::APPLY
-          && app[0].getKind() == Kind::PROGRAM_CONST);
+  return getMetaKindFor(e, cname);
 }
 
 std::string LeanMetaReduce::cleanSmtId(const std::string& id)

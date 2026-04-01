@@ -13,6 +13,7 @@ add_executable(ethos
 add_executable(ethos-eoc EXCLUDE_FROM_ALL
   $<TARGET_OBJECTS:ethos_core>
   main_eoc.cpp
+  ../plugins/meta_reduce_plugin.cpp
   ../plugins/lean_meta/lean_meta_reduce.cpp
   ../plugins/smt_meta/smt_meta_reduce.cpp
   ../plugins/smt_meta/smt_meta_sygus.cpp
