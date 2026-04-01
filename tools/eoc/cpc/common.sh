@@ -111,9 +111,11 @@ eoc_run_driver() {
 eoc_copy_lean_outputs() {
   local dest_dir="$1"
   local final_out_dir="$2"
+  local preserve_existing_rules="${3:-0}"
   local lean_dir="$final_out_dir/lean"
   local rules_dir="$lean_dir/Rules"
   local file
+  local rule_dest
 
   mkdir -p "$dest_dir" "$dest_dir/Proofs" "$dest_dir/Proofs/Rules"
   cp "$lean_dir/Logos.lean" "$dest_dir/Logos.lean"
@@ -126,7 +128,11 @@ eoc_copy_lean_outputs() {
     (
       shopt -s nullglob
       for file in "$rules_dir"/*.lean; do
-        cp "$file" "$dest_dir/Proofs/Rules/$(basename "$file")"
+        rule_dest="$dest_dir/Proofs/Rules/$(basename "$file")"
+        if [[ "$preserve_existing_rules" != "0" && -e "$rule_dest" ]]; then
+          continue
+        fi
+        cp "$file" "$rule_dest"
       done
     )
   fi
