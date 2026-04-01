@@ -861,9 +861,6 @@ Note, however, that the evaluation of these operators is handled by more efficie
 - `(eo::to_str t1)`
   - If `t1` is a string value, return `t1`.
   - If `t1` is a numeral value specifying a code point from Unicode planes `0-2` (i.e. a numeral between `0` and `196607`), return the string of length one whose character has code point `t1`.
-  - If `t1` is a rational or binary value, return the string value corresponding to the result of printing `t1`. 
-  - If `t1` is a hexadecimal value, return the string value corresponding to the result of printing `t1`. This will use lowercase letters for digits greater than `9`.
-  - If `t1` is a decimal value, return the string value corresponding to the result of printing `t1` as a rational.
 
 Ethos eagerly evaluates ground applications of computational operators.
 In other words, the term `(eo::add 1 1)` is syntactically equivalent in all contexts to `2`.
@@ -937,8 +934,8 @@ Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo::co
 (eo::to_str 123)            == "{"
 (eo::to_str -1)             == (eo::to_str -1) ; since not a valid code point
 (eo::to_str 200000)         == (eo::to_str 200000) ; since not a valid code point
-(eo::to_str 1/2)            == "1/2"
-(eo::to_str #b101)          == "#b101"
+(eo::to_str 1/2)            == (eo::to_str 1/2)
+(eo::to_str #b101)          == (eo::to_str #b101)
 ```
 
 ### Core Computation Examples
@@ -2134,6 +2131,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (declare-const <symbol> <type> <attr>*)
     (declare-datatype <symbol> <datatype-dec>) |
     (declare-datatypes (<sort-dec>^n) (<datatype-dec>^n)) |
+    (declare-sort <symbol> <numeral>) |
     (echo <string>?) |
     (exit) |
     (reset) |
@@ -2145,7 +2143,6 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (check-sat) |
     (check-sat-assuming (<term>*)) |
     (declare-fun <symbol> (<type>*) <type> <attr>*) |
-    (declare-sort <symbol> <numeral>) |
     (define-const <symbol> <term>) |
     (define-fun <symbol> (<typed-param>*) <type> <term>) |
     (define-sort <symbol> (<symbol>*) <type>) |

@@ -18,6 +18,35 @@
 
 namespace ethos {
 
+namespace {
+
+bool stringToUnsigned(const std::string& str,
+                      uint32_t& result,
+                      std::ostream* os = nullptr)
+{
+  if (str.empty() || str.find_first_not_of("0123456789") != std::string::npos)
+  {
+    if (os != nullptr)
+    {
+      (*os) << "String is not a numeral.";
+    }
+    return false;
+  }
+  Integer parsed(str);
+  if (!parsed.fitsUnsignedInt())
+  {
+    if (os != nullptr)
+    {
+      (*os) << "Numerals must fit into 32-bit unsigned integers.";
+    }
+    return false;
+  }
+  result = parsed.toUnsignedInt();
+  return true;
+}
+
+}  // namespace
+
 /**
  * Definition of state identifiers when parsing terms
  *
@@ -64,6 +93,7 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
     : d_lex(lex), d_state(state), d_isSignature(isSignature)
 {
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
+  d_strToAttr[":is_eq"] = Attr::IS_EQ;
   d_strToAttr[":type"] = Attr::TYPE;
   d_strToAttr[":list"] = Attr::LIST;
   d_strToAttr[":left-assoc"] = Attr::LEFT_ASSOC;
@@ -924,10 +954,14 @@ uint32_t ExprParser::tokenStrToUnsigned()
   {
     d_lex.parseError("Numeral with leading zeroes are forbidden");
   }
-  uint32_t result;
-  std::stringstream ss;
-  ss << d_lex.tokenStr();
-  ss >> result;
+  uint32_t result = 0;
+  if (!stringToUnsigned(token, result))
+  {
+    std::stringstream ss;
+    ss << "Failed to parse numeral. ";
+    stringToUnsigned(token, result, &ss);
+    d_lex.parseError(ss.str());
+  }
   return result;
 }
 
@@ -1075,14 +1109,26 @@ void ExprParser::parseAttributeList(
         break;
       case Kind::LAMBDA:
       {
-        // only :type is available in define
+        Assert(!e.isNull());
         if (a==Attr::TYPE)
         {
-          Assert (!e.isNull());
           handled = true;
           val = parseExpr();
           // run type checking
           typeCheck(e, val);
+        }
+        else if (a == Attr::IS_EQ)
+        {
+          handled = true;
+          val = parseExpr();
+          if (e != val)
+          {
+            std::stringstream msg;
+            msg << "Terms are not equal:" << std::endl;
+            msg << "Expression: " << e << std::endl;
+            msg << "Target expression: " << val << std::endl;
+            d_lex.parseError(msg.str());
+          }
         }
       }
         break;
