@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 360
+; #trim-defs: 365
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -498,6 +498,8 @@
 (declare-parameterized-const $emb_tsm.Map 
   ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
 (define $tsm_Map ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
+(declare-parameterized-const $emb_tsm.Set ((T $smt_Type :opaque)) $smt_Type)
+(define $tsm_Set ((T $smt_Type)) ($emb_tsm.Set T))
 (declare-parameterized-const $emb_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
 (define $tsm_Seq ((T $smt_Type)) ($emb_tsm.Seq T))
 (declare-const $emb_tsm.Char $smt_Type)
@@ -536,6 +538,8 @@
   ($emb_vsm.Binary w v))
 (declare-parameterized-const $emb_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
 (define $vsm_map ((m $smt_Map)) ($emb_vsm.Map m))
+(declare-parameterized-const $emb_vsm.Set ((m $smt_Map :opaque)) $smt_Value)
+(define $vsm_set ((m $smt_Map)) ($emb_vsm.Set m))
 (declare-parameterized-const $emb_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
 (define $vsm_seq ((s $smt_Seq)) ($emb_vsm.Seq s))
 (declare-parameterized-const $emb_vsm.Char
@@ -633,6 +637,13 @@
       mT
       $tsm_none)))
   (($smtx_typeof_map_value ($msm_default T e))  ($tsm_Map T ($smtx_typeof_value e)))
+  )
+)
+(program $smtx_map_to_set_type ((T $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_map_to_set_type ($tsm_Map T $tsm_Bool)) ($tsm_Set T))
+  (($smtx_map_to_set_type T) $tsm_none)
   )
 )
 (program $smtx_typeof_seq_value
@@ -768,6 +779,7 @@
       $tsm_none))
   (($smtx_typeof_value ($vsm_re r))       $tsm_RegLan)
   (($smtx_typeof_value ($vsm_map m))      ($smtx_typeof_map_value m))
+  (($smtx_typeof_value ($vsm_set m))      ($smtx_map_to_set_type ($smtx_typeof_map_value m)))
   (($smtx_typeof_value ($vsm_seq ss))     ($smtx_typeof_seq_value ss))
   (($smtx_typeof_value ($vsm_char c))     $tsm_Char)
   (($smtx_typeof_value ($vsm_DtCons s d i))
@@ -793,6 +805,7 @@
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_model_eval_= ($vsm_map m1) ($vsm_map m2)) ($vsm_bool ($smt_apply_2 "veq_ext" m1 m2)))
+  (($smtx_model_eval_= ($vsm_set m1) ($vsm_set m2)) ($vsm_bool ($smt_apply_2 "veq_ext" m1 m2)))
   (($smtx_model_eval_= ($vsm_seq ($ssm_empty T1)) ($vsm_seq ($ssm_empty T2))) $vsm_true)
   (($smtx_model_eval_= ($vsm_seq ($ssm_cons v1 vs1)) ($vsm_seq ($ssm_cons v2 vs2)))
     ($vsm_bool
@@ -812,6 +825,7 @@
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_map_select ($vsm_map m) i) ($smtx_msm_lookup m i))
+  (($smtx_map_select ($vsm_set m) i) ($smtx_msm_lookup m i))
   (($smtx_map_select v i)            $vsm_not_value)
   )
 )

@@ -270,6 +270,7 @@ inductive SmtType : Type where
   | RegLan : SmtType
   | BitVec : smt_lit_Int -> SmtType
   | Map : SmtType -> SmtType -> SmtType
+  | Set : SmtType -> SmtType
   | Seq : SmtType -> SmtType
   | Char : SmtType
   | Datatype : smt_lit_String -> SmtDatatype -> SmtType
@@ -317,6 +318,7 @@ inductive SmtValue : Type where
   | Rational : smt_lit_Rat -> SmtValue
   | Binary : smt_lit_Int -> smt_lit_Int -> SmtValue
   | Map : SmtMap -> SmtValue
+  | Set : SmtMap -> SmtValue
   | Seq : SmtSeq -> SmtValue
   | Char : smt_lit_Char -> SmtValue
   | RegLan : smt_lit_RegLan -> SmtValue
@@ -488,6 +490,11 @@ def __smtx_typeof_map_value : SmtMap -> SmtType
   | (SmtMap.default T e) => (SmtType.Map T (__smtx_typeof_value e))
 
 
+def __smtx_map_to_set_type : SmtType -> SmtType
+  | (SmtType.Map T SmtType.Bool) => (SmtType.Set T)
+  | T => SmtType.None
+
+
 def __smtx_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.cons v vs) => 
     let _v0 := (__smtx_typeof_seq_value vs)
@@ -553,6 +560,7 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Binary w n) => (smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec w) SmtType.None)
   | (SmtValue.RegLan r) => SmtType.RegLan
   | (SmtValue.Map m) => (__smtx_typeof_map_value m)
+  | (SmtValue.Set m) => (__smtx_map_to_set_type (__smtx_typeof_map_value m))
   | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
   | (SmtValue.Char c) => SmtType.Char
   | (SmtValue.DtCons s d i) => (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i)
@@ -568,6 +576,7 @@ def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
 
 def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m1), (SmtValue.Map m2) => (SmtValue.Boolean (smt_lit_veq_ext m1 m2))
+  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Boolean (smt_lit_veq_ext m1 m2))
   | (SmtValue.Seq (SmtSeq.empty T1)), (SmtValue.Seq (SmtSeq.empty T2)) => (SmtValue.Boolean true)
   | (SmtValue.Seq (SmtSeq.cons v1 vs1)), (SmtValue.Seq (SmtSeq.cons v2 vs2)) => 
     let _v0 := (SmtValue.Boolean true)
@@ -580,6 +589,7 @@ def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
 
 def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m), i => (__smtx_msm_lookup m i)
+  | (SmtValue.Set m), i => (__smtx_msm_lookup m i)
   | v, i => SmtValue.NotValue
 
 

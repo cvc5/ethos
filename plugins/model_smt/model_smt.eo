@@ -180,8 +180,9 @@ $SMT_TERM_CONSTRUCTORS$
 ; The Array type (for terms)
 (define $tsm_Array ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
 
-; The Set type (for terms)
-(define $tsm_Set ((T $smt_Type)) ($emb_tsm.Map T $tsm_Bool))
+; The Set type
+(declare-parameterized-const $emb_tsm.Set ((T $smt_Type :opaque)) $smt_Type)
+(define $tsm_Set ((T $smt_Type)) ($emb_tsm.Set T))
 
 ; The Sequence type
 (declare-parameterized-const $emb_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
@@ -315,6 +316,10 @@ $SMT_TYPE_CONSTRUCTORS$
 ; A value denoting a map.
 (declare-parameterized-const $emb_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
 (define $vsm_map ((m $smt_Map)) ($emb_vsm.Map m))
+
+; A value denoting a set. This also uses the map data structure internally.
+(declare-parameterized-const $emb_vsm.Set ((m $smt_Map :opaque)) $smt_Value)
+(define $vsm_set ((m $smt_Map)) ($emb_vsm.Set m))
 
 ; A value denoting a sequence.
 (declare-parameterized-const $emb_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
@@ -524,7 +529,6 @@ $SMT_TYPE_CONSTRUCTORS$
 
 ; A set is a mapping to Bool.
 ; The empty set maps all to false.
-;(define $tsm_Set ((T $smt_Type)) ($tsm_Map T $tsm_Bool))
 (define $smtx_elem_typeof_set ((T $smt_Type)) ($smtx_index_typeof_map T))
 
 (define $msm_empty_set ((T $smt_Type)) ($msm_default T $vsm_false))
@@ -551,6 +555,14 @@ $SMT_TYPE_CONSTRUCTORS$
         ($smt_builtin_iff ($smtx_mss_member e m2) isInter)
         ($smtx_mss_mk_insert e acc)
         acc)))
+  )
+)
+
+(program $smtx_map_to_set_type ((T $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_map_to_set_type ($tsm_Map T $tsm_Bool)) ($tsm_Set T))
+  (($smtx_map_to_set_type T) $tsm_none)
   )
 )
 
@@ -748,6 +760,7 @@ $SMT_TYPE_CONSTRUCTORS$
       $tsm_none))
   (($smtx_typeof_value ($vsm_re r))       $tsm_RegLan)
   (($smtx_typeof_value ($vsm_map m))      ($smtx_typeof_map_value m))
+  (($smtx_typeof_value ($vsm_set m))      ($smtx_map_to_set_type ($smtx_typeof_map_value m)))
   (($smtx_typeof_value ($vsm_seq ss))     ($smtx_typeof_seq_value ss))
   (($smtx_typeof_value ($vsm_char c))     $tsm_Char)
   (($smtx_typeof_value ($vsm_DtCons s d i))
@@ -791,6 +804,7 @@ $SMT_TYPE_CONSTRUCTORS$
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_model_eval_= ($vsm_map m1) ($vsm_map m2)) ($vsm_bool ($smt_apply_2 "veq_ext" m1 m2)))
+  (($smtx_model_eval_= ($vsm_set m1) ($vsm_set m2)) ($vsm_bool ($smt_apply_2 "veq_ext" m1 m2)))
   (($smtx_model_eval_= ($vsm_seq ($ssm_empty T1)) ($vsm_seq ($ssm_empty T2))) $vsm_true)
   (($smtx_model_eval_= ($vsm_seq ($ssm_cons v1 vs1)) ($vsm_seq ($ssm_cons v2 vs2)))
     ($vsm_bool
@@ -814,6 +828,7 @@ $SMT_TYPE_CONSTRUCTORS$
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_map_select ($vsm_map m) i) ($smtx_msm_lookup m i))
+  (($smtx_map_select ($vsm_set m) i) ($smtx_msm_lookup m i))
   (($smtx_map_select v i)            $vsm_not_value)
   )
 )
@@ -824,6 +839,7 @@ $SMT_TYPE_CONSTRUCTORS$
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
   (
   (($smtx_map_store ($vsm_map m) i e) ($vsm_map ($smtx_msm_update m i e)))
+  (($smtx_map_store ($vsm_set m) i e) ($vsm_set ($smtx_msm_update m i e)))
   (($smtx_map_store v i e)            $vsm_not_value)
   )
 )
@@ -831,12 +847,12 @@ $SMT_TYPE_CONSTRUCTORS$
 ;;; Sets
 
 ; Empty set
-(define $smtx_empty_set ((T $smt_Type)) ($vsm_map ($msm_empty_set T)))
+(define $smtx_empty_set ((T $smt_Type)) ($vsm_set ($msm_empty_set T)))
 
 ; Set singleton
 ; return the singleton set whose type is T and contains e.
 (define $smtx_set_singleton ((e $smt_Value))
-  ($vsm_map ($smtx_mss_insert e ($msm_empty_set ($smtx_typeof_value e)))))
+  ($vsm_set ($smtx_mss_insert e ($msm_empty_set ($smtx_typeof_value e)))))
 
 ; Set intersection
 ; return the intersection of two set values.
@@ -844,9 +860,9 @@ $SMT_TYPE_CONSTRUCTORS$
   ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_set_inter ($vsm_map m1) ($vsm_map m2))
+  (($smtx_set_inter ($vsm_set m1) ($vsm_set m2))
     ; m1 intersected m2 starting with empty set.
-    ($vsm_map ($smtx_mss_op_internal $smt_builtin_true m1 m2 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))))))
+    ($vsm_set ($smtx_mss_op_internal $smt_builtin_true m1 m2 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))))))
   (($smtx_set_inter v1 v2)  $vsm_not_value)
   )
 )
@@ -857,9 +873,9 @@ $SMT_TYPE_CONSTRUCTORS$
   ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_set_minus ($vsm_map m1) ($vsm_map m2))
+  (($smtx_set_minus ($vsm_set m1) ($vsm_set m2))
     ; m1 minus m2 starting with empty set.
-    ($vsm_map ($smtx_mss_op_internal $smt_builtin_false m1 m2 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))))))
+    ($vsm_set ($smtx_mss_op_internal $smt_builtin_false m1 m2 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))))))
   (($smtx_set_minus v1 v2)  $vsm_not_value)
   )
 )
@@ -870,9 +886,9 @@ $SMT_TYPE_CONSTRUCTORS$
   ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_set_union ($vsm_map m1) ($vsm_map m2))
+  (($smtx_set_union ($vsm_set m1) ($vsm_set m2))
     ; m1 minus the empty set starting with m2.
-    ($vsm_map ($smtx_mss_op_internal $smt_builtin_false m1 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))) m2)))
+    ($vsm_set ($smtx_mss_op_internal $smt_builtin_false m1 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))) m2)))
   (($smtx_set_union v1 v2)  $vsm_not_value)
   )
 )

@@ -162,6 +162,8 @@
   (vsm.Binary (vsm.Binary.arg1 Int) (vsm.Binary.arg2 Int))
   ; smt-cons: Map
   (vsm.Map (vsm.Map.arg1 msm.Map))
+  ; smt-cons: Set
+  (vsm.Set (vsm.Set.arg1 msm.Map))
   ; smt-cons: Seq
   (vsm.Seq (vsm.Seq.arg1 ssm.Seq))
   ; smt-cons: Char
@@ -244,6 +246,8 @@
   (tsm.BitVec (tsm.BitVec.arg1 Int))
   ; smt-cons: Map
   (tsm.Map (tsm.Map.arg1 tsm.Type) (tsm.Map.arg2 tsm.Type))
+  ; smt-cons: Set
+  (tsm.Set (tsm.Set.arg1 tsm.Type))
   ; smt-cons: Seq
   (tsm.Seq (tsm.Seq.arg1 tsm.Type))
   ; smt-cons: Char
@@ -440,6 +444,13 @@
     (tsm.Map (msm.default.arg1 x1) ($smtx_typeof_value (msm.default.arg2 x1)))
 )) :pattern (($smtx_typeof_map_value x1)))) :named sm.axiom.$smtx_typeof_map_value))
 
+; program: $smtx_map_to_set_type
+(define-fun $smtx_map_to_set_type ((x1 tsm.Type)) tsm.Type
+  (ite (and ((_ is tsm.Map) x1) (= (tsm.Map.arg2 x1) tsm.Bool))
+    (tsm.Set (tsm.Map.arg1 x1))
+    tsm.None
+))
+
 ; program: $smtx_typeof_seq_value
 (declare-fun $smtx_typeof_seq_value (ssm.Seq) tsm.Type)
 (assert (! (forall ((x1 ssm.Seq))
@@ -557,6 +568,8 @@
     tsm.RegLan
   (ite ((_ is vsm.Map) x1)
     ($smtx_typeof_map_value (vsm.Map.arg1 x1))
+  (ite ((_ is vsm.Set) x1)
+    ($smtx_map_to_set_type ($smtx_typeof_map_value (vsm.Set.arg1 x1)))
   (ite ((_ is vsm.Seq) x1)
     ($smtx_typeof_seq_value (vsm.Seq.arg1 x1))
   (ite ((_ is vsm.Char) x1)
@@ -566,7 +579,7 @@
   (ite ((_ is vsm.Apply) x1)
     ($smtx_typeof_apply_value ($smtx_typeof_value (vsm.Apply.arg1 x1)) ($smtx_typeof_value (vsm.Apply.arg2 x1)))
     tsm.None
-))))))))))) :pattern (($smtx_typeof_value x1)))) :named sm.axiom.$smtx_typeof_value))
+)))))))))))) :pattern (($smtx_typeof_value x1)))) :named sm.axiom.$smtx_typeof_value))
 
 ; program: $smtx_model_eval_ite
 (define-fun $smtx_model_eval_ite ((x1 vsm.Value) (x2 vsm.Value) (x3 vsm.Value)) vsm.Value
@@ -583,6 +596,8 @@
   (! (= ($smtx_model_eval_= x1 x2)
   (ite (and ((_ is vsm.Map) x1) ((_ is vsm.Map) x2))
     (vsm.Boolean (veq_ext (vsm.Map.arg1 x1) (vsm.Map.arg1 x2)))
+  (ite (and ((_ is vsm.Set) x1) ((_ is vsm.Set) x2))
+    (vsm.Boolean (veq_ext (vsm.Set.arg1 x1) (vsm.Set.arg1 x2)))
   (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.empty) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.empty) (vsm.Seq.arg1 x2)))
     (vsm.Boolean true)
   (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.cons) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.cons) (vsm.Seq.arg1 x2)))
@@ -590,14 +605,16 @@
   (ite (and ((_ is vsm.Apply) x1) ((_ is vsm.Apply) x2))
     (vsm.Boolean (and (veq ($smtx_model_eval_= (vsm.Apply.arg1 x1) (vsm.Apply.arg1 x2)) (vsm.Boolean true)) (veq ($smtx_model_eval_= (vsm.Apply.arg2 x1) (vsm.Apply.arg2 x2)) (vsm.Boolean true))))
     (vsm.Boolean (veq x1 x2))
-))))) :pattern (($smtx_model_eval_= x1 x2)))) :named sm.axiom.$smtx_model_eval_=))
+)))))) :pattern (($smtx_model_eval_= x1 x2)))) :named sm.axiom.$smtx_model_eval_=))
 
 ; program: $smtx_map_select
 (define-fun $smtx_map_select ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Map) x1)
     ($smtx_msm_lookup (vsm.Map.arg1 x1) x2)
+  (ite ((_ is vsm.Set) x1)
+    ($smtx_msm_lookup (vsm.Set.arg1 x1) x2)
     vsm.NotValue
-))
+)))
 
 ; program: $smtx_model_eval_dt_sel
 (define-fun $smtx_model_eval_dt_sel ((x1 smm.SmtModel) (x2 String) (x3 dt.Datatype) (x4 Nat) (x5 Nat) (x6 vsm.Value)) vsm.Value
