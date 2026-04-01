@@ -419,7 +419,6 @@ def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
 
 
 def __eo_cmd_step_pop_proven (S : CState) (r : CRule) (args : CArgList) : Term -> CIndexList -> Term
-  | Term.Stuck , _  => Term.Stuck
   | A, premises => Term.Stuck
 
 

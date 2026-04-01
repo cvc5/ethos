@@ -708,9 +708,12 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   // We also are not a Eunoia program if we called this method via a define
   // command.
   MetaKind retk = getTypeMetaKind(vt[nargs - 1]);
-  bool isEunoiaProgram = (retk == MetaKind::EUNOIA) && !isDefine;
-  // start with stuck case, if not a SMT program
-  if (isEunoiaProgram)
+  // determine if we should guard this program with stuck cases
+  // we do not check for stuck for define, since it is a macro in Eunoia
+  // and hence always reduces.
+  // we do not check for stuck in checker definitions since we manually know
+  // that such checks are spurious.
+  if (retk == MetaKind::EUNOIA && !isDefine && !isCheckerDef)
   {
     for (size_t i = macroStartArg; i < nargs; i++)
     {
