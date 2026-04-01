@@ -37,15 +37,15 @@ Ethos can be run from the command line via:
 ethos <option>* <file>
 ```
 
-The set of available options `<option>` are given in the appendix. Note the command line interface of `ethos` expects exactly one file (which itself may reference other files via the `include` command as we will see later). The file and options can appear in any order.
+The set of available options `<option>` are given in the appendix. Note that the command line interface of `ethos` accepts at most one file path. If no file path is provided, Ethos reads from stdin. The file and options can appear in any order.
 
-The `<file>` passed to Ethos on the command line is either:
+The `<file>` passed to Ethos on the command line, when provided, is either:
 
 - A Eunoia file, defining a background theory or proof calculus (extension `.eo`), or
 - A file containing a proof.
 
 Any file with extension that is not `.eo` is assumed to be the latter.
-All proof files are expected to contain a reference to a Eunoia file that defines its symbols via an include command or using the command line option `--include=X`.
+Proof files may either define the symbols they use directly or refer to a Eunoia file that defines them via an `include` command or by using the command line option `--include=X`.
 Complete details on the categories of files accepted by Ethos are described later in this document [here](#full-syntax).
 
 When invoking Ethos on the command line, Ethos will either emit an error message indicating:
@@ -53,12 +53,12 @@ When invoking Ethos on the command line, Ethos will either emit an error message
 - the kind of failure (type checking, proof checking, lexer error)
 - the line and column of the failure
 
-or will print a [successful response](#responses) when it finished parsing all commands in the file or encounters and `exit` command.
+or will print a [successful response](#responses) when it finishes parsing all commands in the file or encounters an `exit` command.
 Further output can be given by user-provided `echo` commands.
 
 ### Streaming input to Ethos
 
-The `ethos` binary accepts input piped from stdin. The following are all equivalent ways of running `ethos`:
+The `ethos` binary accepts input piped from stdin. When the input should be parsed as a proof file (rather than as a `.eo` signature file), the following are equivalent ways of running `ethos`:
 
 ```shell
 % ethos <file>
@@ -80,7 +80,6 @@ The core features of Eunoia include:
 - A command, `declare-rule`, for defining proof rules.
 - A set of commands for specifying proofs (`step`, `assume`, and so on), whose syntax closely follows that of the Alethe proof format (for details, see [here](https://verit.gitlabpages.uliege.be/alethe/specification.pdf)).
 - A set of built-in basic types and a library of operations (`eo::add`, `eo::mul`, `eo::concat`, `eo::extract`) for performing computations over values.
-  <!--CT It would be more consistent with the rest of the terminology to use `define-program` instead -->
 - A command, `program`, for defining side conditions as an ordered list of rewrite rules.
 - Commands for file inclusion (`include`) and referencing (`reference`). The latter command can be used to specify the name of an `*.smt2` input file that the proof is associated with.
 
@@ -95,7 +94,7 @@ A _function (symbol)_ is an atomic term having a function type, that is, a type 
 The builtin `eo::define` binder can be used for specifying terms that contain common subterms analogously to `let` binders in other languages.
 
 The core language of Eunoia does not have any builtin SMT-LIB theories.
-Instead, SMT-LIB theories may defined as Eunoia signatures.
+Instead, SMT-LIB theories may be defined as Eunoia signatures.
 For this purpose, the Eunoia language has the following builtin constants:
 
 - `Type`, denoting the kind of all types,
@@ -104,7 +103,7 @@ For this purpose, the Eunoia language has the following builtin constants:
 - `Bool`, denoting the Boolean type,
 - `true` and `false`, denoting the two values of type `Bool`.
 
-> __Note:__ The core logic of Ethos also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally to exposed to the user. Details on then can be found throughout this document. More details on the core logic of Ethos will be available in a forthcoming publication.
+> __Note:__ The core logic of Ethos also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally not exposed to the user. Details on them can be found throughout this document. More details on the core logic of Ethos will be available in a forthcoming publication.
 
 In the following, we informally use the syntactic categories `<symbol>` to denote an SMT-LIB 3.0 symbol, `<term>` to denote an SMT-LIB term and `<type>` to denote a term whose type is `Type`. The syntactic category `<typed-param>` is defined, BNF-style, as `(<symbol> <type> <attr>*)`. It binds `<symbol>` as a fresh parameter of the given type and attributes (if provided).
 
@@ -125,9 +124,9 @@ The following commands are supported for declaring and defining types and terms.
 
 The Eunoia language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 
-- `(define <symbol> (<typed-param>*) <term> <attr>*)`, defines `<symbol>` to be a lambda term whose arguments and body are given by the command, or just an arbitrary term defined by the provided the body, if the argument list is empty (i.e., it may be a non-function term). Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided. It is also possible to provide attributes to the definition: e.g. `:type`, which instructs the checker to perform type checking on the given term (see [type checking define](#tcdefine)).
+- `(define <symbol> (<typed-param>*) <term> <attr>*)`, defines `<symbol>` to be a lambda term whose arguments and body are given by the command, or just an arbitrary term defined by the provided body if the argument list is empty (i.e., it may be a non-function term). Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided. It is also possible to provide attributes to the definition, e.g. `:type`, which instructs the checker to perform type checking on the given term (see [type checking define](#tcdefine)).
 
-- `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a globally scoped variable named `<symbol>` whose expected arguments are given by the argument list, and whose return type is `<type>`.
+- `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a globally scoped constant named `<symbol>` whose expected arguments are given by the argument list, and whose return type is `<type>`.
 
 > __Note:__ Variables are internally treated the same as constants by Ethos. However, they are provided as a separate category, e.g., for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `eo::var` (see [computation](#computation)).
 
@@ -198,7 +197,7 @@ In particular:
 (define notTrue () (not true) :type Bool)
 ```
 
-This indicates the checker to compare the type it computed for the term `(not true)`, with the specified type `Bool`. An error will be thrown if the two types are not identical.
+This instructs the checker to compare the type it computed for the term `(not true)` with the specified type `Bool`. An error will be thrown if the two types are not identical.
 
 ### Declaring Parameterized Constants
 
@@ -207,7 +206,7 @@ In particular, this command allows naming arguments of functions and specifying 
 The syntax of this command is the following:
 
 ```smt
-(declare-parameterized-const <symbol> (<typed-param>*) <type> > <attr>*)
+(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)
 ```
 
 Consider the following example:
@@ -218,7 +217,7 @@ Consider the following example:
 (define P ((x Int) (y Int)) (eq Int x y))
 ```
 
-The above example declares a predicate symbol `eq` whose first argument is a type, that is given name `T`. It then expects two terms of type `T` and returns a `Bool`. In the definition of `P`, `eq` is applied to two variables, with type `Int` explicitly provided.
+The above example declares a predicate symbol `eq` whose first argument is a type, which is given the name `T`. It then expects two terms of type `T` and returns a `Bool`. In the definition of `P`, `eq` is applied to two variables, with type `Int` explicitly provided.
 
 In contrast, the example below declares a predicate `=` where the type of the arguments is implicit (this corresponds to the SMT-LIB standard definition of `=`). An implicit argument for a parameterized constant can be given by the annotation `:implicit`. In the definition of `P`, the type `Int` of the arguments is not provided.
 
@@ -243,7 +242,7 @@ For details, see [ambiguous functions](#amb-functions).
 
 ### The :opaque annotation
 
-The attribute `:opaque` can be used to denote that a distinguished argument to a function.
+The attribute `:opaque` can be used to denote a distinguished argument to a function.
 In particular, functions with opaque arguments intuitively can be considered a _family_ of functions indexed by their opaque arguments.
 An example of this annotation is the following:
 
@@ -259,7 +258,7 @@ An example of this annotation is the following:
 (define d () (@array_diff A B) :type Int)
 ```
 
-The above example declares a function `@array_diff` symbol.
+The above example declares a function symbol `@array_diff`.
 This has two implicit type arguments `T` and `U` followed by two opaque array arguments and has `T` as a return type.
 In the remainder of the example, we define `d` to be this function applied to the arrays `A` and `B`, where `d` has type `Int`.
 
@@ -297,11 +296,13 @@ The Eunoia language supports term annotations on declared constants which, for i
 
 - `:right-assoc-nil <term>` (resp. `:left-assoc-nil <term>`) denoting that applications of the declared binary constant to one or more terms are to be treated as right (resp. left) associative, with the given `<term>` used as an additional rightmost (resp. leftmost) argument.
 
+- `:right-assoc-non-singleton-nil <term>` (resp. `:left-assoc-non-singleton-nil <term>`) denoting the same behavior as `:right-assoc-nil` (resp. `:left-assoc-nil`), except that singleton lists are collapsed to their lone element.
+
 - `:chainable <symbol>` denoting that the arguments of the declared binary constant are chainable using the (binary) operator given by `<symbol>`,
 
 - `:pairwise <symbol>` denoting that the arguments of the declared constant are treated pairwise using the (binary) operator given by `<symbol>`.
 
-- `:arg-list <symbol>` denoting that the arguments of the declared constant are provided to the n-ary operator given by `<symbol>`. The annotated symbol is is unary, taking the result of that operator.
+- `:arg-list <symbol>` denoting that the arguments of the declared constant are provided to the n-ary operator given by `<symbol>`. The annotated symbol is unary, taking the result of that operator.
 
 - `:binder <symbol>` denoting that the first argument of the declared constant can be provided using a syntax for variable lists whose constructor is the one provided by `<symbol>`.
 
@@ -355,7 +356,7 @@ Eunoia supports a variant of the aforementioned functionality where a (ground) n
 In the above example, `(or x y z)` is treated as `(or x (or y (or z false)))`,
 `(or x y)` is treated as `(or x (or y false))`,
 and `(or x)` is treated as `(or x false)`.
-In contrast, if `or` was annotated with `left-associative-nil`,
+In contrast, if `or` was annotated with `:left-assoc-nil`,
 `(or x y z)` would be treated as `(or (or (or false x) y) z)`,
 `(or x y)` as `(or (or false x) y)`,
 and `(or x)` as `(or false x)`.
@@ -383,11 +384,11 @@ In contrast, marking `or` with `:right-assoc-nil false` leads after desugaring t
 > (declare-const + (-> Int Int Int) :right-assoc-nil 1)
 > ```
 >
-> where `+` is meant to be the integer addition operator, the choice of `1` as terminator instead of the identity element `0` means that the expressions `(+ x (+ y z)))` and `(+ x y z)` desugar to terms (`(+ x (+ (+ y (+ z 1) 1)))` and `(+ x (+ y (+ z 1)))`, respectively) that are distinct not just syntactically but also semantically.
+> where `+` is meant to be the integer addition operator, the choice of `1` as terminator instead of the identity element `0` means that the expressions `(+ x (+ y z))` and `(+ x y z)` desugar to terms (`(+ x (+ (+ y (+ z 1) 1)))` and `(+ x (+ y (+ z 1)))`, respectively) that are distinct not just syntactically but also semantically.
 
 Right and left associative operators with nil terminators also have a relationship with list terms (as we will see in the following section), and in computational operators.
 
-The type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`. More generally, a constant declared with the `:right-assoc-nil` annotation must have a type of the form `(-> T1 T2 T2)` where `T2` is the type of the nil constant, for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(-> T1 T2 T1)` where `T1` is the type of the nil constant.
+The type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`. More generally, a constant declared with the `:right-assoc-nil` annotation must have a type of the form `(-> T1 T2 T2)` where `T2` is the type of the nil constant, for some types `T1` and `T2`. Similarly, a constant declared with the `:left-assoc-nil` annotation must have a type of the form `(-> T1 T2 T1)` where `T1` is the type of the nil constant.
 
 The nil terminator of a right associative operator may involve previously declared symbols in the signature.
 For example:
@@ -432,11 +433,11 @@ Then, `P` and `Q` are both applied to the pair of arguments `a` and `(or a b)`.
 In the former (i.e. `Paab`), the definition is equivalent after desugaring to `(or a (or (or a (or b false)) false))`, whereas in the latter (i.e. `Qaab`) the definition is equivalent after desugaring to `(or a (or a (or b false)))`.
 In other words, the definitions of `Paab` and `Qaab` are equivalent to the terms `(or a (or a b))` and `(or a a b)` respectively prior to desugaring.
 
-More generally, for an right-associative operator `f` with nil terminator `nil`,
+More generally, for a right-associative operator `f` with nil terminator `nil`,
 the term `(f t1 ... tn)` is de-sugared based on whether each `t1 ... tn` is marked with `:list`.
 
 - The nil terminator is inserted at the tail of the function application unless `tn` is marked as `:list`,
-- If `ti` is marked as `:list` where `1<=i<n`, then `ti` is prepended to the overall application using a concatentation operation `eo::list_concat`. The semantics of this operator is provided later in [list-computation](#list-computation).
+- If `ti` is marked as `:list` where `1<=i<n`, then `ti` is prepended to the overall application using a concatenation operation `eo::list_concat`. The semantics of this operator is provided later in [list-computation](#list-computation).
 
 In detail, the returned term from desugaring `(f t1 ... tn)` is constructed inductively.
 If `tn` is marked with `:list`, the returned term is initialized to `tn` and we process children `ti` from `i = n-1 ... 1`.
@@ -454,7 +455,7 @@ Examples of this desugaring are given below.
         (or x z y)      ; (or x (eo::list_concat or z (or y false)))
         (or x)          ; (or x false)
         (or z)          ; z
-        (or z y w x)    ; (eo::list_concat or z (or y (eo::list_concat or w (or x false)))
+        (or z y w x)    ; (eo::list_concat or z (or y (eo::list_concat or w (or x false))))
     ))
 ```
 
@@ -469,6 +470,8 @@ In particular, note the following example:
 
 ```smt
 (declare-const or (-> Bool Bool Bool) :right-assoc-non-singleton-nil false)
+(declare-const a Bool)
+(declare-const b Bool)
 (define or_3 ((x Bool :list) (y Bool) (z Bool :list)) (or x y z))
 (define Q () (or_3 (or a b) a false))
 (define P () (or_3 false a false))
@@ -480,7 +483,7 @@ a single child is instead replaced by the child itself.
 
 We define a predicate `or_3` which concatenates three terms, the first
 and third being lists and the middle child `y` being a Boolean.
-The definition of `Q` is equivalent after desugaring to `(or a (or b (or a false)))`, which is identical to if `or` had been marked `:right-assoc-nil`.
+The definition of `Q` is equivalent after desugaring to `(or a (or b (or a false)))`, which is identical to the result obtained if `or` had been marked `:right-assoc-nil`.
 The definition of `P` is equivalent after desugaring to `a`, which is not the same as `(or a false)`,
 which would have been the result if `or` had been marked `:right-assoc-nil`.
 
@@ -501,26 +504,26 @@ in the example above.
 
 ```smt
 (declare-const Int Type)
-(declare-const and (-> Bool Bool Bool) :right-assoc)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-const >= (-> Int Int Bool) :chainable and)
 (define P ((x Int) (y Int) (z Int)) (>= x y z))
 (define Q ((x Int) (y Int)) (>= x y))
 ```
 
-In the above example, `(>= x y z w)` is syntax sugar for `(and (>= x y) (>= y z))`,
+In the above example, `(>= x y z)` is syntax sugar for `(and (>= x y) (>= y z))`,
 whereas the term `(>= x y)` is not impacted by the annotation `:chainable` since it has fewer than 3 children.
 
 Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S`,
-where the type of its combining operator is `(-> S S S)`, and that operator has been marked as variadic via some attribute (e.g. `:right-assoc`).
+where the type of its combining operator is `(-> S S S)`, and that operator has been marked as variadic via some attribute (e.g. `:right-assoc` or `:right-assoc-nil`).
 
-A chainable operator applied to a single argument reduces to the neutral element of the combining operator.
+A chainable operator applied to a single argument reduces to the neutral element of the combining operator when that operator has a nil terminator.
 For example, `(>= x)` is equivalent to `true`.
 
 #### Pairwise
 
 ```smt
 (declare-const Int Type)
-(declare-const and (-> Bool Bool Bool) :right-assoc)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-parameterized-const distinct ((T Type :implicit)) (-> T T Bool) :pairwise and)
 (define P ((x Int) (y Int) (z Int)) (distinct x y z))
 ```
@@ -532,7 +535,7 @@ where the type of its combining operator is `(-> S S S)`,
 and that operator has been marked as variadic via some attribute.
 
 Similar to chainable operators,
-a pairwise operator applied to a single argument reduces to the neutral element of the combining operator.
+a pairwise operator applied to a single argument reduces to the neutral element of the combining operator when that operator has a nil terminator.
 For example, `(distinct x)` is equivalent to `true`.
 
 <a name="binders"></a>
@@ -553,11 +556,11 @@ as demonstrated in the example below.
 (define P ((x Int) (y Int) (z Int)) (distinct x y z))
 ```
 
-In the above example, `(distinct x y z)` is desugared to `(distinct (@cons a b c))`,
-which is further desugared to `(distinct (@cons a (@cons b (@cons c @nil))))`.
+In the above example, `(distinct x y z)` is desugared to `(distinct (@cons x y z))`,
+which is further desugared to `(distinct (@cons x (@cons y (@cons z @nil))))`.
 In contrast to the above example, the size of this term is not quadratic in size with respect to the input arguments.
 
-This desugaring further takes into account if arguments to the annotated symbol have been marked with the attribute`:list`.
+This desugaring further takes into account whether arguments to the annotated symbol have been marked with the attribute `:list`.
 In particular, if there is only a single argument to `distinct`, and it is marked `:list`, then
 it is *not* passed to the given list constructor but instead taken as the lone
 argument. Note the following examples:
@@ -597,8 +600,8 @@ not desugared further since `xs` is marked `:list`.
 
 In the above example, `forall` is declared as a binder.
 This indicates that the parser (optionally) accepts a variable list as the first argument when parsing applications of `forall` instead of a term.
-In particular, in the last two commands, the parser accepts `(forall ((x Int)) (P x))` for the variable list containing `x`.
-A variable list parsed in this way binds the symbol `x` to a variable of type `Int` when parsing the remaining arguments of `forall`, i.e. its body.
+In particular, in the first three commands, the parser accepts syntax such as `(forall ((x Int)) (P x))` for a variable list.
+A variable list parsed in this way binds the corresponding symbol to a variable of type `Int` when parsing the remaining arguments of `forall`, i.e. its body.
 The variable list passed as the first argument to the binder is determined by applying the specified constructor (in this case `@cons`) to the list of variables, so that `(forall ((x Int)) (P x))` is syntax sugar for `(forall (@cons x) (P x))`.
 The constructor specified in declarations of binders should accept a variable number of arguments, e.g. `@cons` is declared with attribute `:right-assoc-nil`.
 
@@ -638,8 +641,8 @@ Note that since `f` is a parameter, the term `(f a b)` is parsed as an ordinary 
 The definition `apply-or-to-ab`, which applies this predicate to `or`,
 does *not* trigger any desugaring of `or` when it is invoked, meaning after simplification,
 `apply-or-to-ab` is equivalent to `(_ (_ or a) b)`.
-In constrast, definition of the predicate `apply-or-to-ab-2` involves an application of `or`,
-which desugars to` (_ (_ or a) (_ (_ or b) false))`.
+In contrast, the definition of the predicate `apply-or-to-ab-2` involves an application of `or`,
+which desugars to `(_ (_ or a) (_ (_ or b) false))`.
 As a final example, the definition of predicate `apply-or-to-ab-3` is `(_ or a b)`,
 which is *not* an application of `or` and hence desugars to `(_ (_ or a) b)`.
 
@@ -659,7 +662,7 @@ For example, consider a generic definition of the empty set:
 (define f () (as set.empty (Set Int)) :type (Set Int))
 ```
 
-Above, set is declared as a parameteric type.
+Above, `Set` is declared as a parametric type.
 The empty set has an implicit type argument `T` and has return type `(Set T)`.
 Since `T` is a free parameter, and `set.empty` has no explicit arguments, it is an ambiguous function.
 All uses of ambiguous functions must use the SMT-LIB syntax `as`,
@@ -671,7 +674,7 @@ In the above example, `set.empty` is internally defined to be of type `(-> (Quot
 Ethos interprets `(as set.empty (Set Int))` as `(_ set.empty (Set Int))`, where this is an "opaque" application (see [opaque](#opaque)).
 Conceptually, this means that `(_ set.empty (Set Int))` is a constant symbol (with no children) that is indexed by its type.
 
-A similar treatment is given to ambiguous datatype constructors, which we describe later in [parameteric datatypes](#par-datatypes).
+A similar treatment is given to ambiguous datatype constructors, which we describe later in [parametric datatypes](#par-datatypes).
 
 <a name="literals"></a>
 
@@ -764,7 +767,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and `false` otherwise. If either `t1` or `t2` is non-ground, it does not evaluate. Note this can be expressed as an ordinary Eunoia program as we describe in [derived-ops](#derived-ops).
 
 - `(eo::is_eq t1 t2)`
-  - Equivalent to `(eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false)`.
+  - Equivalent to `(eo::ite (eo::and (eo::is_ok t1) (eo::is_ok t2)) (eo::eq t1 t2) false)`.
 
 - `(eo::requires t1 t2 t3)`
   - Returns `t3` if `(eo::is_eq t1 t2)` evaluates to `true`, and is not evaluated otherwise. In the case this operator evaluates, it may be the case that `t3` is non-ground.
@@ -992,7 +995,7 @@ We describe a signature that gives these definitions in [derived-ops](#derived-o
 ### List operators
 
 - `(eo::nil f T)`
-  - If `f` is a right associative operator and `T` is a ground type, return its nil terminator. If `f` has a parametric nil terminator, return the terminator is specialized for `T` (see examples of parametric nil terminators later in this section).
+  - If `f` is a right associative operator and `T` is a ground type, return its nil terminator. If `f` has a parametric nil terminator, return the terminator specialized for `T` (see examples of parametric nil terminators later in this section).
 - `(eo::cons f t1 t2)`
   - If `t2` is an `f`-list, then this returns the term `(f t1 t2)`.
 - `(eo::list_len f t)`
@@ -1014,7 +1017,7 @@ We describe a signature that gives these definitions in [derived-ops](#derived-o
 - `(eo::list_minclude f t1 t2)`
   - (Multiset inclusion) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, then this returns true if each unique element in `t11 ... t1n` occurs with the greater than or equal multiplicity in `t21 ... t2m`. Note that order of the elements does not matter.
 - `(eo::list_meq f t1 t2)`
-  - (Multiset equal) Equivalent to `(eo::and (eo::list_minclude f t1 t2) (eo::list_minclude t2 t1))`.
+  - (Multiset equal) Equivalent to `(eo::and (eo::list_minclude f t1 t2) (eo::list_minclude f t2 t1))`.
 - `(eo::list_diff f t1 t2)`
   - (Difference) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we remove one copy of it from that list. Otherwise if `t1i` does not occur in `t21 ... t2m`, we append it to the final result.
 - `(eo::list_inter f t1 t2)`
@@ -1140,7 +1143,7 @@ For example, `(eo::nil bvor (BitVec 4))` denotes the nil terminator of `bvor` wh
 ```
 
 Above, we define a type declaration for `BitVec` that expects an integer (i.e. denoting the bitwidth) as an argument.
-Then, a type rule is given for bitvector concatenation `concat`, involves the result of invoking `eo::add` on the bitwidth of its two arguments.
+Then, a type rule is given for bitvector concatenation `concat`, which involves the result of invoking `eo::add` on the bitwidth of its two arguments.
 
 Since `eo::add` only evaluates on numeral values, this means that this type rule will only give the intended result when the bitwidth arguments to this function are concrete.
 If on the other hand we defined:
@@ -1157,7 +1160,7 @@ If on the other hand we defined:
 Based on the definition of `concat`, the return type of `z2` in the above example is `(BitVec (eo::add a b))`, where the application of `eo::add` does not evaluate since `a` and `b` are not values.
 However, any term with a type that is both ground (i.e. containing no parameters) and evaluatable (i.e. containing an application of a program or builtin evaluation operator) is considered ill-typed by Ethos.
 Hence, the above example results in a type checking error.
-This was not the case with `z` in the previous example, whose type prior to evaluation was`(BitVec (eo::add 2 3))`, which evaluates to `(BitVec 5)` which is a legal type.
+This was not the case with `z` in the previous example, whose type prior to evaluation was `(BitVec (eo::add 2 3))`, which evaluates to `(BitVec 5)`, a legal type.
 
 <a name="bv-literals"></a>
 
@@ -1182,7 +1185,7 @@ This means that when type checking the binary constant `#b0000`, its type prior 
 ## Parameterized constants with Attributes
 
 Recall that in [assoc-nil](#assoc-nil), when using `declare-const` to define associative operators with nil terminators, it is not possible to have the nil terminator for that operator depend on its type parameters.
-In this section, we note that `declare-parameterized-const` which overcomes this limitation.
+In this section, we note that `declare-parameterized-const` overcomes this limitation.
 
 In the following example,
 we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvector zero for the given bitwidth.
@@ -1224,7 +1227,7 @@ However, since `nil` is not ground, we use the term `(eo::nil f (eo::typeof t1))
 This term is a placeholder for the nil terminator of the appropriate type, as determined by the type of the term we are constructing.
 Note that we use the first term `t1` in the argument list, as operators with non-ground nil terminators are required to be of type `(-> T T T)`, meaning that a single argument suffices to determine its parameters.
 
-For the latter, to handle parameteric nil terminators,
+For the latter, to handle parametric nil terminators,
 `eo::nil` optionally accepts two arguments (the function and the return type of the nil terminator).
 For each declared function `f` of type `(-> T T T)` with nil terminator `nil`,
 we assume there is a case of `eo::nil` that matches the pair `(f, T)` and whose specified return is (non-ground term) `nil`,
@@ -1279,7 +1282,7 @@ Consider again the term `(bvor z w)` from the previous example:
 The term in the body of `test` desugars to `(bvor z (bvor w (eo::nil bvor (eo::typeof z))))`, where
 `(eo::nil bvor (eo::typeof z))` does not evaluate since `z` has non-ground type.
 In this example, we instantiate this definition in the body of `test4`, where `z=a` and `w=b`.
-The term `(bvor a (bvor b (eo::nil bvor (eo::typeof a))))` then evaluates to `(bvor a (bvor b #b0000)`,
+The term `(bvor a (bvor b (eo::nil bvor (eo::typeof a))))` then evaluates to `(bvor a (bvor b #b0000))`,
 noting that `(eo::nil bvor (eo::typeof a))` evaluates to `#b0000`.
 
 The following are examples of list operations when using parameterized constant `bvor`:
@@ -1316,14 +1319,14 @@ For example, the following is accepted:
 ```
 
 When parsing a term whose head is `-`, Ethos will automatically choose which symbol to use based on the arguments passed to it.
-In particular, if a symbol is overloaded, Ethos will use the first symbol that results in a well-typed term if applied.
+In particular, if a symbol is overloaded, Ethos will use the most recently declared symbol that results in a well-typed term if applied.
 For example, assuming standard definitions of SMT-LIB literal values,
 `(- 1)` uses the first, `(- 0 1)` uses the second, and `(- 0.0 1.0)` uses the third.
-If a symbol is unapplied, then Ethos will interpret it as the first declared term for that symbol.
+If a symbol is unapplied, then Ethos will interpret it as the most recently declared term for that symbol.
 
-> __Note:__ When multiple variants are possible, Ethos will use the first one and will _not_ throw a warning. This behavior permits the user to order the declarations in the order of their precedence. For example, the SMT-LIB operator for unary negation should be declared _before_ the declaration for subtraction. If this were done in the opposite order, then (- t) would be interpreted as the partial application of subtraction to the term t.
+> __Note:__ When multiple variants are possible, Ethos will use the most recent matching one and will _not_ throw a warning. This behavior permits the user to order the declarations from lower to higher precedence. For example, the SMT-LIB operator for subtraction should be declared _before_ the declaration for unary negation. If this were done in the opposite order, then `(- t)` would be interpreted as the partial application of subtraction to the term `t`.
 
-Furthermore, Ethos supports an operator `eo::as` for disambiguation whose syntax is `(eo::as <term><type>)`.
+Furthermore, Ethos supports an operator `eo::as` for disambiguation whose syntax is `(eo::as <term> <type>)`.
 A term of the form `(eo::as t (-> T1 ... Tn T))` evaluates to term `s` only if `(s k1 ... kn)` has type `T` where `k1 ... kn` are variables of type `T1 ... Tn`, and `t` and `s` are atomic terms with the same name.
 If multiple such terms `s` exist, then the most recent one is returned.
 Otherwise, the term `(eo::as t (-> T1 ... Tn T))` is unevaluated.
@@ -1413,9 +1416,9 @@ In this example, after declaring our tester predicate `is`, we introduce a side 
 The side condition recurses over a list of constructors, which was obtained in the definition of the proof rule from applying `eo::dt_constructors` to the type of `x`.
 For each constructor `c` in this list, we prepend a disjunct `(is c x)` to a recursive call to this method.
 
-As part of the example, we see a particular definition of a list, called `Tree`.
+As part of the example, we see a particular datatype definition, called `Tree`.
 Applying the proof rule `dt-split` to a variable `x` of type `Tree` allows us to conclude that `x` must either be an application of `node` or `leaf`.
-Note that the definitino of `dt-split` is applicable to *any* datatype definition.
+Note that the definition of `dt-split` is applicable to *any* datatype definition.
 In particular, as a second example, we see the rule applied to a term `y` of type `Color` gives us a conclusion with three disjuncts.
 
 
@@ -1423,9 +1426,9 @@ In particular, as a second example, we see the rule applied to a term `y` of typ
 
 ### Parametric datatypes
 
-Ethos supports reasoning about parametric datatypes with ambiguous datatype construtors using the same syntax as SMT-LIB 2.6.
+Ethos supports reasoning about parametric datatypes with ambiguous datatype constructors using the same syntax as SMT-LIB 2.6.
 
-In detail, we say a datatype constructor is "ambiguous" if it of type:
+In detail, we say a datatype constructor is "ambiguous" if it is of type:
 ```
 (-> T1 ... Tn T)
 ```
@@ -1436,7 +1439,7 @@ For example:
 ```
 (declare-datatypes ((Tree 1)) ((par (X) (((node (left Tree) (data X) (right Tree)) (leaf))))))
 ```
-In the this example, `leaf` is an ambiguous datatype constructor, while `node` is not.
+In this example, `leaf` is an ambiguous datatype constructor, while `node` is not.
 Instances of ambiguous datatype constructors are expected to be annotated with their return type using the syntax e.g. `(as leaf (Tree Int))`.
 This denotes a constant (e.g. a term with zero arguments), whose type is `(Tree Int)`.
 
@@ -1445,7 +1448,7 @@ This is done automatically, so that for the aforementioned datatype, the type of
 Ethos interprets `(as leaf (Tree Int))` as `(_ leaf (Tree Int))`, where this is an "opaque" application (see [opaque](#opaque)).
 Conceptually, this means that `(_ leaf (Tree Int))` is a constant symbol (with no children) that is indexed by its type.
 
-The semantics of `eo::dt_constructors` and `eo::dt_selectors` is overloaded to handle (annotated) constructors and (instantiated) parameteric datatypes.
+The semantics of `eo::dt_constructors` and `eo::dt_selectors` is overloaded to handle (annotated) constructors and (instantiated) parametric datatypes.
 For example, given the previous definition, note the following:
 ```
 (eo::dt_constructors Tree)              == (eo::List::cons node (eo::List::cons leaf eo::List::nil))
@@ -1457,7 +1460,7 @@ For example, given the previous definition, note the following:
 (eo::dt_selectors (as leaf (Tree Int))) == eo::List::nil
 ```
 
-In particular, the constructors of a *fully* instantiated parameteric datatype are such that its ambiguous constructors are annotated in the return value, and its unambiguous constructors are included as-is.
+In particular, the constructors of a *fully* instantiated parametric datatype are such that its ambiguous constructors are annotated in the return value, and its unambiguous constructors are included as-is.
 The selectors of a constructor (which are never ambiguous) are returned independently of whether the constructor is annotated.
 
 > __Note:__ Note that `eo::dt_constructors` does not evaluate on parametric types that are partially applied, e.g. `(eo::dt_constructors (Pair Int))` does not evaluate, where `Pair` expects two type parameters.
@@ -1479,7 +1482,8 @@ where
 A proof rule begins by defining a list of free parameters, followed by 4 optional fields and a conclusion term.
 These fields include:
 
-- `<premises>`, denoting the premise patterns of the proof rule. This is, either, a list of formulas (via `:premises`) or the specification of a list of premises (via `:premise-list`), which will be described in detail later.
+- `<assumption>`, denoting a local assumption that must be discharged when the rule is applied via `step-pop`.
+- `<premises>`, denoting the premise patterns of the proof rule. This is either a list of formulas (via `:premises`) or the specification of a list of premises (via `:premise-list`), which will be described in detail later.
 - `<arguments>`, denoting argument patterns provided to a proof rule.
 - `<reqs>`, denoting a list of pairs of terms.
 
@@ -1489,7 +1493,7 @@ Proof rules may be marked with attributes at the end of their definition.
 The only attribute of this form that is currently supported is `:sorry`, which indicates that the proof rule does not have a formal justification.
 This, in turn, impacts the response of Ethos, as described in [responses](#responses).
 
-At a high level, an application of a proof rule is given a concrete list of (premise) proofs, and a concrete list of (argument) terms.
+At a high level, an application of a proof rule is given a concrete list of premise proofs and a concrete list of argument terms, plus an explicit conclusion or local assumption when the rule requires them.
 A proof rule checks if a substitution `S` can be found such that:
 
 - The formulas proved by the premise proofs match the provided premise patterns under substitution `S`,
@@ -1499,7 +1503,7 @@ If these criteria are met, then the proof rule proves the result of applying `S`
 
 A proof rule is only well defined if the free parameters of the requirements and conclusion term are also contained in the arguments and premises.
 
-> __Note:__ Internally, proofs can be seen as terms whose type is given by a distinguished `Proof` type. In particular, `Proof` is a type whose kind is `(-> Bool Type)`, where the argument of this type is the formula that is proven. For example, `(Proof (> x 0))` is the proof that `x` is greater than zero. By design, the user cannot declare terms involving type `Proof`. Instead, proofs can only be constructed via the commands `assume` and `step` as we describe in [proofs](#proofs).
+> __Note:__ Internally, proofs can be seen as terms whose type is given by a distinguished `Proof` type. In particular, `Proof` is a type whose kind is `(-> Bool Type)`, where the argument of this type is the formula that is proven. For example, `(Proof (> x 0))` is the proof that `x` is greater than zero. By design, the user cannot declare terms involving type `Proof`. Instead, proofs can only be constructed via the proof commands (`assume`, `assume-push`, `step`, and `step-pop`) as we describe in [proofs](#proofs).
 
 ### Example rule: Reflexivity of equality
 
@@ -1539,7 +1543,7 @@ A list of requirements can be given to a proof rule.
 (declare-consts <numeral> Int)
 (declare-const >= (-> Int Int Bool))
 (declare-rule leq-contra ((x Int))
-    :premise ((>= x 0))
+    :premises ((>= x 0))
     :requires (((eo::is_neg x) true))
     :conclusion false)
 ```
@@ -1551,13 +1555,13 @@ In particular, the above is equivalent to:
 
 ```smt
 (declare-rule leq-contra ((x Int))
-    :premise ((>= x 0))
+    :premises ((>= x 0))
     :conclusion (eo::requires (eo::is_neg x) true false))
 ```
 
 ### Premise lists
 
-A rule can take an arbitrary number of premises via the syntax `:premise-list <term><term>`. For example:
+A rule can take an arbitrary number of premises via the syntax `:premise-list <term> <term>`. For example:
 
 ```smt
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
@@ -1571,18 +1575,18 @@ When applying this rule, the formulas proven to this rule (say `F1 ... Fn`) will
 In particular, in this case `F` is bound to `(and F1 ... Fn)`.
 The conclusion of the rule returns `F` itself.
 
-Note that the type of functions provided as the second argument of `:premise-list` should be operators that are marked to take an arbitrary number of arguments, that is those marked e.g. with `:right-assoc-nil` or `:chainable`.
+Note that the functions provided as the second argument of `:premise-list` should be operators that are marked to accept arbitrarily many arguments, e.g. with `:right-assoc`, `:left-assoc`, `:right-assoc-nil`, `:left-assoc-nil`, or `:chainable`.
 
 <a name="proofs"></a>
 
 ### Explicit Conclusions
 
 Rules can be specified to pattern match on the provided conclusion as input.
-This is useful if the proof rule is written in the style where an arbitrary conclusion can be provided by user, and is checked to see if it is a valid possible conclusion of the rule.
+This is useful if the proof rule is written in a style where an arbitrary conclusion can be provided by the user and then checked to see whether it is a valid possible conclusion of the rule.
 For example:
 
 ```smt
-(declare-const or (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (declare-const not (-> Bool Bool))
 
 (declare-rule split ((F Bool))
@@ -1655,7 +1659,7 @@ The proof `@p1` is then used as a premise to the step `@p2`, which proves `true`
 The command `step-pop` then consumes the proof of `@p1` and binds `@p3` to a proof of `(=> false true)`.
 Notice that `@p1` is removed from scope after `@p3` is applied.
 
-Locally assumptions can be arbitrarily nested, for example the above can be extended to:
+Local assumptions can be arbitrarily nested, for example the above can be extended to:
 
 ```smt
 ...
@@ -1673,14 +1677,15 @@ In particular, in Ethos, a program is an ordered list of rewrite rules.
 The syntax for this command is as follows.
 
 ```smt
-(program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+))
+(program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+)?)
 ```
 
 This command declares a program named `<symbol>`.
+If a body is provided, it also defines the program; otherwise, it acts as a forward declaration.
 The provided type parameters are implicit and are used to define the program's type signature and body.
 
 The type of the program is given immediately after the parameter list, provided as a list of argument types and a return type.
-The semantics of the program is given by a non-empty list of pairs of terms, which we call its _body_.
+When present, the semantics of the program is given by a non-empty list of pairs of terms, which we call its _body_.
 For program `f`, this list is expected to have the form `(((f t11 ... t1n) r1) ... ((f tm1 ... tmn) rm))`
 where `t11...t1n, ..., tm1...tmn` do not contain computational operators.
 A (ground) term `(f s1 ... sn)` evaluates by finding the first term from the first component of a pair from `f`'s body that matches it for a substitution `S`, and returns the result of applying `S` to the second component of said pair.
@@ -1798,7 +1803,7 @@ Calling it with arguments `A`, `B`, and `(@array_diff A B)` would return `(@arra
 
 ```smt
 (program substitute-o
-  ((T Type) (U Type) (S Type) (x S) (y S) (a (Array T U)) (b (Array T U)) (z U))
+  ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a (Array T U)) (b (Array T U)) (z U))
   :signature (S S U) U
   (
   ((substitute-o x y x)                 y)
@@ -1933,15 +1938,15 @@ allowing its return type to refer to that argument.
 > __Note:__ The argument of `eo::quote` must be a parameter introduced in the parameter list declared at the beginning of the program command.
 
 Note that arguments that use the annotation `eo::quote` can be freely mixed with other type arguments.
-For example, the above program could be generalized to concatentate an arbitrary BitVec term `n` times:
+For example, the above program could be generalized to concatenate an arbitrary BitVec term `n` times:
 
 ```
-(program repeat_term ((m Int) (n Int) (x (BitVec m))
+(program repeat_term ((m Int) (n Int) (x (BitVec m)))
   :signature ((BitVec m) (eo::quote n)) (BitVec (eo::mul m n))
   (
     ((repeat_term x 0) @bv_empty)
     ((repeat_term x n) (eo::requires (eo::is_neg n) false
-                         (concat x (repeat_term (eo::add n -1)))))
+                         (concat x (repeat_term x (eo::add n -1)))))
   )
 )
 
@@ -1995,7 +2000,7 @@ It matches the given premise `F` with either `(= t1 t2)` or `(not (= t1 t2))` an
 ```
 
 For simplicity, the rule is given only for equalities of the integer sort, although this rule can be generalized.
-The proof rule `trans` first packages an arbitrary number of premises, constructs a conjunction of these premises, which to bound to `E` and passed to the match term in the conclusion.
+The proof rule `trans` first packages an arbitrary number of premises and constructs a conjunction of them, which is then matched against the `:premise-list` pattern.
 The recursive calls in the side condition `mk_trans` accumulate the endpoints of an equality chain and ensure via `eo::requires` that further equalities extend the left hand side of this chain.
 
 ## Including and referencing files
@@ -2003,7 +2008,7 @@ The recursive calls in the side condition `mk_trans` accumulate the endpoints of
 Ethos supports the following commands for file inclusion:
 
 - `(include <string>)`, which includes the file indicated by the given string. The path to the file is taken relative to the directory of the file that includes it.
-- `(reference <string> <symbol>?)`, which similar to `include` includes the file indicated by the given string, and furthermore marks that file as being the _reference input_ for the current run of the checker (see below). The optional symbol can refer to a normalization routine (see below).
+- `(reference <string> <term>?)`, which, similarly to `include`, includes the file indicated by the given string, and furthermore marks that file as being the _reference input_ for the current run of the checker (see below). The optional term can refer to a normalization routine (see below).
 
 Additionally, files may be included or referenced on the command line with the options `--include=X` and `--reference=X` respectively.
 
@@ -2016,7 +2021,7 @@ The definitions and declaration commands in this file will be treated as normal,
 The commands of the form `(assert F)` will add `F` to a set of formulas we will refer to as the _reference assertions_.
 Other commands in `file.smt2` (e.g. `set-logic`, `set-option`, and so on) will be ignored.
 
-If ethos has read a reference file, then for each command of the form `(assume <symbol> G)`, ethos will check whether `G` occurs in the set of parsed reference assertions.
+If Ethos has read a reference file, then for each command of the form `(assume <symbol> G)`, Ethos will check whether `G` occurs in the set of parsed reference assertions.
 If it does not, then an error is thrown indicating that the proof is assuming a formula that is not a part of the original input.
 
 > __Note:__ Only one reference command can be executed for each run of ethos.
@@ -2025,9 +2030,9 @@ If it does not, then an error is thrown indicating that the proof is assuming a 
 
 ### Validation up to Normalization
 
-Since the validation is relying on the fact that ethos can faithfully parse the original *.smt2 file, validation will only succeed if the signatures used by Ethos exactly match the syntax for terms in the *.smt2 file.
+Since validation relies on the fact that Ethos can faithfully parse the original `*.smt2` file, validation will only succeed if the signatures used by Ethos exactly match the syntax for terms in the `*.smt2` file.
 Minor changes in how terms are represented will lead to mismatches.
-For this reason, ethos additionally supports providing an optional normalization routine via `(reference <string> <term>)`, which includes the file indicated by the given string and specifies all assumptions must match an assertion after running the provided normalization function.
+For this reason, Ethos additionally supports providing an optional normalization routine via `(reference <string> <term>)`, which includes the file indicated by the given string and specifies that all assumptions must match an assertion after running the provided normalization function.
 
 For example:
 
@@ -2035,7 +2040,7 @@ For example:
 (declare-const Int Type)
 (declare-const Real Type)
 (declare-const / (-> Int Int Real))
-(program normalize ((T Type) (S Type) (f (-> S T)) (x S) (a Int) (b Int))
+(program normalize ((T Type) (S Type) (f (-> S T)) (x S) (a Int) (b Int) (y T))
    :signature (T) T
    (
      ((normalize (/ a b)) (eo::qdiv a b))
@@ -2048,7 +2053,7 @@ For example:
 
 Here, `normalize` is introduced as a program which recursively replaces all occurrences of division (over integer constants) with the resulting rational constant.
 This method can be used for handling solvers that interpret constant division as the construction of a rational constant.
-The above program will be invoked on all formulas occuring in `assert` commands in `"file.smt2"` and subsequently formulas in `assume` commands.
+The above program will be invoked on all formulas occurring in `assert` commands in `"file.smt2"` and subsequently on formulas in `assume` commands.
 
 <a name="responses"></a>
 
@@ -2060,7 +2065,7 @@ After successfully parsing an input file with no errors, Ethos will respond with
 - `correct` otherwise.
 
 Note, however, that Ethos does not impose any requirements on _what_ was proven in the proof.
-The user is responsible for ensure that e.g. the proof contains a step with a desired conclusion (e.g. `false`).
+The user is responsible for ensuring that, for example, the proof contains a step with a desired conclusion (e.g. `false`).
 
 ## Appendix
 
@@ -2089,9 +2094,9 @@ They do not impact how signature files (*.eo) are parsed:
 - `--no-parse-let`: do not treat `let` as a builtin symbol for specifying a macro.
 
 Most of the above options can also be set via `set-option` commands within proofs or Eunoia scripts.
-For example, the command `(set-option normalize-num true)` tells Ethos to normalize numerals always.
+For example, the command `(set-option :normalize-num true)` tells Ethos to normalize numerals always.
 Further note that option names in this interface should exclude `no-`, which is equivalent to setting the value of the option to false.
-As another example, `(set-option normalize-dec false)` is equivalent to the command line option `--no-normalize-dec`.
+As another example, `(set-option :normalize-dec false)` is equivalent to the command line option `--no-normalize-dec`.
 
 <a name="full-syntax"></a>
 
@@ -2101,11 +2106,11 @@ Below defines the syntax accepted by the Ethos parser.
 
 We distinguish three kinds of file inputs:
 
-- _Proof files_ are files that are given via command line option that do _not_ have extension `*.eo`.
+- _Proof files_ are files that are given on the command line and do _not_ have extension `*.eo`.
 Their expected syntax is `<eo-command>*`.
 - _Reference files_ are files included via the `reference` command.
 Their expected syntax is `<smtlib2-command>*`.
-- _Signature files_ are files that given via command line option that have extension `*.eo`, or those that are included via the command `include`. Like proof files, their expected syntax is `<eo-command>*`.
+- _Signature files_ are files given on the command line that have extension `*.eo`, or those that are included via the command `include`. Like proof files, their expected syntax is `<eo-command>*`.
 
 As mentioned, the first two kinds of file inputs take into account options concerning the normalization of terms (e.g. `--normalize-num`), while signature files do not.
 When streaming input to Ethos, we assume the input is being given for a proof file.
@@ -2117,18 +2122,18 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (assume-push <symbol> <term>) |
     (declare-consts <lit-category> <type>) |
     (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*) |
-    (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*) |
+    (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? <conclusion> <attr>*) |
     (define <symbol> (<typed-param>*) <term> <attr>*) |
     (include <string>) |
-    (program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+)) |
-    (reference <string> <symbol>?) |
+    (program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+)?) |
+    (reference <string> <term>?) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
     (step-pop <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
     <common-command>
 
 ;;;
 <common-command> ::=
-    (declare-const <symbol> <type> <attr>*)
+    (declare-const <symbol> <type> <attr>*) |
     (declare-datatype <symbol> <datatype-dec>) |
     (declare-datatypes (<sort-dec>^n) (<datatype-dec>^n)) |
     (declare-sort <symbol> <numeral>) |
@@ -2142,8 +2147,8 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (assert <term>) |
     (check-sat) |
     (check-sat-assuming (<term>*)) |
-    (declare-fun <symbol> (<type>*) <type> <attr>*) |
-    (define-const <symbol> <term>) |
+    (declare-fun <symbol> (<type>*) <type>) |
+    (define-const <symbol> <type> <term>) |
     (define-fun <symbol> (<typed-param>*) <type> <term>) |
     (define-sort <symbol> (<symbol>*) <type>) |
     (set-info <attr>) |
@@ -2175,7 +2180,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 ### Derived Definitions of Evaluation Operators
 <a name="derived-ops"></a>
 
-We provide a signature that give an alternative definition
+We provide a signature that gives an alternative definition
 of certain builtin operators that can be expressed as standard Eunoia programs,
 or based on other operators.
 We provide this as a parsable Eunoia file, which is part of our
@@ -2210,27 +2215,27 @@ We assume the definition of `$eo_nil` has the following form:
 
 For each declare-const or declare-parameterized-const `f` whose return type is `T`
 declared in the signature that is marked `:right-assoc-nil nil` or `:left-assoc-nil nil`,
-we add the case`(($eo_nil f T) nil)` to the definition of `$eo_nil` above.
+we add the case `(($eo_nil f T) nil)` to the definition of `$eo_nil` above.
 For example, given:
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 ```
 We add the case `(($eo_nil or Bool) false)` to `$eo_nil` above.
 
-> __Note:__ In our formulation, we assume that the case `(($eo_nil eo_List_cons eo_List) eo_List_nil)`
+> __Note:__ In our formulation, we assume that the case `(($eo_nil eo::List::cons eo::List) eo::List::nil)`
 for our (redefinition) of the builtin Eunoia list is included.
 
 In the definition of `$eo_nil`, notice that
 it is necessary to include the type as part of the case to support functions with
-non-ground nil terminators, which requiring instantiating the free parameters
+non-ground nil terminators, which requires instantiating the free parameters
 of `T`. For example, given:
 ```
 (declare-parameterized-const bvor ((m Int :implicit))
-  (-> (BitVec m) (BitVec m) (BitVec m)) :right-assoc-nil (eo::to_bin 0 m))
+  (-> (BitVec m) (BitVec m) (BitVec m)) :right-assoc-nil (eo::to_bin m 0))
 ```
-We add the case `(($eo_nil bvor (BitVec m))  (eo::to_bin 0 m))` to `$eo_nil` above.
+We add the case `(($eo_nil bvor (BitVec m))  (eo::to_bin m 0))` to `$eo_nil` above.
 Providing a concrete type, e.g. `(BitVec 4)` will ensure `m` is bound to `4`
-and hence `($eo_nil bvor (BitVec 4))` evaluates to `(eo::to_bin 0 4)`, which is
+and hence `($eo_nil bvor (BitVec 4))` evaluates to `(eo::to_bin 4 0)`, which is
 `#b0000`.
 
 All other list operators can be defined as ordinary Eunoia programs or definitions.
@@ -2270,8 +2275,8 @@ can be seen as syntax sugar for:
 
 ```smt
 (declare-parameterized-const s ((v1 T1 :implicit) ... (vi Ti :implicit))
-    (-> (Proof p1) ... (Proof pn)
-        (Quote t1) ... (Quote tm)
+    (-> (Quote t1) ... (Quote tm)
+        (Proof p1) ... (Proof pn)
         (eo::requires r1 s1 ... (eo::requires rk sk
             (Proof t)))))
 ```
@@ -2297,8 +2302,8 @@ The command:
 can be seen as syntax sugar for:
 
 ```smt
-(define s () (r p1 ... pn t1 ... tm) :type (Proof f))
+(define s () (r t1 ... tm p1 ... pn) :type (Proof f))
 ```
 
-If no conlusion is provided, then the type attribute is not specified.
-Notice this is only the case if the declaration of `r` does not involve `:assumption` or `:premise-list`.
+If no conclusion is provided, then the type attribute is not specified.
+Notice the correspondence above assumes the declaration of `r` does not involve `:assumption` or `:premise-list`.
