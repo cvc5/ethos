@@ -1673,7 +1673,7 @@ In particular, in Ethos, a program is an ordered list of rewrite rules.
 The syntax for this command is as follows.
 
 ```smt
-(program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+))
+(program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)*))
 ```
 
 This command declares a program named `<symbol>`.
@@ -1696,6 +1696,8 @@ Furthermore, if `si` contains any computational operators (i.e. those with `eo::
 > __Note:__ Programs are *not* invoked on terms that fail to evaluate. For example, if a function `f : Int -> Int` is applied to `(eo::add "A" "B")`, we return `(f (eo::add "A" "B"))`.
 
 > __Note:__ Programs are *not* invoked when applied to other programs in this version of Ethos. For example, the application of a program `f : (Int -> Int) -> Int` to another user defined program `g : Int -> Int` will be unevaluated, i.e. `(f g)`. Similarly, programs are not invoked when applied to builtin operators `eo::` and oracle functions. In contrast, `f` is invoked when `g` is an ordinary term e.g. one defined by `declare-const`.
+
+> __Note:__ Programs with an empty list of cases always fail to evaluate.
 
 ### Example: Finding a child in an `or` term
 
@@ -2120,7 +2122,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*) |
     (define <symbol> (<typed-param>*) <term> <attr>*) |
     (include <string>) |
-    (program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+)) |
+    (program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)*)) |
     (reference <string> <symbol>?) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
     (step-pop <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
