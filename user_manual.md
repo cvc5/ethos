@@ -2306,4 +2306,4 @@ can be seen as syntax sugar for:
 ```
 
 If no conclusion is provided, then the type attribute is not specified.
-Notice that omitting the conclusion is only allowed if the declaration of `r` does not involve `:conclusion-explicit`.
+Notice the correspondence above assumes the declaration of `r` does not involve `:assumption` or `:premise-list`.
