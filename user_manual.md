@@ -1697,7 +1697,7 @@ Furthermore, if `si` contains any computational operators (i.e. those with `eo::
 
 > __Note:__ Programs are *not* invoked when applied to other programs in this version of Ethos. For example, the application of a program `f : (Int -> Int) -> Int` to another user defined program `g : Int -> Int` will be unevaluated, i.e. `(f g)`. Similarly, programs are not invoked when applied to builtin operators `eo::` and oracle functions. In contrast, `f` is invoked when `g` is an ordinary term e.g. one defined by `declare-const`.
 
-> __Note:__ Programs with no specified cases always get stuck.
+> __Note:__ Programs with an empty list of cases always fail to evaluate.
 
 ### Example: Finding a child in an `or` term
 
