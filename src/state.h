@@ -26,6 +26,16 @@
 
 namespace ethos {
 
+class State;
+namespace expr_builder {
+Expr mkExpr(State& state, Kind k, const std::vector<Expr>& children);
+Expr mkApply(State& state, const std::vector<Expr>& children);
+Expr mkApplyAttr(State& state,
+                 AppInfo* ai,
+                 const std::vector<ExprValue*>& vchildren,
+                 const Expr& consTerm);
+}  // namespace expr_builder
+
 class Options
 {
  public:
@@ -54,7 +64,16 @@ class State
 {
   friend class TypeChecker;
   friend class ExprValue;
-  friend class ExprParser;
+  friend Expr expr_builder::mkExpr(State& state,
+                                   Kind k,
+                                   const std::vector<Expr>& children);
+  friend Expr expr_builder::mkApply(State& state,
+                                    const std::vector<Expr>& children);
+  friend Expr expr_builder::mkApplyAttr(
+      State& state,
+      AppInfo* ai,
+      const std::vector<ExprValue*>& vchildren,
+      const Expr& consTerm);
 
  public:
   State(Options& opts, Stats& stats);
@@ -282,21 +301,6 @@ class State
   bool markIncluded(const Filepath& s);
   /** mark deleted */
   void markDeleted(ExprValue* e);
-  /**
-   * Make (<APPLY> children) based on attribute. Returns the null term if the
-   * attribute does not impact how to build the application.
-   * @param ai The attribute of the head.
-   * @param vchildren The children, including the head term.
-   * @param consTerm The computed constructor term correspond to the
-   * application.
-   * @return The application of vchildren based on ai, or the null term if
-   * the default construction should be used to construct the application.
-   */
-  Expr mkApplyAttr(AppInfo* ai,
-                   const std::vector<ExprValue*>& vchildren,
-                   const Expr& consTerm);
-  /** Make an application, performing eager evaluation/currying as needed. */
-  Expr mkApply(const std::vector<Expr>& children);
   /** Build or evaluate a literal operator application. */
   Expr mkLiteralOp(Kind k, const std::vector<Expr>& children);
   /** Make (<APPLY> children), curried. */
@@ -332,6 +336,11 @@ class State
                            const std::vector<Expr>& children,
                            const ExprValue* retType = nullptr,
                            bool retApply = false);
+  /** Wrapper around TypeChecker constructor-term inference. */
+  Expr computeConstructorTerm(AppInfo* ai,
+                              const std::vector<Expr>& children);
+  /** Wrapper around TypeChecker program evaluation. */
+  Expr evaluateProgramInternal(const std::vector<ExprValue*>& args, Ctx& ctx);
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   const AppInfo* getAppInfo(const ExprValue* e) const;
