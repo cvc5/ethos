@@ -1077,7 +1077,7 @@ void LeanMetaReduce::printStepCase(std::ostream& out, const std::string& prule, 
 void LeanMetaReduce::printStepEmptyCase(std::ostream& out, const std::string& prule, bool isPop)
 {
   out << "  | " << prule << " =>" << std::endl;
-  out << "      exact False.elim (hProg (by simp [__eo_cmd_step_" << (isPop ? "pop_" : "") << "proven]))" << std::endl;
+  out << "      cases args <;> cases premises <;> exact False.elim (hProg rfl)" << std::endl;
 //  | scope =>
 //      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
 //  | contra =>
