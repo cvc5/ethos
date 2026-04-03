@@ -510,10 +510,10 @@ bool CmdParser::parseNextCommand()
         ss << "$eo_prog_" << name;
         ruleProg = d_state.mkSymbol(Kind::PROGRAM_CONST, ss.str(), pt);
         progArgs.insert(progArgs.begin(), ruleProg);
-        Expr ppat = d_state.mkExpr(Kind::APPLY, progArgs);
+        Expr ppat = d_eparser.mkExpr(Kind::APPLY, progArgs);
         d_eparser.typeCheckProgramPair(ppat, ret, true);
         Expr progCase = d_state.mkPair(ppat, ret);
-        Expr prog = d_state.mkExpr(Kind::PROGRAM, {progCase});
+        Expr prog = d_eparser.mkExpr(Kind::PROGRAM, {progCase});
         d_state.defineProgram(ruleProg, prog);
       }
       else
@@ -532,7 +532,7 @@ bool CmdParser::parseNextCommand()
       tupleChildren.push_back(d_state.mkBool(!assume.isNull()));
       tupleChildren.push_back(d_state.mkBool(concExplicit));
       tupleChildren.push_back(ruleProg);
-      Expr attrVal = d_state.mkExpr(Kind::TUPLE, tupleChildren);
+      Expr attrVal = d_eparser.mkExpr(Kind::TUPLE, tupleChildren);
       // we always carry plCons, in case the rule was marked
       // :premise-list as well as :assumption or :conclusion-explicit
       // simulataneously. We will handle all 3 special cases at once in
@@ -629,7 +629,7 @@ bool CmdParser::parseNextCommand()
             d_lex.parseError("Expected symbol 'lambda' to be defined when parsing define-fun.");
           }
           Expr bvl = d_state.mkBinderList(lambda.getValue(), vars);
-          rhs = d_state.mkExpr(Kind::APPLY, {lambda, bvl, rhs});
+          rhs = d_eparser.mkExpr(Kind::APPLY, {lambda, bvl, rhs});
           std::vector<Expr> types;
           for (Expr& e : vars)
           {
@@ -638,7 +638,7 @@ bool CmdParser::parseNextCommand()
           t = d_state.mkFunctionType(types, t);
         }
         expr = d_state.mkSymbol(Kind::CONST, name, t);
-        Expr a = d_state.mkExpr(Kind::APPLY, {eq, expr, rhs});
+        Expr a = d_eparser.mkExpr(Kind::APPLY, {eq, expr, rhs});
         Trace("define") << "Define-fun reference assert " << a << std::endl;
         d_state.addReferenceAssert(a);
       }
@@ -648,8 +648,8 @@ bool CmdParser::parseNextCommand()
         // make a lambda if given arguments
         if (vars.size() > 0)
         {
-          Expr vl = d_state.mkExpr(Kind::TUPLE, vars);
-          expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
+          Expr vl = d_eparser.mkExpr(Kind::TUPLE, vars);
+          expr = d_eparser.mkExpr(Kind::LAMBDA, {vl, expr});
         }
         // define additionally takes attributes
         if (tok == Token::DEFINE)
@@ -692,8 +692,8 @@ bool CmdParser::parseNextCommand()
       if (!snames.empty())
       {
         d_state.popScope();
-        Expr vl = d_state.mkExpr(Kind::TUPLE, vars);
-        t = d_state.mkExpr(Kind::LAMBDA, {vl, t});
+        Expr vl = d_eparser.mkExpr(Kind::TUPLE, vars);
+        t = d_eparser.mkExpr(Kind::LAMBDA, {vl, t});
       }
       d_eparser.bind(name, t);
     }
@@ -844,7 +844,7 @@ bool CmdParser::parseNextCommand()
           // type check whether this is a legal pattern/return pair.
           d_eparser.typeCheckProgramPair(pc, rhs, true);
         }
-        program = d_state.mkExpr(Kind::PROGRAM, pchildren);
+        program = d_eparser.mkExpr(Kind::PROGRAM, pchildren);
       }
       d_state.popScope();
       // call even if null, so that plugins are notified of forward declarations

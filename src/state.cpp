@@ -186,7 +186,7 @@ State::State(Options& opts, Stats& stats)
   markConstructorKind(d_listCons, Attr::RIGHT_ASSOC_NIL, d_listNil);
 
   // any is used internally but is not avaiable to the user
-  d_any = Expr(mkExpr(Kind::ANY, {}));
+  d_any = Expr(mkExprInternal(Kind::ANY, {}));
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
   // Proof is the return type of terms with kind Kind::PROOF, which is an
@@ -460,7 +460,7 @@ bool State::addAssumption(const Expr& a)
       Expr aa = a;
       if (!d_referenceNf.isNull())
       {
-        aa = mkExpr(Kind::APPLY, {d_referenceNf, a});
+        aa = mkApply({d_referenceNf, a});
       }
       return d_referenceAsserts.find(aa.getValue()) != d_referenceAsserts.end();
     }
@@ -473,7 +473,7 @@ void State::addReferenceAssert(const Expr& a)
   Expr aa = a;
   if (!d_referenceNf.isNull())
   {
-    aa = mkExpr(Kind::APPLY, {d_referenceNf, a});
+    aa = mkApply({d_referenceNf, a});
   }
   d_referenceAsserts.insert(aa.getValue());
   // ensure ref count
@@ -558,7 +558,7 @@ Expr State::mkRequires(const std::vector<Expr>& args, const Expr& ret)
 
 Expr State::mkRequires(const Expr& a1, const Expr& a2, const Expr& ret)
 {
-  return Expr(mkExpr(Kind::EVAL_REQUIRES, {a1, a2, ret}));
+  return mkLiteralOp(Kind::EVAL_REQUIRES, {a1, a2, ret});
 }
 
 Expr State::mkBoolType()
@@ -626,215 +626,122 @@ ExprValue* State::mkSymbolInternal(Kind k,
   return v;
 }
 
-Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
+Expr State::mkApply(const std::vector<Expr>& children)
+{
+  Assert(!children.empty());
+  std::vector<ExprValue*> vchildren;
+  for (const Expr& c : children)
+  {
+    vchildren.push_back(c.getValue());
+  }
+  ExprValue* hd = vchildren[0];
+  AppInfo* ai = getAppInfo(hd);
+  if (ai != nullptr)
+  {
+    // Compute the "constructor term" for the operator, which may involve
+    // type inference. We store the constructor term in consTerm and operator
+    // in hdTerm, where notice hdTerm is of kind PARAMETERIZED if consTerm
+    // (prior to resolution) was PARAMETERIZED. So, for example, applying
+    // `bvor` to `a` of type `(BitVec 4)` results in
+    //   consTerm := #b0000.
+    Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
+    Expr ret = mkApplyAttr(ai, vchildren, consTerm);
+    if (!ret.isNull())
+    {
+      return ret;
+    }
+  }
+  Kind hk = hd->getKind();
+  if (hk == Kind::LAMBDA)
+  {
+    // beta-reduce eagerly, if the correct arity
+    const std::vector<ExprValue*>& vars = (*hd)[0]->getChildren();
+    size_t nvars = vars.size();
+    if (nvars == children.size() - 1)
+    {
+      Ctx ctx;
+      for (size_t i = 0; i < nvars; i++)
+      {
+        ctx[vars[i]] = vchildren[i + 1];
+      }
+      Expr ret = d_tc.evaluate((*hd)[1], ctx);
+      Trace("state") << "BETA_REDUCE " << Expr((*hd)[1]) << " " << ctx
+                     << " = " << ret << std::endl;
+      return ret;
+    }
+    Warning() << "Wrong number of arguments when applying " << Expr(hd)
+              << std::endl;
+  }
+  else if (hk == Kind::PROGRAM_CONST)
+  {
+    // have to check whether we have marked the constructor kind, which is
+    // not the case i.e. if we are constructing applications corresponding to
+    // the cases in the program definition itself.
+    if (getConstructorKind(hd) != Attr::NONE)
+    {
+      Expr hdt = Expr(hd);
+      const Expr& t = d_tc.getType(hdt);
+      // only do this if the correct arity
+      if (t.getNumChildren() == children.size())
+      {
+        Ctx ctx;
+        Expr e = d_tc.evaluateProgramInternal(vchildren, ctx);
+        if (!e.isNull())
+        {
+          Expr ret = d_tc.evaluate(e.getValue(), ctx);
+          Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
+          return ret;
+        }
+      }
+      else
+      {
+        Warning() << "Wrong number of arguments when applying program "
+                  << Expr(hd) << ", " << t.getNumChildren()
+                  << " arguments expected, got " << children.size()
+                  << std::endl;
+      }
+    }
+  }
+  // Most functions are unary and require currying if applied to more than one
+  // argument. The exceptions to this are operators whose types are not
+  // flattened (programs and proof rules).
+  if (children.size() > 2 && hk != Kind::PROGRAM_CONST
+      && hk != Kind::PROOF_RULE)
+  {
+    return Expr(mkApplyInternal(vchildren));
+  }
+  return Expr(mkExprInternal(Kind::APPLY, vchildren));
+}
+
+Expr State::mkLiteralOp(Kind k, const std::vector<Expr>& children)
 {
   std::vector<ExprValue*> vchildren;
   for (const Expr& c : children)
   {
     vchildren.push_back(c.getValue());
   }
-  if (k==Kind::APPLY)
+  // this transforms e.g. (eo::add t1 t2 t3) into (eo::add (eo::add t1 t2)
+  // t3).
+  if (isNaryLiteralOp(k) && vchildren.size() > 2)
   {
-    Assert(!children.empty());
-    // see if there is a special way of building terms for the head
-    ExprValue* hd = vchildren[0];
-    AppInfo* ai = getAppInfo(hd);
-    if (ai!=nullptr)
+    std::vector<Expr> cc{children[0], children[1]};
+    Expr curr = mkLiteralOp(k, cc);
+    for (size_t i = 2, nargs = vchildren.size(); i < nargs; i++)
     {
-      if (ai->d_kind!=Kind::NONE)
-      {
-        Trace("state-debug") << "Process builtin app " << ai->d_kind << std::endl;
-        if (ai->d_kind==Kind::FUNCTION_TYPE)
-        {
-          // functions (from parsing) are flattened here
-          std::vector<Expr> achildren(children.begin()+1, children.end()-1);
-          return mkFunctionType(achildren, children.back());
-        }
-        else if (ai->d_kind == Kind::APPLY)
-        {
-          // Applications (_ f ...) do *not* recursively desugar.
-          // remove the dummy operator "_"
-          vchildren.erase(vchildren.begin(), vchildren.begin() + 1);
-          // return the curried version
-          return Expr(vchildren.size() > 2
-                          ? mkApplyInternal(vchildren)
-                          : mkExprInternal(Kind::APPLY, vchildren));
-        }
-        // another builtin operator, possibly APPLY
-        std::vector<Expr> achildren(children.begin()+1, children.end());
-        // must call mkExpr again, since we may auto-evaluate
-        return mkExpr(ai->d_kind, achildren);
-      }
-      if (ai->d_isOverloaded)
-      {
-        Trace("overload") << "Use overload when constructing " << k << " " << children << std::endl;
-        std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
-        Assert (ov.size()>=2);
-        Expr ret = getOverloadInternal(ov, children, nullptr, true);
-        if (!ret.isNull())
-        {
-          Trace("overload") << "...found overload " << ret << std::endl;
-          return ret;
-        }
-        Warning() << "No overload found when constructing application "
-                  << children << std::endl;
-      }
-      // Compute the "constructor term" for the operator, which may involve
-      // type inference. We store the constructor term in consTerm and operator
-      // in hdTerm, where notice hdTerm is of kind PARAMETERIZED if consTerm
-      // (prior to resolution) was PARAMETERIZED. So, for example, applying
-      // `bvor` to `a` of type `(BitVec 4)` results in
-      //   consTerm := #b0000.
-      Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
-      Expr ret = mkApplyAttr(ai, vchildren, consTerm);
-      if (!ret.isNull())
-      {
-        return ret;
-      }
+      cc[0] = curr;
+      cc[1] = children[i];
+      curr = mkLiteralOp(k, cc);
     }
-    Kind hk = hd->getKind();
-    if (hk==Kind::LAMBDA)
-    {
-      // beta-reduce eagerly, if the correct arity
-      const std::vector<ExprValue*>& vars = (*hd)[0]->getChildren();
-      size_t nvars = vars.size();
-      if (nvars==children.size()-1)
-      {
-        Ctx ctx;
-        for (size_t i=0; i<nvars; i++)
-        {
-          ctx[vars[i]] = vchildren[i + 1];
-        }
-        Expr ret = d_tc.evaluate((*hd)[1], ctx);
-        Trace("state") << "BETA_REDUCE " << Expr((*hd)[1]) << " " << ctx << " = " << ret << std::endl;
-        return ret;
-      }
-      else
-      {
-        Warning() << "Wrong number of arguments when applying " << Expr(hd) << std::endl;
-      }
-    }
-    else if (hk == Kind::PROGRAM_CONST)
-    {
-      // have to check whether we have marked the constructor kind, which is
-      // not the case i.e. if we are constructing applications corresponding to
-      // the cases in the program definition itself.
-      if (getConstructorKind(hd)!=Attr::NONE)
-      {
-        Expr hdt = Expr(hd);
-        const Expr& t = d_tc.getType(hdt);
-        // only do this if the correct arity
-        if (t.getNumChildren() == children.size())
-        {
-          Ctx ctx;
-          Expr e = d_tc.evaluateProgramInternal(vchildren, ctx);
-          if (!e.isNull())
-          {
-            Expr ret = d_tc.evaluate(e.getValue(), ctx);
-            Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
-            return ret;
-          }
-        }
-        else
-        {
-          Warning() << "Wrong number of arguments when applying program " << Expr(hd)
-                    << ", " << t.getNumChildren() << " arguments expected, got "
-                    << children.size() << std::endl;
-        }
-      }
-    }
-    // Most functions are unary and require currying if applied to more than one argument.
-    // The exceptions to this are operators whose types are not flattened (programs and proof rules).
-    if (children.size()>2)
-    {
-      if (hk != Kind::PROGRAM_CONST && hk != Kind::PROOF_RULE)
-      {
-        // return the curried version
-        return Expr(mkApplyInternal(vchildren));
-      }
-    }
+    return curr;
   }
-  else if (isLiteralOp(k))
+  // only if correct arity, else we will catch the type error
+  bool isArityOk = TypeChecker::checkArity(k, vchildren.size());
+  if (isArityOk)
   {
-    // this transforms e.g. (eo::add t1 t2 t3) into (eo::add (eo::add t1 t2)
-    // t3).
-    if (isNaryLiteralOp(k) && vchildren.size() > 2)
-    {
-      std::vector<Expr> cc{children[0], children[1]};
-      Expr curr = mkExpr(k, cc);
-      for (size_t i = 2, nargs = vchildren.size(); i < nargs; i++)
-      {
-        cc[0] = curr;
-        cc[1] = children[i];
-        curr = mkExpr(k, cc);
-      }
-      return curr;
-    }
-    // only if correct arity, else we will catch the type error
-    bool isArityOk = TypeChecker::checkArity(k, vchildren.size());
-    if (isArityOk)
-    {
-      // return the evaluation
-      return d_tc.evaluateLiteralOp(k, vchildren);
-    }
-    else
-    {
-      Warning() << "Wrong number of arguments when applying literal op " << k
-                << ", " << children.size() << " arguments" << std::endl;
-    }
+    return d_tc.evaluateLiteralOp(k, vchildren);
   }
-  else if (k == Kind::AS_RETURN)
-  {
-    // (as nil (List Int)) --> (_ nil (List Int))
-    Attr ck = getConstructorKind(vchildren[0]);
-    if ((ck == Attr::AMB_DATATYPE_CONSTRUCTOR || ck == Attr::AMB)
-        && children.size() == 2)
-    {
-      Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
-      return mkExpr(Kind::APPLY_OPAQUE, {children[0], children[1]});
-    }
-    // note we don't support other uses of `as` for symbol disambiguation yet,
-    // we fallthrough and construct the bogus term of kind AS_RETURN.
-  }
-  else if (k==Kind::AS)
-  {
-    // if it has 2 children, process it, otherwise we make the bogus term of
-    // kind AS below
-    if (vchildren.size()==2)
-    {
-      Trace("overload") << "process eo::as " << children[0] << " " << children[1] << std::endl;
-      AppInfo* ai = getAppInfo(vchildren[0]);
-      Expr ret = children[0];
-      std::pair<std::vector<Expr>, Expr> ftype = children[1].getFunctionType();
-      Expr reto;
-      // look up the overload
-      std::vector<Expr> dummyChildren;
-      dummyChildren.push_back(children[1]);
-      for (const Expr& t : ftype.first)
-      {
-        dummyChildren.emplace_back(mkSymbol(Kind::CONST, "tmp", t));
-      }
-      if (ai!=nullptr && ai->d_isOverloaded)
-      {
-        Trace("overload") << "...overloaded" << std::endl;
-        std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
-        Assert (ov.size()>=2);
-        reto = getOverloadInternal(
-            ov, dummyChildren, ftype.second.getValue(), false);
-      }
-      else
-      {
-        Trace("overload") << "...not overloaded" << std::endl;
-        reto = getOverloadInternal(
-            {children[0]}, dummyChildren, ftype.second.getValue(), false);
-      }
-      if (!reto.isNull())
-      {
-        Trace("overload") << "...found overload " << reto << " " << d_tc.getType(reto) << std::endl;
-        return reto;
-      }
-    }
-  }
+  Warning() << "Wrong number of arguments when applying literal op " << k
+            << ", " << children.size() << " arguments" << std::endl;
   return Expr(mkExprInternal(k, vchildren));
 }
 
@@ -871,7 +778,14 @@ Expr State::mkLiteral(Kind k, const std::string& s)
 
 Expr State::mkParameterized(const ExprValue* hd, const std::vector<Expr>& params)
 {
-  return mkExpr(Kind::PARAMETERIZED, {mkExpr(Kind::TUPLE, params), Expr(hd)});
+  std::vector<ExprValue*> pchildren;
+  for (const Expr& p : params)
+  {
+    pchildren.push_back(p.getValue());
+  }
+  Expr tuple(mkExprInternal(Kind::TUPLE, pchildren));
+  return Expr(mkExprInternal(Kind::PARAMETERIZED, {tuple.getValue(),
+                                                   const_cast<ExprValue*>(hd)}));
 }
 
 Expr State::mkList(const std::vector<Expr>& args)
@@ -883,7 +797,7 @@ Expr State::mkList(const std::vector<Expr>& args)
   std::vector<Expr> largs;
   largs.push_back(d_listCons);
   largs.insert(largs.end(), args.begin(), args.end());
-  return mkExpr(Kind::APPLY, largs);
+  return mkApply(largs);
 }
 
 Expr State::mkDisambiguatedType(const Expr& disambPat,
@@ -908,14 +822,14 @@ Expr State::mkDisambiguatedType(const Expr& disambPat,
   std::stringstream ss;
   ss << "$eo_disamb_type_" << name;
   Expr tprog = mkSymbol(Kind::PROGRAM_CONST, ss.str(), pt);
-  Expr tpat = mkExpr(Kind::APPLY, {tprog, disambPat});
+  Expr tpat = mkApply({tprog, disambPat});
   Expr progCase = mkPair(tpat, ret);
-  Expr prog = mkExpr(Kind::PROGRAM, {progCase});
+  Expr prog = Expr(mkExprInternal(Kind::PROGRAM, {progCase.getValue()}));
   defineProgram(tprog, prog);
   ss << "_var";
   Expr tv = mkSymbol(Kind::PARAM, ss.str(), d_type);
   Expr qtv = mkQuoteType(tv);
-  Expr fapp = mkExpr(Kind::APPLY, {tprog, tv});
+  Expr fapp = mkApply({tprog, tv});
   return mkFunctionType({qtv}, fapp);
 }
 
@@ -1082,7 +996,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
           std::vector<Expr> ccse;
           ccse.emplace_back(hd);
           ccse.emplace_back(curr);
-          return mkExpr(Kind::EVAL_LIST_SINGLETON_ELIM, ccse);
+          return mkLiteralOp(Kind::EVAL_LIST_SINGLETON_ELIM, ccse);
         }
         Trace("type_checker")
             << "...return for " << Expr(vchildren[0]) << std::endl;
@@ -1117,7 +1031,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
         return cchildren[1];
       }
       // note this could loop
-      return mkExpr(Kind::APPLY, cchildren);
+      return mkApply(cchildren);
     }
     break;
     case Attr::PAIRWISE:
@@ -1141,7 +1055,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
         return cchildren[1];
       }
       // note this could loop
-      return mkExpr(Kind::APPLY, cchildren);
+      return mkApply(cchildren);
     }
     break;
     case Attr::ARG_LIST:
@@ -1163,7 +1077,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
         {
           cchildren.emplace_back(vchildren[i]);
         }
-        argList = mkExpr(Kind::APPLY, cchildren);
+        argList = mkApply(cchildren);
       }
       return Expr(
           mkExprInternal(Kind::APPLY, {vchildren[0], argList.getValue()}));
@@ -1307,7 +1221,7 @@ Expr State::mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs)
   std::vector<Expr> vlist;
   vlist.push_back(it->second.d_attrConsTerm);
   vlist.insert(vlist.end(), vs.begin(), vs.end());
-  return mkExpr(Kind::APPLY, vlist);
+  return mkApply(vlist);
 }
 
 Expr State::mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Expr, Expr>>& lls)
@@ -1322,12 +1236,12 @@ Expr State::mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Exp
   std::vector<Expr> vs;
   for (const std::pair<Expr, Expr>& ll : lls)
   {
-    vs.emplace_back(mkExpr(Kind::APPLY, {pairCons, ll.first, ll.second}));
+    vs.emplace_back(mkApply({pairCons, ll.first, ll.second}));
   }
   std::vector<Expr> vlist;
   vlist.push_back(listCons);
   vlist.insert(vlist.end(), vs.begin(), vs.end());
-  return mkExpr(Kind::APPLY, vlist);
+  return mkApply(vlist);
 }
 
 Attr State::getConstructorKind(const ExprValue* v) const
@@ -1356,9 +1270,9 @@ Expr State::getBoundVar(const std::string& name, const Expr& type)
   if (!type.isGround())
   {
     // If the type is non-ground, we cannot evaluate it yet. Moreover this is
-    // not cached here, instead it is cached as part of mkExpr.
+    // not cached here, instead it is cached via mkLiteralOp below.
     Expr ename = mkLiteral(Kind::STRING, name);
-    return mkExpr(Kind::EVAL_VAR, {ename, type});
+    return mkLiteralOp(Kind::EVAL_VAR, {ename, type});
   }
   std::pair<std::string, const ExprValue*> key(name, type.getValue());
   std::map<std::pair<std::string, const ExprValue*>, Expr>::iterator it = d_boundVars.find(key);
@@ -1522,7 +1436,7 @@ bool State::notifyStep(const std::string& name,
       }
       else
       {
-        ap = mkExpr(Kind::APPLY, achildren);
+        ap = mkApply(achildren);
       }
       // collects to a proof
       Expr n = mkProof(ap);

@@ -141,6 +141,121 @@ public:
   }
 };
 
+Expr ExprParser::mkExpr(Kind k, const std::vector<Expr>& children)
+{
+  std::vector<ExprValue*> vchildren;
+  for (const Expr& c : children)
+  {
+    vchildren.push_back(c.getValue());
+  }
+  if (k == Kind::APPLY)
+  {
+    Assert(!children.empty());
+    ExprValue* hd = vchildren[0];
+    AppInfo* ai = d_state.getAppInfo(hd);
+    if (ai != nullptr)
+    {
+      if (ai->d_kind != Kind::NONE)
+      {
+        Trace("state-debug") << "Process builtin app " << ai->d_kind
+                             << std::endl;
+        if (ai->d_kind == Kind::FUNCTION_TYPE)
+        {
+          // Functions (from parsing) are flattened here.
+          std::vector<Expr> achildren(children.begin() + 1, children.end() - 1);
+          return d_state.mkFunctionType(achildren, children.back());
+        }
+        if (ai->d_kind == Kind::APPLY)
+        {
+          // Applications (_ f ...) do *not* recursively desugar.
+          // Remove the dummy operator "_".
+          vchildren.erase(vchildren.begin(), vchildren.begin() + 1);
+          return Expr(vchildren.size() > 2
+                          ? d_state.mkApplyInternal(vchildren)
+                          : d_state.mkExprInternal(Kind::APPLY, vchildren));
+        }
+        // Another builtin operator, possibly APPLY.
+        std::vector<Expr> achildren(children.begin() + 1, children.end());
+        return mkExpr(ai->d_kind, achildren);
+      }
+      if (ai->d_isOverloaded)
+      {
+        Trace("overload") << "Use overload when constructing " << k << " "
+                          << children << std::endl;
+        std::vector<Expr>& ov = d_state.d_overloads[ai->d_overloadName];
+        Assert(ov.size() >= 2);
+        Expr ret = d_state.getOverloadInternal(ov, children, nullptr, true);
+        if (!ret.isNull())
+        {
+          Trace("overload") << "...found overload " << ret << std::endl;
+          return ret;
+        }
+        Warning() << "No overload found when constructing application "
+                  << children << std::endl;
+      }
+    }
+    return d_state.mkApply(children);
+  }
+  if (isLiteralOp(k))
+  {
+    return d_state.mkLiteralOp(k, children);
+  }
+  if (k == Kind::AS_RETURN)
+  {
+    // (as nil (List Int)) --> (_ nil (List Int))
+    Attr ck = d_state.getConstructorKind(vchildren[0]);
+    if ((ck == Attr::AMB_DATATYPE_CONSTRUCTOR || ck == Attr::AMB)
+        && children.size() == 2)
+    {
+      Trace("overload") << "...type arg for ambiguous constructor"
+                        << std::endl;
+      return mkExpr(Kind::APPLY_OPAQUE, {children[0], children[1]});
+    }
+    // We don't support other uses of `as` for symbol disambiguation yet, and
+    // fall through to build the raw AS_RETURN term below.
+  }
+  else if (k == Kind::AS)
+  {
+    // If it has 2 children, process it, otherwise make the raw AS term below.
+    if (vchildren.size() == 2)
+    {
+      Trace("overload") << "process eo::as " << children[0] << " "
+                        << children[1] << std::endl;
+      AppInfo* ai = d_state.getAppInfo(vchildren[0]);
+      std::pair<std::vector<Expr>, Expr> ftype = children[1].getFunctionType();
+      Expr reto;
+      std::vector<Expr> dummyChildren;
+      dummyChildren.push_back(children[1]);
+      for (const Expr& t : ftype.first)
+      {
+        dummyChildren.emplace_back(d_state.mkSymbol(Kind::CONST, "tmp", t));
+      }
+      if (ai != nullptr && ai->d_isOverloaded)
+      {
+        Trace("overload") << "...overloaded" << std::endl;
+        std::vector<Expr>& ov = d_state.d_overloads[ai->d_overloadName];
+        Assert(ov.size() >= 2);
+        reto = d_state.getOverloadInternal(
+            ov, dummyChildren, ftype.second.getValue(), false);
+      }
+      else
+      {
+        Trace("overload") << "...not overloaded" << std::endl;
+        reto = d_state.getOverloadInternal(
+            {children[0]}, dummyChildren, ftype.second.getValue(), false);
+      }
+      if (!reto.isNull())
+      {
+        Trace("overload") << "...found overload " << reto << " "
+                          << d_state.getTypeChecker().getType(reto)
+                          << std::endl;
+        return reto;
+      }
+    }
+  }
+  return Expr(d_state.mkExprInternal(k, vchildren));
+}
+
 Expr ExprParser::parseExpr()
 {
   // the last parsed term
@@ -274,7 +389,7 @@ Expr ExprParser::parseExpr()
               tok, "Mismatched parentheses in SMT-LIBv2 term");
         }
         // Construct the application term specified by tstack.back()
-        ret = d_state.mkExpr(Kind::APPLY, sf.d_args);
+        ret = mkExpr(Kind::APPLY, sf.d_args);
         //typeCheck(ret);
         // pop the stack
         sf.pop(d_state);
@@ -836,7 +951,7 @@ bool ExprParser::parseDatatypesDef(
       std::vector<Expr> dapp;
       dapp.push_back(dt);
       dapp.insert(dapp.end(), params.begin(), params.end());
-      dti = d_state.mkExpr(Kind::APPLY, dapp);
+      dti = mkExpr(Kind::APPLY, dapp);
     }
     std::vector<std::pair<std::string, Expr>> toBind;
     std::vector<Expr>& clist = dts[dt.getValue()];

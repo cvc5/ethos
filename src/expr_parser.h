@@ -27,6 +27,8 @@ class ExprParser
   ExprParser(Lexer& lex, State& state, bool isSignature);
   virtual ~ExprParser() {}
 
+  /** Construct an expression using parser-level desugaring rules. */
+  Expr mkExpr(Kind k, const std::vector<Expr>& children);
   /** Parses a term <term> */
   Expr parseExpr();
   /**

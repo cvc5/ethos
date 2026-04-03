@@ -54,6 +54,7 @@ class State
 {
   friend class TypeChecker;
   friend class ExprValue;
+  friend class ExprParser;
 
  public:
   State(Options& opts, Stats& stats);
@@ -135,8 +136,6 @@ class State
   Expr mkSelf() const;
   /** Make pair */
   Expr mkPair(const Expr& t1, const Expr& t2);
-  /** */
-  Expr mkExpr(Kind k, const std::vector<Expr>& children);
   /** make true */
   Expr mkTrue() const;
   /** make false */
@@ -296,6 +295,10 @@ class State
   Expr mkApplyAttr(AppInfo* ai,
                    const std::vector<ExprValue*>& vchildren,
                    const Expr& consTerm);
+  /** Make an application, performing eager evaluation/currying as needed. */
+  Expr mkApply(const std::vector<Expr>& children);
+  /** Build or evaluate a literal operator application. */
+  Expr mkLiteralOp(Kind k, const std::vector<Expr>& children);
   /** Make (<APPLY> children), curried. */
   ExprValue* mkApplyInternal(const std::vector<ExprValue*>& children);
   /**
