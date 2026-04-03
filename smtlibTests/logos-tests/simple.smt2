@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-fun a () Int)
+(declare-fun b () Int)
+(assert (= a b))
+(assert (not (= b a)))
+(check-sat)
