@@ -2,7 +2,7 @@
 # Generate the full CPC Lean package and install it into local Logos trees.
 # Usage: install_logos
 # Output: reads generated Lean files from tools/eoc/out/lean/ and copies them
-# to $LOGOS_DIR/Cpc and $TEST_DIR/Cpc, including per-rule files under
+# to $LOGOS_DIR/Cpc, including per-rule files under
 # Proofs/Rules/. Existing rule files are preserved in $LOGOS_DIR/Cpc. It then
 # optionally regenerates example files from $LOGOS_TESTS_DIR when that
 # directory exists.
@@ -34,7 +34,7 @@ if [[ -d "$LOGOS_TESTS_DIR" ]]; then
       base_name="${base_file%.*}"
       echo "Generating $CVC5_LOGOS $PWD/$file to $LOGOS_DIR/examples/test-$base_name.cpc.lean"
       "$CPC_GEN_LOGOS_CMD" "$CVC5_LOGOS" "$file" > temp.lean
-      mkdir -p "$LOGOS_DIR/examples" "$TEST_DIR/examples"
+      mkdir -p "$LOGOS_DIR/examples"
       cp temp.lean "$LOGOS_DIR/examples/test-$base_name.cpc.lean"
       rm -f temp.lean
     done
