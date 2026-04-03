@@ -102,7 +102,6 @@ class LeanMetaReduce : public MetaReducePlugin
   void printStepEmptyCase(std::ostream& out, const std::string& str, bool isPop);
   std::stringstream d_defs;
   std::stringstream d_eoIsObjDefs;
-  std::stringstream d_thms;
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
   /** Eunoia to object inductive prop */
@@ -119,7 +118,6 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_smtValueDt;
   std::stringstream d_cmdDt;
   std::stringstream d_ruleDt;
-  std::stringstream d_lemmaAuxDef;
   std::stringstream d_rlInclude;
   std::stringstream d_rlIncludeStep;
   std::stringstream d_rlIncludeStepPop;

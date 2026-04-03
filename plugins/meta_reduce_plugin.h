@@ -49,7 +49,8 @@ class MetaReducePlugin : public StdPlugin
   std::string emitResourceFile(
       const std::string& resourcePath,
       const std::string& outputPath,
-      const std::vector<Replacement>& replacements) const;
+      const std::vector<Replacement>& replacements,
+      bool replAll = false) const;
 
   virtual bool isBuiltinMetaSymbol(const std::string& sname) const = 0;
   virtual void finalizeDecl(const Expr& e) = 0;

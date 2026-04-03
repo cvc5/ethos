@@ -212,7 +212,8 @@ bool MetaReducePlugin::isProgramApp(const Expr& app)
 std::string MetaReducePlugin::emitResourceFile(
     const std::string& resourcePath,
     const std::string& outputPath,
-    const std::vector<Replacement>& replacements) const
+    const std::vector<Replacement>& replacements,
+    bool replAll) const
 {
   std::ifstream in(getResourcePath(resourcePath));
   if (!in.is_open())
@@ -225,7 +226,14 @@ std::string MetaReducePlugin::emitResourceFile(
   std::string rendered = ss.str();
   for (const Replacement& repl : replacements)
   {
-    replace(rendered, repl.first, repl.second);
+    if (replAll)
+    {
+      rendered = replace_all(rendered, repl.first, repl.second);
+    }
+    else
+    {
+      replace(rendered, repl.first, repl.second);
+    }
   }
 
   std::string outPath = getOutputPath(outputPath);

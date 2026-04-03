@@ -618,10 +618,6 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     out = &d_eoIsObjDefs;
   }
-  else if (vname.compare(0, 8, "$eo_lem_") == 0)
-  {
-    out = &d_lemmaAuxDef;
-  }
   if (vname == "$smtx_model_eval")
   {
     decl << "noncomputable ";
@@ -1011,12 +1007,6 @@ void LeanMetaReduce::finalizeSpec()
 
 void LeanMetaReduce::finalizeLemmas()
 {
-  const std::string outPath0 = emitResourceFile(
-      "plugins/lean_meta/lean_meta_lemmas.lean",
-      "plugins/lean_meta/lean_meta_lemmas_gen.lean",
-      {{"$LEAN_THMS$", d_thms.str()},
-       {"$LEAN_LEMMA_AUX_DEFS$", d_lemmaAuxDef.str()}});
-  Trace("lean-meta") << "Write lean-defs " << outPath0 << std::endl;
   const std::string outPath = emitResourceFile(
       "plugins/lean_meta/lean_meta_rule_lemmas.lean",
       "plugins/lean_meta/lean_meta_rule_lemmas_gen.lean",
@@ -1072,7 +1062,7 @@ void LeanMetaReduce::printStepCase(std::ostream& out, const std::string& prule, 
   const std::string outPath = emitResourceFile(
       "plugins/lean_meta/lean_meta_rule.lean",
       ss.str(),
-      {{"$EO_RULE$", prule}});
+      {{"$EO_RULE$", prule}}, true);
   Trace("lean-meta") << "Write lean-defs rule " << outPath << std::endl;
 //  | contra =>
 //      exact cmd_step_facts_of_rule_properties M s premises hs <|
@@ -1112,51 +1102,9 @@ bool LeanMetaReduce::echo(const std::string& msg)
                     << eosc;
     }
     std::string progName = cleanId(eosc);
-    d_thms << "/- correctness theorem for " << progName << " -/"
-           << std::endl;
-    std::stringstream call;
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
     if (ctype == ConjectureType::VC)
     {
-// ------------------ old
-      d_thms << "theorem correct_" << cleanId(eosc) << " (M : SmtModel) ";
-      Expr def = d_state.getProgram(vv.getValue());
-      Expr vt = vv.getType();
-      std::stringstream pcs;
-      if (vt.getKind() == Kind::PROGRAM_TYPE)
-      {
-        d_thms << "(";
-        std::stringstream conds;
-        std::stringstream progArgs;
-        for (size_t i = 1; i < vt.getNumChildren(); i++)
-        {
-          d_thms << (i > 1 ? " " : "") << "x" << i;
-          if (getTypeMetaKind(vt[i - 1]) == MetaKind::PROOF)
-          {
-            conds << "  (eo_interprets M x" << i << " true) ->" << std::endl;
-            progArgs << (i > 1 ? " " : "") << "(Proof.pf x" << i << ")";
-          }
-          else
-          {
-            progArgs << (i > 1 ? " " : "") << "x" << i;
-          }
-        }
-        d_thms << " : Term)"
-               << " :" << std::endl;
-        d_thms << conds.str();
-        pcs << "(" << cleanId(eosc) << " " << progArgs.str() << ")";
-      }
-      else
-      {
-        d_thms << ":" << std::endl;
-        pcs << cleanId(eosc);
-      }
-      d_thms << "  (Not (" << pcs.str() << " = Term.Stuck)) ->" << std::endl;
-      d_thms << "  (eo_interprets M ";
-      d_thms << pcs.str() << " true) :=" << std::endl;
-      d_thms << "by" << std::endl;
-      d_thms << "  sorry" << std::endl;
-      d_thms << std::endl;
 // ------------------ new
       std::string prule = progName.substr(10);
       std::string fileName = prule;
