@@ -68,7 +68,7 @@ def eo_interprets (M : ObjectModel) (t : Term) (b : Bool) : Prop :=
 /-
 Eunoia satisfiability depends on SMT satisfiability.
 -/
-def eo_satisfiability : (t : Term) (b : Bool) : Prop :=
+def eo_satisfiability (t : Term) (b : Bool) : Prop :=
   exists (s : ObjectTerm), (eo_is_obj t s) /\ (smt_satisfiability s b)
 
 

@@ -340,7 +340,8 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   d_eoTypeof << "  ; type-rule: " << e << std::endl;
   // good for debugging
   // d_eoTypeof << "  ; type is " << ct << std::endl;
-  if (!ct.isGround())
+  bool isHoType = optionEoTypeofHo();
+  if (!ct.isGround() || (!isHoType && ct.getKind() == Kind::FUNCTION_TYPE))
   {
     Assert(ct.getKind() == Kind::FUNCTION_TYPE)
         << "Not function type " << ct << " for " << e;
@@ -414,7 +415,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       ct = ct[nargs - 1];
       // maybe we are now fully bound?
       std::vector<Expr> vars = Expr::getVariables(argTypes);
-      if (allVars.size() == vars.size())
+      if (allVars.size() == vars.size() && isHoType)
       {
         break;
       }
@@ -429,26 +430,37 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     d_eoTypeof << ") ";
     if (ngArgs > 0)
     {
-      std::stringstream ssng;
-      ssng << "$eo_typeof_";
-      printName(e, ssng);
-      std::string pname = ssng.str();
-      // construct the program and print it
-      std::vector<Expr> argTypes;
-      Expr retType = d_state.mkType();
-      for (size_t i = 0, ngsize = ngscope.size(); i < ngsize; i++)
+      Expr canonT = mkCanonize(cto);
+      std::map<Expr, std::string>::iterator itc = d_canonTypeProgName.find(canonT);
+      std::string pname;
+      if (itc==d_canonTypeProgName.end() || !optionEoTypeCanonize())
       {
-        argTypes.push_back(ngscope[i].getType());
+        std::stringstream ssng;
+        ssng << "$eo_typeof_";
+        printName(e, ssng);
+        pname = ssng.str();
+        // construct the program and print it
+        std::vector<Expr> argTypes;
+        Expr retType = d_state.mkType();
+        for (size_t i = 0, ngsize = ngscope.size(); i < ngsize; i++)
+        {
+          argTypes.push_back(ngscope[i].getType());
+        }
+        Expr progType = d_state.mkProgramType(argTypes, retType);
+        Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pname, progType);
+        std::vector<Expr> pchildren;
+        pchildren.push_back(prog);
+        pchildren.insert(pchildren.end(), ngscope.begin(), ngscope.end());
+        Expr progPat = d_state.mkExpr(Kind::APPLY, pchildren);
+        Expr progPair = d_state.mkPair(progPat, ct);
+        Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
+        finalizeProgram(prog, progDef, d_eoTypeofNGround);
+        d_canonTypeProgName[canonT] = pname;
       }
-      Expr progType = d_state.mkProgramType(argTypes, retType);
-      Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pname, progType);
-      std::vector<Expr> pchildren;
-      pchildren.push_back(prog);
-      pchildren.insert(pchildren.end(), ngscope.begin(), ngscope.end());
-      Expr progPat = d_state.mkExpr(Kind::APPLY, pchildren);
-      Expr progPair = d_state.mkPair(progPat, ct);
-      Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
-      finalizeProgram(prog, progDef, d_eoTypeofNGround);
+      else
+      {
+        pname = itc->second;
+      }
       d_eoTypeof << "(" << pname << ssngarg.str() << ")";
     }
     else
@@ -887,6 +899,29 @@ bool Desugar::notifyStep(const std::string& name,
 }
 
 bool Desugar::echo(const std::string& msg) { return true; }
+
+Expr Desugar::mkCanonize(const Expr& t)
+{
+  std::map<Expr, Expr> visited;
+  std::vector<Expr> vars = Expr::getVariables(t);
+  std::map<Expr, size_t> index;
+  for (const Expr& v : vars)
+  {
+    Expr tv = v.getType();
+    size_t i = index[tv];
+    index[tv]++;
+    std::vector<Expr>& tvars = d_vars[tv];
+    if (tvars.size()==i)
+    {
+      tvars.push_back(tv);
+    }
+    else
+    {
+      visited[v] = tvars[i];
+    }
+  }
+  return mkSanitize(t, visited);
+}
 
 Expr Desugar::mkSanitize(const Expr& t)
 {

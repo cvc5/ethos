@@ -84,6 +84,8 @@ class StdPlugin : public Plugin
   static bool optionSmtMetaSygusGrammar();
   static bool optionSmtMetaSygusGrammarWellTyped();
   static bool optionVcUseTypeof();
+  static bool optionEoTypeofHo();
+  static bool optionEoTypeCanonize();
 };
 
 }  // namespace ethos

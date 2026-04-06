@@ -796,6 +796,8 @@
     (tsm.Datatype (eo.DatatypeType.arg1 x1) ($eo_to_smt_datatype (eo.DatatypeType.arg2 x1)))
   (ite ((_ is eo.USort) x1)
     (tsm.USort (eo.USort.arg1 x1))
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.FunType) (eo.Apply.arg1 (eo.Apply.arg1 x1))))
+    ($smtx_typeof_guard ($eo_to_smt_type (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($smtx_typeof_guard ($eo_to_smt_type (eo.Apply.arg2 x1)) (tsm.Map ($eo_to_smt_type (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($eo_to_smt_type (eo.Apply.arg2 x1)))))
   (ite (= x1 eo.Int)
     tsm.Int
   (ite (= x1 eo.Real)
@@ -805,9 +807,9 @@
   (ite (= x1 eo.Char)
     tsm.Char
   (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.Seq))
-    (tsm.Seq ($eo_to_smt_type (eo.Apply.arg2 x1)))
+    ($smtx_typeof_guard ($eo_to_smt_type (eo.Apply.arg2 x1)) (tsm.Seq ($eo_to_smt_type (eo.Apply.arg2 x1))))
     tsm.None
-))))))))) :pattern (($eo_to_smt_type x1)))) :named sm.axiom.$eo_to_smt_type))
+)))))))))) :pattern (($eo_to_smt_type x1)))) :named sm.axiom.$eo_to_smt_type))
 
 ; program: $eo_to_smt
 (declare-fun $eo_to_smt (eo.Term) sm.Term)

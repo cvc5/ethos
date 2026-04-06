@@ -1374,6 +1374,10 @@ $EO_TO_SMT_AUX$
   (($eo_to_smt_type Bool)                     $tsm_Bool)
   (($eo_to_smt_type ($eot_DatatypeType s d))  ($tsm_Datatype s ($eo_to_smt_datatype d)))
   (($eo_to_smt_type ($eot_USort i))           ($tsm_USort i))
+  (($eo_to_smt_type (-> T1 T2))
+    (eo::define ((S1 ($eo_to_smt_type T1)))
+    (eo::define ((S2 ($eo_to_smt_type T2)))
+      ($smtx_typeof_guard S1 ($smtx_typeof_guard S2 ($tsm_Map S1 S2))))))
 $EO_TO_SMT_TYPE_CASES$
   (($eo_to_smt_type T)                      $tsm_none)
   )

@@ -158,6 +158,12 @@ class Desugar : public StdPlugin
   DesugarProof d_dproof;
   /** desugaring the checker */
   DesugarChecker d_dchecker;
+  
+  //----- canonize
+  /** Canonize */
+  Expr mkCanonize(const Expr& t);
+  std::map<Expr, std::vector<Expr>> d_vars;
+  std::map<Expr, std::string> d_canonTypeProgName;
 };
 
 }  // namespace ethos

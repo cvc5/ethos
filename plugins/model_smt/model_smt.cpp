@@ -1282,6 +1282,8 @@ void ModelSmt::printDecl(const std::string& name,
   std::string sret = cname.str();
   std::stringstream eoToSmtPatArgs;
   std::stringstream eoToSmtRetArgs;
+  std::stringstream eoToSmtRetReqBegin;
+  std::stringstream eoToSmtRetReqEnd;
   bool printedOpq = false;
   for (size_t i = 0, nargs = args.size(); i < nargs; i++)
   {
@@ -1292,13 +1294,20 @@ void ModelSmt::printDecl(const std::string& name,
     if (args[i] == Kind::TYPE)
     {
       Assert(!printedOpq);
+      std::stringstream currT;
+      currT << "($eo_to_smt_type x" << (i + 1) << ")";
       // type arguments are always opaque on the SMT level
       // this includes types as arguments to other types and types indexing
       // seq.empty and set.empty.
       stmp << "$smt_Type :opaque";
       macroOpqApply << " x" << (i + 1);
       eoToSmtPatArgs << " x" << (i + 1);
-      eoToSmtRetArgs << " ($eo_to_smt_type x" << (i + 1) << ")";
+      eoToSmtRetArgs << " " << currT.str();
+      if (ret == Kind::TYPE)
+      {
+        eoToSmtRetReqBegin << "($smtx_typeof_guard " << currT.str() << " ";
+        eoToSmtRetReqEnd << ")";
+      }
     }
     else if (ret == Kind::TYPE && args[i] == Kind::NUMERAL)
     {
@@ -1358,7 +1367,7 @@ void ModelSmt::printDecl(const std::string& name,
   }
   if (ret == Kind::TYPE)
   {
-    d_eoToSmtType << "  (($eo_to_smt_type " << eoToSmtPat << ") " << eoToSmtRet
+    d_eoToSmtType << "  (($eo_to_smt_type " << eoToSmtPat << ") " << eoToSmtRetReqBegin.str() << eoToSmtRet << eoToSmtRetReqEnd.str()
                   << ")" << std::endl;
   }
   else
