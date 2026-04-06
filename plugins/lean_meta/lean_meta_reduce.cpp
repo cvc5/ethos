@@ -1152,10 +1152,6 @@ MetaKind LeanMetaReduce::getMetaKind(State&,
 
 std::string LeanMetaReduce::cleanSmtId(const std::string& id)
 {
-  if (id == "repeat")
-  {
-    return "__smt_" + id;
-  }
   if (id == "end" || id == "variable")
   {
     return "__eo_" + id;

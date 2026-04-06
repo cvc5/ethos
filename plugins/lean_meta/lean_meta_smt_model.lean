@@ -561,16 +561,23 @@ inductive smt_interprets : SmtModel -> SmtTerm -> Bool -> Prop
       (__smtx_model_eval M t) = (SmtValue.Boolean false)->
       smt_interprets M t false
 
+def type_inhabited (T : SmtType) : Prop :=
+  ∃ v : SmtValue, __smtx_typeof_value v = T
+
+def model_total_typed (M : SmtModel) : Prop :=
+  (∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
+  (∀ s T, ¬ type_inhabited T -> __smtx_model_lookup M s T = SmtValue.NotValue)
+
 /-
 SMT interpretation is satisfiability, i.e. the existence of a model
 interpreting the free constants.
 -/
 inductive smt_satisfiability : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
-      (exists M : SmtModel, (smt_interprets M t true)) ->
+      (exists M : SmtModel, model_total_typed M /\ (smt_interprets M t true)) ->
       smt_satisfiability t true
   | intro_false (t : SmtTerm) :
-      (forall M : SmtModel, ¬ (smt_interprets M t true))->
+      (forall M : SmtModel, model_total_typed M -> ¬ (smt_interprets M t true))->
       smt_satisfiability t false
 
 /- ---------------------------------------------- -/
