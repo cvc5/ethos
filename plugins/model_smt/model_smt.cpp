@@ -258,13 +258,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "ite",
       {kBool, kAny, kAny},
       "($sm_ite ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
+  // FIXME: distinct needs to handle arg list
   addTermReduceSym("distinct", {kAny, kAny}, kBool, "(not (= x1 x2))");
   d_typeFullCase["distinct"] = "($smtx_typeof_= ($smtx_typeof x1) ($smtx_typeof x2))";
   // Booleans
   addConstFoldSym("and", {kBool, kBool}, kBool);
   addConstFoldSym("or", {kBool, kBool}, kBool);
-  // addConstFoldSym("xor", {kBool, kBool}, kBool);
-  // addConstFoldSym("=>", {kBool, kBool}, kBool);
   addTermReduceSym("xor", {kBool, kBool}, kBool, "(not (= x1 x2))");
   addTermReduceSym("=>", {kBool, kBool}, kBool, "(or (not x1) x2)");
   addConstFoldSym("not", {kBool}, kBool);

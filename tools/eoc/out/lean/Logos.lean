@@ -297,9 +297,40 @@ partial def __eo_lit_type_String : Term -> Term
   | t => (Term.Apply Term.Seq Term.Char)
 
 
-partial def __eo_typeof_eq : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | A => (Term.Apply (Term.Apply Term.FunType A) Term.Bool)
+partial def __eo_typeof_BitVec : Term -> Term
+  | Term.Int => Term.Type
+  | _ => Term.Stuck
+
+
+partial def __eo_typeof_Seq : Term -> Term
+  | Term.Type => Term.Type
+  | _ => Term.Stuck
+
+
+partial def __eo_typeof_not : Term -> Term
+  | Term.Bool => Term.Bool
+  | _ => Term.Stuck
+
+
+partial def __eo_typeof_or : Term -> Term -> Term
+  | Term.Bool, Term.Bool => Term.Bool
+  | _, _ => Term.Stuck
+
+
+partial def __eo_typeof_and : Term -> Term -> Term
+  | Term.Bool, Term.Bool => Term.Bool
+  | _, _ => Term.Stuck
+
+
+partial def __eo_typeof_imp : Term -> Term -> Term
+  | Term.Bool, Term.Bool => Term.Bool
+  | _, _ => Term.Stuck
+
+
+partial def __eo_typeof_eq : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | A, __eo_lv_A_2 => (__eo_requires (__eo_eq A __eo_lv_A_2) (Term.Boolean true) Term.Bool)
 
 
 partial def __eo_typeof : Term -> Term
@@ -322,14 +353,14 @@ partial def __eo_typeof : Term -> Term
   | (Term.Apply Term.__eo_List_cons __eo_x1) => (Term.Apply (Term.Apply Term.FunType Term.__eo_List) Term.__eo_List)
   | Term.Int => Term.Type
   | Term.Real => Term.Type
-  | Term.BitVec => (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Type)
+  | (Term.Apply Term.BitVec __eo_x1) => (__eo_typeof_BitVec (__eo_typeof __eo_x1))
   | Term.Char => Term.Type
-  | Term.Seq => (Term.Apply (Term.Apply Term.FunType Term.Type) Term.Type)
-  | Term.not => (Term.Apply (Term.Apply Term.FunType Term.Bool) Term.Bool)
-  | Term.or => (Term.Apply (Term.Apply Term.FunType Term.Bool) (Term.Apply (Term.Apply Term.FunType Term.Bool) Term.Bool))
-  | Term.and => (Term.Apply (Term.Apply Term.FunType Term.Bool) (Term.Apply (Term.Apply Term.FunType Term.Bool) Term.Bool))
-  | Term.imp => (Term.Apply (Term.Apply Term.FunType Term.Bool) (Term.Apply (Term.Apply Term.FunType Term.Bool) Term.Bool))
-  | (Term.Apply Term.eq __eo_x1) => (__eo_typeof_eq (__eo_typeof __eo_x1))
+  | (Term.Apply Term.Seq __eo_x1) => (__eo_typeof_Seq (__eo_typeof __eo_x1))
+  | (Term.Apply Term.not __eo_x1) => (__eo_typeof_not (__eo_typeof __eo_x1))
+  | (Term.Apply (Term.Apply Term.or __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.Apply Term.and __eo_x1) __eo_x2) => (__eo_typeof_and (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.Apply Term.imp __eo_x1) __eo_x2) => (__eo_typeof_imp (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.Apply Term.eq __eo_x1) __eo_x2) => (__eo_typeof_eq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
   | _ => Term.Stuck
 

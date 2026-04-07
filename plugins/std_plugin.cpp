@@ -195,7 +195,7 @@ bool StdPlugin::optionSmtMetaSygusGrammarWellTyped() { return true; }
 // witness unsoundness
 bool StdPlugin::optionVcUseTypeof() { return true; }
 // whether we emit typing for partial applications
-bool StdPlugin::optionEoTypeofHo() { return true; }
+bool StdPlugin::optionEoTypeofHo() { return false; }
 // whether we combine terms of the same type for defining eo::typeof
 bool StdPlugin::optionEoTypeCanonize() { return false; }
 

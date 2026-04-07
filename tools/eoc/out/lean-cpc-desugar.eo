@@ -1695,11 +1695,53 @@
 )
 
 
-; program: $eo_typeof_=
-(program $eo_typeof_= ((A Type))
+; program: $eo_typeof_BitVec
+(program $eo_typeof_BitVec ()
   :signature (Type) Type
   (
-  (($eo_typeof_= A) (-> A Bool))
+  (($eo_typeof_BitVec Int) Type)
+  )
+)
+; program: $eo_typeof_Seq
+(program $eo_typeof_Seq ()
+  :signature (Type) Type
+  (
+  (($eo_typeof_Seq Type) Type)
+  )
+)
+; program: $eo_typeof_not
+(program $eo_typeof_not ()
+  :signature (Type) Type
+  (
+  (($eo_typeof_not Bool) Bool)
+  )
+)
+; program: $eo_typeof_or
+(program $eo_typeof_or ()
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_or Bool Bool) Bool)
+  )
+)
+; program: $eo_typeof_and
+(program $eo_typeof_and ()
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_and Bool Bool) Bool)
+  )
+)
+; program: $eo_typeof_=>
+(program $eo_typeof_=> ()
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_=> Bool Bool) Bool)
+  )
+)
+; program: $eo_typeof_=
+(program $eo_typeof_= ((A Type))
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_= A A) Bool)
   )
 )
 
@@ -1747,21 +1789,21 @@
   ; type-rule: Real
   (($eo_typeof Real) Type)
   ; type-rule: BitVec
-  (($eo_typeof BitVec) (-> Int Type))
+  (($eo_typeof (BitVec $eo_x1)) ($eo_typeof_BitVec ($eo_typeof $eo_x1)))
   ; type-rule: Char
   (($eo_typeof Char) Type)
   ; type-rule: Seq
-  (($eo_typeof Seq) (-> Type Type))
+  (($eo_typeof (Seq $eo_x1)) ($eo_typeof_Seq ($eo_typeof $eo_x1)))
   ; type-rule: not
-  (($eo_typeof not) (-> Bool Bool))
+  (($eo_typeof (not $eo_x1)) ($eo_typeof_not ($eo_typeof $eo_x1)))
   ; type-rule: or
-  (($eo_typeof or) (-> Bool (-> Bool Bool)))
+  (($eo_typeof (_ (or $eo_x1) $eo_x2)) ($eo_typeof_or ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
   ; type-rule: and
-  (($eo_typeof and) (-> Bool (-> Bool Bool)))
+  (($eo_typeof (_ (and $eo_x1) $eo_x2)) ($eo_typeof_and ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
   ; type-rule: =>
-  (($eo_typeof =>) (-> Bool (-> Bool Bool)))
+  (($eo_typeof (_ (=> $eo_x1) $eo_x2)) ($eo_typeof_=> ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
   ; type-rule: =
-  (($eo_typeof (= $eo_x1)) ($eo_typeof_= ($eo_typeof $eo_x1)))
+  (($eo_typeof (_ (= $eo_x1) $eo_x2)) ($eo_typeof_= ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
 
   (($eo_typeof ($eo_f $eo_x))
     ($eo_typeof_apply ($eo_typeof $eo_f) ($eo_typeof $eo_x)))

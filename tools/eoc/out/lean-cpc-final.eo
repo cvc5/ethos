@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 365
+; #trim-defs: 371
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -333,10 +333,46 @@
   (($eo_lit_type_String t) (Seq Char))
   )
 )
-(program $eo_typeof_= ((A Type))
+(program $eo_typeof_BitVec ()
   :signature (Type) Type
   (
-  (($eo_typeof_= A) (-> A Bool))
+  (($eo_typeof_BitVec Int) Type)
+  )
+)
+(program $eo_typeof_Seq ()
+  :signature (Type) Type
+  (
+  (($eo_typeof_Seq Type) Type)
+  )
+)
+(program $eo_typeof_not ()
+  :signature (Type) Type
+  (
+  (($eo_typeof_not Bool) Bool)
+  )
+)
+(program $eo_typeof_or ()
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_or Bool Bool) Bool)
+  )
+)
+(program $eo_typeof_and ()
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_and Bool Bool) Bool)
+  )
+)
+(program $eo_typeof_=> ()
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_=> Bool Bool) Bool)
+  )
+)
+(program $eo_typeof_= ((A Type))
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_= A A) Bool)
   )
 )
 (program $eo_typeof
@@ -380,21 +416,21 @@
   
   (($eo_typeof Real) Type)
   
-  (($eo_typeof BitVec) (-> Int Type))
+  (($eo_typeof (BitVec $eo_x1)) ($eo_typeof_BitVec ($eo_typeof $eo_x1)))
   
   (($eo_typeof Char) Type)
   
-  (($eo_typeof Seq) (-> Type Type))
+  (($eo_typeof (Seq $eo_x1)) ($eo_typeof_Seq ($eo_typeof $eo_x1)))
   
-  (($eo_typeof not) (-> Bool Bool))
+  (($eo_typeof (not $eo_x1)) ($eo_typeof_not ($eo_typeof $eo_x1)))
   
-  (($eo_typeof or) (-> Bool (-> Bool Bool)))
+  (($eo_typeof (_ (or $eo_x1) $eo_x2)) ($eo_typeof_or ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
   
-  (($eo_typeof and) (-> Bool (-> Bool Bool)))
+  (($eo_typeof (_ (and $eo_x1) $eo_x2)) ($eo_typeof_and ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
   
-  (($eo_typeof =>) (-> Bool (-> Bool Bool)))
+  (($eo_typeof (_ (=> $eo_x1) $eo_x2)) ($eo_typeof_=> ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
   
-  (($eo_typeof (= $eo_x1)) ($eo_typeof_= ($eo_typeof $eo_x1)))
+  (($eo_typeof (_ (= $eo_x1) $eo_x2)) ($eo_typeof_= ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
 
   (($eo_typeof ($eo_f $eo_x))
     ($eo_typeof_apply ($eo_typeof $eo_f) ($eo_typeof $eo_x)))
