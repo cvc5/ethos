@@ -258,8 +258,8 @@
   (tsm.TypeRef (tsm.TypeRef.arg1 String))
   ; smt-cons: USort
   (tsm.USort (tsm.USort.arg1 Nat))
-  ; smt-cons: DtConsType
-  (tsm.DtConsType (tsm.DtConsType.arg1 tsm.Type) (tsm.DtConsType.arg2 tsm.Type))
+  ; smt-cons: FunType
+  (tsm.FunType (tsm.FunType.arg1 tsm.Type) (tsm.FunType.arg2 tsm.Type))
 
   )
   (
@@ -509,7 +509,7 @@
   (ite (and ((_ is dt.sum) x2) (= (dt.sum.arg1 x2) dtc.unit) (= x3 nat.zero))
     x1
   (ite (and ((_ is dt.sum) x2) ((_ is dtc.cons) (dt.sum.arg1 x2)) (= x3 nat.zero))
-    (tsm.DtConsType (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_value_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) nat.zero))
+    (tsm.FunType (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_value_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) nat.zero))
   (ite (and ((_ is dt.sum) x2) ((_ is nat.succ) x3))
     ($smtx_typeof_dt_cons_value_rec x1 (dt.sum.arg2 x2) (nat.succ.arg1 x3))
     tsm.None
@@ -522,7 +522,7 @@
   (ite (and ((_ is dt.sum) x2) (= (dt.sum.arg1 x2) dtc.unit) (= x3 nat.zero))
     x1
   (ite (and ((_ is dt.sum) x2) ((_ is dtc.cons) (dt.sum.arg1 x2)) (= x3 nat.zero))
-    (tsm.DtConsType (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) nat.zero))
+    (tsm.FunType (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) nat.zero))
   (ite (and ((_ is dt.sum) x2) ((_ is nat.succ) x3))
     ($smtx_typeof_dt_cons_rec x1 (dt.sum.arg2 x2) (nat.succ.arg1 x3))
     tsm.None
@@ -548,8 +548,8 @@
 
 ; program: $smtx_typeof_apply_value
 (define-fun $smtx_typeof_apply_value ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
-  (ite ((_ is tsm.DtConsType) x1)
-    ($smtx_typeof_guard (tsm.DtConsType.arg1 x1) (ite (Teq (tsm.DtConsType.arg1 x1) x2) (tsm.DtConsType.arg2 x1) tsm.None))
+  (ite ((_ is tsm.FunType) x1)
+    ($smtx_typeof_guard (tsm.FunType.arg1 x1) (ite (Teq (tsm.FunType.arg1 x1) x2) (tsm.FunType.arg2 x1) tsm.None))
     tsm.None
 ))
 
@@ -719,8 +719,8 @@
 (define-fun $smtx_typeof_apply ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
   (ite ((_ is tsm.Map) x1)
     ($smtx_typeof_guard (tsm.Map.arg1 x1) (ite (Teq (tsm.Map.arg1 x1) x2) (tsm.Map.arg2 x1) tsm.None))
-  (ite ((_ is tsm.DtConsType) x1)
-    ($smtx_typeof_guard (tsm.DtConsType.arg1 x1) (ite (Teq (tsm.DtConsType.arg1 x1) x2) (tsm.DtConsType.arg2 x1) tsm.None))
+  (ite ((_ is tsm.FunType) x1)
+    ($smtx_typeof_guard (tsm.FunType.arg1 x1) (ite (Teq (tsm.FunType.arg1 x1) x2) (tsm.FunType.arg2 x1) tsm.None))
     tsm.None
 )))
 
@@ -754,9 +754,9 @@
   (ite ((_ is sm.DtCons) x1)
     ($smtx_typeof_dt_cons_rec (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_dt_substitute (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1) (sm.DtCons.arg2 x1)) (sm.DtCons.arg3 x1))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtSel) (sm.Apply.arg1 x1)))
-    ($smtx_typeof_apply (tsm.Map (tsm.Datatype (sm.DtSel.arg1 (sm.Apply.arg1 x1)) (sm.DtSel.arg2 (sm.Apply.arg1 x1))) ($smtx_ret_typeof_sel (sm.DtSel.arg1 (sm.Apply.arg1 x1)) (sm.DtSel.arg2 (sm.Apply.arg1 x1)) (sm.DtSel.arg3 (sm.Apply.arg1 x1)) (sm.DtSel.arg4 (sm.Apply.arg1 x1)))) ($smtx_typeof (sm.Apply.arg2 x1)))
+    ($smtx_typeof_apply (tsm.FunType (tsm.Datatype (sm.DtSel.arg1 (sm.Apply.arg1 x1)) (sm.DtSel.arg2 (sm.Apply.arg1 x1))) ($smtx_ret_typeof_sel (sm.DtSel.arg1 (sm.Apply.arg1 x1)) (sm.DtSel.arg2 (sm.Apply.arg1 x1)) (sm.DtSel.arg3 (sm.Apply.arg1 x1)) (sm.DtSel.arg4 (sm.Apply.arg1 x1)))) ($smtx_typeof (sm.Apply.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtTester) (sm.Apply.arg1 x1)))
-    ($smtx_typeof_apply (tsm.Map (tsm.Datatype (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) tsm.Bool) ($smtx_typeof (sm.Apply.arg2 x1)))
+    ($smtx_typeof_apply (tsm.FunType (tsm.Datatype (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) tsm.Bool) ($smtx_typeof (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Apply) x1)
     ($smtx_typeof_apply ($smtx_typeof (sm.Apply.arg1 x1)) ($smtx_typeof (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Var) x1)
@@ -797,7 +797,7 @@
   (ite ((_ is eo.USort) x1)
     (tsm.USort (eo.USort.arg1 x1))
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.FunType) (eo.Apply.arg1 (eo.Apply.arg1 x1))))
-    ($smtx_typeof_guard ($eo_to_smt_type (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($smtx_typeof_guard ($eo_to_smt_type (eo.Apply.arg2 x1)) (tsm.Map ($eo_to_smt_type (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($eo_to_smt_type (eo.Apply.arg2 x1)))))
+    ($smtx_typeof_guard ($eo_to_smt_type (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($smtx_typeof_guard ($eo_to_smt_type (eo.Apply.arg2 x1)) (tsm.FunType ($eo_to_smt_type (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($eo_to_smt_type (eo.Apply.arg2 x1)))))
   (ite (= x1 eo.Int)
     tsm.Int
   (ite (= x1 eo.Real)
