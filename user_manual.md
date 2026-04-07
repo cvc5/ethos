@@ -37,7 +37,7 @@ Ethos can be run from the command line via:
 ethos <option>* <file>
 ```
 
-The set of available options `<option>` are given in the appendix. Note that the command line interface of `ethos` accepts at most one file path. If no file path is provided, Ethos reads from stdin. The file and options can appear in any order.
+The set of available options `<option>` are given in the appendix. Note that the command line interface of `ethos` accepts at most one file path. The file and options can appear in any order.
 
 The `<file>` passed to Ethos on the command line, when provided, is either:
 
@@ -58,7 +58,8 @@ Further output can be given by user-provided `echo` commands.
 
 ### Streaming input to Ethos
 
-The `ethos` binary accepts input piped from stdin. When the input should be parsed as a proof file (rather than as a `.eo` signature file), the following are equivalent ways of running `ethos`:
+The `ethos` binary accepts input piped from stdin. This input is interpreted as a proof file.
+When the input should be parsed as a proof file (rather than as a `.eo` signature file), the following are equivalent ways of running `ethos`:
 
 ```shell
 % ethos <file>
