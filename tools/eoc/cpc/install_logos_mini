@@ -27,6 +27,7 @@ if [[ -d "$LOGOS_DIR/$SUB_DIR" ]]; then
     shopt -s nullglob
     for file in $(find -type f -name '*.lean'); do
       sed -i 's/import Cpc\./import CpcMini\./g' "$file"
+      sed -i 's/partial def /def /g' "$file"
     done
   )
 fi

@@ -41,10 +41,37 @@ abbrev eo_lit_qlt := SmtEval.smt_lit_qlt
 abbrev eo_lit_qdiv_total := SmtEval.smt_lit_qdiv_total
 abbrev eo_lit_to_int := SmtEval.smt_lit_to_int
 abbrev eo_lit_to_real := SmtEval.smt_lit_to_real
-abbrev eo_lit_str_len := SmtEval.smt_lit_str_len
-abbrev eo_lit_str_concat := SmtEval.smt_lit_str_concat
-abbrev eo_lit_str_substr := SmtEval.smt_lit_str_substr
-abbrev eo_lit_str_indexof := SmtEval.smt_lit_str_indexof
+def eo_lit_str_len : eo_lit_String -> eo_lit_Int
+  | x => Int.ofNat x.length
+def eo_lit_str_concat : eo_lit_String -> eo_lit_String -> eo_lit_String
+  | x, y => x ++ y
+def eo_lit_str_substr (s : eo_lit_String) (i n : eo_lit_Int) : eo_lit_String :=
+  let len : Int := (eo_lit_str_len s)
+  if i < 0 || n <= 0 || i >= len then
+    ""
+  else
+    let start : Nat := Int.toNat i
+    let take  : Nat := Int.toNat (min n (len - i))
+    String.Pos.Raw.extract s ⟨start⟩ ⟨start + take⟩
+def eo_lit_str_indexof_rec (s t : eo_lit_String) (i len fuel : Nat) : eo_lit_Int :=
+  match fuel with
+  | 0 => -1
+  | fuel + 1 =>
+      if String.Pos.Raw.substrEq s ⟨i⟩ t ⟨0⟩ len then
+        i
+      else
+        eo_lit_str_indexof_rec s t (i + 1) len fuel
+def eo_lit_str_indexof (s t : eo_lit_String) (i : eo_lit_Int) : eo_lit_Int :=
+  if i < 0 then
+    -1
+  else
+    let sLen := Int.toNat (eo_lit_str_len s)
+    let start := Int.toNat i
+    let tLen := Int.toNat (eo_lit_str_len t)
+    if h : start + tLen <= sLen then
+      eo_lit_str_indexof_rec s t start tLen (sLen - (start + tLen) + 1)
+    else
+      -1
 abbrev eo_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev eo_lit_str_from_code := SmtEval.smt_lit_str_from_code
 abbrev eo_lit_streq := SmtEval.smt_lit_streq

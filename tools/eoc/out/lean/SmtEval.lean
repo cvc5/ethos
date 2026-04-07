@@ -71,37 +71,6 @@ def smt_lit_to_real : smt_lit_Int -> smt_lit_Rat
   | x => (smt_lit_mk_rational x 1)
 
 -- Strings
-def smt_lit_str_len : smt_lit_String -> smt_lit_Int
-  | x => Int.ofNat x.length
-def smt_lit_str_concat : smt_lit_String -> smt_lit_String -> smt_lit_String
-  | x, y => x ++ y
-def smt_lit_str_substr (s : smt_lit_String) (i n : smt_lit_Int) : smt_lit_String :=
-  let len : Int := (smt_lit_str_len s)
-  if i < 0 || n <= 0 || i >= len then
-    ""
-  else
-    let start : Nat := Int.toNat i
-    let take  : Nat := Int.toNat (min n (len - i))
-    String.Pos.Raw.extract s ⟨start⟩ ⟨start + take⟩
-def smt_lit_str_indexof_rec (s t : smt_lit_String) (i len fuel : Nat) : smt_lit_Int :=
-  match fuel with
-  | 0 => -1
-  | fuel + 1 =>
-      if String.Pos.Raw.substrEq s ⟨i⟩ t ⟨0⟩ len then
-        i
-      else
-        smt_lit_str_indexof_rec s t (i + 1) len fuel
-def smt_lit_str_indexof (s t : smt_lit_String) (i : smt_lit_Int) : smt_lit_Int :=
-  if i < 0 then
-    -1
-  else
-    let sLen := Int.toNat (smt_lit_str_len s)
-    let start := Int.toNat i
-    let tLen := Int.toNat (smt_lit_str_len t)
-    if h : start + tLen <= sLen then
-      smt_lit_str_indexof_rec s t start tLen (sLen - (start + tLen) + 1)
-    else
-      -1
 def smt_lit_str_to_code (s : smt_lit_String) : smt_lit_Int :=
   match s.toList with
   | [c] => Int.ofNat c.toNat
