@@ -3,8 +3,8 @@
 # Usage: install_logos_mini
 # Output: reads generated Lean files from tools/eoc/out/lean/ and copies them
 # to $LOGOS_DIR/$SUB_DIR, including per-rule files under Proofs/Rules/. Any
-# existing rule files are preserved, then imports are rewritten from Cpc.* to
-# CpcMini.*.
+# existing rule files are preserved, then imports are rewritten from the
+# generated source module to $SUB_DIR.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -12,6 +12,7 @@ source "$SCRIPT_DIR/common.sh"
 
 BUILD_DIR="$(eoc_build_dir)"
 FINAL_OUT_DIR="$(eoc_final_out_dir)"
+SOURCE_INPUT="$(eoc_cpc_input)"
 LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
 SUB_DIR="${SUB_DIR:-CpcMini}"
 read -r -a MINI_TARGETS <<< "${MINI_TARGETS:-symm contra refl scope trans}"
@@ -20,14 +21,15 @@ echo "********* Generating Mini-Lean signature *********"
 "$SCRIPT_DIR/run_gen_lean" "${MINI_TARGETS[@]}"
 
 eoc_copy_lean_outputs "$LOGOS_DIR/$SUB_DIR" "$FINAL_OUT_DIR" 1
+SOURCE_CALC="$(eoc_detect_generated_lean_calc "$FINAL_OUT_DIR" || eoc_lean_calc_name "$SOURCE_INPUT")"
+eoc_rewrite_lean_calc_imports "$LOGOS_DIR/$SUB_DIR" "$SOURCE_CALC" "$SUB_DIR"
 
 if [[ -d "$LOGOS_DIR/$SUB_DIR" ]]; then
   (
     cd "$LOGOS_DIR/$SUB_DIR"
     shopt -s nullglob
-    for file in $(find -type f -name '*.lean'); do
-      sed -i 's/import Cpc\./import CpcMini\./g' "$file"
+    while IFS= read -r -d '' file; do
       sed -i 's/partial def /def /g' "$file"
-    done
+    done < <(find -type f -name '*.lean' -print0)
   )
 fi

@@ -108,6 +108,58 @@ eoc_run_driver() {
   python3 "$EOC_DRIVER" "$@"
 }
 
+eoc_lean_calc_name() {
+  local input_path="$1"
+  local stem
+  local normalized
+  local calc=""
+  local part
+
+  stem="$(basename "$input_path")"
+  stem="${stem%.*}"
+  normalized="$(printf '%s' "$stem" | tr -cs '[:alnum:]' ' ')"
+  for part in $normalized; do
+    calc+="${part^}"
+  done
+  if [[ -z "$calc" ]]; then
+    calc="EoCalc"
+  fi
+  if [[ ! "$calc" =~ ^[[:alpha:]] ]]; then
+    calc="Calc$calc"
+  fi
+  printf '%s\n' "$calc"
+}
+
+eoc_detect_generated_lean_calc() {
+  local final_out_dir="$1"
+  local logos_file="$final_out_dir/lean/Logos.lean"
+  local import_line
+
+  if [[ ! -f "$logos_file" ]]; then
+    return 1
+  fi
+  import_line="$(grep -m1 '^import ' "$logos_file" || true)"
+  if [[ "$import_line" =~ ^import[[:space:]]+([^.]+)\. ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+  return 1
+}
+
+eoc_rewrite_lean_calc_imports() {
+  local dest_dir="$1"
+  local src_calc="$2"
+  local dst_calc="$3"
+  local file
+
+  if [[ "$src_calc" == "$dst_calc" ]]; then
+    return
+  fi
+  while IFS= read -r -d '' file; do
+    sed -i "s/import ${src_calc}\\./import ${dst_calc}\\./g" "$file"
+  done < <(find "$dest_dir" -type f -name '*.lean' -print0)
+}
+
 eoc_copy_lean_outputs() {
   local dest_dir="$1"
   local final_out_dir="$2"

@@ -3,7 +3,8 @@
 # Usage: install_logos
 # Output: reads generated Lean files from tools/eoc/out/lean/ and copies them
 # to $LOGOS_DIR/Cpc, including per-rule files under
-# Proofs/Rules/. Existing rule files are preserved in $LOGOS_DIR/Cpc. It then
+# Proofs/Rules/. Existing rule files are preserved in $LOGOS_DIR/Cpc, and
+# imports are rewritten from the generated source module to Cpc. It then
 # optionally regenerates example files from $LOGOS_TESTS_DIR when that
 # directory exists.
 set -euo pipefail
@@ -13,6 +14,7 @@ source "$SCRIPT_DIR/common.sh"
 
 BUILD_DIR="$(eoc_build_dir)"
 FINAL_OUT_DIR="$(eoc_final_out_dir)"
+SOURCE_INPUT="$(eoc_cpc_input)"
 LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
 LOGOS_TESTS_DIR="${LOGOS_TESTS_DIR:-$HOME/ethos/smtlibTests/logos-tests}"
 CVC5_LOGOS="${CVC5_LOGOS:-$HOME/bin/cvc5-logos}"
@@ -22,6 +24,8 @@ echo "********* Generating Lean signature *********"
 "$SCRIPT_DIR/run_gen_lean_all"
 
 eoc_copy_lean_outputs "$LOGOS_DIR/Cpc" "$FINAL_OUT_DIR" 1
+SOURCE_CALC="$(eoc_detect_generated_lean_calc "$FINAL_OUT_DIR" || eoc_lean_calc_name "$SOURCE_INPUT")"
+eoc_rewrite_lean_calc_imports "$LOGOS_DIR/Cpc" "$SOURCE_CALC" "Cpc"
 
 "$SCRIPT_DIR/install_logos_mini"
 

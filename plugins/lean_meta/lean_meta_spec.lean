@@ -1,5 +1,5 @@
-import Cpc.SmtModel
-import Cpc.Logos
+import $EO_CALC$.SmtModel
+import $EO_CALC$.Logos
 
 open Eo
 open Smtm
@@ -73,4 +73,3 @@ def eo_satisfiability (t : Term) (b : Bool) : Prop :=
 
 
 /- ---------------------------------------------- -/
-

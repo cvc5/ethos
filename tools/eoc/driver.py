@@ -22,6 +22,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 DEFAULT_FINAL_OUT_DIR = SCRIPT_DIR / "out"
 DEFAULT_CVC5 = Path("~/bin/cvc5-test").expanduser()
+LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
 
 DECLARE_RULE_RE = re.compile(r"^\(declare-rule\s+([^\s(]+)")
 INCLUDE_RE = re.compile(r'^\(include\s+"([^"]+)"\s*\)')
@@ -66,6 +67,16 @@ def dedupe_preserve_order(items: Iterable[str]) -> list[str]:
         seen.add(item)
         ordered.append(item)
     return ordered
+
+
+def lean_calc_name(input_file: Path) -> str:
+    parts = re.findall(r"[A-Za-z0-9]+", input_file.stem)
+    if not parts:
+        return "EoCalc"
+    calc = "".join(part[:1].upper() + part[1:] for part in parts)
+    if not calc[0].isalpha():
+        calc = f"Calc{calc}"
+    return calc
 
 
 def discover_rules(input_file: Path) -> list[str]:
@@ -253,6 +264,10 @@ class Pipeline:
             module_name = rule_name[:1].upper() + rule_name[1:]
             shutil.copyfile(rule_file, final_rule_dir / f"{module_name}.lean")
 
+    def materialize_lean_calc(self, lean_dir: Path, calc_name: str) -> None:
+        for lean_file in lean_dir.rglob("*.lean"):
+            replace_all(lean_file, [(LEAN_CALC_PLACEHOLDER, calc_name)])
+
     def stage_name(self, input_name: str) -> str:
         return Path(input_name).stem.lower()
 
@@ -345,7 +360,7 @@ class Pipeline:
             self.solve_smt(output_file, sygus=sygus)
         return output_file
 
-    def lean(self, input_file: Path) -> Path:
+    def lean(self, input_file: Path, *, calc_name: str) -> Path:
         out_lean = self.final_out_dir / "lean"
         out_lean.mkdir(parents=True, exist_ok=True)
         self.clean_generated_lean_rule_outputs()
@@ -371,6 +386,7 @@ class Pipeline:
             out_lean / "RuleLemmas.lean",
         )
         self.publish_generated_lean_rule_outputs(out_lean)
+        self.materialize_lean_calc(out_lean, calc_name)
         return out_lean
 
     def parse_file(self, filename: Path) -> None:
@@ -438,6 +454,7 @@ class Pipeline:
     ) -> Path:
         if build_first:
             self.build()
+        calc_name = lean_calc_name(Path(input_name))
         stem = self.stage_name(input_name)
         print(
             f"********* Generating Lean for {input_name if all_targets else ' '.join(targets) + ' in ' + input_name} *********"
@@ -458,7 +475,7 @@ class Pipeline:
             print(f"**** lean_meta: Verify ethos parses {final_defs}")
             self.parse_file(final_defs)
             print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
-            return self.lean(final_defs)
+            return self.lean(final_defs, calc_name=calc_name)
 
         init_trim = self.stage_out_dir / f"lean-{stem}-trim.eo"
         init_desugar = self.stage_out_dir / f"lean-{stem}-desugar.eo"
@@ -484,7 +501,7 @@ class Pipeline:
         print(f"**** lean_meta: Verify ethos parses {final_defs}")
         self.parse_file(final_defs)
         print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
-        return self.lean(final_defs)
+        return self.lean(final_defs, calc_name=calc_name)
 
     def run_desugar(self, input_name: str, *, build_first: bool) -> Path:
         if build_first:

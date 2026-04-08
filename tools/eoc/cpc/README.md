@@ -30,6 +30,10 @@ Useful environment variables:
   `CPC_GEN_LOGOS_CMD` to override the legacy `install_logos` destinations and
   helper command.
 
+The install wrappers keep their legacy destination module layout. If you point
+`EOC_CPC_INPUT` at a non-`Cpc.eo` signature, they detect the generated Lean
+module name and rewrite imports back to `Cpc` or `CpcMini` during installation.
+
 Examples:
 
 ```bash

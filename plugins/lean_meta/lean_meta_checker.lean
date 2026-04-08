@@ -1,4 +1,4 @@
-import Cpc.SmtEval
+import $EO_CALC$.SmtEval
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000

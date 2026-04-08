@@ -1,4 +1,4 @@
-import Cpc.Proofs.Rules.Support
+import $EO_CALC$.Proofs.Rules.Support
 
 open Eo
 open Smtm
