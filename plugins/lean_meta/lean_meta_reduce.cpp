@@ -1045,7 +1045,7 @@ void LeanMetaReduce::printStepCase(std::ostream& out, const std::string& prule, 
   thmName << "cmd_step_" << (isPop ? "pop_" : "") << prule << "_properties";
   out << "  | " << prule << " =>" << std::endl;
   out << "      exact cmd_step_" << (isPop ? "pop_" : "") << "facts_of_rule_properties";
-  out << (isPop ? " root tail A premises " : " M s premises hs ") << "<|" << std::endl;
+  out << (isPop ? " M hM root tail A premises hsRoot hSuffix " : " M s premises hs ") << "<|" << std::endl;
   out << "        " << thmName.str() << " ";
   if (isPop)
   {
