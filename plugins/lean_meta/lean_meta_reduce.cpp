@@ -1109,8 +1109,7 @@ bool LeanMetaReduce::echo(const std::string& msg)
       std::string prule = progName.substr(10);
       std::string fileName = prule;
       fileName[0] = toupper(fileName[0]);
-      std::string calc = "$EO_CALC$";
-      d_rlInclude << "import " << calc << ".Proofs.Rules." << fileName << std::endl;
+      d_rlInclude << "import $EO_CALC$.Proofs.Rules." << fileName << std::endl;
       // TODO: don't hardcode this
       if (prule=="scope")
       {
