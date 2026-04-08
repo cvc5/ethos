@@ -551,13 +551,6 @@
 
 (program $eo_typeof () :signature ($eo_Term) $eo_Term)
 
-(program $eo_is_bool_type ((T Type) (x T))
-  :signature (T) Bool
-  (
-  (($eo_is_bool_type x) (eo::eq ($eo_typeof x) Bool))
-  )
-)
-
 ; We are now ready to define the builtins of Eunoia.
 ; We define all the Eunoia builtins here that are best to
 ; define in terms of SMT-LIB operators.
@@ -1186,6 +1179,15 @@
   )
 )
 
+;;; further helpers
+
+(program $eo_is_bool_type ((T Type) (x T))
+  :signature (T) Bool
+  (
+  (($eo_is_bool_type x) (eo::eq ($eo_typeof x) Bool))
+  )
+)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; desugar core
 
@@ -1404,7 +1406,7 @@
    (f (-> T V V)) (x W) (y U) (nil U))
   :signature (U) U
   (
-  (($eo_list_setof_rec (f x y))  (f x ($eo_list_setof_rec ($eo_list_erase_all f y x))))
+  (($eo_list_setof_rec (f x y))  (f x ($eo_list_erase_all_rec ($eo_list_setof_rec y) x)))
   (($eo_list_setof_rec nil)      nil)
   )
 )
@@ -1430,7 +1432,7 @@
   (
   (($eo_list_minclude_rec y z false)            false)
   (($eo_list_minclude_rec ($eo_List_cons x y) z true)
-    (eo::define ((res ($eo_list_erase $eo_List_cons z x)))
+    (eo::define ((res ($eo_list_erase_rec z x)))
       ; pass true iff we successfully removed x from z.
       ($eo_list_minclude_rec y res (eo::not (eo::eq res z)))))
   (($eo_list_minclude_rec $eo_List_nil z true)  true)
@@ -1448,9 +1450,9 @@
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (b W2))
-  (eo::requires ($eo_is_list f a) true
-  (eo::requires ($eo_is_list f b) true
-    ($eo_list_minclude_rec ($eo_get_elements f a) ($eo_get_elements f b) true))))
+  (eo::define ((ea ($eo_get_elements f a)))
+  (eo::define ((eb ($eo_get_elements f b)))
+    ($eo_list_minclude_rec ea eb true))))
 
 ;;; $eo_list_meq
 
@@ -1460,7 +1462,9 @@
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (b W2))
-  (eo::and ($eo_list_minclude f a b) ($eo_list_minclude f b a)))
+  (eo::define ((ea ($eo_get_elements f a)))
+  (eo::define ((eb ($eo_get_elements f b)))
+    (eo::and ($eo_list_minclude_rec ea eb true) ($eo_list_minclude_rec eb ea true)))))
 
 ;;; $eo_list_diff
 
@@ -1469,7 +1473,7 @@
   ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
   :signature (V V) V
   (
-  (($eo_list_diff_rec (f x y) z)  (eo::define ((res ($eo_list_erase f z x)))
+  (($eo_list_diff_rec (f x y) z)  (eo::define ((res ($eo_list_erase_rec z x)))
                                     ($eo_prepend_if (eo::eq res z)
                                       f x ($eo_list_diff_rec y res))))
   (($eo_list_diff_rec nil z)      nil)
@@ -1492,7 +1496,7 @@
   ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
   :signature (V V) V
   (
-  (($eo_list_inter_rec (f x y) z) (eo::define ((res ($eo_list_erase f z x)))
+  (($eo_list_inter_rec (f x y) z) (eo::define ((res ($eo_list_erase_rec z x)))
                                     ($eo_prepend_if (eo::not (eo::eq res z))
                                       f x ($eo_list_inter_rec y res))))
   (($eo_list_inter_rec nil z)     nil)

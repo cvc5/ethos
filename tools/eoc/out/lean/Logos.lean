@@ -182,6 +182,12 @@ inductive Proof : Type where
 
 mutual
 
+
+
+end
+
+mutual
+
 partial def __eo_mk_apply : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -190,11 +196,6 @@ partial def __eo_mk_apply : Term -> Term -> Term
 
 partial def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
   (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w)))
-
-partial def __eo_is_bool_type : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | x => (__eo_eq (__eo_typeof x) Term.Bool)
-
 
 partial def __eo_ite : Term -> Term -> Term -> Term
   | x1, x2, x3 => (eo_lit_ite (eo_lit_teq x1 (Term.Boolean true)) x2 (eo_lit_ite (eo_lit_teq x1 (Term.Boolean false)) x3 Term.Stuck))
@@ -233,6 +234,11 @@ partial def __eo_dtc_substitute (s : eo_lit_String) (d : Datatype) : DatatypeCon
 partial def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> Datatype
   | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_substitute s d c) (__eo_dt_substitute s d d2))
   | Datatype.null => Datatype.null
+
+
+partial def __eo_is_bool_type : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x => (__eo_eq (__eo_typeof x) Term.Bool)
 
 
 partial def __eo_prog_contra : Proof -> Proof -> Term

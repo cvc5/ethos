@@ -101,6 +101,7 @@ class LeanMetaReduce : public MetaReducePlugin
   void printStepCase(std::ostream& out, const std::string& str, bool isPop);
   void printStepEmptyCase(std::ostream& out, const std::string& str, bool isPop);
   std::stringstream d_defs;
+  std::stringstream d_defsTotal;
   std::stringstream d_eoIsObjDefs;
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
@@ -125,6 +126,7 @@ class LeanMetaReduce : public MetaReducePlugin
   std::vector<Expr> d_progDefs;
   std::map<Expr, Expr> d_progToDef;
   std::set<Expr> d_progIsDefine;
+  std::set<Expr> d_totalDefProgs;
   /**
    * Remove SMT-LIB identifier issues
    */

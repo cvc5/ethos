@@ -151,6 +151,12 @@ inductive Proof : Type where
 
 mutual
 
+$LEAN_DEFS_TOTAL$
+
+end
+
+mutual
+
 $LEAN_DEFS$
 
 end

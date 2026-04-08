@@ -215,13 +215,6 @@
 
 (program $eo_typeof () :signature ($eo_Term) $eo_Term)
 
-(program $eo_is_bool_type ((T Type) (x T))
-  :signature (T) Bool
-  (
-  (($eo_is_bool_type x) (eo::eq ($eo_typeof x) Bool))
-  )
-)
-
 ; We are now ready to define the builtins of Eunoia.
 ; We define all the Eunoia builtins here that are best to
 ; define in terms of SMT-LIB operators.
@@ -847,5 +840,14 @@
     ($eo_datatype_cons_selectors_rec s d n d n $smt_builtin_n_zero))
   ; otherwise, a datatype constructor declared in the signature
   (($eo_dt_selectors t) ($eo_dt_selectors_main t))
+  )
+)
+
+;;; further helpers
+
+(program $eo_is_bool_type ((T Type) (x T))
+  :signature (T) Bool
+  (
+  (($eo_is_bool_type x) (eo::eq ($eo_typeof x) Bool))
   )
 )

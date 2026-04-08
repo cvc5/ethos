@@ -168,12 +168,6 @@
 (define $eo_binary_mod_w ((w $smt_builtin_Int) (n $smt_builtin_Int))
   ($eot_binary w ($smt_builtin_mod_total n ($smt_builtin_z_pow2 w))))
 (program $eo_typeof () :signature ($eo_Term) $eo_Term)
-(program $eo_is_bool_type ((T Type) (x T))
-  :signature (T) Bool
-  (
-  (($eo_is_bool_type x) (eo::eq ($eo_typeof x) Bool))
-  )
-)
 (define $smt_builtin_is_ok ((x $eo_Term))
   ($smt_builtin_not ($smt_builtin_teq x $eot_stuck)))
 (define $eo_ite ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
@@ -248,6 +242,12 @@
   (($eo_dt_substitute s d ($edt_sum c d2))
     ($edt_sum ($eo_dtc_substitute s d c) ($eo_dt_substitute s d d2)))
   (($eo_dt_substitute s d $edt_null) $edt_null)
+  )
+)
+(program $eo_is_bool_type ((T Type) (x T))
+  :signature (T) Bool
+  (
+  (($eo_is_bool_type x) (eo::eq ($eo_typeof x) Bool))
   )
 )
 (declare-const not (-> Bool Bool))

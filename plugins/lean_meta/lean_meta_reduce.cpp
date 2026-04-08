@@ -565,8 +565,12 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     std::ostream* out = &d_smtDefs;
     if (vctx == MetaKind::EUNOIA)
     {
+      // FIXME
+      //out = &d_defsTotal;
       out = &d_defs;
       (*out) << "partial ";
+      // define is only used for very rare cases of $eo_, and for
+      // (argument+premise)-less proof rules, which we assume are terminating.
     }
     (*out) << "def " << cleanId(vname) << " : ";
     printMetaType(vt, *out, vctx);
@@ -604,10 +608,44 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   }
   else
   {
-    out = &d_defs;
+    out = &d_defsTotal;
+    bool needsPartial = false;
+    // insist that builtin eo:: operators are all total.
+    if (vname.compare(0, 4, "$eo_") != 0 || vname.compare(0, 9, "$eo_prog_") == 0)
+    {
+      // check if trivially not recursive?
+      std::vector<Expr> prets;
+      for (size_t i=0, nchildren=prog.getNumChildren(); i<nchildren; i++)
+      {
+        prets.push_back(prog[i][1]);
+      }
+      Expr allRets = d_state.mkExprSimple(Kind::TUPLE, prets);
+      std::vector<Expr> calls =
+          StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, allRets);
+      for (const Expr& e : calls)
+      {
+        // if there is any (mutual) recursion, or reference to a non-total
+        // function, set needsPartial to true.
+        if (d_totalDefProgs.find(e)==d_totalDefProgs.end())
+        {
+          needsPartial = true;
+          break;
+        }
+      }
+    }
     // FIXME
-    decl << "partial ";
+    needsPartial = true;
+    if (needsPartial)
+    {
+      out = &d_defs;
+      decl << "partial ";
+    }
+    else
+    {
+      d_totalDefProgs.insert(v);
+    }
   }
+  
   // $eo_model is used only for VC generation
   if (vname.compare(0, 9, "$eo_model") == 0)
   {
@@ -974,6 +1012,7 @@ void LeanMetaReduce::finalizeChecker()
       "plugins/lean_meta/lean_meta_checker.lean",
       "plugins/lean_meta/lean_meta_checker_gen.lean",
       {{"$LEAN_DEFS$", d_defs.str()},
+       {"$LEAN_DEFS_TOTAL$", d_defsTotal.str()},
        {"$LEAN_TERM_DEF$", d_embedTermDt.str()},
        {"$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str()},
        {"$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str()},
