@@ -1863,6 +1863,8 @@
 (declare-parameterized-const $emb_sm.Boolean
   ((b $smt_builtin_Bool :opaque)) $smt_Term)
 (define $sm_bool ((b $smt_builtin_Bool)) ($emb_sm.Boolean b))
+(define $sm_true () ($sm_bool $smt_builtin_true))
+(define $sm_false () ($sm_bool $smt_builtin_false))
 
 (declare-parameterized-const $emb_sm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Term)
