@@ -132,6 +132,7 @@ class Desugar : public StdPlugin
   std::stringstream d_litTypeDecl;
   std::stringstream d_litTypeProg;
   std::stringstream d_defs;
+  std::stringstream d_eoIsListNilDefs;
   std::stringstream d_eoIsListNil;
   std::stringstream d_eoNilNground;
   std::stringstream d_eoNil;

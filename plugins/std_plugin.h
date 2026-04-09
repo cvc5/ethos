@@ -86,6 +86,7 @@ class StdPlugin : public Plugin
   static bool optionVcUseTypeof();
   static bool optionEoTypeofHo();
   static bool optionEoTypeCanonize();
+  static bool optionFwdDeclIsListNilNground();
 };
 
 }  // namespace ethos

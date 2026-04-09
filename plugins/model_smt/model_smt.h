@@ -181,6 +181,8 @@ class ModelSmt : public StdPlugin
   void addAuxTypeProgram(const std::string& name,
                            const std::vector<Kind>& args,
                            const std::string& retType);
+  /** Add eo_is_list_nil aux definition */
+  void addAuxIsListNil(const std::string& name, const std::string& ret);
   /**
    * Print program where zeroRet and succRet should use parameters
    * n, v1 .... vm, where n is the predecessor Nat (only used in succRet)
@@ -219,6 +221,8 @@ class ModelSmt : public StdPlugin
   /** SMT type rules for terms */
   std::stringstream d_smtTypeof;
   std::stringstream d_smtTypeofAux;
+  /** Desugar aux */
+  std::stringstream d_desugarAux;
   /** Declarations seen */
   std::vector<std::pair<std::string, Expr>> d_declSeen;
   /** Special cases, printed prior to symbol */
@@ -228,6 +232,8 @@ class ModelSmt : public StdPlugin
   std::map<std::string, std::string> d_auxDef;
   /** Auxiliary definitions on $SMT_EVAL_PROGS$ */
   std::map<std::string, std::string> d_auxSmtEval;
+  /** Auxiliary definitions of nil terminator recognizers */
+  std::map<std::string, std::string> d_auxDesugar;
   /** SMT-LIB types. */
   std::map<std::string, std::vector<Kind>> d_symTypes;
   //--------

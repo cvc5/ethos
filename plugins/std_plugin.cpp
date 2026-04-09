@@ -198,6 +198,8 @@ bool StdPlugin::optionVcUseTypeof() { return true; }
 bool StdPlugin::optionEoTypeofHo() { return false; }
 // whether we combine terms of the same type for defining eo::typeof
 bool StdPlugin::optionEoTypeCanonize() { return false; }
+// whether we use custom definitions of is_list_nil for operators with non-ground nil terminators.
+bool StdPlugin::optionFwdDeclIsListNilNground() { return true; }
 
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {

@@ -5,6 +5,9 @@
 ; 1. $smt_Value, the type of SMT-LIB values.
 ; 2. Further types defining specific SMT-LIB values, e.g. $smt_Map.
 
+;;; remaining desugar definitions e.g. is_list_nil
+$EO_DESUGAR_AUX$
+
 ;;;;;; SMT terms
 
 ; An SMT term.

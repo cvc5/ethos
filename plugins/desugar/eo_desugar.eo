@@ -469,6 +469,8 @@ $EO_NIL_CASES$
   )
 )
 
+$EO_IS_LIST_NIL_DEFS$
+
 ;;; $eo_is_list_nil
 ; Note: a helper for $eo_is_list_rec.
 ; We have that ($eo_is_list_nil f x) is equivalent to

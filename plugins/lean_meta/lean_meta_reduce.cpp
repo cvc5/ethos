@@ -16,6 +16,8 @@
 #include "../linear_patterns/linear_patterns.h"
 #include "state.h"
 
+//#define INFER_TOTAL_DEFS
+
 namespace ethos {
 
 LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
@@ -37,6 +39,9 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   d_prefixToMetaKind["cmdl"] = MetaKind::CHECKER_CMD_LIST;
   d_prefixToMetaKind["indl"] = MetaKind::CHECKER_INDEX_LIST;
   d_prefixToMetaKind["al"] = MetaKind::CHECKER_ARG_LIST;
+#ifdef INFER_TOTAL_DEFS
+  d_defsTotal << "mutual" << std::endl << std::endl;
+#endif
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}
@@ -565,12 +570,14 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     std::ostream* out = &d_smtDefs;
     if (vctx == MetaKind::EUNOIA)
     {
-      // FIXME
-      //out = &d_defsTotal;
-      out = &d_defs;
-      (*out) << "partial ";
+#ifdef INFER_TOTAL_DEFS
+      out = &d_defsTotal;
       // define is only used for very rare cases of $eo_, and for
       // (argument+premise)-less proof rules, which we assume are terminating.
+#else
+      out = &d_defs;
+      (*out) << "partial ";
+#endif
     }
     (*out) << "def " << cleanId(vname) << " : ";
     printMetaType(vt, *out, vctx);
@@ -633,8 +640,10 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
         }
       }
     }
+#ifndef INFER_TOTAL_DEFS
     // FIXME
     needsPartial = true;
+#endif
     if (needsPartial)
     {
       out = &d_defs;
@@ -1071,7 +1080,9 @@ void LeanMetaReduce::finalize()
   {
     d_ruleDt << "  | none : CRule" << std::endl;
   }
-  // versions that split
+#ifdef INFER_TOTAL_DEFS
+  d_defsTotal << "end" << std::endl << std::endl;
+#endif
   finalizeChecker();
   finalizeSmtModel();
   finalizeSpec();

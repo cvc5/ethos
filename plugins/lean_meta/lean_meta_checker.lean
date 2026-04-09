@@ -149,11 +149,7 @@ inductive Proof : Type where
 
 /- Definition of Eunoia signature -/
 
-mutual
-
 $LEAN_DEFS_TOTAL$
-
-end
 
 mutual
 

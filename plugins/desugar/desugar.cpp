@@ -322,8 +322,20 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
       finalizeProgram(prog, progDef, d_eoNilNground);
       d_eoNil << "(" << pname << " T)";
-      d_eoIsListNil << "nil) (eo::eq nil ($eo_nil " << e
-                    << " ($eo_typeof nil))))" << std::endl;
+      if (optionFwdDeclIsListNilNground())
+      {
+        // we do not call eo::typeof here, instead we forward declare is_list_nil
+        // definitions
+        std::stringstream ssil;
+        ssil << "$eo_is_list_nil_" << cname;
+        d_eoIsListNil << "nil) (" << ssil.str() << " nil))" << std::endl;
+        d_eoIsListNilDefs << "(program " << ssil.str() << " ((T Type)) :signature (T) Bool)" << std::endl;
+      }
+      else
+      {
+        d_eoIsListNil << "nil) (eo::eq nil ($eo_nil " << e
+                      << " ($eo_typeof nil))))" << std::endl;
+      }
     }
     else
     {
@@ -846,6 +858,7 @@ void Desugar::finalize()
   replace(finalEo, "$EO_LITERAL_TYPE_DECL$", d_litTypeDecl.str());
   replace(finalEo, "$EO_LIT_TYPEOF_DEFS$", d_litTypeProg.str());
   replace(finalEo, "$EO_DEFS$", d_defs.str());
+  replace(finalEo, "$EO_IS_LIST_NIL_DEFS$", d_eoIsListNilDefs.str());
   replace(finalEo, "$EO_IS_LIST_NIL_CASES$", d_eoIsListNil.str());
   replace(finalEo, "$EO_NIL_CASES$", d_eoNil.str());
   replace(finalEo, "$EO_NIL_NGROUND_DEFS$", d_eoNilNground.str());

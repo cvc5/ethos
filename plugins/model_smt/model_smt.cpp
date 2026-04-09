@@ -272,8 +272,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTypeSym("Real", {});
   // use kT to stand for either Int or Real arithmetic (not mixed)
   addConstFoldSym("+", {kT, kT}, kT);
+  addAuxIsListNil("+", "(eo::is_eq (eo::to_q x1) 0/1)");
   addConstFoldSym("-", {kT, kT}, kT);
   addConstFoldSym("*", {kT, kT}, kT);
+  addAuxIsListNil("*", "(eo::is_eq (eo::to_q x1) 1/1)");
   // we expect "-" to be overloaded, we look for its desugared name and map it
   // back
   addConstFoldSym("$eoo_-.2", {kT}, kT);
@@ -334,6 +336,18 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTypeSym("Char", {});
   addTypeSym("RegLan", {});
   addConstFoldSym("str.++", {d_kSeq, d_kSeq}, d_kSeq);
+  // custom definition of is_list_nil recognizer
+  if (optionFwdDeclIsListNilNground())
+  {
+    d_auxDesugar["str.++"] = R"(
+(program $eo_is_list_nil_str.++ ((T Type) (t T)) 
+  :signature (T) Bool
+  (
+  (($eo_is_list_nil_str.++ (seq.empty T)) true)
+  (($eo_is_list_nil_str.++ t) (eo::eq t ""))
+  )
+))";
+  }
   addConstFoldSym("str.len", {d_kSeq}, kInt);
   addConstFoldSym("str.substr", {d_kSeq, kInt, kInt}, d_kSeq);
   addAuxTypeProgram("str.substr",
@@ -439,7 +453,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   //    <return>)
   // where x1, x3 denote bitwidths and x2, x4 denote values.
   addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", smtZAdd("x2", "x4"));
+  addAuxIsListNil("bvadd", "(eo::is_eq (eo::to_z x1) 0)");
   addLitBinSym("bvmul", {kBitVec, kBitVec}, "x1", "($smt_builtin_z_* x2 x4)");
+  addAuxIsListNil("bvmul", "(eo::is_eq (eo::to_z x1) 1)");
   addLitBinSym("bvudiv",
                {kBitVec, kBitVec},
                "x1",
@@ -454,10 +470,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                       "($smt_builtin_mod_total x2 x4)"));
   addLitBinSym(
       "bvand", {kBitVec, kBitVec}, "x1", "($smt_builtin_binary_and x1 x2 x4)");
+  addAuxIsListNil("bvand", "(eo::is_eq (eo::to_z (eo::not x1)) 0)");
   addLitBinSym(
       "bvor", {kBitVec, kBitVec}, "x1", "($smt_builtin_binary_or x1 x2 x4)");
+  addAuxIsListNil("bvor", "(eo::is_eq (eo::to_z x1) 0)");
   addLitBinSym(
       "bvxor", {kBitVec, kBitVec}, "x1", "($smt_builtin_binary_xor x1 x2 x4)");
+  addAuxIsListNil("bvxor", "(eo::is_eq (eo::to_z x1) 0)");
   addLitBinSym("bvnot", {kBitVec}, "x1", "($smt_builtin_binary_not x1 x2)");
   addLitBinSym("bvneg", {kBitVec}, "x1", "($smt_builtin_z_neg x2)");
   addLitBinSym("bvshl",
@@ -1153,7 +1172,12 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
       printEunoiaReduce(itsc->second[i].first, {}, itsc->second[i].second);
     }
   }
-  std::map<std::string, std::string>::iterator itax = d_auxSmtEval.find(name);
+  std::map<std::string, std::string>::iterator itax = d_auxDesugar.find(name);
+  if (itax != d_auxDesugar.end())
+  {
+    d_desugarAux << itax->second << std::endl;
+  }
+  itax = d_auxSmtEval.find(name);
   if (itax != d_auxSmtEval.end())
   {
     d_modelEvalProgs << itax->second << std::endl;
@@ -1680,6 +1704,25 @@ void ModelSmt::addAuxTypeProgram(const std::string& name,
   d_typeCase[name] = out.str();
 }
 
+void ModelSmt::addAuxIsListNil(const std::string& name, const std::string& ret)
+{
+  // if not using forward declarations for non-ground nil, return
+  if (!optionFwdDeclIsListNilNground())
+  {
+    return;
+  }
+  std::stringstream ssp;
+  ssp << "$eo_is_list_nil_" << name;
+  std::stringstream ss;
+  ss << "(program " << ssp.str() << " ((T Type) (x1 T))" << std::endl;
+  ss << "  :signature (T) Bool" << std::endl;
+  ss << "  (" << std::endl;
+  ss << "  ((" << ssp.str() << " x1) " << ret << ")" << std::endl;
+  ss << "  )" << std::endl;
+  ss << ")" << std::endl;
+  d_auxDesugar[name] = ss.str();
+}
+
 void ModelSmt::printAuxNatRecProgram(const std::string& name,
                                      const std::vector<Kind>& args,
                                      const std::string& zeroRet,
@@ -2054,6 +2097,7 @@ void ModelSmt::finalize()
   replace(finalSmt, "$SMT_EVAL_PROGS_FWD_DECL$", d_modelEvalProgsFwd.str());
   replace(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());
   replace(finalSmt, "$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
+  replace(finalSmt, "$EO_DESUGAR_AUX$", d_desugarAux.str());
   replace(finalSmt, "$EO_TO_SMT_CASES$", d_eoToSmt.str());
   replace(finalSmt, "$EO_TO_SMT_TYPE_CASES$", d_eoToSmtType.str());
   replace(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
