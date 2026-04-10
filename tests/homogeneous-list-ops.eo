@@ -30,5 +30,5 @@
 (define test4 () (eo::cons @@TypedLList.cons a (@@TypedLList.cons a b c))
   :is_eq (@@TypedLList.cons a b c a))
 
-(define test4 () (eo::list_rev @@TypedLList.cons (@@TypedLList.cons a b c))
+(define test5 () (eo::list_rev @@TypedLList.cons (@@TypedLList.cons a b c))
   :is_eq (@@TypedLList.cons c b a))
