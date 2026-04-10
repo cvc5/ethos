@@ -982,7 +982,7 @@ Expr TypeChecker::evaluateNil(ExprValue* op,
   // take top[0]. If tinstListArg is false, we do the opposite.
   Assert(top.getKind() == Kind::FUNCTION_TYPE
          && top[1].getKind() == Kind::FUNCTION_TYPE);
-  Expr src = (isLeft==tinstListArg) ? top[0] : top[1][0];
+  Expr src = (isLeft == tinstListArg) ? top[0] : top[1][0];
   Ctx ctx;
   if (!match(src.getValue(), tinst, ctx))
   {
@@ -992,14 +992,14 @@ Expr TypeChecker::evaluateNil(ExprValue* op,
 }
 
 /**
-  * Get nary children, gets a list of children from op-application e,
-  * stores them in children.
-  */
+ * Get nary children, gets a list of children from op-application e,
+ * stores them in children.
+ */
 ExprValue* getNAryChildren(ExprValue* e,
-                                        ExprValue* op,
-                                        ExprValue* checkNil,
-                                        std::vector<ExprValue*>& children,
-                                        bool isLeft)
+                           ExprValue* op,
+                           ExprValue* checkNil,
+                           std::vector<ExprValue*>& children,
+                           bool isLeft)
 {
   ExprValue* orig = e;
   while (e->getKind()==Kind::APPLY)
@@ -1015,7 +1015,7 @@ ExprValue* getNAryChildren(ExprValue* e,
     e = isLeft ? (*cop)[1] : (*e)[1];
   }
   // must be equal to the nil term, if provided
-  if (checkNil != nullptr && e!=checkNil)
+  if (checkNil != nullptr && e != checkNil)
   {
     Warning() << "...expected associative application to end in " << Expr(checkNil) << ", got " << Expr(orig) << std::endl;
     return nullptr;
@@ -1024,12 +1024,9 @@ ExprValue* getNAryChildren(ExprValue* e,
 }
 
 /**
-  * Return true iff e is an op-list with nil terminator checkNil.
-  */
-bool isNAryList(ExprValue* e,
-                             ExprValue* op,
-                             ExprValue* checkNil,
-                             bool isLeft)
+ * Return true iff e is an op-list with nil terminator checkNil.
+ */
+bool isNAryList(ExprValue* e, ExprValue* op, ExprValue* checkNil, bool isLeft)
 {
   while (e->getKind() == Kind::APPLY)
   {
@@ -1042,7 +1039,7 @@ bool isNAryList(ExprValue* e,
     e = isLeft ? (*cop)[1] : (*e)[1];
   }
   // must be equal to the nil term
-  return e==checkNil;
+  return e == checkNil;
 }
 
 /**
@@ -1847,17 +1844,19 @@ Expr TypeChecker::computeConstructorTermInternal(
     // if not parameterized, just return self
     return ct;
   }
-  Trace("type_checker") << "Determine constructor term for " << children[0] << " @ " << children[1] << std::endl;
+  Trace("type_checker") << "Determine constructor term for " << children[0]
+                        << " @ " << children[1] << std::endl;
   // if explicit parameters, then evaluate the constructor term
   if (children.size() == 1)
   {
     // if not in an application, we fail
-    Warning() << "Failed to determine parameters for " << children[0] << std::endl;
+    Warning() << "Failed to determine parameters for " << children[0]
+              << std::endl;
     return d_null;
   }
   // otherwise, we must infer the parameters
-  Trace("type_checker") << "Infer params for " << children[0] << " @ " << children[1]
-                        << std::endl;
+  Trace("type_checker") << "Infer params for " << children[0] << " @ "
+                        << children[1] << std::endl;
   Attr ck = ai->d_attrCons;
   if (!isListNilAttr(ck))
   {
