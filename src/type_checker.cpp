@@ -967,9 +967,9 @@ Expr TypeChecker::evaluateNil(ExprValue* op,
   }
   // Otherwise we will use the given type to compute nil. We set up a call
   // to match here.
-  if (tinst == nullptr)
+  if (tinst == nullptr || !tinst->isGround())
   {
-    // If the type was null, we fail.
+    // If the type was null or non-ground, we fail.
     return Expr();
   }
   Expr eop(op);
@@ -1891,15 +1891,9 @@ Expr TypeChecker::computeConstructorTermInternal(
     }
     return d_null;
   }
-  if (!t->isGround())
-  {
-    // If the parameter is non-ground, we also wait to construct;
-    // if the nil terminator is used, it will be replaced by a
-    // placeholder involving eo::nil.
-    return d_null;
-  }
   Trace("type_checker") << "Element type is " << Expr(t) << std::endl;
   // Call evaluate nil, where the instantiated type is an element type.
+  // Note this may still return null if e.g. if t is a non-ground type.
   return evaluateNil(children[0].getValue(), ct.getValue(), isLeft, t, false);
 }
 
