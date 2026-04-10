@@ -1390,17 +1390,22 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   bool isLeft = (ck == Attr::LEFT_ASSOC_NIL || ck == Attr::LEFT_ASSOC_NS_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
   // infer the nil expression, which depends on the type of args[1]
-  std::vector<Expr> eargs;
-  eargs.emplace_back(args[0]);
   Expr nilExpr;
   if (k==Kind::EVAL_NIL)
   {
     return evaluateNil(args[0], ac->d_attrConsTerm.getValue(), isLeft, args[1]);
   }
+  else if (ac->d_attrConsTerm.getKind()!=Kind::PARAMETERIZED)
+  {
+    nilExpr = ac->d_attrConsTerm;
+  }
   else if (args.size()>1)
   {
-    eargs.emplace_back(args[1]);
-    nilExpr = computeConstructorTermInternal(ac, eargs);
+    // all list operators except EVAL_CONS have list as second argument
+    Expr cref(args[1]);
+    getType(cref);
+    ExprValue* t = d_state.lookupType(args[1]);
+    nilExpr = evaluateNil(args[0], ac->d_attrConsTerm.getValue(), isLeft, t, k!=Kind::EVAL_CONS);
   }
   if (nilExpr.isNull())
   {
@@ -1869,6 +1874,17 @@ Expr TypeChecker::computeConstructorTermInternal(
   Expr expr(children[1]);
   getType(expr);
   ExprValue* t = d_state.lookupType(children[1].getValue());
+  if (t == nullptr)
+  {
+    // only warn if ground
+    if (expr.isGround())
+    {
+      Warning() << "Type inference failed for " << children[0] << " applied to "
+                << children[1] << ", failed to type check " << expr
+                << std::endl;
+    }
+    return d_null;
+  }
   if (!t->isGround())
   {
     // If the parameter is non-ground, we also wait to construct;
