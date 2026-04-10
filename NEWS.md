@@ -13,7 +13,8 @@ ethos 0.2.3 prerelease
   treated as a valid code point.
 - Fixes issue in the parser which did not guard for overflow of 32 bit unsigned
   values.
-
+- Fixes an issue where non-ground nil terminators would not be properly computed for operators having types where the element type was different from the return type of the operator.
+- Fixes for evaluation of `:left-assoc-nil` and `:left-assoc-non-singleton-nil` operators.
 
 ethos 0.2.2
 ===========

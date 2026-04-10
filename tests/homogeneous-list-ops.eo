@@ -1,0 +1,34 @@
+
+; homogeneous-typed list
+(declare-parameterized-const @@TypedList ((T Type)) Type)
+(declare-parameterized-const @@TypedList.nil ((T Type)) (@@TypedList T))
+(declare-parameterized-const @@TypedList.cons ((T Type :implicit))
+  (-> T (@@TypedList T) (@@TypedList T)) :right-assoc-nil (@@TypedList.nil T))
+
+(declare-const a Bool)
+(declare-const b Bool)
+(declare-const c Bool)
+  
+(define test1 () (eo::list_concat @@TypedList.cons (@@TypedList.cons a b c) (@@TypedList.cons a b c))
+  :is_eq (@@TypedList.cons a b c a b c))
+
+
+(define test2 () (eo::cons @@TypedList.cons a (@@TypedList.cons a b c))
+  :is_eq (@@TypedList.cons a a b c))
+
+; homogeneous-typed list
+(declare-parameterized-const @@TypedLList ((T Type)) Type)
+(declare-parameterized-const @@TypedLList.nil ((T Type)) (@@TypedLList T))
+(declare-parameterized-const @@TypedLList.cons ((T Type :implicit))
+  (-> (@@TypedLList T) T (@@TypedLList T)) :left-assoc-nil (@@TypedLList.nil T))
+
+  
+(define test3 () (eo::list_concat @@TypedLList.cons (@@TypedLList.cons a b c) (@@TypedLList.cons a b c))
+  :is_eq (@@TypedLList.cons a b c a b c))
+
+
+(define test4 () (eo::cons @@TypedLList.cons a (@@TypedLList.cons a b c))
+  :is_eq (@@TypedLList.cons a b c a))
+
+(define test5 () (eo::list_rev @@TypedLList.cons (@@TypedLList.cons a b c))
+  :is_eq (@@TypedLList.cons c b a))
