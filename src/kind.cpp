@@ -133,6 +133,7 @@ std::string kindToTerm(Kind k)
     case Kind::AS_RETURN: ss << "as"; break;
     case Kind::PARAMETERIZED: ss << "eo::_"; break;
     case Kind::PROOF: ss << "eo::pf"; break;
+    case Kind::VARIABLE: ss << "eo::var"; break;
     // operations on literals
     default:
       if (isLiteralOp(k))
@@ -220,8 +221,7 @@ bool isSymbol(Kind k)
     case Kind::PARAM:
     case Kind::CONST:
     case Kind::PROGRAM_CONST:
-    case Kind::PROOF_RULE:
-    case Kind::VARIABLE: return true; break;
+    case Kind::PROOF_RULE: return true; break;
     default: break;
   }
   return false;
