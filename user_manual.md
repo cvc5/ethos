@@ -775,8 +775,6 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - If `t1` is a value, this returns the type of `t1` if its type is ground.
 - `(eo::nameof t1)`
   - If `t1` is a ground constant or variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
-- `(eo::var t1 t2)`
-  - If `t1` is a string value and `t2` is a ground type, this returns the variable whose name is `t1` and whose type is `t2`.
 - `(eo::cmp t1 t2)`
   - Equivalent to `(eo::is_neg (eo::add (eo::neg (eo::hash t1)) (eo::hash t2)))`. Note that this method corresponds to an arbitrary total order on terms.
 - `(eo::is_z t)`
@@ -791,6 +789,8 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - Equivalent to `(eo::or (eo::is_eq t true) (eo::is_eq t false))`.
 - `(eo::is_var t)`
   - Equivalent to `(eo::is_eq (eo::var (eo::nameof t) (eo::typeof t)) t)`.
+
+Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` is intentionally not listed here, as it is an ordinary term.
 
 ### Boolean operators
 
