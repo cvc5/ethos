@@ -991,23 +991,11 @@ Expr TypeChecker::evaluateNil(ExprValue* op,
   return evaluate((*nil)[1], ctx);
 }
 
-bool TypeChecker::isNAryNil(ExprValue* e,
-                            ExprValue* op,
-                            ExprValue* nil,
-                            bool isLeft)
-{
-  Assert(nil != nullptr);
-  if (e == nil)
-  {
-    return true;
-  }
-  Expr enil(nil);
-  getType(enil);
-  ExprValue* tnil = d_state.lookupType(nil);
-  return evaluateNil(op, nil, isLeft, tnil).getValue() == e;
-}
-
-ExprValue* TypeChecker::getNAryChildren(ExprValue* e,
+/**
+  * Get nary children, gets a list of children from op-application e,
+  * stores them in children.
+  */
+ExprValue* getNAryChildren(ExprValue* e,
                                         ExprValue* op,
                                         ExprValue* checkNil,
                                         std::vector<ExprValue*>& children,
@@ -1027,7 +1015,7 @@ ExprValue* TypeChecker::getNAryChildren(ExprValue* e,
     e = isLeft ? (*cop)[1] : (*e)[1];
   }
   // must be equal to the nil term, if provided
-  if (checkNil != nullptr && !isNAryNil(e, op, checkNil, isLeft))
+  if (checkNil != nullptr && e!=checkNil)
   {
     Warning() << "...expected associative application to end in " << Expr(checkNil) << ", got " << Expr(orig) << std::endl;
     return nullptr;
@@ -1035,7 +1023,10 @@ ExprValue* TypeChecker::getNAryChildren(ExprValue* e,
   return e;
 }
 
-bool TypeChecker::isNAryList(ExprValue* e,
+/**
+  * Return true iff e is an op-list with nil terminator checkNil.
+  */
+bool isNAryList(ExprValue* e,
                              ExprValue* op,
                              ExprValue* checkNil,
                              bool isLeft)
@@ -1051,7 +1042,7 @@ bool TypeChecker::isNAryList(ExprValue* e,
     e = isLeft ? (*cop)[1] : (*e)[1];
   }
   // must be equal to the nil term
-  return isNAryNil(e, op, checkNil, isLeft);
+  return e==checkNil;
 }
 
 /**

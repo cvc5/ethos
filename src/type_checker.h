@@ -97,7 +97,16 @@ class TypeChecker
   Expr getOrSetLiteralTypeRule(Kind k, ExprValue* self = nullptr);
   /** Evaluate literal op */
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
-  /**
+  /** Evaluate nil
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param tinst The reference type
+   * @param tinstListArg If true, the reference type refers to the type of the
+   * list. Otherwise, the reference type refers to the element type. This only
+   * makes a difference for e.g. :right-assoc-nil operators whose type is
+   * (-> T U U) where U != T.
+   * @return The result of the evaluation.
    */
   Expr evaluateNil(ExprValue* op,
                    ExprValue* nil,
@@ -187,24 +196,6 @@ class TypeChecker
   /** Get the nil terminator */
   Expr computeConstructorTermInternal(AppInfo* ai,
                                       const std::vector<Expr>& children);
-  /** Return true if e is the nil terminator of op */
-  bool isNAryNil(ExprValue* e, ExprValue* op, ExprValue* nil, bool isLeft);
-  /**
-   * Return true iff e is an op-list with nil terminator checkNil.
-   */
-  bool isNAryList(ExprValue* e,
-                  ExprValue* op,
-                  ExprValue* checkNil,
-                  bool isLeft);
-  /**
-   * Get nary children, gets a list of children from op-application e,
-   * stores them in children.
-   */
-  ExprValue* getNAryChildren(ExprValue* e,
-                             ExprValue* op,
-                             ExprValue* checkNil,
-                             std::vector<ExprValue*>& children,
-                             bool isLeft);
   /** The state */
   State& d_state;
   /** Plugin of the state */
