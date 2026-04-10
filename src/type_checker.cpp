@@ -1389,19 +1389,21 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   bool isLeft = (ck == Attr::LEFT_ASSOC_NIL || ck == Attr::LEFT_ASSOC_NS_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
-  // infer the nil expression, which depends on the type of args[1]
+  // infer the nil expression, which may depend on the type of args[1]
   Expr nilExpr;
   if (k==Kind::EVAL_NIL)
   {
+    // Special case, eo::nil has the type itself as args[1].
     return evaluateNil(args[0], ac->d_attrConsTerm.getValue(), isLeft, args[1]);
   }
   else if (ac->d_attrConsTerm.getKind() != Kind::PARAMETERIZED)
   {
+    // If the nil terminator is not parameterized, just take it
     nilExpr = ac->d_attrConsTerm;
   }
   else if (args.size()>1)
   {
-    // all list operators except EVAL_CONS have list as second argument
+    // All other list operators except EVAL_CONS have list as second argument.
     Expr cref(args[1]);
     getType(cref);
     ExprValue* t = d_state.lookupType(args[1]);
