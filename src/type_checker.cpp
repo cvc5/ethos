@@ -1393,13 +1393,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   Expr nilExpr;
   if (k==Kind::EVAL_NIL)
   {
-    // Special case: to handle (eo::nil x T), we construct
-    // a dummy term of type T to be consistent with other
-    // lookups for nil terminators.
-    Expr tmpType(args[1]);
-    Expr tmp = d_state.mkSymbol(Kind::CONST, "tmp", tmpType);
-    eargs.emplace_back(tmp);
-    return computeConstructorTermInternal(ac, eargs);
+    return evaluateNil(args[0], ac->d_attrConsTerm.getValue(), isLeft, args[1]);
   }
   else if (args.size()>1)
   {
