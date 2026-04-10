@@ -303,7 +303,27 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     }
       break;
     case Kind::VARIABLE:
+    {
+      Expr ctype1 = Expr(d_state.lookupType(e->d_children[0]));
+      Expr ctype2 = Expr(d_state.lookupType(e->d_children[1]));
+      if (ctype1!=getOrSetLiteralTypeRule(Kind::STRING, e->d_children[0]))
+      {
+        if (out)
+        {
+          (*out) << "Expected a string for first argument of eo::var";
+        }
+        return d_null;
+      }
+      if (ctype2.getKind()!=Kind::TYPE)
+      {
+        if (out)
+        {
+          (*out) << "Expected a type for second argument of eo::var";
+        }
+        return d_null;
+      }
       return Expr(e->d_children[1]);
+    }
     default:
       // if a literal operator, consult auxiliary method
       if (isLiteralOp(k))
