@@ -424,9 +424,9 @@
 
 ; Represents a Eunoia variable in the final deep embedding.
 (declare-parameterized-const $emb_Var
-  ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
+  ((s $eo_Term :opaque) (T $eo_Term :opaque))
   $eo_Term)
-(define $eot_Var ((s $smt_builtin_String) (T $eo_Term))
+(define $eot_Var ((s $eo_Term) (T $eo_Term))
   ($emb_Var s T))
 
 (declare-parameterized-const $emb_DatatypeType
@@ -1038,21 +1038,15 @@
 
 ; program: $eo_var
 ; implements: eo::var
-(program $eo_var ((s $smt_builtin_String) (T $eo_Term))
-  :signature ($eo_Term $eo_Term) $eo_Term
-  (
-  (($eo_var ($eot_string s) T)
-    ; we use the hash of the type T to identify the variable
-    ($eo_requires ($eo_typeof T) Type ($eot_Var s T)))
-  )
-)
+(define $eo_var ((s $eo_Term) (T $eo_Term)) 
+  ($eot_Var s T))
 
 ; program: $eo_nameof
 ; implements: eo::nameof
 (program $eo_nameof ((s $smt_builtin_String) (T $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
-  (($eo_nameof ($eot_Var s T)) ($eot_string s))
+  (($eo_nameof ($eot_Var s T)) s)
   )
 )
 
@@ -1744,7 +1738,8 @@
   (($eo_typeof ($eot_rational r))             ($eo_lit_type_Rational ($eot_rational r)))
   (($eo_typeof ($eot_string s))               ($eo_lit_type_String ($eot_string s)))
   (($eo_typeof ($eot_binary w n))             ($eo_lit_type_Binary ($eot_binary w n)))
-  (($eo_typeof ($eot_Var s T))                T)
+  ; to sync with eo_to_smt, we require the name is indeed a concrete string
+  (($eo_typeof ($eot_Var ($eot_string s) T))  T)
   (($eo_typeof ($eot_DatatypeType s d))       Type)
   (($eo_typeof ($eot_DtCons s d i))
     ($eo_typeof_dt_cons_rec ($eot_DatatypeType s d) ($eo_dt_substitute s d d) i))

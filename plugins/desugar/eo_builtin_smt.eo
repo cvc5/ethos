@@ -88,9 +88,9 @@
 
 ; Represents a Eunoia variable in the final deep embedding.
 (declare-parameterized-const $emb_Var
-  ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
+  ((s $eo_Term :opaque) (T $eo_Term :opaque))
   $eo_Term)
-(define $eot_Var ((s $smt_builtin_String) (T $eo_Term))
+(define $eot_Var ((s $eo_Term) (T $eo_Term))
   ($emb_Var s T))
 
 (declare-parameterized-const $emb_DatatypeType
@@ -702,21 +702,15 @@
 
 ; program: $eo_var
 ; implements: eo::var
-(program $eo_var ((s $smt_builtin_String) (T $eo_Term))
-  :signature ($eo_Term $eo_Term) $eo_Term
-  (
-  (($eo_var ($eot_string s) T)
-    ; we use the hash of the type T to identify the variable
-    ($eo_requires ($eo_typeof T) Type ($eot_Var s T)))
-  )
-)
+(define $eo_var ((s $eo_Term) (T $eo_Term)) 
+  ($eot_Var s T))
 
 ; program: $eo_nameof
 ; implements: eo::nameof
 (program $eo_nameof ((s $smt_builtin_String) (T $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
-  (($eo_nameof ($eot_Var s T)) ($eot_string s))
+  (($eo_nameof ($eot_Var s T)) s)
   )
 )
 

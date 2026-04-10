@@ -380,7 +380,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       continue;
     }
-    else if (recTerm.getNumChildren() == 0 && ck != Kind::VARIABLE)
+    else if (recTerm.getNumChildren() == 0)
     {
       // atomic terms print here
       // We handle SMT vs SMT_BUILTIN within that method
@@ -473,12 +473,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
     else if (ck == Kind::VARIABLE)
     {
-      const Literal* l = recTerm.getValue()->asLiteral();
-      os << "(eo.Var \"" << l->toString() << "\" ";
-      Expr recTermT = d_tc.getType(recTerm);
-      visit.emplace_back(recTermT, MetaKind::EUNOIA);
-      cparen[key] += 1;
-      continue;
+      os << "(eo.Var ";
+      cparen[key]++;
     }
     else
     {

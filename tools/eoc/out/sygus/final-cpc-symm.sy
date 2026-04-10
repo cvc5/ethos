@@ -122,7 +122,7 @@
   ; smt-cons: FunType
   (eo.FunType)
   ; smt-cons: Var
-  (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
+  (eo.Var (eo.Var.arg1 eo.Term) (eo.Var.arg2 eo.Term))
   ; smt-cons: DatatypeType
   (eo.DatatypeType (eo.DatatypeType.arg1 String) (eo.DatatypeType.arg2 edt.Datatype))
   ; smt-cons: DtCons
@@ -825,8 +825,8 @@
     (sm.String (eo.String.arg1 x1))
   (ite ((_ is eo.Binary) x1)
     (sm.Binary (eo.Binary.arg1 x1) (eo.Binary.arg2 x1))
-  (ite ((_ is eo.Var) x1)
-    (sm.Var (eo.Var.arg1 x1) ($eo_to_smt_type (eo.Var.arg2 x1)))
+  (ite (and ((_ is eo.Var) x1) ((_ is eo.String) (eo.Var.arg1 x1)))
+    (sm.Var (eo.String.arg1 (eo.Var.arg1 x1)) ($eo_to_smt_type (eo.Var.arg2 x1)))
   (ite ((_ is eo.DtCons) x1)
     (sm.DtCons (eo.DtCons.arg1 x1) ($eo_to_smt_datatype (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1))
   (ite ((_ is eo.DtSel) x1)
@@ -955,7 +955,7 @@
 (synth-fun arg_F () eo.Term
   ((G_Start eo.Term) (G_eo.Term eo.Term) (G_Bool Bool) (G_Int Int) (G_RegLan RegLan) (G_Int_C Int) (G_Rat Rat) (G_String String) (G_Nat Nat) (T_Type eo.Term) (T_$eo_Proof eo.Term) (T_SmtType eo.Term) (T_Fun eo.Term) (T_Int eo.Term) (T_SmtTerm eo.Term) (T_Bool eo.Term) (T_Real eo.Term) (T_Seq eo.Term) (T_BitVec eo.Term)) (
   (G_Start eo.Term (T_Bool))
-  (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_String G_eo.Term) (eo.USort G_Nat) (eo.UConst G_Nat G_eo.Term) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_$eo_Proof T_Int T_Real T_BitVec T_Seq T_Type T_$eo_Proof T_SmtType T_Fun T_Int T_SmtTerm T_Bool T_Real T_Seq T_BitVec ))
+  (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_eo.Term G_eo.Term) (eo.USort G_Nat) (eo.UConst G_Nat G_eo.Term) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_$eo_Proof T_Int T_Real T_BitVec T_Seq T_Type T_$eo_Proof T_SmtType T_Fun T_Int T_SmtTerm T_Bool T_Real T_Seq T_BitVec ))
   (G_Bool Bool (true false))
   (G_Int Int (0 (- G_Int_C) G_Int_C))
   (G_RegLan RegLan (re.all re.none (str.to_re G_String) (re.union G_RegLan G_RegLan)))

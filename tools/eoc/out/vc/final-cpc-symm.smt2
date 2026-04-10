@@ -122,7 +122,7 @@
   ; smt-cons: FunType
   (eo.FunType)
   ; smt-cons: Var
-  (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
+  (eo.Var (eo.Var.arg1 eo.Term) (eo.Var.arg2 eo.Term))
   ; smt-cons: DatatypeType
   (eo.DatatypeType (eo.DatatypeType.arg1 String) (eo.DatatypeType.arg2 edt.Datatype))
   ; smt-cons: DtCons
@@ -825,8 +825,8 @@
     (sm.String (eo.String.arg1 x1))
   (ite ((_ is eo.Binary) x1)
     (sm.Binary (eo.Binary.arg1 x1) (eo.Binary.arg2 x1))
-  (ite ((_ is eo.Var) x1)
-    (sm.Var (eo.Var.arg1 x1) ($eo_to_smt_type (eo.Var.arg2 x1)))
+  (ite (and ((_ is eo.Var) x1) ((_ is eo.String) (eo.Var.arg1 x1)))
+    (sm.Var (eo.String.arg1 (eo.Var.arg1 x1)) ($eo_to_smt_type (eo.Var.arg2 x1)))
   (ite ((_ is eo.DtCons) x1)
     (sm.DtCons (eo.DtCons.arg1 x1) ($eo_to_smt_datatype (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1))
   (ite ((_ is eo.DtSel) x1)

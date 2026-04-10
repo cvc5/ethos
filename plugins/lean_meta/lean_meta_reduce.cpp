@@ -342,7 +342,7 @@ void LeanMetaReduce::printEmbTermInternal(
       os << cleanSmtId(ssp.str());
       continue;
     }
-    else if (recTerm.getNumChildren() == 0 && ck != Kind::VARIABLE)
+    else if (recTerm.getNumChildren() == 0)
     {
       // atomic terms print here
       printEmbAtomicTerm(recTerm, os);
@@ -433,12 +433,8 @@ void LeanMetaReduce::printEmbTermInternal(
     }
     else if (ck == Kind::VARIABLE)
     {
-      const Literal* l = recTerm.getValue()->asLiteral();
-      os << "(Term.Var \"" << l->toString() << "\" ";
-      Expr recTermT = d_tc.getType(recTerm);
-      visit.emplace_back(recTermT, MetaKind::EUNOIA);
-      cparen[key] += 1;
-      continue;
+      os << "(Term.Var ";
+      cparen[key]++;
     }
     else
     {

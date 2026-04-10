@@ -108,9 +108,9 @@
 (declare-parameterized-const $emb_FunType () $eo_Term)
 (define $eot_fun_type () $emb_FunType)
 (declare-parameterized-const $emb_Var
-  ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
+  ((s $eo_Term :opaque) (T $eo_Term :opaque))
   $eo_Term)
-(define $eot_Var ((s $smt_builtin_String) (T $eo_Term))
+(define $eot_Var ((s $eo_Term) (T $eo_Term))
   ($emb_Var s T))
 (declare-parameterized-const $emb_DatatypeType
   ((s $smt_builtin_String :opaque) (d $eo_Datatype :opaque))
@@ -392,7 +392,8 @@
   (($eo_typeof ($eot_rational r))             ($eo_lit_type_Rational ($eot_rational r)))
   (($eo_typeof ($eot_string s))               ($eo_lit_type_String ($eot_string s)))
   (($eo_typeof ($eot_binary w n))             ($eo_lit_type_Binary ($eot_binary w n)))
-  (($eo_typeof ($eot_Var s T))                T)
+  
+  (($eo_typeof ($eot_Var ($eot_string s) T))  T)
   (($eo_typeof ($eot_DatatypeType s d))       Type)
   (($eo_typeof ($eot_DtCons s d i))
     ($eo_typeof_dt_cons_rec ($eot_DatatypeType s d) ($eo_dt_substitute s d d) i))
@@ -1128,7 +1129,8 @@
   (($eo_to_smt ($eot_rational r))    ($sm_rational r))
   (($eo_to_smt ($eot_string s))      ($sm_string s))
   (($eo_to_smt ($eot_binary w n))    ($sm_binary w n))
-  (($eo_to_smt ($eot_Var s T))       ($sm_Var s ($eo_to_smt_type T)))
+  (($eo_to_smt ($eot_Var ($eot_string s) T))
+                                     ($sm_Var s ($eo_to_smt_type T)))
   (($eo_to_smt ($eot_DtCons s d i))  ($sm_DtCons s ($eo_to_smt_datatype d) i))
   (($eo_to_smt ($eot_DtSel s d i j)) ($sm_DtSel s ($eo_to_smt_datatype d) i j))
   (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($smt_builtin_to_uconst_id i) ($eo_to_smt_type T)))

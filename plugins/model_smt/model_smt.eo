@@ -1489,7 +1489,7 @@ $EO_TO_SMT_TYPE_CASES$
   :signature ($eo_List $smt_Term) $smt_Term
   (
   (($eo_to_smt_exists $eo_List_nil F) F)
-  (($eo_to_smt_exists ($eo_List_cons ($eot_Var s T) vs) F)
+  (($eo_to_smt_exists ($eo_List_cons ($eot_Var ($eot_string s) T) vs) F)
     ($sm_apply ($sm_exists s ($eo_to_smt_type T)) ($eo_to_smt_exists vs F)))
   (($eo_to_smt_exists vs F) $sm_none)
   )
@@ -1521,7 +1521,8 @@ $EO_TO_SMT_TYPE_CASES$
   (($eo_to_smt ($eot_rational r))    ($sm_rational r))
   (($eo_to_smt ($eot_string s))      ($sm_string s))
   (($eo_to_smt ($eot_binary w n))    ($sm_binary w n))
-  (($eo_to_smt ($eot_Var s T))       ($sm_Var s ($eo_to_smt_type T)))
+  (($eo_to_smt ($eot_Var ($eot_string s) T))
+                                     ($sm_Var s ($eo_to_smt_type T)))
   (($eo_to_smt ($eot_DtCons s d i))  ($sm_DtCons s ($eo_to_smt_datatype d) i))
   (($eo_to_smt ($eot_DtSel s d i j)) ($sm_DtSel s ($eo_to_smt_datatype d) i j))
   (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($smt_builtin_to_uconst_id i) ($eo_to_smt_type T)))

@@ -558,7 +558,8 @@ $EO_TYPEOF_NGROUND_DEFS$
   (($eo_typeof ($eot_rational r))             ($eo_lit_type_Rational ($eot_rational r)))
   (($eo_typeof ($eot_string s))               ($eo_lit_type_String ($eot_string s)))
   (($eo_typeof ($eot_binary w n))             ($eo_lit_type_Binary ($eot_binary w n)))
-  (($eo_typeof ($eot_Var s T))                T)
+  ; to sync with eo_to_smt, we require the name is indeed a concrete string
+  (($eo_typeof ($eot_Var ($eot_string s) T))  T)
   (($eo_typeof ($eot_DatatypeType s d))       Type)
   (($eo_typeof ($eot_DtCons s d i))
     ($eo_typeof_dt_cons_rec ($eot_DatatypeType s d) ($eo_dt_substitute s d d) i))
