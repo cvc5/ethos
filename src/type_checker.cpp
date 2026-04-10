@@ -952,11 +952,51 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
   return Expr(d_state.mkExprInternal(k, args));
 }
 
-/**
- * Get nary children, gets a list of children from op-application e,
- * stores them in children.
- */
-ExprValue* getNAryChildren(ExprValue* e,
+Expr TypeChecker::evaluateNil(ExprValue* op,
+                   ExprValue* nil,
+                   bool isLeft,
+                   ExprValue* tinst)
+{
+  Assert (nil!=nullptr);
+  if (nil->getKind()!=Kind::PARAMETERIZED)
+  {
+    Assert (nil->isGround());
+    return Expr(nil);
+  }
+  if (tinst==nullptr)
+  {
+    return Expr();
+  }
+  Expr eop(op);
+  getType(eop);
+  Expr top = Expr(d_state.lookupType(op));
+  Assert (top.getKind()==Kind::FUNCTION_TYPE && top[1].getKind()==Kind::FUNCTION_TYPE);
+  Expr src = isLeft ? top[0] : top[1][0];
+  Ctx ctx;
+  if (!match(src.getValue(), tinst, ctx))
+  {
+    return Expr();
+  }
+  return evaluate((*nil)[1], ctx);
+}
+
+bool TypeChecker::isNAryNil(ExprValue* e,
+                 ExprValue* op,
+                 ExprValue* nil,
+                 bool isLeft)
+{
+  Assert (nil!=nullptr);
+  if (e==nil)
+  {
+    return true;
+  }
+  Expr enil(nil);
+  getType(enil);
+  ExprValue* tnil = d_state.lookupType(nil);
+  return evaluateNil(op, nil, isLeft, tnil).getValue()==e;
+}
+
+ExprValue* TypeChecker::getNAryChildren(ExprValue* e,
                            ExprValue* op,
                            ExprValue* checkNil,
                            std::vector<ExprValue*>& children,
@@ -976,7 +1016,7 @@ ExprValue* getNAryChildren(ExprValue* e,
     e = isLeft ? (*cop)[1] : (*e)[1];
   }
   // must be equal to the nil term, if provided
-  if (checkNil!=nullptr && e!=checkNil)
+  if (checkNil!=nullptr && !isNAryNil(e, op, checkNil, isLeft))
   {
     Warning() << "...expected associative application to end in " << Expr(checkNil) << ", got " << Expr(orig) << std::endl;
     return nullptr;
@@ -984,10 +1024,7 @@ ExprValue* getNAryChildren(ExprValue* e,
   return e;
 }
 
-/**
- * Return true iff e is an op-list with nil terminator checkNil.
- */
-bool isNAryList(ExprValue* e, ExprValue* op, ExprValue* checkNil, bool isLeft)
+bool TypeChecker::isNAryList(ExprValue* e, ExprValue* op, ExprValue* checkNil, bool isLeft)
 {
   while (e->getKind() == Kind::APPLY)
   {
@@ -1000,7 +1037,7 @@ bool isNAryList(ExprValue* e, ExprValue* op, ExprValue* checkNil, bool isLeft)
     e = isLeft ? (*cop)[1] : (*e)[1];
   }
   // must be equal to the nil term
-  return e == checkNil;
+  return isNAryNil(e, op, checkNil, isLeft);
 }
 
 /**

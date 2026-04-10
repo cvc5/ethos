@@ -72,9 +72,9 @@ class TypeChecker
    * Match expression a with b. If this returns true, then ctx is a substitution
    * that when applied to b gives a. The substitution
    */
-  bool match(ExprValue* a, ExprValue* b, Ctx& ctx);
+  static bool match(ExprValue* a, ExprValue* b, Ctx& ctx);
   /** Same as above, but takes a cache of pairs we have already visited */
-  bool match(ExprValue* a,
+  static bool match(ExprValue* a,
              ExprValue* b,
              Ctx& ctx,
              std::set<std::pair<ExprValue*, ExprValue*>>& visited);
@@ -97,6 +97,12 @@ class TypeChecker
   Expr getOrSetLiteralTypeRule(Kind k, ExprValue* self = nullptr);
   /** Evaluate literal op */
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
+  /**
+   */
+  Expr evaluateNil(ExprValue* op,
+                   ExprValue* nil,
+                   bool isLeft,
+                   ExprValue* tinst);
   /** Evaluate list rev internal
    * @param op The n-ary operator.
    * @param nil The nil terminator for the operator.
@@ -180,6 +186,24 @@ class TypeChecker
   /** Get the nil terminator */
   Expr computeConstructorTermInternal(AppInfo* ai,
                                       const std::vector<Expr>& children);
+  /** Return true if e is the nil terminator of op */
+  bool isNAryNil(ExprValue* e,
+                 ExprValue* op,
+                 ExprValue* nil,
+                 bool isLeft);
+  /**
+  * Return true iff e is an op-list with nil terminator checkNil.
+  */
+  bool isNAryList(ExprValue* e, ExprValue* op, ExprValue* checkNil, bool isLeft);
+  /**
+  * Get nary children, gets a list of children from op-application e,
+  * stores them in children.
+  */
+  ExprValue* getNAryChildren(ExprValue* e,
+                           ExprValue* op,
+                           ExprValue* checkNil,
+                           std::vector<ExprValue*>& children,
+                           bool isLeft);
   /** The state */
   State& d_state;
   /** Plugin of the state */
