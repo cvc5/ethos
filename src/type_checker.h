@@ -102,7 +102,8 @@ class TypeChecker
   Expr evaluateNil(ExprValue* op,
                    ExprValue* nil,
                    bool isLeft,
-                   ExprValue* tinst);
+                   ExprValue* tinst,
+                   bool tinstListArg = true);
   /** Evaluate list rev internal
    * @param op The n-ary operator.
    * @param nil The nil terminator for the operator.

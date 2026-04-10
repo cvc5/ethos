@@ -955,24 +955,34 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
 Expr TypeChecker::evaluateNil(ExprValue* op,
                               ExprValue* nil,
                               bool isLeft,
-                              ExprValue* tinst)
+                              ExprValue* tinst,
+                              bool tinstListArg)
 {
   Assert(nil != nullptr);
   if (nil->getKind() != Kind::PARAMETERIZED)
   {
+    // simple if the nil terminator is ground.
     Assert(nil->isGround());
     return Expr(nil);
   }
+  // Otherwise we will use the given type to compute nil. We set up a call
+  // to match here.
   if (tinst == nullptr)
   {
+    // If the type was null, we fail.
     return Expr();
   }
   Expr eop(op);
   getType(eop);
   Expr top = Expr(d_state.lookupType(op));
+  // To infer type parameters, we either take the first or second argument
+  // type of the operator. For example, if op is :right-assoc-nil, then its
+  // type may be (-> T (List T) (List T)), we take top[1][0]. On the other
+  // hand if we are :left-assoc-nil, we may be (-> (List T) T (List T)) and
+  // take top[0]. If tinstListArg is false, we do the opposite.
   Assert(top.getKind() == Kind::FUNCTION_TYPE
          && top[1].getKind() == Kind::FUNCTION_TYPE);
-  Expr src = isLeft ? top[0] : top[1][0];
+  Expr src = (isLeft==tinstListArg) ? top[0] : top[1][0];
   Ctx ctx;
   if (!match(src.getValue(), tinst, ctx))
   {
@@ -1846,70 +1856,39 @@ Expr TypeChecker::computeConstructorTermInternal(
     // if not parameterized, just return self
     return ct;
   }
-  const Expr& hd = children[0];
-  Trace("type_checker") << "Determine constructor term for " << hd << std::endl;
+  Trace("type_checker") << "Determine constructor term for " << children[0] << " @ " << children[1] << std::endl;
   // if explicit parameters, then evaluate the constructor term
   if (children.size() == 1)
   {
     // if not in an application, we fail
-    Warning() << "Failed to determine parameters for " << hd << std::endl;
+    Warning() << "Failed to determine parameters for " << children[0] << std::endl;
     return d_null;
   }
   // otherwise, we must infer the parameters
-  Trace("type_checker") << "Infer params for " << hd << " @ " << children[1]
+  Trace("type_checker") << "Infer params for " << children[0] << " @ " << children[1]
                         << std::endl;
-  if (!isNAryAttr(ai->d_attrCons))
+  Attr ck = ai->d_attrCons;
+  if (!isListNilAttr(ck))
   {
-    Warning() << "Unknown category for parameterized operator " << hd
+    // not an associative operator
+    Warning() << "Unknown category for parameterized operator " << children[0]
               << std::endl;
     return d_null;
   }
-  std::vector<ExprValue*> app;
-  app.push_back(hd.getValue());
-  app.push_back(children[1].getValue());
-  // ensure children are type checked
-  for (ExprValue* e : app)
+  bool isLeft = (ck == Attr::LEFT_ASSOC_NIL || ck == Attr::LEFT_ASSOC_NS_NIL);
+  Expr expr(children[1]);
+  getType(expr);
+  ExprValue* t = d_state.lookupType(children[1].getValue());
+  if (!t->isGround())
   {
-    Expr expr(e);
-    getType(expr);
-    ExprValue* t = d_state.lookupType(e);
-    if (t == nullptr)
-    {
-      // only warn if ground
-      if (expr.isGround())
-      {
-        Warning() << "Type inference failed for " << hd << " applied to "
-                  << children[1] << ", failed to type check " << expr
-                  << std::endl;
-      }
-      return d_null;
-    }
-    Trace("type_checker_debug")
-        << "Type for " << expr << " is " << Expr(t) << std::endl;
+    // If the parameter is non-ground, we also wait to construct;
+    // if the nil terminator is used, it will be replaced by a
+    // placeholder involving eo::nil.
+    return d_null;
   }
-  Ctx tctx;
-  getTypeAppInternal(app, tctx);
-  Trace("type_checker_debug") << "Context was " << tctx << std::endl;
-  for (size_t i = 0, nparams = ct[0].getNumChildren(); i < nparams; i++)
-  {
-    ExprValue* cv = tctx[ct[0][i].getValue()];
-    if (cv==nullptr)
-    {
-      Warning() << "Failed to find context for " << ct[0][i]
-                << " when applying " << hd << " @ " << children[1] << std::endl;
-      return d_null;
-    }
-    if (!cv->isGround())
-    {
-      // If the parameter is non-ground, we also wait to construct;
-      // if the nil terminator is used, it will be replaced by a
-      // placeholder involving eo::nil.
-      return d_null;
-    }
-  }
-  Trace("type_checker") << "Context for constructor term: " << tctx
-                        << std::endl;
-  return evaluate(ct[1].getValue(), tctx);
+  Trace("type_checker") << "Element type is " << Expr(t) << std::endl;
+  // Call evaluate nil, where the instantiated type is an element type.
+  return evaluateNil(children[0].getValue(), ct.getValue(), isLeft, t, false);
 }
 
 }  // namespace ethos
