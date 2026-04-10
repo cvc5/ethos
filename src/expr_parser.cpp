@@ -713,7 +713,8 @@ std::vector<std::pair<Expr, Expr>> ExprParser::parseAndBindLetList()
   // now perform the bindings, which bind to the variable, not its definition
   for (std::pair<Expr, Expr>& ll : letList)
   {
-    bind(ll.first.getSymbol(), ll.first);
+    const Literal* lsym = ll.first[0].getValue()->asLiteral();
+    bind(lsym->d_str.toString(), ll.first);
   }
   return letList;
 }

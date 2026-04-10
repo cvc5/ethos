@@ -53,7 +53,6 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_IF_THEN_ELSE: o << "EVAL_IF_THEN_ELSE"; break;
     case Kind::EVAL_REQUIRES: o << "EVAL_REQUIRES"; break;
     case Kind::EVAL_HASH: o << "EVAL_HASH"; break;
-    case Kind::EVAL_VAR: o << "EVAL_VAR"; break;
     case Kind::EVAL_TYPE_OF: o << "EVAL_TYPE_OF"; break;
     case Kind::EVAL_NAME_OF: o << "EVAL_NAME_OF"; break;
     case Kind::EVAL_COMPARE: o << "EVAL_COMPARE"; break;
@@ -146,7 +145,6 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_IF_THEN_ELSE: ss << "ite"; break;
           case Kind::EVAL_REQUIRES: ss << "requires"; break;
           case Kind::EVAL_HASH: ss << "hash"; break;
-          case Kind::EVAL_VAR: ss << "var"; break;
           case Kind::EVAL_TYPE_OF: ss << "typeof"; break;
           case Kind::EVAL_NAME_OF: ss << "nameof"; break;
           case Kind::EVAL_COMPARE: ss << "cmp"; break;
@@ -252,7 +250,6 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_HASH:
-    case Kind::EVAL_VAR:
     case Kind::EVAL_TYPE_OF:
     case Kind::EVAL_NAME_OF:
     case Kind::EVAL_COMPARE:

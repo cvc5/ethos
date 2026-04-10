@@ -151,7 +151,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
   switch(k)
   {
     case Kind::EVAL_IS_EQ:
-    case Kind::EVAL_VAR:
     case Kind::EVAL_EQ:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
@@ -303,6 +302,8 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return Expr(d_state.lookupType(e->d_children[1]));
     }
       break;
+    case Kind::VARIABLE:
+      return Expr(e->d_children[1]);
     default:
       // if a literal operator, consult auxiliary method
       if (isLiteralOp(k))
@@ -1198,25 +1199,9 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_NAME_OF:
     {
       Kind k = args[0]->getKind();
-      if (k == Kind::CONST || k == Kind::VARIABLE)
+      if (k == Kind::VARIABLE)
       {
-        Literal sym(String(Expr(args[0]).getSymbol()));
-        return Expr(d_state.mkLiteralInternal(sym));
-      }
-    }
-    break;
-    case Kind::EVAL_VAR:
-    {
-      // if arguments are ground and the first argument is a string
-      if (args[0]->getKind() == Kind::STRING && !args[1]->isEvaluatable())
-      {
-        Expr type(args[1]);
-        Expr tt = getType(type);
-        if (!tt.isNull() && tt.getKind()==Kind::TYPE)
-        {
-          const Literal* l = args[0]->asLiteral();
-          return d_state.getBoundVar(l->d_str.toString(), type);
-        }
+        return Expr((*args[0])[0]);
       }
     }
     break;
@@ -1723,7 +1708,6 @@ Expr TypeChecker::getLiteralOpType(Kind k,
   {
     case Kind::EVAL_TYPE_OF:
       return d_state.mkType();
-    case Kind::EVAL_VAR:
     case Kind::EVAL_NIL:
       // its type is the second argument
       return Expr(children[1]);
