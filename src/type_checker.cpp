@@ -284,7 +284,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       // use the literal type rule
       return getOrSetLiteralTypeRule(k, e);
     }
-      break;
     case Kind::AS:
     case Kind::AS_RETURN:
     {
@@ -295,18 +294,16 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       }
       return d_null;
     }
-      break;
     case Kind::PARAMETERIZED:
     {
       // type of the second child
       return Expr(d_state.lookupType(e->d_children[1]));
     }
-      break;
     case Kind::VARIABLE:
     {
       Expr ctype1 = Expr(d_state.lookupType(e->d_children[0]));
       Expr ctype2 = Expr(d_state.lookupType(e->d_children[1]));
-      if (ctype1!=getOrSetLiteralTypeRule(Kind::STRING, e->d_children[0]))
+      if (ctype1 != getOrSetLiteralTypeRule(Kind::STRING, e->d_children[0]))
       {
         if (out)
         {
@@ -314,7 +311,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
         }
         return d_null;
       }
-      if (ctype2.getKind()!=Kind::TYPE)
+      if (ctype2.getKind() != Kind::TYPE)
       {
         if (out)
         {
