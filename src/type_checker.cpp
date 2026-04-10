@@ -1066,7 +1066,7 @@ Expr TypeChecker::prependNAryChildren(ExprValue* op,
   if (isLeft)
   {
     ExprValue* c1;
-    for (auto it = hargs.begin(); it != hargs.end(); ++it)
+    for (auto it = hargs.rbegin(); it != hargs.rend(); ++it)
     {
       c1 = d_state.mkExprInternal(Kind::APPLY, {op, ret});
       ret = d_state.mkExprInternal(Kind::APPLY, {c1, *it});
