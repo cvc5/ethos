@@ -1395,7 +1395,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   {
     return evaluateNil(args[0], ac->d_attrConsTerm.getValue(), isLeft, args[1]);
   }
-  else if (ac->d_attrConsTerm.getKind()!=Kind::PARAMETERIZED)
+  else if (ac->d_attrConsTerm.getKind() != Kind::PARAMETERIZED)
   {
     nilExpr = ac->d_attrConsTerm;
   }
@@ -1405,7 +1405,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     Expr cref(args[1]);
     getType(cref);
     ExprValue* t = d_state.lookupType(args[1]);
-    nilExpr = evaluateNil(args[0], ac->d_attrConsTerm.getValue(), isLeft, t, k!=Kind::EVAL_CONS);
+    nilExpr = evaluateNil(args[0],
+                          ac->d_attrConsTerm.getValue(),
+                          isLeft,
+                          t,
+                          k != Kind::EVAL_CONS);
   }
   if (nilExpr.isNull())
   {
