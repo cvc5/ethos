@@ -953,24 +953,25 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
 }
 
 Expr TypeChecker::evaluateNil(ExprValue* op,
-                   ExprValue* nil,
-                   bool isLeft,
-                   ExprValue* tinst)
+                              ExprValue* nil,
+                              bool isLeft,
+                              ExprValue* tinst)
 {
-  Assert (nil!=nullptr);
-  if (nil->getKind()!=Kind::PARAMETERIZED)
+  Assert(nil != nullptr);
+  if (nil->getKind() != Kind::PARAMETERIZED)
   {
-    Assert (nil->isGround());
+    Assert(nil->isGround());
     return Expr(nil);
   }
-  if (tinst==nullptr)
+  if (tinst == nullptr)
   {
     return Expr();
   }
   Expr eop(op);
   getType(eop);
   Expr top = Expr(d_state.lookupType(op));
-  Assert (top.getKind()==Kind::FUNCTION_TYPE && top[1].getKind()==Kind::FUNCTION_TYPE);
+  Assert(top.getKind() == Kind::FUNCTION_TYPE
+         && top[1].getKind() == Kind::FUNCTION_TYPE);
   Expr src = isLeft ? top[0] : top[1][0];
   Ctx ctx;
   if (!match(src.getValue(), tinst, ctx))
@@ -981,26 +982,26 @@ Expr TypeChecker::evaluateNil(ExprValue* op,
 }
 
 bool TypeChecker::isNAryNil(ExprValue* e,
-                 ExprValue* op,
-                 ExprValue* nil,
-                 bool isLeft)
+                            ExprValue* op,
+                            ExprValue* nil,
+                            bool isLeft)
 {
-  Assert (nil!=nullptr);
-  if (e==nil)
+  Assert(nil != nullptr);
+  if (e == nil)
   {
     return true;
   }
   Expr enil(nil);
   getType(enil);
   ExprValue* tnil = d_state.lookupType(nil);
-  return evaluateNil(op, nil, isLeft, tnil).getValue()==e;
+  return evaluateNil(op, nil, isLeft, tnil).getValue() == e;
 }
 
 ExprValue* TypeChecker::getNAryChildren(ExprValue* e,
-                           ExprValue* op,
-                           ExprValue* checkNil,
-                           std::vector<ExprValue*>& children,
-                           bool isLeft)
+                                        ExprValue* op,
+                                        ExprValue* checkNil,
+                                        std::vector<ExprValue*>& children,
+                                        bool isLeft)
 {
   ExprValue* orig = e;
   while (e->getKind()==Kind::APPLY)
@@ -1016,7 +1017,7 @@ ExprValue* TypeChecker::getNAryChildren(ExprValue* e,
     e = isLeft ? (*cop)[1] : (*e)[1];
   }
   // must be equal to the nil term, if provided
-  if (checkNil!=nullptr && !isNAryNil(e, op, checkNil, isLeft))
+  if (checkNil != nullptr && !isNAryNil(e, op, checkNil, isLeft))
   {
     Warning() << "...expected associative application to end in " << Expr(checkNil) << ", got " << Expr(orig) << std::endl;
     return nullptr;
@@ -1024,7 +1025,10 @@ ExprValue* TypeChecker::getNAryChildren(ExprValue* e,
   return e;
 }
 
-bool TypeChecker::isNAryList(ExprValue* e, ExprValue* op, ExprValue* checkNil, bool isLeft)
+bool TypeChecker::isNAryList(ExprValue* e,
+                             ExprValue* op,
+                             ExprValue* checkNil,
+                             bool isLeft)
 {
   while (e->getKind() == Kind::APPLY)
   {

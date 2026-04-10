@@ -75,9 +75,9 @@ class TypeChecker
   static bool match(ExprValue* a, ExprValue* b, Ctx& ctx);
   /** Same as above, but takes a cache of pairs we have already visited */
   static bool match(ExprValue* a,
-             ExprValue* b,
-             Ctx& ctx,
-             std::set<std::pair<ExprValue*, ExprValue*>>& visited);
+                    ExprValue* b,
+                    Ctx& ctx,
+                    std::set<std::pair<ExprValue*, ExprValue*>>& visited);
   /** */
   Expr getTypeAppInternal(std::vector<ExprValue*>& children,
                           Ctx& ctx,
@@ -187,23 +187,23 @@ class TypeChecker
   Expr computeConstructorTermInternal(AppInfo* ai,
                                       const std::vector<Expr>& children);
   /** Return true if e is the nil terminator of op */
-  bool isNAryNil(ExprValue* e,
-                 ExprValue* op,
-                 ExprValue* nil,
-                 bool isLeft);
+  bool isNAryNil(ExprValue* e, ExprValue* op, ExprValue* nil, bool isLeft);
   /**
-  * Return true iff e is an op-list with nil terminator checkNil.
-  */
-  bool isNAryList(ExprValue* e, ExprValue* op, ExprValue* checkNil, bool isLeft);
+   * Return true iff e is an op-list with nil terminator checkNil.
+   */
+  bool isNAryList(ExprValue* e,
+                  ExprValue* op,
+                  ExprValue* checkNil,
+                  bool isLeft);
   /**
-  * Get nary children, gets a list of children from op-application e,
-  * stores them in children.
-  */
+   * Get nary children, gets a list of children from op-application e,
+   * stores them in children.
+   */
   ExprValue* getNAryChildren(ExprValue* e,
-                           ExprValue* op,
-                           ExprValue* checkNil,
-                           std::vector<ExprValue*>& children,
-                           bool isLeft);
+                             ExprValue* op,
+                             ExprValue* checkNil,
+                             std::vector<ExprValue*>& children,
+                             bool isLeft);
   /** The state */
   State& d_state;
   /** Plugin of the state */
