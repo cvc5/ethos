@@ -261,6 +261,17 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // FIXME: distinct needs to handle arg list
   addTermReduceSym("distinct", {kAny, kAny}, kBool, "(not (= x1 x2))");
   d_typeFullCase["distinct"] = "($smtx_typeof_= ($smtx_typeof x1) ($smtx_typeof x2))";
+  // custom definition of is_list_nil recognizer for distinct arg list
+  if (optionFwdDeclIsListNilNground())
+  {
+    d_auxDesugar["@@TypedList.cons"] = R"(
+(program $eo_is_list_nil_@@TypedList.cons ((T Type)) 
+  :signature (T) Bool
+  (
+  (($eo_is_list_nil_@@TypedList.cons (@@TypedList.nil T)) true)
+  )
+))";
+  }
   // Booleans
   addConstFoldSym("and", {kBool, kBool}, kBool);
   addConstFoldSym("or", {kBool, kBool}, kBool);
@@ -279,7 +290,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // we expect "-" to be overloaded, we look for its desugared name and map it
   // back
   addConstFoldSym("$eoo_-.2", {kT}, kT);
-  d_overloadRevert["$eoo_-.2"] = "-";
+  d_overloadRevert["$eoo_-.2"] = "neg";
   // addConstFoldSym("abs", {kInt}, kInt);
   addTermReduceSym("abs", {kInt}, kInt, "(ite (< x1 0) (- 0 x1) x1)");
   // addConstFoldSym(">=", {kT, kT}, kBool);
@@ -1024,13 +1035,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "x1) ($eo_to_smt x2) (seq.empty $tsm_String)))) (str.len ($eo_to_smt x2)))", true));
   // ignore, not in proof rules (NOTE: could be SMT const?)
   d_symIgnore["@const"] = true;
+  //
   // FIXME: unhandled
   d_symIgnore["@strings_num_occur_re"] = true;
   d_symIgnore["@strings_occur_index"] = true;
   d_symIgnore["@strings_occur_index_re"] = true;
   d_symIgnore["@strings_replace_all_result"] = true;
   d_symIgnore["lambda"] = true;
-
+  
   // for alethe
   addEunoiaReduceSym("@cl", {kT, kT}, "($eo_to_smt (or x1 x2))");
   addEunoiaReduceSym("@empty_cl", {kT, kT}, "($sm_bool $smt_builtin_false)");
@@ -1139,11 +1151,6 @@ void ModelSmt::addRecReduceSym(const std::string& sym,
 void ModelSmt::bind(const std::string& name, const Expr& e)
 {
   if (e.getKind() != Kind::CONST)
-  {
-    return;
-  }
-  // internal declarations are ignored
-  if (name.compare(0, 1, "$") == 0 || name.compare(0, 2, "@@") == 0)
   {
     return;
   }
@@ -1259,6 +1266,11 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
   if (d_symIgnore.find(name) != d_symIgnore.end())
   {
     // intentionally ignored, or handled as special cases only
+    return;
+  }
+  // internal declarations can be ignored
+  if (name.compare(0, 1, "$") == 0 || name.compare(0, 2, "@@") == 0)
+  {
     return;
   }
   // This assertion is critical for soundness: if we do not know how to
@@ -1909,19 +1921,19 @@ void ModelSmt::printTypeof(const std::string& name,
       return;
     }
   }
-  if (args.size() == 2 && kuniform == Kind::PARAM)
+  if (kuniform == Kind::PARAM)
   {
     std::stringstream rets;
     if (ret==Kind::PARAM)
     {
       // mixed arithmetic
-      d_smtTypeof << "($smtx_typeof_arith_overload_op_2" << ssArgs.str() << "))"
+      d_smtTypeof << "($smtx_typeof_arith_overload_op_" << args.size() << ssArgs.str() << "))"
                 << std::endl;
       return;
     }
     else if (printTypeInternal(name, ret, rets))
     {
-      d_smtTypeof << "($smtx_typeof_arith_overload_op_2_ret" << ssArgs.str() << " "
+      d_smtTypeof << "($smtx_typeof_arith_overload_op_" << args.size() << "_ret" << ssArgs.str() << " "
                   << rets.str() << "))" << std::endl;
       return;
     }
