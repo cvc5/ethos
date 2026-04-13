@@ -1,0 +1,21 @@
+(declare-const Int Type)
+(declare-const String Type)
+(declare-consts <numeral> Int)
+(declare-consts <string> String)
+(define @List () eo::List)
+(define @list.nil () eo::List::nil)
+(define @list () eo::List::cons)
+
+
+(program $get_nth_var_type 
+  ((Q (-> @List Bool Bool)) (s String) (T Type) (v T) (xs @List :list) (G Bool) (i Int))
+  :signature (Bool Int) Type
+  (
+  (($get_nth_var_type (Q (@list (eo::var s T) xs) G) 0) T)
+  (($get_nth_var_type (Q (@list v xs) G) i) ($get_nth_var_type (Q (@list xs) G) (eo::add i -1)))
+  )
+)
+
+; skolems
+(declare-parameterized-const @quantifiers_skolemize ((F Bool :opaque) (i Int :opaque))
+  ($get_nth_var_type F i))

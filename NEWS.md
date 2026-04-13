@@ -13,6 +13,7 @@ ethos 0.2.3 prerelease
   treated as a valid code point.
 - Fixes issue in the parser which did not guard for overflow of 32 bit unsigned
   values.
+- Variables `(eo::var s T)` are now considered ordinary terms, which are hence allowed in patterns.
 
 
 ethos 0.2.2

@@ -713,7 +713,12 @@ std::vector<std::pair<Expr, Expr>> ExprParser::parseAndBindLetList()
   // now perform the bindings, which bind to the variable, not its definition
   for (std::pair<Expr, Expr>& ll : letList)
   {
-    bind(ll.first.getSymbol(), ll.first);
+    // above, variables of the form (eo::var s T) should have been created
+    Assert(ll.first.getKind() == Kind::VARIABLE
+           && ll.first.getNumChildren() == 2
+           && ll.first[0].getKind() == Kind::STRING);
+    const Literal* lsym = ll.first[0].getValue()->asLiteral();
+    bind(lsym->d_str.toString(), ll.first);
   }
   return letList;
 }
