@@ -111,7 +111,7 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
   d_strToAttr[":syntax"] = Attr::SYNTAX;
   d_strToAttr[":restrict"] = Attr::RESTRICT;
   d_strToAttr[":sorry"] = Attr::SORRY;
-  
+
   d_strToLiteralKind["<boolean>"] = Kind::BOOLEAN;
   d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
   d_strToLiteralKind["<decimal>"] = Kind::DECIMAL;
@@ -895,11 +895,6 @@ void ExprParser::parseConstructorDefinitionList(
       Expr sel = d_state.mkSymbol(Kind::CONST, id, stype);
       toBind.emplace_back(id,sel);
       sels.push_back(sel);
-      std::stringstream ss;
-      ss << "update-" << id;
-      Expr utype = d_state.mkFunctionType({dt, t}, dt);
-      Expr updater = d_state.mkSymbol(Kind::CONST, ss.str(), utype);
-      toBind.emplace_back(ss.str(), updater);
       d_lex.eatToken(Token::RPAREN);
     }
     bool isAmb = false;
@@ -923,12 +918,6 @@ void ExprParser::parseConstructorDefinitionList(
     Expr cons = d_state.mkSymbol(Kind::CONST, name, ctype);
     toBind.emplace_back(name, cons);
     conslist.push_back(cons);
-    // make the discriminator
-    std::stringstream ss;
-    ss << "is-" << name;
-    Expr dtype = d_state.mkFunctionType({dt}, boolType);
-    Expr tester = d_state.mkSymbol(Kind::CONST, ss.str(), dtype);
-    toBind.emplace_back(ss.str(), tester);
     dtcons[cons.getValue()] = sels;
     if (isAmb)
     {
@@ -1108,7 +1097,7 @@ void ExprParser::parseAttributeList(
             val = parseExprPair();
           }
             break;
-          default:break;
+            default: break;
         }
       }
         break;
