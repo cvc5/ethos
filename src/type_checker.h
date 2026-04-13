@@ -78,12 +78,12 @@ class TypeChecker
    * Match expression a with b. If this returns true, then ctx is a substitution
    * that when applied to b gives a. The substitution
    */
-  bool match(ExprValue* a, ExprValue* b, Ctx& ctx);
+  static bool match(ExprValue* a, ExprValue* b, Ctx& ctx);
   /** Same as above, but takes a cache of pairs we have already visited */
-  bool match(ExprValue* a,
-             ExprValue* b,
-             Ctx& ctx,
-             std::set<std::pair<ExprValue*, ExprValue*>>& visited);
+  static bool match(ExprValue* a,
+                    ExprValue* b,
+                    Ctx& ctx,
+                    std::set<std::pair<ExprValue*, ExprValue*>>& visited);
   /** */
   Expr getTypeAppInternal(std::vector<ExprValue*>& children,
                           Ctx& ctx,
@@ -97,6 +97,22 @@ class TypeChecker
   Expr getTypeInternal(ExprValue* e, std::ostream* out);
   /** Evaluate literal op */
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
+  /** Evaluate nil
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param tinst The reference type
+   * @param tinstListArg If true, the reference type refers to the type of the
+   * list. Otherwise, the reference type refers to the element type. This only
+   * makes a difference for e.g. :right-assoc-nil operators whose type is
+   * (-> T U U) where U != T.
+   * @return The result of the evaluation.
+   */
+  Expr evaluateNil(ExprValue* op,
+                   ExprValue* nil,
+                   bool isLeft,
+                   ExprValue* tinst,
+                   bool tinstListArg = false);
   /** Evaluate list rev internal
    * @param op The n-ary operator.
    * @param nil The nil terminator for the operator.
