@@ -2014,7 +2014,9 @@ Additionally, files may be included or referenced on the command line with the o
 When Ethos encounters a command of the form `(reference <string>)`, the checker enables a further set of checks that ensures that all assumptions in proofs correspond to assertions from the file referenced by the given string.
 
 In particular, when the command `(reference "file.smt2")` is read, Ethos will parse `file.smt2`.
-The definitions and declaration commands in this file will be treated as normal, that is, they will populate the symbol table of Ethos as they normally would if they were to appear in an `*.eo` input.
+The declaration commands in this file will be treated as normal, that is, they will populate the symbol table of Ethos as they normally would if they were to appear in an `*.eo` input.
+By default, `define-fun` commands in reference files are interpreted as reference assertions equating the defined symbol with its body.
+If the option `reference-define-fun` is enabled, they are instead parsed as Eunoia definitions.
 The commands of the form `(assert F)` will add `F` to a set of formulas we will refer to as the _reference assertions_.
 Other commands in `file.smt2` (e.g. `set-logic`, `set-option`, and so on) will be ignored.
 
@@ -2089,6 +2091,7 @@ They do not impact how signature files (*.eo) are parsed:
 - `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
 - `--no-parse-let`: do not treat `let` as a builtin symbol for specifying a macro.
+- `--reference-define-fun`: when parsing reference files, treat `define-fun` commands as Eunoia definitions instead of reference assertions.
 
 Most of the above options can also be set via `set-option` commands within proofs or Eunoia scripts.
 For example, the command `(set-option normalize-num true)` tells Ethos to normalize numerals always.

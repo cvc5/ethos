@@ -7,6 +7,7 @@ ethos 0.2.3 prerelease
 - Updates to the external plugin interface.
 - The identifier `Type` is no longer treated as a keyword in proofs and reference files.
 - The command `declare-sort` is now allowed in proof files.
+- Adds the option `--reference-define-fun` to parse `define-fun` in reference files as Eunoia definitions instead of reference assertions.
 - The builtin `eo::to_str` no longer prints rationals, decimals, or bitvectors. It now only evaluates on strings and numeral code points.
 - Adds support for an attribute `:is_eq` to test whether a defined term is equal to another.
 - Fixes a bug where the character code point `\u{30000}` was incorrectly
