@@ -15,6 +15,8 @@ ethos 0.2.3 prerelease
   values.
 - Fixes an issue where non-ground nil terminators would not be properly computed for list construction operators with types where the element type is different from the return type of the operator.
 - Fixes for evaluation of `:left-assoc-nil` and `:left-assoc-non-singleton-nil` operators.
+- Variables `(eo::var s T)` are now considered ordinary terms, which are hence allowed in patterns.
+
 
 ethos 0.2.2
 ===========

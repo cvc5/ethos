@@ -343,8 +343,6 @@ class State
   std::map<std::string, Expr> d_symTable;
   /** Symbol table for proof rules, if using separate table */
   std::map<std::string, Expr> d_ruleSymTable;
-  /** The (canonical) bound variables for binders */
-  std::map<std::pair<std::string, const ExprValue*>, Expr> d_boundVars;
   /**
    * The list of declared symbols in the order they were bound.
    */

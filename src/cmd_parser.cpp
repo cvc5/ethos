@@ -260,14 +260,14 @@ bool CmdParser::parseNextCommand()
         {
           d_lex.parseError("Can only use opaque argument on functions without attributes.");
         }
-        // Reconstruct with opaque arguments, do not flatten function type.
-        t = d_state.mkFunctionType(opaqueArgs, t);
         ck = Attr::OPAQUE;
         // we store the number of opaque arguments as the constructor
         std::stringstream onum;
         onum << opaqueArgs.size();
         Assert(cons.isNull());
         cons = d_state.mkLiteral(Kind::NUMERAL, onum.str());
+        opaqueArgs.push_back(t);
+        t = d_state.mkExpr(Kind::FUNCTION_TYPE, opaqueArgs);
       }
       Expr v = d_state.mkSymbol(sk, name, t);
       // if the type has a property, we mark it on the variable of this type
@@ -822,10 +822,6 @@ bool CmdParser::parseNextCommand()
       {
         // parse the body
         std::vector<Expr> pchildren = d_eparser.parseExprPairList();
-        if (pchildren.empty())
-        {
-          d_lex.parseError("Expected non-empty list of cases");
-        }
         // ensure program cases are
         // (A) applications of the program
         // (B) have arguments that are not evaluatable
@@ -930,7 +926,8 @@ bool CmdParser::parseNextCommand()
         // because allocation of std::stringstream is expensive and this
         // block of code only executes at most once.
         std::stringstream sserr;
-        sserr << "A step of rule " << ruleName << " failed to check." << std::endl;
+        sserr << "A step of rule " << ruleName << " failed to check."
+              << std::endl;
         bool recheck = d_state.notifyStep(
             name, rule, proven, premises, args, isPop, concTerm, &sserr);
         // should fail again
