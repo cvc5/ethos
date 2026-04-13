@@ -1189,6 +1189,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
       {
         // Note we do not curry APPLY_OPAQUE applications, as they are simpler
         // to reason about in flattened form.
+        Assert (nargs < vchildren.size());
         std::vector<ExprValue*> ochildren(vchildren.begin(),
                                           vchildren.begin() + 1 + nargs);
         Expr op = Expr(mkExprInternal(Kind::APPLY_OPAQUE, ochildren));
