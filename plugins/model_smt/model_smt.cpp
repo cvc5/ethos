@@ -289,8 +289,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addAuxIsListNil("*", "(eo::is_eq (eo::to_q x1) 1/1)");
   // we expect "-" to be overloaded, we look for its desugared name and map it
   // back
-  addConstFoldSym("$eoo_-.2", {kT}, kT);
-  d_overloadRevert["$eoo_-.2"] = "neg";
+  addConstFoldSym("uneg", {kT}, kT);
+  d_overloadRevert["$eoo_-.2"] = "uneg";
+  d_overloadRevertRev["uneg"] = "$eoo_-.2";
   // addConstFoldSym("abs", {kInt}, kInt);
   addTermReduceSym("abs", {kInt}, kInt, "(ite (< x1 0) (- 0 x1) x1)");
   // addConstFoldSym(">=", {kT, kT}, kBool);
@@ -489,7 +490,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "bvxor", {kBitVec, kBitVec}, "x1", "($smt_builtin_binary_xor x1 x2 x4)");
   addAuxIsListNil("bvxor", "(eo::is_eq (eo::to_z x1) 0)");
   addLitBinSym("bvnot", {kBitVec}, "x1", "($smt_builtin_binary_not x1 x2)");
-  addLitBinSym("bvneg", {kBitVec}, "x1", "($smt_builtin_z_neg x2)");
+  addLitBinSym("bvneg", {kBitVec}, "x1", "($smt_builtin_z_uneg x2)");
   addLitBinSym("bvshl",
                {kBitVec, kBitVec},
                "x1",
@@ -699,7 +700,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
     ssRet << "(eo::define ((p2wm1 ($smt_builtin_z_pow2 ($smt_builtin_z_- x1 "
              "$smt_builtin_z_one)))) ";
     ssRet << " ($smt_builtin_or " << smtZLeq("p2wm1", "sret");
-    ssRet << " " << smtZLt("sret", "($smt_builtin_z_neg p2wm1)");
+    ssRet << " " << smtZLt("sret", "($smt_builtin_z_uneg p2wm1)");
     ssRet << ")))";
     addLitSym(bvOp, {kBitVec, kBitVec}, kBool, ssRet.str());
   }
@@ -1157,8 +1158,16 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   d_declSeen.emplace_back(name, e);
 }
 
-void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
+void ModelSmt::finalizeDecl(const std::string& ename, const Expr& e)
 {
+  std::string name = ename;
+  std::map<std::string, std::string>::iterator ito =
+      d_overloadRevert.find(name);
+  if (ito != d_overloadRevert.end())
+  {
+    // e.g. in spite of having name $eoo_-.2, we use "-" as the invocation.
+    name = ito->second;
+  }
   size_t nopqArgs = 0;
   Attr attr = d_state.getConstructorKind(e.getValue());
   if (attr == Attr::OPAQUE)
@@ -1389,7 +1398,13 @@ void ModelSmt::printDecl(const std::string& name,
   macroName << "$" << prefix << "_" << name;
   (*out) << "(define " << macroName.str() << " (" << macroVarList.str();
   (*out) << ") " << sret << ")" << std::endl;
-  std::string eoToSmtPat = sApply(name, eoToSmtPatArgs.str());
+  std::string ename = name;
+  std::map<std::string, std::string>::iterator itrr = d_overloadRevertRev.find(name);
+  if (itrr != d_overloadRevertRev.end())
+  {
+    ename = itrr->second;
+  }
+  std::string eoToSmtPat = sApply(ename, eoToSmtPatArgs.str());
   std::string eoToSmtRet;
   std::map<std::string, std::string>::iterator itf = d_eoToSmtFullCase.find(name);
   if (itf!=d_eoToSmtFullCase.end())
@@ -1516,14 +1531,7 @@ void ModelSmt::printConstFold(const std::string& name,
     argSchemas.push_back(Kind::NONE);
   }
   std::stringstream opName;
-  std::map<std::string, std::string>::iterator ito =
-      d_overloadRevert.find(name);
-  if (ito != d_overloadRevert.end())
-  {
-    // e.g. in spite of having name $eoo_-.2, we use "-" as the invocation.
-    opName << ito->second;
-  }
-  else if (name.compare(0, 4, "str.")==0 && args[0]==d_kSeq)
+  if (name.compare(0, 4, "str.")==0 && args[0]==d_kSeq)
   {
     // mismatch str.substr vs seq.extract
     std::string oname = name.substr(4);
@@ -1582,6 +1590,7 @@ void ModelSmt::printConstFold(const std::string& name,
     }
     else if (opName.str() == "**_total")
     {
+      // FIXME: dont special case this
       ssret << "($smt_builtin_z_**_total";
     }
     else

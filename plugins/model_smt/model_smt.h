@@ -204,6 +204,7 @@ class ModelSmt : public StdPlugin
   std::map<Kind, std::string> d_kindToEoCons;
   std::map<Kind, std::string> d_kindToType;
   std::map<std::string, std::string> d_overloadRevert;
+  std::map<std::string, std::string> d_overloadRevertRev;
   std::map<std::string, size_t> d_opqArgs;
   Expr d_null;
   /** Auxiliary programs for SMT-LIB model evaluation */

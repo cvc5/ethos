@@ -409,11 +409,11 @@
   :signature (T) T
   (
   (($eo_neg ($eot_numeral n1))
-    ($eot_numeral ($smt_builtin_z_neg n1)))
+    ($eot_numeral ($smt_builtin_z_uneg n1)))
   (($eo_neg ($eot_rational r1))
-    ($eot_rational ($smt_builtin_q_neg r1)))
+    ($eot_rational ($smt_builtin_q_uneg r1)))
   (($eo_neg ($eot_binary w n1))
-    ($eo_binary_mod_w w ($smt_builtin_z_neg n1)))
+    ($eo_binary_mod_w w ($smt_builtin_z_uneg n1)))
   )
 )
 

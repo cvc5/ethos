@@ -83,8 +83,8 @@
 (define $smt_builtin_z_< ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zlt" x1 x2))
 (define $smt_builtin_z_+ ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zplus" x1 x2))
 (define $smt_builtin_z_* ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zmult" x1 x2))
-(define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
-(define $smt_builtin_z_- ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_z_+ x1 ($smt_builtin_z_neg x2)))
+(define $smt_builtin_z_uneg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
+(define $smt_builtin_z_- ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_z_+ x1 ($smt_builtin_z_uneg x2)))
 (define $smt_builtin_z_pow2 ((W Type :implicit) (x1 W)) ($smt_apply_1 "int.pow2" x1))
 (define $smt_builtin_z_piand ((W Type :implicit) (x1 W) (x2 W) (x3 W)) ($smt_apply_3 "piand" x1 x2 x3))
 ; Real operators
@@ -94,8 +94,8 @@
 (define $smt_builtin_q_< ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qlt" x1 x2))
 (define $smt_builtin_q_+ ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qplus" x1 x2))
 (define $smt_builtin_q_* ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_apply_2 "qmult" x1 x2))
-(define $smt_builtin_q_neg ((x1 $smt_builtin_Real)) ($smt_apply_1 "qneg" x1))
-(define $smt_builtin_q_- ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_builtin_q_+ x1 ($smt_builtin_q_neg x2)))
+(define $smt_builtin_q_uneg ((x1 $smt_builtin_Real)) ($smt_apply_1 "qneg" x1))
+(define $smt_builtin_q_- ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real)) ($smt_builtin_q_+ x1 ($smt_builtin_q_uneg x2)))
 ; other arithmetic
 (define $smt_builtin_z_to_real ((x1 $smt_builtin_Int)) ($smt_apply_1 "to_real" x1))
 (define $smt_builtin_q_to_real ((x1 $smt_builtin_Real)) x1)
@@ -105,7 +105,7 @@
 (define $smt_builtin_div_total ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "div_total" x1 x2))
 (define $smt_builtin_mod_total ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "mod_total" x1 x2))
 (define $smt_builtin_z_**_total ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int)) ($smt_apply_2 "zexp_total" x1 x2))
-(define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
+(define $smt_builtin_z_neg_one () ($smt_builtin_z_uneg $smt_builtin_z_one))
 (define $smt_builtin_z_inc ((x1 $smt_builtin_Int)) ($smt_builtin_z_+ x1 $smt_builtin_z_one))
 (define $smt_builtin_z_dec ((x1 $smt_builtin_Int)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
 ; natural numbers
