@@ -16,7 +16,7 @@
 #include "../linear_patterns/linear_patterns.h"
 #include "state.h"
 
-//#define INFER_TOTAL_DEFS
+#define INFER_TOTAL_DEFS
 
 namespace ethos {
 
@@ -40,6 +40,7 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   d_prefixToMetaKind["indl"] = MetaKind::CHECKER_INDEX_LIST;
   d_prefixToMetaKind["al"] = MetaKind::CHECKER_ARG_LIST;
 #ifdef INFER_TOTAL_DEFS
+  d_hasDefs = false;
   d_defsTotal << "mutual" << std::endl << std::endl;
 #endif
 }
@@ -642,6 +643,11 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
 #endif
     if (needsPartial)
     {
+      if (!d_hasDefs)
+      {
+        d_hasDefs = true;
+        d_defs << "mutual" << std::endl << std::endl;
+      }
       out = &d_defs;
       decl << "partial ";
     }
@@ -1078,6 +1084,10 @@ void LeanMetaReduce::finalize()
   }
 #ifdef INFER_TOTAL_DEFS
   d_defsTotal << "end" << std::endl << std::endl;
+  if (d_hasDefs)
+  {
+    d_defs << "end" << std::endl << std::endl;
+  }
 #endif
   finalizeChecker();
   finalizeSmtModel();

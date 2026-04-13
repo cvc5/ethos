@@ -151,11 +151,7 @@ inductive Proof : Type where
 
 $LEAN_DEFS_TOTAL$
 
-mutual
-
 $LEAN_DEFS$
-
-end
 
 /- Definition of the checker -/
 

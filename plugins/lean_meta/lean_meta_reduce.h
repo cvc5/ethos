@@ -102,6 +102,7 @@ class LeanMetaReduce : public MetaReducePlugin
   void printStepEmptyCase(std::ostream& out, const std::string& str, bool isPop);
   std::stringstream d_defs;
   std::stringstream d_defsTotal;
+  bool d_hasDefs;
   std::stringstream d_eoIsObjDefs;
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;

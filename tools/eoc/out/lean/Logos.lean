@@ -180,28 +180,26 @@ inductive Proof : Type where
 
 /- Definition of Eunoia signature -/
 
-
-
 mutual
 
-partial def __eo_mk_apply : Term -> Term -> Term
+def __eo_mk_apply : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | x1, x2 => (Term.Apply x1 x2)
 
 
-partial def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
+def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
   (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w)))
 
-partial def __eo_ite : Term -> Term -> Term -> Term
+def __eo_ite : Term -> Term -> Term -> Term
   | x1, x2, x3 => (eo_lit_ite (eo_lit_teq x1 (Term.Boolean true)) x2 (eo_lit_ite (eo_lit_teq x1 (Term.Boolean false)) x3 Term.Stuck))
 
 
-partial def __eo_requires : Term -> Term -> Term -> Term
+def __eo_requires : Term -> Term -> Term -> Term
   | x1, x2, x3 => (eo_lit_ite (eo_lit_teq x1 x2) (eo_lit_ite (eo_lit_not (eo_lit_teq x1 Term.Stuck)) x3 Term.Stuck) Term.Stuck)
 
 
-partial def __eo_and : Term -> Term -> Term
+def __eo_and : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (eo_lit_and b1 b2))
   | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
     let _v0 := (Term.Numeral w1)
@@ -209,51 +207,51 @@ partial def __eo_and : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
-partial def __eo_len : Term -> Term
+def __eo_len : Term -> Term
   | (Term.String s1) => (Term.Numeral (eo_lit_str_len s1))
   | (Term.Binary w n1) => (Term.Numeral w)
   | _ => Term.Stuck
 
 
-partial def __eo_eq : Term -> Term -> Term
+def __eo_eq : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | t, s => (Term.Boolean (eo_lit_teq s t))
 
 
-partial def __eo_dtc_substitute (s : eo_lit_String) (d : Datatype) : DatatypeCons -> DatatypeCons
+def __eo_dtc_substitute (s : eo_lit_String) (d : Datatype) : DatatypeCons -> DatatypeCons
   | (DatatypeCons.cons (Term.DatatypeType s2 d2) c) => (DatatypeCons.cons (Term.DatatypeType s2 (eo_lit_ite (eo_lit_streq s s2) d2 (__eo_dt_substitute s d d2))) (__eo_dtc_substitute s d c))
   | (DatatypeCons.cons T c) => (DatatypeCons.cons (eo_lit_ite (eo_lit_teq T (Term.DatatypeTypeRef s)) (Term.DatatypeType s d) T) (__eo_dtc_substitute s d c))
   | DatatypeCons.unit => DatatypeCons.unit
 
 
-partial def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> Datatype
+def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> Datatype
   | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_substitute s d c) (__eo_dt_substitute s d d2))
   | Datatype.null => Datatype.null
 
 
-partial def __eo_is_bool_type : Term -> Term
+def __eo_is_bool_type : Term -> Term
   | Term.Stuck  => Term.Stuck
   | x => (__eo_eq (__eo_typeof x) Term.Bool)
 
 
-partial def __eo_prog_contra : Proof -> Proof -> Term
+def __eo_prog_contra : Proof -> Proof -> Term
   | (Proof.pf F), (Proof.pf (Term.Apply Term.not __eo_lv_F_2)) => (__eo_requires (__eo_eq F __eo_lv_F_2) (Term.Boolean true) (Term.Boolean false))
   | _, _ => Term.Stuck
 
 
-partial def __mk_symm : Term -> Term
+def __mk_symm : Term -> Term
   | (Term.Apply (Term.Apply Term.eq t1) t2) => (Term.Apply (Term.Apply Term.eq t2) t1)
   | (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t1) t2)) => (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t2) t1))
   | _ => Term.Stuck
 
 
-partial def __eo_prog_symm : Proof -> Term
+def __eo_prog_symm : Proof -> Term
   | (Proof.pf F) => (__mk_symm F)
   | _ => Term.Stuck
 
 
-partial def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Nat -> Term
+def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Nat -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | T, (Datatype.sum DatatypeCons.unit d), eo_lit_nat_zero => T
   | T, (Datatype.sum (DatatypeCons.cons U c) d), eo_lit_nat_zero => (Term.Apply (Term.Apply Term.FunType U) (__eo_typeof_dt_cons_rec T (Datatype.sum c d) eo_lit_nat_zero))
@@ -261,81 +259,81 @@ partial def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Nat -> Term
   | _, _, _ => Term.Stuck
 
 
-partial def __eo_typeof_dt_sel_return : Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
+def __eo_typeof_dt_sel_return : Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
   | (Datatype.sum (DatatypeCons.cons T c) d), eo_lit_nat_zero, eo_lit_nat_zero => T
   | (Datatype.sum (DatatypeCons.cons T c) d), eo_lit_nat_zero, (eo_lit_nat_succ m) => (__eo_typeof_dt_sel_return (Datatype.sum c d) eo_lit_nat_zero m)
   | (Datatype.sum c d), (eo_lit_nat_succ n), m => (__eo_typeof_dt_sel_return d n m)
   | _, _, _ => Term.Stuck
 
 
-partial def __eo_typeof_apply : Term -> Term -> Term
+def __eo_typeof_apply : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.Apply Term.FunType T) U), V => (__eo_requires T V U)
   | _, _ => Term.Stuck
 
 
-partial def __eo_typeof_fun_type : Term -> Term -> Term
+def __eo_typeof_fun_type : Term -> Term -> Term
   | Term.Type, Term.Type => Term.Type
   | _, _ => Term.Stuck
 
 
-partial def __eo_lit_type_Numeral : Term -> Term
+def __eo_lit_type_Numeral : Term -> Term
   | Term.Stuck  => Term.Stuck
   | t => Term.Int
 
 
-partial def __eo_lit_type_Rational : Term -> Term
+def __eo_lit_type_Rational : Term -> Term
   | Term.Stuck  => Term.Stuck
   | t => Term.Real
 
 
-partial def __eo_lit_type_Binary : Term -> Term
+def __eo_lit_type_Binary : Term -> Term
   | Term.Stuck  => Term.Stuck
   | t => (__eo_mk_apply Term.BitVec (__eo_len t))
 
 
-partial def __eo_lit_type_String : Term -> Term
+def __eo_lit_type_String : Term -> Term
   | Term.Stuck  => Term.Stuck
   | t => (Term.Apply Term.Seq Term.Char)
 
 
-partial def __eo_typeof_BitVec : Term -> Term
+def __eo_typeof_BitVec : Term -> Term
   | Term.Int => Term.Type
   | _ => Term.Stuck
 
 
-partial def __eo_typeof_Seq : Term -> Term
+def __eo_typeof_Seq : Term -> Term
   | Term.Type => Term.Type
   | _ => Term.Stuck
 
 
-partial def __eo_typeof_not : Term -> Term
+def __eo_typeof_not : Term -> Term
   | Term.Bool => Term.Bool
   | _ => Term.Stuck
 
 
-partial def __eo_typeof_or : Term -> Term -> Term
+def __eo_typeof_or : Term -> Term -> Term
   | Term.Bool, Term.Bool => Term.Bool
   | _, _ => Term.Stuck
 
 
-partial def __eo_typeof_and : Term -> Term -> Term
+def __eo_typeof_and : Term -> Term -> Term
   | Term.Bool, Term.Bool => Term.Bool
   | _, _ => Term.Stuck
 
 
-partial def __eo_typeof_imp : Term -> Term -> Term
+def __eo_typeof_imp : Term -> Term -> Term
   | Term.Bool, Term.Bool => Term.Bool
   | _, _ => Term.Stuck
 
 
-partial def __eo_typeof_eq : Term -> Term -> Term
+def __eo_typeof_eq : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | A, __eo_lv_A_2 => (__eo_requires (__eo_eq A __eo_lv_A_2) (Term.Boolean true) Term.Bool)
 
 
-partial def __eo_typeof : Term -> Term
+def __eo_typeof : Term -> Term
   | (Term.Boolean b) => Term.Bool
   | (Term.Numeral n) => (__eo_lit_type_Numeral (Term.Numeral n))
   | (Term.Rational r) => (__eo_lit_type_Rational (Term.Rational r))
@@ -367,9 +365,11 @@ partial def __eo_typeof : Term -> Term
   | _ => Term.Stuck
 
 
-
-
 end
+
+
+
+
 
 /- Definition of the checker -/
 
