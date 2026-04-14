@@ -331,6 +331,7 @@ def __eo_typeof : Term -> Term
   | (Term.Binary w n) => (__eo_lit_type_Binary (Term.Binary w n))
   | (Term.Var (Term.String s) T) => T
   | (Term.DatatypeType s d) => Term.Type
+  | (Term.DatatypeTypeRef s) => Term.Type
   | (Term.DtCons s d i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
   | (Term.DtSel s d i j) => (Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s d)) (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j))
   | (Term.USort i) => Term.Type

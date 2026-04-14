@@ -1178,7 +1178,7 @@
 (program $eo_is_bool_type ((T Type) (x T))
   :signature (T) Bool
   (
-  (($eo_is_bool_type x) (eo::eq ($eo_typeof x) Bool))
+  (($eo_is_bool_type x) ($eo_eq ($eo_typeof x) Bool))
   )
 )
 
@@ -1741,6 +1741,7 @@
   ; to sync with eo_to_smt, we require the name is indeed a concrete string
   (($eo_typeof ($eot_Var ($eot_string s) T))  T)
   (($eo_typeof ($eot_DatatypeType s d))       Type)
+  (($eo_typeof ($eot_DatatypeTypeRef s))      Type)
   (($eo_typeof ($eot_DtCons s d i))
     ($eo_typeof_dt_cons_rec ($eot_DatatypeType s d) ($eo_dt_substitute s d d) i))
   (($eo_typeof ($eot_DtSel s d i j))
@@ -1946,10 +1947,10 @@
 (define $sm_UConst ((s $smt_builtin_String) (T $smt_Type)) ($emb_sm.UConst s T))
 
 ; all other ordinary term definitions
-(declare-parameterized-const $emb_sm.not ((x1 $smt_Term)) $smt_Term)
-(define $sm_not ((x1 $smt_Term)) ($sm_apply $emb_sm.not x1))
-(declare-parameterized-const $emb_sm.and ((x1 $smt_Term) (x2 $smt_Term)) $smt_Term)
-(define $sm_and ((x1 $smt_Term) (x2 $smt_Term)) ($sm_apply ($sm_apply $emb_sm.and x1) x2))
+(declare-parameterized-const $emb_sm.not ((x1 $smt_Term :opaque)) $smt_Term)
+(define $sm_not ((x1 $smt_Term)) ($emb_sm.not x1))
+(declare-parameterized-const $emb_sm.and ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque)) $smt_Term)
+(define $sm_and ((x1 $smt_Term) (x2 $smt_Term)) ($emb_sm.and x1 x2))
 
 
 ;;;;;; SMT type constructors
@@ -2235,6 +2236,54 @@
 (program $smtx_model_lookup () :signature ($smt_Model $smt_builtin_String $smt_Type) $smt_Value)
 (program $smtx_model_update () :signature ($smt_Model $smt_builtin_String $smt_Type $smt_Value) $smt_Model)
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Closedness for types
+
+(declare-const $smt_RefList Type)
+
+(program $smtx_type_wf_rec () :signature ($smt_Type $smt_RefList) $smt_builtin_Bool)
+
+(program $smtx_dt_cons_wf_rec
+  ((T $smt_Type) (c $smt_DatatypeCons) (refs $smt_RefList))
+  :signature ($smt_DatatypeCons $smt_RefList) $smt_builtin_Bool
+  (
+  (($smtx_dt_cons_wf_rec ($dtc_cons T c) refs) 
+    ($smt_builtin_ite ($smtx_type_wf_rec T refs) ($smtx_dt_cons_wf_rec c refs) $smt_builtin_false))
+  (($smtx_dt_cons_wf_rec $dtc_unit refs) $smt_builtin_true)
+  )
+)
+
+(program $smtx_dt_wf_rec
+  ((d $smt_Datatype) (c $smt_DatatypeCons) (refs $smt_RefList))
+  :signature ($smt_Datatype $smt_RefList) $smt_builtin_Bool
+  (
+  (($smtx_dt_wf_rec $dt_null refs) $smt_builtin_true)
+  (($smtx_dt_wf_rec ($dt_sum c d) refs) 
+    ($smt_builtin_ite ($smtx_dt_cons_wf_rec c refs) ($smtx_dt_wf_rec d refs) $smt_builtin_false))
+  )
+)
+
+(program $smtx_type_wf_rec 
+  ((T $smt_Type) (s $smt_builtin_String) (d $smt_Datatype) (refs $smt_RefList))
+  :signature ($smt_Type $smt_RefList) $smt_builtin_Bool
+  (
+  (($smtx_type_wf_rec ($tsm_Datatype s d) refs) 
+    ($smtx_dt_wf_rec d ($smt_apply_2 "reflist_insert" refs s)))
+  (($smtx_type_wf_rec ($tsm_TypeRef s) refs) 
+    ($smt_apply_2 "reflist_contains" refs s))
+  (($smtx_type_wf_rec $tsm_none refs) $smt_builtin_false)
+  (($smtx_type_wf_rec T refs) $smt_builtin_true)
+  )
+)
+
+(program $smtx_type_wf ((T $smt_Type))
+  :signature ($smt_Type) $smt_builtin_Bool
+  (
+  (($smtx_type_wf T) ($smtx_type_wf_rec T ($smt_apply_0 "reflist_nil")))
+  )
+)
+
 ;;; utilities
 
 ; returns U if T is not none
@@ -2250,6 +2299,14 @@
   :signature ($smt_Type $smt_Type) $smt_Type
   (
   (($smtx_typeof_guard_inhabited T U) ($smt_builtin_ite ($smt_apply_1 "inhabited_type" T) U $tsm_none))
+  )
+)
+
+; returns U if T is well-formed
+(program $smtx_typeof_guard_wf ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_guard_wf T U) ($smt_builtin_ite ($smtx_type_wf T) U $tsm_none))
   )
 )
 
@@ -2500,8 +2557,6 @@
   ; datatype we are processing is closed.
   ($smtx_typeof_dt_cons_value_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) n))
 
-  
-
 (program $smtx_typeof_dt_cons_rec
   ((T $smt_Type) (U $smt_Type) (d $smt_Datatype) (c $smt_DatatypeCons) (n $smt_builtin_Nat))
   :signature ($smt_Type $smt_Datatype $smt_builtin_Nat) $smt_Type
@@ -2547,6 +2602,7 @@
   (($smtx_typeof_apply_value T U) $tsm_none)
   )
 )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Type rules for values
 
 (program $smtx_typeof_value
@@ -2569,7 +2625,9 @@
   (($smtx_typeof_value ($vsm_seq ss))     ($smtx_typeof_seq_value ss))
   (($smtx_typeof_value ($vsm_char c))     $tsm_Char)
   (($smtx_typeof_value ($vsm_DtCons s d i))
-    ($smtx_typeof_dt_cons_value s d i))
+    ($smt_builtin_ite ($smtx_type_wf ($tsm_Datatype s d))
+      ($smtx_typeof_dt_cons_value s d i)
+      $tsm_none))
   (($smtx_typeof_value ($vsm_apply f v))
     ($smtx_typeof_apply_value ($smtx_typeof_value f) ($smtx_typeof_value v)))
   (($smtx_typeof_value v)                 $tsm_none)
@@ -3082,7 +3140,8 @@
     ($smt_builtin_ite ($smt_builtin_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_inhabited T T) $tsm_none))
   ; datatypes
   (($smtx_typeof ($sm_DtCons s d i))
-    ($smtx_typeof_dt_cons_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) i))
+    ($smtx_typeof_guard_wf ($tsm_Datatype s d)
+      ($smtx_typeof_dt_cons_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) i)))
   (($smtx_typeof ($sm_apply ($sm_DtSel s d i j) x1))
     ($smtx_typeof_apply 
       ($tsm_FunType ($tsm_Datatype s d) ($smtx_ret_typeof_sel s d i j))
@@ -3092,7 +3151,7 @@
       ($tsm_FunType ($tsm_Datatype s d) $tsm_Bool)
       ($smtx_typeof x1)))
   ; other
-  (($smtx_typeof ($sm_apply f x1)) ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
+  (($smtx_typeof ($sm_apply f x1))  ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
   (($smtx_typeof ($sm_Var s T))     ($smtx_typeof_guard_inhabited T T))
   (($smtx_typeof ($sm_UConst s T))  ($smtx_typeof_guard_inhabited T T))
   (($smtx_typeof x1)   $tsm_none)
@@ -3207,6 +3266,7 @@
   (
   (($eo_to_smt_type Bool)                     $tsm_Bool)
   (($eo_to_smt_type ($eot_DatatypeType s d))  ($tsm_Datatype s ($eo_to_smt_datatype d)))
+  (($eo_to_smt_type ($eot_DatatypeTypeRef s)) ($tsm_TypeRef s))
   (($eo_to_smt_type ($eot_USort i))           ($tsm_USort i))
   (($eo_to_smt_type (-> T1 T2))
     (eo::define ((S1 ($eo_to_smt_type T1)))

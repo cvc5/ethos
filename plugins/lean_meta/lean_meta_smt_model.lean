@@ -337,6 +337,13 @@ def __smtx_model_push (M : SmtModel) (s : smt_lit_String) (T : SmtType) (v : Smt
     else
       M k
 
+abbrev RefList := List smt_lit_String
+
+def smt_lit_reflist_nil : RefList := []
+def smt_lit_reflist_insert (xs : RefList) (s : smt_lit_String) := (s :: xs)
+def smt_lit_reflist_contains (xs : RefList) (s : smt_lit_String ) :=
+  decide (s ∈ xs)
+
 /- Type equality -/
 def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
   | x, y => decide (x = y)

@@ -48,6 +48,7 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case MetaKind::DATATYPE: os << "edt.Datatype"; break;
     case MetaKind::DATATYPE_CONSTRUCTOR: os << "edtc.DatatypeCons"; break;
     case MetaKind::SMT_MODEL: os << "smm.SmtModel"; break;
+    case MetaKind::SMT_REFLIST: os << "srl.RefList"; break;
     case MetaKind::SMT: os << "sm.Term"; break;
     case MetaKind::SMT_TYPE: os << "tsm.Type"; break;
     case MetaKind::SMT_VALUE: os << "vsm.Value"; break;

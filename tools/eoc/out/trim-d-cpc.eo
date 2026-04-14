@@ -1178,7 +1178,7 @@
 (program $eo_is_bool_type ((T Type) (x T))
   :signature (T) Bool
   (
-  (($eo_is_bool_type x) (eo::eq ($eo_typeof x) Bool))
+  (($eo_is_bool_type x) ($eo_eq ($eo_typeof x) Bool))
   )
 )
 
@@ -1741,6 +1741,7 @@
   ; to sync with eo_to_smt, we require the name is indeed a concrete string
   (($eo_typeof ($eot_Var ($eot_string s) T))  T)
   (($eo_typeof ($eot_DatatypeType s d))       Type)
+  (($eo_typeof ($eot_DatatypeTypeRef s))      Type)
   (($eo_typeof ($eot_DtCons s d i))
     ($eo_typeof_dt_cons_rec ($eot_DatatypeType s d) ($eo_dt_substitute s d d) i))
   (($eo_typeof ($eot_DtSel s d i j))

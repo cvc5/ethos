@@ -172,6 +172,18 @@ $SM_TYPE_DECL$
 (define-sort smk.SmtModelKey () (Tuple String tsm.Type))
 (define-sort smm.SmtModel () (Array smk.SmtModelKey vsm.Value))
 
+(declare-datatype srl.RefList
+  ((reflist_nil) (reflist_insert (reflist_insert.arg1 srl.RefList) (reflist_insert.arg2 String))))
+
+(declare-fun reflist_contains (srl.RefList String) Bool)
+(assert (! (forall ((rl srl.RefList) (s String))
+  (! (= (reflist_contains rl s) 
+    (ite ((_ is reflist_nil) rl) false
+    (ite (= (reflist_insert.arg2 rl) s) true
+      (reflist_contains (reflist_insert.arg1 rl) s))))
+  :pattern ((reflist_contains rl s))))
+  :named smtx.reflist_contains_def))
+  
 (define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
 (define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))
 (define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))

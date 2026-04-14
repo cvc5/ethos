@@ -30,6 +30,8 @@ enum class MetaKind
   DATATYPE_CONSTRUCTOR,
   /** smt model */
   SMT_MODEL,
+  /** a list of references for datatypes */
+  SMT_REFLIST,
   /** A context in which the deep embedding of the term is an SMT-LIB term */
   SMT,
   /** A context in which the deep embedding of the term is an SMT-LIB type */

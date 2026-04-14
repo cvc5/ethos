@@ -842,6 +842,6 @@
 (program $eo_is_bool_type ((T Type) (x T))
   :signature (T) Bool
   (
-  (($eo_is_bool_type x) (eo::eq ($eo_typeof x) Bool))
+  (($eo_is_bool_type x) ($eo_eq ($eo_typeof x) Bool))
   )
 )

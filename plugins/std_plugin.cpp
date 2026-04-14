@@ -201,7 +201,7 @@ bool StdPlugin::optionEoTypeCanonize() { return true; }
 // whether we use custom definitions of is_list_nil for operators with non-ground nil terminators.
 bool StdPlugin::optionFwdDeclIsListNilNground() { return true; }
 // whether e.g. and : SmtTerm -> SmtTerm -> SmtTerm instead of and : SmtTerm
-bool StdPlugin::optionSmtFoTheorySymbols() { return false; }
+bool StdPlugin::optionSmtFoTheorySymbols() { return true; }
 
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
