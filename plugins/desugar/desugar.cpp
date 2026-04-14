@@ -921,16 +921,18 @@ Expr Desugar::mkCanonize(const Expr& t)
   for (const Expr& v : vars)
   {
     Expr tv = v.getType();
+    Assert(v.getKind()==Kind::PARAM);
     size_t i = index[tv];
     index[tv]++;
     std::vector<Expr>& tvars = d_vars[tv];
     if (tvars.size()==i)
     {
-      tvars.push_back(tv);
+      tvars.push_back(v);
     }
     else
     {
       visited[v] = tvars[i];
+      Assert(tvars[i].getKind()==Kind::PARAM);
     }
   }
   return mkSanitize(t, visited);

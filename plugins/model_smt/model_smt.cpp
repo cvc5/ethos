@@ -1364,15 +1364,23 @@ void ModelSmt::printDecl(const std::string& name,
     }
     else if (ret != Kind::TYPE)
     {
-      if (!printedOpq)
+      if (optionSmtFoTheorySymbols())
       {
-        printedOpq = true;
-        sret = sApply(sret, macroOpqApply.str());
+        stmp << "$smt_Term :opaque";
+        macroOpqApply << " x" << (i + 1);
       }
-      stmp << "$smt_Term";
-      std::stringstream ssnext;
-      ssnext << "($sm_apply " << sret << " x" << (i + 1) << ")";
-      sret = ssnext.str();
+      else
+      {
+        if (!printedOpq)
+        {
+          printedOpq = true;
+          sret = sApply(sret, macroOpqApply.str());
+        }
+        stmp << "$smt_Term";
+        std::stringstream ssnext;
+        ssnext << "($sm_apply " << sret << " x" << (i + 1) << ")";
+        sret = ssnext.str();
+      }
       eoToSmtPatArgs << " x" << (i + 1);
       eoToSmtRetArgs << " ($eo_to_smt x" << (i + 1) << ")";
     }

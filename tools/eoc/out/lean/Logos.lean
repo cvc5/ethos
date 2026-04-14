@@ -317,16 +317,6 @@ def __eo_typeof_or : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
-def __eo_typeof_and : Term -> Term -> Term
-  | Term.Bool, Term.Bool => Term.Bool
-  | _, _ => Term.Stuck
-
-
-def __eo_typeof_imp : Term -> Term -> Term
-  | Term.Bool, Term.Bool => Term.Bool
-  | _, _ => Term.Stuck
-
-
 def __eo_typeof_eq : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -358,8 +348,8 @@ def __eo_typeof : Term -> Term
   | (Term.Apply Term.Seq __eo_x1) => (__eo_typeof_Seq (__eo_typeof __eo_x1))
   | (Term.Apply Term.not __eo_x1) => (__eo_typeof_not (__eo_typeof __eo_x1))
   | (Term.Apply (Term.Apply Term.or __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.and __eo_x1) __eo_x2) => (__eo_typeof_and (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.imp __eo_x1) __eo_x2) => (__eo_typeof_imp (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.Apply Term.and __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.Apply Term.imp __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply Term.eq __eo_x1) __eo_x2) => (__eo_typeof_eq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
   | _ => Term.Stuck
