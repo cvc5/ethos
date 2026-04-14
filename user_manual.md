@@ -517,8 +517,8 @@ whereas the term `(>= x y)` is not impacted by the annotation `:chainable` since
 Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S`,
 where the type of its combining operator is `(-> S S S)`, and that operator has been marked as variadic via some attribute (e.g. `:right-assoc` or `:right-assoc-nil`).
 
-A chainable operator applied to a single argument reduces to the neutral element of the combining operator when that operator has a nil terminator.
-For example, `(>= x)` is equivalent to `true`.
+A chainable operator applied to a single argument reduces to the neutral element of the combining operator when that operator has a nil terminator, or an error if the combining operator has no nil terminator.
+For example, `(>= x)` is equivalent to `true`. The same term would return a parsing error if `and` had been marked `:right-assoc`.
 
 #### Pairwise
 
@@ -601,8 +601,8 @@ not desugared further since `xs` is marked `:list`.
 
 In the above example, `forall` is declared as a binder.
 This indicates that the parser (optionally) accepts a variable list as the first argument when parsing applications of `forall` instead of a term.
-In particular, in the first three commands, the parser accepts syntax such as `(forall ((x Int)) (P x))` for a variable list.
-A variable list parsed in this way binds the corresponding symbol to a variable of type `Int` when parsing the remaining arguments of `forall`, i.e. its body.
+In particular, in the definitions of constants `Q1` and `Q2`, the parser accepted the construction `((x Int))` to denote a variable list containing variable `x`.
+A variable list parsed in this way binds the corresponding symbol `x` to a variable of type `Int` when parsing the remaining arguments of `forall`, i.e. its body.
 The variable list passed as the first argument to the binder is determined by applying the specified constructor (in this case `@cons`) to the list of variables, so that `(forall ((x Int)) (P x))` is syntax sugar for `(forall (@cons x) (P x))`.
 The constructor specified in declarations of binders should accept a variable number of arguments, e.g. `@cons` is declared with attribute `:right-assoc-nil`.
 
