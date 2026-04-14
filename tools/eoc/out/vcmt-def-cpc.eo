@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 276
+; #trim-defs: 277
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -270,6 +270,7 @@
 (declare-parameterized-const $emb_tsm.Map 
   ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
 (define $tsm_Map ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
+(define $tsm_Array ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
 (declare-parameterized-const $emb_tsm.Set ((T $smt_Type :opaque)) $smt_Type)
 (define $tsm_Set ((T $smt_Type)) ($emb_tsm.Set T))
 (declare-parameterized-const $emb_tsm.Seq ((T $smt_Type :opaque)) $smt_Type)
@@ -401,13 +402,18 @@
   )
 )
 (program $smtx_type_wf_rec 
-  ((T $smt_Type) (s $smt_builtin_String) (d $smt_Datatype) (refs $smt_RefList))
+  ((T $smt_Type) (s $smt_builtin_String) (d $smt_Datatype) (refs $smt_RefList)
+   (x1 Type) (x2 Type))
   :signature ($smt_Type $smt_RefList) $smt_builtin_Bool
   (
   (($smtx_type_wf_rec ($tsm_Datatype s d) refs) 
     ($smtx_dt_wf_rec d ($smt_apply_2 "reflist_insert" refs s)))
   (($smtx_type_wf_rec ($tsm_TypeRef s) refs) 
     ($smt_apply_2 "reflist_contains" refs s))
+  (($smtx_type_wf_rec ($tsm_Seq x1) refs) ($smtx_type_wf_rec x1 refs))
+  (($smtx_type_wf_rec ($tsm_Array x1 x2) refs) ($smt_builtin_and ($smtx_type_wf_rec x1 refs) ($smtx_type_wf_rec x2 refs)))
+  (($smtx_type_wf_rec ($tsm_FunType x1 x2) refs) ($smt_builtin_and ($smtx_type_wf_rec x1 refs) ($smtx_type_wf_rec x2 refs)))
+  (($smtx_type_wf_rec ($tsm_Set x1) refs) ($smtx_type_wf_rec x1 refs))
   (($smtx_type_wf_rec $tsm_none refs) $smt_builtin_false)
   (($smtx_type_wf_rec T refs) $smt_builtin_true)
   )

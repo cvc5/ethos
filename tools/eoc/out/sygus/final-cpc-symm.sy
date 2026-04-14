@@ -458,10 +458,18 @@
     ($smtx_dt_wf_rec (tsm.Datatype.arg2 x1) (reflist_insert x2 (tsm.Datatype.arg1 x1)))
   (ite ((_ is tsm.TypeRef) x1)
     (reflist_contains x2 (tsm.TypeRef.arg1 x1))
+  (ite ((_ is tsm.Seq) x1)
+    ($smtx_type_wf_rec (tsm.Seq.arg1 x1) x2)
+  (ite ((_ is tsm.Map) x1)
+    (and ($smtx_type_wf_rec (tsm.Map.arg1 x1) x2) ($smtx_type_wf_rec (tsm.Map.arg2 x1) x2))
+  (ite ((_ is tsm.FunType) x1)
+    (and ($smtx_type_wf_rec (tsm.FunType.arg1 x1) x2) ($smtx_type_wf_rec (tsm.FunType.arg2 x1) x2))
+  (ite ((_ is tsm.Set) x1)
+    ($smtx_type_wf_rec (tsm.Set.arg1 x1) x2)
   (ite (= x1 tsm.None)
     false
     true
-)))) :pattern (($smtx_type_wf_rec x1 x2)))) :named sm.axiom.$smtx_type_wf_rec))
+)))))))) :pattern (($smtx_type_wf_rec x1 x2)))) :named sm.axiom.$smtx_type_wf_rec))
 
 ; program: $smtx_type_wf
 (define-fun $smtx_type_wf ((x1 tsm.Type)) Bool

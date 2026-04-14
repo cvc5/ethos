@@ -488,6 +488,10 @@ def __smtx_dt_wf_rec : SmtDatatype -> RefList -> smt_lit_Bool
 def __smtx_type_wf_rec : SmtType -> RefList -> smt_lit_Bool
   | (SmtType.Datatype s d), refs => (__smtx_dt_wf_rec d (smt_lit_reflist_insert refs s))
   | (SmtType.TypeRef s), refs => (smt_lit_reflist_contains refs s)
+  | (SmtType.Seq x1), refs => (__smtx_type_wf_rec x1 refs)
+  | (SmtType.Map x1 x2), refs => (smt_lit_and (__smtx_type_wf_rec x1 refs) (__smtx_type_wf_rec x2 refs))
+  | (SmtType.FunType x1 x2), refs => (smt_lit_and (__smtx_type_wf_rec x1 refs) (__smtx_type_wf_rec x2 refs))
+  | (SmtType.Set x1), refs => (__smtx_type_wf_rec x1 refs)
   | SmtType.None, refs => false
   | T, refs => true
 
