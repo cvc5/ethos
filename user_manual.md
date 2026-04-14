@@ -90,7 +90,7 @@ In the following sections, we describe these features in more detail. A full syn
 
 In Eunoia, as in SMT-LIB version 3.0, a common BNF is used to specify _terms_ (expressions denoting values), _types_ (expressions denoting sets of values) and _kinds_ (expressions denoting sets of types).
 In this document, unless specified otherwise, we will use _term_ more generally to refer to a value term, a type, or a kind.
-Terms are composed of applications, built-in operators of the language (e.g., for performing computations, see [computation](#computation)), literals (see [literals](#literals)), and three kinds of atomic terms (_constants_, _variables_, and _parameters_) which we describe below.
+Terms are composed of applications, built-in operators of the language (e.g., for performing computations, see [computation](#computation)), literals (see [literals](#literals)), and two kinds of atomic terms (_constants_, and _parameters_) which we describe below.
 A _function (symbol)_ is an atomic term having a function type, that is, a type of the form `(-> ... ...)`.
 The builtin `eo::define` binder can be used for specifying terms that contain common subterms analogously to `let` binders in other languages.
 
@@ -129,7 +129,7 @@ The Eunoia language contains further commands for declaring symbols that are not
 
 - `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a globally scoped constant named `<symbol>` whose expected arguments are given by the argument list, and whose return type is `<type>`.
 
-> __Note:__ Variables are internally treated the same as constants by Ethos. However, they are provided as a separate category, e.g., for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `eo::var` (see [computation](#computation)).
+> __Note:__ User variables (e.g. bound variables in SMT-LIB quantifiers) are internally treated differently than constants. They have a relationship with user-defined binders, see [binders](#binders), and can be built via the syntax `(eo::var s T)` where `s` is a string and `T` is a type (see [computation](#computation)).
 
 > __Note:__ Symbol overloading is supported, see [overloading](#overloading).
 
@@ -218,7 +218,7 @@ Consider the following example:
 (define P ((x Int) (y Int)) (eq Int x y))
 ```
 
-The above example declares a predicate symbol `eq` whose first argument is a type, which is given the name `T`. It then expects two terms of type `T` and returns a `Bool`. In the definition of `P`, `eq` is applied to two variables, with type `Int` explicitly provided.
+The above example declares a predicate symbol `eq` whose first argument is a type, which is given the name `T`. It then expects two terms of type `T` and returns a `Bool`. In the definition of `P`, `eq` is applied to two parameters, with type `Int` explicitly provided.
 
 In contrast, the example below declares a predicate `=` where the type of the arguments is implicit (this corresponds to the SMT-LIB standard definition of `=`). An implicit argument for a parameterized constant can be given by the annotation `:implicit`. In the definition of `P`, the type `Int` of the arguments is not provided.
 
@@ -726,7 +726,7 @@ The signature can now refer to arbitrary numerals in definitions, e.g. `7` in th
 
 > __Note:__ Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, Ethos internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see [computation](#computation)).
 
-> __Note:__ For specifying literals whose type rule varies based on the content of the constant, the Eunoia language uses a distinguished variable `eo::self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [bv-literals](#bv-literals).
+> __Note:__ For specifying literals whose type rule varies based on the content of the constant, the Eunoia language uses a distinguished parameter `eo::self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [bv-literals](#bv-literals).
 
 <a name="computation"></a>
 
@@ -778,9 +778,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
 - `(eo::typeof t1)`
   - If `t1` is a value, this returns the type of `t1` if its type is ground.
 - `(eo::nameof t1)`
-  - If `t1` is a ground constant or variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
-- `(eo::var t1 t2)`
-  - If `t1` is a string value and `t2` is a ground type, this returns the variable whose name is `t1` and whose type is `t2`.
+  - If `t1` is a variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
 - `(eo::cmp t1 t2)`
   - Equivalent to `(eo::is_neg (eo::add (eo::neg (eo::hash t1)) (eo::hash t2)))`. Note that this method corresponds to an arbitrary total order on terms.
 - `(eo::is_z t)`
@@ -795,6 +793,8 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - Equivalent to `(eo::or (eo::is_eq t true) (eo::is_eq t false))`.
 - `(eo::is_var t)`
   - Equivalent to `(eo::is_eq (eo::var (eo::nameof t) (eo::typeof t)) t)`.
+
+Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` is intentionally not listed above, as it is an ordinary term.
 
 ### Boolean operators
 
@@ -1328,7 +1328,7 @@ If a symbol is unapplied, then Ethos will interpret it as the most recently decl
 > __Note:__ When multiple variants are possible, Ethos will use the most recent matching one and will _not_ throw a warning. This behavior permits the user to order the declarations from lower to higher precedence. For example, the SMT-LIB operator for subtraction should be declared _before_ the declaration for unary negation. If this were done in the opposite order, then `(- t)` would be interpreted as the partial application of subtraction to the term `t`.
 
 Furthermore, Ethos supports an operator `eo::as` for disambiguation whose syntax is `(eo::as <term> <type>)`.
-A term of the form `(eo::as t (-> T1 ... Tn T))` evaluates to term `s` only if `(s k1 ... kn)` has type `T` where `k1 ... kn` are variables of type `T1 ... Tn`, and `t` and `s` are atomic terms with the same name.
+A term of the form `(eo::as t (-> T1 ... Tn T))` evaluates to term `s` only if `(s k1 ... kn)` has type `T` where `k1 ... kn` are fresh constants of type `T1 ... Tn`, and `t` and `s` are atomic terms with the same name.
 If multiple such terms `s` exist, then the most recent one is returned.
 Otherwise, the term `(eo::as t (-> T1 ... Tn T))` is unevaluated.
 For example, `(eo::as - (-> Int Int Int))` evaluates to the second declared symbol in the example above.
@@ -1418,7 +1418,7 @@ The side condition recurses over a list of constructors, which was obtained in t
 For each constructor `c` in this list, we prepend a disjunct `(is c x)` to a recursive call to this method.
 
 As part of the example, we see a particular datatype definition, called `Tree`.
-Applying the proof rule `dt-split` to a variable `x` of type `Tree` allows us to conclude that `x` must either be an application of `node` or `leaf`.
+Applying the proof rule `dt-split` to a term `x` of type `Tree` allows us to conclude that `x` must either be an application of `node` or `leaf`.
 Note that the definition of `dt-split` is applicable to *any* datatype definition.
 In particular, as a second example, we see the rule applied to a term `y` of type `Color` gives us a conclusion with three disjuncts.
 
@@ -1678,7 +1678,7 @@ In particular, in Ethos, a program is an ordered list of rewrite rules.
 The syntax for this command is as follows.
 
 ```smt
-(program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+)?)
+(program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)*)?)
 ```
 
 This command declares a program named `<symbol>`.
@@ -1702,6 +1702,8 @@ Furthermore, if `si` contains any computational operators (i.e. those with `eo::
 > __Note:__ Programs are *not* invoked on terms that fail to evaluate. For example, if a function `f : Int -> Int` is applied to `(eo::add "A" "B")`, we return `(f (eo::add "A" "B"))`.
 
 > __Note:__ Programs are *not* invoked when applied to other programs in this version of Ethos. For example, the application of a program `f : (Int -> Int) -> Int` to another user defined program `g : Int -> Int` will be unevaluated, i.e. `(f g)`. Similarly, programs are not invoked when applied to builtin operators `eo::` and oracle functions. In contrast, `f` is invoked when `g` is an ordinary term e.g. one defined by `declare-const`.
+
+> __Note:__ Programs with an empty list of cases always fail to evaluate.
 
 ### Example: Finding a child in an `or` term
 
@@ -2126,7 +2128,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? <conclusion> <attr>*) |
     (define <symbol> (<typed-param>*) <term> <attr>*) |
     (include <string>) |
-    (program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+)?) |
+    (program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)*)?) |
     (reference <string> <term>?) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
     (step-pop <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |

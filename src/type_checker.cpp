@@ -151,7 +151,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
   switch(k)
   {
     case Kind::EVAL_IS_EQ:
-    case Kind::EVAL_VAR:
     case Kind::EVAL_EQ:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
@@ -285,7 +284,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       // use the literal type rule
       return getOrSetLiteralTypeRule(k, e);
     }
-      break;
     case Kind::AS:
     case Kind::AS_RETURN:
     {
@@ -296,13 +294,33 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       }
       return d_null;
     }
-      break;
     case Kind::PARAMETERIZED:
     {
       // type of the second child
       return Expr(d_state.lookupType(e->d_children[1]));
     }
-      break;
+    case Kind::VARIABLE:
+    {
+      Expr ctype1 = Expr(d_state.lookupType(e->d_children[0]));
+      Expr ctype2 = Expr(d_state.lookupType(e->d_children[1]));
+      if (ctype1 != getOrSetLiteralTypeRule(Kind::STRING, e->d_children[0]))
+      {
+        if (out)
+        {
+          (*out) << "Expected a string for first argument of eo::var";
+        }
+        return d_null;
+      }
+      if (ctype2.getKind() != Kind::TYPE)
+      {
+        if (out)
+        {
+          (*out) << "Expected a type for second argument of eo::var";
+        }
+        return d_null;
+      }
+      return Expr(e->d_children[1]);
+    }
     default:
       // if a literal operator, consult auxiliary method
       if (isLiteralOp(k))
@@ -899,7 +917,6 @@ Expr TypeChecker::evaluateProgramInternal(
     RuleStat* ps = &d_sts.d_pstats[hd];
     ps->d_count++;
   }
-  Assert(!prog.isNull());
   if (!prog.isNull())
   {
     Trace("type_checker") << "INTERPRET program " << children << std::endl;
@@ -936,6 +953,10 @@ Expr TypeChecker::evaluateProgramInternal(
     }
     Trace("type_checker") << "...failed to match." << std::endl;
   }
+  else
+  {
+    Warning() << "No program defined for " << Expr(children[0]) << std::endl;
+  }
   // just return nullptr, which should be interpreted as a failed evaluation
   return d_null;
 }
@@ -950,6 +971,45 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
   }
   // otherwise does not evaluate, return application
   return Expr(d_state.mkExprInternal(k, args));
+}
+
+Expr TypeChecker::evaluateNil(ExprValue* op,
+                              ExprValue* nil,
+                              bool isLeft,
+                              ExprValue* tinst,
+                              bool tinstListArg)
+{
+  Assert(nil != nullptr);
+  if (nil->getKind() != Kind::PARAMETERIZED)
+  {
+    // simple if the nil terminator is ground.
+    Assert(nil->isGround());
+    return Expr(nil);
+  }
+  // Otherwise we will use the given type to compute nil. We set up a call
+  // to match here.
+  if (tinst == nullptr || !tinst->isGround())
+  {
+    // If the type was null or non-ground, we fail.
+    return Expr();
+  }
+  Expr eop(op);
+  getType(eop);
+  Expr top = Expr(d_state.lookupType(op));
+  // To infer type parameters, we either take the first or second argument
+  // type of the operator. For example, if op is :right-assoc-nil, then its
+  // type may be (-> T (List T) (List T)), we take top[1][0]. On the other
+  // hand if we are :left-assoc-nil, we may be (-> (List T) T (List T)) and
+  // take top[0]. If tinstListArg is false, we do the opposite.
+  Assert(top.getKind() == Kind::FUNCTION_TYPE
+         && top[1].getKind() == Kind::FUNCTION_TYPE);
+  Expr src = (isLeft == tinstListArg) ? top[0] : top[1][0];
+  Ctx ctx;
+  if (!match(src.getValue(), tinst, ctx))
+  {
+    return Expr();
+  }
+  return evaluate((*nil)[1], ctx);
 }
 
 /**
@@ -976,7 +1036,7 @@ ExprValue* getNAryChildren(ExprValue* e,
     e = isLeft ? (*cop)[1] : (*e)[1];
   }
   // must be equal to the nil term, if provided
-  if (checkNil!=nullptr && e!=checkNil)
+  if (checkNil != nullptr && e != checkNil)
   {
     Warning() << "...expected associative application to end in " << Expr(checkNil) << ", got " << Expr(orig) << std::endl;
     return nullptr;
@@ -1027,7 +1087,7 @@ Expr TypeChecker::prependNAryChildren(ExprValue* op,
   if (isLeft)
   {
     ExprValue* c1;
-    for (auto it = hargs.begin(); it != hargs.end(); ++it)
+    for (auto it = hargs.rbegin(); it != hargs.rend(); ++it)
     {
       c1 = d_state.mkExprInternal(Kind::APPLY, {op, ret});
       ret = d_state.mkExprInternal(Kind::APPLY, {c1, *it});
@@ -1198,25 +1258,9 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_NAME_OF:
     {
       Kind k = args[0]->getKind();
-      if (k == Kind::CONST || k == Kind::VARIABLE)
+      if (k == Kind::VARIABLE)
       {
-        Literal sym(String(Expr(args[0]).getSymbol()));
-        return Expr(d_state.mkLiteralInternal(sym));
-      }
-    }
-    break;
-    case Kind::EVAL_VAR:
-    {
-      // if arguments are ground and the first argument is a string
-      if (args[0]->getKind() == Kind::STRING && !args[1]->isEvaluatable())
-      {
-        Expr type(args[1]);
-        Expr tt = getType(type);
-        if (!tt.isNull() && tt.getKind()==Kind::TYPE)
-        {
-          const Literal* l = args[0]->asLiteral();
-          return d_state.getBoundVar(l->d_str.toString(), type);
-        }
+        return Expr((*args[0])[0]);
       }
     }
     break;
@@ -1350,24 +1394,29 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   bool isLeft = (ck == Attr::LEFT_ASSOC_NIL || ck == Attr::LEFT_ASSOC_NS_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
-  // infer the nil expression, which depends on the type of args[1]
-  std::vector<Expr> eargs;
-  eargs.emplace_back(args[0]);
+  // infer the nil expression, which may depend on the type of args[1]
   Expr nilExpr;
-  if (k==Kind::EVAL_NIL)
+  if (k == Kind::EVAL_NIL)
   {
-    // Special case: to handle (eo::nil x T), we construct
-    // a dummy term of type T to be consistent with other
-    // lookups for nil terminators.
-    Expr tmpType(args[1]);
-    Expr tmp = d_state.mkSymbol(Kind::CONST, "tmp", tmpType);
-    eargs.emplace_back(tmp);
-    return computeConstructorTermInternal(ac, eargs);
+    // Special case, eo::nil has the type itself as args[1].
+    return evaluateNil(args[0], ac->d_attrConsTerm.getValue(), isLeft, args[1]);
   }
-  else if (args.size()>1)
+  else if (ac->d_attrConsTerm.getKind() != Kind::PARAMETERIZED)
   {
-    eargs.emplace_back(args[1]);
-    nilExpr = computeConstructorTermInternal(ac, eargs);
+    // If the nil terminator is not parameterized, just take it
+    nilExpr = ac->d_attrConsTerm;
+  }
+  else if (args.size() > 1)
+  {
+    // All other list operators except EVAL_CONS have list as second argument.
+    Expr cref(args[1]);
+    getType(cref);
+    ExprValue* t = d_state.lookupType(args[1]);
+    nilExpr = evaluateNil(args[0],
+                          ac->d_attrConsTerm.getValue(),
+                          isLeft,
+                          t,
+                          k != Kind::EVAL_CONS);
   }
   if (nilExpr.isNull())
   {
@@ -1723,7 +1772,6 @@ Expr TypeChecker::getLiteralOpType(Kind k,
   {
     case Kind::EVAL_TYPE_OF:
       return d_state.mkType();
-    case Kind::EVAL_VAR:
     case Kind::EVAL_NIL:
       // its type is the second argument
       return Expr(children[1]);
@@ -1811,70 +1859,46 @@ Expr TypeChecker::computeConstructorTermInternal(
     // if not parameterized, just return self
     return ct;
   }
-  const Expr& hd = children[0];
-  Trace("type_checker") << "Determine constructor term for " << hd << std::endl;
+  Trace("type_checker") << "Determine constructor term for " << children[0]
+                        << " @ " << children[1] << std::endl;
   // if explicit parameters, then evaluate the constructor term
   if (children.size() == 1)
   {
     // if not in an application, we fail
-    Warning() << "Failed to determine parameters for " << hd << std::endl;
-    return d_null;
-  }
-  // otherwise, we must infer the parameters
-  Trace("type_checker") << "Infer params for " << hd << " @ " << children[1]
-                        << std::endl;
-  if (!isNAryAttr(ai->d_attrCons))
-  {
-    Warning() << "Unknown category for parameterized operator " << hd
+    Warning() << "Failed to determine parameters for " << children[0]
               << std::endl;
     return d_null;
   }
-  std::vector<ExprValue*> app;
-  app.push_back(hd.getValue());
-  app.push_back(children[1].getValue());
-  // ensure children are type checked
-  for (ExprValue* e : app)
+  // otherwise, we must infer the parameters
+  Trace("type_checker") << "Infer params for " << children[0] << " @ "
+                        << children[1] << std::endl;
+  Attr ck = ai->d_attrCons;
+  if (!isListNilAttr(ck))
   {
-    Expr expr(e);
-    getType(expr);
-    ExprValue* t = d_state.lookupType(e);
-    if (t == nullptr)
-    {
-      // only warn if ground
-      if (expr.isGround())
-      {
-        Warning() << "Type inference failed for " << hd << " applied to "
-                  << children[1] << ", failed to type check " << expr
-                  << std::endl;
-      }
-      return d_null;
-    }
-    Trace("type_checker_debug")
-        << "Type for " << expr << " is " << Expr(t) << std::endl;
+    // not an associative operator
+    Warning() << "Unknown category for parameterized operator " << children[0]
+              << std::endl;
+    return d_null;
   }
-  Ctx tctx;
-  getTypeAppInternal(app, tctx);
-  Trace("type_checker_debug") << "Context was " << tctx << std::endl;
-  for (size_t i = 0, nparams = ct[0].getNumChildren(); i < nparams; i++)
+  bool isLeft = (ck == Attr::LEFT_ASSOC_NIL || ck == Attr::LEFT_ASSOC_NS_NIL);
+  Expr expr(children[1]);
+  getType(expr);
+  ExprValue* t = d_state.lookupType(children[1].getValue());
+  if (t == nullptr)
   {
-    ExprValue* cv = tctx[ct[0][i].getValue()];
-    if (cv==nullptr)
+    // only warn if ground
+    if (expr.isGround())
     {
-      Warning() << "Failed to find context for " << ct[0][i]
-                << " when applying " << hd << " @ " << children[1] << std::endl;
-      return d_null;
+      Warning() << "Type inference failed for " << children[0] << " applied to "
+                << children[1] << ", failed to type check " << expr
+                << std::endl;
     }
-    if (!cv->isGround())
-    {
-      // If the parameter is non-ground, we also wait to construct;
-      // if the nil terminator is used, it will be replaced by a
-      // placeholder involving eo::nil.
-      return d_null;
-    }
+    return d_null;
   }
-  Trace("type_checker") << "Context for constructor term: " << tctx
-                        << std::endl;
-  return evaluate(ct[1].getValue(), tctx);
+  Trace("type_checker") << "Element type is " << Expr(t) << std::endl;
+  // Call evaluate nil, where the instantiated type is an element type.
+  // Note this may still return null if e.g. if t is a non-ground type.
+  return evaluateNil(children[0].getValue(), ct.getValue(), isLeft, t, false);
 }
 
 }  // namespace ethos

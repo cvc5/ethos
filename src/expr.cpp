@@ -241,14 +241,6 @@ std::string quoteSymbol(const std::string& s)
 std::vector<Expr> Expr::getPrintChildren(const ExprValue* e)
 {
   std::vector<Expr> ret;
-  // special case: variable is printed as (eo::var "name" type)
-  if (e->getKind() == Kind::VARIABLE)
-  {
-    Expr tt(ExprValue::d_state->lookupType(e));
-    Assert(!tt.isNull());
-    ret.push_back(tt);
-    return ret;
-  }
   for (size_t i = 0, nchildren = e->getNumChildren(); i < nchildren; i++)
   {
     ret.emplace_back((*e)[i]);
@@ -371,16 +363,6 @@ void Expr::printDebugInternal(const Expr& e,
           os << kindToTerm(k);
         }
         visit.pop_back();
-      }
-      else if (k == Kind::VARIABLE)
-      {
-        // special case: variables print as the evaluation that made them
-        Expr tt(ExprValue::d_state->lookupType(cur.first));
-        const Literal* l = cur.first->asLiteral();
-        Assert(l != nullptr);
-        os << "(eo::var \"" << l->toString() << "\" ";
-        visit.back().second++;
-        visit.emplace_back(tt.getValue(), 0);
       }
       else
       {
@@ -508,6 +490,11 @@ Expr& Expr::operator=(const Expr& e)
 bool Expr::operator==(const Expr& e) const { return d_value == e.d_value; }
 bool Expr::operator!=(const Expr& e) const { return d_value != e.d_value; }
 Kind Expr::getKind() const { return d_value->getKind(); }
+Expr Expr::getType() const
+{
+  Expr t(d_value);
+  return ExprValue::d_state->getTypeChecker().getType(t);
+}
 bool Expr::operator<(const Expr& e) const { return d_value < e.d_value; }
 
 bool Expr::hasVariable(const Expr& e,

@@ -170,6 +170,8 @@ set(ethos_test_file_list
     list-non-singleton.eo
     list-non-singleton-left.eo
     code-point-oob.eo
+    homogeneous-list-ops.eo
+    quant-sk-type.eo
 )
 
 macro(ethos_test file)

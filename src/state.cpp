@@ -106,7 +106,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("hash", Kind::EVAL_HASH);
   bindBuiltinEval("nameof", Kind::EVAL_NAME_OF);
   bindBuiltinEval("typeof", Kind::EVAL_TYPE_OF);
-  bindBuiltinEval("var", Kind::EVAL_VAR);
+  bindBuiltinEval("var", Kind::VARIABLE);
   bindBuiltinEval("cmp", Kind::EVAL_COMPARE);
   bindBuiltinEval("is_z", Kind::EVAL_IS_Z);
   bindBuiltinEval("is_q", Kind::EVAL_IS_Q);
@@ -1187,13 +1187,12 @@ Expr State::mkApplyAttr(AppInfo* ai,
       }
       else
       {
-        // construct curried APPLY_OPAQUE application.
-        ExprValue* curr = vchildren[0];
-        for (size_t i = 1; i < nargs + 1; i++)
-        {
-          curr = mkExprInternal(Kind::APPLY_OPAQUE, {curr, vchildren[i]});
-        }
-        Expr op = Expr(curr);
+        // Note we do not curry APPLY_OPAQUE applications, as they are simpler
+        // to reason about in flattened form.
+        Assert (nargs < vchildren.size());
+        std::vector<ExprValue*> ochildren(vchildren.begin(),
+                                          vchildren.begin() + 1 + nargs);
+        Expr op = Expr(mkExprInternal(Kind::APPLY_OPAQUE, ochildren));
         Trace("opaque") << "Construct opaque operator " << op << std::endl;
         if (nargs + 1 == vchildren.size())
         {
@@ -1353,22 +1352,12 @@ Expr State::getVar(const std::string& name) const
 
 Expr State::getBoundVar(const std::string& name, const Expr& type)
 {
-  if (!type.isGround())
-  {
-    // If the type is non-ground, we cannot evaluate it yet. Moreover this is
-    // not cached here, instead it is cached as part of mkExpr.
-    Expr ename = mkLiteral(Kind::STRING, name);
-    return mkExpr(Kind::EVAL_VAR, {ename, type});
-  }
-  std::pair<std::string, const ExprValue*> key(name, type.getValue());
-  std::map<std::pair<std::string, const ExprValue*>, Expr>::iterator it = d_boundVars.find(key);
-  if (it!=d_boundVars.end())
-  {
-    return it->second;
-  }
-  Expr ret = mkSymbol(Kind::VARIABLE, name, type);
-  d_boundVars[key] = ret;
-  return ret;
+  // Variables are not atomic terms. instead, they are terms with two
+  // children (string, type). Note this means that (eo::var s T) is an
+  // ordinary non-evaluable term, even if s or T is non-ground. This allows
+  // variables to be matched on.
+  Expr ename = mkLiteral(Kind::STRING, name);
+  return mkExpr(Kind::VARIABLE, {ename, type});
 }
 
 Expr State::getProofRule(const std::string& name) const
