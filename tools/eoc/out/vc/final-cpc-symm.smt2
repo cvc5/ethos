@@ -33,6 +33,11 @@
   (! (= (nat.to_int x) (ite ((_ is nat.succ) x) (+ 1 (nat.to_int (nat.succ.arg1 x))) 0))
   :pattern ((nat.to_int x))))
   :named smtx.nat.to_int.def))
+(declare-fun nat.+ (Nat Nat) Nat)
+(assert (! (forall ((x Nat) (y Nat)) 
+  (! (= (nat.+ x y) (ite ((_ is nat.succ) x) (nat.+ (nat.succ.arg1 x) (nat.succ y)) y))
+  :pattern ((nat.+ x y))))
+  :named smtx.nat.+.def))
   
 ; uninterpreted constant identifier for builtin partial functions
 (define-fun /_by_zero_id () String "@/_by_zero")
@@ -245,7 +250,7 @@
   ; smt-cons: RegLan
   (tsm.RegLan)
   ; smt-cons: BitVec
-  (tsm.BitVec (tsm.BitVec.arg1 Int))
+  (tsm.BitVec (tsm.BitVec.arg1 Nat))
   ; smt-cons: Map
   (tsm.Map (tsm.Map.arg1 tsm.Type) (tsm.Map.arg2 tsm.Type))
   ; smt-cons: Set
@@ -628,7 +633,7 @@
   (ite ((_ is vsm.Rational) x1)
     tsm.Real
   (ite ((_ is vsm.Binary) x1)
-    (ite (zleq 0 (vsm.Binary.arg1 x1)) (tsm.BitVec (vsm.Binary.arg1 x1)) tsm.None)
+    (ite (zleq 0 (vsm.Binary.arg1 x1)) (tsm.BitVec (int.to_nat (vsm.Binary.arg1 x1))) tsm.None)
   (ite ((_ is vsm.RegLan) x1)
     tsm.RegLan
   (ite ((_ is vsm.Map) x1)
@@ -801,7 +806,7 @@
   (ite ((_ is sm.String) x1)
     (tsm.Seq tsm.Char)
   (ite ((_ is sm.Binary) x1)
-    (ite (and (zleq 0 (sm.Binary.arg1 x1)) (zeq (sm.Binary.arg2 x1) (mod_total (sm.Binary.arg2 x1) (int.pow2 (sm.Binary.arg1 x1))))) (tsm.BitVec (sm.Binary.arg1 x1)) tsm.None)
+    (ite (and (zleq 0 (sm.Binary.arg1 x1)) (zeq (sm.Binary.arg2 x1) (mod_total (sm.Binary.arg2 x1) (int.pow2 (sm.Binary.arg1 x1))))) (tsm.BitVec (int.to_nat (sm.Binary.arg1 x1))) tsm.None)
   (ite ((_ is sm.not) x1)
     (ite (Teq ($smtx_typeof (sm.not.arg1 x1)) tsm.Bool) tsm.Bool tsm.None)
   (ite ((_ is sm.and) x1)
@@ -870,7 +875,7 @@
   (ite (= x1 eo.Real)
     tsm.Real
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Numeral) (eo.Apply.arg2 x1)) (= (eo.Apply.arg1 x1) eo.BitVec))
-    (tsm.BitVec (eo.Numeral.arg1 (eo.Apply.arg2 x1)))
+    (ite (zleq 0 (eo.Numeral.arg1 (eo.Apply.arg2 x1))) (tsm.BitVec (int.to_nat (eo.Numeral.arg1 (eo.Apply.arg2 x1)))) tsm.None)
   (ite (= x1 eo.Char)
     tsm.Char
   (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.Seq))

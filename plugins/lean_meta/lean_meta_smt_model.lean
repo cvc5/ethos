@@ -72,6 +72,7 @@ abbrev smt_lit_binary_extract := SmtEval.smt_lit_binary_extract
 abbrev smt_lit_Nat := SmtEval.smt_lit_Nat
 abbrev smt_lit_int_to_nat := SmtEval.smt_lit_int_to_nat
 abbrev smt_lit_nat_to_int := SmtEval.smt_lit_nat_to_int
+abbrev smt_lit_nat_plus := SmtEval.smt_lit_nat_plus
 abbrev smt_lit_nateq := SmtEval.smt_lit_nateq
   
 -- SMT Beyond Eunoia

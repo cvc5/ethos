@@ -91,6 +91,7 @@ abbrev eo_lit_Nat := SmtEval.smt_lit_Nat
 abbrev eo_lit_int_to_nat := SmtEval.smt_lit_int_to_nat
 abbrev eo_lit_nat_to_int := SmtEval.smt_lit_nat_to_int
 abbrev eo_lit_nateq := SmtEval.smt_lit_nateq
+abbrev eo_lit_nat_plus := SmtEval.smt_lit_nat_plus
 syntax "eo_lit_nat_zero" : term
 macro_rules
   | `(eo_lit_nat_zero) => `(Nat.zero)

@@ -174,8 +174,8 @@ $SMT_TERM_CONSTRUCTORS$
 (define $tsm_RegLan () $emb_tsm.RegLan)
 
 ; The Bitvector type
-(declare-parameterized-const $emb_tsm.BitVec ((w $smt_builtin_Int :opaque)) $smt_Type)
-(define $tsm_BitVec ((w $smt_builtin_Int)) ($emb_tsm.BitVec w))
+(declare-parameterized-const $emb_tsm.BitVec ((w $smt_builtin_Nat :opaque)) $smt_Type)
+(define $tsm_BitVec ((w $smt_builtin_Nat)) ($emb_tsm.BitVec w))
 
 ; The Map type (for values)
 (declare-parameterized-const $emb_tsm.Map 
@@ -811,7 +811,7 @@ $SMT_TYPE_CONSTRUCTORS$
 
 (program $smtx_typeof_value
   ((v $smt_Value) (f $smt_Value) (d $smt_Datatype)
-   (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (i $smt_builtin_Nat)
+   (b $smt_builtin_Bool) (w $smt_builtin_Nat) (n $smt_builtin_Int) (i $smt_builtin_Nat)
    (q $smt_builtin_Real) (s $smt_builtin_String) (r $smt_builtin_RegLan) (c $smt_builtin_Char)
    (m $smt_Map) (ss $smt_Seq) (T $smt_Type) (t $smt_Term))
   :signature ($smt_Value) $smt_Type
@@ -819,9 +819,9 @@ $SMT_TYPE_CONSTRUCTORS$
   (($smtx_typeof_value ($vsm_bool b))     $tsm_Bool)
   (($smtx_typeof_value ($vsm_numeral n))  $tsm_Int)
   (($smtx_typeof_value ($vsm_rational q)) $tsm_Real)
-  (($smtx_typeof_value ($vsm_binary w n))
-    ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w) 
-      ($tsm_BitVec w)
+  (($smtx_typeof_value ($vsm_binary w n)) 
+    ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w)
+      ($tsm_BitVec ($smt_builtin_z_to_n w))
       $tsm_none))
   (($smtx_typeof_value ($vsm_re r))       $tsm_RegLan)
   (($smtx_typeof_value ($vsm_map m))      ($smtx_typeof_map_value m))
@@ -997,10 +997,10 @@ $SMT_TYPE_CONSTRUCTORS$
 
 ;;; Bit-vectors
 
-(program $smtx_bv_sizeof_type ((x1 $smt_builtin_Int) (t1 $smt_Value))
+(program $smtx_bv_sizeof_type ((x1 $smt_builtin_Nat) (t1 $smt_Value))
   :signature ($smt_Type) $smt_builtin_Int
   (
-  (($smtx_bv_sizeof_type ($tsm_BitVec x1)) x1)
+  (($smtx_bv_sizeof_type ($tsm_BitVec x1)) ($smt_builtin_n_to_z x1))
   (($smtx_bv_sizeof_type t1) $smt_builtin_z_neg_one)
   )
 )
@@ -1087,7 +1087,7 @@ $SMT_EVAL_PROGS$
 (program $smtx_model_eval
   ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (d $smt_Datatype)
    (i $smt_builtin_Nat) (j $smt_builtin_Nat)
-   (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int)
+   (b $smt_builtin_Bool) (w $smt_builtin_Nat) (n $smt_builtin_Int)
    (m $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
@@ -1161,21 +1161,21 @@ $SMT_EVAL_CASES$
 )
 
 (program $smtx_typeof_bv_op_2
-  ((T $smt_Type) (U $smt_Type) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  ((T $smt_Type) (U $smt_Type) (n1 $smt_builtin_Nat) (n2 $smt_builtin_Nat))
   :signature ($smt_Type $smt_Type) $smt_Type
   (
   (($smtx_typeof_bv_op_2 ($tsm_BitVec n1) ($tsm_BitVec n2))
-    ($smt_builtin_ite ($smt_builtin_z_= n1 n2) ($tsm_BitVec n1) $tsm_none))
+    ($smt_builtin_ite ($smt_builtin_n_= n1 n2) ($tsm_BitVec n1) $tsm_none))
   (($smtx_typeof_bv_op_2 T U) $tsm_none)
   )
 )
 
 (program $smtx_typeof_bv_op_2_ret
-  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (n1 $smt_builtin_Nat) (n2 $smt_builtin_Nat))
   :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
   (
   (($smtx_typeof_bv_op_2_ret ($tsm_BitVec n1) ($tsm_BitVec n2) U)
-    ($smt_builtin_ite ($smt_builtin_z_= n1 n2) U $tsm_none))
+    ($smt_builtin_ite ($smt_builtin_n_= n1 n2) U $tsm_none))
   (($smtx_typeof_bv_op_2_ret T U V) $tsm_none)
   )
 )
@@ -1306,7 +1306,7 @@ $SMT_TYPEOF_AUX$
       ($smt_builtin_and
         ($smt_builtin_z_<= $smt_builtin_z_zero w)
         ($smt_builtin_z_= n ($smt_builtin_mod_total n ($smt_builtin_z_pow2 w))))
-      ($tsm_BitVec w)
+      ($tsm_BitVec ($smt_builtin_z_to_n w))
       $tsm_none))
 $SMT_TYPEOF_CASES$
   (($smtx_typeof ($sm_ite x1 x2 x3))

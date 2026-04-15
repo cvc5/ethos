@@ -122,6 +122,8 @@ def smt_lit_nat_to_int (x : smt_lit_Nat) : smt_lit_Int :=
   (Int.ofNat x)
 def smt_lit_nateq : smt_lit_Nat -> smt_lit_Nat -> smt_lit_Bool
   | x, y => decide (x = y)
+def smt_lit_nat_plus : smt_lit_Nat -> smt_lit_Nat -> smt_lit_Nat
+  | x, y => (x+y)
 syntax "smt_lit_nat_zero" : term
 macro_rules
   | `(smt_lit_nat_zero) => `(Nat.zero)

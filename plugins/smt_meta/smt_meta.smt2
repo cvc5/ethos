@@ -33,6 +33,11 @@
   (! (= (nat.to_int x) (ite ((_ is nat.succ) x) (+ 1 (nat.to_int (nat.succ.arg1 x))) 0))
   :pattern ((nat.to_int x))))
   :named smtx.nat.to_int.def))
+(declare-fun nat.+ (Nat Nat) Nat)
+(assert (! (forall ((x Nat) (y Nat)) 
+  (! (= (nat.+ x y) (ite ((_ is nat.succ) x) (nat.+ (nat.succ.arg1 x) (nat.succ y)) y))
+  :pattern ((nat.+ x y))))
+  :named smtx.nat.+.def))
   
 ; uninterpreted constant identifier for builtin partial functions
 (define-fun /_by_zero_id () String "@/_by_zero")

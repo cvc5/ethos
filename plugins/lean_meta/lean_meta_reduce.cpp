@@ -1107,12 +1107,12 @@ void LeanMetaReduce::printStepCase(std::ostream& out, const std::string& prule, 
   if (isPop)
   {
     out << "A root args premises" << std::endl;
-    out << "          hATrans hATy hPremisesTrans hPremisesTy hProg" << std::endl;
+    out << "          hATrans hATy hPremisesTrans hPremisesTy hResultTy" << std::endl;
   }
   else
   {
     out << "M hM s args premises" << std::endl;
-    out << "          (by simpa using hCmdTrans) hPremisesBool hProg" << std::endl;
+    out << "          (by simpa using hCmdTrans) hPremisesBool hResultTy" << std::endl;
   }
   std::stringstream ss;
   ss << "plugins/lean_meta/rules/lean_meta_rule_" << prule << "_gen.lean";
