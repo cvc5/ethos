@@ -80,7 +80,7 @@ bool MetaReducePlugin::isSmtApplyApp(const Expr& oApp)
     return false;
   }
   std::string sname = getName(oApp[0]);
-  return (sname.compare(0, 11, "$smt_apply_") == 0
+  return (sname.compare(0, 14, "$native_apply_") == 0
           || sname.compare(0, 10, "$smt_type_") == 0
           || sname.compare(0, 13, "$smt_datatype") == 0);
 }

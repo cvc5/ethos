@@ -21,7 +21,7 @@ namespace ethos {
 std::string smtIndex(size_t i)
 {
   std::stringstream ss;
-  ss << "($smt_apply_0 \"" << i << "\")";
+  ss << "($native_apply_0 \"" << i << "\")";
   return ss.str();
 }
 

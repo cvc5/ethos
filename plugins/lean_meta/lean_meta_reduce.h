@@ -94,7 +94,7 @@ class LeanMetaReduce : public MetaReducePlugin
   void finalizeSpec();
   void finalizeLemmas();
   /**
-   * ctx impacts __eo_lit vs. __smt_lit
+   * Return the Lean symbol name for an embedded SMT operator.
    */
   static std::string getEmbedName(const Expr& oApp,
                                   MetaKind ctx = MetaKind::EUNOIA);

@@ -491,26 +491,26 @@ $EO_IS_LIST_NIL_CASES$
 ;;; types
 
 (program $eo_typeof_dt_cons_rec
-  ((T $eo_Term) (U $eo_Term) (d $eo_Datatype) (c $eo_DatatypeCons) (n $smt_builtin_Nat))
-  :signature ($eo_Term $eo_Datatype $smt_builtin_Nat) $eo_Term
+  ((T $eo_Term) (U $eo_Term) (d $eo_Datatype) (c $eo_DatatypeCons) (n $native_Nat))
+  :signature ($eo_Term $eo_Datatype $native_Nat) $eo_Term
   (
-  (($eo_typeof_dt_cons_rec T ($edt_sum $edtc_unit d) $smt_builtin_n_zero) T)
-  (($eo_typeof_dt_cons_rec T ($edt_sum ($edtc_cons U c) d) $smt_builtin_n_zero)
-    (-> U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $smt_builtin_n_zero)))
-  (($eo_typeof_dt_cons_rec T ($edt_sum c d) ($smt_builtin_n_succ n))
+  (($eo_typeof_dt_cons_rec T ($edt_sum $edtc_unit d) $native_n_zero) T)
+  (($eo_typeof_dt_cons_rec T ($edt_sum ($edtc_cons U c) d) $native_n_zero)
+    (-> U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $native_n_zero)))
+  (($eo_typeof_dt_cons_rec T ($edt_sum c d) ($native_n_succ n))
     ($eo_typeof_dt_cons_rec T d n))
   )
 )
 
 (program $eo_typeof_dt_sel_return
-  ((d $eo_Datatype) (c $eo_DatatypeCons) (T $eo_Term) (n $smt_builtin_Nat) (m $smt_builtin_Nat))
-  :signature ($eo_Datatype $smt_builtin_Nat $smt_builtin_Nat) $eo_Term
+  ((d $eo_Datatype) (c $eo_DatatypeCons) (T $eo_Term) (n $native_Nat) (m $native_Nat))
+  :signature ($eo_Datatype $native_Nat $native_Nat) $eo_Term
   (
-  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_n_zero $smt_builtin_n_zero)
+  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $native_n_zero $native_n_zero)
     T)
-  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $smt_builtin_n_zero ($smt_builtin_n_succ m))
-    ($eo_typeof_dt_sel_return ($edt_sum c d) $smt_builtin_n_zero m))
-  (($eo_typeof_dt_sel_return ($edt_sum c d) ($smt_builtin_n_succ n) m)
+  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $native_n_zero ($native_n_succ m))
+    ($eo_typeof_dt_sel_return ($edt_sum c d) $native_n_zero m))
+  (($eo_typeof_dt_sel_return ($edt_sum c d) ($native_n_succ n) m)
     ($eo_typeof_dt_sel_return d n m))
   )
 )
@@ -542,9 +542,9 @@ $EO_TYPEOF_NGROUND_DEFS$
 ; program: $eo_typeof
 ; implements: eo::typeof
 (program $eo_typeof
-  ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int)
-   (i $smt_builtin_Nat) (j $smt_builtin_Nat) (w $smt_builtin_Int) (r $smt_builtin_Rat)
-   (s $smt_builtin_String) (d $eo_Datatype)
+  ((t $eo_Term) (T $eo_Term) (b $native_Bool) (n $native_Int)
+   (i $native_Nat) (j $native_Nat) (w $native_Int) (r $native_Rat)
+   (s $native_String) (d $eo_Datatype)
    ($eo_T Type) ($eo_U Type) ($eo_V Type) ($eo_W Type)
    ($eo_f (-> $eo_U $eo_V $eo_T)) ($eo_x $eo_U) ($eo_t $eo_T)
    ($eo_W1 Type) ($eo_x1 $eo_W1)

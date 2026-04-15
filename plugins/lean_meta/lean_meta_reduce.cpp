@@ -50,6 +50,7 @@ LeanMetaReduce::~LeanMetaReduce() {}
 bool LeanMetaReduce::isBuiltinMetaSymbol(const std::string& sname) const
 {
   return sname.compare(0, 5, "$smt_") == 0
+         || sname.compare(0, 8, "$native_") == 0
          || d_typeToMetaKind.find(sname) != d_typeToMetaKind.end();
 }
 
@@ -152,7 +153,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
       if (ci.sgn() == -1)
       {
         const Integer& cin = -ci;
-        os << "(-" << cin.toString() << " : eo_lit_Int)";
+        os << "(-" << cin.toString() << " : native_Int)";
       }
       else
       {
@@ -170,7 +171,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
       std::string rstr = ss.str();
       rstr = replace_all(rstr, "/", " ");
       rstr = replace_all(rstr, "-", "");
-      os << "(eo_lit_mk_rational " << rstr << ")";
+      os << "(native_mk_rational " << rstr << ")";
       os << (isNeg ? ")" : "") << ")";
     }
     else if (k == Kind::BINARY)
@@ -220,7 +221,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
     return smtStr;
   }
   std::stringstream ss;
-  ss << (isSmtMetaKind(ctx) ? "smt_lit_" : "eo_lit_") << smtStr;
+  ss << "native_" << smtStr;
   return ss.str();
 }
 
@@ -238,7 +239,7 @@ void LeanMetaReduce::printEmbTerm(const Expr& body,
     bool firstTime = true;
     for (const Expr& l : ll)
     {
-      // if its just an $smt_apply_0, don't print
+      // if its just an $native_apply_0, don't print
       if (isSmtApplyApp(l) && l.getNumChildren() == 2)
       {
         lbind.erase(l.getValue());
@@ -380,8 +381,8 @@ void LeanMetaReduce::printEmbTermInternal(
       ss << recTerm[0];
       std::string sname = ss.str();
       // operators that print the identifier embedding e.g.
-      // `($smt_apply_3 "ite"` becomes `(ite`
-      if (sname.compare(0, 11, "$smt_apply_") == 0
+      // `($native_apply_3 "ite"` becomes `(ite`
+      if (sname.compare(0, 14, "$native_apply_") == 0
           || sname.compare(0, 10, "$smt_type_") == 0
           || sname.compare(0, 13, "$smt_datatype") == 0)
       {
@@ -394,7 +395,7 @@ void LeanMetaReduce::printEmbTermInternal(
         }
         else
         {
-          // this handles the corner case that ($smt_apply_0 "true") should
+          // this handles the corner case that ($native_apply_0 "true") should
           // print as "true" not "(true)".
           // Assert (!embName.empty()) << "empty embed name, from " << recTerm;
           os << embName;

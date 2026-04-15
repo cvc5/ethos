@@ -31,7 +31,8 @@ SmtMetaReduce::~SmtMetaReduce() {}
 
 bool SmtMetaReduce::isBuiltinMetaSymbol(const std::string& sname) const
 {
-  return sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term"
+  return sname.compare(0, 5, "$smt_") == 0
+         || sname.compare(0, 8, "$native_") == 0 || sname == "$eo_Term"
          || sname == "$eo_Datatype" || sname == "$eo_DatatypeCons";
 }
 
@@ -207,7 +208,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         const Literal* l = tcur[1].getValue()->asLiteral();
         if (tcur.getNumChildren() == 2)
         {
-          // e.g. ($smt_apply_0 "0") or ($smt_apply_0 "nat.zero") in a pattern.
+          // e.g. ($native_apply_0 "0") or ($native_apply_0 "nat.zero") in a pattern.
           std::stringstream eq;
           eq << "(= " << currTerm << " " << l->d_str.toString() << ")";
           print.push(eq.str());
@@ -419,8 +420,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       ss << recTerm[0];
       std::string sname = ss.str();
       // operators that print the identifier embedding e.g.
-      // `($smt_apply_3 "ite"` becomes `(ite`
-      if (sname.compare(0, 11, "$smt_apply_") == 0
+      // `($native_apply_3 "ite"` becomes `(ite`
+      if (sname.compare(0, 14, "$native_apply_") == 0
           || sname.compare(0, 10, "$smt_type_") == 0
           || sname.compare(0, 14, "$smt_datatype_") == 0)
       {
@@ -433,7 +434,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         }
         else
         {
-          // this handles the corner case that ($smt_apply_0 "true") should
+          // this handles the corner case that ($native_apply_0 "true") should
           // print as "true" not "(true)".
           // Assert (!embName.empty()) << "empty embed name, from " << recTerm;
           os << embName;

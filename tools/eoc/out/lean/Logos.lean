@@ -5,99 +5,41 @@ set_option maxHeartbeats 10000000
 
 namespace Eo
 
+open SmtEval
 
 /- Eunoia literal evaluation defined -/
 
-abbrev eo_lit_Bool := SmtEval.smt_lit_Bool
-abbrev eo_lit_Int := SmtEval.smt_lit_Int
-abbrev eo_lit_Rat := SmtEval.smt_lit_Rat
-abbrev eo_lit_String := SmtEval.smt_lit_String
-
-partial def eo_lit_ite {T : Type} (c : eo_lit_Bool) (t e : T) : T :=
-  if c then t else e
-abbrev eo_lit_not := SmtEval.smt_lit_not
-abbrev eo_lit_and := SmtEval.smt_lit_and
-abbrev eo_lit_iff := SmtEval.smt_lit_iff
-abbrev eo_lit_or := SmtEval.smt_lit_or
-abbrev eo_lit_xor := SmtEval.smt_lit_xor
-abbrev eo_lit_zplus := SmtEval.smt_lit_zplus
-abbrev eo_lit_zmult := SmtEval.smt_lit_zmult
-abbrev eo_lit_zneg := SmtEval.smt_lit_zneg
-abbrev eo_lit_zeq := SmtEval.smt_lit_zeq
-abbrev eo_lit_zleq := SmtEval.smt_lit_zleq
-abbrev eo_lit_zlt := SmtEval.smt_lit_zlt
-abbrev eo_lit_div_total := SmtEval.smt_lit_div_total
-abbrev eo_lit_mod_total := SmtEval.smt_lit_mod_total
-abbrev eo_lit_zexp_total := SmtEval.smt_lit_zexp_total
-abbrev eo_lit_int_pow2 := SmtEval.smt_lit_int_pow2
-abbrev eo_lit_piand := SmtEval.smt_lit_piand
-abbrev eo_lit_mk_rational := SmtEval.smt_lit_mk_rational
-abbrev eo_lit_qplus := SmtEval.smt_lit_qplus
-abbrev eo_lit_qmult := SmtEval.smt_lit_qmult
-abbrev eo_lit_qneg := SmtEval.smt_lit_qneg
-abbrev eo_lit_qeq := SmtEval.smt_lit_qeq
-abbrev eo_lit_qleq := SmtEval.smt_lit_qleq
-abbrev eo_lit_qlt := SmtEval.smt_lit_qlt
-abbrev eo_lit_qdiv_total := SmtEval.smt_lit_qdiv_total
-abbrev eo_lit_to_int := SmtEval.smt_lit_to_int
-abbrev eo_lit_to_real := SmtEval.smt_lit_to_real
-def eo_lit_str_len : eo_lit_String -> eo_lit_Int
+def native_str_len : native_String -> native_Int
   | x => Int.ofNat x.length
-def eo_lit_str_concat : eo_lit_String -> eo_lit_String -> eo_lit_String
+def native_str_concat : native_String -> native_String -> native_String
   | x, y => x ++ y
-def eo_lit_str_substr (s : eo_lit_String) (i n : eo_lit_Int) : eo_lit_String :=
-  let len : Int := (eo_lit_str_len s)
+def native_str_substr (s : native_String) (i n : native_Int) : native_String :=
+  let len : Int := (native_str_len s)
   if i < 0 || n <= 0 || i >= len then
     ""
   else
     let start : Nat := Int.toNat i
     let take  : Nat := Int.toNat (min n (len - i))
     String.Pos.Raw.extract s ⟨start⟩ ⟨start + take⟩
-def eo_lit_str_indexof_rec (s t : eo_lit_String) (i len fuel : Nat) : eo_lit_Int :=
+def native_str_indexof_rec (s t : native_String) (i len fuel : Nat) : native_Int :=
   match fuel with
   | 0 => -1
   | fuel + 1 =>
       if String.Pos.Raw.substrEq s ⟨i⟩ t ⟨0⟩ len then
         i
       else
-        eo_lit_str_indexof_rec s t (i + 1) len fuel
-def eo_lit_str_indexof (s t : eo_lit_String) (i : eo_lit_Int) : eo_lit_Int :=
+        native_str_indexof_rec s t (i + 1) len fuel
+def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
   if i < 0 then
     -1
   else
-    let sLen := Int.toNat (eo_lit_str_len s)
+    let sLen := Int.toNat (native_str_len s)
     let start := Int.toNat i
-    let tLen := Int.toNat (eo_lit_str_len t)
+    let tLen := Int.toNat (native_str_len t)
     if h : start + tLen <= sLen then
-      eo_lit_str_indexof_rec s t start tLen (sLen - (start + tLen) + 1)
+      native_str_indexof_rec s t start tLen (sLen - (start + tLen) + 1)
     else
       -1
-abbrev eo_lit_str_to_code := SmtEval.smt_lit_str_to_code
-abbrev eo_lit_str_from_code := SmtEval.smt_lit_str_from_code
-abbrev eo_lit_streq := SmtEval.smt_lit_streq
-
-abbrev eo_lit_bit := SmtEval.smt_lit_bit
-abbrev eo_lit_msb := SmtEval.smt_lit_msb
-abbrev eo_lit_binary_and := SmtEval.smt_lit_binary_and
-abbrev eo_lit_binary_or := SmtEval.smt_lit_binary_or
-abbrev eo_lit_binary_xor := SmtEval.smt_lit_binary_xor
-abbrev eo_lit_binary_not := SmtEval.smt_lit_binary_not
-abbrev eo_lit_binary_max := SmtEval.smt_lit_binary_max
-abbrev eo_lit_binary_uts := SmtEval.smt_lit_binary_uts
-abbrev eo_lit_binary_concat := SmtEval.smt_lit_binary_concat
-abbrev eo_lit_binary_extract := SmtEval.smt_lit_binary_extract
-
-abbrev eo_lit_Nat := SmtEval.smt_lit_Nat
-abbrev eo_lit_int_to_nat := SmtEval.smt_lit_int_to_nat
-abbrev eo_lit_nat_to_int := SmtEval.smt_lit_nat_to_int
-abbrev eo_lit_nateq := SmtEval.smt_lit_nateq
-abbrev eo_lit_nat_plus := SmtEval.smt_lit_nat_plus
-syntax "eo_lit_nat_zero" : term
-macro_rules
-  | `(eo_lit_nat_zero) => `(Nat.zero)
-syntax "eo_lit_nat_succ " term : term
-macro_rules
-  | `(eo_lit_nat_succ $x) => `(Nat.succ $x)
 
 instance : Ord Rat where
   compare a b :=
@@ -118,22 +60,22 @@ inductive Term : Type where
   | __eo_List_nil : Term
   | __eo_List_cons : Term
   | Bool : Term
-  | Boolean : eo_lit_Bool -> Term
-  | Numeral : eo_lit_Int -> Term
-  | Rational : eo_lit_Rat -> Term
-  | String : eo_lit_String -> Term
-  | Binary : eo_lit_Int -> eo_lit_Int -> Term
+  | Boolean : native_Bool -> Term
+  | Numeral : native_Int -> Term
+  | Rational : native_Rat -> Term
+  | String : native_String -> Term
+  | Binary : native_Int -> native_Int -> Term
   | Type : Term
   | Stuck : Term
   | Apply : Term -> Term -> Term
   | FunType : Term
   | Var : Term -> Term -> Term
-  | DatatypeType : eo_lit_String -> Datatype -> Term
-  | DatatypeTypeRef : eo_lit_String -> Term
-  | DtCons : eo_lit_String -> Datatype -> eo_lit_Nat -> Term
-  | DtSel : eo_lit_String -> Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
-  | USort : eo_lit_Nat -> Term
-  | UConst : eo_lit_Nat -> Term -> Term
+  | DatatypeType : native_String -> Datatype -> Term
+  | DatatypeTypeRef : native_String -> Term
+  | DtCons : native_String -> Datatype -> native_Nat -> Term
+  | DtSel : native_String -> Datatype -> native_Nat -> native_Nat -> Term
+  | USort : native_Nat -> Term
+  | UConst : native_Nat -> Term -> Term
   | not : Term
   | or : Term
   | and : Term
@@ -161,17 +103,17 @@ deriving Repr, DecidableEq, Inhabited
 end
 
 /- Term equality -/
-def eo_lit_teq : Term -> Term -> eo_lit_Bool
+def native_teq : Term -> Term -> native_Bool
   | x, y => decide (x = y)
 
 /- Term less than, based on arbitrary ordering -/
-def eo_lit_tcmp (a b : Term) : eo_lit_Bool :=
+def native_tcmp (a b : Term) : native_Bool :=
   match compare a b with
   | Ordering.lt => true
   | _ => false
 
 /- Used for defining hash -/
-def eo_lit_thash : Term -> eo_lit_Int
+def native_thash : Term -> native_Int
   | _ => 0 -- FIXME
 
 /- Proofs -/
@@ -189,27 +131,27 @@ def __eo_mk_apply : Term -> Term -> Term
   | x1, x2 => (Term.Apply x1 x2)
 
 
-def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
-  (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w)))
+def __eo_binary_mod_w (w : native_Int) (n : native_Int) : Term :=
+  (Term.Binary w (native_mod_total n (native_int_pow2 w)))
 
 def __eo_ite : Term -> Term -> Term -> Term
-  | x1, x2, x3 => (eo_lit_ite (eo_lit_teq x1 (Term.Boolean true)) x2 (eo_lit_ite (eo_lit_teq x1 (Term.Boolean false)) x3 Term.Stuck))
+  | x1, x2, x3 => (native_ite (native_teq x1 (Term.Boolean true)) x2 (native_ite (native_teq x1 (Term.Boolean false)) x3 Term.Stuck))
 
 
 def __eo_requires : Term -> Term -> Term -> Term
-  | x1, x2, x3 => (eo_lit_ite (eo_lit_teq x1 x2) (eo_lit_ite (eo_lit_not (eo_lit_teq x1 Term.Stuck)) x3 Term.Stuck) Term.Stuck)
+  | x1, x2, x3 => (native_ite (native_teq x1 x2) (native_ite (native_not (native_teq x1 Term.Stuck)) x3 Term.Stuck) Term.Stuck)
 
 
 def __eo_and : Term -> Term -> Term
-  | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (eo_lit_and b1 b2))
+  | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (native_and b1 b2))
   | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
     let _v0 := (Term.Numeral w1)
-    (eo_lit_ite (eo_lit_teq _v0 (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq _v0 Term.Stuck)) (Term.Binary w1 (eo_lit_mod_total (eo_lit_binary_and w1 n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
+    (native_ite (native_teq _v0 (Term.Numeral w2)) (native_ite (native_not (native_teq _v0 Term.Stuck)) (Term.Binary w1 (native_mod_total (native_binary_and w1 n1 n2) (native_int_pow2 w1))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck
 
 
 def __eo_len : Term -> Term
-  | (Term.String s1) => (Term.Numeral (eo_lit_str_len s1))
+  | (Term.String s1) => (Term.Numeral (native_str_len s1))
   | (Term.Binary w n1) => (Term.Numeral w)
   | _ => Term.Stuck
 
@@ -217,16 +159,16 @@ def __eo_len : Term -> Term
 def __eo_eq : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | t, s => (Term.Boolean (eo_lit_teq s t))
+  | t, s => (Term.Boolean (native_teq s t))
 
 
-def __eo_dtc_substitute (s : eo_lit_String) (d : Datatype) : DatatypeCons -> DatatypeCons
-  | (DatatypeCons.cons (Term.DatatypeType s2 d2) c) => (DatatypeCons.cons (Term.DatatypeType s2 (eo_lit_ite (eo_lit_streq s s2) d2 (__eo_dt_substitute s d d2))) (__eo_dtc_substitute s d c))
-  | (DatatypeCons.cons T c) => (DatatypeCons.cons (eo_lit_ite (eo_lit_teq T (Term.DatatypeTypeRef s)) (Term.DatatypeType s d) T) (__eo_dtc_substitute s d c))
+def __eo_dtc_substitute (s : native_String) (d : Datatype) : DatatypeCons -> DatatypeCons
+  | (DatatypeCons.cons (Term.DatatypeType s2 d2) c) => (DatatypeCons.cons (Term.DatatypeType s2 (native_ite (native_streq s s2) d2 (__eo_dt_substitute s d d2))) (__eo_dtc_substitute s d c))
+  | (DatatypeCons.cons T c) => (DatatypeCons.cons (native_ite (native_teq T (Term.DatatypeTypeRef s)) (Term.DatatypeType s d) T) (__eo_dtc_substitute s d c))
   | DatatypeCons.unit => DatatypeCons.unit
 
 
-def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> Datatype
+def __eo_dt_substitute (s : native_String) (d : Datatype) : Datatype -> Datatype
   | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_substitute s d c) (__eo_dt_substitute s d d2))
   | Datatype.null => Datatype.null
 
@@ -252,18 +194,18 @@ def __eo_prog_symm : Proof -> Term
   | _ => Term.Stuck
 
 
-def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Nat -> Term
+def __eo_typeof_dt_cons_rec : Term -> Datatype -> native_Nat -> Term
   | Term.Stuck , _ , _  => Term.Stuck
-  | T, (Datatype.sum DatatypeCons.unit d), eo_lit_nat_zero => T
-  | T, (Datatype.sum (DatatypeCons.cons U c) d), eo_lit_nat_zero => (Term.Apply (Term.Apply Term.FunType U) (__eo_typeof_dt_cons_rec T (Datatype.sum c d) eo_lit_nat_zero))
-  | T, (Datatype.sum c d), (eo_lit_nat_succ n) => (__eo_typeof_dt_cons_rec T d n)
+  | T, (Datatype.sum DatatypeCons.unit d), native_nat_zero => T
+  | T, (Datatype.sum (DatatypeCons.cons U c) d), native_nat_zero => (Term.Apply (Term.Apply Term.FunType U) (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero))
+  | T, (Datatype.sum c d), (native_nat_succ n) => (__eo_typeof_dt_cons_rec T d n)
   | _, _, _ => Term.Stuck
 
 
-def __eo_typeof_dt_sel_return : Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
-  | (Datatype.sum (DatatypeCons.cons T c) d), eo_lit_nat_zero, eo_lit_nat_zero => T
-  | (Datatype.sum (DatatypeCons.cons T c) d), eo_lit_nat_zero, (eo_lit_nat_succ m) => (__eo_typeof_dt_sel_return (Datatype.sum c d) eo_lit_nat_zero m)
-  | (Datatype.sum c d), (eo_lit_nat_succ n), m => (__eo_typeof_dt_sel_return d n m)
+def __eo_typeof_dt_sel_return : Datatype -> native_Nat -> native_Nat -> Term
+  | (Datatype.sum (DatatypeCons.cons T c) d), native_nat_zero, native_nat_zero => T
+  | (Datatype.sum (DatatypeCons.cons T c) d), native_nat_zero, (native_nat_succ m) => (__eo_typeof_dt_sel_return (Datatype.sum c d) native_nat_zero m)
+  | (Datatype.sum c d), (native_nat_succ n), m => (__eo_typeof_dt_sel_return d n m)
   | _, _, _ => Term.Stuck
 
 
@@ -365,7 +307,7 @@ end
 
 /- Definition of the checker -/
 
-abbrev CIndex := eo_lit_Int
+abbrev CIndex := native_Int
 
 /-
 -/
@@ -428,13 +370,13 @@ def __eo_StateObj_proven : CStateObj -> Term
   | (CStateObj.proven F) => F
 
 
-def __eo_state_proven_nth : CState -> eo_lit_Int -> Term
+def __eo_state_proven_nth : CState -> native_Int -> Term
   | (CState.cons so s), 0 => (__eo_StateObj_proven so)
-  | (CState.cons so s), n => (__eo_state_proven_nth s (eo_lit_zplus n (eo_lit_zneg 1)))
+  | (CState.cons so s), n => (__eo_state_proven_nth s (native_zplus n (native_zneg 1)))
   | s, n => (Term.Boolean true)
 
 
-def __eo_state_is_closed : CState -> eo_lit_Bool
+def __eo_state_is_closed : CState -> native_Bool
   | (CState.cons (CStateObj.assume_push F) s) => false
   | (CState.cons so s) => (__eo_state_is_closed s)
   | CState.nil => true
@@ -493,7 +435,7 @@ def __eo_invoke_cmd_list (S : CState) : CCmdList -> CState
   | (CCmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
 
 
-def __eo_state_is_refutation (s : CState) : eo_lit_Bool :=
+def __eo_state_is_refutation (s : CState) : native_Bool :=
   (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
 
 def __eo_invoke_assume_list (S : CState) : Term -> CState
@@ -502,7 +444,7 @@ def __eo_invoke_assume_list (S : CState) : Term -> CState
   | as => CState.Stuck
 
 
-def __eo_checker_is_refutation : Term -> CCmdList -> eo_lit_Bool
+def __eo_checker_is_refutation : Term -> CCmdList -> native_Bool
   | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
 
 
@@ -512,6 +454,6 @@ def __eo_checker_is_refutation : Term -> CCmdList -> eo_lit_Bool
 def logos_init_state : CState := CState.nil
 def logos_invoke_assume (s : CState) (A : Term) : CState := (CState.cons (CStateObj.assume A) s)
 def logos_invoke_cmd (s : CState) (c :CCmd) : CState := (__eo_invoke_cmd s c)
-def logos_state_is_refutation (s : CState) : eo_lit_Bool := (__eo_state_is_refutation s)
+def logos_state_is_refutation (s : CState) : native_Bool := (__eo_state_is_refutation s)
 
 end Eo

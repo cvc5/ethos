@@ -1,7 +1,7 @@
 ;;; utilities
 
 ; placeholders
-(define $eoT_Index () $smt_builtin_Int)
+(define $eoT_Index () $native_Int)
 
 (declare-const $eo_IndexList Type)
 (declare-const $emb_indl.nil $eo_IndexList)
@@ -18,7 +18,7 @@
 (define $eot_alc ((i $eo_Term) (il $eo_ArgList)) ($emb_al.cons i il))
 
 ; for bool??
-(define $eoT_Result () $smt_builtin_Bool)
+(define $eoT_Result () $native_Bool)
 
 ;;; Types
 
@@ -63,8 +63,8 @@
 (program $eo_state_proven_nth ((so $eo_StateObj) (s $eo_State) (n $eoT_Index))
   :signature ($eo_State $eoT_Index) Bool
   (
-  (($eo_state_proven_nth ($s_cons so s) $smt_builtin_z_zero) ($eo_StateObj_proven so))
-  (($eo_state_proven_nth ($s_cons so s) n) ($eo_state_proven_nth s ($smt_builtin_z_dec n)))
+  (($eo_state_proven_nth ($s_cons so s) $native_z_zero) ($eo_StateObj_proven so))
+  (($eo_state_proven_nth ($s_cons so s) n) ($eo_state_proven_nth s ($native_z_dec n)))
   ; otherwise just return true
   (($eo_state_proven_nth s n) true)
   )
@@ -73,10 +73,10 @@
 (program $eo_state_is_closed ((so $eo_StateObj) (s $eo_State) (F Bool))
   :signature ($eo_State) $eoT_Result
   (
-  (($eo_state_is_closed ($s_cons ($so_assume_push F) s)) $smt_builtin_false)
+  (($eo_state_is_closed ($s_cons ($so_assume_push F) s)) $native_false)
   (($eo_state_is_closed ($s_cons so s)) ($eo_state_is_closed s))
-  (($eo_state_is_closed $s_nil) $smt_builtin_true)
-  (($eo_state_is_closed s) $smt_builtin_false)
+  (($eo_state_is_closed $s_nil) $native_true)
+  (($eo_state_is_closed s) $native_false)
   )
 )
 

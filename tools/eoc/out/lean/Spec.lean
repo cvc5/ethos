@@ -1,14 +1,12 @@
 import Cpc.SmtModel
 import Cpc.Logos
 
+open SmtEval
 open Eo
 open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-
-/- compatability helper, we use smt_lit, but may need eo_lit -/
-abbrev smt_lit_teq := eo_lit_teq
 
 /- Definitions for theorems -/
 
@@ -62,7 +60,7 @@ def __eo_to_smt_type : Term -> SmtType
     (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.FunType _v1 _v0)))
   | Term.Int => SmtType.Int
   | Term.Real => SmtType.Real
-  | (Term.Apply Term.BitVec (Term.Numeral n1)) => (smt_lit_ite (smt_lit_zleq 0 n1) (SmtType.BitVec (smt_lit_int_to_nat n1)) SmtType.None)
+  | (Term.Apply Term.BitVec (Term.Numeral n1)) => (native_ite (native_zleq 0 n1) (SmtType.BitVec (native_int_to_nat n1)) SmtType.None)
   | Term.Char => SmtType.Char
   | (Term.Apply Term.Seq x1) => 
     let _v0 := (__eo_to_smt_type x1)
@@ -79,7 +77,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Var (Term.String s) T) => (SmtTerm.Var s (__eo_to_smt_type T))
   | (Term.DtCons s d i) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)
   | (Term.DtSel s d i j) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
-  | (Term.UConst i T) => (SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T))
+  | (Term.UConst i T) => (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))
   | (Term.Apply Term.not x1) => (SmtTerm.not (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.or x1) x2) => (SmtTerm.or (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.and x1) x2) => (SmtTerm.and (__eo_to_smt x1) (__eo_to_smt x2))

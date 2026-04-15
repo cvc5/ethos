@@ -1,8 +1,9 @@
 import $EO_CALC$.Proofs.CheckerCore
-import $EO_CALC$.Proofs.Rules.Support
+import $EO_CALC$.Proofs.Support
 $EO_RULE_LEMMA_INCLUDE$
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
