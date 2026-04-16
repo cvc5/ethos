@@ -815,6 +815,8 @@ Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` 
 - `(eo::mul t1 t2)`
   - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`.
   - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
+- `(eo::pow t1 t2)`
+  - If `t1` is an integer or real value and `t2` is a non-negative 32-bit numeral value, then this returns `t1` to the power of `t2`.
 - `(eo::neg t1)`
   - If `t1` is a arithmetic value, this returns the arithmetic negation of `t1`.
   - If `t1` is a binary value, this returns its (signed) arithmetic negation.
@@ -892,6 +894,10 @@ Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo::co
 (eo::mul 2 7)               == 14
 (eo::mul 2 2 7)             == 28
 (eo::mul 1/2 1/4)           == 1/8
+(eo::pow 2 10)              == 1024
+(eo::pow 3/2 2)             == 9/4
+(eo::pow 2 -1)              == (eo::pow 2 -1)  ; since exponent is negative
+(eo::pow 2 4294967296)      == (eo::pow 2 4294967296)  ; since exponent is not a 32-bit numeral value
 (eo::neg -15)               == 15
 (eo::qdiv 12 6)             == 3/1
 (eo::qdiv 7 2)              == 7/2
@@ -1021,6 +1027,8 @@ We describe a signature that gives these definitions in [derived-ops](#derived-o
   - (Intersection) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that do not occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we erase one copy of it from that list and append it to the final result.
 - `(eo::list_singleton_elim f t1)`
   - (Singleton elimination) If `t1` is an `f`-list containing a single child `t11`, this returns `t11`. All other `f`-lists `t1` are returned unchanged. Otherwise, this operator does not evaluate.
+- `(eo::list_repeat f t1 t2)`
+  - If `t2` is a non-negative 32-bit numeral value, then this returns the `f`-list with `t1` repeated `t2` times.
 
 ### List Computation Examples
 
@@ -1113,6 +1121,9 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_singleton_elim or (or a b c))     == (or a b c)
 (eo::list_singleton_elim or (or a a a))     == (or a a a)
 (eo::list_singleton_elim or (or a))         == a
+(eo::list_repeat or a 0)                    == false
+(eo::list_repeat or a 3)                    == (or a a a)
+(eo::list_repeat or a 4294967296)           == (eo::list_repeat or a 4294967296)  ; since count is not a 32-bit numeral value
 ```
 
 ### Parametric Nil terminators

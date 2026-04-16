@@ -137,7 +137,8 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
 {
   Assert (k!=Kind::EVAL_IS_EQ && k!=Kind::EVAL_IF_THEN_ELSE && k!=Kind::EVAL_REQUIRES);
   Kind ka = Kind::NONE;
-  if (k!=Kind::EVAL_EXTRACT && k!=Kind::EVAL_TO_BIN)
+  if (k != Kind::EVAL_EXTRACT && k != Kind::EVAL_TO_BIN
+      && k != Kind::EVAL_POW)
   {
     ka = allSameKind(args);
     if (ka==Kind::NONE)
@@ -265,6 +266,21 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
         case Kind::HEXADECIMAL:
         case Kind::BINARY:return Literal(ka, -args[0]->d_bv);
         default: break;
+      }
+      break;
+    case Kind::EVAL_POW:
+      if (args[1]->d_kind == Kind::NUMERAL && args[1]->d_int.fitsUnsignedInt())
+      {
+        uint32_t exp = args[1]->d_int.toUnsignedInt();
+        switch (args[0]->d_kind)
+        {
+          case Kind::NUMERAL:
+            return Literal(args[0]->d_int.pow(exp));
+          case Kind::DECIMAL:
+          case Kind::RATIONAL:
+            return Literal(args[0]->d_kind, args[0]->d_rat.pow(exp));
+          default: break;
+        }
       }
       break;
     case Kind::EVAL_INT_DIV:

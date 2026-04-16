@@ -95,6 +95,7 @@ enum class Kind
   EVAL_LIST_DIFF,
   EVAL_LIST_INTER,
   EVAL_LIST_SINGLETON_ELIM,
+  EVAL_LIST_REPEAT,
   // boolean
   EVAL_NOT,
   EVAL_AND,
@@ -104,6 +105,7 @@ enum class Kind
   EVAL_ADD,
   EVAL_NEG,
   EVAL_MUL,
+  EVAL_POW,
   EVAL_INT_DIV,
   EVAL_INT_MOD,
   EVAL_RAT_DIV,

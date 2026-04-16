@@ -44,6 +44,15 @@ Rational Rational::fromDecimal(const std::string& dec) {
 
 bool Rational::isIntegral() const { return mpz_cmp_ui(d_value.get_den_mpz_t(), 1) == 0; }
 
+Rational Rational::pow(uint32_t exp) const
+{
+  mpz_class numPow;
+  mpz_class denPow;
+  mpz_pow_ui(numPow.get_mpz_t(), d_value.get_num_mpz_t(), exp);
+  mpz_pow_ui(denPow.get_mpz_t(), d_value.get_den_mpz_t(), exp);
+  return Rational(Integer(numPow), Integer(denPow));
+}
+
 std::string Rational::toString(int base) const
 {
   return d_value.get_str(base) + (isIntegral() ? "/1" : "");

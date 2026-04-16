@@ -155,6 +155,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
     case Kind::EVAL_RAT_DIV:
+    case Kind::EVAL_POW:
     case Kind::EVAL_TO_BIN:
     case Kind::EVAL_FIND:
     case Kind::EVAL_COMPARE:
@@ -195,7 +196,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_LIST_MINCLUDE:
     case Kind::EVAL_LIST_MEQ:
     case Kind::EVAL_LIST_DIFF:
-    case Kind::EVAL_LIST_INTER: ret = (nargs == 3); break;
+    case Kind::EVAL_LIST_INTER:
+    case Kind::EVAL_LIST_REPEAT: ret = (nargs == 3); break;
     case Kind::EVAL_EXTRACT:
       ret = (nargs==3 || nargs==2);
       break;
@@ -1408,15 +1410,18 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   else if (args.size() > 1)
   {
-    // All other list operators except EVAL_CONS have list as second argument.
+    // Operators whose second argument is an element, not a list, should infer
+    // the nil terminator from that element type.
     Expr cref(args[1]);
     getType(cref);
     ExprValue* t = d_state.lookupType(args[1]);
+    bool tinstListArg =
+        k != Kind::EVAL_CONS && k != Kind::EVAL_LIST_REPEAT;
     nilExpr = evaluateNil(args[0],
                           ac->d_attrConsTerm.getValue(),
                           isLeft,
                           t,
-                          k != Kind::EVAL_CONS);
+                          tinstListArg);
   }
   if (nilExpr.isNull())
   {
@@ -1462,6 +1467,25 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         }
       }
       return prependNAryChildren(op, ret, hargs, isLeft);
+    }
+      break;
+    case Kind::EVAL_LIST_REPEAT:
+    {
+      if (args[2]->getKind() != Kind::NUMERAL
+          || !args[2]->asLiteral()->d_int.fitsUnsignedInt())
+      {
+        return d_null;
+      }
+      uint32_t count = args[2]->asLiteral()->d_int.toUnsignedInt();
+      if (count == 0)
+      {
+        return Expr(nil);
+      }
+      for (uint32_t i = 0; i < count; i++)
+      {
+        hargs.push_back(args[1]);
+      }
+      return prependNAryChildren(op, nil, hargs, isLeft);
     }
       break;
     case Kind::EVAL_LIST_LENGTH:
@@ -1777,6 +1801,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
       return Expr(children[1]);
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
+    case Kind::EVAL_POW:
       // NOTE: mixed arith
       return Expr(childTypes[0]);
     case Kind::EVAL_NEG:
@@ -1799,6 +1824,15 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_DIFF:
     case Kind::EVAL_LIST_INTER:
     case Kind::EVAL_LIST_SINGLETON_ELIM: return Expr(childTypes[1]);
+    case Kind::EVAL_LIST_REPEAT:
+    {
+      Expr opType(childTypes[0]);
+      if (opType.getKind() == Kind::FUNCTION_TYPE)
+      {
+        return opType.getFunctionType().second;
+      }
+      return d_null;
+    }
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
       // type is the first child

@@ -1,0 +1,26 @@
+
+(declare-const Int Type)
+(declare-const Real Type)
+
+(declare-consts <numeral> Int)
+(declare-consts <rational> Real)
+
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const a Bool)
+
+(define test01 () (eo::pow 2 10) :is_eq 1024)
+(define test02 () (eo::pow -2 3) :is_eq -8)
+(define test03 () (eo::pow 7 0) :is_eq 1)
+(define test04 () (eo::pow 3/2 2) :is_eq 9/4)
+(define test05 () (eo::pow 0/1 0) :is_eq 1/1)
+(define test06 () (eo::is_ok (eo::pow 2 -1)) :is_eq false)
+(define test07 () (eo::is_ok (eo::pow 2 4294967296)) :is_eq false)
+
+(define test08 () (eo::list_repeat or a 0) :is_eq false)
+(define test09 () (eo::list_repeat or a 1) :is_eq (or a))
+(define test10 () (eo::list_repeat or a 3) :is_eq (or a a a))
+(define test11 () (eo::list_len or (eo::list_repeat or a 4)) :is_eq 4)
+(define test12 () (eo::is_ok (eo::list_repeat or a -1)) :is_eq false)
+(define test13 () (eo::is_ok (eo::list_repeat or a 4294967296)) :is_eq false)
+(define test14 () (eo::list_len eo::List::cons (eo::list_repeat eo::List::cons 1 2)) :is_eq 2)
+(define test15 () (eo::list_nth eo::List::cons (eo::list_repeat eo::List::cons 1 2) 1) :is_eq 1)
