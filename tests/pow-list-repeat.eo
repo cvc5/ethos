@@ -1,0 +1,24 @@
+
+(declare-const Int Type)
+(declare-const Real Type)
+
+(declare-consts <numeral> Int)
+(declare-consts <rational> Real)
+
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const a Bool)
+
+(declare-const test01 (eo::requires (eo::pow 2 10) 1024 Bool))
+(declare-const test02 (eo::requires (eo::pow -2 3) -8 Bool))
+(declare-const test03 (eo::requires (eo::pow 7 0) 1 Bool))
+(declare-const test04 (eo::requires (eo::pow 3/2 2) 9/4 Bool))
+(declare-const test05 (eo::requires (eo::pow 0/1 0) 1/1 Bool))
+(declare-const test06 (eo::requires (eo::is_ok (eo::pow 2 -1)) false Bool))
+
+(declare-const test07 (eo::requires (eo::list_repeat or a 0) false Bool))
+(declare-const test08 (eo::requires (eo::list_repeat or a 1) (or a) Bool))
+(declare-const test09 (eo::requires (eo::list_repeat or a 3) (or a a a) Bool))
+(declare-const test10 (eo::requires (eo::list_len or (eo::list_repeat or a 4)) 4 Bool))
+(declare-const test11 (eo::requires (eo::is_ok (eo::list_repeat or a -1)) false Bool))
+(declare-const test12 (eo::requires (eo::list_len eo::List::cons (eo::list_repeat eo::List::cons 1 2)) 2 Bool))
+(declare-const test13 (eo::requires (eo::list_nth eo::List::cons (eo::list_repeat eo::List::cons 1 2) 1) 1 Bool))

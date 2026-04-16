@@ -152,6 +152,7 @@ set(ethos_test_file_list
     define-scope-attr.eo
     is-eq-tests.eo
     eo-arg-ex.eo
+    pow-list-repeat.eo
     list-ops-new.eo
     double-list.eo
     list-param-immediate.eo

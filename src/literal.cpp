@@ -133,11 +133,40 @@ bool allSameBitWidth(const std::vector<const Literal*>& args)
   return true;
 }
 
+Integer powInteger(const Integer& base, const Integer& exp)
+{
+  Assert(exp.sgn() >= 0);
+  Integer res(1);
+  Integer rem(exp);
+  Integer negOne = -Integer(1);
+  while (rem.sgn() != 0)
+  {
+    res = res * base;
+    rem = rem + negOne;
+  }
+  return res;
+}
+
+Rational powRational(const Rational& base, const Integer& exp)
+{
+  Assert(exp.sgn() >= 0);
+  Rational res(Integer(1));
+  Integer rem(exp);
+  Integer negOne = -Integer(1);
+  while (rem.sgn() != 0)
+  {
+    res = res * base;
+    rem = rem + negOne;
+  }
+  return res;
+}
+
 Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
 {
   Assert (k!=Kind::EVAL_IS_EQ && k!=Kind::EVAL_IF_THEN_ELSE && k!=Kind::EVAL_REQUIRES);
   Kind ka = Kind::NONE;
-  if (k!=Kind::EVAL_EXTRACT && k!=Kind::EVAL_TO_BIN)
+  if (k != Kind::EVAL_EXTRACT && k != Kind::EVAL_TO_BIN
+      && k != Kind::EVAL_POW)
   {
     ka = allSameKind(args);
     if (ka==Kind::NONE)
@@ -265,6 +294,21 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
         case Kind::HEXADECIMAL:
         case Kind::BINARY:return Literal(ka, -args[0]->d_bv);
         default: break;
+      }
+      break;
+    case Kind::EVAL_POW:
+      if (args[1]->d_kind == Kind::NUMERAL && args[1]->d_int.sgn() >= 0)
+      {
+        switch (args[0]->d_kind)
+        {
+          case Kind::NUMERAL:
+            return Literal(powInteger(args[0]->d_int, args[1]->d_int));
+          case Kind::DECIMAL:
+          case Kind::RATIONAL:
+            return Literal(args[0]->d_kind,
+                           powRational(args[0]->d_rat, args[1]->d_int));
+          default: break;
+        }
       }
       break;
     case Kind::EVAL_INT_DIV:
