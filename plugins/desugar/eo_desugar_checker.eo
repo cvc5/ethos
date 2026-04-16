@@ -158,9 +158,6 @@ $EO_RULE_DEFS$
   (($eo_invoke_cmd_check_proven S proven) $s_stuck)
   )
 )
-
-$EO_INVOKE_DEFS$
-
 (program $eo_cmd_step_proven
   ((r $eo_Rule) (args $eo_ArgList) (premises $eo_IndexList) (S $eo_State)
    (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)

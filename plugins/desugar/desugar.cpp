@@ -18,7 +18,7 @@
 namespace ethos {
 
 Desugar::Desugar(State& s)
-    : StdPlugin(s), d_dchecker(s, this)
+    : StdPlugin(s), d_dchecker(s)
 {
   // we require santization of the eo::List at this stage
   // TODO: maybe just use text replace??

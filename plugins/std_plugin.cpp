@@ -218,16 +218,6 @@ StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 
 StdPlugin::~StdPlugin() {}
 
-Expr StdPlugin::lookupVar(const std::string& name)
-{
-  Expr e = d_state.getVar(name);
-  if (e.isNull())
-  {
-    EO_FATAL() << "StdPlugin::lookupVar: Symbol " << name << " must be defined";
-  }
-  return e;
-}
-
 std::vector<Expr> StdPlugin::getSubtermsKind(Kind k, const Expr& t)
 {
   std::vector<Expr> ret;

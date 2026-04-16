@@ -17,31 +17,24 @@
 namespace ethos {
 
 class State;
-class TypeChecker;
-class Desugar;
 
 /**
  */
 class DesugarChecker : public StdPlugin
 {
  public:
-  DesugarChecker(State& s, Desugar* d);
+  DesugarChecker(State& s);
   ~DesugarChecker();
   void finalizeRule(const Expr& v);
 
   void output(std::ostream& out);
 
  private:
-  void printTerm(const Expr& e, std::ostream& os);
   Expr d_true;
-  Expr d_boolType;
-  // parent desugar
-  Desugar* d_desugar;
   // the rules
   std::stringstream d_rules;
   std::stringstream d_ruleInvokes;
   std::stringstream d_ruleInvokesPop;
-  std::stringstream d_ruleInvokesDefs;
 };
 
 }  // namespace ethos

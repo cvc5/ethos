@@ -13,38 +13,21 @@
 #include <sstream>
 #include <string>
 
-#include "desugar.h"
 #include "state.h"
 
 namespace ethos {
 
-std::string smtIndex(size_t i)
-{
-  std::stringstream ss;
-  ss << "($native_apply_0 \"" << i << "\")";
-  return ss.str();
-}
-
-DesugarChecker::DesugarChecker(State& s, Desugar* d)
-    : StdPlugin(s), d_desugar(d)
+DesugarChecker::DesugarChecker(State& s) : StdPlugin(s)
 {
   d_true = d_state.mkTrue();
-  d_boolType = d_state.mkBoolType();
 }
 
 DesugarChecker::~DesugarChecker() {}
 
 void DesugarChecker::finalizeRule(const Expr& v)
 {
-  std::stringstream embArg;
-  std::stringstream macroArg;
-  std::stringstream macroRet;
   std::stringstream invokePat;
   std::stringstream invokeRet;
-  std::stringstream progParamList;
-  std::stringstream progSig;
-  std::stringstream progPat;
-  std::stringstream progRet;
 
   AppInfo* ainfo = d_state.getAppInfo(v.getValue());
   Expr tupleVal = ainfo->d_attrConsTerm;
@@ -58,11 +41,9 @@ void DesugarChecker::finalizeRule(const Expr& v)
   // conclusion explicit is compiled away when desugaring proof
   // bool isConcExplicit = tupleVal[2] == d_true;
   Expr rprog = tupleVal[3];
-  std::stringstream argList;
   Expr rprogType = rprog.getType();
   size_t nargs = 0;
   size_t npremises = 0;
-  std::stringstream ret, retEnd;
   if (rprogType.getKind() == Kind::PROGRAM_TYPE)
   {
     Expr pfType = d_state.mkProofType();
@@ -90,15 +71,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
   std::string invPatArgs = "$eot_aln";
   for (size_t i = 1; i <= nargs; i++)
   {
-    embArg << " (T" << i << " Type :implicit) (x" << i << " T" << i
-           << " :opaque)";
-    macroArg << " (T" << i << " Type :implicit) (x" << i << " T" << i << ")";
-    macroRet << " x" << i;
     invokeRet << " a" << i;
-    progParamList << " (T" << i << " Type) (a" << i << " T" << i << ")";
-    progSig << " T" << i;
-    progPat << " a" << i;
-    progRet << " a" << i;
     std::stringstream ssnext;
     ssnext << "($eot_alc a" << (nargs - i) + 1 << " " << invPatArgs << ")";
     invPatArgs = ssnext.str();
@@ -107,7 +80,6 @@ void DesugarChecker::finalizeRule(const Expr& v)
   // then, pass the assumption
   if (isAssume)
   {
-    progRet << " A";
     invokePat << " A";
     invokeRet << " A";
   }
@@ -116,15 +88,8 @@ void DesugarChecker::finalizeRule(const Expr& v)
   {
     // combine the premises if :premise-list
     Assert(npremises == 1);
-    embArg << " (premises $eo_IndexList :opaque)";
-    macroArg << " (premises $eo_IndexList)";
-    macroRet << " premises";
     invokePat << " premises";
     invokeRet << " ($eo_pf ($eo_mk_premise_list " << plCons << " premises S))";
-    progParamList << " (pl $eo_Proof)";
-    progSig << " $eo_Proof";
-    progPat << " pl";
-    progRet << " pl";
   }
   else
   {
@@ -133,14 +98,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
     std::string invPatPremises = "$eot_iln";
     for (size_t i = 1; i <= npremises; i++)
     {
-      embArg << " (n" << i << " $eoT_Index :opaque)";
-      macroArg << " (n" << i << " $eoT_Index)";
-      macroRet << " n" << i;
       invokeRet << " ($eo_pf ($eo_state_proven_nth S n" << i << "))";
-      progParamList << " (p" << i << " $eo_Proof)";
-      progSig << " $eo_Proof";
-      progPat << " p" << i;
-      progRet << " p" << i;
       std::stringstream ssnext;
       ssnext << "($eot_ilc n" << (npremises - i) + 1 << " " << invPatPremises
              << ")";
@@ -152,8 +110,6 @@ void DesugarChecker::finalizeRule(const Expr& v)
   ssv << v;
   std::string vname = ssv.str();
   vname = replace_all(vname, "-", "_");
-  std::stringstream ssr;
-  ssr << "$rule_" << vname;
   std::ostream* rout = isAssume ? &d_ruleInvokesPop : &d_ruleInvokes;
   d_rules << "(declare-const $emb_r." << vname << " $eo_Rule)" << std::endl;
   (*rout) << "  (($eo_cmd_step_" << (isAssume ? "pop_" : "")
@@ -169,11 +125,6 @@ void DesugarChecker::finalizeRule(const Expr& v)
   (*rout) << ")" << std::endl;
 }
 
-void DesugarChecker::printTerm(const Expr& e, std::ostream& os)
-{
-  d_desugar->printTerm(e, os);
-}
-
 void DesugarChecker::output(std::ostream& out)
 {
   out << ";; ------------ checker" << std::endl;
@@ -185,7 +136,6 @@ void DesugarChecker::output(std::ostream& out)
   replace(finalCheckEo, "$EO_RULE_DEFS$", d_rules.str());
   replace(finalCheckEo, "$EO_INVOKE$", d_ruleInvokes.str());
   replace(finalCheckEo, "$EO_INVOKE_POP$", d_ruleInvokesPop.str());
-  replace(finalCheckEo, "$EO_INVOKE_DEFS$", d_ruleInvokesDefs.str());
   out << finalCheckEo;
   out << ";; ------------ checker end" << std::endl;
 }

@@ -39,7 +39,6 @@ class StdPlugin : public Plugin
   ~StdPlugin();
 
  protected:
-  Expr lookupVar(const std::string& name);
   /** Allocate a fresh type variable */
   Expr allocateTypeVariable();
   /** Get ground term for kind */
