@@ -2147,6 +2147,10 @@
 (declare-parameterized-const $emb_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
 (define $vsm_map ((m $smt_Map)) ($emb_vsm.Map m))
 
+; A value denoting a function.
+(declare-parameterized-const $emb_vsm.Fun ((m $smt_Map :opaque)) $smt_Value)
+(define $vsm_fun ((m $smt_Map)) ($emb_vsm.Fun m))
+
 ; A value denoting a set. This also uses the map data structure internally.
 (declare-parameterized-const $emb_vsm.Set ((m $smt_Map :opaque)) $smt_Value)
 (define $vsm_set ((m $smt_Map)) ($emb_vsm.Set m))
@@ -2159,6 +2163,11 @@
 (declare-parameterized-const $emb_vsm.Char
   ((c $native_Char :opaque)) $smt_Value)
 (define $vsm_char ((c $native_Char)) ($emb_vsm.Char c))
+
+; A value denoting an uninterpreted sort
+(declare-parameterized-const $emb_vsm.UValue 
+  ((i $native_Nat :opaque) (e $native_Nat :opaque)) $smt_Value)
+(define $vsm_uvalue ((i $native_Nat) (e $native_Nat)) ($emb_vsm.UValue i e))
 
 ; A value denoting a regular language.
 (declare-parameterized-const $emb_vsm.RegLan ((r $native_RegLan :opaque)) $smt_Value)
@@ -2265,15 +2274,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Closedness for types
 
 (declare-const $smt_RefList Type)
+(define $native_reflist_nil () ($native_apply_0 "reflist_nil"))
 
 (program $smtx_type_wf_rec () :signature ($smt_Type $smt_RefList) $native_Bool)
 
 (program $smtx_dt_cons_wf_rec
-  ((T $smt_Type) (c $smt_DatatypeCons) (refs $smt_RefList))
+  ((T $smt_Type) (s $native_String) (c $smt_DatatypeCons) (refs $smt_RefList))
   :signature ($smt_DatatypeCons $smt_RefList) $native_Bool
   (
+  (($smtx_dt_cons_wf_rec ($dtc_cons ($tsm_TypeRef s) c) refs)
+    ($native_ite ($native_apply_2 "reflist_contains" refs s) ($smtx_dt_cons_wf_rec c refs) $native_false))
   (($smtx_dt_cons_wf_rec ($dtc_cons T c) refs)
-    ($native_ite ($smtx_type_wf_rec T refs) ($smtx_dt_cons_wf_rec c refs) $native_false))
+    ($native_ite ($smtx_type_wf_rec T refs)
+      ($smtx_dt_cons_wf_rec c refs)
+      $native_false))
   (($smtx_dt_cons_wf_rec $dtc_unit refs) $native_true)
   )
 )
@@ -2295,12 +2309,13 @@
   (
   (($smtx_type_wf_rec ($tsm_Datatype s d) refs)
     ($smtx_dt_wf_rec d ($native_apply_2 "reflist_insert" refs s)))
-  (($smtx_type_wf_rec ($tsm_TypeRef s) refs)
-    ($native_apply_2 "reflist_contains" refs s))
-  (($smtx_type_wf_rec ($tsm_Seq x1) refs) ($smtx_type_wf_rec x1 refs))
-  (($smtx_type_wf_rec ($tsm_Array x1 x2) refs) ($native_and ($smtx_type_wf_rec x1 refs) ($smtx_type_wf_rec x2 refs)))
-  (($smtx_type_wf_rec ($tsm_FunType x1 x2) refs) ($native_and ($smtx_type_wf_rec x1 refs) ($smtx_type_wf_rec x2 refs)))
-  (($smtx_type_wf_rec ($tsm_Set x1) refs) ($smtx_type_wf_rec x1 refs))
+  (($smtx_type_wf_rec ($tsm_TypeRef s) refs) $native_false)
+  (($smtx_type_wf_rec ($tsm_Seq x1) refs) ($smtx_type_wf_rec x1 $native_reflist_nil))
+  (($smtx_type_wf_rec ($tsm_Array x1 x2) refs) 
+    ($native_and ($smtx_type_wf_rec x1 $native_reflist_nil) ($smtx_type_wf_rec x2 $native_reflist_nil)))
+  (($smtx_type_wf_rec ($tsm_FunType x1 x2) refs) 
+    ($native_and ($smtx_type_wf_rec x1 $native_reflist_nil) ($smtx_type_wf_rec x2 $native_reflist_nil)))
+  (($smtx_type_wf_rec ($tsm_Set x1) refs) ($smtx_type_wf_rec x1 $native_reflist_nil))
   (($smtx_type_wf_rec $tsm_none refs) $native_false)
   (($smtx_type_wf_rec T refs) $native_true)
   )
@@ -2309,7 +2324,7 @@
 (program $smtx_type_wf ((T $smt_Type))
   :signature ($smt_Type) $native_Bool
   (
-  (($smtx_type_wf T) ($smtx_type_wf_rec T ($native_apply_0 "reflist_nil")))
+  (($smtx_type_wf T) ($smtx_type_wf_rec T $native_reflist_nil))
   )
 )
 
@@ -2322,20 +2337,13 @@
   (($smtx_typeof_guard T U) ($native_ite ($native_Teq T $tsm_none) $tsm_none U))
   )
 )
-
-; returns U if T is inhabited
-(program $smtx_typeof_guard_inhabited ((T $smt_Type) (U $smt_Type))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_guard_inhabited T U) ($native_ite ($native_apply_1 "inhabited_type" T) U $tsm_none))
-  )
-)
-
-; returns U if T is well-formed
+; returns U if T is well-formed and inhabited
 (program $smtx_typeof_guard_wf ((T $smt_Type) (U $smt_Type))
   :signature ($smt_Type $smt_Type) $smt_Type
   (
-  (($smtx_typeof_guard_wf T U) ($native_ite ($smtx_type_wf T) U $tsm_none))
+  (($smtx_typeof_guard_wf T U) 
+    ($native_ite ($native_apply_1 "inhabited_type" T) 
+    ($native_ite ($smtx_type_wf T) U $tsm_none) $tsm_none))
   )
 )
 
@@ -2454,6 +2462,16 @@
   (
   (($smtx_map_to_set_type ($tsm_Map T $tsm_Bool)) ($tsm_Set T))
   (($smtx_map_to_set_type T) $tsm_none)
+  )
+)
+
+;;; Utilities for Function values
+
+(program $smtx_map_to_fun_type ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_map_to_fun_type ($tsm_Map T U)) ($tsm_FunType T U))
+  (($smtx_map_to_fun_type T) $tsm_none)
   )
 )
 
@@ -2636,7 +2654,7 @@
 
 (program $smtx_typeof_value
   ((v $smt_Value) (f $smt_Value) (d $smt_Datatype)
-   (b $native_Bool) (w $native_Nat) (n $native_Int) (i $native_Nat)
+   (b $native_Bool) (w $native_Nat) (n $native_Int) (i $native_Nat) (e $native_Nat)
    (q $native_Real) (s $native_String) (r $native_RegLan) (c $native_Char)
    (m $smt_Map) (ss $smt_Seq) (T $smt_Type) (t $smt_Term))
   :signature ($smt_Value) $smt_Type
@@ -2651,8 +2669,10 @@
   (($smtx_typeof_value ($vsm_re r))       $tsm_RegLan)
   (($smtx_typeof_value ($vsm_map m))      ($smtx_typeof_map_value m))
   (($smtx_typeof_value ($vsm_set m))      ($smtx_map_to_set_type ($smtx_typeof_map_value m)))
+  (($smtx_typeof_value ($vsm_fun m))      ($smtx_map_to_fun_type ($smtx_typeof_map_value m)))
   (($smtx_typeof_value ($vsm_seq ss))     ($smtx_typeof_seq_value ss))
   (($smtx_typeof_value ($vsm_char c))     $tsm_Char)
+  (($smtx_typeof_value ($vsm_uvalue i e)) ($tsm_USort i))
   (($smtx_typeof_value ($vsm_DtCons s d i))
     ($native_ite ($smtx_type_wf ($tsm_Datatype s d))
       ($smtx_typeof_dt_cons_value s d i)
@@ -2892,7 +2912,7 @@
   (($smtx_model_eval_apply ($vsm_DtCons s d n) i) ($vsm_apply ($vsm_DtCons s d n) i))
   (($smtx_model_eval_apply ($vsm_apply f v) i) ($vsm_apply ($vsm_apply f v) i))
   ; The function evaluated to a map value, call the map lookup.
-  (($smtx_model_eval_apply ($vsm_map m) i) ($smtx_map_select ($vsm_map m) i))
+  (($smtx_model_eval_apply ($vsm_fun m) i) ($smtx_map_select ($vsm_map m) i))
   ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )
@@ -3016,8 +3036,7 @@
 (program $smtx_typeof_apply ((T $smt_Type) (U $smt_Type) (V $smt_Type))
   :signature ($smt_Type $smt_Type) $smt_Type
   (
-  (($smtx_typeof_apply ($tsm_Map T U) V)
-    ($smtx_typeof_guard T ($native_ite ($native_Teq T V) U $tsm_none)))
+  ; only allowed to apply fun types?
   (($smtx_typeof_apply ($tsm_FunType T U) V)
     ($smtx_typeof_guard T ($native_ite ($native_Teq T V) U $tsm_none)))
   (($smtx_typeof_apply T U)               $tsm_none)
@@ -3187,23 +3206,25 @@
   (($smtx_typeof ($sm_apply ($sm_forall s T) x1))
     ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
   (($smtx_typeof ($sm_apply ($sm_choice s T) x1))
-    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_inhabited T T) $tsm_none))
+    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T T) $tsm_none))
   ; datatypes
   (($smtx_typeof ($sm_DtCons s d i))
     ($smtx_typeof_guard_wf ($tsm_Datatype s d)
       ($smtx_typeof_dt_cons_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) i)))
   (($smtx_typeof ($sm_apply ($sm_DtSel s d i j) x1))
-    ($smtx_typeof_apply
-      ($tsm_FunType ($tsm_Datatype s d) ($smtx_ret_typeof_sel s d i j))
-      ($smtx_typeof x1)))
+    (eo::define ((ret ($smtx_ret_typeof_sel s d i j)))
+    ($smtx_typeof_guard_wf ret
+      ($smtx_typeof_apply
+        ($tsm_FunType ($tsm_Datatype s d) ret)
+        ($smtx_typeof x1)))))
   (($smtx_typeof ($sm_apply ($sm_DtTester s d i) x1))
     ($smtx_typeof_apply
       ($tsm_FunType ($tsm_Datatype s d) $tsm_Bool)
       ($smtx_typeof x1)))
   ; other
   (($smtx_typeof ($sm_apply f x1))  ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
-  (($smtx_typeof ($sm_Var s T))     ($smtx_typeof_guard_inhabited T T))
-  (($smtx_typeof ($sm_UConst s T))  ($smtx_typeof_guard_inhabited T T))
+  (($smtx_typeof ($sm_Var s T))     ($smtx_typeof_guard_wf T T))
+  (($smtx_typeof ($sm_UConst s T))  ($smtx_typeof_guard_wf T T))
   (($smtx_typeof x1)   $tsm_none)
   )
 )

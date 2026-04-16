@@ -308,23 +308,23 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   std::stringstream ssQDiv;
   ssQDiv << "(ite (= e2 0/1) (apply ($smtx_model_lookup M "
          << smtApp0("/_by_zero_id")
-         << "($tsm_Map $tsm_Real $tsm_Real)) e1) (/_total e1 e2))";
+         << "($tsm_FunType $tsm_Real $tsm_Real)) e1) (/_total e1 e2))";
   addRecReduceSym("/", {kT, kT}, kReal, smtToSmtEmbed(ssQDiv.str()));
   std::stringstream ssDiv;
   ssDiv << "(ite (= e2 0) (apply ($smtx_model_lookup M "
         << smtApp0("div_by_zero_id")
-        << "($tsm_Map $tsm_Int $tsm_Int)) e1) (div_total e1 e2))";
+        << "($tsm_FunType $tsm_Int $tsm_Int)) e1) (div_total e1 e2))";
   addRecReduceSym("div", {kInt, kInt}, kInt, smtToSmtEmbed(ssDiv.str()));
   std::stringstream ssMod;
   ssMod << "(ite (= e2 0) (apply ($smtx_model_lookup M "
         << smtApp0("mod_by_zero_id")
-        << "($tsm_Map $tsm_Int $tsm_Int)) e1) (mod_total e1 e2))";
+        << "($tsm_FunType $tsm_Int $tsm_Int)) e1) (mod_total e1 e2))";
   addRecReduceSym("mod", {kInt, kInt}, kInt, smtToSmtEmbed(ssMod.str()));
   std::stringstream ssZExp;
   ssZExp << "(ite (>= e2 0) (**_total e1 e2) (ite (= e1 0) (apply "
             "($smtx_model_lookup M "
          << smtApp0("div_by_zero_id")
-         << "($tsm_Map $tsm_Int $tsm_Int)) 1) (div_total 1 (**_total e1 (- 0 "
+         << "($tsm_FunType $tsm_Int $tsm_Int)) 1) (div_total 1 (**_total e1 (- 0 "
             "e2)))))";
   addRecReduceSym("**", {kInt, kInt}, kInt, smtToSmtEmbed(ssZExp.str()));
   addConstFoldSym("**_total", {kInt, kInt}, kInt);
@@ -866,7 +866,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // sequences
   // for empty, that the Eunoia uses (Seq T) as an argument, whereas SMT uses T.
   addRecReduceSym("seq.empty", {kType}, kAny, "($smtx_empty_seq x1)");
-  d_typeFullCase["seq.empty"] = "($smtx_typeof_guard_inhabited x1 ($tsm_Seq x1))";
+  d_typeFullCase["seq.empty"] = "($smtx_typeof_guard_wf x1 ($tsm_Seq x1))";
   d_auxDef["seq.empty"] = R"(
 (program $eo_to_smt_seq.empty ((T $smt_Type))
   :signature ($smt_Type) $smt_Term
@@ -885,7 +885,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTypeSym("Set", {kType});
   // for empty, that the Eunoia uses (Set T) as an argument, whereas SMT uses T.
   addRecReduceSym("set.empty", {kType}, kAny, "($smtx_empty_set x1)");
-  d_typeFullCase["set.empty"] = "($smtx_typeof_guard_inhabited x1 ($tsm_Set x1))";
+  d_typeFullCase["set.empty"] = "($smtx_typeof_guard_wf x1 ($tsm_Set x1))";
   d_auxDef["set.empty"] = R"(
 (program $eo_to_smt_set.empty ((T $smt_Type))
   :signature ($smt_Type) $smt_Term
