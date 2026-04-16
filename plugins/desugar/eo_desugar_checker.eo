@@ -263,26 +263,3 @@ $EO_INVOKE_POP$
     ($eo_state_is_refutation ($eo_invoke_cmd_list ($eo_invoke_assume_list $s_nil as) cs)))
   )
 )
-
-;;;;;;;;;;;;;; for the proof
-
-;(program $eo_lem_state_to_formula_rec ((s $eo_State) (F Bool) (F1 Bool) (F2 Bool) (F3 Bool))
-;  :signature ($eo_State Bool) Bool
-;  (
-;  (($eo_lem_state_to_formula_rec $s_nil F) F)
-;  (($eo_lem_state_to_formula_rec ($s_cons ($so_assume F) s) (=> F1 (=> F2 F3)))
-;    (=> (_ and F F1) (=> F2 F3)))
-;  (($eo_lem_state_to_formula_rec ($s_cons ($so_assume_push F) s) (=> F1 (=> F2 F3)))
-;    (=> F1 (=> (_ and F F2) F3)))
-;  (($eo_lem_state_to_formula_rec ($s_cons ($so_proven F) s) (=> F1 (=> F2 F3)))
-;    (=> F1 (=> F2 (_ and F F3))))
-;  (($eo_lem_state_to_formula_rec s F) $eot_stuck)
-;  )
-;)
-
-;(program $eo_lem_state_to_formula ((s $eo_State))
-;  :signature ($eo_State) Bool
-;  (
-;  (($eo_lem_state_to_formula s) ($eo_lem_state_to_formula_rec s (=> true (=> true true))))
-;  )
-;)
