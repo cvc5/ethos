@@ -21,5 +21,6 @@
 (define test10 () (eo::list_repeat or a 3) :is_eq (or a a a))
 (define test11 () (eo::list_len or (eo::list_repeat or a 4)) :is_eq 4)
 (define test12 () (eo::is_ok (eo::list_repeat or a -1)) :is_eq false)
-(define test13 () (eo::list_len eo::List::cons (eo::list_repeat eo::List::cons 1 2)) :is_eq 2)
-(define test14 () (eo::list_nth eo::List::cons (eo::list_repeat eo::List::cons 1 2) 1) :is_eq 1)
+(define test13 () (eo::is_ok (eo::list_repeat or a 4294967296)) :is_eq false)
+(define test14 () (eo::list_len eo::List::cons (eo::list_repeat eo::List::cons 1 2)) :is_eq 2)
+(define test15 () (eo::list_nth eo::List::cons (eo::list_repeat eo::List::cons 1 2) 1) :is_eq 1)

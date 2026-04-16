@@ -1471,24 +1471,19 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       break;
     case Kind::EVAL_LIST_REPEAT:
     {
-      if (args[2]->getKind() != Kind::NUMERAL)
+      if (args[2]->getKind() != Kind::NUMERAL
+          || !args[2]->asLiteral()->d_int.fitsUnsignedInt())
       {
         return d_null;
       }
-      Integer count = args[2]->asLiteral()->d_int;
-      if (count.sgn() < 0)
-      {
-        return d_null;
-      }
-      if (count.sgn() == 0)
+      uint32_t count = args[2]->asLiteral()->d_int.toUnsignedInt();
+      if (count == 0)
       {
         return Expr(nil);
       }
-      Integer negOne = -Integer(1);
-      while (count.sgn() != 0)
+      for (uint32_t i = 0; i < count; i++)
       {
         hargs.push_back(args[1]);
-        count = count + negOne;
       }
       return prependNAryChildren(op, nil, hargs, isLeft);
     }

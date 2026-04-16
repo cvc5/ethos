@@ -1028,7 +1028,7 @@ We describe a signature that gives these definitions in [derived-ops](#derived-o
 - `(eo::list_singleton_elim f t1)`
   - (Singleton elimination) If `t1` is an `f`-list containing a single child `t11`, this returns `t11`. All other `f`-lists `t1` are returned unchanged. Otherwise, this operator does not evaluate.
 - `(eo::list_repeat f t1 t2)`
-  - If `t2` is a non-negative numeral value, then this returns the `f`-list with `t1` repeated `t2` times.
+  - If `t2` is a non-negative 32-bit numeral value, then this returns the `f`-list with `t1` repeated `t2` times.
 
 ### List Computation Examples
 
@@ -1123,6 +1123,7 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_singleton_elim or (or a))         == a
 (eo::list_repeat or a 0)                    == false
 (eo::list_repeat or a 3)                    == (or a a a)
+(eo::list_repeat or a 4294967296)           == (eo::list_repeat or a 4294967296)  ; since count is not a 32-bit numeral value
 ```
 
 ### Parametric Nil terminators
