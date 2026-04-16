@@ -82,7 +82,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply Term.or x1) x2) => (SmtTerm.or (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.and x1) x2) => (SmtTerm.and (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.imp x1) x2) => (SmtTerm.imp (__eo_to_smt x1) (__eo_to_smt x2))
-  | (Term.Apply (Term.Apply Term.eq x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply Term.eq x1) x2) => (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
   | y => SmtTerm.None
 

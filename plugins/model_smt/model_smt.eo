@@ -84,15 +84,16 @@ $EO_DESUGAR_AUX$
 
 ; ITE
 (declare-parameterized-const $emb_sm.ite
-  ((x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term))
+  ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque) (x3 $smt_Term :opaque))
   $smt_Term)
 (define $sm_ite ((x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term))
-  ($sm_apply ($sm_apply ($sm_apply $emb_sm.ite x1) x2) x3))
+  ($emb_sm.ite x1 x2 x3))
 
 ; equality
-(declare-parameterized-const $emb_sm.= ((x1 $smt_Term) (x2 $smt_Term)) $smt_Term)
+(declare-parameterized-const $emb_sm.= 
+  ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque)) $smt_Term)
 (define $sm_= ((x1 $smt_Term) (x2 $smt_Term))
-  ($sm_apply ($sm_apply $emb_sm.= x1) x2))
+  ($emb_sm.= x1 x2))
 
 ; exists
 ; this takes the variable to quantify over, which should then be applied
@@ -892,6 +893,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (
   (($smtx_model_eval_= ($vsm_map m1) ($vsm_map m2)) ($vsm_bool ($native_apply_2 "veq_ext" m1 m2)))
   (($smtx_model_eval_= ($vsm_set m1) ($vsm_set m2)) ($vsm_bool ($native_apply_2 "veq_ext" m1 m2)))
+  (($smtx_model_eval_= ($vsm_fun m1) ($vsm_fun m2)) ($vsm_bool ($native_apply_2 "veq_ext" m1 m2)))
   (($smtx_model_eval_= ($vsm_seq ($ssm_empty T1)) ($vsm_seq ($ssm_empty T2))) $vsm_true)
   (($smtx_model_eval_= ($vsm_seq ($ssm_cons v1 vs1)) ($vsm_seq ($ssm_cons v2 vs2)))
     ($vsm_bool

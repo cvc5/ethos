@@ -219,9 +219,9 @@
   ; smt-cons: Var
   (sm.Var (sm.Var.arg1 String) (sm.Var.arg2 tsm.Type))
   ; smt-cons: ite
-  (sm.ite)
+  (sm.ite (sm.ite.arg1 sm.Term) (sm.ite.arg2 sm.Term) (sm.ite.arg3 sm.Term))
   ; smt-cons: =
-  (sm.=)
+  (sm.= (sm.=.arg1 sm.Term) (sm.=.arg2 sm.Term))
   ; smt-cons: exists
   (sm.exists (sm.exists.arg1 String) (sm.exists.arg2 tsm.Type))
   ; smt-cons: forall
@@ -680,6 +680,8 @@
     (vsm.Boolean (veq_ext (vsm.Map.arg1 x1) (vsm.Map.arg1 x2)))
   (ite (and ((_ is vsm.Set) x1) ((_ is vsm.Set) x2))
     (vsm.Boolean (veq_ext (vsm.Set.arg1 x1) (vsm.Set.arg1 x2)))
+  (ite (and ((_ is vsm.Fun) x1) ((_ is vsm.Fun) x2))
+    (vsm.Boolean (veq_ext (vsm.Fun.arg1 x1) (vsm.Fun.arg1 x2)))
   (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.empty) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.empty) (vsm.Seq.arg1 x2)))
     (vsm.Boolean true)
   (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.cons) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.cons) (vsm.Seq.arg1 x2)))
@@ -687,7 +689,7 @@
   (ite (and ((_ is vsm.Apply) x1) ((_ is vsm.Apply) x2))
     (vsm.Boolean (and (veq ($smtx_model_eval_= (vsm.Apply.arg1 x1) (vsm.Apply.arg1 x2)) (vsm.Boolean true)) (veq ($smtx_model_eval_= (vsm.Apply.arg2 x1) (vsm.Apply.arg2 x2)) (vsm.Boolean true))))
     (vsm.Boolean (veq x1 x2))
-)))))) :pattern (($smtx_model_eval_= x1 x2)))) :named sm.axiom.$smtx_model_eval_=))
+))))))) :pattern (($smtx_model_eval_= x1 x2)))) :named sm.axiom.$smtx_model_eval_=))
 
 ; program: $smtx_map_select
 (define-fun $smtx_map_select ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
@@ -760,10 +762,10 @@
     ($smtx_model_eval_not ($smtx_model_eval x1 (sm.not.arg1 x2)))
   (ite ((_ is sm.and) x2)
     ($smtx_model_eval_and ($smtx_model_eval x1 (sm.and.arg1 x2)) ($smtx_model_eval x1 (sm.and.arg2 x2)))
-  (ite (and ((_ is sm.Apply) x2) ((_ is sm.Apply) (sm.Apply.arg1 x2)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x2))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x2))) sm.ite))
-    ($smtx_model_eval_ite ($smtx_model_eval x1 (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x2)))) ($smtx_model_eval x1 (sm.Apply.arg2 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
-  (ite (and ((_ is sm.Apply) x2) ((_ is sm.Apply) (sm.Apply.arg1 x2)) (= (sm.Apply.arg1 (sm.Apply.arg1 x2)) sm.=))
-    ($smtx_model_eval_= ($smtx_model_eval x1 (sm.Apply.arg2 (sm.Apply.arg1 x2))) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
+  (ite ((_ is sm.ite) x2)
+    ($smtx_model_eval_ite ($smtx_model_eval x1 (sm.ite.arg1 x2)) ($smtx_model_eval x1 (sm.ite.arg2 x2)) ($smtx_model_eval x1 (sm.ite.arg3 x2)))
+  (ite ((_ is sm.=) x2)
+    ($smtx_model_eval_= ($smtx_model_eval x1 (sm.=.arg1 x2)) ($smtx_model_eval x1 (sm.=.arg2 x2)))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.exists) (sm.Apply.arg1 x2)))
     (eval_texists x1 (sm.exists.arg1 (sm.Apply.arg1 x2)) (sm.exists.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.forall) (sm.Apply.arg1 x2)))
@@ -821,10 +823,10 @@
     (ite (Teq ($smtx_typeof (sm.not.arg1 x1)) tsm.Bool) tsm.Bool tsm.None)
   (ite ((_ is sm.and) x1)
     (ite (Teq ($smtx_typeof (sm.and.arg1 x1)) tsm.Bool) (ite (Teq ($smtx_typeof (sm.and.arg2 x1)) tsm.Bool) tsm.Bool tsm.None) tsm.None)
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x1))) sm.ite))
-    ($smtx_typeof_ite ($smtx_typeof (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1)))) ($smtx_typeof (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_typeof (sm.Apply.arg2 x1)))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.=))
-    ($smtx_typeof_= ($smtx_typeof (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_typeof (sm.Apply.arg2 x1)))
+  (ite ((_ is sm.ite) x1)
+    ($smtx_typeof_ite ($smtx_typeof (sm.ite.arg1 x1)) ($smtx_typeof (sm.ite.arg2 x1)) ($smtx_typeof (sm.ite.arg3 x1)))
+  (ite ((_ is sm.=) x1)
+    ($smtx_typeof_= ($smtx_typeof (sm.=.arg1 x1)) ($smtx_typeof (sm.=.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.exists) (sm.Apply.arg1 x1)))
     (ite (Teq ($smtx_typeof (sm.Apply.arg2 x1)) tsm.Bool) tsm.Bool tsm.None)
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.forall) (sm.Apply.arg1 x1)))
@@ -920,7 +922,7 @@
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) (= (eo.Apply.arg1 (eo.Apply.arg1 x1)) eo.and))
     (sm.and ($eo_to_smt (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($eo_to_smt (eo.Apply.arg2 x1)))
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) (= (eo.Apply.arg1 (eo.Apply.arg1 x1)) eo.=))
-    (sm.Apply (sm.Apply sm.= ($eo_to_smt (eo.Apply.arg2 (eo.Apply.arg1 x1)))) ($eo_to_smt (eo.Apply.arg2 x1)))
+    (sm.= ($eo_to_smt (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($eo_to_smt (eo.Apply.arg2 x1)))
   (ite ((_ is eo.Apply) x1)
     (sm.Apply ($eo_to_smt (eo.Apply.arg1 x1)) ($eo_to_smt (eo.Apply.arg2 x1)))
     sm.None
