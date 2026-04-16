@@ -16,7 +16,6 @@
 
 #include "../std_plugin.h"
 #include "desugar_checker.h"
-#include "desugar_proof.h"
 
 namespace ethos {
 
@@ -40,19 +39,6 @@ class Desugar : public StdPlugin
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Finalize */
   void finalize() override;
-  /** */
-  void notifyAssume(const std::string& name,
-                    Expr& proven,
-                    bool isPush) override;
-  /** */
-  bool notifyStep(const std::string& name,
-                  Expr& rule,
-                  Expr& proven,
-                  const std::vector<Expr>& premises,
-                  const std::vector<Expr>& args,
-                  bool isPop,
-                  Expr& result,
-                  std::ostream* err) override;
   /**
    */
   bool echo(const std::string& msg) override;
@@ -155,8 +141,6 @@ class Desugar : public StdPlugin
   size_t d_eoDtConsParamCount;
   Expr d_peoProven;
   Expr d_peoPf;
-  /** desugaring proofs for cross reference */
-  DesugarProof d_dproof;
   /** desugaring the checker */
   DesugarChecker d_dchecker;
   

@@ -13,13 +13,12 @@
 #include <sstream>
 #include <string>
 
-#include "../flatten_eval/flatten_eval.h"
 #include "state.h"
 
 namespace ethos {
 
 Desugar::Desugar(State& s)
-    : StdPlugin(s), d_dproof(s, this), d_dchecker(s, this)
+    : StdPlugin(s), d_dchecker(s, this)
 {
   // we require santization of the eo::List at this stage
   // TODO: maybe just use text replace??
@@ -888,27 +887,6 @@ void Desugar::finalize()
   std::ofstream oute(outPath);
   oute << finalEo;
   oute << std::endl;
-
-  // output steps if applicable
-  d_dproof.output(oute);
-}
-
-void Desugar::notifyAssume(const std::string& name, Expr& proven, bool isPush)
-{
-  d_dproof.notifyAssume(name, proven, isPush);
-}
-
-bool Desugar::notifyStep(const std::string& name,
-                         Expr& rule,
-                         Expr& proven,
-                         const std::vector<Expr>& premises,
-                         const std::vector<Expr>& args,
-                         bool isPop,
-                         Expr& result,
-                         std::ostream* err)
-{
-  return d_dproof.notifyStep(
-      name, rule, proven, premises, args, isPop, result, err);
 }
 
 bool Desugar::echo(const std::string& msg) { return true; }

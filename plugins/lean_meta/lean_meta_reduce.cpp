@@ -214,7 +214,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   }
   const Literal* l = oApp[1].getValue()->asLiteral();
   std::string smtStr = cleanSmtId(l->d_str.toString());
-  // literals don't need smt_
+  // literals don't need native_
   if (is_integer(smtStr) || smtStr == "true" || smtStr == "false"
       || (!smtStr.empty() && smtStr.compare(0, 1, "\"") == 0))
   {
