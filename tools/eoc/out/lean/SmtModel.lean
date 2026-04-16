@@ -223,6 +223,7 @@ inductive SmtType : Type where
   | TypeRef : native_String -> SmtType
   | USort : native_Nat -> SmtType
   | FunType : SmtType -> SmtType -> SmtType
+  | DtcAppType : SmtType -> SmtType -> SmtType
 
 deriving Repr, DecidableEq, Inhabited
 
@@ -445,6 +446,7 @@ def __smtx_type_wf_rec : SmtType -> RefList -> native_Bool
   | (SmtType.Map x1 x2), refs => (native_and (__smtx_type_wf_rec x1 native_reflist_nil) (__smtx_type_wf_rec x2 native_reflist_nil))
   | (SmtType.FunType x1 x2), refs => (native_and (__smtx_type_wf_rec x1 native_reflist_nil) (__smtx_type_wf_rec x2 native_reflist_nil))
   | (SmtType.Set x1), refs => (__smtx_type_wf_rec x1 native_reflist_nil)
+  | (SmtType.DtcAppType x1 x2), refs => false
   | SmtType.None, refs => false
   | T, refs => true
 
@@ -511,14 +513,14 @@ def __smtx_dt_substitute (s : native_String) (d : SmtDatatype) : SmtDatatype -> 
 
 def __smtx_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
   | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero => (SmtType.FunType U (__smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) native_nat_zero))
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero => (SmtType.DtcAppType U (__smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) native_nat_zero))
   | (SmtDatatype.sum c d), (native_nat_succ n) => (__smtx_typeof_dt_cons_value_rec T d n)
   | d, n => SmtType.None
 
 
 def __smtx_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
   | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero => (SmtType.FunType U (__smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero => (SmtType.DtcAppType U (__smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
   | (SmtDatatype.sum c d), (native_nat_succ n) => (__smtx_typeof_dt_cons_rec T d n)
   | d, n => SmtType.None
 
@@ -534,7 +536,7 @@ def __smtx_ret_typeof_sel (s : native_String) (d : SmtDatatype) (n : native_Nat)
   (__smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d d) n m)
 
 def __smtx_typeof_apply_value : SmtType -> SmtType -> SmtType
-  | (SmtType.FunType T U), V => (__smtx_typeof_guard T (native_ite (native_Teq T V) U SmtType.None))
+  | (SmtType.DtcAppType T U), V => (__smtx_typeof_guard T (native_ite (native_Teq T V) U SmtType.None))
   | T, U => SmtType.None
 
 
@@ -625,6 +627,7 @@ def __smtx_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
 
 def __smtx_typeof_apply : SmtType -> SmtType -> SmtType
   | (SmtType.FunType T U), V => (__smtx_typeof_guard T (native_ite (native_Teq T V) U SmtType.None))
+  | (SmtType.DtcAppType T U), V => (__smtx_typeof_guard T (native_ite (native_Teq T V) U SmtType.None))
   | T, U => SmtType.None
 
 

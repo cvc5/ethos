@@ -496,7 +496,7 @@ $EO_IS_LIST_NIL_CASES$
   (
   (($eo_typeof_dt_cons_rec T ($edt_sum $edtc_unit d) $native_n_zero) T)
   (($eo_typeof_dt_cons_rec T ($edt_sum ($edtc_cons U c) d) $native_n_zero)
-    (-> U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $native_n_zero)))
+    ($eot_DtcAppType U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $native_n_zero)))
   (($eo_typeof_dt_cons_rec T ($edt_sum c d) ($native_n_succ n))
     ($eo_typeof_dt_cons_rec T d n))
   )
@@ -520,6 +520,7 @@ $EO_IS_LIST_NIL_CASES$
   :signature (Type Type) Type
   (
   (($eo_typeof_apply (-> T U) V) (eo::requires T V U))
+  (($eo_typeof_apply ($eot_DtcAppType T U) V) (eo::requires T V U))
   )
 )
 

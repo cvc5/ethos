@@ -53,6 +53,10 @@ def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
   | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
   | (Term.DatatypeTypeRef s) => (SmtType.TypeRef s)
+  | (Term.DtcAppType T1 T2) => 
+    let _v0 := (__eo_to_smt_type T2)
+    let _v1 := (__eo_to_smt_type T1)
+    (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.DtcAppType _v1 _v0)))
   | (Term.USort i) => (SmtType.USort i)
   | (Term.Apply (Term.Apply Term.FunType T1) T2) => 
     let _v0 := (__eo_to_smt_type T2)

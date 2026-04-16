@@ -105,6 +105,11 @@
 (define $eot_DatatypeTypeRef ((s $native_String))
   ($emb_DatatypeTypeRef s))
 
+; The type of partially applied datatype constructors
+(declare-parameterized-const $emb_DtcAppType
+  ((Ti $eo_Term :opaque) (Te $eo_Term :opaque)) $eo_Term)
+(define $eot_DtcAppType ((Ti $eo_Term) (Te $eo_Term)) ($emb_DtcAppType Ti Te))
+
 ; the ci^th constructor of datatype T.
 (declare-parameterized-const $emb_DtCons
   ((s $native_String :opaque) (d $eo_Datatype :opaque)

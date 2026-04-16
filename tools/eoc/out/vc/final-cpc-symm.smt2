@@ -132,6 +132,8 @@
   (eo.DatatypeType (eo.DatatypeType.arg1 String) (eo.DatatypeType.arg2 edt.Datatype))
   ; smt-cons: DatatypeTypeRef
   (eo.DatatypeTypeRef (eo.DatatypeTypeRef.arg1 String))
+  ; smt-cons: DtcAppType
+  (eo.DtcAppType (eo.DtcAppType.arg1 eo.Term) (eo.DtcAppType.arg2 eo.Term))
   ; smt-cons: DtCons
   (eo.DtCons (eo.DtCons.arg1 String) (eo.DtCons.arg2 edt.Datatype) (eo.DtCons.arg3 Nat))
   ; smt-cons: DtSel
@@ -271,6 +273,8 @@
   (tsm.USort (tsm.USort.arg1 Nat))
   ; smt-cons: FunType
   (tsm.FunType (tsm.FunType.arg1 tsm.Type) (tsm.FunType.arg2 tsm.Type))
+  ; smt-cons: DtcAppType
+  (tsm.DtcAppType (tsm.DtcAppType.arg1 tsm.Type) (tsm.DtcAppType.arg2 tsm.Type))
 
   )
   (
@@ -477,10 +481,12 @@
     (and ($smtx_type_wf_rec (tsm.FunType.arg1 x1) reflist_nil) ($smtx_type_wf_rec (tsm.FunType.arg2 x1) reflist_nil))
   (ite ((_ is tsm.Set) x1)
     ($smtx_type_wf_rec (tsm.Set.arg1 x1) reflist_nil)
+  (ite ((_ is tsm.DtcAppType) x1)
+    false
   (ite (= x1 tsm.None)
     false
     true
-)))))))) :pattern (($smtx_type_wf_rec x1 x2)))) :named sm.axiom.$smtx_type_wf_rec))
+))))))))) :pattern (($smtx_type_wf_rec x1 x2)))) :named sm.axiom.$smtx_type_wf_rec))
 
 ; program: $smtx_type_wf
 (define-fun $smtx_type_wf ((x1 tsm.Type)) Bool
@@ -587,7 +593,7 @@
   (ite (and ((_ is dt.sum) x2) (= (dt.sum.arg1 x2) dtc.unit) (= x3 nat.zero))
     x1
   (ite (and ((_ is dt.sum) x2) ((_ is dtc.cons) (dt.sum.arg1 x2)) (= x3 nat.zero))
-    (tsm.FunType (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_value_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) nat.zero))
+    (tsm.DtcAppType (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_value_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) nat.zero))
   (ite (and ((_ is dt.sum) x2) ((_ is nat.succ) x3))
     ($smtx_typeof_dt_cons_value_rec x1 (dt.sum.arg2 x2) (nat.succ.arg1 x3))
     tsm.None
@@ -600,7 +606,7 @@
   (ite (and ((_ is dt.sum) x2) (= (dt.sum.arg1 x2) dtc.unit) (= x3 nat.zero))
     x1
   (ite (and ((_ is dt.sum) x2) ((_ is dtc.cons) (dt.sum.arg1 x2)) (= x3 nat.zero))
-    (tsm.FunType (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) nat.zero))
+    (tsm.DtcAppType (dtc.cons.arg1 (dt.sum.arg1 x2)) ($smtx_typeof_dt_cons_rec x1 (dt.sum (dtc.cons.arg2 (dt.sum.arg1 x2)) (dt.sum.arg2 x2)) nat.zero))
   (ite (and ((_ is dt.sum) x2) ((_ is nat.succ) x3))
     ($smtx_typeof_dt_cons_rec x1 (dt.sum.arg2 x2) (nat.succ.arg1 x3))
     tsm.None
@@ -626,8 +632,8 @@
 
 ; program: $smtx_typeof_apply_value
 (define-fun $smtx_typeof_apply_value ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
-  (ite ((_ is tsm.FunType) x1)
-    ($smtx_typeof_guard (tsm.FunType.arg1 x1) (ite (Teq (tsm.FunType.arg1 x1) x2) (tsm.FunType.arg2 x1) tsm.None))
+  (ite ((_ is tsm.DtcAppType) x1)
+    ($smtx_typeof_guard (tsm.DtcAppType.arg1 x1) (ite (Teq (tsm.DtcAppType.arg1 x1) x2) (tsm.DtcAppType.arg2 x1) tsm.None))
     tsm.None
 ))
 
@@ -803,8 +809,10 @@
 (define-fun $smtx_typeof_apply ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
   (ite ((_ is tsm.FunType) x1)
     ($smtx_typeof_guard (tsm.FunType.arg1 x1) (ite (Teq (tsm.FunType.arg1 x1) x2) (tsm.FunType.arg2 x1) tsm.None))
+  (ite ((_ is tsm.DtcAppType) x1)
+    ($smtx_typeof_guard (tsm.DtcAppType.arg1 x1) (ite (Teq (tsm.DtcAppType.arg1 x1) x2) (tsm.DtcAppType.arg2 x1) tsm.None))
     tsm.None
-))
+)))
 
 ; program: $smtx_typeof
 (assert (! (forall ((x1 sm.Term))
@@ -878,6 +886,8 @@
     (tsm.Datatype (eo.DatatypeType.arg1 x1) ($eo_to_smt_datatype (eo.DatatypeType.arg2 x1)))
   (ite ((_ is eo.DatatypeTypeRef) x1)
     (tsm.TypeRef (eo.DatatypeTypeRef.arg1 x1))
+  (ite ((_ is eo.DtcAppType) x1)
+    ($smtx_typeof_guard ($eo_to_smt_type (eo.DtcAppType.arg1 x1)) ($smtx_typeof_guard ($eo_to_smt_type (eo.DtcAppType.arg2 x1)) (tsm.DtcAppType ($eo_to_smt_type (eo.DtcAppType.arg1 x1)) ($eo_to_smt_type (eo.DtcAppType.arg2 x1)))))
   (ite ((_ is eo.USort) x1)
     (tsm.USort (eo.USort.arg1 x1))
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.FunType) (eo.Apply.arg1 (eo.Apply.arg1 x1))))
@@ -893,7 +903,7 @@
   (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.Seq))
     ($smtx_typeof_guard ($eo_to_smt_type (eo.Apply.arg2 x1)) (tsm.Seq ($eo_to_smt_type (eo.Apply.arg2 x1))))
     tsm.None
-))))))))))) :pattern (($eo_to_smt_type x1)))) :named sm.axiom.$eo_to_smt_type))
+)))))))))))) :pattern (($eo_to_smt_type x1)))) :named sm.axiom.$eo_to_smt_type))
 
 ; program: $eo_to_smt
 (declare-fun $eo_to_smt (eo.Term) sm.Term)

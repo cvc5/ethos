@@ -444,6 +444,11 @@
 (define $eot_DatatypeTypeRef ((s $native_String))
   ($emb_DatatypeTypeRef s))
 
+; The type of partially applied datatype constructors
+(declare-parameterized-const $emb_DtcAppType
+  ((Ti $eo_Term :opaque) (Te $eo_Term :opaque)) $eo_Term)
+(define $eot_DtcAppType ((Ti $eo_Term) (Te $eo_Term)) ($emb_DtcAppType Ti Te))
+
 ; the ci^th constructor of datatype T.
 (declare-parameterized-const $emb_DtCons
   ((s $native_String :opaque) (d $eo_Datatype :opaque)
@@ -1620,7 +1625,7 @@
   (
   (($eo_typeof_dt_cons_rec T ($edt_sum $edtc_unit d) $native_n_zero) T)
   (($eo_typeof_dt_cons_rec T ($edt_sum ($edtc_cons U c) d) $native_n_zero)
-    (-> U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $native_n_zero)))
+    ($eot_DtcAppType U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $native_n_zero)))
   (($eo_typeof_dt_cons_rec T ($edt_sum c d) ($native_n_succ n))
     ($eo_typeof_dt_cons_rec T d n))
   )
@@ -1644,6 +1649,7 @@
   :signature (Type Type) Type
   (
   (($eo_typeof_apply (-> T U) V) (eo::requires T V U))
+  (($eo_typeof_apply ($eot_DtcAppType T U) V) (eo::requires T V U))
   )
 )
 

@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 383
+; #trim-defs: 387
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -123,6 +123,9 @@
   $eo_Term)
 (define $eot_DatatypeTypeRef ((s $native_String))
   ($emb_DatatypeTypeRef s))
+(declare-parameterized-const $emb_DtcAppType
+  ((Ti $eo_Term :opaque) (Te $eo_Term :opaque)) $eo_Term)
+(define $eot_DtcAppType ((Ti $eo_Term) (Te $eo_Term)) ($emb_DtcAppType Ti Te))
 (declare-parameterized-const $emb_DtCons
   ((s $native_String :opaque) (d $eo_Datatype :opaque)
    (ci $native_Nat :opaque))
@@ -281,7 +284,7 @@
   (
   (($eo_typeof_dt_cons_rec T ($edt_sum $edtc_unit d) $native_n_zero) T)
   (($eo_typeof_dt_cons_rec T ($edt_sum ($edtc_cons U c) d) $native_n_zero)
-    (-> U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $native_n_zero)))
+    ($eot_DtcAppType U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $native_n_zero)))
   (($eo_typeof_dt_cons_rec T ($edt_sum c d) ($native_n_succ n))
     ($eo_typeof_dt_cons_rec T d n))
   )
@@ -302,6 +305,7 @@
   :signature (Type Type) Type
   (
   (($eo_typeof_apply (-> T U) V) (eo::requires T V U))
+  (($eo_typeof_apply ($eot_DtcAppType T U) V) (eo::requires T V U))
   )
 )
 (program $eo_typeof_fun_type ()
@@ -546,6 +550,9 @@
 (declare-parameterized-const $emb_tsm.FunType
   ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
 (define $tsm_FunType ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.FunType Ti Te))
+(declare-parameterized-const $emb_tsm.DtcAppType
+  ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
+(define $tsm_DtcAppType ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.DtcAppType Ti Te))
 (declare-const $smt_Map Type)
 (declare-const $smt_Seq Type)
 (declare-const $emb_vsm.NotValue $smt_Value)
@@ -680,6 +687,8 @@
   (($smtx_type_wf_rec ($tsm_FunType x1 x2) refs) 
     ($native_and ($smtx_type_wf_rec x1 $native_reflist_nil) ($smtx_type_wf_rec x2 $native_reflist_nil)))
   (($smtx_type_wf_rec ($tsm_Set x1) refs) ($smtx_type_wf_rec x1 $native_reflist_nil))
+  
+  (($smtx_type_wf_rec ($tsm_DtcAppType x1 x2) refs) $native_false)
   (($smtx_type_wf_rec $tsm_none refs) $native_false)
   (($smtx_type_wf_rec T refs) $native_true)
   )
@@ -804,7 +813,7 @@
   (
   (($smtx_typeof_dt_cons_value_rec T ($dt_sum $dtc_unit d) $native_n_zero) T)
   (($smtx_typeof_dt_cons_value_rec T ($dt_sum ($dtc_cons U c) d) $native_n_zero)
-    ($tsm_FunType U ($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) $native_n_zero)))
+    ($tsm_DtcAppType U ($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) $native_n_zero)))
   (($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) ($native_n_succ n))
     ($smtx_typeof_dt_cons_value_rec T d n))
   (($smtx_typeof_dt_cons_value_rec T d n) $tsm_none)
@@ -821,7 +830,7 @@
   (
   (($smtx_typeof_dt_cons_rec T ($dt_sum $dtc_unit d) $native_n_zero) T)
   (($smtx_typeof_dt_cons_rec T ($dt_sum ($dtc_cons U c) d) $native_n_zero)
-    ($tsm_FunType U ($smtx_typeof_dt_cons_rec T ($dt_sum c d) $native_n_zero)))
+    ($tsm_DtcAppType U ($smtx_typeof_dt_cons_rec T ($dt_sum c d) $native_n_zero)))
   (($smtx_typeof_dt_cons_rec T ($dt_sum c d) ($native_n_succ n))
     ($smtx_typeof_dt_cons_rec T d n))
   (($smtx_typeof_dt_cons_rec T d n) $tsm_none)
@@ -850,7 +859,9 @@
   :signature ($smt_Type $smt_Type) $smt_Type
   (
   
-  (($smtx_typeof_apply_value ($tsm_FunType T U) V)
+  
+  
+  (($smtx_typeof_apply_value ($tsm_DtcAppType T U) V)
     ($smtx_typeof_guard T ($native_ite ($native_Teq T V) U $tsm_none)))
   (($smtx_typeof_apply_value T U) $tsm_none)
   )
@@ -1078,6 +1089,8 @@
   
   (($smtx_typeof_apply ($tsm_FunType T U) V)
     ($smtx_typeof_guard T ($native_ite ($native_Teq T V) U $tsm_none)))
+  (($smtx_typeof_apply ($tsm_DtcAppType T U) V)
+    ($smtx_typeof_guard T ($native_ite ($native_Teq T V) U $tsm_none)))
   (($smtx_typeof_apply T U)               $tsm_none)
   )
 )
@@ -1165,6 +1178,10 @@
   (($eo_to_smt_type Bool)                     $tsm_Bool)
   (($eo_to_smt_type ($eot_DatatypeType s d))  ($tsm_Datatype s ($eo_to_smt_datatype d)))
   (($eo_to_smt_type ($eot_DatatypeTypeRef s)) ($tsm_TypeRef s))
+  (($eo_to_smt_type ($eot_DtcAppType T1 T2))
+    (eo::define ((S1 ($eo_to_smt_type T1)))
+    (eo::define ((S2 ($eo_to_smt_type T2)))
+      ($smtx_typeof_guard S1 ($smtx_typeof_guard S2 ($tsm_DtcAppType S1 S2))))))
   (($eo_to_smt_type ($eot_USort i))           ($tsm_USort i))
   (($eo_to_smt_type (-> T1 T2))
     (eo::define ((S1 ($eo_to_smt_type T1)))
