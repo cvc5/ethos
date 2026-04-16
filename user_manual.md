@@ -816,7 +816,7 @@ Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` 
   - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`.
   - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
 - `(eo::pow t1 t2)`
-  - If `t1` is an integer or real value and `t2` is a non-negative numeral value, then this returns `t1` to the power of `t2`.
+  - If `t1` is an integer or real value and `t2` is a non-negative 32-bit numeral value, then this returns `t1` to the power of `t2`.
 - `(eo::neg t1)`
   - If `t1` is a arithmetic value, this returns the arithmetic negation of `t1`.
   - If `t1` is a binary value, this returns its (signed) arithmetic negation.
@@ -897,6 +897,7 @@ Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo::co
 (eo::pow 2 10)              == 1024
 (eo::pow 3/2 2)             == 9/4
 (eo::pow 2 -1)              == (eo::pow 2 -1)  ; since exponent is negative
+(eo::pow 2 4294967296)      == (eo::pow 2 4294967296)  ; since exponent is not a 32-bit numeral value
 (eo::neg -15)               == 15
 (eo::qdiv 12 6)             == 3/1
 (eo::qdiv 7 2)              == 7/2
