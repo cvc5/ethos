@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 386
+; #trim-defs: 387
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -475,14 +475,16 @@
 (define $sm_= ((x1 $smt_Term) (x2 $smt_Term))
   ($emb_sm.= x1 x2))
 (declare-parameterized-const $emb_sm.exists
-  ((s $native_String :opaque) (T $smt_Type :opaque)) $smt_Term)
-(define $sm_exists ((s $native_String) (T $smt_Type)) ($emb_sm.exists s T))
+  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque)) 
+  $smt_Term)
+(define $sm_exists ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.exists s T F))
 (declare-parameterized-const $emb_sm.forall
-  ((s $native_String :opaque) (T $smt_Type :opaque)) $smt_Term)
-(define $sm_forall ((s $native_String) (T $smt_Type)) ($emb_sm.forall s T))
+  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque)) 
+  $smt_Term)
+(define $sm_forall ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.forall s T F))
 (declare-parameterized-const $emb_sm.choice
-  ((s $native_String :opaque) (T $smt_Type :opaque)) $smt_Term)
-(define $sm_choice ((s $native_String) (T $smt_Type)) ($emb_sm.choice s T))
+  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque)) $smt_Term)
+(define $sm_choice ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.choice s T F))
 (declare-parameterized-const $emb_sm.DtCons
   ((s $native_String :opaque) (d $smt_Datatype :opaque)
    (ci $native_Nat :opaque))
@@ -1047,11 +1049,11 @@
   (($smtx_model_eval M ($sm_= x1 x2))
     ($smtx_model_eval_= ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
   
-  (($smtx_model_eval M ($sm_apply ($sm_exists s T) x1))
+  (($smtx_model_eval M ($sm_exists s T x1))
     ($native_apply_4 "eval_texists" M s T x1))
-  (($smtx_model_eval M ($sm_apply ($sm_forall s T) x1))
+  (($smtx_model_eval M ($sm_forall s T x1))
     ($native_apply_4 "eval_tforall" M s T x1))
-  (($smtx_model_eval M ($sm_apply ($sm_choice s T) x1))
+  (($smtx_model_eval M ($sm_choice s T x1))
     ($native_apply_4 "eval_tchoice" M s T x1))
   
   (($smtx_model_eval M ($sm_DtCons s d i)) ($vsm_DtCons s d i))
@@ -1125,11 +1127,11 @@
   (($smtx_typeof ($sm_= x1 x2))
     ($smtx_typeof_= ($smtx_typeof x1) ($smtx_typeof x2)))
   
-  (($smtx_typeof ($sm_apply ($sm_exists s T) x1))
+  (($smtx_typeof ($sm_exists s T x1))
     ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
-  (($smtx_typeof ($sm_apply ($sm_forall s T) x1))
+  (($smtx_typeof ($sm_forall s T x1))
     ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
-  (($smtx_typeof ($sm_apply ($sm_choice s T) x1))
+  (($smtx_typeof ($sm_choice s T x1))
     ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T T) $tsm_none))
   
   (($smtx_typeof ($sm_DtCons s d i))
@@ -1152,6 +1154,7 @@
   (($smtx_typeof x1)   $tsm_none)
   )
 )
+(program $eo_to_smt ((T Type)) :signature (T) $smt_Term)
 (program $eo_to_smt_type () :signature (Type) $smt_Type)
 (program $eo_to_smt_datatype_cons ((U $eo_Term) (c $eo_DatatypeCons))
   :signature ($eo_DatatypeCons) $smt_DatatypeCons

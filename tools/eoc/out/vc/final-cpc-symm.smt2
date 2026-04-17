@@ -225,11 +225,11 @@
   ; smt-cons: =
   (sm.= (sm.=.arg1 sm.Term) (sm.=.arg2 sm.Term))
   ; smt-cons: exists
-  (sm.exists (sm.exists.arg1 String) (sm.exists.arg2 tsm.Type))
+  (sm.exists (sm.exists.arg1 String) (sm.exists.arg2 tsm.Type) (sm.exists.arg3 sm.Term))
   ; smt-cons: forall
-  (sm.forall (sm.forall.arg1 String) (sm.forall.arg2 tsm.Type))
+  (sm.forall (sm.forall.arg1 String) (sm.forall.arg2 tsm.Type) (sm.forall.arg3 sm.Term))
   ; smt-cons: choice
-  (sm.choice (sm.choice.arg1 String) (sm.choice.arg2 tsm.Type))
+  (sm.choice (sm.choice.arg1 String) (sm.choice.arg2 tsm.Type) (sm.choice.arg3 sm.Term))
   ; smt-cons: DtCons
   (sm.DtCons (sm.DtCons.arg1 String) (sm.DtCons.arg2 dt.Datatype) (sm.DtCons.arg3 Nat))
   ; smt-cons: DtSel
@@ -772,12 +772,12 @@
     ($smtx_model_eval_ite ($smtx_model_eval x1 (sm.ite.arg1 x2)) ($smtx_model_eval x1 (sm.ite.arg2 x2)) ($smtx_model_eval x1 (sm.ite.arg3 x2)))
   (ite ((_ is sm.=) x2)
     ($smtx_model_eval_= ($smtx_model_eval x1 (sm.=.arg1 x2)) ($smtx_model_eval x1 (sm.=.arg2 x2)))
-  (ite (and ((_ is sm.Apply) x2) ((_ is sm.exists) (sm.Apply.arg1 x2)))
-    (eval_texists x1 (sm.exists.arg1 (sm.Apply.arg1 x2)) (sm.exists.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
-  (ite (and ((_ is sm.Apply) x2) ((_ is sm.forall) (sm.Apply.arg1 x2)))
-    (eval_tforall x1 (sm.forall.arg1 (sm.Apply.arg1 x2)) (sm.forall.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
-  (ite (and ((_ is sm.Apply) x2) ((_ is sm.choice) (sm.Apply.arg1 x2)))
-    (eval_tchoice x1 (sm.choice.arg1 (sm.Apply.arg1 x2)) (sm.choice.arg2 (sm.Apply.arg1 x2)) (sm.Apply.arg2 x2))
+  (ite ((_ is sm.exists) x2)
+    (eval_texists x1 (sm.exists.arg1 x2) (sm.exists.arg2 x2) (sm.exists.arg3 x2))
+  (ite ((_ is sm.forall) x2)
+    (eval_tforall x1 (sm.forall.arg1 x2) (sm.forall.arg2 x2) (sm.forall.arg3 x2))
+  (ite ((_ is sm.choice) x2)
+    (eval_tchoice x1 (sm.choice.arg1 x2) (sm.choice.arg2 x2) (sm.choice.arg3 x2))
   (ite ((_ is sm.DtCons) x2)
     (vsm.DtCons (sm.DtCons.arg1 x2) (sm.DtCons.arg2 x2) (sm.DtCons.arg3 x2))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.DtSel) (sm.Apply.arg1 x2)))
@@ -835,12 +835,12 @@
     ($smtx_typeof_ite ($smtx_typeof (sm.ite.arg1 x1)) ($smtx_typeof (sm.ite.arg2 x1)) ($smtx_typeof (sm.ite.arg3 x1)))
   (ite ((_ is sm.=) x1)
     ($smtx_typeof_= ($smtx_typeof (sm.=.arg1 x1)) ($smtx_typeof (sm.=.arg2 x1)))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.exists) (sm.Apply.arg1 x1)))
-    (ite (Teq ($smtx_typeof (sm.Apply.arg2 x1)) tsm.Bool) tsm.Bool tsm.None)
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.forall) (sm.Apply.arg1 x1)))
-    (ite (Teq ($smtx_typeof (sm.Apply.arg2 x1)) tsm.Bool) tsm.Bool tsm.None)
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.choice) (sm.Apply.arg1 x1)))
-    (ite (Teq ($smtx_typeof (sm.Apply.arg2 x1)) tsm.Bool) ($smtx_typeof_guard_wf (sm.choice.arg2 (sm.Apply.arg1 x1)) (sm.choice.arg2 (sm.Apply.arg1 x1))) tsm.None)
+  (ite ((_ is sm.exists) x1)
+    (ite (Teq ($smtx_typeof (sm.exists.arg3 x1)) tsm.Bool) tsm.Bool tsm.None)
+  (ite ((_ is sm.forall) x1)
+    (ite (Teq ($smtx_typeof (sm.forall.arg3 x1)) tsm.Bool) tsm.Bool tsm.None)
+  (ite ((_ is sm.choice) x1)
+    (ite (Teq ($smtx_typeof (sm.choice.arg3 x1)) tsm.Bool) ($smtx_typeof_guard_wf (sm.choice.arg2 x1) (sm.choice.arg2 x1)) tsm.None)
   (ite ((_ is sm.DtCons) x1)
     ($smtx_typeof_guard_wf (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_typeof_dt_cons_rec (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_dt_substitute (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1) (sm.DtCons.arg2 x1)) (sm.DtCons.arg3 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtSel) (sm.Apply.arg1 x1)))
@@ -855,6 +855,9 @@
     ($smtx_typeof_guard_wf (sm.UConst.arg2 x1) (sm.UConst.arg2 x1))
     tsm.None
 ))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
+
+; fwd-decl: $eo_to_smt
+(declare-fun $eo_to_smt (eo.Term) sm.Term)
 
 ; fwd-decl: $eo_to_smt_type
 (declare-fun $eo_to_smt_type (eo.Term) tsm.Type)
@@ -906,7 +909,6 @@
 )))))))))))) :pattern (($eo_to_smt_type x1)))) :named sm.axiom.$eo_to_smt_type))
 
 ; program: $eo_to_smt
-(declare-fun $eo_to_smt (eo.Term) sm.Term)
 (assert (! (forall ((x1 eo.Term))
   (! (= ($eo_to_smt x1)
   (ite ((_ is eo.Boolean) x1)

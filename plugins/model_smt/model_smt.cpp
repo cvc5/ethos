@@ -258,9 +258,29 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "ite",
       {kBool, kAny, kAny},
       "($sm_ite ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
-  // FIXME: distinct needs to handle arg list
-  addTermReduceSym("distinct", {kAny, kAny}, kBool, "(not (= x1 x2))");
-  d_typeFullCase["distinct"] = "($smtx_typeof_= ($smtx_typeof x1) ($smtx_typeof x2))";
+  d_auxDef["distinct"] = R"(
+(program $eo_to_smt_distinct_pairs
+  ((T Type) (s $smt_Term) (x T) (xs (@@TypedList T)))
+  :signature ($smt_Term (@@TypedList T)) $smt_Term
+  (
+  (($eo_to_smt_distinct_pairs s (@@TypedList.cons x xs))
+     ($sm_and ($sm_not ($sm_= s ($eo_to_smt x))) ($eo_to_smt_distinct_pairs s xs)))
+  (($eo_to_smt_distinct_pairs s (@@TypedList.nil T)) $sm_true)
+  (($eo_to_smt_distinct_pairs s xs) $sm_none)
+  )
+)
+(program $eo_to_smt_distinct
+  ((T Type) (s $smt_Term) (x T) (xs (@@TypedList T)))
+  :signature ((@@TypedList T)) $smt_Term
+  (
+  (($eo_to_smt_distinct (@@TypedList.cons x xs))
+     ($sm_and ($eo_to_smt_distinct_pairs ($eo_to_smt x) xs) ($eo_to_smt_distinct xs)))
+  (($eo_to_smt_distinct (@@TypedList.nil T)) $sm_true)
+  (($eo_to_smt_distinct xs) $sm_none)
+  )
+)
+)";
+  addEunoiaReduceSym("distinct", {kAny}, "($eo_to_smt_distinct x1)");
   // custom definition of is_list_nil recognizer for distinct arg list
   if (optionFwdDeclIsListNilNground())
   {
@@ -764,7 +784,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssArrayDiff << "(eo::define ((T ($eo_to_smt_type ($eo_typeof "
                  "(@array_deq_diff x1 x2))))) ";
   ssArrayDiff << "(eo::define ((i ($sm_Var $native_str_vname T))) ";
-  ssArrayDiff << "($sm_apply ($sm_choice $native_str_vname T) ";
+  ssArrayDiff << "($sm_choice $native_str_vname T ";
   ssArrayDiff << smtToSmtEmbed(
       "(not (= (select ($eo_to_smt x1) i) (select ($eo_to_smt x2) i)))", true)
               << ")))";
@@ -799,7 +819,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssStringsDeqDiff
       << "(eo::define ((i ($sm_Var $native_str_vname $tsm_Int))) ";
   ssStringsDeqDiff
-      << "($sm_apply ($sm_choice $native_str_vname $tsm_Int) ";
+      << "($sm_choice $native_str_vname $tsm_Int ";
   ssStringsDeqDiff << smtToSmtEmbed(
       "(not (= (str.substr ($eo_to_smt x1) i 1) (str.substr "
       "($eo_to_smt x2) i 1)))",
@@ -809,7 +829,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssWitnessStringLength << "(eo::define (($T ($eo_to_smt_type x1))) ";
   ssWitnessStringLength
       << "(eo::define (($i (Var $native_str_vname $T))) ";
-  ssWitnessStringLength << "(apply (choice $native_str_vname $T) ";
+  ssWitnessStringLength << "(choice $native_str_vname $T ";
   ssWitnessStringLength << "(= (str.len $i) ($eo_to_smt x2)))))";
   addEunoiaReduceSym("@witness_string_length",
                      {kType, kInt, kInt},
@@ -820,11 +840,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ((s $native_String) (T $smt_Type) (F $smt_Term) (n $native_Nat) (t $smt_Term))
   :signature ($smt_Term $native_Nat) $smt_Term
   (
-  (($eo_to_smt_quantifiers_skolemize ($sm_apply ($sm_exists s T) F) $native_n_zero)
-     ($sm_apply ($sm_choice s T) F))
-  (($eo_to_smt_quantifiers_skolemize ($sm_apply ($sm_exists s T) F) ($native_n_succ n))
+  (($eo_to_smt_quantifiers_skolemize ($sm_exists s T F) $native_n_zero)
+     ($sm_choice s T F))
+  (($eo_to_smt_quantifiers_skolemize ($sm_exists s T F) ($native_n_succ n))
      ($eo_to_smt_quantifiers_skolemize
-       ($eo_to_smt_substitute s T ($eo_to_smt_quantifiers_skolemize ($sm_apply ($sm_exists s T) F) $native_n_zero) F)
+       ($eo_to_smt_substitute s T ($eo_to_smt_quantifiers_skolemize ($sm_exists s T F) $native_n_zero) F)
        n))
   (($eo_to_smt_quantifiers_skolemize F t) $sm_none)
   )
@@ -846,7 +866,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) $native_n_zero)
     (eo::define ((x ($sm_Var $native_str_vname $tsm_String)))
     (eo::define ((xrem ($sm_str.substr s ($sm_str.len x) ($sm_- ($sm_str.len s) ($sm_str.len x)))))
-      ($sm_apply ($sm_choice $native_str_vname $tsm_String)
+      ($sm_choice $native_str_vname $tsm_String
         ($sm_and ($sm_= s ($sm_str.++ x xrem)) ($sm_and ($sm_str.in_re x r1) ($sm_str.in_re xrem r2)))))))
   (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) ($native_n_succ n))
     (eo::define ((k ($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) $native_n_zero)))
@@ -909,7 +929,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssSetsChoose
       << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (set.choose x1))))) ";
   ssSetsChoose << "(eo::define ((i ($sm_Var $native_str_vname T))) ";
-  ssSetsChoose << "($sm_apply ($sm_choice $native_str_vname T) ";
+  ssSetsChoose << "($sm_choice $native_str_vname T ";
   ssSetsChoose << smtToSmtEmbed("(set.member i ($eo_to_smt x1))", true)
                << ")))";
   addEunoiaReduceSym("set.choose", {kAny, kAny}, ssSetsChoose.str());
@@ -917,7 +937,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssSetsIsSingleton
       << "(eo::define (($T ($eo_to_smt_type ($eo_typeof (set.choose x1))))) ";
   ssSetsIsSingleton << "(eo::define ((i ($sm_Var $native_str_vname $T))) ";
-  ssSetsIsSingleton << "($sm_apply ($sm_exists $native_str_vname $T) ";
+  ssSetsIsSingleton << "($sm_exists $native_str_vname $T ";
   ssSetsIsSingleton << smtToSmtEmbed("(= ($eo_to_smt x1) (set.singleton i))",
                                      true)
                     << ")))";
@@ -929,7 +949,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssSetsDiff << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (@sets_deq_diff "
                 "x1 x2))))) ";
   ssSetsDiff << "(eo::define ((i ($sm_Var $native_str_vname T))) ";
-  ssSetsDiff << "($sm_apply ($sm_choice $native_str_vname T) ";
+  ssSetsDiff << "($sm_choice $native_str_vname T ";
   ssSetsDiff << smtToSmtEmbed(
       "(not (= (set.member i ($eo_to_smt x1)) (set.member i ($eo_to_smt x2))))",
       true) << ")))";
