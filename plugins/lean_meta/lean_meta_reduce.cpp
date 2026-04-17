@@ -933,6 +933,10 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   std::stringstream ss;
   ss << e;
   std::string sname = ss.str();
+  if (sname=="$eo_pf")
+  {
+    return;
+  }
   std::stringstream* out = nullptr;
   // get the meta-kind based on its name
   std::string cnamek;

@@ -1845,9 +1845,6 @@
   ((i $eo_Term :opaque) (il $eo_ArgList :opaque)) $eo_ArgList)
 (define $eot_alc ((i $eo_Term) (il $eo_ArgList)) ($emb_al.cons i il))
 
-; for bool??
-(define $eoT_Result () $native_Bool)
-
 ;;; Types
 
 ; A Eunoia rule
@@ -1899,7 +1896,7 @@
 )
 
 (program $eo_state_is_closed ((so $eo_StateObj) (s $eo_State) (F Bool))
-  :signature ($eo_State) $eoT_Result
+  :signature ($eo_State) $native_Bool
   (
   (($eo_state_is_closed ($s_cons ($so_assume_push F) s)) $native_false)
   (($eo_state_is_closed ($s_cons so s)) ($eo_state_is_closed s))
@@ -2064,7 +2061,7 @@
 )
 
 (program $eo_state_is_refutation ((s $eo_State))
-  :signature ($eo_State) $eoT_Result
+  :signature ($eo_State) $native_Bool
   (
   (($eo_state_is_refutation s) ($eo_state_is_closed ($eo_invoke_cmd_check_proven s false)))
   )
@@ -2089,7 +2086,7 @@
 ; - cs is a command list to invoke. Note the indices of premises should take
 ; into account the size of as.
 (program $eo_checker_is_refutation ((as Bool) (cs $eo_CmdList))
-  :signature (Bool $eo_CmdList) $eoT_Result
+  :signature (Bool $eo_CmdList) $native_Bool
   (
   (($eo_checker_is_refutation as cs)
     ($eo_state_is_refutation ($eo_invoke_cmd_list ($eo_invoke_assume_list $s_nil as) cs)))

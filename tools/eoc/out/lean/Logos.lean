@@ -50,7 +50,6 @@ mutual
 
 /- Term definition -/
 inductive Term : Type where
-  | __eo_pf : Term -> Term
   | Int : Term
   | Real : Term
   | BitVec : Term
