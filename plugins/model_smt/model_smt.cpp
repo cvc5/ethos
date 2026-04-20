@@ -894,7 +894,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("seq.unit", {kAny}, d_kSeq, "($smtx_seq_unit e1)");
   d_typeFullCase["seq.unit"] = smtGuardType1("($smtx_typeof x1)", "($tsm_Seq ($smtx_typeof x1))");
   addRecReduceSym("seq.nth", {d_kSeq, kInt}, kAny, "($smtx_seq_nth M e1 e2)");
-  addAuxTypeProgram("seq.nth", {d_kSeq, kInt}, "x1");
+  addAuxTypeProgram("seq.nth", {d_kSeq, kInt}, "($smtx_typeof_guard_wf x1 x1)");
   // sets
   // (Set T) is modelled as (Array T Bool).
   addTypeSym("Set", {kType});

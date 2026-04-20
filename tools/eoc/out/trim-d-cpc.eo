@@ -123,54 +123,54 @@
 ; The type of $native_apply_* terms.
 ; If a term has this type, we know it is an SMT-LIB type,
 ; but we don't know which one from ordinary type checking.
-(declare-const $smt_BuiltinType Type)
+(declare-const $native_BuiltinType Type)
 
 ;;; Deep embedding of SMT-LIB operator applications into Eunoia
 
 ; Apply the SMT operator named "op" to x1, x2, and so on.
 ; Assumes arity of SMT-LIB operators are at most 5.
-(declare-parameterized-const $smt_type_0
+(declare-parameterized-const $native_type_0
   (($smt_id Type :implicit) (op $smt_id :opaque))
   Type)
-(declare-parameterized-const $smt_type_1
+(declare-parameterized-const $native_type_1
   (($smt_id Type :implicit) (W1 Type :implicit) (op $smt_id :opaque) (x1 W1 :opaque))
   Type)
-(declare-parameterized-const $smt_type_2
+(declare-parameterized-const $native_type_2
   (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque))
   Type)
 ; A datatype we are using in the final embedding
-(declare-parameterized-const $smt_datatype
+(declare-parameterized-const $native_datatype
   (($smt_id Type :implicit) (op $smt_id :opaque))
   Type)
 (declare-parameterized-const $native_apply_0
   (($smt_id Type :implicit) (op $smt_id :opaque))
-  $smt_BuiltinType)
+  $native_BuiltinType)
 (declare-parameterized-const $native_apply_1
   (($smt_id Type :implicit) (W1 Type :implicit)
-   (op $smt_id :opaque) (x1 W1 :opaque)) $smt_BuiltinType)
+   (op $smt_id :opaque) (x1 W1 :opaque)) $native_BuiltinType)
 (declare-parameterized-const $native_apply_2
   (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
-   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $smt_BuiltinType)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $native_BuiltinType)
 (declare-parameterized-const $native_apply_3
   (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
-   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque)) $smt_BuiltinType)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque)) $native_BuiltinType)
 (declare-parameterized-const $native_apply_4
   (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
    (W3 Type :implicit) (W4 Type :implicit)
-   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque)) $smt_BuiltinType)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque)) $native_BuiltinType)
 (declare-parameterized-const $native_apply_5
   (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
    (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit)
-   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $smt_BuiltinType)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $native_BuiltinType)
 
-(define $native_Bool () ($smt_type_0 "Bool"))
-(define $native_Int () ($smt_type_0 "Int"))
-(define $native_Real () ($smt_type_0 "Real"))
-(define $native_Rat () ($smt_type_0 "Rat"))
-(define $native_String () ($smt_type_0 "String"))
-(define $native_Char () ($smt_type_0 "Char"))
-(define $native_RegLan () ($smt_type_0 "RegLan"))
+(define $native_Bool () ($native_type_0 "Bool"))
+(define $native_Int () ($native_type_0 "Int"))
+(define $native_Real () ($native_type_0 "Real"))
+(define $native_Rat () ($native_type_0 "Rat"))
+(define $native_String () ($native_type_0 "String"))
+(define $native_Char () ($native_type_0 "Char"))
+(define $native_RegLan () ($native_type_0 "RegLan"))
 (define $native_true () ($native_apply_0 "true"))
 (define $native_false () ($native_apply_0 "false"))
 (define $native_ite ((W Type :implicit) (b $native_Bool) (x1 W) (x2 W)) ($native_apply_3 "ite" b x1 x2))
@@ -224,7 +224,7 @@
 (define $native_z_inc ((x1 $native_Int)) ($native_z_+ x1 $native_z_one))
 (define $native_z_dec ((x1 $native_Int)) ($native_z_+ x1 $native_z_neg_one))
 ; natural numbers
-(define $native_Nat () ($smt_datatype "Nat"))
+(define $native_Nat () ($native_datatype "Nat"))
 (define $native_n_zero () ($native_apply_0 "nat.zero"))
 (define $native_n_succ ((x1 $native_Nat)) ($native_apply_1 "nat.succ" x1))
 (define $native_n_one () ($native_n_succ $native_n_zero))
@@ -340,7 +340,6 @@
 (define $native_binary_extract
   ((w $native_Int) (n $native_Int) (x1 $native_Int) (x2 $native_Int))
   ($native_apply_4 "binary_extract" w n x1 x2))
-
 
 
 ; In this signature, we heavily use references to the Datatypes corresponding

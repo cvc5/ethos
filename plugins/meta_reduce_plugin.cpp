@@ -34,7 +34,7 @@ void MetaReducePlugin::initializeCommonMetaKinds()
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
   d_typeToMetaKind["$smt_Datatype"] = MetaKind::SMT_DATATYPE;
   d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
-  d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
+  d_typeToMetaKind["$native_BuiltinType"] = MetaKind::SMT_BUILTIN;
 
   d_prefixToMetaKind["edt"] = MetaKind::DATATYPE;
   d_prefixToMetaKind["edtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
@@ -81,8 +81,8 @@ bool MetaReducePlugin::isSmtApplyApp(const Expr& oApp)
   }
   std::string sname = getName(oApp[0]);
   return (sname.compare(0, 14, "$native_apply_") == 0
-          || sname.compare(0, 10, "$smt_type_") == 0
-          || sname.compare(0, 13, "$smt_datatype") == 0);
+          || sname.compare(0, 13, "$native_type_") == 0
+          || sname.compare(0, 16, "$native_datatype") == 0);
 }
 
 MetaKind MetaReducePlugin::prefixToMetaKind(const std::string& str,
@@ -105,11 +105,11 @@ MetaKind MetaReducePlugin::getTypeMetaKindFor(const Expr& typ,
   if (k == Kind::APPLY_OPAQUE)
   {
     std::string sname = getName(typ[0]);
-    if (sname.compare(0, 10, "$smt_type_") == 0)
+    if (sname.compare(0, 13, "$native_type_") == 0)
     {
       return MetaKind::SMT_BUILTIN;
     }
-    if (sname.compare(0, 13, "$smt_datatype") == 0)
+    if (sname.compare(0, 16, "$native_datatype") == 0)
     {
       return MetaKind::SMT_BUILTIN_DATATYPE;
     }

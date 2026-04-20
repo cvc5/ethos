@@ -383,8 +383,8 @@ void LeanMetaReduce::printEmbTermInternal(
       // operators that print the identifier embedding e.g.
       // `($native_apply_3 "ite"` becomes `(ite`
       if (sname.compare(0, 14, "$native_apply_") == 0
-          || sname.compare(0, 10, "$smt_type_") == 0
-          || sname.compare(0, 13, "$smt_datatype") == 0)
+          || sname.compare(0, 13, "$native_type_") == 0
+          || sname.compare(0, 16, "$native_datatype") == 0)
       {
         std::string embName = getEmbedName(recTerm, tinit);
         if (recTerm.getNumChildren() > 2)
