@@ -228,8 +228,8 @@
   (sm.exists (sm.exists.arg1 String) (sm.exists.arg2 tsm.Type) (sm.exists.arg3 sm.Term))
   ; smt-cons: forall
   (sm.forall (sm.forall.arg1 String) (sm.forall.arg2 tsm.Type) (sm.forall.arg3 sm.Term))
-  ; smt-cons: choice
-  (sm.choice (sm.choice.arg1 String) (sm.choice.arg2 tsm.Type) (sm.choice.arg3 sm.Term))
+  ; smt-cons: choice_nth
+  (sm.choice_nth (sm.choice_nth.arg1 String) (sm.choice_nth.arg2 tsm.Type) (sm.choice_nth.arg3 sm.Term) (sm.choice_nth.arg4 Nat))
   ; smt-cons: DtCons
   (sm.DtCons (sm.DtCons.arg1 String) (sm.DtCons.arg2 dt.Datatype) (sm.DtCons.arg3 Nat))
   ; smt-cons: DtSel
@@ -365,6 +365,7 @@
 (declare-fun eval_texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_tchoice_nth (smm.SmtModel String tsm.Type sm.Term Nat) vsm.Value)
 (declare-fun inhabited_type (tsm.Type) Bool)
 (declare-fun eval_tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tapply (smm.SmtModel vsm.Value vsm.Value) vsm.Value)
@@ -776,8 +777,8 @@
     (eval_texists x1 (sm.exists.arg1 x2) (sm.exists.arg2 x2) (sm.exists.arg3 x2))
   (ite ((_ is sm.forall) x2)
     (eval_tforall x1 (sm.forall.arg1 x2) (sm.forall.arg2 x2) (sm.forall.arg3 x2))
-  (ite ((_ is sm.choice) x2)
-    (eval_tchoice x1 (sm.choice.arg1 x2) (sm.choice.arg2 x2) (sm.choice.arg3 x2))
+  (ite ((_ is sm.choice_nth) x2)
+    (eval_tchoice_nth x1 (sm.choice_nth.arg1 x2) (sm.choice_nth.arg2 x2) (sm.choice_nth.arg3 x2) (sm.choice_nth.arg4 x2))
   (ite ((_ is sm.DtCons) x2)
     (vsm.DtCons (sm.DtCons.arg1 x2) (sm.DtCons.arg2 x2) (sm.DtCons.arg3 x2))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.DtSel) (sm.Apply.arg1 x2)))
@@ -814,6 +815,17 @@
     tsm.None
 )))
 
+; program: $smtx_typeof_choice_nth
+(declare-fun $smtx_typeof_choice_nth (tsm.Type sm.Term Nat) tsm.Type)
+(assert (! (forall ((x1 tsm.Type) (x2 sm.Term) (x3 Nat))
+  (! (= ($smtx_typeof_choice_nth x1 x2 x3)
+  (ite (= x3 nat.zero)
+    (ite (Teq ($smtx_typeof x2) tsm.Bool) ($smtx_typeof_guard_wf x1 x1) tsm.None)
+  (ite (and ((_ is sm.exists) x2) ((_ is nat.succ) x3))
+    ($smtx_typeof_choice_nth (sm.exists.arg2 x2) (sm.exists.arg3 x2) (nat.succ.arg1 x3))
+    tsm.None
+))) :pattern (($smtx_typeof_choice_nth x1 x2 x3)))) :named sm.axiom.$smtx_typeof_choice_nth))
+
 ; program: $smtx_typeof
 (assert (! (forall ((x1 sm.Term))
   (! (= ($smtx_typeof x1)
@@ -839,8 +851,8 @@
     (ite (Teq ($smtx_typeof (sm.exists.arg3 x1)) tsm.Bool) tsm.Bool tsm.None)
   (ite ((_ is sm.forall) x1)
     (ite (Teq ($smtx_typeof (sm.forall.arg3 x1)) tsm.Bool) tsm.Bool tsm.None)
-  (ite ((_ is sm.choice) x1)
-    (ite (Teq ($smtx_typeof (sm.choice.arg3 x1)) tsm.Bool) ($smtx_typeof_guard_wf (sm.choice.arg2 x1) (sm.choice.arg2 x1)) tsm.None)
+  (ite ((_ is sm.choice_nth) x1)
+    ($smtx_typeof_choice_nth (sm.choice_nth.arg2 x1) (sm.choice_nth.arg3 x1) (sm.choice_nth.arg4 x1))
   (ite ((_ is sm.DtCons) x1)
     ($smtx_typeof_guard_wf (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_typeof_dt_cons_rec (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_dt_substitute (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1) (sm.DtCons.arg2 x1)) (sm.DtCons.arg3 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtSel) (sm.Apply.arg1 x1)))
@@ -1030,6 +1042,16 @@
          (vsm.Boolean true)))
   :pattern ((eval_tchoice M s T F))))
   :named smtx.tchoice.def))
+
+(assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (n Nat))
+  (! (= (eval_tchoice_nth M s T F n)
+       (ite ((_ is nat.succ) n)
+         (ite ((_ is sm.exists) F)
+           (eval_tchoice_nth M (sm.exists.arg1 F) (sm.exists.arg2 F) (sm.exists.arg3 F) (nat.succ.arg1 n))
+           vsm.NotValue)
+         (eval_tchoice M s T F)))
+  :pattern ((eval_tchoice_nth M s T F n))))
+  :named smtx.tchoice_nth.def))
 
 ; typeof choice, must be an inhabitant, else it is ill-typed.
 (assert (! (forall ((T tsm.Type))

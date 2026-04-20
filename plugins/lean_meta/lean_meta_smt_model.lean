@@ -1,6 +1,7 @@
 import $EO_CALC$.SmtEval
 
 set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
 
 namespace Smtm
 
@@ -357,6 +358,22 @@ macro_rules
               Classical.choose hTy
             else
               SmtValue.NotValue)
+  | `(native_eval_tchoice_nth $M $s $T $body $n) => do
+      let evalChoiceId := Lean.mkIdent `native_eval_tchoice
+      let pushId := Lean.mkIdent `__smtx_model_push
+      `(by
+          classical
+          let rec evalChoiceNth (M' : SmtModel)
+              (s' : native_String) (T' : SmtType) (body' : SmtTerm) : native_Nat -> SmtValue
+            | native_nat_zero =>
+                $evalChoiceId M' s' T' body'
+            | native_nat_succ n' =>
+                let v := $evalChoiceId M' s' T' body'
+                match body' with
+                | SmtTerm.exists s'' T'' body'' =>
+                    evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
+                | _ => SmtValue.NotValue
+          exact evalChoiceNth $M $s $T $body $n)
 
 /- Definition of SMT-LIB model semantics -/
 

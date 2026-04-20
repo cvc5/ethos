@@ -840,12 +840,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ((s $native_String) (T $smt_Type) (F $smt_Term) (n $native_Nat) (t $smt_Term))
   :signature ($smt_Term $native_Nat) $smt_Term
   (
-  (($eo_to_smt_quantifiers_skolemize ($sm_exists s T F) $native_n_zero)
-     ($sm_choice s T F))
-  (($eo_to_smt_quantifiers_skolemize ($sm_exists s T F) ($native_n_succ n))
-     ($eo_to_smt_quantifiers_skolemize
-       ($eo_to_smt_substitute s T ($eo_to_smt_quantifiers_skolemize ($sm_exists s T F) $native_n_zero) F)
-       n))
+  (($eo_to_smt_quantifiers_skolemize ($sm_exists s T F) n) ($sm_choice_nth s T F n))
   (($eo_to_smt_quantifiers_skolemize F t) $sm_none)
   )
 ))";

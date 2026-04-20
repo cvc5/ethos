@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 288
+; #trim-defs: 290
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -34,6 +34,10 @@
   (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
    (W3 Type :implicit) (W4 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque)) $smt_BuiltinType)
+(declare-parameterized-const $native_apply_5
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
+   (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $smt_BuiltinType)
 (define $native_Bool () ($smt_type_0 "Bool"))
 (define $native_Int () ($smt_type_0 "Int"))
 (define $native_Real () ($smt_type_0 "Real"))
@@ -231,9 +235,12 @@
   ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque)) 
   $smt_Term)
 (define $sm_forall ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.forall s T F))
-(declare-parameterized-const $emb_sm.choice
-  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque)) $smt_Term)
-(define $sm_choice ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.choice s T F))
+(declare-parameterized-const $emb_sm.choice_nth
+  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque) (n $native_Nat :opaque))
+  $smt_Term)
+(define $sm_choice_nth
+  ((s $native_String) (T $smt_Type) (F $smt_Term) (n $native_Nat))
+  ($emb_sm.choice_nth s T F n))
 (declare-parameterized-const $emb_sm.DtCons
   ((s $native_String :opaque) (d $smt_Datatype :opaque)
    (ci $native_Nat :opaque))
@@ -780,8 +787,8 @@
     ($native_apply_4 "eval_texists" M s T x1))
   (($smtx_model_eval M ($sm_forall s T x1))
     ($native_apply_4 "eval_tforall" M s T x1))
-  (($smtx_model_eval M ($sm_choice s T x1))
-    ($native_apply_4 "eval_tchoice" M s T x1))
+  (($smtx_model_eval M ($sm_choice_nth s T x1 i))
+    ($native_apply_5 "eval_tchoice_nth" M s T x1 i))
   
   (($smtx_model_eval M ($sm_DtCons s d i)) ($vsm_DtCons s d i))
   (($smtx_model_eval M ($sm_apply ($sm_DtSel s d i j) x1))
@@ -823,6 +830,17 @@
   (($smtx_typeof_apply T U)               $tsm_none)
   )
 )
+(program $smtx_typeof_choice_nth
+  ((T $smt_Type) (n $native_Nat) (s $native_String) (U $smt_Type) (F $smt_Term))
+  :signature ($smt_Type $smt_Term $native_Nat) $smt_Type
+  (
+  (($smtx_typeof_choice_nth T F $native_n_zero)
+    ($native_ite ($native_Teq ($smtx_typeof F) $tsm_Bool) ($smtx_typeof_guard_wf T T) $tsm_none))
+  (($smtx_typeof_choice_nth T ($sm_exists s U F) ($native_n_succ n))
+    ($smtx_typeof_choice_nth U F n))
+  (($smtx_typeof_choice_nth T F n) $tsm_none)
+  )
+)
 (program $smtx_typeof
   ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (d $smt_Datatype)
    (i $native_Nat) (j $native_Nat)
@@ -856,8 +874,8 @@
     ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
   (($smtx_typeof ($sm_forall s T x1))
     ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
-  (($smtx_typeof ($sm_choice s T x1))
-    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T T) $tsm_none))
+  (($smtx_typeof ($sm_choice_nth s T x1 n))
+    ($smtx_typeof_choice_nth T x1 n))
   
   (($smtx_typeof ($sm_DtCons s d i))
     ($smtx_typeof_guard_wf ($tsm_Datatype s d)

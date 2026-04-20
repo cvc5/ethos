@@ -205,6 +205,7 @@ $SM_TYPE_DECL$
 (declare-fun eval_texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_tchoice_nth (smm.SmtModel String tsm.Type sm.Term Nat) vsm.Value)
 (declare-fun inhabited_type (tsm.Type) Bool)
 (declare-fun eval_tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tapply (smm.SmtModel vsm.Value vsm.Value) vsm.Value)
@@ -269,6 +270,16 @@ $SM_DEFS$
          (vsm.Boolean true)))
   :pattern ((eval_tchoice M s T F))))
   :named smtx.tchoice.def))
+
+(assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (n Nat))
+  (! (= (eval_tchoice_nth M s T F n)
+       (ite ((_ is nat.succ) n)
+         (ite ((_ is sm.exists) F)
+           (eval_tchoice_nth M (sm.exists.arg1 F) (sm.exists.arg2 F) (sm.exists.arg3 F) (nat.succ.arg1 n))
+           vsm.NotValue)
+         (eval_tchoice M s T F)))
+  :pattern ((eval_tchoice_nth M s T F n))))
+  :named smtx.tchoice_nth.def))
 
 ; typeof choice, must be an inhabitant, else it is ill-typed.
 (assert (! (forall ((T tsm.Type))

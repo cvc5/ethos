@@ -1933,9 +1933,14 @@
 (define $sm_forall ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.forall s T F))
 
 ; choice
-(declare-parameterized-const $emb_sm.choice
-  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque)) $smt_Term)
-(define $sm_choice ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.choice s T F))
+(declare-parameterized-const $emb_sm.choice_nth
+  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque) (n $native_Nat :opaque))
+  $smt_Term)
+(define $sm_choice_nth
+  ((s $native_String) (T $smt_Type) (F $smt_Term) (n $native_Nat))
+  ($emb_sm.choice_nth s T F n))
+(define $sm_choice ((s $native_String) (T $smt_Type) (F $smt_Term))
+  ($sm_choice_nth s T F $native_n_zero))
 
 ; the ci^th constructor of datatype ($tsm_Datatype s d).
 (declare-parameterized-const $emb_sm.DtCons
@@ -3010,8 +3015,8 @@
     ($native_apply_4 "eval_texists" M s T x1))
   (($smtx_model_eval M ($sm_forall s T x1))
     ($native_apply_4 "eval_tforall" M s T x1))
-  (($smtx_model_eval M ($sm_choice s T x1))
-    ($native_apply_4 "eval_tchoice" M s T x1))
+  (($smtx_model_eval M ($sm_choice_nth s T x1 i))
+    ($native_apply_5 "eval_tchoice_nth" M s T x1 i))
   ; datatypes
   (($smtx_model_eval M ($sm_DtCons s d i)) ($vsm_DtCons s d i))
   (($smtx_model_eval M ($sm_apply ($sm_DtSel s d i j) x1))
@@ -3056,6 +3061,18 @@
   (($smtx_typeof_apply ($tsm_DtcAppType T U) V)
     ($smtx_typeof_guard T ($native_ite ($native_Teq T V) U $tsm_none)))
   (($smtx_typeof_apply T U)               $tsm_none)
+  )
+)
+
+(program $smtx_typeof_choice_nth
+  ((T $smt_Type) (n $native_Nat) (s $native_String) (U $smt_Type) (F $smt_Term))
+  :signature ($smt_Type $smt_Term $native_Nat) $smt_Type
+  (
+  (($smtx_typeof_choice_nth T F $native_n_zero)
+    ($native_ite ($native_Teq ($smtx_typeof F) $tsm_Bool) ($smtx_typeof_guard_wf T T) $tsm_none))
+  (($smtx_typeof_choice_nth T ($sm_exists s U F) ($native_n_succ n))
+    ($smtx_typeof_choice_nth U F n))
+  (($smtx_typeof_choice_nth T F n) $tsm_none)
   )
 )
 
@@ -3221,8 +3238,8 @@
     ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
   (($smtx_typeof ($sm_forall s T x1))
     ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
-  (($smtx_typeof ($sm_choice s T x1))
-    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T T) $tsm_none))
+  (($smtx_typeof ($sm_choice_nth s T x1 n))
+    ($smtx_typeof_choice_nth T x1 n))
   ; datatypes
   (($smtx_typeof ($sm_DtCons s d i))
     ($smtx_typeof_guard_wf ($tsm_Datatype s d)
@@ -3250,35 +3267,6 @@
 
 
 ;;; Quantifiers
-
-(program $eo_to_smt_is_var
-  ((x $smt_Term) (s1 $native_String) (T1 $smt_Type)
-   (s2 $native_String) (T2 $smt_Type))
-  :signature ($native_String $smt_Type $smt_Term) $native_Bool
-  (
-  (($eo_to_smt_is_var s1 T1 ($sm_Var s2 T2))
-    ($native_and ($native_str_= s1 s2) ($native_Teq T1 T2)))
-  (($eo_to_smt_is_var s1 T1 x) $native_false)
-  )
-)
-
-; Substitution
-; program: $eo_to_smt_substitute
-; Used to define $smtx_eval_exists_rec.
-; ($eo_to_smt_substitute s T u t) returns the term t where the
-; variable ($sm_Var s T) is replaced by u.
-(program $eo_to_smt_substitute
-  ((s $native_String) (T $smt_Type) (u $smt_Term)
-   (f $smt_Term) (a $smt_Term) (z $smt_Term))
-  :signature ($native_String $smt_Type $smt_Term $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_substitute s T u ($sm_apply f a))
-    ($sm_apply ($eo_to_smt_substitute s T u f) ($eo_to_smt_substitute s T u a)))
-  (($eo_to_smt_substitute s T u z)
-    ; if x is z, we are now the constant with the given interpretation
-    ($native_ite ($eo_to_smt_is_var s T z) u z))
-  )
-)
 
 ; forward declarations
 (program $eo_to_smt ((T Type)) :signature (T) $smt_Term)
