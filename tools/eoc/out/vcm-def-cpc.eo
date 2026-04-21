@@ -1818,6 +1818,9 @@
 ; An SMT term.
 (declare-const $smt_Term Type)
 
+; An (atomic) SMT theory op.
+(declare-const $smt_TheoryOp Type)
+
 ; An SMT type.
 (declare-const $smt_Type Type)
 ; utilities

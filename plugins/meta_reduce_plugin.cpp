@@ -28,6 +28,7 @@ void MetaReducePlugin::initializeCommonMetaKinds()
   d_typeToMetaKind["$smt_Model"] = MetaKind::SMT_MODEL;
   d_typeToMetaKind["$smt_RefList"] = MetaKind::SMT_REFLIST;
   d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
+  d_typeToMetaKind["$smt_TheoryOp"] = MetaKind::SMT_THEORY_OP;
   d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;

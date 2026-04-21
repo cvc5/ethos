@@ -229,6 +229,14 @@ inductive SmtType : Type where
 deriving Repr, DecidableEq, Inhabited
 
 /- 
+Ordinary SMT-LIB theory operators.
+-/
+inductive SmtTheoryOp : Type where
+  | None : SmtTheoryOp
+
+deriving Repr, Inhabited
+
+/- 
 SMT-LIB terms.
 -/
 inductive SmtTerm : Type where

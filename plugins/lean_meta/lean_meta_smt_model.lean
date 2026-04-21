@@ -214,6 +214,13 @@ $LEAN_SMT_TYPE_DEF$
 deriving Repr, DecidableEq, Inhabited
 
 /- 
+Ordinary SMT-LIB theory operators.
+-/
+inductive SmtTheoryOp : Type where
+$LEAN_SMT_THEORY_OP_DEF$
+deriving Repr, Inhabited
+
+/- 
 SMT-LIB terms.
 -/
 inductive SmtTerm : Type where

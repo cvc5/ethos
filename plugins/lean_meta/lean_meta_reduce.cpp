@@ -43,6 +43,14 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   d_hasDefs = false;
   d_defsTotal << "mutual" << std::endl << std::endl;
 #endif
+  if (optionSmtTheoryOp())
+  {
+    d_smtDt << "  | TheoryOp : SmtTheoryOp -> SmtTerm" << std::endl;
+  }
+  else
+  {
+    d_smtTOpDt << "  | None : SmtTheoryOp" << std::endl;
+  }
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}
@@ -78,6 +86,7 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
     case MetaKind::SMT_MODEL: os << "SmtModel"; break;
     case MetaKind::SMT_REFLIST: os << "RefList"; break;
     case MetaKind::SMT: os << "SmtTerm"; break;
+    case MetaKind::SMT_THEORY_OP: os << "SmtTheoryOp"; break;
     case MetaKind::SMT_VALUE: os << "SmtValue"; break;
     case MetaKind::SMT_MAP: os << "SmtMap"; break;
     case MetaKind::SMT_SEQ: os << "SmtSeq"; break;
@@ -95,6 +104,24 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
     default: return false;
   }
   return true;
+}
+
+bool LeanMetaReduce::isAtomicSmt(const Expr& c, const std::string& cname)
+{
+  if (!optionSmtTheoryOp())
+  {
+    return false;
+  }
+  Attr attr = d_state.getConstructorKind(c.getValue());
+  if (attr != Attr::OPAQUE)
+  {
+    if (cname=="None")
+    {
+      return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
@@ -123,11 +150,21 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
     }
     else
     {
-      if (!printMetaTypeKind(k, os))
+      bool needsCparen = false;
+      if (k==MetaKind::SMT && isAtomicSmt(c, cname))
       {
-        os << "Term";
+        needsCparen = true;
+        os << "(SmtTerm.TheoryOp SmtTheoryOp";
+      }
+      else if (!printMetaTypeKind(k, os))
+      {
+        os << "Term.";
       }
       os << "." << cleanSmtId(cname);
+      if (needsCparen)
+      {
+        os << ")";
+      }
     }
   }
   else if (k == Kind::BOOL_TYPE)
@@ -980,8 +1017,6 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   // (*out) << "  ; type is " << ct << std::endl;
   Attr attr = d_state.getConstructorKind(e.getValue());
   // (*out) << "  ; attr is " << attr << std::endl;
-  (*out) << "  | ";
-  (*out) << cname << " : ";
   size_t nopqArgs = 0;
   Expr retType = ct;
   if (attr == Attr::OPAQUE)
@@ -991,6 +1026,13 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     nopqArgs = ct.getNumChildren() - 1;
     retType = ct[nopqArgs];
   }
+  if (tk == MetaKind::SMT && isAtomicSmt(c, cnamek))
+  {
+    out = &d_smtTOpDt;
+    tk = MetaKind::SMT_THEORY_OP;
+  }
+  (*out) << "  | ";
+  (*out) << cname << " : ";
   AlwaysAssert(attr != Attr::AMB && attr != Attr::AMB_DATATYPE_CONSTRUCTOR);
   // revert overloads
   if (cnamek.compare(0, 5, "$eoo_") == 0)
@@ -1044,6 +1086,7 @@ void LeanMetaReduce::finalizeSmtModel()
       "plugins/lean_meta/lean_meta_smt_model_gen.lean",
       {{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
        {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()},
+       {"$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str()},
        {"$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str()},
        {"$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str()},
        {"$LEAN_SMT_EVAL$", d_smt.str()}});

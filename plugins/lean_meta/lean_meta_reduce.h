@@ -100,6 +100,7 @@ class LeanMetaReduce : public MetaReducePlugin
                                   MetaKind ctx = MetaKind::EUNOIA);
   void printStepCase(std::ostream& out, const std::string& str, bool isPop);
   void printStepEmptyCase(std::ostream& out, const std::string& str, bool isPop);
+  bool isAtomicSmt(const Expr& c, const std::string& cname);
   std::stringstream d_defs;
   std::stringstream d_defsTotal;
   bool d_hasDefs;
@@ -116,6 +117,7 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_smtDefs;
   std::stringstream d_smt;
   std::stringstream d_smtDt;
+  std::stringstream d_smtTOpDt;
   std::stringstream d_smtTypeDt;
   std::stringstream d_smtValueDt;
   std::stringstream d_cmdDt;

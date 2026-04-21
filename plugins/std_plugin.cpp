@@ -202,6 +202,8 @@ bool StdPlugin::optionEoTypeCanonize() { return true; }
 bool StdPlugin::optionFwdDeclIsListNilNground() { return true; }
 // whether e.g. and : SmtTerm -> SmtTerm -> SmtTerm instead of and : SmtTerm
 bool StdPlugin::optionSmtFoTheorySymbols() { return true; }
+// whether to collapse theory operators to SmtTheoryOp
+bool StdPlugin::optionSmtTheoryOp() { return false; }
 
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
