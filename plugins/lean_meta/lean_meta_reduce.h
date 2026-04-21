@@ -100,6 +100,7 @@ class LeanMetaReduce : public MetaReducePlugin
                                   MetaKind ctx = MetaKind::EUNOIA);
   void printStepCase(std::ostream& out, const std::string& str, bool isPop);
   void printStepEmptyCase(std::ostream& out, const std::string& str, bool isPop);
+  bool isAtomicEo(const Expr& c, const std::string& cname);
   bool isAtomicSmt(const Expr& c, const std::string& cname);
   std::stringstream d_defs;
   std::stringstream d_defsTotal;
@@ -107,6 +108,7 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_eoIsObjDefs;
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
+  std::stringstream d_embedTOpDt;
   /** Eunoia to object inductive prop */
   std::stringstream d_eoIsObj;
   /** Eunoia is refutation prop */

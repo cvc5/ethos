@@ -88,6 +88,7 @@ class StdPlugin : public Plugin
   static bool optionFwdDeclIsListNilNground();
   static bool optionSmtFoTheorySymbols();
   static bool optionSmtTheoryOp();
+  static bool optionEoUserOp();
 };
 
 }  // namespace ethos

@@ -48,6 +48,13 @@ instance : Ord Rat where
 
 mutual
 
+/- 
+Ordinary user operators
+-/
+inductive UserOp : Type where
+$LEAN_EO_THEORY_OP_DEF$
+deriving Repr, Inhabited
+
 /- Term definition -/
 inductive Term : Type where
 $LEAN_TERM_DEF$

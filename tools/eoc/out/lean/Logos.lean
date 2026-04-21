@@ -48,6 +48,14 @@ instance : Ord Rat where
 
 mutual
 
+/- 
+Ordinary user operators
+-/
+inductive UserOp : Type where
+  | None : UserOp
+
+deriving Repr, Inhabited
+
 /- Term definition -/
 inductive Term : Type where
   | Int : Term

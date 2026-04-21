@@ -26,7 +26,6 @@ std::string metaKindToString(MetaKind k)
     case MetaKind::SMT_MODEL: return "SMT_MODEL"; break;
     case MetaKind::SMT_REFLIST: return "SMT_REFLIST"; break;
     case MetaKind::SMT: ss << "SMT"; break;
-    case MetaKind::SMT_THEORY_OP: ss << "SMT_THEORY_OP"; break;
     case MetaKind::SMT_BUILTIN: ss << "SMT_BUILTIN"; break;
     case MetaKind::SMT_BUILTIN_DATATYPE: ss << "SMT_BUILTIN_DATATYPE"; break;
     case MetaKind::SMT_TYPE: ss << "SMT_TYPE"; break;

@@ -1,5 +1,5 @@
 import $EO_CALC$.Proofs.CheckerCore
-import $EO_CALC$.Proofs.Support
+import $EO_CALC$.Proofs.RuleSupport.Support
 $EO_RULE_LEMMA_INCLUDE$
 
 open Eo

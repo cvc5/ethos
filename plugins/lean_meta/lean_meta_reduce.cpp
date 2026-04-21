@@ -51,6 +51,14 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   {
     d_smtTOpDt << "  | None : SmtTheoryOp" << std::endl;
   }
+  if (optionEoUserOp())
+  {
+    d_embedTermDt << "  | UOp : UserOp -> Term" << std::endl;
+  }
+  else
+  {
+    d_embedTOpDt << "  | None : UserOp" << std::endl;
+  }
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}
@@ -86,7 +94,6 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
     case MetaKind::SMT_MODEL: os << "SmtModel"; break;
     case MetaKind::SMT_REFLIST: os << "RefList"; break;
     case MetaKind::SMT: os << "SmtTerm"; break;
-    case MetaKind::SMT_THEORY_OP: os << "SmtTheoryOp"; break;
     case MetaKind::SMT_VALUE: os << "SmtValue"; break;
     case MetaKind::SMT_MAP: os << "SmtMap"; break;
     case MetaKind::SMT_SEQ: os << "SmtSeq"; break;
@@ -116,6 +123,24 @@ bool LeanMetaReduce::isAtomicSmt(const Expr& c, const std::string& cname)
   if (attr != Attr::OPAQUE)
   {
     if (cname=="None")
+    {
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+bool LeanMetaReduce::isAtomicEo(const Expr& c, const std::string& cname)
+{
+  if (!optionEoUserOp())
+  {
+    return false;
+  }
+  Attr attr = d_state.getConstructorKind(c.getValue());
+  if (attr != Attr::OPAQUE)
+  {
+    if (cname=="Stuck" || cname=="Type" || cname=="FunType" || cname=="Bool" || cname.compare(0,4,"$eo_")==0)
     {
       return false;
     }
@@ -156,9 +181,14 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
         needsCparen = true;
         os << "(SmtTerm.TheoryOp SmtTheoryOp";
       }
+      else if (k==MetaKind::EUNOIA && isAtomicEo(c, cname))
+      {
+        needsCparen = true;
+        os << "(Term.UOp UserOp";
+      }
       else if (!printMetaTypeKind(k, os))
       {
-        os << "Term.";
+        os << "Term";
       }
       os << "." << cleanSmtId(cname);
       if (needsCparen)
@@ -1028,11 +1058,15 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   }
   if (tk == MetaKind::SMT && isAtomicSmt(c, cnamek))
   {
-    out = &d_smtTOpDt;
-    tk = MetaKind::SMT_THEORY_OP;
+    d_smtTOpDt << "  | " << cname << " : SmtTheoryOp" << std::endl;
+    return;
   }
-  (*out) << "  | ";
-  (*out) << cname << " : ";
+  else if (tk==MetaKind::EUNOIA && isAtomicEo(c, cnamek))
+  {
+    d_embedTOpDt << "  | " << cname << " : UserOp" << std::endl;
+    return;
+  }
+  (*out) << "  | " << cname << " : ";
   AlwaysAssert(attr != Attr::AMB && attr != Attr::AMB_DATATYPE_CONSTRUCTOR);
   // revert overloads
   if (cnamek.compare(0, 5, "$eoo_") == 0)
@@ -1073,6 +1107,7 @@ void LeanMetaReduce::finalizeChecker()
       {{"$LEAN_DEFS$", d_defs.str()},
        {"$LEAN_DEFS_TOTAL$", d_defsTotal.str()},
        {"$LEAN_TERM_DEF$", d_embedTermDt.str()},
+       {"$LEAN_EO_THEORY_OP_DEF$", d_embedTOpDt.str()},
        {"$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str()},
        {"$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str()},
        {"$LEAN_CHECKER_DEFS$", d_eoChecker.str()}});

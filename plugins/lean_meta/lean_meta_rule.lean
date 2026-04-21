@@ -1,4 +1,4 @@
-import $EO_CALC$.Proofs.Support
+import $EO_CALC$.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval

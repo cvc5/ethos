@@ -34,7 +34,6 @@ enum class MetaKind
   SMT_REFLIST,
   /** A context in which the deep embedding of the term is an SMT-LIB term */
   SMT,
-  SMT_THEORY_OP,
   /** A context in which the deep embedding of the term is an SMT-LIB type */
   SMT_TYPE,
   /** A context in which the deep embedding of the term is an SMT-LIB value */

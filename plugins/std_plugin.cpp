@@ -204,6 +204,8 @@ bool StdPlugin::optionFwdDeclIsListNilNground() { return true; }
 bool StdPlugin::optionSmtFoTheorySymbols() { return true; }
 // whether to collapse theory operators to SmtTheoryOp
 bool StdPlugin::optionSmtTheoryOp() { return false; }
+// whether to collapse EO operators to UserOp
+bool StdPlugin::optionEoUserOp() { return false; }
 
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
