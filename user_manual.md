@@ -780,7 +780,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
 - `(eo::nameof t1)`
   - If `t1` is a variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
 - `(eo::cmp t1 t2)`
-  - Equivalent to `(eo::is_neg (eo::add (eo::neg (eo::hash t1)) (eo::hash t2)))`. Note that this method corresponds to an arbitrary total order on terms.
+  - Equivalent to `(eo::gt (eo::hash t1) (eo::hash t2))`. Note that this method corresponds to an arbitrary total order on terms.
 - `(eo::is_z t)`
   - Equivalent to `(eo::is_eq (eo::to_z t) t)`.
 - `(eo::is_q t)`
@@ -833,7 +833,8 @@ Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` 
 - `(eo::is_neg t1)`
   - If `t1` is an arithmetic value, this returns `true` if `t1` is strictly negative and `false` otherwise. Otherwise, this operator is not evaluated.
 - `(eo::gt t1 t2)`
-  - Equivalent to `(eo::is_neg (eo::add (eo::neg t1) t2))`.
+  - If `t1` and `t2` are arithmetic values of the same category, this is equivalent to `(eo::is_neg (eo::add (eo::neg t1) t2))`.
+  - If `t1` and `t2` are bitwise values of the same category and bitwidth, this is equivalent to `(eo::gt (eo::to_z t1) (eo::to_z t2))`.
 
 ### String operators
 
