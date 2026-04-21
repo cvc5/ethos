@@ -52,17 +52,22 @@ mutual
 Ordinary user operators
 -/
 inductive UserOp : Type where
-  | None : UserOp
+  | Int : UserOp
+  | Real : UserOp
+  | BitVec : UserOp
+  | Char : UserOp
+  | Seq : UserOp
+  | not : UserOp
+  | or : UserOp
+  | and : UserOp
+  | imp : UserOp
+  | eq : UserOp
 
 deriving Repr, Inhabited
 
 /- Term definition -/
 inductive Term : Type where
-  | Int : Term
-  | Real : Term
-  | BitVec : Term
-  | Char : Term
-  | Seq : Term
+  | UOp : UserOp -> Term
   | __eo_List : Term
   | __eo_List_nil : Term
   | __eo_List_cons : Term
@@ -84,11 +89,6 @@ inductive Term : Type where
   | DtSel : native_String -> Datatype -> native_Nat -> native_Nat -> Term
   | USort : native_Nat -> Term
   | UConst : native_Nat -> Term -> Term
-  | not : Term
-  | or : Term
-  | and : Term
-  | imp : Term
-  | eq : Term
 
 deriving Repr, DecidableEq, Inhabited, Ord
 
@@ -187,13 +187,13 @@ def __eo_is_bool_type : Term -> Term
 
 
 def __eo_prog_contra : Proof -> Proof -> Term
-  | (Proof.pf F), (Proof.pf (Term.Apply Term.not __eo_lv_F_2)) => (__eo_requires (__eo_eq F __eo_lv_F_2) (Term.Boolean true) (Term.Boolean false))
+  | (Proof.pf F), (Proof.pf (Term.Apply (Term.UOp UserOp.not) __eo_lv_F_2)) => (__eo_requires (__eo_eq F __eo_lv_F_2) (Term.Boolean true) (Term.Boolean false))
   | _, _ => Term.Stuck
 
 
 def __mk_symm : Term -> Term
-  | (Term.Apply (Term.Apply Term.eq t1) t2) => (Term.Apply (Term.Apply Term.eq t2) t1)
-  | (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t1) t2)) => (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t2) t1))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2) => (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t2) t1)
+  | (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2)) => (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t2) t1))
   | _ => Term.Stuck
 
 
@@ -231,26 +231,26 @@ def __eo_typeof_fun_type : Term -> Term -> Term
 
 def __eo_lit_type_Numeral : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | t => Term.Int
+  | t => (Term.UOp UserOp.Int)
 
 
 def __eo_lit_type_Rational : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | t => Term.Real
+  | t => (Term.UOp UserOp.Real)
 
 
 def __eo_lit_type_Binary : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | t => (__eo_mk_apply Term.BitVec (__eo_len t))
+  | t => (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_len t))
 
 
 def __eo_lit_type_String : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | t => (Term.Apply Term.Seq Term.Char)
+  | t => (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
 
 
 def __eo_typeof_BitVec : Term -> Term
-  | Term.Int => Term.Type
+  | (Term.UOp UserOp.Int) => Term.Type
   | _ => Term.Stuck
 
 
@@ -294,16 +294,16 @@ def __eo_typeof : Term -> Term
   | Term.__eo_List => Term.Type
   | Term.__eo_List_nil => Term.__eo_List
   | (Term.Apply Term.__eo_List_cons __eo_x1) => (Term.Apply (Term.Apply Term.FunType Term.__eo_List) Term.__eo_List)
-  | Term.Int => Term.Type
-  | Term.Real => Term.Type
-  | (Term.Apply Term.BitVec __eo_x1) => (__eo_typeof_BitVec (__eo_typeof __eo_x1))
-  | Term.Char => Term.Type
-  | (Term.Apply Term.Seq __eo_x1) => (__eo_typeof_Seq (__eo_typeof __eo_x1))
-  | (Term.Apply Term.not __eo_x1) => (__eo_typeof_not (__eo_typeof __eo_x1))
-  | (Term.Apply (Term.Apply Term.or __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.and __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.imp __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.eq __eo_x1) __eo_x2) => (__eo_typeof_eq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.UOp UserOp.Int) => Term.Type
+  | (Term.UOp UserOp.Real) => Term.Type
+  | (Term.Apply (Term.UOp UserOp.BitVec) __eo_x1) => (__eo_typeof_BitVec (__eo_typeof __eo_x1))
+  | (Term.UOp UserOp.Char) => Term.Type
+  | (Term.Apply (Term.UOp UserOp.Seq) __eo_x1) => (__eo_typeof_Seq (__eo_typeof __eo_x1))
+  | (Term.Apply (Term.UOp UserOp.not) __eo_x1) => (__eo_typeof_not (__eo_typeof __eo_x1))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.or) __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_x1) __eo_x2) => (__eo_typeof_eq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
   | _ => Term.Stuck
 
@@ -448,7 +448,7 @@ def __eo_state_is_refutation (s : CState) : native_Bool :=
   (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
 
 def __eo_invoke_assume_list (S : CState) : Term -> CState
-  | (Term.Apply (Term.Apply Term.and F) as) => (CState.cons (CStateObj.assume F) (__eo_invoke_assume_list S as))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) => (CState.cons (CStateObj.assume F) (__eo_invoke_assume_list S as))
   | (Term.Boolean true) => S
   | as => CState.Stuck
 
