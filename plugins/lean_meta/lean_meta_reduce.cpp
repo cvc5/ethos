@@ -629,6 +629,10 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
                                      bool isDefine)
 {
   std::string vname = getName(v);
+  if (vname=="$eo_ite")
+  {
+    return;
+  }
   Expr vt = v.getType();
   if (prog.getKind() != Kind::PROGRAM)
   {

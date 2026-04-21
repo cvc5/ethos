@@ -114,6 +114,14 @@ end
 def native_teq : Term -> Term -> native_Bool
   | x, y => decide (x = y)
 
+/- Term ITE -/
+abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
+  (native_ite (native_teq x1 (Term.Boolean true))
+    x2
+    (native_ite (native_teq x1 (Term.Boolean false))
+      x3
+      Term.Stuck))
+
 /- Term less than, based on arbitrary ordering -/
 def native_tcmp (a b : Term) : native_Bool :=
   match compare a b with
@@ -142,19 +150,13 @@ def __eo_mk_apply : Term -> Term -> Term
 def __eo_binary_mod_w (w : native_Int) (n : native_Int) : Term :=
   (Term.Binary w (native_mod_total n (native_int_pow2 w)))
 
-def __eo_ite : Term -> Term -> Term -> Term
-  | x1, x2, x3 => (native_ite (native_teq x1 (Term.Boolean true)) x2 (native_ite (native_teq x1 (Term.Boolean false)) x3 Term.Stuck))
-
-
 def __eo_requires : Term -> Term -> Term -> Term
   | x1, x2, x3 => (native_ite (native_teq x1 x2) (native_ite (native_not (native_teq x1 Term.Stuck)) x3 Term.Stuck) Term.Stuck)
 
 
 def __eo_and : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (native_and b1 b2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
-    let _v0 := (Term.Numeral w1)
-    (native_ite (native_teq _v0 (Term.Numeral w2)) (native_ite (native_not (native_teq _v0 Term.Stuck)) (Term.Binary w1 (native_mod_total (native_binary_and w1 n1 n2) (native_int_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (Term.Binary w1 (native_mod_total (native_binary_and w1 n1 n2) (native_int_pow2 w1))))
   | _, _ => Term.Stuck
 
 

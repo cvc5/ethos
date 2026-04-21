@@ -276,7 +276,7 @@
   (($eo_and ($eot_bool b1) ($eot_bool b2))
      ($eot_bool ($native_and b1 b2)))
   (($eo_and ($eot_binary w1 n1) ($eot_binary w2 n2))
-    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
       ($eo_binary_mod_w w1 ($native_binary_and w1 n1 n2))))
   )
 )
@@ -292,7 +292,7 @@
   (($eo_or ($eot_bool b1) ($eot_bool b2))
      ($eot_bool ($native_or b1 b2)))
   (($eo_or ($eot_binary w1 n1) ($eot_binary w2 n2))
-    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
      ($eo_binary_mod_w w1 ($native_binary_or w1 n1 n2))))
   )
 )
@@ -308,7 +308,7 @@
   (($eo_xor ($eot_bool b1) ($eot_bool b2))
      ($eot_bool ($native_apply_2 "xor" b1 b2)))
   (($eo_xor ($eot_binary w1 n1) ($eot_binary w2 n2))
-    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
      ($eo_binary_mod_w w1 ($native_binary_xor w1 n1 n2))))
   )
 )
@@ -327,7 +327,7 @@
   (($eo_add ($eot_rational r1) ($eot_rational r2))
     ($eot_rational ($native_q_+ r1 r2)))
   (($eo_add ($eot_binary w1 n1) ($eot_binary w2 n2))
-    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
       ($eo_binary_mod_w w1 ($native_z_+ n1 n2))))  ; don't need to recheck bitwidth
   )
 )
@@ -342,7 +342,7 @@
   (($eo_mul ($eot_rational r1) ($eot_rational r2))
     ($eot_rational ($native_q_* r1 r2)))
   (($eo_mul ($eot_binary w1 n1) ($eot_binary w2 n2))
-    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
       ($eo_binary_mod_w w1 ($native_z_* n1 n2))))
   )
 )
@@ -374,7 +374,7 @@
       $eot_stuck
       ($eot_numeral ($native_div_total n1 n2))))
   (($eo_zdiv ($eot_binary w1 n1) ($eot_binary w2 n2))
-    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
       ($native_ite ($native_z_= $native_z_zero n2)
         ($eot_binary w1 ($native_binary_max w1))
         ($eo_binary_mod_w w1 ($native_div_total n1 n2)))))
@@ -391,7 +391,7 @@
       $eot_stuck
       ($eot_numeral ($native_mod_total n1 n2))))
   (($eo_zmod ($eot_binary w1 n1) ($eot_binary w2 n2))
-    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
       ($native_ite ($native_z_= $native_z_zero n2)
         ($eot_binary w1 n1)
         ($eo_binary_mod_w w1 ($native_mod_total n1 n2)))))
@@ -686,9 +686,18 @@
 ; Returns true if x > y.
 ; define: $eo_gt
 ; implements: eo::gt
-(define $eo_gt ((x $eo_Term) (y $eo_Term))
-  ($eo_is_neg ($eo_add ($eo_neg x) y)))
-
+(program $eo_gt
+  ((T Type) (w1 $native_Int) (w2 $native_Int)
+   (n1 $native_Int) (n2 $native_Int) (r1 $native_Rat) (r2 $native_Rat))
+  :signature (T T) Bool
+  (
+  (($eo_gt ($eot_numeral n1) ($eot_numeral n2)) ($native_z_< n2 n1))
+  (($eo_gt ($eot_rational r1) ($eot_rational r2)) ($native_q_< r2 r1))
+  (($eo_gt ($eot_binary w1 n1) ($eot_binary w2 n2))
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
+      ($native_z_< n2 n1)))
+  )
+)
 
 ;;; $eo_cmp
 

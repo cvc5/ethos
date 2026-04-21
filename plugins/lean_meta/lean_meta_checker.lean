@@ -82,6 +82,14 @@ end
 def native_teq : Term -> Term -> native_Bool
   | x, y => decide (x = y)
 
+/- Term ITE -/
+abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
+  (native_ite (native_teq x1 (Term.Boolean true))
+    x2
+    (native_ite (native_teq x1 (Term.Boolean false))
+      x3
+      Term.Stuck))
+
 /- Term less than, based on arbitrary ordering -/
 def native_tcmp (a b : Term) : native_Bool :=
   match compare a b with

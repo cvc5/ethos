@@ -197,7 +197,7 @@
   (($eo_and ($eot_bool b1) ($eot_bool b2))
      ($eot_bool ($native_and b1 b2)))
   (($eo_and ($eot_binary w1 n1) ($eot_binary w2 n2))
-    ($eo_requires ($eot_numeral w1) ($eot_numeral w2)
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
       ($eo_binary_mod_w w1 ($native_binary_and w1 n1 n2))))
   )
 )
