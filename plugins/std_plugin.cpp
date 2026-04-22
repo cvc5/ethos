@@ -9,13 +9,14 @@
 
 #include "std_plugin.h"
 
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <cerrno>
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <sys/stat.h>
-#include <sys/types.h>
 
 #include "state.h"
 
@@ -78,8 +79,7 @@ void ensureDirectoryExists(const std::string& path)
     }
     if (part == "..")
     {
-      if (current.tellp() != std::streampos(0)
-          && current.str().back() != '/')
+      if (current.tellp() != std::streampos(0) && current.str().back() != '/')
       {
         current << "/";
       }
@@ -198,7 +198,8 @@ bool StdPlugin::optionVcUseTypeof() { return true; }
 bool StdPlugin::optionEoTypeofHo() { return false; }
 // whether we combine terms of the same type for defining eo::typeof
 bool StdPlugin::optionEoTypeCanonize() { return true; }
-// whether we use custom definitions of is_list_nil for operators with non-ground nil terminators.
+// whether we use custom definitions of is_list_nil for operators with
+// non-ground nil terminators.
 bool StdPlugin::optionFwdDeclIsListNilNground() { return true; }
 // whether e.g. and : SmtTerm -> SmtTerm -> SmtTerm instead of and : SmtTerm
 bool StdPlugin::optionSmtFoTheorySymbols() { return true; }

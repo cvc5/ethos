@@ -143,7 +143,7 @@ class Desugar : public StdPlugin
   Expr d_peoPf;
   /** desugaring the checker */
   DesugarChecker d_dchecker;
-  
+
   //----- canonize
   /** Canonize */
   Expr mkCanonize(const Expr& t);

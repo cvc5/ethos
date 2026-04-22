@@ -122,7 +122,7 @@ bool LeanMetaReduce::isAtomicSmt(const Expr& c, const std::string& cname)
   Attr attr = d_state.getConstructorKind(c.getValue());
   if (attr != Attr::OPAQUE)
   {
-    if (cname=="None")
+    if (cname == "None")
     {
       return false;
     }
@@ -140,7 +140,8 @@ bool LeanMetaReduce::isAtomicEo(const Expr& c, const std::string& cname)
   Attr attr = d_state.getConstructorKind(c.getValue());
   if (attr != Attr::OPAQUE)
   {
-    if (cname=="Stuck" || cname=="Type" || cname=="FunType" || cname=="Bool" || cname.compare(0,4,"$eo_")==0)
+    if (cname == "Stuck" || cname == "Type" || cname == "FunType"
+        || cname == "Bool" || cname.compare(0, 4, "$eo_") == 0)
     {
       return false;
     }
@@ -176,12 +177,12 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
     else
     {
       bool needsCparen = false;
-      if (k==MetaKind::SMT && isAtomicSmt(c, cname))
+      if (k == MetaKind::SMT && isAtomicSmt(c, cname))
       {
         needsCparen = true;
         os << "(SmtTerm.TheoryOp SmtTheoryOp";
       }
-      else if (k==MetaKind::EUNOIA && isAtomicEo(c, cname))
+      else if (k == MetaKind::EUNOIA && isAtomicEo(c, cname))
       {
         needsCparen = true;
         os << "(Term.UOp UserOp";
@@ -558,68 +559,68 @@ void LeanMetaReduce::finalizePrograms()
     bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
     Expr def = d_progToDef[prog];
     finalizeProgram(prog, def, isDefine);
-/*
-    // Trying to minimize mutual blocks....
-    Expr prog = d_progDefs[i];
-    if (progProcessed.find(prog) != progProcessed.end())
-    {
-      continue;
-    }
-    Expr def = d_progToDef[prog];
-    std::vector<Expr> calls =
-        StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, def);
-    bool hasWaitingDef = false;
-    for (size_t j = 0, ncalls = calls.size(); j < ncalls; j++)
-    {
-      Expr sc = calls[j];
-      if (sc != prog && progProcessed.find(sc) == progProcessed.end()
-          && d_progToDef.find(sc) != d_progToDef.end())
-      {
-        if (std::find(waiting.begin(), waiting.end(), sc) == waiting.end())
+    /*
+        // Trying to minimize mutual blocks....
+        Expr prog = d_progDefs[i];
+        if (progProcessed.find(prog) != progProcessed.end())
         {
-          waitingDef.insert(sc);
+          continue;
         }
-        hasWaitingDef = true;
-      }
-    }
-    if (!hasWaitingDef)
-    {
-      // go ahead and define it
-      bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
-      finalizeProgram(prog, def, isDefine);
-      progProcessed.insert(prog);
-    }
-    else
-    {
-      // otherwise we are waiting
-      waiting.push_back(prog);
-    }
-    // remove from waiting defs
-    waitingDef.erase(prog);
-    if (!waiting.empty() && waitingDef.empty())
-    {
-      if (waiting.size() > 1)
-      {
-        d_defs << "mutual" << std::endl;
-      }
-      for (size_t j = 0, ncalls = waiting.size(); j < ncalls; j++)
-      {
-        Expr prog = waiting[j];
         Expr def = d_progToDef[prog];
-        if (!def.isNull())
+        std::vector<Expr> calls =
+            StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, def);
+        bool hasWaitingDef = false;
+        for (size_t j = 0, ncalls = calls.size(); j < ncalls; j++)
         {
+          Expr sc = calls[j];
+          if (sc != prog && progProcessed.find(sc) == progProcessed.end()
+              && d_progToDef.find(sc) != d_progToDef.end())
+          {
+            if (std::find(waiting.begin(), waiting.end(), sc) == waiting.end())
+            {
+              waitingDef.insert(sc);
+            }
+            hasWaitingDef = true;
+          }
+        }
+        if (!hasWaitingDef)
+        {
+          // go ahead and define it
           bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
           finalizeProgram(prog, def, isDefine);
           progProcessed.insert(prog);
         }
-      }
-      if (waiting.size() > 1)
-      {
-        d_defs << "end" << std::endl;
-      }
-      waiting.clear();
-    }
-*/
+        else
+        {
+          // otherwise we are waiting
+          waiting.push_back(prog);
+        }
+        // remove from waiting defs
+        waitingDef.erase(prog);
+        if (!waiting.empty() && waitingDef.empty())
+        {
+          if (waiting.size() > 1)
+          {
+            d_defs << "mutual" << std::endl;
+          }
+          for (size_t j = 0, ncalls = waiting.size(); j < ncalls; j++)
+          {
+            Expr prog = waiting[j];
+            Expr def = d_progToDef[prog];
+            if (!def.isNull())
+            {
+              bool isDefine = (d_progIsDefine.find(prog) !=
+       d_progIsDefine.end()); finalizeProgram(prog, def, isDefine);
+              progProcessed.insert(prog);
+            }
+          }
+          if (waiting.size() > 1)
+          {
+            d_defs << "end" << std::endl;
+          }
+          waiting.clear();
+        }
+    */
   }
   Assert(waiting.empty());
 }
@@ -629,7 +630,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
                                      bool isDefine)
 {
   std::string vname = getName(v);
-  if (vname=="$eo_ite")
+  if (vname == "$eo_ite")
   {
     return;
   }
@@ -688,11 +689,12 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     out = &d_defsTotal;
     bool needsPartial = false;
     // insist that builtin eo:: operators are all total.
-    if (vname.compare(0, 4, "$eo_") != 0 || vname.compare(0, 9, "$eo_prog_") == 0)
+    if (vname.compare(0, 4, "$eo_") != 0
+        || vname.compare(0, 9, "$eo_prog_") == 0)
     {
       // check if trivially not recursive?
       std::vector<Expr> prets;
-      for (size_t i=0, nchildren=prog.getNumChildren(); i<nchildren; i++)
+      for (size_t i = 0, nchildren = prog.getNumChildren(); i < nchildren; i++)
       {
         prets.push_back(prog[i][1]);
       }
@@ -703,7 +705,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       {
         // if there is any (mutual) recursion, or reference to a non-total
         // function, set needsPartial to true.
-        if (d_totalDefProgs.find(e)==d_totalDefProgs.end())
+        if (d_totalDefProgs.find(e) == d_totalDefProgs.end())
         {
           needsPartial = true;
           break;
@@ -729,7 +731,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       d_totalDefProgs.insert(v);
     }
   }
-  
+
   // $eo_model is used only for VC generation
   if (vname.compare(0, 9, "$eo_model") == 0)
   {
@@ -979,8 +981,8 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
   if (buildLambdaDefineProgram(name, e, tmp, prog))
   {
     Trace("lean-meta") << "Look at define " << name << std::endl;
-    Trace("lean-meta") << "...do program " << tmp << " / " << prog
-                       << " instead" << std::endl;
+    Trace("lean-meta") << "...do program " << tmp << " / " << prog << " instead"
+                       << std::endl;
     d_progDefs.emplace_back(tmp);
     d_progToDef[tmp] = prog;
     d_progIsDefine.insert(tmp);
@@ -1004,7 +1006,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   std::stringstream ss;
   ss << e;
   std::string sname = ss.str();
-  if (sname=="$eo_pf")
+  if (sname == "$eo_pf")
   {
     return;
   }
@@ -1065,7 +1067,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     d_smtTOpDt << "  | " << cname << " : SmtTheoryOp" << std::endl;
     return;
   }
-  else if (tk==MetaKind::EUNOIA && isAtomicEo(c, cnamek))
+  else if (tk == MetaKind::EUNOIA && isAtomicEo(c, cnamek))
   {
     d_embedTOpDt << "  | " << cname << " : UserOp" << std::endl;
     return;
@@ -1105,41 +1107,41 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
 
 void LeanMetaReduce::finalizeChecker()
 {
-  const std::string outPath = emitResourceFile(
-      "plugins/lean_meta/lean_meta_checker.lean",
-      "plugins/lean_meta/lean_meta_checker_gen.lean",
-      {{"$LEAN_DEFS$", d_defs.str()},
-       {"$LEAN_DEFS_TOTAL$", d_defsTotal.str()},
-       {"$LEAN_TERM_DEF$", d_embedTermDt.str()},
-       {"$LEAN_EO_THEORY_OP_DEF$", d_embedTOpDt.str()},
-       {"$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str()},
-       {"$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str()},
-       {"$LEAN_CHECKER_DEFS$", d_eoChecker.str()}});
+  const std::string outPath =
+      emitResourceFile("plugins/lean_meta/lean_meta_checker.lean",
+                       "plugins/lean_meta/lean_meta_checker_gen.lean",
+                       {{"$LEAN_DEFS$", d_defs.str()},
+                        {"$LEAN_DEFS_TOTAL$", d_defsTotal.str()},
+                        {"$LEAN_TERM_DEF$", d_embedTermDt.str()},
+                        {"$LEAN_EO_THEORY_OP_DEF$", d_embedTOpDt.str()},
+                        {"$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str()},
+                        {"$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str()},
+                        {"$LEAN_CHECKER_DEFS$", d_eoChecker.str()}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }
 
 void LeanMetaReduce::finalizeSmtModel()
 {
-  const std::string outPath = emitResourceFile(
-      "plugins/lean_meta/lean_meta_smt_model.lean",
-      "plugins/lean_meta/lean_meta_smt_model_gen.lean",
-      {{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
-       {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()},
-       {"$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str()},
-       {"$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str()},
-       {"$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str()},
-       {"$LEAN_SMT_EVAL$", d_smt.str()}});
+  const std::string outPath =
+      emitResourceFile("plugins/lean_meta/lean_meta_smt_model.lean",
+                       "plugins/lean_meta/lean_meta_smt_model_gen.lean",
+                       {{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
+                        {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()},
+                        {"$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str()},
+                        {"$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str()},
+                        {"$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str()},
+                        {"$LEAN_SMT_EVAL$", d_smt.str()}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }
 
 void LeanMetaReduce::finalizeSpec()
 {
-  const std::string outPath = emitResourceFile(
-      "plugins/lean_meta/lean_meta_spec.lean",
-      "plugins/lean_meta/lean_meta_spec_gen.lean",
-      {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()},
-       {"$LEAN_EO_IS_OBJ$", d_eoIsObj.str()},
-       {"$LEAN_EO_IS_REFUTATION_DEF$", d_eoIsRef.str()}});
+  const std::string outPath =
+      emitResourceFile("plugins/lean_meta/lean_meta_spec.lean",
+                       "plugins/lean_meta/lean_meta_spec_gen.lean",
+                       {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()},
+                        {"$LEAN_EO_IS_OBJ$", d_eoIsObj.str()},
+                        {"$LEAN_EO_IS_REFUTATION_DEF$", d_eoIsRef.str()}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }
 
@@ -1183,49 +1185,60 @@ void LeanMetaReduce::finalize()
   finalizeLemmas();
 }
 
-void LeanMetaReduce::printStepCase(std::ostream& out, const std::string& prule, bool isPop)
+void LeanMetaReduce::printStepCase(std::ostream& out,
+                                   const std::string& prule,
+                                   bool isPop)
 {
   std::stringstream thmName;
   thmName << "cmd_step_" << (isPop ? "pop_" : "") << prule << "_properties";
   out << "  | " << prule << " =>" << std::endl;
-  out << "      exact cmd_step_" << (isPop ? "pop_" : "") << "facts_of_rule_properties";
-  out << (isPop ? " M hM root tail A premises hsRoot hSuffix " : " M s premises hs ") << "<|" << std::endl;
+  out << "      exact cmd_step_" << (isPop ? "pop_" : "")
+      << "facts_of_rule_properties";
+  out << (isPop ? " M hM root tail A premises hsRoot hSuffix "
+                : " M s premises hs ")
+      << "<|" << std::endl;
   out << "        " << thmName.str() << " ";
   if (isPop)
   {
     out << "A root args premises" << std::endl;
-    out << "          hATrans hATy hPremisesTrans hPremisesTy hResultTy" << std::endl;
+    out << "          hATrans hATy hPremisesTrans hPremisesTy hResultTy"
+        << std::endl;
   }
   else
   {
     out << "M hM s args premises" << std::endl;
-    out << "          (by simpa using hCmdTrans) hPremisesBool hResultTy" << std::endl;
+    out << "          (by simpa using hCmdTrans) hPremisesBool hResultTy"
+        << std::endl;
   }
   std::stringstream ss;
   ss << "plugins/lean_meta/rules/lean_meta_rule_" << prule << "_gen.lean";
-  const std::string outPath = emitResourceFile(
-      "plugins/lean_meta/lean_meta_rule.lean",
-      ss.str(),
-      {{"$EO_RULE$", prule}}, true);
+  const std::string outPath =
+      emitResourceFile("plugins/lean_meta/lean_meta_rule.lean",
+                       ss.str(),
+                       {{"$EO_RULE$", prule}},
+                       true);
   Trace("lean-meta") << "Write lean-defs rule " << outPath << std::endl;
-//  | contra =>
-//      exact cmd_step_facts_of_rule_properties M s premises hs <|
-//        cmd_step_contra_properties M hM s args premises
-//          (by simpa using hCmdTrans) hPremisesBool hProg
-//  | scope =>
-//      exact cmd_step_pop_facts_of_rule_properties root tail A premises <|
-//        cmd_step_pop_scope_properties A root args premises
-//          hATrans hATy hPremisesTrans hPremisesTy hProg
+  //  | contra =>
+  //      exact cmd_step_facts_of_rule_properties M s premises hs <|
+  //        cmd_step_contra_properties M hM s args premises
+  //          (by simpa using hCmdTrans) hPremisesBool hProg
+  //  | scope =>
+  //      exact cmd_step_pop_facts_of_rule_properties root tail A premises <|
+  //        cmd_step_pop_scope_properties A root args premises
+  //          hATrans hATy hPremisesTrans hPremisesTy hProg
 }
 
-void LeanMetaReduce::printStepEmptyCase(std::ostream& out, const std::string& prule, bool isPop)
+void LeanMetaReduce::printStepEmptyCase(std::ostream& out,
+                                        const std::string& prule,
+                                        bool isPop)
 {
   out << "  | " << prule << " =>" << std::endl;
-  out << "      cases args <;> cases premises <;> exact False.elim (hProg rfl)" << std::endl;
-//  | scope =>
-//      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
-//  | contra =>
-//      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+  out << "      cases args <;> cases premises <;> exact False.elim (hProg rfl)"
+      << std::endl;
+  //  | scope =>
+  //      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  //  | contra =>
+  //      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
 }
 
 bool LeanMetaReduce::echo(const std::string& msg)
@@ -1249,13 +1262,13 @@ bool LeanMetaReduce::echo(const std::string& msg)
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
     if (ctype == ConjectureType::VC)
     {
-// ------------------ new
+      // ------------------ new
       std::string prule = progName.substr(10);
       std::string fileName = prule;
       fileName[0] = toupper(fileName[0]);
       d_rlInclude << "import $EO_CALC$.Proofs.Rules." << fileName << std::endl;
       // TODO: don't hardcode this
-      if (prule=="scope")
+      if (prule == "scope")
       {
         printStepEmptyCase(d_rlIncludeStep, prule, false);
         printStepCase(d_rlIncludeStepPop, prule, true);

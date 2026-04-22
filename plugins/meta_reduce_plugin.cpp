@@ -116,9 +116,8 @@ MetaKind MetaReducePlugin::getTypeMetaKindFor(const Expr& typ,
   }
   if (followFunctionRange && k == Kind::FUNCTION_TYPE)
   {
-    return getTypeMetaKindFor(typ[typ.getNumChildren() - 1],
-                              elseKind,
-                              followFunctionRange);
+    return getTypeMetaKindFor(
+        typ[typ.getNumChildren() - 1], elseKind, followFunctionRange);
   }
   std::string sname = getName(typ);
   std::map<std::string, MetaKind>::const_iterator it =

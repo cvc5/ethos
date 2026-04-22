@@ -208,7 +208,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         const Literal* l = tcur[1].getValue()->asLiteral();
         if (tcur.getNumChildren() == 2)
         {
-          // e.g. ($native_apply_0 "0") or ($native_apply_0 "nat.zero") in a pattern.
+          // e.g. ($native_apply_0 "0") or ($native_apply_0 "nat.zero") in a
+          // pattern.
           std::stringstream eq;
           eq << "(= " << currTerm << " " << l->d_str.toString() << ")";
           print.push(eq.str());
@@ -714,8 +715,8 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
   if (buildLambdaDefineProgram(name, e, tmp, prog))
   {
     Trace("smt-meta") << "Look at define " << name << std::endl;
-    Trace("smt-meta") << "...do program " << tmp << " / " << prog
-                      << " instead" << std::endl;
+    Trace("smt-meta") << "...do program " << tmp << " / " << prog << " instead"
+                      << std::endl;
     finalizeProgram(tmp, prog, true);
     Trace("smt-meta") << "...finished lambda program" << std::endl;
   }
@@ -858,17 +859,17 @@ void SmtMetaReduce::finalize()
   {
     d_embedSeqDt << "  (ssm.None)" << std::endl;
   }
-  const std::string outPath = emitResourceFile(
-      "plugins/smt_meta/smt_meta.smt2",
-      "plugins/smt_meta/smt_meta_gen.smt2",
-      {{"$SM_DEFS$", d_defs.str()},
-       {"$SMT_VC$", d_smtVc.str()},
-       {"$SM_TYPE_DECL$", d_embedTypeDt.str()},
-       {"$SM_TERM_DECL$", d_embedTermDt.str()},
-       {"$SM_VALUE_DECL$", d_embedValueDt.str()},
-       {"$SM_MAP_DECL$", d_embedMapDt.str()},
-       {"$SM_SEQ_DECL$", d_embedSeqDt.str()},
-       {"$SM_EO_TERM_DECL$", d_embedEoTermDt.str()}});
+  const std::string outPath =
+      emitResourceFile("plugins/smt_meta/smt_meta.smt2",
+                       "plugins/smt_meta/smt_meta_gen.smt2",
+                       {{"$SM_DEFS$", d_defs.str()},
+                        {"$SMT_VC$", d_smtVc.str()},
+                        {"$SM_TYPE_DECL$", d_embedTypeDt.str()},
+                        {"$SM_TERM_DECL$", d_embedTermDt.str()},
+                        {"$SM_VALUE_DECL$", d_embedValueDt.str()},
+                        {"$SM_MAP_DECL$", d_embedMapDt.str()},
+                        {"$SM_SEQ_DECL$", d_embedSeqDt.str()},
+                        {"$SM_EO_TERM_DECL$", d_embedEoTermDt.str()}});
   Trace("smt-meta") << "Write smt2-defs " << outPath << std::endl;
 }
 

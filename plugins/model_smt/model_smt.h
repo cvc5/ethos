@@ -179,8 +179,8 @@ class ModelSmt : public StdPlugin
                            const std::string& retType,
                            std::stringstream& out);
   void addAuxTypeProgram(const std::string& name,
-                           const std::vector<Kind>& args,
-                           const std::string& retType);
+                         const std::vector<Kind>& args,
+                         const std::string& retType);
   /** Add eo_is_list_nil aux definition */
   void addAuxIsListNil(const std::string& name, const std::string& ret);
   /**

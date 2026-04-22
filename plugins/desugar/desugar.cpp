@@ -17,8 +17,7 @@
 
 namespace ethos {
 
-Desugar::Desugar(State& s)
-    : StdPlugin(s), d_dchecker(s)
+Desugar::Desugar(State& s) : StdPlugin(s), d_dchecker(s)
 {
   // we require santization of the eo::List at this stage
   // TODO: maybe just use text replace??
@@ -323,12 +322,13 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       d_eoNil << "(" << pname << " T)";
       if (optionFwdDeclIsListNilNground())
       {
-        // we do not call eo::typeof here, instead we forward declare is_list_nil
-        // definitions
+        // we do not call eo::typeof here, instead we forward declare
+        // is_list_nil definitions
         std::stringstream ssil;
         ssil << "$eo_is_list_nil_" << cname;
         d_eoIsListNil << "nil) (" << ssil.str() << " nil))" << std::endl;
-        d_eoIsListNilDefs << "(program " << ssil.str() << " ((T Type)) :signature (T) Bool)" << std::endl;
+        d_eoIsListNilDefs << "(program " << ssil.str()
+                          << " ((T Type)) :signature (T) Bool)" << std::endl;
       }
       else
       {
@@ -442,9 +442,10 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     if (ngArgs > 0)
     {
       Expr canonT = mkCanonize(cto);
-      std::map<Expr, std::string>::iterator itc = d_canonTypeProgName.find(canonT);
+      std::map<Expr, std::string>::iterator itc =
+          d_canonTypeProgName.find(canonT);
       std::string pname;
-      if (itc==d_canonTypeProgName.end() || !optionEoTypeCanonize())
+      if (itc == d_canonTypeProgName.end() || !optionEoTypeCanonize())
       {
         std::stringstream ssng;
         ssng << "$eo_typeof_";
@@ -899,18 +900,18 @@ Expr Desugar::mkCanonize(const Expr& t)
   for (const Expr& v : vars)
   {
     Expr tv = v.getType();
-    Assert(v.getKind()==Kind::PARAM);
+    Assert(v.getKind() == Kind::PARAM);
     size_t i = index[tv];
     index[tv]++;
     std::vector<Expr>& tvars = d_vars[tv];
-    if (tvars.size()==i)
+    if (tvars.size() == i)
     {
       tvars.push_back(v);
     }
     else
     {
       visited[v] = tvars[i];
-      Assert(tvars[i].getKind()==Kind::PARAM);
+      Assert(tvars[i].getKind() == Kind::PARAM);
     }
   }
   return mkSanitize(t, visited);
