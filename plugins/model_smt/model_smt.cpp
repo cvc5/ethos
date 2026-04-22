@@ -798,8 +798,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.to_lower", {kString}, kString);
   addConstFoldSym("str.to_upper", {kString}, kString);
   std::stringstream ssItosRes;
-  ssItosRes << "(str.from_int (mod ($eo_to_smt x1) (** (numeral " << smtZ(10)
-            << ") ($eo_to_smt x2))))";
+  ssItosRes << "(mod ($eo_to_smt x1) (** (numeral " << smtZ(10)
+            << ") ($eo_to_smt x2)))";
   addEunoiaReduceSym("@strings_itos_result",
                      {kInt, kInt},
                      smtToSmtEmbed(ssItosRes.str(), true));
@@ -1005,7 +1005,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym(
       "@bit",
       {kInt, kBitVec},
-      smtToSmtEmbed("(extract ($eo_to_smt x1) ($eo_to_smt x1) ($eo_to_smt x2))",
+      smtToSmtEmbed("(= (extract ($eo_to_smt x1) ($eo_to_smt x1) ($eo_to_smt x2)) #b1)",
                     true));
   addEunoiaReduceSym(
       "@from_bools",
