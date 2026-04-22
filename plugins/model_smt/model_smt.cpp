@@ -847,9 +847,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // note that negative indices are silently treated as 0 here
   d_specialCases["@quantifiers_skolemize"].emplace_back(
       "(@quantifiers_skolemize (forall x1 x2) x3)",
-      smtGuard("($native_teq ($eo_is_neg x3) false)", "($eo_to_smt_quantifiers_skolemize ($eo_to_smt_exists x1 ($sm_not "
+      smtGuard("($native_teq (eo::is_z x3) true)", smtGuard("($native_teq ($eo_is_neg x3) false)", "($eo_to_smt_quantifiers_skolemize ($eo_to_smt_exists x1 ($sm_not "
       "($eo_to_smt x2))) "
-      "($eo_to_smt_nat x3))"));
+      "($eo_to_smt_nat x3))")));
   d_symIgnore["@quantifiers_skolemize"] = true;
 
   // re pos unfold
@@ -875,9 +875,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym(
       "@re_unfold_pos_component",
       {kAny, kAny, kAny},
-      smtGuard("($native_teq ($eo_is_neg x3) false)", smtToSmtEmbed("($eo_to_smt_re_unfold_pos_component ($eo_to_smt x1) "
+      smtGuard("($native_teq (eo::is_z x3) true)", smtGuard("($native_teq ($eo_is_neg x3) false)", smtToSmtEmbed("($eo_to_smt_re_unfold_pos_component ($eo_to_smt x1) "
                     "($eo_to_smt x2) ($eo_to_smt_nat x3))",
-                    true)));
+                    true))));
   // sequences
   // for empty, that the Eunoia uses (Seq T) as an argument, whereas SMT uses T.
   addRecReduceSym("seq.empty", {kType}, kAny, "($smtx_empty_seq x1)");
