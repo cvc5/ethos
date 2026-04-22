@@ -978,7 +978,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       smtToSmtEmbed("(ite (bvslt ($eo_to_smt x1) ($eo_to_smt x2)) #b1 #b0)",
                     true));
   //addLitSym("@bvsize", {kBitVec}, kInt, "x1");
-  addEunoiaReduceSym("@bvsize", {kBitVec}, "($sm_numeral ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))))");
+  addEunoiaReduceSym("@bvsize", {kBitVec}, "(eo::define ((n ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))))) ($native_ite ($native_z_<= $native_z_zero n) ($sm_numeral n) $sm_none))");
   addEunoiaReduceSym(
       "bvredor",
       {kBitVec},
