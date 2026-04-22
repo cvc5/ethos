@@ -691,11 +691,11 @@
    (n1 $native_Int) (n2 $native_Int) (r1 $native_Rat) (r2 $native_Rat))
   :signature (T T) Bool
   (
-  (($eo_gt ($eot_numeral n1) ($eot_numeral n2)) ($native_z_< n2 n1))
-  (($eo_gt ($eot_rational r1) ($eot_rational r2)) ($native_q_< r2 r1))
+  (($eo_gt ($eot_numeral n1) ($eot_numeral n2)) ($eot_bool ($native_z_< n2 n1)))
+  (($eo_gt ($eot_rational r1) ($eot_rational r2)) ($eot_bool ($native_q_< r2 r1)))
   (($eo_gt ($eot_binary w1 n1) ($eot_binary w2 n2))
     (eo::requires ($eot_numeral w1) ($eot_numeral w2)
-      ($native_z_< n2 n1)))
+      ($eot_bool ($native_z_< n2 n1))))
   )
 )
 
