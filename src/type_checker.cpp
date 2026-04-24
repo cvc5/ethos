@@ -1685,10 +1685,10 @@ Expr TypeChecker::evaluateListMPredInternal(Kind k,
   {
     return d_state.mkFalse();
   }
-  for (const std::pair<const ExprValue* const, uint32_t>& entry : count1)
+  for (const std::pair<const ExprValue* const, uint32_t>& entry : count2)
   {
-    if (isEq ? count2[entry.first] != entry.second
-             : count2[entry.first] < entry.second)
+    if (isEq ? count1[entry.first] != entry.second
+             : count1[entry.first] < entry.second)
     {
       return d_state.mkFalse();
     }
