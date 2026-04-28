@@ -1775,7 +1775,6 @@
   (($eo_typeof ($eot_DtCons s d i))
     ($eo_typeof_dt_cons_rec ($eot_DatatypeType s d) ($eo_dt_substitute s d d) i))
   (($eo_typeof ($eot_DtSel s d i j))
-    ; TODO: ensure types, well-foundedness of d??
     (-> ($eot_DatatypeType s d) ($eo_typeof_dt_sel_return ($eo_dt_substitute s d d) i j)))
   (($eo_typeof ($eot_USort i))                Type)
   (($eo_typeof ($eot_UConst i T))             T)
@@ -1785,7 +1784,6 @@
     ; requires both children are types
     ($eo_typeof_fun_type ($eo_typeof $eo_T) ($eo_typeof $eo_U)))
   (($eo_typeof Bool)                          Type)
-  ; TODO: auto-generate these?
   (($eo_typeof $eo_List)                      Type)
   (($eo_typeof $eo_List_nil)                  $eo_List)
   (($eo_typeof ($eo_List_cons $eo_x1))        (-> $eo_List $eo_List))
