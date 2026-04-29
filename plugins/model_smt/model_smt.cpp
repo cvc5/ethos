@@ -224,14 +224,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   Kind kNone = Kind::NONE;
   Kind kType = Kind::TYPE;
   Kind kRegLan = Kind::EVAL_TO_STRING;
-  Kind kList = Kind::EVAL_CONS;
   // these don't matter, just need a unique identifier
   d_kSet = Kind::EVAL_LIST_SETOF;
   d_kSeq = Kind::EVAL_LIST_LENGTH;
   d_kArray = Kind::EVAL_LIST_NTH;
   d_kBit = Kind::EVAL_EXTRACT;
   d_kIntQuote = Kind::QUOTE_TYPE;
-  // Kind kVarList = Kind::VARIABLE;
   d_kindToEoPrefix[kBool] = "bool";
   d_kindToEoPrefix[kInt] = "numeral";
   d_kindToEoPrefix[d_kIntQuote] = "numeral";
@@ -769,10 +767,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // one variable at a time, $sm_exists is hardcoded
   addEunoiaReduceSym(
       "exists", {kT, kT}, "($eo_to_smt_exists x1 ($eo_to_smt x2))");
+  d_specialCases["exists"].emplace_back("(exists $eo_List_nil x1)",
+                                            "$sm_none");
   addEunoiaReduceSym(
       "forall",
       {kT, kBool},
       "($sm_not ($eo_to_smt_exists x1 ($sm_not ($eo_to_smt x2))))");
+  d_specialCases["forall"].emplace_back("(forall $eo_List_nil x1)",
+                                            "$sm_none");
 
   //===========================================================================
   ///----- non standard extensions and skolems
@@ -847,8 +849,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   std::stringstream ssWitnessStringLength;
   ssWitnessStringLength << "(eo::define (($T ($eo_to_smt_type x1))) ";
   ssWitnessStringLength << "(eo::define (($i (Var $native_str_vname $T))) ";
+  ssWitnessStringLength << "($native_ite ($native_teq ($eo_typeof x3) Int) ";
   ssWitnessStringLength << "(choice $native_str_vname $T ";
-  ssWitnessStringLength << "(= (str.len $i) ($eo_to_smt x2)))))";
+  ssWitnessStringLength << "(= (str.len $i) ($eo_to_smt x2))) $sm_none)))";
   addEunoiaReduceSym("@witness_string_length",
                      {kType, kInt, kInt},
                      smtToSmtEmbed(ssWitnessStringLength.str(), true));
@@ -989,14 +992,20 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       smtToSmtEmbed(
           "(= ($eo_to_smt x1) (set.empty ($smtx_typeof ($eo_to_smt x1))))",
           true));
-  std::stringstream ssInsert;
-  ssInsert << "(eo::define (($e ($eo_to_smt (set.insert x2 x3)))) ";
-  ssInsert << smtToSmtEmbed("(set.union (set.singleton ($eo_to_smt x1)) $e)",
-                            true)
-           << ")";
-  addEunoiaReduceSym("set.insert", {kList, kT}, ssInsert.str());
+
+  d_auxDef["set.insert"] = R"(
+(program $eo_to_smt_set.insert ((T Type) (t1 T) (t2 $eo_List) (t3 $smt_Term))
+  :signature ($eo_List $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_set.insert ($eo_List_cons t1 t2) t3)
+    ($sm_set.union ($sm_set.singleton ($eo_to_smt t1)) ($eo_to_smt_set.insert t2 t3)))
+  (($eo_to_smt_set.insert $eo_List_nil t3) t3)
+  (($eo_to_smt_set.insert t2 t3) $sm_none)
+  )
+))";
+  addEunoiaReduceSym("set.insert", {kT, kT}, "($eo_to_smt_set.insert x1 ($eo_to_smt x2))");
   d_specialCases["set.insert"].emplace_back("(set.insert $eo_List_nil x1)",
-                                            "($eo_to_smt x1)");
+                                            "$sm_none");
   //   bitvectors
   addEunoiaReduceSym(
       "bvite",
@@ -1064,7 +1073,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym(
       "Tuple",
       {kT, kT},
-      "($eo_to_smt_type_tuple ($eo_to_smt_type x1) ($eo_to_smt_type x2))",
+      "(eo::define ((T ($eo_to_smt_type_tuple ($eo_to_smt_type x1) ($eo_to_smt_type x2)))) ($native_ite ($smtx_type_wf T) T $tsm_none))",
       true);
   addEunoiaReduceSym("UnitTuple",
                      {},
@@ -1087,7 +1096,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      {},
                      "($sm_DtCons $native_str_tuple_name ($dt_sum "
                      "$dtc_unit $dt_null) $native_n_zero)");
-  addEunoiaReduceSym("is", {kT}, "($eo_to_smt_tester ($eo_to_smt x1))");
+  addEunoiaReduceSym("is", {kT, kT}, "($sm_apply ($eo_to_smt_tester ($eo_to_smt x1)) ($eo_to_smt x2))");
   addEunoiaReduceSym(
       "update",
       {kT, kT, kT},
@@ -1534,22 +1543,9 @@ void ModelSmt::printEvalCallBase(std::ostream& out,
   out << "(" << name;
   for (; i <= nargs; i++)
   {
-    Kind k = args[i - 1];
-    if (k == Kind::VARIABLE)
-    {
-      // variable lists
-      out << " ($eo_List_cons ($eot_Var s T) x" << icount << ")";
-    }
-    else if (k == Kind::EVAL_CONS)
-    {
-      // generic list
-      out << " ($eo_List_cons x" << icount << " x" << (icount + 1) << ")";
-      icount++;
-    }
-    else
-    {
-      out << " x" << icount;
-    }
+    // don't use automatic list pattern anymore
+    Assert (args[i - 1] !=Kind::EVAL_CONS && args[i - 1] != Kind::VARIABLE);
+    out << " x" << icount;
     icount++;
   }
   out << ")) " << ret << ")" << std::endl;

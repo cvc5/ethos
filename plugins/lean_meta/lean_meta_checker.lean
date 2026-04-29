@@ -46,14 +46,14 @@ instance : Ord Rat where
     -- compare a.num / a.den vs b.num / b.den by cross-multiplication
     compare (a.num * Int.ofNat b.den) (b.num * Int.ofNat a.den)
 
-mutual
-
 /- 
 Ordinary user operators
 -/
 inductive UserOp : Type where
 $LEAN_EO_THEORY_OP_DEF$
-deriving Repr, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
+
+mutual
 
 /- Term definition -/
 inductive Term : Type where

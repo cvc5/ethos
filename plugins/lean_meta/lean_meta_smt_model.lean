@@ -224,21 +224,21 @@ def native_oob_seq_nth_id : native_String := "@oob_seq_nth"
 def native_uconst_id : native_Nat -> native_String
   | i => "@u." ++ toString i
 
-mutual
-
-/- 
-SMT-LIB types.
--/
-inductive SmtType : Type where
-$LEAN_SMT_TYPE_DEF$
-deriving Repr, DecidableEq, Inhabited
-
 /-
 Ordinary SMT-LIB theory operators.
 -/
 inductive SmtTheoryOp : Type where
 $LEAN_SMT_THEORY_OP_DEF$
 deriving Repr, Inhabited
+
+mutual
+
+/-
+SMT-LIB types.
+-/
+inductive SmtType : Type where
+$LEAN_SMT_TYPE_DEF$
+deriving Repr, DecidableEq, Inhabited
 
 /- 
 SMT-LIB terms.
