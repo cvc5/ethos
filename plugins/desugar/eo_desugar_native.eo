@@ -1,8 +1,8 @@
 ; This file defines the semantics of Eunoia operators that require calling
 ; SMT-LIB like computations.
 
-; Embedding into SMT operators, which defines $native_*, $native_apply_* etc.
-(include "smt_embed.eo")
+; Embedding into native operators, which defines $native_*, $native_apply_* etc.
+(include "native_embed.eo")
 
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term).

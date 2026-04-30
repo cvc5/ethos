@@ -10,7 +10,7 @@
 ;    part to define $eo_typeof.
 ; 6. Templates for $eo_dt_constructors_main and $eo_dt_selectors_main, which are
 ;    used to define $eo_dt_constructors and $eo_dt_selectors.
-; 7. A placeholder command echo "include eo_builtin_smt" to specify
+; 7. A placeholder command echo "include eo_desugar_native" to specify
 ;    where further eo:: builtins should be defined.
 ; 8. Placeholders for defining a test environment for analyzing properties
 ;    of proof rules ($eo_model_eval/$eo_model_typeof/$eo_model_is_input).
@@ -105,7 +105,7 @@
 ; We use a "lazy" include style that allows this file to
 ; be parsable without including the file.
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; eo_builtin_smt
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; eo_desugar_native
 
 ; This will contain the definitions of eo::add, etc.
 ; It is (for now) specific to a deep embedding into SMT.
@@ -1828,6 +1828,5 @@
   )
 )
 (echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply ")
-
 
 

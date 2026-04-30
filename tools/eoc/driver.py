@@ -316,13 +316,13 @@ class Pipeline:
             replace_all(output_file, replacements)
         inline_include(
             output_file,
-            "eo_builtin_smt.eo",
-            self.plugin_generated("desugar/eo_builtin_smt.eo"),
+            "eo_desugar_native.eo",
+            self.plugin_generated("desugar/eo_desugar_native.eo"),
         )
         inline_include(
             output_file,
-            "smt_embed.eo",
-            self.plugin_generated("desugar/smt_embed.eo"),
+            "native_embed.eo",
+            self.plugin_generated("desugar/native_embed.eo"),
         )
         return output_file
 

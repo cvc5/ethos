@@ -86,11 +86,11 @@ This side condition is the target for verification in the Smt_Meta step below.
 
 Relies on:
 - eo_desugar.eo template, 304 LOC EO
-- smt_embed.eo, 192 LOC EO
+- native_embed.eo, 192 LOC EO
   - Defines infrastructure for references to native SMT types.
   - Defines operations on pairs of integers to mimic parameteric bitvector operations.
   - Defines SMT datatypes and datatype constructors.
-- eo_builtin_smt.eo, 487 LOC EO
+- eo_desugar_native.eo, 487 LOC EO
   - Defines the SMT-like builtins of Eunoia
   - Declares all terms in the SMT-LIB deep embedding
 - desugar.cpp (ethos plugin), 1078 LOC C++

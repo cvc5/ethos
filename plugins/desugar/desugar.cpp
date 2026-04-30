@@ -849,7 +849,7 @@ void Desugar::finalize()
 
   /*
   std::stringstream ssies;
-  ssies << s_plugin_path << "plugins/model_smt/eo_builtin_smt.eo";
+  ssies << s_plugin_path << "plugins/desugar/eo_desugar_native.eo";
   std::ifstream ines(ssies.str());
   std::ostringstream sses;
   sses << ines.rdbuf();
@@ -881,8 +881,8 @@ void Desugar::finalize()
   // TODO: make this manual?
   replace(finalEo, "$EO_VC$", d_eoVc.str());
   // Make generated desugar files self-contained within the output tree.
-  copyResourceToOutput("plugins/desugar/eo_builtin_smt.eo");
-  copyResourceToOutput("plugins/desugar/smt_embed.eo");
+  copyResourceToOutput("plugins/desugar/eo_desugar_native.eo");
+  copyResourceToOutput("plugins/desugar/native_embed.eo");
   std::string outPath = getOutputPath("plugins/desugar/eo_desugar_gen.eo");
   std::cout << "Write core-defs    " << outPath << std::endl;
   std::ofstream oute(outPath);
