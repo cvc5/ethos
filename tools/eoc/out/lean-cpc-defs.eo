@@ -112,7 +112,7 @@
 ; This file defines the semantics of Eunoia operators that require calling
 ; SMT-LIB like computations.
 
-; Embedding into SMT operators, which defines $native_*, $native_apply_* etc.
+; Embedding into native operators, which defines $native_*, $native_apply_* etc.
 ; This file defines a deep embedding of SMT-LIB into Eunoia.
 ; It has the following uses:
 ; 1. To give an SMT-LIB specific bootstrapping of the SMT-LIB inspired builtin
