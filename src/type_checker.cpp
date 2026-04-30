@@ -379,9 +379,8 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   {
     // matching, update context
     ExprValue* hdt = hdtypes[i - 1];
-    // if the argument is (Quote t), we match on its argument,
-    // which along with how ctypes[i] is the argument itself, has the effect
-    // of an implicit upcast.
+    // If the argument is (Quote x), then we ensure that x and t have the same
+    // (ground) type. If so, the context is updated where x is mapped to t.
     bool typeSuccess = true;
     ExprValue* child = children[i];
     if (hdt->getKind() == Kind::QUOTE_TYPE)
