@@ -405,8 +405,8 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
         // we know that x is a parameter of the same type as t. We don't need
         // to match, we simply update the context.
         hdt = hdt->d_children[0];
-        Assert(hdt->getKind()==Kind::PARAM);
-        Assert (ctx.find(hdt)==ctx.end());
+        Assert(hdt->getKind() == Kind::PARAM);
+        Assert(ctx.find(hdt) == ctx.end());
         ctx[hdt] = child;
       }
     }
