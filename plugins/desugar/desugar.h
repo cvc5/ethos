@@ -23,7 +23,7 @@ class State;
 class TypeChecker;
 
 /**
- * Plugin that lowers parsed Eunoia input into the "desugared" Eunoia core.
+ * Plugin that parses an arbitrary Eunoia input into the "desugared" Eunoia core.
  *
  * The desugar stage is an EO-to-EO compilation pass.  It records declarations,
  * program definitions, proof rules, datatype metadata, literal type rules, and
@@ -206,7 +206,7 @@ class Desugar : public StdPlugin
   /** Helper responsible for desugaring the executable checker. */
   DesugarChecker d_dchecker;
 
-  //----- canonize
+  //----- For canonizing type rules
   /** Canonicalize type variables before comparing generated type programs. */
   Expr mkCanonize(const Expr& t);
   /** Per-type reusable canonical variables. */
