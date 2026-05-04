@@ -279,8 +279,15 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   (($eo_to_smt_distinct xs) $sm_none)
   )
 )
+(program $eo_to_smt_type_is_tlist ((T Type))
+  :signature (Type) $native_Bool
+  (
+  (($eo_to_smt_type_is_tlist (@@TypedList T)) $native_true)
+  (($eo_to_smt_type_is_tlist T) $native_false)
+  )
+)
 )";
-  addEunoiaReduceSym("distinct", {kAny}, "($eo_to_smt_distinct x1)");
+  addEunoiaReduceSym("distinct", {kAny}, "($native_ite ($eo_to_smt_type_is_tlist ($eo_typeof x1)) ($eo_to_smt_distinct x1) $sm_none)");
   // custom definition of is_list_nil recognizer for distinct arg list
   if (optionFwdDeclIsListNilNground())
   {
