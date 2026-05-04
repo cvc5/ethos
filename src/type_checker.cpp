@@ -385,6 +385,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     ExprValue* child = children[i];
     if (hdt->getKind() == Kind::QUOTE_TYPE)
     {
+      Assert(hdt->d_children[0]->getKind() == Kind::PARAM);
       // We ensure that the type of the argument is equal to the type of the
       // quoted term, whose type should be ground.
       ExprValue* ct = d_state.lookupType(child);
@@ -404,7 +405,6 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
         // we know that x is a parameter of the same type as t. We don't need
         // to match, we simply update the context.
         hdt = hdt->d_children[0];
-        Assert(hdt->getKind() == Kind::PARAM);
         Assert(ctx.find(hdt) == ctx.end());
         ctx[hdt] = child;
       }
