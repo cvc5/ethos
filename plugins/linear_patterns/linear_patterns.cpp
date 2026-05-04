@@ -66,7 +66,7 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(State& s,
       ssd << "$eo.dv." << j;
       defappc.push_back(s.mkSymbol(Kind::PARAM, ssd.str(), pat[j].getType()));
     }
-    Expr newApp = s.mkExprSimple(Kind::APPLY, newappc);
+    Expr newApp = s.mkExpr(Kind::APPLY, newappc);
     Expr retLin =
         s.mkExpr(Kind::EVAL_IF_THEN_ELSE, {lpat.second, progDef[i][1], newApp});
     Expr linCase = s.mkPair(lpat.first, retLin);
@@ -74,19 +74,19 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(State& s,
     // only needs a default if the linearized case was not already fully general
     if (!wasDefault)
     {
-      Expr defApp = s.mkExprSimple(Kind::APPLY, defappc);
+      Expr defApp = s.mkExpr(Kind::APPLY, defappc);
       defappc[0] = newProg;
-      Expr defRet = s.mkExprSimple(Kind::APPLY, defappc);
+      Expr defRet = s.mkExpr(Kind::APPLY, defappc);
       Expr defCase = s.mkPair(defApp, defRet);
       currCases.push_back(defCase);
     }
-    Expr currProgDef = s.mkExprSimple(Kind::PROGRAM, currCases);
+    Expr currProgDef = s.mkExpr(Kind::PROGRAM, currCases);
     ret.emplace_back(currProg, currProgDef);
     currProg = newProg;
     currCases.clear();
   }
   // finish with remainder
-  Expr currProgDef = s.mkExprSimple(Kind::PROGRAM, currCases);
+  Expr currProgDef = s.mkExpr(Kind::PROGRAM, currCases);
   ret.emplace_back(currProg, currProgDef);
   std::reverse(ret.begin(), ret.end());
   return ret;
@@ -147,7 +147,7 @@ Expr LinearPattern::linearizeRec(State& s,
     }
     if (childChanged)
     {
-      return s.mkExprSimple(pat.getKind(), nchildren);
+      return s.mkExpr(pat.getKind(), nchildren);
     }
   }
   return pat;

@@ -209,8 +209,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   {
     if (cattr == Attr::OPAQUE)
     {
-      AppInfo* ainfo = d_state.getAppInfo(e.getValue());
-      Expr anum = ainfo->d_attrConsTerm;
+      Expr anum = d_state.getAttributeTerm(e.getValue());
       Assert(anum.getKind() == Kind::NUMERAL);
       Assert(anum.getValue()->asLiteral()->d_int.fitsUnsignedInt());
       size_t novars = anum.getValue()->asLiteral()->d_int.toUnsignedInt();
@@ -654,8 +653,7 @@ void Desugar::finalizeRule(const Expr& e)
   // pass to the desugaring checker
   d_dchecker.finalizeRule(e);
   Trace("desugar") << "Finalize rule " << e << std::endl;
-  AppInfo* ainfo = d_state.getAppInfo(e.getValue());
-  Expr tupleVal = ainfo->d_attrConsTerm;
+  Expr tupleVal = d_state.getAttributeTerm(e.getValue());
   Assert(tupleVal.getNumChildren() == 4);
   Expr rprog = tupleVal[3];
   if (!d_genVcs)

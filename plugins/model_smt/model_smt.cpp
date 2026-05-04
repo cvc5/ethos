@@ -1256,7 +1256,7 @@ void ModelSmt::finalizeDecl(const std::string& ename, const Expr& e)
     name = ito->second;
   }
   size_t nopqArgs = 0;
-  Attr attr = d_state.getConstructorKind(e.getValue());
+  Attr attr = d_state.getAttributeKind(e.getValue());
   if (attr == Attr::OPAQUE)
   {
     Expr ct = e.getType();

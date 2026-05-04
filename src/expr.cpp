@@ -370,7 +370,7 @@ void Expr::printDebugInternal(const Expr& e,
         if (k == Kind::APPLY_OPAQUE)
         {
           // ambiguous functions must use "as"
-          Attr attr = ExprValue::d_state->getConstructorKind((*cur.first)[0]);
+          Attr attr = ExprValue::d_state->getAttributeKind((*cur.first)[0]);
           if (attr == Attr::AMB || attr == Attr::AMB_DATATYPE_CONSTRUCTOR)
           {
             os << "as ";
@@ -492,7 +492,6 @@ bool Expr::operator!=(const Expr& e) const { return d_value != e.d_value; }
 Kind Expr::getKind() const { return d_value->getKind(); }
 Expr Expr::getType() const
 {
-  // TODO: why is getType non-const?
   Expr t(d_value);
   return ExprValue::d_state->getTypeChecker().getType(t);
 }

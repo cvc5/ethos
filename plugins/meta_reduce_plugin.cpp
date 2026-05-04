@@ -187,9 +187,9 @@ bool MetaReducePlugin::buildLambdaDefineProgram(const std::string& name,
   {
     appChildren.push_back(e[0][i]);
   }
-  Expr progApp = d_state.mkExprSimple(Kind::APPLY, appChildren);
+  Expr progApp = d_state.mkExpr(Kind::APPLY, appChildren);
   Expr pcase = d_state.mkPair(progApp, e[1]);
-  prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
+  prog = d_state.mkExpr(Kind::PROGRAM, {pcase});
   return true;
 }
 

@@ -200,7 +200,7 @@ Expr ExprParser::parseExpr()
             args.push_back(v);
             size_t nscopes = 0;
             // if a binder, read a variable list and push a scope
-            Attr ck = d_state.getConstructorKind(v.getValue());
+            Attr ck = d_state.getAttributeKind(v.getValue());
             if (ck==Attr::BINDER || ck==Attr::LET_BINDER)
             {
               // If it is a binder, immediately read the bound variable list.

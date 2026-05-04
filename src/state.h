@@ -143,7 +143,11 @@ class State
   Expr mkSelf() const;
   /** Make pair */
   Expr mkPair(const Expr& t1, const Expr& t2);
-  /** */
+  /**
+   * Makes expression with given kind and childen. This method will apply
+   * desugaring based on the attributes of the operator head (the first
+   * expression in children).
+   */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
   /** Same as above, without desugaring */
   Expr mkExprSimple(Kind k, const std::vector<Expr>& children);
@@ -190,8 +194,16 @@ class State
                            const Expr& ret,
                            const std::string& name);
   //--------------------------------------
-  /** Get the constructor kind for symbol v */
-  Attr getConstructorKind(const ExprValue* v) const;
+  /** 
+   * Get the constructor kind for symbol v. This is one of the types listed in
+   * attr.h which impact how the symbol v is parsed on interpreted.
+   */
+  Attr getAttributeKind(const ExprValue* v) const;
+  /** 
+   * Get the attribute term for symbol v. Along with getAttributeKind, this
+   * term impacts how the symbol v is parsed on interpreted.
+   */
+  Expr getAttributeTerm(const ExprValue* v) const;
   /** make binder list */
   Expr mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs);
   /** */
@@ -274,9 +286,6 @@ class State
   /** Get plugin */
   Plugin* getPlugin();
 
-  /** Get the internal data for expression e. */
-  AppInfo* getAppInfo(const ExprValue* e);
-
  private:
   /** Common constants */
   Expr d_null;
@@ -342,6 +351,8 @@ class State
                            const std::vector<Expr>& children,
                            const ExprValue* retType = nullptr,
                            bool retApply = false);
+  /** Get the internal data for expression e. */
+  AppInfo* getAppInfo(const ExprValue* e);
   const AppInfo* getAppInfo(const ExprValue* e) const;
   /** Bind builtin */
   void bindBuiltin(const std::string& name, Kind k, Attr ac = Attr::NONE);

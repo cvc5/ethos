@@ -119,7 +119,7 @@ bool LeanMetaReduce::isAtomicSmt(const Expr& c, const std::string& cname)
   {
     return false;
   }
-  Attr attr = d_state.getConstructorKind(c.getValue());
+  Attr attr = d_state.getAttributeKind(c.getValue());
   if (attr != Attr::OPAQUE)
   {
     if (cname == "None")
@@ -137,7 +137,7 @@ bool LeanMetaReduce::isAtomicEo(const Expr& c, const std::string& cname)
   {
     return false;
   }
-  Attr attr = d_state.getConstructorKind(c.getValue());
+  Attr attr = d_state.getAttributeKind(c.getValue());
   if (attr != Attr::OPAQUE)
   {
     if (cname == "Stuck" || cname == "Type" || cname == "FunType"
@@ -698,7 +698,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       {
         prets.push_back(prog[i][1]);
       }
-      Expr allRets = d_state.mkExprSimple(Kind::TUPLE, prets);
+      Expr allRets = d_state.mkExpr(Kind::TUPLE, prets);
       bool hasNumeral = (!getSubtermsKind(Kind::NUMERAL, allRets).empty());
       std::vector<Expr> calls =
           StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, allRets);
@@ -1056,7 +1056,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   Expr c = e;
   Expr ct = d_tc.getType(c);
   // (*out) << "  ; type is " << ct << std::endl;
-  Attr attr = d_state.getConstructorKind(e.getValue());
+  Attr attr = d_state.getAttributeKind(e.getValue());
   // (*out) << "  ; attr is " << attr << std::endl;
   size_t nopqArgs = 0;
   Expr retType = ct;

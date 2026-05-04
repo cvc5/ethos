@@ -285,7 +285,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     }
     else
     {
-      Assert(d_state.getConstructorKind(tcur.getValue()) != Attr::AMB)
+      Assert(d_state.getAttributeKind(tcur.getValue()) != Attr::AMB)
           << "Matching on amb " << tcur;
       // base case, use equality
       // note that we have to use the full printEmbTerm method
@@ -786,7 +786,7 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
   Expr c = e;
   Expr ct = d_tc.getType(c);
   // (*out) << "  ; type is " << ct << std::endl;
-  Attr attr = d_state.getConstructorKind(e.getValue());
+  Attr attr = d_state.getAttributeKind(e.getValue());
   // (*out) << "  ; attr is " << attr << std::endl;
   (*out) << "  (";
   (*out) << cname.str();

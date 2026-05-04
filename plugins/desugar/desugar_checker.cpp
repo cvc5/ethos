@@ -29,8 +29,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
   std::stringstream invokePat;
   std::stringstream invokeRet;
 
-  AppInfo* ainfo = d_state.getAppInfo(v.getValue());
-  Expr tupleVal = ainfo->d_attrConsTerm;
+  Expr tupleVal = d_state.getAttributeTerm(v.getValue());
   Assert(tupleVal.getNumChildren() == 4);
   Expr plCons;
   if (tupleVal[0].getKind() != Kind::ANY)

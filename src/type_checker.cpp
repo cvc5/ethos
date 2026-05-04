@@ -1316,10 +1316,9 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           for (ExprValue* c : cargs)
           {
             Expr ce(c);
-            if (d_state.getConstructorKind(c) == Attr::AMB_DATATYPE_CONSTRUCTOR)
+            if (d_state.getAttributeKind(c) == Attr::AMB_DATATYPE_CONSTRUCTOR)
             {
-              Expr dt(args[0]);
-              ce = d_state.mkExpr(Kind::APPLY_OPAQUE, {ce, dt});
+              ce = Expr(d_state.mkExprInternal(Kind::APPLY_OPAQUE, {c, args[0]}));
             }
             cargsp.push_back(ce);
           }
@@ -1801,7 +1800,6 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_SINGLETON_ELIM: return Expr(childTypes[1]);
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
-      // TODO: inaccurate
       // type is the first child
       return Expr(childTypes[0]);
     case Kind::EVAL_IS_OK:
@@ -1834,7 +1832,6 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_TO_STRING:
       return getOrSetLiteralTypeRule(Kind::STRING);
     case Kind::EVAL_TO_BIN:
-      // TODO: inaccurate
       return getOrSetLiteralTypeRule(Kind::BINARY);
     case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS: return d_state.mkListType();
