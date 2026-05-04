@@ -38,7 +38,7 @@ Definitions for eo_is_obj
 noncomputable section
 
 def native_reserved_datatype_name (s : native_String) : native_Bool :=
-  s.startsWith "_at_"
+  s.startsWith "@"
 
 mutual
 
