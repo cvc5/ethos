@@ -788,7 +788,7 @@
 
 ; fwd-decl: $eo_dt_constructors_main
 ; note: This method returns the constructors for all user defined terms.
-(program $eo_dt_constructors_main () :signature ($eo_Term) $eo_Term)
+(program $eo_dt_constructors_main () :signature (Type) $eo_List)
 
 (program $eo_datatype_constructors_rec
   ((s $native_String) (d $eo_Datatype) (c $eo_DatatypeCons)
@@ -819,7 +819,7 @@
 
 ; fwd-decl: $eo_dt_selectors_main
 ; note: This method returns the constructors for all user defined terms.
-(program $eo_dt_selectors_main () :signature ($eo_Term) $eo_Term)
+(program $eo_dt_selectors_main ((T Type)) :signature (T) $eo_List)
 
 (program $eo_datatype_cons_selectors_rec
   ((s $native_String) (d $eo_Datatype) (n $native_Nat)

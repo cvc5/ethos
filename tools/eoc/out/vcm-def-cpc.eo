@@ -70,21 +70,8 @@
 ;;; forward declarations
 
 ; forward declaration
-(program $eo_typeof ((T Type)) :signature (T) Type)
-
-; forward declaration
-(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
-  :signature ((-> T U V) (eo::quote W)) W)
-
-; forward declaration
 (program $eo_is_list_nil ((T Type) (V Type))
   :signature ((-> T V V) V) Bool)
-
-; forward declaration
-(program $eo_dt_constructors () :signature (Type) $eo_List)
-
-; forward declaration
-(program $eo_dt_selectors ((T Type)) :signature (T) $eo_List)
 
 ;;; core utilities
 
@@ -241,6 +228,10 @@
   (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
    (op $smt_id) (x1 W1) (x2 W2) (x3 W3))
   ($native_apply_2 op x1 ($native_apply_2 op x2 x3)))
+
+; datatypes
+(define $native_reserved_datatype_name ((s $native_String))
+  ($native_apply_1 "reserved_datatype_name" s))
 
 ;;; Defining parametric bitvector operators
 
@@ -1126,7 +1117,7 @@
 
 ; fwd-decl: $eo_dt_constructors_main
 ; note: This method returns the constructors for all user defined terms.
-(program $eo_dt_constructors_main () :signature ($eo_Term) $eo_Term)
+(program $eo_dt_constructors_main () :signature (Type) $eo_List)
 
 (program $eo_datatype_constructors_rec
   ((s $native_String) (d $eo_Datatype) (c $eo_DatatypeCons)
@@ -1157,7 +1148,7 @@
 
 ; fwd-decl: $eo_dt_selectors_main
 ; note: This method returns the constructors for all user defined terms.
-(program $eo_dt_selectors_main () :signature ($eo_Term) $eo_Term)
+(program $eo_dt_selectors_main ((T Type)) :signature (T) $eo_List)
 
 (program $eo_datatype_cons_selectors_rec
   ((s $native_String) (d $eo_Datatype) (n $native_Nat)
@@ -3290,8 +3281,12 @@
   :signature (Type) $smt_Type
   (
   (($eo_to_smt_type Bool)                     $tsm_Bool)
-  (($eo_to_smt_type ($eot_DatatypeType s d))  ($tsm_Datatype s ($eo_to_smt_datatype d)))
-  (($eo_to_smt_type ($eot_DatatypeTypeRef s)) ($tsm_TypeRef s))
+  (($eo_to_smt_type ($eot_DatatypeType s d))
+    ($native_ite ($native_reserved_datatype_name s) $tsm_none
+      ($tsm_Datatype s ($eo_to_smt_datatype d))))
+  (($eo_to_smt_type ($eot_DatatypeTypeRef s))
+    ($native_ite ($native_reserved_datatype_name s) $tsm_none
+      ($tsm_TypeRef s)))
   (($eo_to_smt_type ($eot_DtcAppType T1 T2))
     (eo::define ((S1 ($eo_to_smt_type T1)))
     (eo::define ((S2 ($eo_to_smt_type T2)))
@@ -3419,19 +3414,6 @@
   )
 )
 
-; NOTE: maybe combine with above?
-;(program $eo_to_smt_lambda
-;  ((s $native_String) (T $eo_Term) (vs $eo_List :list) (F $eo_Term))
-;  :signature ($eo_List $smt_Term) $smt_Term
-;  (
-;  (($eo_to_smt_lambda $eo_List_nil F) F)
-;  (($eo_to_smt_lambda ($eo_List ($eot_Var s T) vs) F)
-;    ($sm_apply ($sm_lambda s ($eo_to_smt_type T)) ($eo_to_smt_lambda vs F)))
-;  (($eo_to_smt_lambda vs F) $sm_none)
-;  )
-;)
-
-
 (program $eo_to_smt
   ((b $native_Bool) (n $native_Int) (m $native_Int) (r $native_Rat)
    (s $native_String) (w $native_Int) (d $eo_Datatype)
@@ -3447,8 +3429,12 @@
   (($eo_to_smt ($eot_binary w n))    ($sm_binary w n))
   (($eo_to_smt ($eot_Var ($eot_string s) T))
                                      ($sm_Var s ($eo_to_smt_type T)))
-  (($eo_to_smt ($eot_DtCons s d i))  ($sm_DtCons s ($eo_to_smt_datatype d) i))
-  (($eo_to_smt ($eot_DtSel s d i j)) ($sm_DtSel s ($eo_to_smt_datatype d) i j))
+  (($eo_to_smt ($eot_DtCons s d i))
+    ($native_ite ($native_reserved_datatype_name s) $sm_none
+      ($sm_DtCons s ($eo_to_smt_datatype d) i)))
+  (($eo_to_smt ($eot_DtSel s d i j))
+    ($native_ite ($native_reserved_datatype_name s) $sm_none
+      ($sm_DtSel s ($eo_to_smt_datatype d) i j)))
   (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($native_to_uconst_id i) ($eo_to_smt_type T)))
   (($eo_to_smt (not x1)) ($sm_not ($eo_to_smt x1)))
   (($eo_to_smt (and x1 x2)) ($sm_and ($eo_to_smt x1) ($eo_to_smt x2)))

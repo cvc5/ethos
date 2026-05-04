@@ -35,6 +35,9 @@ Definitions for eo_is_obj
 -/
 noncomputable section
 
+def native_reserved_datatype_name (s : native_String) : native_Bool :=
+  s.startsWith "_at_"
+
 mutual
 
 $LEAN_EO_IS_OBJ_DEFS$

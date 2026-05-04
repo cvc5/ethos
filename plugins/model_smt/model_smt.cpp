@@ -972,7 +972,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssSetsChoose << "($sm_choice $native_str_vname T ";
   ssSetsChoose << smtToSmtEmbed("(set.member i ($eo_to_smt x1))", true)
                << ")))";
-  addEunoiaReduceSym("set.choose", {kAny, kAny}, ssSetsChoose.str());
+  addEunoiaReduceSym("set.choose", {kAny}, ssSetsChoose.str());
   std::stringstream ssSetsIsSingleton;
   ssSetsIsSingleton
       << "(eo::define (($T ($eo_to_smt_type ($eo_typeof (set.choose x1))))) ";

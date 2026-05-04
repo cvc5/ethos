@@ -127,6 +127,10 @@
    (op $smt_id) (x1 W1) (x2 W2) (x3 W3))
   ($native_apply_2 op x1 ($native_apply_2 op x2 x3)))
 
+; datatypes
+(define $native_reserved_datatype_name ((s $native_String))
+  ($native_apply_1 "reserved_datatype_name" s))
+
 ;;; Defining parametric bitvector operators
 
 ; The operators in this section are needed to reason about the parametric

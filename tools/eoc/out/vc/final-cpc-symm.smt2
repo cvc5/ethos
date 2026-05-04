@@ -74,6 +74,8 @@
   (zplus (zmult x2 (int.pow2 x3)) x4))
 (define-fun binary_extract ((x1 Int) (x2 Int) (x3 Int) (x4 Int)) Int
   (div x2 (int.pow2 x4)))
+
+(define-fun reserved_datatype_name ((s String)) Bool (str.prefixof "@" s))
     
 ; tsm.Type:
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
@@ -898,9 +900,9 @@
   (ite (= x1 eo.Bool)
     tsm.Bool
   (ite ((_ is eo.DatatypeType) x1)
-    (tsm.Datatype (eo.DatatypeType.arg1 x1) ($eo_to_smt_datatype (eo.DatatypeType.arg2 x1)))
+    (ite (reserved_datatype_name (eo.DatatypeType.arg1 x1)) tsm.None (tsm.Datatype (eo.DatatypeType.arg1 x1) ($eo_to_smt_datatype (eo.DatatypeType.arg2 x1))))
   (ite ((_ is eo.DatatypeTypeRef) x1)
-    (tsm.TypeRef (eo.DatatypeTypeRef.arg1 x1))
+    (ite (reserved_datatype_name (eo.DatatypeTypeRef.arg1 x1)) tsm.None (tsm.TypeRef (eo.DatatypeTypeRef.arg1 x1)))
   (ite ((_ is eo.DtcAppType) x1)
     ($smtx_typeof_guard ($eo_to_smt_type (eo.DtcAppType.arg1 x1)) ($smtx_typeof_guard ($eo_to_smt_type (eo.DtcAppType.arg2 x1)) (tsm.DtcAppType ($eo_to_smt_type (eo.DtcAppType.arg1 x1)) ($eo_to_smt_type (eo.DtcAppType.arg2 x1)))))
   (ite ((_ is eo.USort) x1)
@@ -936,9 +938,9 @@
   (ite (and ((_ is eo.Var) x1) ((_ is eo.String) (eo.Var.arg1 x1)))
     (sm.Var (eo.String.arg1 (eo.Var.arg1 x1)) ($eo_to_smt_type (eo.Var.arg2 x1)))
   (ite ((_ is eo.DtCons) x1)
-    (sm.DtCons (eo.DtCons.arg1 x1) ($eo_to_smt_datatype (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1))
+    (ite (reserved_datatype_name (eo.DtCons.arg1 x1)) sm.None (sm.DtCons (eo.DtCons.arg1 x1) ($eo_to_smt_datatype (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1)))
   (ite ((_ is eo.DtSel) x1)
-    (sm.DtSel (eo.DtSel.arg1 x1) ($eo_to_smt_datatype (eo.DtSel.arg2 x1)) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1))
+    (ite (reserved_datatype_name (eo.DtSel.arg1 x1)) sm.None (sm.DtSel (eo.DtSel.arg1 x1) ($eo_to_smt_datatype (eo.DtSel.arg2 x1)) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1)))
   (ite ((_ is eo.UConst) x1)
     (sm.UConst (uconst_id (eo.UConst.arg1 x1)) ($eo_to_smt_type (eo.UConst.arg2 x1)))
   (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.not))
@@ -1047,7 +1049,9 @@
   (! (= (eval_tchoice_nth M s T F n)
        (ite ((_ is nat.succ) n)
          (ite ((_ is sm.exists) F)
-           (eval_tchoice_nth M (sm.exists.arg1 F) (sm.exists.arg2 F) (sm.exists.arg3 F) (nat.succ.arg1 n))
+           (eval_tchoice_nth 
+            ($smtx_model_update M s T (eval_tchoice M s T F))
+            (sm.exists.arg1 F) (sm.exists.arg2 F) (sm.exists.arg3 F) (nat.succ.arg1 n))
            vsm.NotValue)
          (eval_tchoice M s T F)))
   :pattern ((eval_tchoice_nth M s T F n))))

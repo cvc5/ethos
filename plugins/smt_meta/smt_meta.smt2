@@ -74,6 +74,8 @@
   (zplus (zmult x2 (int.pow2 x3)) x4))
 (define-fun binary_extract ((x1 Int) (x2 Int) (x3 Int) (x4 Int)) Int
   (div x2 (int.pow2 x4)))
+
+(define-fun reserved_datatype_name ((s String)) Bool (str.prefixof "@" s))
     
 ; tsm.Type:
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
@@ -275,7 +277,9 @@ $SM_DEFS$
   (! (= (eval_tchoice_nth M s T F n)
        (ite ((_ is nat.succ) n)
          (ite ((_ is sm.exists) F)
-           (eval_tchoice_nth M (sm.exists.arg1 F) (sm.exists.arg2 F) (sm.exists.arg3 F) (nat.succ.arg1 n))
+           (eval_tchoice_nth 
+            ($smtx_model_update M s T (eval_tchoice M s T F))
+            (sm.exists.arg1 F) (sm.exists.arg2 F) (sm.exists.arg3 F) (nat.succ.arg1 n))
            vsm.NotValue)
          (eval_tchoice M s T F)))
   :pattern ((eval_tchoice_nth M s T F n))))

@@ -15,7 +15,6 @@
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List))
-(program $eo_typeof ((T Type)) :signature (T) Type)
 (declare-const $native_BuiltinType Type)
 (declare-parameterized-const $native_type_0
   (($smt_id Type :implicit) (op $smt_id :opaque))
@@ -73,6 +72,8 @@
 (define $native_z_to_n ((x1 $native_Int)) ($native_apply_1 "int.to_nat" x1))
 (define $native_n_to_z ((x1 $native_Nat)) ($native_apply_1 "nat.to_int" x1))
 (define $native_to_uconst_id ((x1 $native_Nat)) ($native_apply_1 "uconst_id" x1))
+(define $native_reserved_datatype_name ((s $native_String))
+  ($native_apply_1 "reserved_datatype_name" s))
 (define $native_binary_and
   ((w $native_Int) (n1 $native_Int) (n2 $native_Int))
   ($native_apply_3 "binary_and" w n1 n2))
@@ -1195,8 +1196,12 @@
   :signature (Type) $smt_Type
   (
   (($eo_to_smt_type Bool)                     $tsm_Bool)
-  (($eo_to_smt_type ($eot_DatatypeType s d))  ($tsm_Datatype s ($eo_to_smt_datatype d)))
-  (($eo_to_smt_type ($eot_DatatypeTypeRef s)) ($tsm_TypeRef s))
+  (($eo_to_smt_type ($eot_DatatypeType s d))
+    ($native_ite ($native_reserved_datatype_name s) $tsm_none
+      ($tsm_Datatype s ($eo_to_smt_datatype d))))
+  (($eo_to_smt_type ($eot_DatatypeTypeRef s))
+    ($native_ite ($native_reserved_datatype_name s) $tsm_none
+      ($tsm_TypeRef s)))
   (($eo_to_smt_type ($eot_DtcAppType T1 T2))
     (eo::define ((S1 ($eo_to_smt_type T1)))
     (eo::define ((S2 ($eo_to_smt_type T2)))
@@ -1230,8 +1235,12 @@
   (($eo_to_smt ($eot_binary w n))    ($sm_binary w n))
   (($eo_to_smt ($eot_Var ($eot_string s) T))
                                      ($sm_Var s ($eo_to_smt_type T)))
-  (($eo_to_smt ($eot_DtCons s d i))  ($sm_DtCons s ($eo_to_smt_datatype d) i))
-  (($eo_to_smt ($eot_DtSel s d i j)) ($sm_DtSel s ($eo_to_smt_datatype d) i j))
+  (($eo_to_smt ($eot_DtCons s d i))
+    ($native_ite ($native_reserved_datatype_name s) $sm_none
+      ($sm_DtCons s ($eo_to_smt_datatype d) i)))
+  (($eo_to_smt ($eot_DtSel s d i j))
+    ($native_ite ($native_reserved_datatype_name s) $sm_none
+      ($sm_DtSel s ($eo_to_smt_datatype d) i j)))
   (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($native_to_uconst_id i) ($eo_to_smt_type T)))
   (($eo_to_smt (not x1)) ($sm_not ($eo_to_smt x1)))
   (($eo_to_smt (or x1 x2)) ($sm_or ($eo_to_smt x1) ($eo_to_smt x2)))
