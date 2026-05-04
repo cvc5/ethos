@@ -419,7 +419,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       }
       Kind ak =
           (hasOpaqueArg && pattern == e) ? Kind::APPLY_OPAQUE : Kind::APPLY;
-      pattern = d_state.mkExprSimple(ak, args);
+      pattern = d_state.mkRawExpr(ak, args);
       // std::cout << "...pattern is now " << pattern << " from " << args <<
       // std::endl;
       ct = ct[nargs - 1];
@@ -962,11 +962,11 @@ Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& visited)
       {
         // "pf" is a kind, we handle it specially here by turning it into an
         // ordinary application.
-        ret = d_state.mkExprSimple(Kind::APPLY, {d_peoPf, children[0]});
+        ret = d_state.mkRawExpr(Kind::APPLY, {d_peoPf, children[0]});
       }
       else if (childChanged)
       {
-        ret = Expr(d_state.mkExprSimple(k, children));
+        ret = Expr(d_state.mkRawExpr(k, children));
       }
       visited[cur] = ret;
     }
@@ -1002,7 +1002,7 @@ Expr Desugar::mkRequiresModelSat(const Expr& m,
       return mkRequiresEq(t1, d_state.mkBool(true), ret);
     }
     Expr rr = mkRequiresEq(t1, d_state.mkBool(tgt), ret);
-    Expr isOk = d_state.mkExprSimple(Kind::EVAL_IS_OK, {test});
+    Expr isOk = d_state.mkExpr(Kind::EVAL_IS_OK, {test});
     rr = mkRequiresEq(isOk, d_state.mkBool(true), rr);
     return rr;
   }
@@ -1017,7 +1017,7 @@ Expr Desugar::mkRequiresEq(const Expr& t1,
   children.push_back(t1);
   children.push_back(t2);
   children.push_back(ret);
-  return d_state.mkExprSimple(Kind::EVAL_REQUIRES, children);
+  return d_state.mkExpr(Kind::EVAL_REQUIRES, children);
 }
 
 Attr Desugar::getAttribute(const Expr& e)

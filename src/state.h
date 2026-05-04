@@ -145,12 +145,12 @@ class State
   Expr mkPair(const Expr& t1, const Expr& t2);
   /**
    * Makes expression with given kind and childen. This method will apply
-   * desugaring based on the attributes of the operator head (the first
-   * expression in children).
+   * desugaring based on the attributes of the operator head, i.e. the first
+   * expression in children.
    */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
   /** Same as above, without desugaring */
-  Expr mkExprSimple(Kind k, const std::vector<Expr>& children);
+  Expr mkRawExpr(Kind k, const std::vector<Expr>& children);
   /** make true */
   Expr mkTrue() const;
   /** make false */

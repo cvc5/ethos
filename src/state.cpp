@@ -875,7 +875,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   return Expr(mkExprInternal(k, vchildren));
 }
 
-Expr State::mkExprSimple(Kind k, const std::vector<Expr>& children)
+Expr State::mkRawExpr(Kind k, const std::vector<Expr>& children)
 {
   std::vector<ExprValue*> vchildren;
   for (const Expr& c : children)
