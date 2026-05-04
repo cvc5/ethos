@@ -1272,6 +1272,32 @@ void ExprParser::typeCheckProgramPair(Expr& pat,
   }
 }
 
+void ExprParser::typeCheckProgramFwdDecl(Expr& prevProg, Expr& newType, const std::string& progName)
+{
+  const Expr& prevType = d_state.getTypeChecker().getType(prevProg);
+  if (prevType==newType)
+  {
+    return;
+  }
+  std::vector<Expr> vso = Expr::getVariables(prevType);
+  std::vector<Expr> vsn = Expr::getVariables(newType);
+  if (vso.size()==vsn.size())
+  {
+    Ctx ctx;
+    for (size_t i=0, nvars=vso.size(); i<nvars; i++)
+    {
+      ctx[vso[i].getValue()] = vsn[i].getValue();
+    }
+    if (d_state.getTypeChecker().evaluate(prevType.getValue(), ctx)==newType)
+    {
+      return;
+    }
+  }
+  std::stringstream ss;
+  ss << "Foward declaration of program " << progName << " had different type.";
+  d_lex.parseError(ss.str());
+}
+
 Expr ExprParser::findFreeVar(const Expr& e, const std::vector<Expr>& bvs)
 {
   std::vector<Expr> efv = Expr::getVariables(e);

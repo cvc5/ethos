@@ -804,8 +804,9 @@ bool CmdParser::parseNextCommand()
         {
           d_lex.parseError("Cannot define program more than once");
         }
-        // it should be a program with the same type
-        // d_eparser.typeCheck(pprev, progType);
+        // ensure that its type is compatible with the previous definition
+        d_eparser.typeCheckProgramFwdDecl(pprev, progType, name);
+        // we use the old program that was globally bound already
         pvar = pprev;
       }
       else
