@@ -756,7 +756,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       // have to check whether we have marked the constructor kind, which is
       // not the case i.e. if we are constructing applications corresponding to
       // the cases in the program definition itself.
-      if (getAttributeKind(hd)!=Attr::NONE)
+      if (getAttributeKind(hd) != Attr::NONE)
       {
         Expr hdt = Expr(hd);
         const Expr& t = d_tc.getType(hdt);
@@ -1196,8 +1196,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
       Expr argList;
       // If there is only one argument, and it was marked :list, then it is
       // not desugared.
-      if (vchildren.size() == 2
-          && getAttributeKind(vchildren[1]) == Attr::LIST)
+      if (vchildren.size() == 2 && getAttributeKind(vchildren[1]) == Attr::LIST)
       {
         argList = Expr(vchildren[1]);
       }
@@ -1389,7 +1388,7 @@ Attr State::getAttributeKind(const ExprValue* v) const
 Expr State::getAttributeTerm(const ExprValue* v) const
 {
   const AppInfo* ai = getAppInfo(v);
-  if (ai!=nullptr)
+  if (ai != nullptr)
   {
     return ai->d_attrConsTerm;
   }

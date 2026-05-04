@@ -194,12 +194,12 @@ class State
                            const Expr& ret,
                            const std::string& name);
   //--------------------------------------
-  /** 
+  /**
    * Get the constructor kind for symbol v. This is one of the types listed in
    * attr.h which impact how the symbol v is parsed on interpreted.
    */
   Attr getAttributeKind(const ExprValue* v) const;
-  /** 
+  /**
    * Get the attribute term for symbol v. Along with getAttributeKind, this
    * term impacts how the symbol v is parsed on interpreted.
    */
