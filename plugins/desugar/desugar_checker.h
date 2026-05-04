@@ -19,21 +19,36 @@ namespace ethos {
 class State;
 
 /**
+ * Helper for generating the desugared executable proof checker.
+ *
+ * `DesugarChecker` is used by the main desugar plugin when VC generation is
+ * disabled.  It inspects each proof-rule declaration, emits an embedded rule
+ * constant for it, and generates checker invocation cases that translate
+ * checker commands into calls to the corresponding desugared proof-rule
+ * program.  The accumulated fragments are finally spliced into
+ * `eo_desugar_checker.eo` by output().
  */
 class DesugarChecker : public StdPlugin
 {
  public:
+  /** Construct the checker generator and initialize common constants. */
   DesugarChecker(State& s);
+  /** Destroy the checker generator. */
   ~DesugarChecker();
+  /** Generate embedded rule and invocation cases for proof rule v. */
   void finalizeRule(const Expr& v);
 
+  /** Write the generated checker EO fragment to out. */
   void output(std::ostream& out);
 
  private:
+  /** Common true literal used to recognize assumption rules. */
   Expr d_true;
-  // the rules
+  /** Generated embedded rule declarations. */
   std::stringstream d_rules;
+  /** Generated checker invocations for ordinary proof-rule steps. */
   std::stringstream d_ruleInvokes;
+  /** Generated checker invocations for assumption-pop proof-rule steps. */
   std::stringstream d_ruleInvokesPop;
 };
 

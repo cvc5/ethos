@@ -22,12 +22,24 @@ class State;
 class TypeChecker;
 
 /**
- * Provides utilities for linearizing patterns
+ * Utility for rewriting non-linear EO program patterns into linear patterns.
+ *
+ * Some target encodings, including Lean pattern matching, require each pattern
+ * variable to occur at most once.  `LinearPattern` rewrites repeated variables
+ * by replacing later occurrences with fresh parameters and collecting equality
+ * guards that enforce the original sharing.  When a guarded case is followed
+ * by later cases, linearization may split the original program into helper
+ * programs so the old fall-through behavior is preserved.
+ *
+ * The utility is exposed as static methods because callers typically need a
+ * one-shot transformation of an already-built program definition.
  */
 class LinearPattern : public StdPlugin
 {
  public:
+  /** Construct the linear-pattern utility plugin. */
   LinearPattern(State& s);
+  /** Destroy the linear-pattern utility plugin. */
   ~LinearPattern();
   /**
    * Linearize patterns in prog whose definition is progDef.
@@ -44,6 +56,7 @@ class LinearPattern : public StdPlugin
    * If condition is null, then no linearization was necessary.
    */
   static std::pair<Expr, Expr> linearizePattern(State& s, const Expr& pat);
+  /** Recursively replace repeated parameters and collect equality guards. */
   static Expr linearizeRec(State& s,
                            const Expr& pat,
                            std::map<Expr, size_t>& params,
