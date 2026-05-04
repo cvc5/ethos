@@ -23,7 +23,8 @@ class State;
 class TypeChecker;
 
 /**
- * Plugin that parses an arbitrary Eunoia input into the "desugared" Eunoia core.
+ * Plugin that parses an arbitrary Eunoia input into the "desugared" Eunoia
+ * core.
  *
  * The desugar stage is an EO-to-EO compilation pass.  It records declarations,
  * program definitions, proof rules, datatype metadata, literal type rules, and

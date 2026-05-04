@@ -7,9 +7,8 @@
  * directory for licensing information.
  ******************************************************************************/
 
-#include "main_runner.h"
-
 #include "base/check.h"
+#include "main_runner.h"
 
 using namespace ethos;
 

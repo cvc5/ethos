@@ -44,4 +44,7 @@ std::unique_ptr<ethos::Plugin> createPlugin(ethos::Options& opts,
 
 }  // namespace
 
-int main(int argc, char* argv[]) { return ethos::runMain(argc, argv, createPlugin); }
+int main(int argc, char* argv[])
+{
+  return ethos::runMain(argc, argv, createPlugin);
+}

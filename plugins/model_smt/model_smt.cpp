@@ -287,7 +287,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   )
 )
 )";
-  addEunoiaReduceSym("distinct", {kAny}, "($native_ite ($eo_to_smt_type_is_tlist ($eo_typeof x1)) ($eo_to_smt_distinct x1) $sm_none)");
+  addEunoiaReduceSym("distinct",
+                     {kAny},
+                     "($native_ite ($eo_to_smt_type_is_tlist ($eo_typeof x1)) "
+                     "($eo_to_smt_distinct x1) $sm_none)");
   // custom definition of is_list_nil recognizer for distinct arg list
   if (optionFwdDeclIsListNilNground())
   {
@@ -774,14 +777,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // one variable at a time, $sm_exists is hardcoded
   addEunoiaReduceSym(
       "exists", {kT, kT}, "($eo_to_smt_exists x1 ($eo_to_smt x2))");
-  d_specialCases["exists"].emplace_back("(exists $eo_List_nil x1)",
-                                            "$sm_none");
+  d_specialCases["exists"].emplace_back("(exists $eo_List_nil x1)", "$sm_none");
   addEunoiaReduceSym(
       "forall",
       {kT, kBool},
       "($sm_not ($eo_to_smt_exists x1 ($sm_not ($eo_to_smt x2))))");
-  d_specialCases["forall"].emplace_back("(forall $eo_List_nil x1)",
-                                            "$sm_none");
+  d_specialCases["forall"].emplace_back("(forall $eo_List_nil x1)", "$sm_none");
 
   //===========================================================================
   ///----- non standard extensions and skolems
@@ -1010,7 +1011,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   (($eo_to_smt_set.insert t2 t3) $sm_none)
   )
 ))";
-  addEunoiaReduceSym("set.insert", {kT, kT}, "($eo_to_smt_set.insert x1 ($eo_to_smt x2))");
+  addEunoiaReduceSym(
+      "set.insert", {kT, kT}, "($eo_to_smt_set.insert x1 ($eo_to_smt x2))");
   d_specialCases["set.insert"].emplace_back("(set.insert $eo_List_nil x1)",
                                             "$sm_none");
   //   bitvectors
@@ -1080,7 +1082,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym(
       "Tuple",
       {kT, kT},
-      "(eo::define ((T ($eo_to_smt_type_tuple ($eo_to_smt_type x1) ($eo_to_smt_type x2)))) ($native_ite ($smtx_type_wf T) T $tsm_none))",
+      "(eo::define ((T ($eo_to_smt_type_tuple ($eo_to_smt_type x1) "
+      "($eo_to_smt_type x2)))) ($native_ite ($smtx_type_wf T) T $tsm_none))",
       true);
   addEunoiaReduceSym("UnitTuple",
                      {},
@@ -1103,7 +1106,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      {},
                      "($sm_DtCons $native_str_tuple_name ($dt_sum "
                      "$dtc_unit $dt_null) $native_n_zero)");
-  addEunoiaReduceSym("is", {kT, kT}, "($sm_apply ($eo_to_smt_tester ($eo_to_smt x1)) ($eo_to_smt x2))");
+  addEunoiaReduceSym(
+      "is",
+      {kT, kT},
+      "($sm_apply ($eo_to_smt_tester ($eo_to_smt x1)) ($eo_to_smt x2))");
   addEunoiaReduceSym(
       "update",
       {kT, kT, kT},
@@ -1551,7 +1557,7 @@ void ModelSmt::printEvalCallBase(std::ostream& out,
   for (; i <= nargs; i++)
   {
     // don't use automatic list pattern anymore
-    Assert (args[i - 1] !=Kind::EVAL_CONS && args[i - 1] != Kind::VARIABLE);
+    Assert(args[i - 1] != Kind::EVAL_CONS && args[i - 1] != Kind::VARIABLE);
     out << " x" << icount;
     icount++;
   }

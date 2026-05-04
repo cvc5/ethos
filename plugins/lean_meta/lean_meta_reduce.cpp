@@ -699,7 +699,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
         prets.push_back(prog[i][1]);
       }
       Expr allRets = d_state.mkExprSimple(Kind::TUPLE, prets);
-      bool hasNumeral = (!getSubtermsKind( Kind::NUMERAL, allRets).empty());
+      bool hasNumeral = (!getSubtermsKind(Kind::NUMERAL, allRets).empty());
       std::vector<Expr> calls =
           StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, allRets);
       for (const Expr& e : calls)
@@ -708,7 +708,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
         // function, set needsPartial to true.
         if (d_totalDefProgs.find(e) == d_totalDefProgs.end())
         {
-          if (e==v && !hasNumeral)
+          if (e == v && !hasNumeral)
           {
             continue;
           }
