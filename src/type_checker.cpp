@@ -1316,10 +1316,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           for (ExprValue* c : cargs)
           {
             Expr ce(c);
-            if (d_state.getConstructorKind(c) == Attr::AMB_DATATYPE_CONSTRUCTOR)
+            if (d_state.getAttributeKind(c) == Attr::AMB_DATATYPE_CONSTRUCTOR)
             {
-              Expr dt(args[0]);
-              ce = d_state.mkExpr(Kind::APPLY_OPAQUE, {ce, dt});
+              ce = Expr(
+                  d_state.mkExprInternal(Kind::APPLY_OPAQUE, {c, args[0]}));
             }
             cargsp.push_back(ce);
           }

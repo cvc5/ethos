@@ -719,7 +719,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       // have to check whether we have marked the constructor kind, which is
       // not the case i.e. if we are constructing applications corresponding to
       // the cases in the program definition itself.
-      if (getConstructorKind(hd)!=Attr::NONE)
+      if (getAttributeKind(hd) != Attr::NONE)
       {
         Expr hdt = Expr(hd);
         const Expr& t = d_tc.getType(hdt);
@@ -786,7 +786,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   else if (k == Kind::AS_RETURN)
   {
     // (as nil (List Int)) --> (_ nil (List Int))
-    Attr ck = getConstructorKind(vchildren[0]);
+    Attr ck = getAttributeKind(vchildren[0]);
     if ((ck == Attr::AMB_DATATYPE_CONSTRUCTOR || ck == Attr::AMB)
         && children.size() == 2)
     {
@@ -834,6 +834,16 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         return reto;
       }
     }
+  }
+  return Expr(mkExprInternal(k, vchildren));
+}
+
+Expr State::mkRawExpr(Kind k, const std::vector<Expr>& children)
+{
+  std::vector<ExprValue*> vchildren;
+  for (const Expr& c : children)
+  {
+    vchildren.push_back(c.getValue());
   }
   return Expr(mkExprInternal(k, vchildren));
 }
@@ -1027,7 +1037,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
         size_t nlistTerms = 0;
         if (isNil)
         {
-          if (getConstructorKind(curr) != Attr::LIST)
+          if (getAttributeKind(curr) != Attr::LIST)
           {
             // if the last term is not marked as a list variable and
             // we have a null terminator, then we insert the null terminator
@@ -1059,7 +1069,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
           cc[prevIndex] = curr;
           cc[nextIndex] = vchildren[isLeft ? i : nchild - i];
           // if the "head" child is marked as list, we construct concatenation
-          if (isNil && getConstructorKind(cc[nextIndex]) == Attr::LIST)
+          if (isNil && getAttributeKind(cc[nextIndex]) == Attr::LIST)
           {
             curr = mkExprInternal(Kind::EVAL_LIST_CONCAT, cc);
           }
@@ -1149,8 +1159,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
       Expr argList;
       // If there is only one argument, and it was marked :list, then it is
       // not desugared.
-      if (vchildren.size() == 2
-          && getConstructorKind(vchildren[1]) == Attr::LIST)
+      if (vchildren.size() == 2 && getAttributeKind(vchildren[1]) == Attr::LIST)
       {
         argList = Expr(vchildren[1]);
       }
@@ -1329,7 +1338,7 @@ Expr State::mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Exp
   return mkExpr(Kind::APPLY, vlist);
 }
 
-Attr State::getConstructorKind(const ExprValue* v) const
+Attr State::getAttributeKind(const ExprValue* v) const
 {
   const AppInfo* ai = getAppInfo(v);
   if (ai!=nullptr)
@@ -1339,6 +1348,15 @@ Attr State::getConstructorKind(const ExprValue* v) const
   return Attr::NONE;
 }
 
+Expr State::getAttributeTerm(const ExprValue* v) const
+{
+  const AppInfo* ai = getAppInfo(v);
+  if (ai != nullptr)
+  {
+    return ai->d_attrConsTerm;
+  }
+  return d_null;
+}
 
 Expr State::getVar(const std::string& name) const
 {

@@ -135,8 +135,14 @@ class State
   Expr mkSelf() const;
   /** Make pair */
   Expr mkPair(const Expr& t1, const Expr& t2);
-  /** */
+  /**
+   * Makes expression with given kind and childen. This method will apply
+   * desugaring based on the attributes of the operator head, i.e. the first
+   * expression in children.
+   */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
+  /** Same as above, without desugaring */
+  Expr mkRawExpr(Kind k, const std::vector<Expr>& children);
   /** make true */
   Expr mkTrue() const;
   /** make false */
@@ -180,8 +186,16 @@ class State
                            const Expr& ret,
                            const std::string& name);
   //--------------------------------------
-  /** Get the constructor kind for symbol v */
-  Attr getConstructorKind(const ExprValue* v) const;
+  /**
+   * Get the constructor kind for symbol v. This is one of the types listed in
+   * attr.h which impact how the symbol v is parsed on interpreted.
+   */
+  Attr getAttributeKind(const ExprValue* v) const;
+  /**
+   * Get the attribute term for symbol v. Along with getAttributeKind, this
+   * term impacts how the symbol v is parsed on interpreted.
+   */
+  Expr getAttributeTerm(const ExprValue* v) const;
   /** make binder list */
   Expr mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs);
   /** */
