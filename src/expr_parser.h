@@ -173,7 +173,9 @@ class ExprParser
    * type. Since parameters are not normalized, we need to check whether
    * newType is alpha equivalent to the previously declared type.
    */
-  void typeCheckProgramFwdDecl(Expr& prevProg, Expr& newType, const std::string& progName);
+  void typeCheckProgramFwdDecl(Expr& prevProg,
+                               Expr& newType,
+                               const std::string& progName);
   /** get variable, else error */
   Expr getVar(const std::string& name);
   /** get variable, else error */
