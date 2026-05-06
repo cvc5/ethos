@@ -468,13 +468,14 @@ class Formatter:
         self, children: list[Node], level: int
     ) -> list[str]:
         head = children[0].text
+        child_level = level if head == "eo::define" else level + 1
         prefix = self.indent(level) + "(" + head + " "
-        lines = self.format_node_with_prefix(children[1], prefix, level + 1)
+        lines = self.format_node_with_prefix(children[1], prefix, child_level)
         for child in children[2:]:
             if child.is_comment():
-                self.emit_comment(lines, child, level + 1)
+                self.emit_comment(lines, child, child_level)
             else:
-                lines.extend(self.format_node(child, level + 1))
+                lines.extend(self.format_node(child, child_level))
         if level == 0 or lines[-1].lstrip().startswith(";"):
             lines.append(self.indent(level) + ")")
         else:
