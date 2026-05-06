@@ -321,31 +321,34 @@ class Formatter:
 
         case_level = level
         case_info = self.program_case_info(children, case_level)
-        inline_indexes, return_col = self.inline_program_cases(case_info)
+        inline_cols = self.inline_program_cases(children, case_info)
 
         lines = [self.indent(level) + "("]
         for idx, child in enumerate(children):
             if child.is_comment():
                 self.emit_comment(lines, child, case_level)
-            elif idx in inline_indexes:
+            elif idx in inline_cols:
                 info = case_info[idx]
                 assert info is not None
                 lines.append(
                     self.format_inline_case(
-                        info["pattern"], info["ret"], return_col, case_level
+                        info["pattern"], info["ret"], inline_cols[idx], case_level
                     )
                 )
-            elif case_info.get(idx) is not None:
+            elif self.is_program_case(child):
                 lines.extend(self.format_multiline_case(child, case_level))
             else:
                 lines.extend(self.format_node(child, case_level))
         lines.append(self.indent(level) + ")")
         return lines
 
+    def is_program_case(self, node: Node) -> bool:
+        return node.is_list() and len(self.non_comment_children(node)) == 2
+
     def program_case_info(
         self, children: list[Node], case_level: int
-    ) -> dict[int, Optional[dict[str, str]]]:
-        info: dict[int, Optional[dict[str, str]]] = {}
+    ) -> dict[int, Optional[dict[str, int | str]]]:
+        info: dict[int, Optional[dict[str, int | str]]] = {}
         for idx, child in enumerate(children):
             if not child.is_list():
                 info[idx] = None
@@ -363,32 +366,50 @@ class Formatter:
             info[idx] = {
                 "pattern": pattern,
                 "ret": ret,
-                "min_ret_col": str(self.next_even(before_ret + 1)),
+                "min_ret_col": self.next_even(before_ret + 1),
+                "ret_width": self.line_width(ret),
             }
         return info
 
     def inline_program_cases(
-        self, case_info: dict[int, Optional[dict[str, str]]]
-    ) -> tuple[set[int], int]:
-        inline = {idx for idx, info in case_info.items() if info is not None}
-        return_col = 0
-        while inline:
-            return_col = max(
-                int(case_info[idx]["min_ret_col"])  # type: ignore[index]
-                for idx in inline
-            )
-            new_inline = {
-                idx
-                for idx in inline
-                if return_col
-                + self.line_width(case_info[idx]["ret"])  # type: ignore[index]
-                + 1
-                <= self.width
-            }
-            if new_inline == inline:
-                break
-            inline = new_inline
-        return inline, return_col
+        self,
+        children: list[Node],
+        case_info: dict[int, Optional[dict[str, int | str]]],
+    ) -> dict[int, int]:
+        inline_cols: dict[int, int] = {}
+        group: list[int] = []
+
+        def case_fits(idx: int, return_col: int) -> bool:
+            info = case_info[idx]
+            assert info is not None
+            return return_col + int(info["ret_width"]) + 1 <= self.width
+
+        def flush_group() -> None:
+            if not group:
+                return
+            return_col = max(int(case_info[idx]["min_ret_col"]) for idx in group)
+            for idx in group:
+                inline_cols[idx] = return_col
+            group.clear()
+
+        for idx, child in enumerate(children):
+            info = case_info.get(idx)
+            if child.is_comment() or info is None:
+                flush_group()
+                continue
+            own_col = int(info["min_ret_col"])
+            if not case_fits(idx, own_col):
+                flush_group()
+                continue
+            trial = group + [idx]
+            return_col = max(int(case_info[i]["min_ret_col"]) for i in trial)
+            if all(case_fits(i, return_col) for i in trial):
+                group.append(idx)
+            else:
+                flush_group()
+                group.append(idx)
+        flush_group()
+        return inline_cols
 
     def format_inline_case(
         self, pattern: str, ret: str, return_col: int, case_level: int
@@ -402,17 +423,9 @@ class Formatter:
         if len(parts) != 2:
             return self.format_list(case, case_level)
         pattern, ret = parts
-        pattern_flat = self.flat(pattern)
-        lines: list[str] = []
-        if (
-            pattern_flat is not None
-            and self.line_width(self.indent(case_level) + "(" + pattern_flat)
-            <= self.width
-        ):
-            lines.append(self.indent(case_level) + "(" + pattern_flat)
-        else:
-            lines.append(self.indent(case_level) + "(")
-            lines.extend(self.format_node(pattern, case_level + 1))
+        lines = self.format_node_with_prefix(
+            pattern, self.indent(case_level) + "(", case_level + 1
+        )
         ret_lines = self.format_node(ret, case_level + 1)
         lines.extend(ret_lines)
         self.append_suffix(lines, ")", case_level)
