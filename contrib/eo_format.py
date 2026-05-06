@@ -2,8 +2,8 @@
 """Format Eunoia (.eo) files.
 
 The formatter is intentionally small and syntax-directed.  It parses Eunoia as
-S-expressions, keeps comments as nodes, and gives program bodies special
-treatment so one-line cases align their returns.
+S-expressions, keeps comments as nodes, uses 2-space indentation, and gives
+program bodies special treatment so one-line cases align their returns.
 """
 
 from __future__ import annotations
@@ -319,7 +319,7 @@ class Formatter:
         if not children:
             return [self.indent(level) + "()"]
 
-        case_level = level + 1
+        case_level = level
         case_info = self.program_case_info(children, case_level)
         inline_indexes, return_col = self.inline_program_cases(case_info)
 
@@ -427,6 +427,9 @@ class Formatter:
         if level == 0 and children and children[0].is_atom():
             return self.format_top_level_command(children, level)
 
+        if self.keeps_first_child_on_head_line(children):
+            return self.format_head_with_first_child(children, level)
+
         if self.should_wrap_flat_children(node, level):
             return self.format_wrapped_flat_children(children, level)
 
@@ -454,6 +457,57 @@ class Formatter:
             lines.append(self.indent(level) + ")")
         else:
             self.append_suffix(lines, ")", level)
+        return lines
+
+    def keeps_first_child_on_head_line(self, children: list[Node]) -> bool:
+        if len(children) < 2 or not children[0].is_atom():
+            return False
+        return children[0].text in {"eo::define", "eo::ite"}
+
+    def format_head_with_first_child(
+        self, children: list[Node], level: int
+    ) -> list[str]:
+        head = children[0].text
+        prefix = self.indent(level) + "(" + head + " "
+        lines = self.format_node_with_prefix(children[1], prefix, level + 1)
+        for child in children[2:]:
+            if child.is_comment():
+                self.emit_comment(lines, child, level + 1)
+            else:
+                lines.extend(self.format_node(child, level + 1))
+        if level == 0 or lines[-1].lstrip().startswith(";"):
+            lines.append(self.indent(level) + ")")
+        else:
+            self.append_suffix(lines, ")", level)
+        return lines
+
+    def format_node_with_prefix(
+        self, node: Node, prefix: str, child_level: int
+    ) -> list[str]:
+        if node.is_atom():
+            return [prefix + node.text]
+        if node.is_comment():
+            lines = [prefix.rstrip()]
+            self.emit_comment(lines, node, child_level)
+            return lines
+
+        flat = self.flat(node)
+        if flat is not None and self.line_width(prefix + flat) <= self.width:
+            return [prefix + flat]
+
+        children = node.children or []
+        if not children:
+            return [prefix + "()"]
+
+        lines = self.format_node_with_prefix(
+            children[0], prefix + "(", child_level + 1
+        )
+        for child in children[1:]:
+            if child.is_comment():
+                self.emit_comment(lines, child, child_level + 1)
+            else:
+                lines.extend(self.format_node(child, child_level + 1))
+        self.append_suffix(lines, ")", child_level)
         return lines
 
     def format_top_level_command(self, children: list[Node], level: int) -> list[str]:
@@ -701,12 +755,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("files", nargs="+", type=Path)
     parser.add_argument("--width", type=int, default=80)
-    parser.add_argument("--indent-size", type=int, default=2)
     parser.add_argument(
-        "--indent",
-        choices=("tabs", "spaces"),
-        default="tabs",
-        help="indentation characters to write; tabs are measured as indent-size columns",
+        "--indent-size",
+        type=int,
+        default=2,
+        help="number of spaces per indentation level",
     )
     parser.add_argument(
         "--no-recursive",
@@ -726,7 +779,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    formatter = Formatter(args.width, args.indent, args.indent_size)
+    formatter = Formatter(args.width, "spaces", args.indent_size)
     try:
         files = collect_files(args.files, args.recursive)
         changed: list[Path] = []
