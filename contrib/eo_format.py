@@ -560,14 +560,17 @@ class Formatter:
     def close_top_level_command(
         self, lines: list[str], command: str, level: int
     ) -> None:
-        if command == "declare-rule" or not lines or lines[-1].lstrip().startswith(";"):
+        if command == "declare-rule" or not lines:
             lines.append(self.indent(level) + ")")
         else:
-            lines[-1] += ")"
+            self.append_suffix(lines, ")", level)
 
     def format_keyword_group(
         self, children: list[Node], idx: int, lines: list[str], level: int
     ) -> int:
+        if children[idx].is_atom(":requires"):
+            return self.format_requires_keyword_group(children, idx, lines, level)
+
         line = self.indent(level + 1) + children[idx].text
         idx += 1
         while idx < len(children):
@@ -590,6 +593,71 @@ class Formatter:
             lines.extend(self.format_node(child, level + 2))
             idx += 1
         return idx
+
+    def format_requires_keyword_group(
+        self, children: list[Node], idx: int, lines: list[str], level: int
+    ) -> int:
+        line = self.indent(level + 1) + children[idx].text
+        idx += 1
+        if idx >= len(children):
+            lines.append(line)
+            return idx
+
+        child = children[idx]
+        if child.is_comment() or self.is_keyword(child):
+            lines.append(line)
+            return idx
+
+        child_flat = self.flat(child)
+        if child_flat is not None:
+            maybe = line + " " + child_flat
+            if self.line_width(maybe) <= self.width:
+                lines.append(maybe)
+                return idx + 1
+
+        lines.append(line)
+        if child.is_list():
+            lines.extend(self.format_requires_list(child, level + 2))
+        else:
+            lines.extend(self.format_node(child, level + 2))
+        return idx + 1
+
+    def format_requires_list(self, node: Node, level: int) -> list[str]:
+        flat = self.flat(node)
+        if (
+            flat is not None
+            and self.line_width(self.indent(level) + flat) <= self.width
+        ):
+            return [self.indent(level) + flat]
+
+        children = node.children or []
+        if not children:
+            return [self.indent(level) + "()"]
+
+        lines: list[str] = []
+        opened = False
+        for child in children:
+            if child.is_comment():
+                if not opened:
+                    lines.append(self.indent(level) + "(")
+                    opened = True
+                self.emit_comment(lines, child, level + 1)
+                continue
+            if not opened:
+                lines.extend(
+                    self.format_node_with_prefix(
+                        child, self.indent(level) + "(", level + 1
+                    )
+                )
+                opened = True
+            else:
+                lines.extend(
+                    self.format_node_with_prefix(
+                        child, self.indent(level + 1), level + 2
+                    )
+                )
+        self.append_suffix(lines, ")", level)
+        return lines
 
     def format_wrapped_flat_children(self, children: list[Node], level: int) -> list[str]:
         if not children:
@@ -633,10 +701,47 @@ class Formatter:
         return True
 
     def append_suffix(self, lines: list[str], suffix: str, level: int) -> None:
+        comment_idx = self.trailing_comment_index(lines[-1]) if lines else None
+        if comment_idx is not None:
+            before = lines[-1][:comment_idx].rstrip()
+            if not before.strip():
+                lines.append(self.indent(level) + suffix)
+                return
+            comment = lines[-1][comment_idx:]
+            maybe = before + suffix + " " + comment
+            if self.line_width(maybe) <= self.width:
+                lines[-1] = maybe
+            else:
+                lines.append(self.indent(level) + suffix)
+            return
         if lines and self.line_width(lines[-1] + suffix) <= self.width:
             lines[-1] += suffix
         else:
             lines.append(self.indent(level) + suffix)
+
+    def trailing_comment_index(self, text: str) -> Optional[int]:
+        in_string = False
+        in_symbol = False
+        i = 0
+        while i < len(text):
+            ch = text[i]
+            if in_string:
+                if ch == '"':
+                    if i + 1 < len(text) and text[i + 1] == '"':
+                        i += 2
+                        continue
+                    in_string = False
+            elif in_symbol:
+                if ch == "|":
+                    in_symbol = False
+            elif ch == '"':
+                in_string = True
+            elif ch == "|":
+                in_symbol = True
+            elif ch == ";":
+                return i
+            i += 1
+        return None
 
     def flat(self, node: Node) -> Optional[str]:
         if node.is_atom():
