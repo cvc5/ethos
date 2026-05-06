@@ -1,7 +1,7 @@
 This file contains a summary of important user-visible changes.
 
-ethos 0.2.3 prerelease
-======================
+ethos 0.2.3
+===========
 
 - The command `declare-parameterized-const` now forbids return types that contain parameters with non-ground type.
 - Updates to the external plugin interface.
