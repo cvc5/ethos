@@ -221,7 +221,9 @@ class Formatter:
         return self.format_list(node, level)
 
     def format_comment(self, node: Node, level: int) -> list[str]:
-        indent = self.indent(level)
+        return self.format_comment_with_indent(node, self.indent(level))
+
+    def format_comment_with_indent(self, node: Node, indent: str) -> list[str]:
         text = node.text
         if self.line_width(indent + text) <= self.width:
             return [indent + text]
@@ -253,19 +255,34 @@ class Formatter:
         lines.append(indent + current.rstrip())
         return lines
 
-    def emit_comment(self, lines: list[str], node: Node, level: int) -> None:
+    def emit_comment(
+        self,
+        lines: list[str],
+        node: Node,
+        level: int,
+        insert_before: Optional[int] = None,
+    ) -> None:
         if node.trailing and lines and not lines[-1].lstrip().startswith(";"):
             trailing = " " + node.text
             if self.line_width(lines[-1] + trailing) <= self.width:
                 lines[-1] += trailing
                 return
+            target = insert_before if insert_before is not None else len(lines) - 1
+            lines[target:target] = self.format_comment_with_indent(
+                node, self.leading_whitespace(lines[target])
+            )
+            return
         lines.extend(self.format_comment(node, level))
+
+    def leading_whitespace(self, text: str) -> str:
+        return text[: len(text) - len(text.lstrip(" \t"))]
 
     def format_program(self, node: Node, level: int) -> list[str]:
         flat = self.flat(node)
         if flat is not None and self.line_width(self.indent(level) + flat) <= self.width:
             return [self.indent(level) + flat]
 
+        children = node.children or []
         parts = self.non_comment_children(node)
         if len(parts) < 6:
             return self.format_list(node, level)
@@ -276,20 +293,46 @@ class Formatter:
             return self.format_list(node, level)
 
         lines: list[str] = []
+        positions = {id(child): idx for idx, child in enumerate(children)}
+
+        def emit_comments_between(start: int, end: int, insert_before: int) -> None:
+            for child in children[start:end]:
+                if child.is_comment():
+                    self.emit_comment(lines, child, level + 1, insert_before)
+
         head = self.indent(level) + f"(program {name.text}"
         params_flat = self.flat(params)
-        if (
-            params_flat is not None
-            and self.line_width(head + " " + params_flat) <= self.width
-        ):
-            lines.append(head + " " + params_flat)
-        else:
+        pre_param_comments = [
+            child
+            for child in children[positions[id(name)] + 1 : positions[id(params)]]
+            if child.is_comment()
+        ]
+        if pre_param_comments:
             lines.append(head)
+            for child in pre_param_comments:
+                self.emit_comment(lines, child, level + 1)
+            params_start = len(lines)
             lines.extend(self.format_node(params, level + 1))
+        else:
+            if (
+                params_flat is not None
+                and self.line_width(head + " " + params_flat) <= self.width
+            ):
+                params_start = len(lines)
+                lines.append(head + " " + params_flat)
+            else:
+                lines.append(head)
+                params_start = len(lines)
+                lines.extend(self.format_node(params, level + 1))
+
+        emit_comments_between(
+            positions[id(params)] + 1, positions[id(sig_keyword)], params_start
+        )
 
         sig = self.indent(level + 1) + ":signature"
         args_flat = self.flat(arg_types)
         ret_flat = self.flat(ret_type)
+        sig_start = len(lines)
         if (
             args_flat is not None
             and ret_flat is not None
@@ -301,15 +344,16 @@ class Formatter:
             lines.extend(self.format_node(arg_types, level + 2))
             lines.extend(self.format_node(ret_type, level + 2))
 
-        for child in node.children or []:
-            if child.is_comment():
-                self.emit_comment(lines, child, level + 1)
+        body_pos = positions[id(body)] if body is not None else len(children)
+        emit_comments_between(positions[id(ret_type)] + 1, body_pos, sig_start)
 
         if body is not None:
+            body_start = len(lines)
             if body.is_list():
                 lines.extend(self.format_program_body(body, level + 1))
             else:
                 lines.extend(self.format_node(body, level + 1))
+            emit_comments_between(body_pos + 1, len(children), body_start)
 
         lines.append(self.indent(level) + ")")
         return lines
@@ -324,20 +368,24 @@ class Formatter:
         inline_cols = self.inline_program_cases(children, case_info)
 
         lines = [self.indent(level) + "("]
+        last_child_start = 0
         for idx, child in enumerate(children):
             if child.is_comment():
-                self.emit_comment(lines, child, case_level)
+                self.emit_comment(lines, child, case_level, last_child_start)
             elif idx in inline_cols:
                 info = case_info[idx]
                 assert info is not None
+                last_child_start = len(lines)
                 lines.append(
                     self.format_inline_case(
                         info["pattern"], info["ret"], inline_cols[idx], case_level
                     )
                 )
             elif self.is_program_case(child):
+                last_child_start = len(lines)
                 lines.extend(self.format_multiline_case(child, case_level))
             else:
+                last_child_start = len(lines)
                 lines.extend(self.format_node(child, case_level))
         lines.append(self.indent(level) + ")")
         return lines
@@ -378,11 +426,38 @@ class Formatter:
     ) -> dict[int, int]:
         inline_cols: dict[int, int] = {}
         group: list[int] = []
+        trailing_comments = self.trailing_program_case_comments(children, case_info)
 
-        def case_fits(idx: int, return_col: int) -> bool:
+        def base_case_fits(idx: int, return_col: int) -> bool:
             info = case_info[idx]
             assert info is not None
             return return_col + int(info["ret_width"]) + 1 <= self.width
+
+        def trailing_comment_fits(idx: int, return_col: int) -> bool:
+            info = case_info[idx]
+            assert info is not None
+            return (
+                return_col
+                + int(info["ret_width"])
+                + 2
+                + self.line_width(trailing_comments[idx].text)
+                <= self.width
+            )
+
+        moved_comment_cases = {
+            idx
+            for idx in trailing_comments
+            if base_case_fits(idx, int(case_info[idx]["min_ret_col"]))
+            and not trailing_comment_fits(idx, int(case_info[idx]["min_ret_col"]))
+        }
+        moved_comment_indices = {idx + 1 for idx in moved_comment_cases}
+
+        def case_fits(idx: int, return_col: int) -> bool:
+            if not base_case_fits(idx, return_col):
+                return False
+            if idx in trailing_comments and idx not in moved_comment_cases:
+                return trailing_comment_fits(idx, return_col)
+            return True
 
         def flush_group() -> None:
             if not group:
@@ -393,8 +468,15 @@ class Formatter:
             group.clear()
 
         for idx, child in enumerate(children):
+            if idx in moved_comment_cases:
+                flush_group()
             info = case_info.get(idx)
-            if child.is_comment() or info is None:
+            if child.is_comment():
+                if idx in moved_comment_indices:
+                    continue
+                flush_group()
+                continue
+            if info is None:
                 flush_group()
                 continue
             own_col = int(info["min_ret_col"])
@@ -410,6 +492,20 @@ class Formatter:
                 group.append(idx)
         flush_group()
         return inline_cols
+
+    def trailing_program_case_comments(
+        self,
+        children: list[Node],
+        case_info: dict[int, Optional[dict[str, int | str]]],
+    ) -> dict[int, Node]:
+        trailing_comments: dict[int, Node] = {}
+        for idx, child in enumerate(children[:-1]):
+            if case_info.get(idx) is None:
+                continue
+            next_child = children[idx + 1]
+            if next_child.is_comment() and next_child.trailing:
+                trailing_comments[idx] = next_child
+        return trailing_comments
 
     def format_inline_case(
         self, pattern: str, ret: str, return_col: int, case_level: int
@@ -449,10 +545,12 @@ class Formatter:
         if children and children[0].is_atom():
             first = children[0].text
             lines = [self.indent(level) + "(" + first]
+            last_child_start = 0
             for child in children[1:]:
                 if child.is_comment():
-                    self.emit_comment(lines, child, level + 1)
+                    self.emit_comment(lines, child, level + 1, last_child_start)
                 else:
+                    last_child_start = len(lines)
                     lines.extend(self.format_node(child, level + 1))
             if level == 0 or lines[-1].lstrip().startswith(";"):
                 lines.append(self.indent(level) + ")")
@@ -461,10 +559,12 @@ class Formatter:
             return lines
 
         lines = [self.indent(level) + "("]
+        last_child_start = 0
         for child in children:
             if child.is_comment():
-                self.emit_comment(lines, child, level + 1)
+                self.emit_comment(lines, child, level + 1, last_child_start)
             else:
+                last_child_start = len(lines)
                 lines.extend(self.format_node(child, level + 1))
         if level == 0 or lines[-1].lstrip().startswith(";"):
             lines.append(self.indent(level) + ")")
@@ -484,10 +584,12 @@ class Formatter:
         child_level = level if head == "eo::define" else level + 1
         prefix = self.indent(level) + "(" + head + " "
         lines = self.format_node_with_prefix(children[1], prefix, child_level)
+        last_child_start = 0
         for child in children[2:]:
             if child.is_comment():
-                self.emit_comment(lines, child, child_level)
+                self.emit_comment(lines, child, child_level, last_child_start)
             else:
+                last_child_start = len(lines)
                 lines.extend(self.format_node(child, child_level))
         if level == 0 or lines[-1].lstrip().startswith(";"):
             lines.append(self.indent(level) + ")")
@@ -516,10 +618,12 @@ class Formatter:
         lines = self.format_node_with_prefix(
             children[0], prefix + "(", child_level + 1
         )
+        last_child_start = 0
         for child in children[1:]:
             if child.is_comment():
-                self.emit_comment(lines, child, child_level + 1)
+                self.emit_comment(lines, child, child_level + 1, last_child_start)
             else:
+                last_child_start = len(lines)
                 lines.extend(self.format_node(child, child_level + 1))
         self.append_suffix(lines, ")", child_level)
         return lines
@@ -543,15 +647,18 @@ class Formatter:
             idx += 1
 
         lines.append(line)
+        last_child_start = 0
         while idx < len(children):
             child = children[idx]
             if child.is_comment():
-                self.emit_comment(lines, child, level + 1)
+                self.emit_comment(lines, child, level + 1, last_child_start)
                 idx += 1
                 continue
             if self.is_keyword(child):
+                last_child_start = len(lines)
                 idx = self.format_keyword_group(children, idx, lines, level)
                 continue
+            last_child_start = len(lines)
             lines.extend(self.format_node(child, level + 1))
             idx += 1
         self.close_top_level_command(lines, children[0].text, level)
@@ -636,14 +743,16 @@ class Formatter:
 
         lines: list[str] = []
         opened = False
+        last_child_start = 0
         for child in children:
             if child.is_comment():
                 if not opened:
                     lines.append(self.indent(level) + "(")
                     opened = True
-                self.emit_comment(lines, child, level + 1)
+                self.emit_comment(lines, child, level + 1, last_child_start)
                 continue
             if not opened:
+                last_child_start = len(lines)
                 lines.extend(
                     self.format_node_with_prefix(
                         child, self.indent(level) + "(", level + 1
@@ -651,6 +760,7 @@ class Formatter:
                 )
                 opened = True
             else:
+                last_child_start = len(lines)
                 lines.extend(
                     self.format_node_with_prefix(
                         child, self.indent(level + 1), level + 2
