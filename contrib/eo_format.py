@@ -202,14 +202,32 @@ class Formatter:
 
     def format_document(self, nodes: list[Node]) -> str:
         lines: list[str] = []
-        for node in nodes:
+        idx = 0
+        while idx < len(nodes):
+            node = nodes[idx]
             if node.is_comment():
                 self.emit_comment(lines, node, 0)
+                idx += 1
             else:
+                command_start = len(lines)
                 lines.extend(self.format_node(node, 0))
+                idx += 1
+                while (
+                    idx < len(nodes)
+                    and nodes[idx].is_comment()
+                    and nodes[idx].trailing
+                ):
+                    self.emit_comment(lines, nodes[idx], 0, command_start)
+                    idx += 1
+                if idx < len(nodes):
+                    self.ensure_blank_line(lines)
         while lines and lines[-1] == "":
             lines.pop()
         return "\n".join(lines) + "\n"
+
+    def ensure_blank_line(self, lines: list[str]) -> None:
+        if lines and lines[-1] != "":
+            lines.append("")
 
     def format_node(self, node: Node, level: int) -> list[str]:
         if node.is_atom():
@@ -528,12 +546,21 @@ class Formatter:
         return lines
 
     def format_list(self, node: Node, level: int) -> list[str]:
+        children = node.children or []
         flat = self.flat(node)
-        if flat is not None and self.line_width(self.indent(level) + flat) <= self.width:
+        if (
+            not self.force_multiline(node)
+            and flat is not None
+            and self.line_width(self.indent(level) + flat) <= self.width
+        ):
             return [self.indent(level) + flat]
 
-        children = node.children or []
-        if level == 0 and children and children[0].is_atom():
+        if (
+            level == 0
+            and children
+            and children[0].is_atom()
+            and not self.keeps_first_child_on_head_line(children)
+        ):
             return self.format_top_level_command(children, level)
 
         if self.keeps_first_child_on_head_line(children):
@@ -577,25 +604,41 @@ class Formatter:
             return False
         return children[0].text in {"eo::define", "eo::ite"}
 
+    def force_multiline(self, node: Node) -> bool:
+        return (
+            self.is_call(node, "eo::define")
+            and len(self.non_comment_children(node)) > 2
+        )
+
     def format_head_with_first_child(
         self, children: list[Node], level: int
     ) -> list[str]:
         head = children[0].text
-        child_level = level if head == "eo::define" else level + 1
+        child_level = level + 1
         prefix = self.indent(level) + "(" + head + " "
         lines = self.format_node_with_prefix(children[1], prefix, child_level)
         last_child_start = 0
         for child in children[2:]:
+            next_level = self.head_child_level(head, child, level)
             if child.is_comment():
-                self.emit_comment(lines, child, child_level, last_child_start)
+                self.emit_comment(lines, child, next_level, last_child_start)
             else:
                 last_child_start = len(lines)
-                lines.extend(self.format_node(child, child_level))
-        if level == 0 or lines[-1].lstrip().startswith(";"):
+                lines.extend(self.format_node(child, next_level))
+        if lines[-1].lstrip().startswith(";"):
             lines.append(self.indent(level) + ")")
         else:
             self.append_suffix(lines, ")", level)
         return lines
+
+    def head_child_level(self, head: str, child: Node, level: int) -> int:
+        if head == "eo::define" and self.is_call(child, "eo::define"):
+            return level
+        return level + 1
+
+    def is_call(self, node: Node, head: str) -> bool:
+        children = self.non_comment_children(node) if node.is_list() else []
+        return bool(children and children[0].is_atom(head))
 
     def format_node_with_prefix(
         self, node: Node, prefix: str, child_level: int
