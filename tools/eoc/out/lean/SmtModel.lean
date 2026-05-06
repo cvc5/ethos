@@ -392,6 +392,17 @@ macro_rules
               true
             else
               false)
+  | `(native_re_ext_eq $r1 $r2) => do
+      let strInReId := Lean.mkIdent `native_str_in_re
+      `(by
+          classical
+          exact
+            if hExt :
+                ∀ s : native_String,
+                  $strInReId s $r1 = $strInReId s $r2 then
+              true
+            else
+              false)
   | `(native_eval_texists $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `__smtx_model_push
@@ -613,6 +624,7 @@ def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m1), (SmtValue.Map m2) => (SmtValue.Boolean (native_veq_ext m1 m2))
   | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Boolean (native_veq_ext m1 m2))
   | (SmtValue.Fun m1), (SmtValue.Fun m2) => (SmtValue.Boolean (native_veq_ext m1 m2))
+  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
   | (SmtValue.Seq (SmtSeq.empty T1)), (SmtValue.Seq (SmtSeq.empty T2)) => (SmtValue.Boolean true)
   | (SmtValue.Seq (SmtSeq.cons v1 vs1)), (SmtValue.Seq (SmtSeq.cons v2 vs2)) => 
     let _v0 := (SmtValue.Boolean true)

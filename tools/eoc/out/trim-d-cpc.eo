@@ -70,6 +70,10 @@
 ;;; forward declarations
 
 ; forward declaration
+(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
+  :signature ((-> T U V) (eo::quote W)) W)
+
+; forward declaration
 (program $eo_is_list_nil ((T Type) (V Type))
   :signature ((-> T V V) V) Bool)
 

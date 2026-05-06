@@ -341,6 +341,17 @@ macro_rules
               true
             else
               false)
+  | `(native_re_ext_eq $r1 $r2) => do
+      let strInReId := Lean.mkIdent `native_str_in_re
+      `(by
+          classical
+          exact
+            if hExt :
+                ∀ s : native_String,
+                  $strInReId s $r1 = $strInReId s $r2 then
+              true
+            else
+              false)
   | `(native_eval_texists $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `__smtx_model_push

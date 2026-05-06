@@ -930,7 +930,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "($eo_to_smt_seq.empty ($eo_to_smt_type x1))";
   addRecReduceSym("seq.unit", {kAny}, d_kSeq, "($smtx_seq_unit e1)");
   d_typeFullCase["seq.unit"] =
-      smtGuardType1("($smtx_typeof x1)", "($tsm_Seq ($smtx_typeof x1))");
+      "(eo::define ((T ($smtx_typeof x1))) ($smtx_typeof_guard_wf T ($tsm_Seq T)))";
   addRecReduceSym("seq.nth", {d_kSeq, kInt}, kAny, "($smtx_seq_nth M e1 e2)");
   addAuxTypeProgram("seq.nth", {d_kSeq, kInt}, "($smtx_typeof_guard_wf x1 x1)");
   // sets
@@ -951,7 +951,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "($eo_to_smt_set.empty ($eo_to_smt_type x1))";
   addTermReduceSym("set.singleton", {kAny}, d_kSet, "($smtx_set_singleton x1)");
   d_typeFullCase["set.singleton"] =
-      smtGuardType1("($smtx_typeof x1)", "($tsm_Set ($smtx_typeof x1))");
+      "(eo::define ((T ($smtx_typeof x1))) ($smtx_typeof_guard_wf T ($tsm_Set T)))";
   addTermReduceSym(
       "set.inter", {d_kSet, d_kSet}, d_kSet, "($smtx_set_inter x1 x2)");
   addTermReduceSym(

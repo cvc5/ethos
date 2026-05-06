@@ -20,6 +20,8 @@
 (define-fun qdiv_total ((x Real) (y Real)) Real (/_total x y))
 (define-sort Char () Int)
 (define-fun streq ((x String) (y String)) Bool (= x y))
+; can rely on first class equality for regular expressions
+(define-fun re_ext_eq ((r1 RegLan) (r2 RegLan)) Bool (= r1 r2))
 
 (declare-datatype Nat ((nat.zero) (nat.succ (nat.succ.arg1 Nat))))
 (define-fun nateq ((x Nat) (y Nat)) Bool (= x y))
@@ -693,6 +695,8 @@
     (vsm.Boolean (veq_ext (vsm.Set.arg1 x1) (vsm.Set.arg1 x2)))
   (ite (and ((_ is vsm.Fun) x1) ((_ is vsm.Fun) x2))
     (vsm.Boolean (veq_ext (vsm.Fun.arg1 x1) (vsm.Fun.arg1 x2)))
+  (ite (and ((_ is vsm.RegLan) x1) ((_ is vsm.RegLan) x2))
+    (vsm.Boolean (re_ext_eq (vsm.RegLan.arg1 x1) (vsm.RegLan.arg1 x2)))
   (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.empty) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.empty) (vsm.Seq.arg1 x2)))
     (vsm.Boolean true)
   (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.cons) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.cons) (vsm.Seq.arg1 x2)))
@@ -700,7 +704,7 @@
   (ite (and ((_ is vsm.Apply) x1) ((_ is vsm.Apply) x2))
     (vsm.Boolean (and (veq ($smtx_model_eval_= (vsm.Apply.arg1 x1) (vsm.Apply.arg1 x2)) (vsm.Boolean true)) (veq ($smtx_model_eval_= (vsm.Apply.arg2 x1) (vsm.Apply.arg2 x2)) (vsm.Boolean true))))
     (vsm.Boolean (veq x1 x2))
-))))))) :pattern (($smtx_model_eval_= x1 x2)))) :named sm.axiom.$smtx_model_eval_=))
+)))))))) :pattern (($smtx_model_eval_= x1 x2)))) :named sm.axiom.$smtx_model_eval_=))
 
 ; program: $smtx_map_select
 (define-fun $smtx_map_select ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value

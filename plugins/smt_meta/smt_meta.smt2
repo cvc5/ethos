@@ -20,6 +20,8 @@
 (define-fun qdiv_total ((x Real) (y Real)) Real (/_total x y))
 (define-sort Char () Int)
 (define-fun streq ((x String) (y String)) Bool (= x y))
+; can rely on first class equality for regular expressions
+(define-fun re_ext_eq ((r1 RegLan) (r2 RegLan)) Bool (= r1 r2))
 
 (declare-datatype Nat ((nat.zero) (nat.succ (nat.succ.arg1 Nat))))
 (define-fun nateq ((x Nat) (y Nat)) Bool (= x y))
