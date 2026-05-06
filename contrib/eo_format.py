@@ -554,8 +554,16 @@ class Formatter:
                 continue
             lines.extend(self.format_node(child, level + 1))
             idx += 1
-        lines.append(self.indent(level) + ")")
+        self.close_top_level_command(lines, children[0].text, level)
         return lines
+
+    def close_top_level_command(
+        self, lines: list[str], command: str, level: int
+    ) -> None:
+        if command == "declare-rule" or not lines or lines[-1].lstrip().startswith(";"):
+            lines.append(self.indent(level) + ")")
+        else:
+            lines[-1] += ")"
 
     def format_keyword_group(
         self, children: list[Node], idx: int, lines: list[str], level: int
