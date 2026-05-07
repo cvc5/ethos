@@ -654,7 +654,7 @@
   (ite ((_ is vsm.Rational) x1)
     tsm.Real
   (ite ((_ is vsm.Binary) x1)
-    (ite (zleq 0 (vsm.Binary.arg1 x1)) (tsm.BitVec (int.to_nat (vsm.Binary.arg1 x1))) tsm.None)
+    (ite (and (zleq 0 (vsm.Binary.arg1 x1)) (zeq (vsm.Binary.arg2 x1) (mod_total (vsm.Binary.arg2 x1) (int.pow2 (vsm.Binary.arg1 x1))))) (tsm.BitVec (int.to_nat (vsm.Binary.arg1 x1))) tsm.None)
   (ite ((_ is vsm.RegLan) x1)
     tsm.RegLan
   (ite ((_ is vsm.Map) x1)
