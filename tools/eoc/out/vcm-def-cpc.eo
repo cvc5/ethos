@@ -2281,20 +2281,21 @@
 ; return: The evaluation of an equality application.
 (program $smtx_value_=
   ((v1 $smt_Value) (v2 $smt_Value) (f1 $smt_Value) (f2 $smt_Value)
-   (T1 $smt_Type) (T2 $smt_Type) (m1 $smt_Map) (m2 $smt_Map)
+   (T $smt_Type) (T1 $smt_Type) (T2 $smt_Type) (m1 $smt_Map) (m2 $smt_Map)
    (vs1 $smt_Seq) (vs2 $smt_Seq) (r1 $native_RegLan) (r2 $native_RegLan))
-  :signature ($smt_Value $smt_Value) $native_Bool
+  :signature ($smt_Type $smt_Value $smt_Value) $native_Bool
   (
-  (($smtx_value_= ($vsm_map m1) ($vsm_map m2)) ($native_apply_2 "veq_ext" m1 m2))
-  (($smtx_value_= ($vsm_set m1) ($vsm_set m2)) ($native_apply_2 "veq_ext" m1 m2))
-  (($smtx_value_= ($vsm_fun m1) ($vsm_fun m2)) ($native_apply_2 "veq_ext" m1 m2))
-  (($smtx_value_= ($vsm_re r1) ($vsm_re r2)) ($native_apply_2 "re_ext_eq" r1 r2))
-  (($smtx_value_= ($vsm_seq ($ssm_empty T1)) ($vsm_seq ($ssm_empty T2))) $native_true)
-  (($smtx_value_= ($vsm_seq ($ssm_cons v1 vs1)) ($vsm_seq ($ssm_cons v2 vs2)))
-    ($native_and ($smtx_value_= v1 v2) ($smtx_value_= ($vsm_seq vs1) ($vsm_seq vs2))))
-  (($smtx_value_= ($vsm_apply f1 v1) ($vsm_apply f2 v2))
-    ($native_and ($smtx_value_= f1 f2) ($smtx_value_= v1 v2)))
-  (($smtx_value_= v1 v2) ($native_veq v1 v2))
+  (($smtx_value_= ($tsm_Map T1 T2) ($vsm_map m1) ($vsm_map m2)) ($native_apply_4 "veq_ext" T1 T2 m1 m2))
+  (($smtx_value_= ($tsm_Set T1) ($vsm_set m1) ($vsm_set m2)) ($native_apply_4 "veq_ext" T1 $tsm_Bool m1 m2))
+  (($smtx_value_= ($tsm_FunType T1 T2) ($vsm_fun m1) ($vsm_fun m2)) ($native_apply_4 "veq_ext" T1 T2 m1 m2))
+  (($smtx_value_= $tsm_RegLan ($vsm_re r1) ($vsm_re r2)) ($native_apply_2 "re_ext_eq" r1 r2))
+  (($smtx_value_= ($tsm_Seq T) ($vsm_seq ($ssm_empty T1)) ($vsm_seq ($ssm_empty T2))) $native_true)
+  (($smtx_value_= ($tsm_Seq T) ($vsm_seq ($ssm_cons v1 vs1)) ($vsm_seq ($ssm_cons v2 vs2)))
+    ($native_and ($smtx_value_= T v1 v2) ($smtx_value_= ($tsm_Seq T) ($vsm_seq vs1) ($vsm_seq vs2))))
+  ; FIXME
+  ;(($smtx_value_= T ($vsm_apply f1 v1) ($vsm_apply f2 v2))
+  ;  ($native_and ($smtx_value_= f1 f2) ($smtx_value_= v1 v2)))
+  (($smtx_value_= T v1 v2) ($native_veq v1 v2))
   )
 )
 
@@ -2399,11 +2400,11 @@
 ; This program looks up the value of a term in a map.
 ; This is used for function evaluation.
 (program $smtx_msm_lookup
-  ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
-  :signature ($smt_Map $smt_Value) $smt_Value
+  ((T $smt_Type) (U $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Type $smt_Map $smt_Value) $smt_Value
   (
-  (($smtx_msm_lookup ($msm_cons j e m) i)  ($native_ite ($smtx_value_= j i) e ($smtx_msm_lookup m i)))
-  (($smtx_msm_lookup ($msm_default T e) i) e)
+  (($smtx_msm_lookup T ($msm_cons j e m) i)  ($native_ite ($smtx_value_= T j i) e ($smtx_msm_lookup T m i)))
+  (($smtx_msm_lookup T ($msm_default U e) i) e)
   )
 )
 
@@ -2452,7 +2453,7 @@
 (define $smtx_mss_mk_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e $vsm_true))
 (define $smtx_mss_insert ((e $smt_Value) (m $smt_Map)) ($msm_cons e $vsm_true m))
 (define $smtx_mss_member ((e $smt_Value) (m $smt_Map))
-  ($native_veq ($smtx_msm_lookup m e) $vsm_true))
+  ($native_veq ($smtx_msm_lookup ($smtx_index_typeof_map ($smtx_typeof_map_value m)) m e) $vsm_true))
 
 ; Helper for computing binary set operators.
 ; Takes a flag isInter and maps m1, m2, macc.
@@ -2721,7 +2722,8 @@
 (program $smtx_model_eval_= ((v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_model_eval_= v1 v2) ($vsm_bool ($smtx_value_= v1 v2)))
+  (($smtx_model_eval_= v1 v2) 
+    ($vsm_bool ($smtx_value_= ($smtx_typeof_value v1) v1 v2)))
   )
 )
 
@@ -2732,8 +2734,10 @@
   ((v $smt_Value) (i $smt_Value) (m $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_map_select ($vsm_map m) i) ($smtx_msm_lookup m i))
-  (($smtx_map_select ($vsm_set m) i) ($smtx_msm_lookup m i))
+  (($smtx_map_select ($vsm_map m) i) 
+    ($smtx_msm_lookup ($smtx_index_typeof_map ($smtx_typeof_map_value m)) m i))
+  (($smtx_map_select ($vsm_set m) i)
+    ($smtx_msm_lookup ($smtx_index_typeof_map ($smtx_typeof_map_value m)) m i))
   (($smtx_map_select v i)            $vsm_not_value)
   )
 )

@@ -374,7 +374,7 @@
 (declare-fun eval_tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tapply (smm.SmtModel vsm.Value vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
-(declare-fun veq_ext (msm.Map msm.Map) Bool)
+(declare-fun veq_ext (tsm.Type tsm.Type msm.Map msm.Map) Bool)
   
 ;;; Relevant definitions
 
@@ -449,25 +449,23 @@
 (declare-fun $smtx_model_update (smm.SmtModel String tsm.Type vsm.Value) smm.SmtModel)
 
 ; program: $smtx_value_=
-(declare-fun $smtx_value_= (vsm.Value vsm.Value) Bool)
-(assert (! (forall ((x1 vsm.Value) (x2 vsm.Value))
-  (! (= ($smtx_value_= x1 x2)
-  (ite (and ((_ is vsm.Map) x1) ((_ is vsm.Map) x2))
-    (veq_ext (vsm.Map.arg1 x1) (vsm.Map.arg1 x2))
-  (ite (and ((_ is vsm.Set) x1) ((_ is vsm.Set) x2))
-    (veq_ext (vsm.Set.arg1 x1) (vsm.Set.arg1 x2))
-  (ite (and ((_ is vsm.Fun) x1) ((_ is vsm.Fun) x2))
-    (veq_ext (vsm.Fun.arg1 x1) (vsm.Fun.arg1 x2))
-  (ite (and ((_ is vsm.RegLan) x1) ((_ is vsm.RegLan) x2))
-    (re_ext_eq (vsm.RegLan.arg1 x1) (vsm.RegLan.arg1 x2))
-  (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.empty) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.empty) (vsm.Seq.arg1 x2)))
+(declare-fun $smtx_value_= (tsm.Type vsm.Value vsm.Value) Bool)
+(assert (! (forall ((x1 tsm.Type) (x2 vsm.Value) (x3 vsm.Value))
+  (! (= ($smtx_value_= x1 x2 x3)
+  (ite (and ((_ is tsm.Map) x1) ((_ is vsm.Map) x2) ((_ is vsm.Map) x3))
+    (veq_ext (tsm.Map.arg1 x1) (tsm.Map.arg2 x1) (vsm.Map.arg1 x2) (vsm.Map.arg1 x3))
+  (ite (and ((_ is tsm.Set) x1) ((_ is vsm.Set) x2) ((_ is vsm.Set) x3))
+    (veq_ext (tsm.Set.arg1 x1) tsm.Bool (vsm.Set.arg1 x2) (vsm.Set.arg1 x3))
+  (ite (and ((_ is tsm.FunType) x1) ((_ is vsm.Fun) x2) ((_ is vsm.Fun) x3))
+    (veq_ext (tsm.FunType.arg1 x1) (tsm.FunType.arg2 x1) (vsm.Fun.arg1 x2) (vsm.Fun.arg1 x3))
+  (ite (and (= x1 tsm.RegLan) ((_ is vsm.RegLan) x2) ((_ is vsm.RegLan) x3))
+    (re_ext_eq (vsm.RegLan.arg1 x2) (vsm.RegLan.arg1 x3))
+  (ite (and ((_ is tsm.Seq) x1) ((_ is vsm.Seq) x2) ((_ is ssm.empty) (vsm.Seq.arg1 x2)) ((_ is vsm.Seq) x3) ((_ is ssm.empty) (vsm.Seq.arg1 x3)))
     true
-  (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.cons) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.cons) (vsm.Seq.arg1 x2)))
-    (and ($smtx_value_= (ssm.cons.arg1 (vsm.Seq.arg1 x1)) (ssm.cons.arg1 (vsm.Seq.arg1 x2))) ($smtx_value_= (vsm.Seq (ssm.cons.arg2 (vsm.Seq.arg1 x1))) (vsm.Seq (ssm.cons.arg2 (vsm.Seq.arg1 x2)))))
-  (ite (and ((_ is vsm.Apply) x1) ((_ is vsm.Apply) x2))
-    (and ($smtx_value_= (vsm.Apply.arg1 x1) (vsm.Apply.arg1 x2)) ($smtx_value_= (vsm.Apply.arg2 x1) (vsm.Apply.arg2 x2)))
-    (veq x1 x2)
-)))))))) :pattern (($smtx_value_= x1 x2)))) :named sm.axiom.$smtx_value_=))
+  (ite (and ((_ is tsm.Seq) x1) ((_ is vsm.Seq) x2) ((_ is ssm.cons) (vsm.Seq.arg1 x2)) ((_ is vsm.Seq) x3) ((_ is ssm.cons) (vsm.Seq.arg1 x3)))
+    (and ($smtx_value_= (tsm.Seq.arg1 x1) (ssm.cons.arg1 (vsm.Seq.arg1 x2)) (ssm.cons.arg1 (vsm.Seq.arg1 x3))) ($smtx_value_= (tsm.Seq (tsm.Seq.arg1 x1)) (vsm.Seq (ssm.cons.arg2 (vsm.Seq.arg1 x2))) (vsm.Seq (ssm.cons.arg2 (vsm.Seq.arg1 x3)))))
+    (veq x2 x3)
+))))))) :pattern (($smtx_value_= x1 x2 x3)))) :named sm.axiom.$smtx_value_=))
 
 ; fwd-decl: $smtx_type_wf_rec
 (declare-fun $smtx_type_wf_rec (tsm.Type srl.RefList) Bool)
@@ -532,13 +530,13 @@
 )
 
 ; program: $smtx_msm_lookup
-(declare-fun $smtx_msm_lookup (msm.Map vsm.Value) vsm.Value)
-(assert (! (forall ((x1 msm.Map) (x2 vsm.Value))
-  (! (= ($smtx_msm_lookup x1 x2)
-  (ite ((_ is msm.cons) x1)
-    (ite ($smtx_value_= (msm.cons.arg1 x1) x2) (msm.cons.arg2 x1) ($smtx_msm_lookup (msm.cons.arg3 x1) x2))
-    (msm.default.arg2 x1)
-)) :pattern (($smtx_msm_lookup x1 x2)))) :named sm.axiom.$smtx_msm_lookup))
+(declare-fun $smtx_msm_lookup (tsm.Type msm.Map vsm.Value) vsm.Value)
+(assert (! (forall ((x1 tsm.Type) (x2 msm.Map) (x3 vsm.Value))
+  (! (= ($smtx_msm_lookup x1 x2 x3)
+  (ite ((_ is msm.cons) x2)
+    (ite ($smtx_value_= x1 (msm.cons.arg1 x2) x3) (msm.cons.arg2 x2) ($smtx_msm_lookup x1 (msm.cons.arg3 x2) x3))
+    (msm.default.arg2 x2)
+)) :pattern (($smtx_msm_lookup x1 x2 x3)))) :named sm.axiom.$smtx_msm_lookup))
 
 ; program: $smtx_typeof_map_value
 (declare-fun $smtx_typeof_map_value (msm.Map) tsm.Type)
@@ -548,6 +546,13 @@
     (ite (Teq (tsm.Map ($smtx_typeof_value (msm.cons.arg1 x1)) ($smtx_typeof_value (msm.cons.arg2 x1))) ($smtx_typeof_map_value (msm.cons.arg3 x1))) ($smtx_typeof_map_value (msm.cons.arg3 x1)) tsm.None)
     (tsm.Map (msm.default.arg1 x1) ($smtx_typeof_value (msm.default.arg2 x1)))
 )) :pattern (($smtx_typeof_map_value x1)))) :named sm.axiom.$smtx_typeof_map_value))
+
+; program: $smtx_index_typeof_map
+(define-fun $smtx_index_typeof_map ((x1 tsm.Type)) tsm.Type
+  (ite ((_ is tsm.Map) x1)
+    (tsm.Map.arg1 x1)
+    tsm.None
+))
 
 ; program: $smtx_map_to_set_type
 (define-fun $smtx_map_to_set_type ((x1 tsm.Type)) tsm.Type
@@ -708,15 +713,15 @@
 
 ; program: $smtx_model_eval_=
 (define-fun $smtx_model_eval_= ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
-    (vsm.Boolean ($smtx_value_= x1 x2))
+    (vsm.Boolean ($smtx_value_= ($smtx_typeof_value x1) x1 x2))
 )
 
 ; program: $smtx_map_select
 (define-fun $smtx_map_select ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Map) x1)
-    ($smtx_msm_lookup (vsm.Map.arg1 x1) x2)
+    ($smtx_msm_lookup ($smtx_index_typeof_map ($smtx_typeof_map_value (vsm.Map.arg1 x1))) (vsm.Map.arg1 x1) x2)
   (ite ((_ is vsm.Set) x1)
-    ($smtx_msm_lookup (vsm.Set.arg1 x1) x2)
+    ($smtx_msm_lookup ($smtx_index_typeof_map ($smtx_typeof_map_value (vsm.Set.arg1 x1))) (vsm.Set.arg1 x1) x2)
     vsm.NotValue
 )))
 
@@ -1076,10 +1081,10 @@
   :named smtx.inhabited_type.def))
   
 ; whether two map values are extensionally equal
-(assert (! (forall ((v1 msm.Map) (v2 msm.Map))
-  (! (= (veq_ext v1 v2)
-        (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))
-  :pattern ((veq_ext v1 v2))))
+(assert (! (forall ((T1 tsm.Type) (T2 tsm.Type) (v1 msm.Map) (v2 msm.Map))
+  (! (= (veq_ext T1 T2 v1 v2)
+        (forall ((i vsm.Value)) ($smtx_value_= T2 ($smtx_msm_lookup T1 v1 i) ($smtx_msm_lookup T1 v2 i))))
+  :pattern ((veq_ext T1 T2 v1 v2))))
   :named smtx.veq_ext.def))
 
 ;;; The verification condition

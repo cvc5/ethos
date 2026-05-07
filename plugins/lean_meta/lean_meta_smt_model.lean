@@ -330,14 +330,16 @@ def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
 
 macro_rules
-  | `(native_veq_ext $m1 $m2) => do
+  | `(native_veq_ext $T $U $m1 $m2) => do
       let lookupId := Lean.mkIdent `__smtx_msm_lookup
+      let valueEqId := Lean.mkIdent `__smtx_value_eq
       `(by
           classical
           exact
             if hExt :
                 ∀ v : SmtValue,
-                  $lookupId $m1 v = $lookupId $m2 v then
+                  $valueEqId $U ($lookupId $T $m1 v)
+                    ($lookupId $T $m2 v) = true then
               true
             else
               false)

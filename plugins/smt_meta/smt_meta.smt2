@@ -214,7 +214,7 @@ $SM_TYPE_DECL$
 (declare-fun eval_tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tapply (smm.SmtModel vsm.Value vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
-(declare-fun veq_ext (msm.Map msm.Map) Bool)
+(declare-fun veq_ext (tsm.Type tsm.Type msm.Map msm.Map) Bool)
   
 ;;; Relevant definitions
 
@@ -295,10 +295,10 @@ $SM_DEFS$
   :named smtx.inhabited_type.def))
   
 ; whether two map values are extensionally equal
-(assert (! (forall ((v1 msm.Map) (v2 msm.Map))
-  (! (= (veq_ext v1 v2)
-        (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))
-  :pattern ((veq_ext v1 v2))))
+(assert (! (forall ((T1 tsm.Type) (T2 tsm.Type) (v1 msm.Map) (v2 msm.Map))
+  (! (= (veq_ext T1 T2 v1 v2)
+        (forall ((i vsm.Value)) ($smtx_value_= T2 ($smtx_msm_lookup T1 v1 i) ($smtx_msm_lookup T1 v2 i))))
+  :pattern ((veq_ext T1 T2 v1 v2))))
   :named smtx.veq_ext.def))
 
 ;;; The verification condition

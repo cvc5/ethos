@@ -381,14 +381,16 @@ def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
 
 macro_rules
-  | `(native_veq_ext $m1 $m2) => do
+  | `(native_veq_ext $T $U $m1 $m2) => do
       let lookupId := Lean.mkIdent `__smtx_msm_lookup
+      let valueEqId := Lean.mkIdent `__smtx_value_eq
       `(by
           classical
           exact
             if hExt :
                 ∀ v : SmtValue,
-                  $lookupId $m1 v = $lookupId $m2 v then
+                  $valueEqId $U ($lookupId $T $m1 v)
+                    ($lookupId $T $m2 v) = true then
               true
             else
               false)
@@ -484,15 +486,14 @@ def __vsm_apply_arg_nth : SmtValue -> native_Nat -> native_Nat -> SmtValue
   | a, n, npos => SmtValue.NotValue
 
 
-def __smtx_value_eq : SmtValue -> SmtValue -> native_Bool
-  | (SmtValue.Map m1), (SmtValue.Map m2) => (native_veq_ext m1 m2)
-  | (SmtValue.Set m1), (SmtValue.Set m2) => (native_veq_ext m1 m2)
-  | (SmtValue.Fun m1), (SmtValue.Fun m2) => (native_veq_ext m1 m2)
-  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (native_re_ext_eq r1 r2)
-  | (SmtValue.Seq (SmtSeq.empty T1)), (SmtValue.Seq (SmtSeq.empty T2)) => true
-  | (SmtValue.Seq (SmtSeq.cons v1 vs1)), (SmtValue.Seq (SmtSeq.cons v2 vs2)) => (native_and (__smtx_value_eq v1 v2) (__smtx_value_eq (SmtValue.Seq vs1) (SmtValue.Seq vs2)))
-  | (SmtValue.Apply f1 v1), (SmtValue.Apply f2 v2) => (native_and (__smtx_value_eq f1 f2) (__smtx_value_eq v1 v2))
-  | v1, v2 => (native_veq v1 v2)
+def __smtx_value_eq : SmtType -> SmtValue -> SmtValue -> native_Bool
+  | (SmtType.Map T1 T2), (SmtValue.Map m1), (SmtValue.Map m2) => (native_veq_ext T1 T2 m1 m2)
+  | (SmtType.Set T1), (SmtValue.Set m1), (SmtValue.Set m2) => (native_veq_ext T1 SmtType.Bool m1 m2)
+  | (SmtType.FunType T1 T2), (SmtValue.Fun m1), (SmtValue.Fun m2) => (native_veq_ext T1 T2 m1 m2)
+  | SmtType.RegLan, (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (native_re_ext_eq r1 r2)
+  | (SmtType.Seq T), (SmtValue.Seq (SmtSeq.empty T1)), (SmtValue.Seq (SmtSeq.empty T2)) => true
+  | (SmtType.Seq T), (SmtValue.Seq (SmtSeq.cons v1 vs1)), (SmtValue.Seq (SmtSeq.cons v2 vs2)) => (native_and (__smtx_value_eq T v1 v2) (__smtx_value_eq (SmtType.Seq T) (SmtValue.Seq vs1) (SmtValue.Seq vs2)))
+  | T, v1, v2 => (native_veq v1 v2)
 
 
 def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> native_Bool
@@ -528,9 +529,9 @@ def __smtx_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
 def __smtx_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
   (native_ite (__smtx_type_wf T) U SmtType.None)
 
-def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
-  | (SmtMap.cons j e m), i => (native_ite (__smtx_value_eq j i) e (__smtx_msm_lookup m i))
-  | (SmtMap.default T e), i => e
+def __smtx_msm_lookup (T : SmtType) : SmtMap -> SmtValue -> SmtValue
+  | (SmtMap.cons j e m), i => (native_ite (__smtx_value_eq T j i) e (__smtx_msm_lookup T m i))
+  | (SmtMap.default U e), i => e
 
 
 def __smtx_typeof_map_value : SmtMap -> SmtType
@@ -538,6 +539,11 @@ def __smtx_typeof_map_value : SmtMap -> SmtType
     let _v0 := (__smtx_typeof_map_value m)
     (native_ite (native_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e)) _v0) _v0 SmtType.None)
   | (SmtMap.default T e) => (SmtType.Map T (__smtx_typeof_value e))
+
+
+def __smtx_index_typeof_map : SmtType -> SmtType
+  | (SmtType.Map T U) => T
+  | T => SmtType.None
 
 
 def __smtx_map_to_set_type : SmtType -> SmtType
@@ -632,11 +638,11 @@ def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_eq (v1 : SmtValue) (v2 : SmtValue) : SmtValue :=
-  (SmtValue.Boolean (__smtx_value_eq v1 v2))
+  (SmtValue.Boolean (__smtx_value_eq (__smtx_typeof_value v1) v1 v2))
 
 def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Map m), i => (__smtx_msm_lookup m i)
-  | (SmtValue.Set m), i => (__smtx_msm_lookup m i)
+  | (SmtValue.Map m), i => (__smtx_msm_lookup (__smtx_index_typeof_map (__smtx_typeof_map_value m)) m i)
+  | (SmtValue.Set m), i => (__smtx_msm_lookup (__smtx_index_typeof_map (__smtx_typeof_map_value m)) m i)
   | v, i => SmtValue.NotValue
 
 
