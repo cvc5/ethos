@@ -580,6 +580,7 @@ Expr State::mkProof(const Expr& proven)
 
 Expr State::mkQuoteType(const Expr& t)
 {
+  Assert(t.getKind() == Kind::PARAM);
   return Expr(mkExprInternal(Kind::QUOTE_TYPE, {t.getValue()}));
 }
 
