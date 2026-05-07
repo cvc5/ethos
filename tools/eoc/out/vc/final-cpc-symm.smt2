@@ -448,6 +448,27 @@
 ; fwd-decl: $smtx_model_update
 (declare-fun $smtx_model_update (smm.SmtModel String tsm.Type vsm.Value) smm.SmtModel)
 
+; program: $smtx_value_=
+(declare-fun $smtx_value_= (vsm.Value vsm.Value) Bool)
+(assert (! (forall ((x1 vsm.Value) (x2 vsm.Value))
+  (! (= ($smtx_value_= x1 x2)
+  (ite (and ((_ is vsm.Map) x1) ((_ is vsm.Map) x2))
+    (veq_ext (vsm.Map.arg1 x1) (vsm.Map.arg1 x2))
+  (ite (and ((_ is vsm.Set) x1) ((_ is vsm.Set) x2))
+    (veq_ext (vsm.Set.arg1 x1) (vsm.Set.arg1 x2))
+  (ite (and ((_ is vsm.Fun) x1) ((_ is vsm.Fun) x2))
+    (veq_ext (vsm.Fun.arg1 x1) (vsm.Fun.arg1 x2))
+  (ite (and ((_ is vsm.RegLan) x1) ((_ is vsm.RegLan) x2))
+    (re_ext_eq (vsm.RegLan.arg1 x1) (vsm.RegLan.arg1 x2))
+  (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.empty) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.empty) (vsm.Seq.arg1 x2)))
+    true
+  (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.cons) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.cons) (vsm.Seq.arg1 x2)))
+    (and ($smtx_value_= (ssm.cons.arg1 (vsm.Seq.arg1 x1)) (ssm.cons.arg1 (vsm.Seq.arg1 x2))) ($smtx_value_= (vsm.Seq (ssm.cons.arg2 (vsm.Seq.arg1 x1))) (vsm.Seq (ssm.cons.arg2 (vsm.Seq.arg1 x2)))))
+  (ite (and ((_ is vsm.Apply) x1) ((_ is vsm.Apply) x2))
+    (and ($smtx_value_= (vsm.Apply.arg1 x1) (vsm.Apply.arg1 x2)) ($smtx_value_= (vsm.Apply.arg2 x1) (vsm.Apply.arg2 x2)))
+    (veq x1 x2)
+)))))))) :pattern (($smtx_value_= x1 x2)))) :named sm.axiom.$smtx_value_=))
+
 ; fwd-decl: $smtx_type_wf_rec
 (declare-fun $smtx_type_wf_rec (tsm.Type srl.RefList) Bool)
 
@@ -515,7 +536,7 @@
 (assert (! (forall ((x1 msm.Map) (x2 vsm.Value))
   (! (= ($smtx_msm_lookup x1 x2)
   (ite ((_ is msm.cons) x1)
-    (ite (veq (msm.cons.arg1 x1) x2) (msm.cons.arg2 x1) ($smtx_msm_lookup (msm.cons.arg3 x1) x2))
+    (ite ($smtx_value_= (msm.cons.arg1 x1) x2) (msm.cons.arg2 x1) ($smtx_msm_lookup (msm.cons.arg3 x1) x2))
     (msm.default.arg2 x1)
 )) :pattern (($smtx_msm_lookup x1 x2)))) :named sm.axiom.$smtx_msm_lookup))
 
@@ -686,25 +707,9 @@
 )))
 
 ; program: $smtx_model_eval_=
-(declare-fun $smtx_model_eval_= (vsm.Value vsm.Value) vsm.Value)
-(assert (! (forall ((x1 vsm.Value) (x2 vsm.Value))
-  (! (= ($smtx_model_eval_= x1 x2)
-  (ite (and ((_ is vsm.Map) x1) ((_ is vsm.Map) x2))
-    (vsm.Boolean (veq_ext (vsm.Map.arg1 x1) (vsm.Map.arg1 x2)))
-  (ite (and ((_ is vsm.Set) x1) ((_ is vsm.Set) x2))
-    (vsm.Boolean (veq_ext (vsm.Set.arg1 x1) (vsm.Set.arg1 x2)))
-  (ite (and ((_ is vsm.Fun) x1) ((_ is vsm.Fun) x2))
-    (vsm.Boolean (veq_ext (vsm.Fun.arg1 x1) (vsm.Fun.arg1 x2)))
-  (ite (and ((_ is vsm.RegLan) x1) ((_ is vsm.RegLan) x2))
-    (vsm.Boolean (re_ext_eq (vsm.RegLan.arg1 x1) (vsm.RegLan.arg1 x2)))
-  (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.empty) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.empty) (vsm.Seq.arg1 x2)))
-    (vsm.Boolean true)
-  (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.cons) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.cons) (vsm.Seq.arg1 x2)))
-    (vsm.Boolean (and (veq ($smtx_model_eval_= (ssm.cons.arg1 (vsm.Seq.arg1 x1)) (ssm.cons.arg1 (vsm.Seq.arg1 x2))) (vsm.Boolean true)) (veq ($smtx_model_eval_= (vsm.Seq (ssm.cons.arg2 (vsm.Seq.arg1 x1))) (vsm.Seq (ssm.cons.arg2 (vsm.Seq.arg1 x2)))) (vsm.Boolean true))))
-  (ite (and ((_ is vsm.Apply) x1) ((_ is vsm.Apply) x2))
-    (vsm.Boolean (and (veq ($smtx_model_eval_= (vsm.Apply.arg1 x1) (vsm.Apply.arg1 x2)) (vsm.Boolean true)) (veq ($smtx_model_eval_= (vsm.Apply.arg2 x1) (vsm.Apply.arg2 x2)) (vsm.Boolean true))))
-    (vsm.Boolean (veq x1 x2))
-)))))))) :pattern (($smtx_model_eval_= x1 x2)))) :named sm.axiom.$smtx_model_eval_=))
+(define-fun $smtx_model_eval_= ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
+    (vsm.Boolean ($smtx_value_= x1 x2))
+)
 
 ; program: $smtx_map_select
 (define-fun $smtx_map_select ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value

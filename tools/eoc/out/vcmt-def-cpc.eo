@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 292
+; #trim-defs: 293
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -406,6 +406,24 @@
 (program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
 (program $smtx_model_lookup () :signature ($smt_Model $native_String $smt_Type) $smt_Value)
 (program $smtx_model_update () :signature ($smt_Model $native_String $smt_Type $smt_Value) $smt_Model)
+(program $smtx_value_=
+  ((v1 $smt_Value) (v2 $smt_Value) (f1 $smt_Value) (f2 $smt_Value)
+   (T1 $smt_Type) (T2 $smt_Type) (m1 $smt_Map) (m2 $smt_Map)
+   (vs1 $smt_Seq) (vs2 $smt_Seq) (r1 $native_RegLan) (r2 $native_RegLan))
+  :signature ($smt_Value $smt_Value) $native_Bool
+  (
+  (($smtx_value_= ($vsm_map m1) ($vsm_map m2)) ($native_apply_2 "veq_ext" m1 m2))
+  (($smtx_value_= ($vsm_set m1) ($vsm_set m2)) ($native_apply_2 "veq_ext" m1 m2))
+  (($smtx_value_= ($vsm_fun m1) ($vsm_fun m2)) ($native_apply_2 "veq_ext" m1 m2))
+  (($smtx_value_= ($vsm_re r1) ($vsm_re r2)) ($native_apply_2 "re_ext_eq" r1 r2))
+  (($smtx_value_= ($vsm_seq ($ssm_empty T1)) ($vsm_seq ($ssm_empty T2))) $native_true)
+  (($smtx_value_= ($vsm_seq ($ssm_cons v1 vs1)) ($vsm_seq ($ssm_cons v2 vs2)))
+    ($native_and ($smtx_value_= v1 v2) ($smtx_value_= ($vsm_seq vs1) ($vsm_seq vs2))))
+  (($smtx_value_= ($vsm_apply f1 v1) ($vsm_apply f2 v2))
+    ($native_and ($smtx_value_= f1 f2) ($smtx_value_= v1 v2)))
+  (($smtx_value_= v1 v2) ($native_veq v1 v2))
+  )
+)
 (declare-const $smt_RefList Type)
 (define $native_reflist_nil () ($native_apply_0 "reflist_nil"))
 (program $smtx_type_wf_rec () :signature ($smt_Type $smt_RefList) $native_Bool)
@@ -482,7 +500,7 @@
   ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
   (
-  (($smtx_msm_lookup ($msm_cons j e m) i)  ($native_ite ($native_veq j i) e ($smtx_msm_lookup m i)))
+  (($smtx_msm_lookup ($msm_cons j e m) i)  ($native_ite ($smtx_value_= j i) e ($smtx_msm_lookup m i)))
   (($smtx_msm_lookup ($msm_default T e) i) e)
   )
 )
@@ -668,28 +686,10 @@
   (($smtx_model_eval_ite t1 t2 t3)          $vsm_not_value)
   )
 )
-(program $smtx_model_eval_=
-  ((v1 $smt_Value) (v2 $smt_Value) (f1 $smt_Value) (f2 $smt_Value)
-   (T1 $smt_Type) (T2 $smt_Type) (m1 $smt_Map) (m2 $smt_Map)
-   (vs1 $smt_Seq) (vs2 $smt_Seq) (r1 $native_RegLan) (r2 $native_RegLan))
+(program $smtx_model_eval_= ((v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_model_eval_= ($vsm_map m1) ($vsm_map m2)) ($vsm_bool ($native_apply_2 "veq_ext" m1 m2)))
-  (($smtx_model_eval_= ($vsm_set m1) ($vsm_set m2)) ($vsm_bool ($native_apply_2 "veq_ext" m1 m2)))
-  (($smtx_model_eval_= ($vsm_fun m1) ($vsm_fun m2)) ($vsm_bool ($native_apply_2 "veq_ext" m1 m2)))
-  (($smtx_model_eval_= ($vsm_re r1) ($vsm_re r2)) ($vsm_bool ($native_apply_2 "re_ext_eq" r1 r2)))
-  (($smtx_model_eval_= ($vsm_seq ($ssm_empty T1)) ($vsm_seq ($ssm_empty T2))) $vsm_true)
-  (($smtx_model_eval_= ($vsm_seq ($ssm_cons v1 vs1)) ($vsm_seq ($ssm_cons v2 vs2)))
-    ($vsm_bool
-      ($native_and
-        ($native_veq ($smtx_model_eval_= v1 v2) $vsm_true)
-        ($native_veq ($smtx_model_eval_= ($vsm_seq vs1) ($vsm_seq vs2)) $vsm_true))))
-  (($smtx_model_eval_= ($vsm_apply f1 v1) ($vsm_apply f2 v2))
-    ($vsm_bool
-      ($native_and
-        ($native_veq ($smtx_model_eval_= f1 f2) $vsm_true)
-        ($native_veq ($smtx_model_eval_= v1 v2) $vsm_true))))
-  (($smtx_model_eval_= v1 v2) ($vsm_bool ($native_veq v1 v2)))
+  (($smtx_model_eval_= v1 v2) ($vsm_bool ($smtx_value_= v1 v2)))
   )
 )
 (program $smtx_map_select

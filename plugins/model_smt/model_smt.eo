@@ -458,6 +458,35 @@ $SMT_TYPE_CONSTRUCTORS$
 
 
 
+
+; Equality insists on valueness and then reduces to an equality over datatypes
+; in the deep embedding (vsm.Value), meaning it works for all types, including
+; functions and uninterpreted sorts where values are not represented by terms.
+; Note that the valueness predicate ensures this is sound. Moreover note that
+; we do not invoke the type checker here. This means that if an ill-typed
+; equality was given as input to this method, it would always evaluate to false.
+; The caller of this method is responsible for ensuring that this behavior is
+; either avoided or admissible.
+; return: The evaluation of an equality application.
+(program $smtx_value_=
+  ((v1 $smt_Value) (v2 $smt_Value) (f1 $smt_Value) (f2 $smt_Value)
+   (T1 $smt_Type) (T2 $smt_Type) (m1 $smt_Map) (m2 $smt_Map)
+   (vs1 $smt_Seq) (vs2 $smt_Seq) (r1 $native_RegLan) (r2 $native_RegLan))
+  :signature ($smt_Value $smt_Value) $native_Bool
+  (
+  (($smtx_value_= ($vsm_map m1) ($vsm_map m2)) ($native_apply_2 "veq_ext" m1 m2))
+  (($smtx_value_= ($vsm_set m1) ($vsm_set m2)) ($native_apply_2 "veq_ext" m1 m2))
+  (($smtx_value_= ($vsm_fun m1) ($vsm_fun m2)) ($native_apply_2 "veq_ext" m1 m2))
+  (($smtx_value_= ($vsm_re r1) ($vsm_re r2)) ($native_apply_2 "re_ext_eq" r1 r2))
+  (($smtx_value_= ($vsm_seq ($ssm_empty T1)) ($vsm_seq ($ssm_empty T2))) $native_true)
+  (($smtx_value_= ($vsm_seq ($ssm_cons v1 vs1)) ($vsm_seq ($ssm_cons v2 vs2)))
+    ($native_and ($smtx_value_= v1 v2) ($smtx_value_= ($vsm_seq vs1) ($vsm_seq vs2))))
+  (($smtx_value_= ($vsm_apply f1 v1) ($vsm_apply f2 v2))
+    ($native_and ($smtx_value_= f1 f2) ($smtx_value_= v1 v2)))
+  (($smtx_value_= v1 v2) ($native_veq v1 v2))
+  )
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Closedness for types
 
 (declare-const $smt_RefList Type)
@@ -562,31 +591,11 @@ $SMT_TYPE_CONSTRUCTORS$
   ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
   (
-  (($smtx_msm_lookup ($msm_cons j e m) i)  ($native_ite ($native_veq j i) e ($smtx_msm_lookup m i)))
+  (($smtx_msm_lookup ($msm_cons j e m) i)  ($native_ite ($smtx_value_= j i) e ($smtx_msm_lookup m i)))
   (($smtx_msm_lookup ($msm_default T e) i) e)
   )
 )
 
-; updates the map with a new entry, maintaining ordered-ness
-;(program $smtx_msm_update
-;  ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (m $smt_Map))
-;  :signature ($smt_Map $smt_Value $smt_Value) $smt_Map
-;  (
-;  (($smtx_msm_update ($msm_cons j e1 m) i e2)
-;    ($native_ite ($native_veq j i)
-;      ; we overwrite if same index
-;      ($msm_cons i e2 m)
-;      ; otherwise, we check the hash to retain sortedness
-;      ($native_ite ($smtx_value_cmp j i)
-;        ($msm_cons i e2 ($msm_cons j e1 m))
-;        ($msm_cons j e1 ($smtx_msm_update m i e2)))))
-;  (($smtx_msm_update ($msm_default T e1) i e2)
-;    ($native_ite ($native_veq e1 e2)
-;      ; we are redundant wrt the default value
-;      ($msm_default T e1)
-;      ($msm_cons i e2 ($msm_default T e1))))
-;  )
-;)
 (define $smtx_msm_update ((m $smt_Map) (i $smt_Value) (e $smt_Value))
   ($msm_cons i e m))
 
@@ -897,37 +906,10 @@ $SMT_TYPE_CONSTRUCTORS$
   )
 )
 
-; Equality insists on valueness and then reduces to an equality over datatypes
-; in the deep embedding (vsm.Value), meaning it works for all types, including
-; functions and uninterpreted sorts where values are not represented by terms.
-; Note that the valueness predicate ensures this is sound. Moreover note that
-; we do not invoke the type checker here. This means that if an ill-typed
-; equality was given as input to this method, it would always evaluate to false.
-; The caller of this method is responsible for ensuring that this behavior is
-; either avoided or admissible.
-; return: The evaluation of an equality application.
-(program $smtx_model_eval_=
-  ((v1 $smt_Value) (v2 $smt_Value) (f1 $smt_Value) (f2 $smt_Value)
-   (T1 $smt_Type) (T2 $smt_Type) (m1 $smt_Map) (m2 $smt_Map)
-   (vs1 $smt_Seq) (vs2 $smt_Seq) (r1 $native_RegLan) (r2 $native_RegLan))
+(program $smtx_model_eval_= ((v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_model_eval_= ($vsm_map m1) ($vsm_map m2)) ($vsm_bool ($native_apply_2 "veq_ext" m1 m2)))
-  (($smtx_model_eval_= ($vsm_set m1) ($vsm_set m2)) ($vsm_bool ($native_apply_2 "veq_ext" m1 m2)))
-  (($smtx_model_eval_= ($vsm_fun m1) ($vsm_fun m2)) ($vsm_bool ($native_apply_2 "veq_ext" m1 m2)))
-  (($smtx_model_eval_= ($vsm_re r1) ($vsm_re r2)) ($vsm_bool ($native_apply_2 "re_ext_eq" r1 r2)))
-  (($smtx_model_eval_= ($vsm_seq ($ssm_empty T1)) ($vsm_seq ($ssm_empty T2))) $vsm_true)
-  (($smtx_model_eval_= ($vsm_seq ($ssm_cons v1 vs1)) ($vsm_seq ($ssm_cons v2 vs2)))
-    ($vsm_bool
-      ($native_and
-        ($native_veq ($smtx_model_eval_= v1 v2) $vsm_true)
-        ($native_veq ($smtx_model_eval_= ($vsm_seq vs1) ($vsm_seq vs2)) $vsm_true))))
-  (($smtx_model_eval_= ($vsm_apply f1 v1) ($vsm_apply f2 v2))
-    ($vsm_bool
-      ($native_and
-        ($native_veq ($smtx_model_eval_= f1 f2) $vsm_true)
-        ($native_veq ($smtx_model_eval_= v1 v2) $vsm_true))))
-  (($smtx_model_eval_= v1 v2) ($vsm_bool ($native_veq v1 v2)))
+  (($smtx_model_eval_= v1 v2) ($vsm_bool ($smtx_value_= v1 v2)))
   )
 )
 
