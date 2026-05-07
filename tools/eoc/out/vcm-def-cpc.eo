@@ -2682,7 +2682,8 @@
   (($smtx_typeof_value ($vsm_numeral n))    $tsm_Int)
   (($smtx_typeof_value ($vsm_rational q))   $tsm_Real)
   (($smtx_typeof_value ($vsm_binary w n))
-    ($native_ite ($native_z_<= $native_z_zero w)
+    ($native_ite 
+      ($native_and ($native_z_<= $native_z_zero w) ($native_z_= n ($native_mod_total n ($native_z_pow2 w))))
       ($tsm_BitVec ($native_z_to_n w))
       $tsm_none))
   (($smtx_typeof_value ($vsm_re r))         $tsm_RegLan)

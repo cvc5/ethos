@@ -911,7 +911,8 @@
   (($smtx_typeof_value ($vsm_numeral n))    $tsm_Int)
   (($smtx_typeof_value ($vsm_rational q))   $tsm_Real)
   (($smtx_typeof_value ($vsm_binary w n))
-    ($native_ite ($native_z_<= $native_z_zero w)
+    ($native_ite 
+      ($native_and ($native_z_<= $native_z_zero w) ($native_z_= n ($native_mod_total n ($native_z_pow2 w))))
       ($tsm_BitVec ($native_z_to_n w))
       $tsm_none))
   (($smtx_typeof_value ($vsm_re r))         $tsm_RegLan)
@@ -1319,10 +1320,11 @@
   (($eo_push_assume_check b F s)      $s_stuck)
   )
 )
-(program $eo_push_assume ((F Bool) (s $eo_State))
-  :signature (Bool $eo_State) $eo_State
+(program $eo_push_input_assume_check ((F Bool) (s $eo_State) (b Bool))
+  :signature (Bool Bool $eo_State) $eo_State
   (
-  (($eo_push_assume F s) ($eo_push_assume_check ($eo_is_bool_type F) F s))
+  (($eo_push_input_assume_check true F s)   ($s_cons ($so_assume F) s))
+  (($eo_push_input_assume_check b F s)      $s_stuck)
   )
 )
 (program $eo_push_proven_check ((F Bool) (s $eo_State) (b Bool))
@@ -1412,7 +1414,7 @@
   :signature ($eo_State $eo_Cmd) $eo_State
   (
   (($eo_invoke_cmd $s_stuck c) $s_stuck)
-  (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume proven S))
+  (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume_check ($eo_is_bool_type proven) proven S))
   (($eo_invoke_cmd S ($cmd_check_proven proven)) ($eo_invoke_cmd_check_proven S proven))
   (($eo_invoke_cmd S ($cmd_step r args premises))
     ($eo_push_proven ($eo_cmd_step_proven S r args premises) S))
@@ -1444,7 +1446,7 @@
   :signature ($eo_State Bool) $eo_State
   (
   (($eo_invoke_assume_list S (and F as))
-    ($s_cons ($so_assume F) ($eo_invoke_assume_list S as)))
+    ($eo_push_input_assume_check ($eo_is_bool_type F) F ($eo_invoke_assume_list S as)))
   (($eo_invoke_assume_list S true) S)
   (($eo_invoke_assume_list S as) $s_stuck)
   )

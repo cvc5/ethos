@@ -1914,13 +1914,16 @@
   (($eo_push_assume_check b F s)      $s_stuck)
   )
 )
-; push an assumption to the state
-(program $eo_push_assume ((F Bool) (s $eo_State))
-  :signature (Bool $eo_State) $eo_State
+
+; push a formula F assumed in the input to the state if the given check was true
+(program $eo_push_input_assume_check ((F Bool) (s $eo_State) (b Bool))
+  :signature (Bool Bool $eo_State) $eo_State
   (
-  (($eo_push_assume F s) ($eo_push_assume_check ($eo_is_bool_type F) F s))
+  (($eo_push_input_assume_check true F s)   ($s_cons ($so_assume F) s))
+  (($eo_push_input_assume_check b F s)      $s_stuck)
   )
 )
+
 ; push a formula F proven by a step to the state if the given check was true
 (program $eo_push_proven_check ((F Bool) (s $eo_State) (b Bool))
   :signature (Bool Bool $eo_State) $eo_State
@@ -2036,7 +2039,7 @@
   :signature ($eo_State $eo_Cmd) $eo_State
   (
   (($eo_invoke_cmd $s_stuck c) $s_stuck)
-  (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume proven S))
+  (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume_check ($eo_is_bool_type proven) proven S))
   (($eo_invoke_cmd S ($cmd_check_proven proven)) ($eo_invoke_cmd_check_proven S proven))
   (($eo_invoke_cmd S ($cmd_step r args premises))
     ($eo_push_proven ($eo_cmd_step_proven S r args premises) S))
@@ -2073,7 +2076,7 @@
   :signature ($eo_State Bool) $eo_State
   (
   (($eo_invoke_assume_list S (and F as))
-    ($s_cons ($so_assume F) ($eo_invoke_assume_list S as)))
+    ($eo_push_input_assume_check ($eo_is_bool_type F) F ($eo_invoke_assume_list S as)))
   (($eo_invoke_assume_list S true) S)
   (($eo_invoke_assume_list S as) $s_stuck)
   )
