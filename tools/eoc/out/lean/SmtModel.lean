@@ -379,6 +379,15 @@ def native_Teq : SmtType -> SmtType -> native_Bool
 /- Value equality -/
 def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
+  
+@[simp] def native_apply_veq
+    (typeofValue : SmtValue -> SmtType)
+    (valueEq : SmtType -> SmtValue -> SmtValue -> native_Bool) :
+    SmtValue -> SmtValue -> native_Nat -> native_Bool
+  | (SmtValue.Apply f1 v1), (SmtValue.Apply f2 v2), native_nat_succ n =>
+      native_and (native_apply_veq typeofValue valueEq f1 f2 n)
+        (native_apply_veq typeofValue valueEq v1 v2 n)
+  | v1, v2, _ => valueEq (typeofValue v1) v1 v2
 
 macro_rules
   | `(native_veq_ext $T $U $m1 $m2) => do
