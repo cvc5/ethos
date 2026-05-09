@@ -7,6 +7,7 @@ abbrev native_Int := Int
 abbrev native_Rat := Rat
 abbrev native_String := String
 abbrev native_Nat := Nat
+abbrev native_Char := Char
 
 instance : Ord Rat where
   compare a b :=

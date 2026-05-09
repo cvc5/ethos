@@ -9,8 +9,6 @@ open SmtEval
 
 /- SMT literal evaluation defined -/
 
-abbrev native_Char := Char
-
 inductive SmtRegLan : Type where
   | empty : SmtRegLan
   | epsilon : SmtRegLan
@@ -361,14 +359,14 @@ macro_rules
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `__smtx_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      let canonId := Lean.mkIdent `__smtx_value_canonical
+      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
       `(by
           classical
           exact
             if h :
                 ∃ v : SmtValue,
                   $typeofValueId v = $T ∧
-                    $canonId v ∧
+                    $canonId v = true ∧
                     $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
               SmtValue.Boolean true
             else
@@ -377,14 +375,14 @@ macro_rules
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `__smtx_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      let canonId := Lean.mkIdent `__smtx_value_canonical
+      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
       `(by
           classical
           exact
             if h :
                 ∀ v : SmtValue,
                   $typeofValueId v = $T ->
-                    $canonId v ->
+                    $canonId v = true ->
                     $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
               SmtValue.Boolean true
             else
@@ -393,14 +391,14 @@ macro_rules
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `__smtx_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      let canonId := Lean.mkIdent `__smtx_value_canonical
+      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
       `(by
           classical
           exact
             if hSat :
                 ∃ v : SmtValue,
                   $typeofValueId v = $T ∧
-                    $canonId v ∧
+                    $canonId v = true ∧
                     $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
               Classical.choose hSat
             else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId v then
@@ -584,7 +582,7 @@ def type_inhabited (T : SmtType) : Prop :=
   ∃ v : SmtValue, __smtx_typeof_value v = T
 
 def __smtx_value_canonical (v : SmtValue) : Prop :=
-  __smtx_value_canon v = v ∧ __smtx_value_finite_defaults_canonical v = true
+  __smtx_value_canonical_bool v = true
 
 def model_total_typed (M : SmtModel) : Prop :=
   (∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
