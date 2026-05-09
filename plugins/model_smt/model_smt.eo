@@ -515,6 +515,7 @@ $SMT_TYPE_CONSTRUCTORS$
   ; partially applied datatype constructors is not a first class type
   (($smtx_type_wf_rec ($tsm_DtcAppType x1 x2) refs) $native_false)
   (($smtx_type_wf_rec $tsm_none refs) $native_false)
+  (($smtx_type_wf_rec $tsm_RegLan refs) $native_false)
   (($smtx_type_wf_rec T refs) $native_true)
   )
 )
@@ -522,6 +523,8 @@ $SMT_TYPE_CONSTRUCTORS$
 (program $smtx_type_wf ((T $smt_Type))
   :signature ($smt_Type) $native_Bool
   (
+  ; reglan only allowed at top-level
+  (($smtx_type_wf $tsm_RegLan) $native_true)
   (($smtx_type_wf T) ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T $native_reflist_nil)))
   )
 )
@@ -921,21 +924,7 @@ $SMT_TYPE_CONSTRUCTORS$
    (vs1 $smt_Seq) (vs2 $smt_Seq) (r1 $native_RegLan) (r2 $native_RegLan))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_model_eval_= ($vsm_map m1) ($vsm_map m2)) ($vsm_bool ($native_apply_2 "veq_ext" m1 m2)))
-  (($smtx_model_eval_= ($vsm_set m1) ($vsm_set m2)) ($vsm_bool ($native_apply_2 "veq_ext" m1 m2)))
-  (($smtx_model_eval_= ($vsm_fun m1) ($vsm_fun m2)) ($vsm_bool ($native_apply_2 "veq_ext" m1 m2)))
   (($smtx_model_eval_= ($vsm_re r1) ($vsm_re r2)) ($vsm_bool ($native_apply_2 "re_ext_eq" r1 r2)))
-  (($smtx_model_eval_= ($vsm_seq ($ssm_empty T1)) ($vsm_seq ($ssm_empty T2))) $vsm_true)
-  (($smtx_model_eval_= ($vsm_seq ($ssm_cons v1 vs1)) ($vsm_seq ($ssm_cons v2 vs2)))
-    ($vsm_bool
-      ($native_and
-        ($native_veq ($smtx_model_eval_= v1 v2) $vsm_true)
-        ($native_veq ($smtx_model_eval_= ($vsm_seq vs1) ($vsm_seq vs2)) $vsm_true))))
-  (($smtx_model_eval_= ($vsm_apply f1 v1) ($vsm_apply f2 v2))
-    ($vsm_bool
-      ($native_and
-        ($native_veq ($smtx_model_eval_= f1 f2) $vsm_true)
-        ($native_veq ($smtx_model_eval_= v1 v2) $vsm_true))))
   (($smtx_model_eval_= v1 v2) ($vsm_bool ($native_veq v1 v2)))
   )
 )
@@ -1791,8 +1780,7 @@ $EO_TO_SMT_CASES$
 )
 
 (program $smtx_value_canon
-  ((w $native_Int) (n $native_Int) (m $smt_Map) (s $smt_Seq)
-   (r $native_RegLan) (f $smt_Value) (v $smt_Value))
+  ((w $native_Int) (n $native_Int) (m $smt_Map) (s $smt_Seq)(f $smt_Value) (v $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
   (($smtx_value_canon ($vsm_binary w n))
@@ -1804,7 +1792,6 @@ $EO_TO_SMT_CASES$
   (($smtx_value_canon ($vsm_fun m))     ($vsm_fun ($smtx_map_canon m)))
   (($smtx_value_canon ($vsm_seq s))     ($vsm_seq ($smtx_seq_canon s)))
   (($smtx_value_canon ($vsm_apply v f)) ($vsm_apply ($smtx_value_canon f) ($smtx_value_canon v)))
-  ;(($smtx_value_canon ($vsm_re r))      r)  ; FIXME?
   (($smtx_value_canon v)                v)
   )
 )

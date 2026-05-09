@@ -492,13 +492,17 @@
     false
   (ite (= x1 tsm.None)
     false
+  (ite (= x1 tsm.RegLan)
+    false
     true
-))))))))) :pattern (($smtx_type_wf_rec x1 x2)))) :named sm.axiom.$smtx_type_wf_rec))
+)))))))))) :pattern (($smtx_type_wf_rec x1 x2)))) :named sm.axiom.$smtx_type_wf_rec))
 
 ; program: $smtx_type_wf
 (define-fun $smtx_type_wf ((x1 tsm.Type)) Bool
+  (ite (= x1 tsm.RegLan)
+    true
     (and (inhabited_type x1) ($smtx_type_wf_rec x1 reflist_nil))
-)
+))
 
 ; program: $smtx_typeof_guard
 (define-fun $smtx_typeof_guard ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
@@ -686,25 +690,11 @@
 )))
 
 ; program: $smtx_model_eval_=
-(declare-fun $smtx_model_eval_= (vsm.Value vsm.Value) vsm.Value)
-(assert (! (forall ((x1 vsm.Value) (x2 vsm.Value))
-  (! (= ($smtx_model_eval_= x1 x2)
-  (ite (and ((_ is vsm.Map) x1) ((_ is vsm.Map) x2))
-    (vsm.Boolean (veq_ext (vsm.Map.arg1 x1) (vsm.Map.arg1 x2)))
-  (ite (and ((_ is vsm.Set) x1) ((_ is vsm.Set) x2))
-    (vsm.Boolean (veq_ext (vsm.Set.arg1 x1) (vsm.Set.arg1 x2)))
-  (ite (and ((_ is vsm.Fun) x1) ((_ is vsm.Fun) x2))
-    (vsm.Boolean (veq_ext (vsm.Fun.arg1 x1) (vsm.Fun.arg1 x2)))
+(define-fun $smtx_model_eval_= ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite (and ((_ is vsm.RegLan) x1) ((_ is vsm.RegLan) x2))
     (vsm.Boolean (re_ext_eq (vsm.RegLan.arg1 x1) (vsm.RegLan.arg1 x2)))
-  (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.empty) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.empty) (vsm.Seq.arg1 x2)))
-    (vsm.Boolean true)
-  (ite (and ((_ is vsm.Seq) x1) ((_ is ssm.cons) (vsm.Seq.arg1 x1)) ((_ is vsm.Seq) x2) ((_ is ssm.cons) (vsm.Seq.arg1 x2)))
-    (vsm.Boolean (and (veq ($smtx_model_eval_= (ssm.cons.arg1 (vsm.Seq.arg1 x1)) (ssm.cons.arg1 (vsm.Seq.arg1 x2))) (vsm.Boolean true)) (veq ($smtx_model_eval_= (vsm.Seq (ssm.cons.arg2 (vsm.Seq.arg1 x1))) (vsm.Seq (ssm.cons.arg2 (vsm.Seq.arg1 x2)))) (vsm.Boolean true))))
-  (ite (and ((_ is vsm.Apply) x1) ((_ is vsm.Apply) x2))
-    (vsm.Boolean (and (veq ($smtx_model_eval_= (vsm.Apply.arg1 x1) (vsm.Apply.arg1 x2)) (vsm.Boolean true)) (veq ($smtx_model_eval_= (vsm.Apply.arg2 x1) (vsm.Apply.arg2 x2)) (vsm.Boolean true))))
     (vsm.Boolean (veq x1 x2))
-)))))))) :pattern (($smtx_model_eval_= x1 x2)))) :named sm.axiom.$smtx_model_eval_=))
+))
 
 ; program: $smtx_map_select
 (define-fun $smtx_map_select ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
