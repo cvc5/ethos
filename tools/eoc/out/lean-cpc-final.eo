@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 390
+; #trim-defs: 395
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -737,6 +737,8 @@
   (($smtx_msm_lookup ($msm_default T e) i) e)
   )
 )
+(define $smtx_msm_update ((m $smt_Map) (i $smt_Value) (e $smt_Value))
+  ($msm_cons i e m))
 (program $smtx_typeof_map_value
   ((i $smt_Value) (e $smt_Value) (m $smt_Map) (T $smt_Type))
   :signature ($smt_Map) $smt_Type
@@ -1260,6 +1262,41 @@
   (($eo_to_smt y)                   $sm_none)
   )
 )
+(program $smtx_value_canon () :signature ($smt_Value) $smt_Value)
+(program $smtx_map_canon
+  ((m $smt_Map) (i $smt_Value) (e $smt_Value) (T $smt_Type))
+  :signature ($smt_Map) $smt_Map
+  (
+  (($smtx_map_canon ($msm_default T e)) ($msm_default T ($smtx_value_canon e)))
+  (($smtx_map_canon ($msm_cons i e m))
+    ($smtx_msm_update ($smtx_map_canon m) ($smtx_value_canon i) ($smtx_value_canon e)))
+  )
+)
+(program $smtx_seq_canon ((T $smt_Type) (v $smt_Value) (s $smt_Seq))
+  :signature ($smt_Seq) $smt_Seq
+  (
+  (($smtx_seq_canon ($ssm_empty T))   ($ssm_empty T))
+  (($smtx_seq_canon ($ssm_cons v s))  ($ssm_cons ($smtx_value_canon v) ($smtx_seq_canon s)))
+  )
+)
+(program $smtx_value_canon
+  ((w $native_Int) (n $native_Int) (m $smt_Map) (s $smt_Seq)
+   (r $native_RegLan) (f $smt_Value) (v $smt_Value))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_value_canon ($vsm_binary w n))
+    ($native_ite ($native_z_<= 0 w)
+      ($vsm_binary w ($native_mod_total n ($native_z_pow2 w)))
+      ($vsm_binary w n)))
+  (($smtx_value_canon ($vsm_map m))     ($vsm_map ($smtx_map_canon m)))
+  (($smtx_value_canon ($vsm_set m))     ($vsm_set ($smtx_map_canon m)))
+  (($smtx_value_canon ($vsm_fun m))     ($vsm_fun ($smtx_map_canon m)))
+  (($smtx_value_canon ($vsm_seq s))     ($vsm_seq ($smtx_seq_canon s)))
+  (($smtx_value_canon ($vsm_apply v f)) ($vsm_apply ($smtx_value_canon f) ($smtx_value_canon v)))
+  
+  (($smtx_value_canon v)                v)
+  )
+)
 (define $eoT_Index () $native_Int)
 (declare-const $eo_IndexList Type)
 (declare-const $emb_indl.nil $eo_IndexList)
@@ -1458,5 +1495,5 @@
     ($eo_state_is_refutation ($eo_invoke_cmd_list ($eo_invoke_assume_list $s_nil as) cs)))
   )
 )
-(echo "lean-meta $eo_prog_contra :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value ")
-(echo "lean-meta $eo_prog_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value ")
+(echo "lean-meta $eo_prog_contra :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value $smtx_value_canon ")
+(echo "lean-meta $eo_prog_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value $smtx_value_canon ")

@@ -36,14 +36,14 @@ LEAN_ALL_DEPS = (
     "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply "
     "$eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval "
     "$eo_checker_is_refutation and $eot_UConst $eot_USort "
-    "$smtx_typeof $smtx_typeof_value"
+    "$smtx_typeof $smtx_typeof_value $smtx_value_canon"
 )
 
 LEAN_SINGLE_DEPS = (
     "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply "
     "$eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval "
     "$eo_checker_is_refutation and => $eot_UConst $eot_USort "
-    "$smtx_model_eval_apply $smtx_typeof $smtx_typeof_value"
+    "$smtx_model_eval_apply $smtx_typeof $smtx_typeof_value $smtx_value_canon"
 )
 
 

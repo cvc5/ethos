@@ -756,6 +756,26 @@ def __smtx_typeof : SmtTerm -> SmtType
   | x1 => SmtType.None
 
 
+def __smtx_map_canon : SmtMap -> SmtMap
+  | (SmtMap.default T e) => (SmtMap.default T (__smtx_value_canon e))
+  | (SmtMap.cons i e m) => (SmtMap.cons (__smtx_value_canon i) (__smtx_value_canon e) (__smtx_map_canon m))
+
+
+def __smtx_seq_canon : SmtSeq -> SmtSeq
+  | (SmtSeq.empty T) => (SmtSeq.empty T)
+  | (SmtSeq.cons v s) => (SmtSeq.cons (__smtx_value_canon v) (__smtx_seq_canon s))
+
+
+def __smtx_value_canon : SmtValue -> SmtValue
+  | (SmtValue.Binary w n) => (native_ite (native_zleq (Term.Numeral 0) w) (SmtValue.Binary w (native_mod_total n (native_int_pow2 w))) (SmtValue.Binary w n))
+  | (SmtValue.Map m) => (SmtValue.Map (__smtx_map_canon m))
+  | (SmtValue.Set m) => (SmtValue.Set (__smtx_map_canon m))
+  | (SmtValue.Fun m) => (SmtValue.Fun (__smtx_map_canon m))
+  | (SmtValue.Seq s) => (SmtValue.Seq (__smtx_seq_canon s))
+  | (SmtValue.Apply v f) => (SmtValue.Apply (__smtx_value_canon f) (__smtx_value_canon v))
+  | v => v
+
+
 
 
 def native_unpack_seq : SmtSeq -> List SmtValue
