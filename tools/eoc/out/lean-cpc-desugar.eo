@@ -224,6 +224,8 @@
 (define $native_n_to_z ((x1 $native_Nat)) ($native_apply_1 "nat.to_int" x1))
 (define $native_n_+ ((x1 $native_Nat) (x2 $native_Nat))
   ($native_z_to_n ($native_z_+ ($native_n_to_z x1) ($native_n_to_z x2))))
+; char
+(define $native_n_to_char ((n $native_Nat)) ($native_apply_1 "nat.to_char" n))
 ; uconst utility
 (define $native_to_uconst_id ((x1 $native_Nat)) ($native_apply_1 "uconst_id" x1))
 

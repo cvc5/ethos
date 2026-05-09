@@ -22,7 +22,7 @@ inductive SmtRegLan : Type where
   | inter : SmtRegLan -> SmtRegLan -> SmtRegLan
   | star : SmtRegLan -> SmtRegLan
   | comp : SmtRegLan -> SmtRegLan
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 abbrev native_RegLan := SmtRegLan
   
 -- SMT Beyond Eunoia
@@ -214,6 +214,30 @@ def native_re_allchar : native_RegLan := .allchar
 def native_re_none : native_RegLan := .empty
 def native_re_all : native_RegLan := .star .allchar
 
+def native_re_lang (r : native_RegLan) : native_String -> native_Bool :=
+  fun s => native_str_in_re s r
+
+private instance native_RegLan_language_setoid : Setoid native_RegLan where
+  r := fun r₁ r₂ => native_re_lang r₁ = native_re_lang r₂
+  iseqv := by
+    constructor
+    · intro r
+      rfl
+    · intro r₁ r₂ h
+      exact h.symm
+    · intro r₁ r₂ r₃ h₁ h₂
+      exact h₁.trans h₂
+
+/--
+Choose one syntactic representative for each regular language. This is the
+strong regular-expression canonicalizer used by model values; equality can
+therefore compare canonical regexps structurally instead of using extensional
+membership checks.
+-/
+noncomputable def native_re_canon (r : native_RegLan) : native_RegLan :=
+  Classical.choose
+    (Quotient.exists_rep (Quotient.mk native_RegLan_language_setoid r))
+
 -- Partial semantics
 
 def native_qdiv_by_zero_id : native_String := "@qdiv_by_zero"
@@ -254,7 +278,7 @@ inductive SmtType : Type where
   | FunType : SmtType -> SmtType -> SmtType
   | DtcAppType : SmtType -> SmtType -> SmtType
 
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /- 
 SMT-LIB terms.
@@ -303,7 +327,7 @@ inductive SmtValue : Type where
   | DtCons : native_String -> SmtDatatype -> native_Nat -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
 
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
 SMT-LIB map values.
@@ -311,7 +335,7 @@ SMT-LIB map values.
 inductive SmtMap : Type where
   | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
   | default : SmtType -> SmtValue -> SmtMap
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /- 
 SMT-LIB sequence values.
@@ -319,7 +343,7 @@ SMT-LIB sequence values.
 inductive SmtSeq : Type where
   | cons : SmtValue -> SmtSeq -> SmtSeq
   | empty : SmtType -> SmtSeq
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
 SMT-LIB datatypes.
@@ -327,7 +351,7 @@ SMT-LIB datatypes.
 inductive SmtDatatype : Type where
   | null : SmtDatatype
   | sum : SmtDatatypeCons -> SmtDatatype -> SmtDatatype
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
 SMT-LIB datatype constructors.
@@ -335,7 +359,7 @@ SMT-LIB datatype constructors.
 inductive SmtDatatypeCons : Type where
   | unit : SmtDatatypeCons
   | cons : SmtType -> SmtDatatypeCons -> SmtDatatypeCons
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 end
 
@@ -379,6 +403,11 @@ def native_Teq : SmtType -> SmtType -> native_Bool
 /- Value equality -/
 def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
+/- Value comparsion -/
+def __smtx_value_sort_lt (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
+  match compare v1 v2 with
+  | Ordering.lt => true
+  | _ => false
 
 macro_rules
   | `(native_veq_ext $m1 $m2) => do
@@ -407,12 +436,14 @@ macro_rules
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `__smtx_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical
       `(by
           classical
           exact
             if h :
                 ∃ v : SmtValue,
                   $typeofValueId v = $T ∧
+                    $canonId v ∧
                     $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
               SmtValue.Boolean true
             else
@@ -421,12 +452,14 @@ macro_rules
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `__smtx_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical
       `(by
           classical
           exact
             if h :
                 ∀ v : SmtValue,
                   $typeofValueId v = $T ->
+                    $canonId v ->
                     $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
               SmtValue.Boolean true
             else
@@ -435,15 +468,17 @@ macro_rules
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `__smtx_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical
       `(by
           classical
           exact
             if hSat :
                 ∃ v : SmtValue,
                   $typeofValueId v = $T ∧
+                    $canonId v ∧
                     $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
               Classical.choose hSat
-            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T then
+            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId v then
               Classical.choose hTy
             else
               SmtValue.NotValue)
@@ -893,6 +928,79 @@ inductive smt_interprets : SmtModel -> SmtTerm -> Bool -> Prop
 
 def type_inhabited (T : SmtType) : Prop :=
   ∃ v : SmtValue, __smtx_typeof_value v = T
+
+def __smtx_map_finite_default_canonical (m : SmtMap) : Prop :=
+  match __smtx_typeof_map_value m with
+  | SmtType.Map T U =>
+      __smtx_finite_type_default (SmtType.Map T U) ≠ SmtValue.NotValue ->
+        __smtx_msm_get_default m = __smtx_finite_type_default U
+  | _ => True
+
+def __smtx_value_finite_defaults_canonical : SmtValue -> Prop
+  | SmtValue.Map m =>
+      __smtx_map_finite_default_canonical m ∧
+        __smtx_map_values_finite_defaults_canonical m
+  | SmtValue.Fun m =>
+      __smtx_map_finite_default_canonical m ∧
+        __smtx_map_values_finite_defaults_canonical m
+  | SmtValue.Set m =>
+      __smtx_map_finite_default_canonical m ∧
+        __smtx_map_values_finite_defaults_canonical m
+  | SmtValue.Seq s => __smtx_seq_values_finite_defaults_canonical s
+  | SmtValue.Apply f v =>
+      __smtx_value_finite_defaults_canonical f ∧
+        __smtx_value_finite_defaults_canonical v
+  | _ => True
+
+def __smtx_map_values_finite_defaults_canonical : SmtMap -> Prop
+  | SmtMap.default _ e => __smtx_value_finite_defaults_canonical e
+  | SmtMap.cons i e m =>
+      __smtx_value_finite_defaults_canonical i ∧
+        __smtx_value_finite_defaults_canonical e ∧
+          __smtx_map_values_finite_defaults_canonical m
+
+def __smtx_seq_values_finite_defaults_canonical : SmtSeq -> Prop
+  | SmtSeq.empty _ => True
+  | SmtSeq.cons v s =>
+      __smtx_value_finite_defaults_canonical v ∧
+        __smtx_seq_values_finite_defaults_canonical s
+
+def __smtx_value_canon : SmtValue -> SmtValue
+  | SmtValue.NotValue => SmtValue.NotValue
+  | SmtValue.Boolean b => SmtValue.Boolean b
+  | SmtValue.Numeral n => SmtValue.Numeral n
+  | SmtValue.Rational q => SmtValue.Rational q
+  | SmtValue.Binary w n =>
+      native_ite (native_zleq 0 w)
+        (SmtValue.Binary w (native_mod_total n (native_int_pow2 w)))
+        (SmtValue.Binary w n)
+  | SmtValue.Map m => SmtValue.Map (__smtx_map_canon m)
+  | SmtValue.Fun m => SmtValue.Fun (__smtx_map_canon m)
+  | SmtValue.Set m => SmtValue.Set (__smtx_map_canon m)
+  | SmtValue.Seq s => SmtValue.Seq (__smtx_seq_canon s)
+  | SmtValue.Char c => SmtValue.Char c
+  | SmtValue.UValue i e => SmtValue.UValue i e
+  | SmtValue.RegLan r => SmtValue.RegLan (native_re_canon r)
+  | SmtValue.DtCons s d i => SmtValue.DtCons s d i
+  | SmtValue.Apply f v => SmtValue.Apply (__smtx_value_canon f) (__smtx_value_canon v)
+
+def __smtx_map_canon : SmtMap -> SmtMap
+  | SmtMap.default T e => SmtMap.default T (__smtx_value_canon e)
+  | SmtMap.cons i e m =>
+      __smtx_map_canon_insert
+        (__smtx_value_canon i)
+        (__smtx_value_canon e)
+        (__smtx_map_canon m)
+
+def __smtx_seq_canon : SmtSeq -> SmtSeq
+  | SmtSeq.empty T => SmtSeq.empty T
+  | SmtSeq.cons v s => SmtSeq.cons (__smtx_value_canon v) (__smtx_seq_canon s)
+
+def __smtx_value_canonical (v : SmtValue) : Prop :=
+  __smtx_value_canon v = v ∧ __smtx_value_finite_defaults_canonical v
+
+def __smtx_reglan_value (r : native_RegLan) : SmtValue :=
+  SmtValue.RegLan (native_re_canon r)
 
 def model_total_typed (M : SmtModel) : Prop :=
   (∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧

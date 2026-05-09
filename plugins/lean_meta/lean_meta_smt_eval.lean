@@ -7,6 +7,11 @@ abbrev native_Int := Int
 abbrev native_Rat := Rat
 abbrev native_String := String
 
+instance : Ord Rat where
+  compare a b :=
+    -- compare a.num / a.den vs b.num / b.den by cross-multiplication
+    compare (a.num * Int.ofNat b.den) (b.num * Int.ofNat a.den)
+
 /- Evaluation functions -/
 
 def native_ite {T : Type} (c : native_Bool) (t e : T) : T :=

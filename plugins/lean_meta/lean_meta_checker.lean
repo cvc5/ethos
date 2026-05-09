@@ -41,11 +41,6 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
     else
       -1
 
-instance : Ord Rat where
-  compare a b :=
-    -- compare a.num / a.den vs b.num / b.den by cross-multiplication
-    compare (a.num * Int.ofNat b.den) (b.num * Int.ofNat a.den)
-
 /- 
 Ordinary user operators
 -/
