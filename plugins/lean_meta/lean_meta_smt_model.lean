@@ -329,7 +329,7 @@ def native_Teq : SmtType -> SmtType -> native_Bool
 def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
 /- Value comparsion -/
-def __smtx_value_sort_lt (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
+def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
   match compare v1 v2 with
   | Ordering.lt => true
   | _ => false
@@ -583,47 +583,12 @@ inductive smt_interprets : SmtModel -> SmtTerm -> Bool -> Prop
 def type_inhabited (T : SmtType) : Prop :=
   ∃ v : SmtValue, __smtx_typeof_value v = T
 
-def __smtx_map_finite_default_canonical (m : SmtMap) : Prop :=
-  match __smtx_typeof_map_value m with
-  | SmtType.Map T U =>
-      __smtx_finite_type_default (SmtType.Map T U) ≠ SmtValue.NotValue ->
-        __smtx_msm_get_default m = __smtx_finite_type_default U
-  | _ => True
-
-def __smtx_value_finite_defaults_canonical : SmtValue -> Prop
-  | SmtValue.Map m =>
-      __smtx_map_finite_default_canonical m ∧
-        __smtx_map_values_finite_defaults_canonical m
-  | SmtValue.Fun m =>
-      __smtx_map_finite_default_canonical m ∧
-        __smtx_map_values_finite_defaults_canonical m
-  | SmtValue.Set m =>
-      __smtx_map_finite_default_canonical m ∧
-        __smtx_map_values_finite_defaults_canonical m
-  | SmtValue.Seq s => __smtx_seq_values_finite_defaults_canonical s
-  | SmtValue.Apply f v =>
-      __smtx_value_finite_defaults_canonical f ∧
-        __smtx_value_finite_defaults_canonical v
-  | _ => True
-
-def __smtx_map_values_finite_defaults_canonical : SmtMap -> Prop
-  | SmtMap.default _ e => __smtx_value_finite_defaults_canonical e
-  | SmtMap.cons i e m =>
-      __smtx_value_finite_defaults_canonical i ∧
-        __smtx_value_finite_defaults_canonical e ∧
-          __smtx_map_values_finite_defaults_canonical m
-
-def __smtx_seq_values_finite_defaults_canonical : SmtSeq -> Prop
-  | SmtSeq.empty _ => True
-  | SmtSeq.cons v s =>
-      __smtx_value_finite_defaults_canonical v ∧
-        __smtx_seq_values_finite_defaults_canonical s
-
 def __smtx_value_canonical (v : SmtValue) : Prop :=
-  __smtx_value_canon v = v ∧ __smtx_value_finite_defaults_canonical v
+  __smtx_value_canon v = v ∧ __smtx_value_finite_defaults_canonical v = true
 
 def model_total_typed (M : SmtModel) : Prop :=
   (∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
+  (∀ s T, type_inhabited T -> __smtx_value_canonical (__smtx_model_lookup M s T)) ∧
   (∀ s T, ¬ type_inhabited T -> __smtx_model_lookup M s T = SmtValue.NotValue)
 
 /-
