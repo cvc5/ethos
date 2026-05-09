@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 395
+; #trim-defs: 399
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -732,6 +732,14 @@
   (($smtx_typeof_guard_wf T U) ($native_ite ($smtx_type_wf T) U $tsm_none))
   )
 )
+(program $smtx_msm_get_default
+  ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Map) $smt_Value
+  (
+  (($smtx_msm_get_default ($msm_cons j e m))  ($smtx_msm_get_default m))
+  (($smtx_msm_get_default ($msm_default T e)) e)
+  )
+)
 (program $smtx_msm_lookup
   ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
@@ -740,8 +748,34 @@
   (($smtx_msm_lookup ($msm_default T e) i) e)
   )
 )
+(program $smtx_msm_update_aux_no_default
+  ((ed $smt_Value) (T $smt_Type) (i $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Value $smt_Map $smt_Value $smt_Value) $smt_Map
+  (
+  (($smtx_msm_update_aux_no_default ed m i e)
+    
+    ($native_ite ($native_veq ed e) m ($msm_cons i e m)))
+  )
+)
+(define $native_vcmp ((x1 $smt_Value) (x2 $smt_Value)) ($native_apply_2 "vcmp" x1 x2))
+(program $smtx_msm_update_aux
+  ((ed $smt_Value) (T $smt_Type) (i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (m $smt_Map))
+  :signature ($smt_Value $smt_Map $smt_Value $smt_Value) $smt_Map
+  (
+  (($smtx_msm_update_aux ed ($msm_cons j e1 m) i e2)
+    ($native_ite ($native_veq j i)
+      
+      ($smtx_msm_update_aux_no_default ed m i e2)
+      
+      ($native_ite ($native_vcmp j i)
+        ($smtx_msm_update_aux_no_default ed ($msm_cons j e1 m) i e2)
+        ($msm_cons j e1 ($smtx_msm_update_aux ed m i e2)))))
+  (($smtx_msm_update_aux ed m i e2)
+    ($smtx_msm_update_aux_no_default ed m i e2))
+  )
+)
 (define $smtx_msm_update ((m $smt_Map) (i $smt_Value) (e $smt_Value))
-  ($msm_cons i e m))
+  ($smtx_msm_update_aux ($smtx_msm_get_default m) m i e))
 (program $smtx_typeof_map_value
   ((i $smt_Value) (e $smt_Value) (m $smt_Map) (T $smt_Type))
   :signature ($smt_Map) $smt_Type

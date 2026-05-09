@@ -531,9 +531,22 @@ def __smtx_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
 def __smtx_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
   (native_ite (__smtx_type_wf T) U SmtType.None)
 
+def __smtx_msm_get_default : SmtMap -> SmtValue
+  | (SmtMap.cons j e m) => (__smtx_msm_get_default m)
+  | (SmtMap.default T e) => e
+
+
 def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
   | (SmtMap.cons j e m), i => (native_ite (native_veq j i) e (__smtx_msm_lookup m i))
   | (SmtMap.default T e), i => e
+
+
+def __smtx_msm_update_aux_no_default (ed : SmtValue) (m : SmtMap) (i : SmtValue) (e : SmtValue) : SmtMap :=
+  (native_ite (native_veq ed e) m (SmtMap.cons i e m))
+
+def __smtx_msm_update_aux (ed : SmtValue) : SmtMap -> SmtValue -> SmtValue -> SmtMap
+  | (SmtMap.cons j e1 m), i, e2 => (native_ite (native_veq j i) (__smtx_msm_update_aux_no_default ed m i e2) (native_ite (native_vcmp j i) (__smtx_msm_update_aux_no_default ed (SmtMap.cons j e1 m) i e2) (SmtMap.cons j e1 (__smtx_msm_update_aux ed m i e2))))
+  | m, i, e2 => (__smtx_msm_update_aux_no_default ed m i e2)
 
 
 def __smtx_typeof_map_value : SmtMap -> SmtType
@@ -727,7 +740,9 @@ def __smtx_typeof : SmtTerm -> SmtType
 
 def __smtx_map_canon : SmtMap -> SmtMap
   | (SmtMap.default T e) => (SmtMap.default T (__smtx_value_canon e))
-  | (SmtMap.cons i e m) => (SmtMap.cons (__smtx_value_canon i) (__smtx_value_canon e) (__smtx_map_canon m))
+  | (SmtMap.cons i e m) => 
+    let _v0 := (__smtx_map_canon m)
+    (__smtx_msm_update_aux (__smtx_msm_get_default _v0) _v0 (__smtx_value_canon i) (__smtx_value_canon e))
 
 
 def __smtx_seq_canon : SmtSeq -> SmtSeq
