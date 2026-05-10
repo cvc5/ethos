@@ -6,6 +6,13 @@ abbrev native_Bool := Bool
 abbrev native_Int := Int
 abbrev native_Rat := Rat
 abbrev native_String := String
+abbrev native_Nat := Nat
+abbrev native_Char := Char
+
+instance : Ord Rat where
+  compare a b :=
+    -- compare a.num / a.den vs b.num / b.den by cross-multiplication
+    compare (a.num * Int.ofNat b.den) (b.num * Int.ofNat a.den)
 
 /- Evaluation functions -/
 
@@ -75,13 +82,15 @@ def native_to_real : native_Int -> native_Rat
   | x => (native_mk_rational x 1)
 
 -- Strings
+def native_nat_to_char : native_Nat -> native_Char
+  | x => (Char.ofNat x)
 def native_str_to_code (s : native_String) : native_Int :=
   match s.toList with
   | [c] => Int.ofNat c.toNat
   | _   => -1
 def native_str_from_code (i : native_Int) : native_String :=
   if (0 <= i && i <= 196608) then
-    String.singleton (Char.ofNat (Int.toNat i))
+    String.singleton (native_nat_to_char (Int.toNat i))
   else
     ""
 def native_streq : native_String -> native_String -> native_Bool
@@ -119,7 +128,6 @@ def native_binary_extract : native_Int -> native_Int -> native_Int -> native_Int
 
 -- Natural numbers
 
-abbrev native_Nat := Nat
 def native_int_to_nat (x : native_Int) : native_Nat :=
   (Int.toNat x)
 def native_nat_to_int (x : native_Nat) : native_Int :=
@@ -134,5 +142,5 @@ macro_rules
 syntax "native_nat_succ " term : term
 macro_rules
   | `(native_nat_succ $x) => `(Nat.succ $x)
-  
+
 end SmtEval
