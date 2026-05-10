@@ -3499,45 +3499,34 @@
 
 ;;; Finiteness
 
-(program $smtx_unit_type_default () :signature ($smt_Type) $smt_Value)
+(program smtx_is_unit_type () :signature ($smt_Type) $native_Bool)
 
-(program $smtx_unit_datatype_cons_default
-  ((v $smt_Value) (T $smt_Type) (c $smt_DatatypeCons))
-  :signature ($smt_Value $smt_DatatypeCons) $smt_Value
+(program $smtx_is_unit_datatype_cons ((T $smt_Type) (c $smt_DatatypeCons))
+  :signature ($smt_DatatypeCons) $native_Bool
   (
-  (($smtx_unit_datatype_cons_default v $dtc_unit) v)
-  (($smtx_unit_datatype_cons_default v ($dtc_cons T c))
-    (eo::define ((va ($smtx_unit_type_default T)))
-      ($native_ite ($native_veq va $vsm_not_value) $vsm_not_value
-        ($smtx_unit_datatype_cons_default ($vsm_apply v va) c))))
+  (($smtx_is_unit_datatype_cons $dtc_unit) $native_true)
+  (($smtx_is_unit_datatype_cons ($dtc_cons T c))
+    ($native_and (smtx_is_unit_type T) ($smtx_is_unit_datatype_cons c)))
   )
 )
 
-(program $smtx_unit_datatype_default
-  ((s $native_String) (d $smt_Datatype) (c $smt_DatatypeCons))
-  :signature ($native_String $smt_Datatype) $smt_Value
+(program $smtx_is_unit_datatype ((d $smt_Datatype) (c $smt_DatatypeCons))
+  :signature ($smt_Datatype) $native_Bool
   (
-  (($smtx_unit_datatype_default s ($dt_sum c $dt_null))
-    ($smtx_unit_datatype_cons_default ($vsm_DtCons s ($dt_sum c $dt_null) $native_n_zero) c))
-  (($smtx_unit_datatype_default s d) $vsm_not_value)
+  (($smtx_is_unit_datatype ($dt_sum c $dt_null))  ($smtx_is_unit_datatype_cons c))
+  (($smtx_is_unit_datatype d)                     $native_false)
   )
 )
 
-(program $smtx_unit_type_default
+(program smtx_is_unit_type
   ((w $native_Nat) (T $smt_Type) (U $smt_Type) (s $native_String) (d $smt_Datatype))
-  :signature ($smt_Type) $smt_Value
+  :signature ($smt_Type) $native_Bool
   (
-  (($smtx_unit_type_default ($tsm_BitVec w))
-    ($native_ite ($native_n_= w $native_n_zero) ($vsm_binary $native_z_zero $native_z_zero) $vsm_not_value))
-  (($smtx_unit_type_default ($tsm_Datatype s d)) ($smtx_unit_datatype_default s d))
-  (($smtx_unit_type_default ($tsm_Map T U))
-    ; unit element implies unit map
-    (eo::define ((v ($smtx_unit_type_default U)))
-      ($native_ite ($native_veq v $vsm_not_value) $vsm_not_value ($vsm_map ($msm_default T v)))))
-  (($smtx_unit_type_default ($tsm_FunType T U))
-    (eo::define ((v ($smtx_unit_type_default U)))
-      ($native_ite ($native_veq v $vsm_not_value) $vsm_not_value ($vsm_fun ($msm_default T v)))))
-  (($smtx_unit_type_default T) $vsm_not_value)
+  ((smtx_is_unit_type ($tsm_BitVec w))      ($native_n_= w $native_n_zero))
+  ((smtx_is_unit_type ($tsm_Datatype s d))  ($smtx_is_unit_datatype d))
+  ((smtx_is_unit_type ($tsm_Map T U))       (smtx_is_unit_type U))
+  ((smtx_is_unit_type ($tsm_FunType T U))   (smtx_is_unit_type U))
+  ((smtx_is_unit_type T)                    $native_false)
   )
 )
 
@@ -3582,32 +3571,30 @@
   (($smtx_finite_type_default $tsm_Char) ($vsm_char ($native_n_to_char $native_n_zero)))
   (($smtx_finite_type_default ($tsm_Datatype s d)) ($smtx_finite_datatype_default s d d $native_n_zero))
   (($smtx_finite_type_default ($tsm_Map T U))
-    (eo::define ((uu ($smtx_unit_type_default U)))
-    ($native_ite ($native_veq uu $vsm_not_value)
+    (eo::define ((uf ($smtx_finite_type_default U)))
+    ($native_ite (smtx_is_unit_type U)
+      ; if element type is unit, we are unit and finite.
+      ($vsm_map ($msm_default T uf))
       (eo::define ((tf ($smtx_finite_type_default T)))
-      (eo::define ((uf ($smtx_finite_type_default U)))
       ($native_ite ($native_and
         ($native_not ($native_veq tf $vsm_not_value))
         ($native_not ($native_veq uf $vsm_not_value)))
         ($vsm_map ($msm_default T uf))
-        $vsm_not_value)))
-      ; if element type is unit, we are unit.
-      ($vsm_map ($msm_default T uu)))))
+        $vsm_not_value)))))
   (($smtx_finite_type_default ($tsm_Set T))
     (eo::define ((v ($smtx_finite_type_default T)))
       ($native_ite ($native_veq v $vsm_not_value) $vsm_not_value ($smtx_empty_set T))))
   (($smtx_finite_type_default ($tsm_FunType T U))
-    (eo::define ((uu ($smtx_unit_type_default U)))
-      ($native_ite ($native_veq uu $vsm_not_value)
-        (eo::define ((tf ($smtx_finite_type_default T)))
-        (eo::define ((uf ($smtx_finite_type_default U)))
-        ($native_ite ($native_and
-          ($native_not ($native_veq tf $vsm_not_value))
-          ($native_not ($native_veq uf $vsm_not_value)))
-          ($vsm_fun ($msm_default T uf))
-          $vsm_not_value)))
-        ; if element type is unit, we are unit.
-        ($vsm_fun ($msm_default T uu)))))
+    (eo::define ((uf ($smtx_finite_type_default U)))
+    ($native_ite (smtx_is_unit_type U)
+      ; if element type is unit, we are unit and finite.
+      ($vsm_fun ($msm_default T uf))
+      (eo::define ((tf ($smtx_finite_type_default T)))
+      ($native_ite ($native_and
+        ($native_not ($native_veq tf $vsm_not_value))
+        ($native_not ($native_veq uf $vsm_not_value)))
+        ($vsm_fun ($msm_default T uf))
+        $vsm_not_value)))))
   (($smtx_finite_type_default T) $vsm_not_value)
   )
 )
