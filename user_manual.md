@@ -505,7 +505,7 @@ Note that the attribute `:right-assoc-non-singleton-nil` does *not*
 impact the runtime behavior of list operators [list-computation](#list-computation).
 For example,
 given `or` which is marked `:right-assoc-non-singleton-nil`,
-the list operator `(eo::list_repeat or 1 a)` will return an `or`-list
+the list operator `(eo::list_repeat or a 1)` will return an `or`-list
 of length one and will *not* desugar to `a`.
 
 #### Chainable
