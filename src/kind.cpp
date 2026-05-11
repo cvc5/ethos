@@ -80,6 +80,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_LIST_DIFF: o << "EVAL_LIST_DIFF"; break;
     case Kind::EVAL_LIST_INTER: o << "EVAL_LIST_INTER"; break;
     case Kind::EVAL_LIST_SINGLETON_ELIM: o << "EVAL_LIST_SINGLETON_ELIM"; break;
+    case Kind::EVAL_LIST_REPEAT: o << "EVAL_LIST_REPEAT"; break;
     // boolean
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
     case Kind::EVAL_AND: o << "EVAL_AND"; break;
@@ -89,6 +90,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_ADD: o << "EVAL_ADD"; break;
     case Kind::EVAL_NEG: o << "EVAL_NEG"; break;
     case Kind::EVAL_MUL: o << "EVAL_MUL"; break;
+    case Kind::EVAL_POW: o << "EVAL_POW"; break;
     case Kind::EVAL_INT_DIV: o << "EVAL_INT_DIV"; break;
     case Kind::EVAL_INT_MOD: o << "EVAL_INT_MOD"; break;
     case Kind::EVAL_RAT_DIV: o << "EVAL_RAT_DIV"; break;
@@ -175,6 +177,7 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_LIST_SINGLETON_ELIM:
             ss << "list_singleton_elim";
             break;
+          case Kind::EVAL_LIST_REPEAT: ss << "list_repeat"; break;
           // boolean
           case Kind::EVAL_NOT: ss << "not"; break;
           case Kind::EVAL_AND: ss << "and"; break;
@@ -184,6 +187,7 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_ADD: ss << "add"; break;
           case Kind::EVAL_NEG: ss << "neg"; break;
           case Kind::EVAL_MUL: ss << "mul"; break;
+          case Kind::EVAL_POW: ss << "pow"; break;
           case Kind::EVAL_INT_DIV: ss << "zdiv"; break;
           case Kind::EVAL_INT_MOD: ss << "zmod"; break;
           case Kind::EVAL_RAT_DIV: ss << "qdiv"; break;
@@ -277,6 +281,7 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_LIST_DIFF:
     case Kind::EVAL_LIST_INTER:
     case Kind::EVAL_LIST_SINGLETON_ELIM:
+    case Kind::EVAL_LIST_REPEAT:
     // boolean
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:
@@ -286,6 +291,7 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_ADD:
     case Kind::EVAL_NEG:
     case Kind::EVAL_MUL:
+    case Kind::EVAL_POW:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
     case Kind::EVAL_RAT_DIV:
@@ -342,7 +348,8 @@ bool isListLiteralOp(Kind k)
     case Kind::EVAL_LIST_MEQ:
     case Kind::EVAL_LIST_DIFF:
     case Kind::EVAL_LIST_INTER:
-    case Kind::EVAL_LIST_SINGLETON_ELIM: return true;
+    case Kind::EVAL_LIST_SINGLETON_ELIM:
+    case Kind::EVAL_LIST_REPEAT: return true;
     default:
       break;
   }

@@ -1,5 +1,10 @@
 This file contains a summary of important user-visible changes.
 
+ethos 0.2.4 prerelease
+======================
+
+- Adds builtin operators `eo::pow` and `eo::list_repeat`. The exponent of `eo::pow` and the count of `eo::list_repeat` must be non-negative 32-bit numeral values.
+
 ethos 0.2.3
 ===========
 
