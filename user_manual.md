@@ -1098,10 +1098,10 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_setof or (or a a a))            == (or a)
 (eo::list_setof or false)                 == false
 
-(eo::list_minclude or (or a b) (or a a b))  == true
-(eo::list_minclude or (or a b) (or b a))    == true
-(eo::list_minclude or (or a b b) (or a b))  == false
-(eo::list_minclude or false (or a b))       == true
+(eo::list_minclude or (or a a b) (or a b))  == true
+(eo::list_minclude or (or b a) (or a b))    == true
+(eo::list_minclude or (or a b) (or a b b))  == false
+(eo::list_minclude or (or a b) false)       == true
 
 (eo::list_meq or (or a b) (or a a b))       == false
 (eo::list_meq or (or a b c b) (or b a c b)) == true

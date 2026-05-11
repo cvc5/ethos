@@ -381,14 +381,13 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   {
     // matching, update context
     ExprValue* hdt = hdtypes[i - 1];
-    // if the argument is (Quote t), we match on its argument,
-    // which along with how ctypes[i] is the argument itself, has the effect
-    // of an implicit upcast.
-    bool isQuote = false;
+    // If the argument is (Quote x), then we ensure that x and t have the same
+    // (ground) type. If so, the context is updated where x is mapped to t.
     bool typeSuccess = true;
     ExprValue* child = children[i];
     if (hdt->getKind() == Kind::QUOTE_TYPE)
     {
+      Assert(hdt->d_children[0]->getKind() == Kind::PARAM);
       // We ensure that the type of the argument is equal to the type of the
       // quoted term, whose type should be ground.
       ExprValue* ct = d_state.lookupType(child);
@@ -401,36 +400,32 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
         hdt = cte;
         child = ct;
       }
-      // if the above check was success, we quote
-      if (typeSuccess)
+      else
       {
+        // otherwise we have a function of type (-> (Quote x) T) taking
+        // argument t. Since (Quote x) is only constructed for parameters x,
+        // we know that x is a parameter of the same type as t. We don't need
+        // to match, we simply update the context.
         hdt = hdt->d_children[0];
-        isQuote = true;
+        Assert(ctx.find(hdt) == ctx.end());
+        ctx[hdt] = child;
       }
     }
     else
     {
       child = d_state.lookupType(child);
       Assert(child != nullptr);
+      typeSuccess = match(hdt, child, ctx, visited);
     }
-    if (!typeSuccess || !match(hdt, child, ctx, visited))
+    if (!typeSuccess)
     {
       if (out)
       {
         (*out) << "Checking application of " << Expr(hd) << std::endl;
-        if (isQuote)
-        {
-          (*out) << "Unexpected child #" << i << std::endl;
-          (*out) << "  Term: " << Expr(children[i]) << std::endl;
-          (*out) << "  Expected pattern: ";
-        }
-        else
-        {
-          (*out) << "Unexpected type of child #" << i << std::endl;
-          (*out) << "  Term: " << Expr(children[i]) << std::endl;
-          (*out) << "  Has type: " << Expr(child) << std::endl;
-          (*out) << "  Expected type: ";
-        }
+        (*out) << "Unexpected type of child #" << i << std::endl;
+        (*out) << "  Term: " << Expr(children[i]) << std::endl;
+        (*out) << "  Has type: " << Expr(child) << std::endl;
+        (*out) << "  Expected type: ";
         (*out) << Expr(hdt) << std::endl;
         (*out) << "  Context " << ctx << std::endl;
       }
@@ -1709,10 +1704,10 @@ Expr TypeChecker::evaluateListMPredInternal(Kind k,
   {
     return d_state.mkFalse();
   }
-  for (const std::pair<const ExprValue* const, uint32_t>& entry : count1)
+  for (const std::pair<const ExprValue* const, uint32_t>& entry : count2)
   {
-    if (isEq ? count2[entry.first] != entry.second
-             : count2[entry.first] < entry.second)
+    if (isEq ? count1[entry.first] != entry.second
+             : count1[entry.first] < entry.second)
     {
       return d_state.mkFalse();
     }
