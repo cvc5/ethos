@@ -247,7 +247,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   os << "; declare: " << e << std::endl;
   os << "(declare-";
   std::vector<Expr> vars = Expr::getVariables(ct);
-  if (!vars.empty())
+  if (!vars.empty() || cattr == Attr::OPAQUE)
   {
     os << "parameterized-const " << cname << " (" << opaqueArgs.str();
     size_t pcount = 0;
