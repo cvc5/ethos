@@ -351,14 +351,14 @@
 
 ; Note: a helper for $eo_list_minclude.
 (program $eo_list_minclude_rec
-  ((T Type) (x T) (y eo_List :list) (z eo_List))
+  ((T Type) (x T) (y eo_List) (z eo_List :list))
   :signature (eo_List eo_List) Bool
   (
-  (($eo_list_minclude_rec (eo_List_cons x y) z)  (eo::define ((res ($eo_list_erase eo_List_cons z x)))
-                                                   (eo::ite ($eo_eq res z)
-                                                     false   ; must have successfully removed occurrence of x from z
-                                                     ($eo_list_minclude_rec y res))))
-  (($eo_list_minclude_rec eo_List_nil z)          true)
+  (($eo_list_minclude_rec y (eo_List_cons x z))  (eo::define ((res ($eo_list_erase eo_List_cons y x)))
+                                                   (eo::ite ($eo_eq res y)
+                                                     false   ; must have successfully removed occurrence of x from y
+                                                     ($eo_list_minclude_rec res z))))
+  (($eo_list_minclude_rec y eo_List_nil)          true)
   )
 )
 
