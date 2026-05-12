@@ -167,6 +167,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_diff", Kind::EVAL_LIST_DIFF);
   bindBuiltinEval("list_inter", Kind::EVAL_LIST_INTER);
   bindBuiltinEval("list_singleton_elim", Kind::EVAL_LIST_SINGLETON_ELIM);
+  bindBuiltinEval("list_repeat", Kind::EVAL_LIST_REPEAT);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -176,6 +177,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("add", Kind::EVAL_ADD);
   bindBuiltinEval("neg", Kind::EVAL_NEG);
   bindBuiltinEval("mul", Kind::EVAL_MUL);
+  bindBuiltinEval("pow", Kind::EVAL_POW);
   bindBuiltinEval("zdiv", Kind::EVAL_INT_DIV);
   bindBuiltinEval("zmod", Kind::EVAL_INT_MOD);
   bindBuiltinEval("qdiv", Kind::EVAL_RAT_DIV);
@@ -617,6 +619,7 @@ Expr State::mkProof(const Expr& proven)
 
 Expr State::mkQuoteType(const Expr& t)
 {
+  Assert(t.getKind() == Kind::PARAM);
   return Expr(mkExprInternal(Kind::QUOTE_TYPE, {t.getValue()}));
 }
 

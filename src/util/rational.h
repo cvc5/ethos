@@ -100,6 +100,8 @@ class Rational
   {
     return Rational(d_value / y.d_value);
   }
+  /** Raise this Rational to the power 'exp'. */
+  Rational pow(uint32_t exp) const;
   bool operator>(const Rational& y) const
   {
     return d_value > y.d_value;
