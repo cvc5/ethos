@@ -211,6 +211,7 @@
 (define $native_div_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "div_total" x1 x2))
 (define $native_mod_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "mod_total" x1 x2))
 (define $native_z_**_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zexp_total" x1 x2))
+(define $native_q_**_total ((x1 $native_Real) (x2 $native_Int)) ($native_apply_2 "qexp_total" x1 x2))
 (define $native_z_neg_one () ($native_z_uneg $native_z_one))
 (define $native_z_inc ((x1 $native_Int)) ($native_z_+ x1 $native_z_one))
 (define $native_z_dec ((x1 $native_Int)) ($native_z_+ x1 $native_z_neg_one))
@@ -667,6 +668,8 @@
   )
 )
 
+; program: $eo_mul
+; implements: eo::mul
 (program $eo_mul
   ((T Type) (w1 $native_Int) (w2 $native_Int)
    (n1 $native_Int) (n2 $native_Int) (r1 $native_Rat) (r2 $native_Rat))
@@ -679,6 +682,19 @@
   (($eo_mul ($eot_binary w1 n1) ($eot_binary w2 n2))
     (eo::requires ($eot_numeral w1) ($eot_numeral w2)
       ($eo_binary_mod_w w1 ($native_z_* n1 n2))))
+  )
+)
+
+; program: $eo_pow
+; implements: eo::pow
+(program $eo_pow
+  ((T Type) (n1 $native_Int) (n2 $native_Int) (r1 $native_Rat) (r2 $native_Rat))
+  :signature (T Int) T
+  (
+  (($eo_pow ($eot_numeral n1) ($eot_numeral n2))
+    ($eot_numeral ($native_z_**_total n1 n2)))
+  (($eo_pow ($eot_rational r1) ($eot_numeral n2))
+    ($eot_rational ($native_q_**_total r1 n2)))
   )
 )
 
@@ -1538,6 +1554,24 @@
    (f (-> T U V)) (a W))
   (eo::requires ($eo_is_list f a) true
     ($eo_list_singleton_elim_2 a)))
+
+;;; $eo_list_repeat
+
+(program $eo_list_repeat_rec ((T Type) (U Type) (f (-> T T T)) (a T) (n $native_Nat))
+  :signature ((-> T U U) T $native_Nat) U
+  (
+  (($eo_list_repeat_rec f a $native_n_zero) ($eo_nil f ($eo_typeof a)))
+  (($eo_list_repeat_rec f a ($native_n_succ n)) (f a ($eo_list_repeat_rec f a n)))
+  )
+)
+
+; define: $eo_list_repeat
+; implements: eo::list_repeat
+(define $eo_list_repeat
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W) (i Int))
+  (eo::requires (eo::is_neg i) false
+    ($eo_list_repeat_rec f a ($native_z_to_n i))))
 
 ; all further definitions
 

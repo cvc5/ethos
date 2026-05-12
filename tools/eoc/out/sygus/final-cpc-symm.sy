@@ -55,6 +55,11 @@
   (! (= (zexp_total x y) (ite (< y 0) 0 (ite (= y 0) 1 (* x (zexp_total x (- y 1))))))
   :pattern ((zexp_total x y))))
   :named smtx.zexp_total.def))
+(declare-fun qexp_total (Real Int) Int)
+(assert (! (forall ((x Real) (y Int))
+  (! (= (qexp_total x y) (ite (< y 0) 0.0 (ite (= y 0) 1.0 (* x (qexp_total x (- y 1))))))
+  :pattern ((qexp_total x y))))
+  :named smtx.qexp_total.def))
 
 (define-fun bit ((x1 Int) (x2 Int)) Bool
   (zeq 1 (mod (div x1 (int.pow2 x2)) 2)))

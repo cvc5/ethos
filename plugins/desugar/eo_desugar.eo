@@ -419,6 +419,24 @@ $EO_LITERAL_TYPE_DECL$
   (eo::requires ($eo_is_list f a) true
     ($eo_list_singleton_elim_2 a)))
 
+;;; $eo_list_repeat
+
+(program $eo_list_repeat_rec ((T Type) (U Type) (f (-> T T T)) (a T) (n $native_Nat))
+  :signature ((-> T U U) T $native_Nat) U
+  (
+  (($eo_list_repeat_rec f a $native_n_zero) ($eo_nil f ($eo_typeof a)))
+  (($eo_list_repeat_rec f a ($native_n_succ n)) (f a ($eo_list_repeat_rec f a n)))
+  )
+)
+
+; define: $eo_list_repeat
+; implements: eo::list_repeat
+(define $eo_list_repeat
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W) (i Int))
+  (eo::requires (eo::is_neg i) false
+    ($eo_list_repeat_rec f a ($native_z_to_n i))))
+
 ; all further definitions
 
 $EO_DEFS$

@@ -105,6 +105,7 @@
 (define $native_div_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "div_total" x1 x2))
 (define $native_mod_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "mod_total" x1 x2))
 (define $native_z_**_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zexp_total" x1 x2))
+(define $native_q_**_total ((x1 $native_Real) (x2 $native_Int)) ($native_apply_2 "qexp_total" x1 x2))
 (define $native_z_neg_one () ($native_z_uneg $native_z_one))
 (define $native_z_inc ((x1 $native_Int)) ($native_z_+ x1 $native_z_one))
 (define $native_z_dec ((x1 $native_Int)) ($native_z_+ x1 $native_z_neg_one))

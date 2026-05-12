@@ -74,6 +74,8 @@ def native_qlt : native_Rat -> native_Rat -> native_Bool
   | x, y => decide (x < y)
 def native_qdiv_total : native_Rat -> native_Rat -> native_Rat
   | x, y => x/y
+def native_qexp_total (x : native_Rat) (y : native_Int) : native_Int :=
+  if y < 0 then (native_mk_rational 0 1) else (x ^ (Int.toNat y))
 
 -- Conversions
 def native_to_int : native_Rat -> native_Int

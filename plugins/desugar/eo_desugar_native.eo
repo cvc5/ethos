@@ -332,6 +332,8 @@
   )
 )
 
+; program: $eo_mul
+; implements: eo::mul
 (program $eo_mul
   ((T Type) (w1 $native_Int) (w2 $native_Int)
    (n1 $native_Int) (n2 $native_Int) (r1 $native_Rat) (r2 $native_Rat))
@@ -344,6 +346,19 @@
   (($eo_mul ($eot_binary w1 n1) ($eot_binary w2 n2))
     (eo::requires ($eot_numeral w1) ($eot_numeral w2)
       ($eo_binary_mod_w w1 ($native_z_* n1 n2))))
+  )
+)
+
+; program: $eo_pow
+; implements: eo::pow
+(program $eo_pow
+  ((T Type) (n1 $native_Int) (n2 $native_Int) (r1 $native_Rat) (r2 $native_Rat))
+  :signature (T Int) T
+  (
+  (($eo_pow ($eot_numeral n1) ($eot_numeral n2))
+    ($eot_numeral ($native_z_**_total n1 n2)))
+  (($eo_pow ($eot_rational r1) ($eot_numeral n2))
+    ($eot_rational ($native_q_**_total r1 n2)))
   )
 )
 
