@@ -752,10 +752,8 @@
 (program $eo_is_neg ((T Type) (n1 $native_Int) (r1 $native_Rat))
   :signature (T) Bool
   (
-  (($eo_is_neg ($eot_numeral n1))
-    ($eot_bool ($native_z_< n1 $native_z_zero)))
-  (($eo_is_neg ($eot_rational r1))
-    ($eot_bool ($native_q_< r1 $native_q_zero)))
+  (($eo_is_neg ($eot_numeral n1))   ($eot_bool ($native_z_< n1 $native_z_zero)))
+  (($eo_is_neg ($eot_rational r1))  ($eot_bool ($native_q_< r1 $native_q_zero)))
   )
 )
 
@@ -764,12 +762,9 @@
 (program $eo_neg ((T Type) (w $native_Int) (n1 $native_Int) (r1 $native_Rat))
   :signature (T) T
   (
-  (($eo_neg ($eot_numeral n1))
-    ($eot_numeral ($native_z_uneg n1)))
-  (($eo_neg ($eot_rational r1))
-    ($eot_rational ($native_q_uneg r1)))
-  (($eo_neg ($eot_binary w n1))
-    ($eo_binary_mod_w w ($native_z_uneg n1)))
+  (($eo_neg ($eot_numeral n1))  ($eot_numeral ($native_z_uneg n1)))
+  (($eo_neg ($eot_rational r1)) ($eot_rational ($native_q_uneg r1)))
+  (($eo_neg ($eot_binary w n1)) ($eo_binary_mod_w w ($native_z_uneg n1)))
   )
 )
 
@@ -781,10 +776,8 @@
 (program $eo_len ((T Type) (s1 $native_String) (w $native_Int) (n1 $native_Int))
   :signature (T) $eo_Term
   (
-  (($eo_len ($eot_string s1))
-    ($eot_numeral ($native_apply_1 "str.len" s1)))
-  (($eo_len ($eot_binary w n1))
-    ($eot_numeral w))
+  (($eo_len ($eot_string s1))   ($eot_numeral ($native_apply_1 "str.len" s1)))
+  (($eo_len ($eot_binary w n1)) ($eot_numeral w))
   )
 )
 
@@ -1560,18 +1553,22 @@
 (program $eo_list_repeat_rec ((T Type) (U Type) (f (-> T T T)) (a T) (n $native_Nat))
   :signature ((-> T U U) T $native_Nat) U
   (
-  (($eo_list_repeat_rec f a $native_n_zero) ($eo_nil f ($eo_typeof a)))
   (($eo_list_repeat_rec f a ($native_n_succ n)) (f a ($eo_list_repeat_rec f a n)))
+  (($eo_list_repeat_rec f a n) ($eo_nil f ($eo_typeof a)))
   )
 )
 
 ; define: $eo_list_repeat
 ; implements: eo::list_repeat
-(define $eo_list_repeat
-  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
-   (f (-> T U V)) (a W) (i Int))
-  (eo::requires (eo::is_neg i) false
-    ($eo_list_repeat_rec f a ($native_z_to_n i))))
+(program $eo_list_repeat ((T Type) (U Type) (V Type) (f (-> T U V)) (a T) (i Int))
+  :signature ((-> T U V) T $eo_Numeral) V
+  (
+  (($eo_list_repeat f a ($eot_numeral i))
+    ($native_ite ($native_z_< i $native_z_zero)
+      $eot_stuck
+      ($eo_list_repeat_rec f a ($native_z_to_n i))))
+  )
+)
 
 ; all further definitions
 

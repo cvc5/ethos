@@ -131,7 +131,7 @@ class LeanMetaReduce : public MetaReducePlugin
                           const std::string& str,
                           bool isPop);
   /** Return true if c can be printed as an atomic Eunoia term. */
-  bool isAtomicEo(const Expr& c, const std::string& cname);
+  bool isAtomicEo(const Expr& c, const std::string& cname, size_t& uarity);
   /** Return true if c can be printed as an atomic SMT term. */
   bool isAtomicSmt(const Expr& c, const std::string& cname);
   /** Generated Lean definitions for programs. */
@@ -145,7 +145,7 @@ class LeanMetaReduce : public MetaReducePlugin
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
   /** Eunoia operator embedding */
-  std::stringstream d_embedTOpDt;
+  std::stringstream d_embedTOpDt[4];
   /** Eunoia to object inductive prop */
   std::stringstream d_eoIsObj;
   /** Eunoia is refutation prop */

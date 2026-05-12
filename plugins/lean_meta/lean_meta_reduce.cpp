@@ -53,11 +53,22 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   }
   if (optionEoUserOp())
   {
-    d_embedTermDt << "  | UOp : UserOp -> Term" << std::endl;
-  }
-  else
-  {
-    d_embedTOpDt << "  | None : UserOp" << std::endl;
+    for (size_t i=0; i<4; i++)
+    {
+      if (i==0)
+      {
+        d_embedTermDt << "  | UOp : UserOp -> Term" << std::endl;
+      }
+      else
+      {
+        d_embedTermDt << "  | UOp" << i << " : UserOp" << i << " -> ";
+        for (size_t j=0; j<i; j++)
+        {
+          d_embedTermDt << "Term -> ";
+        }
+        d_embedTermDt << "Term" << std::endl;
+      }
+    }
   }
 }
 
@@ -131,13 +142,18 @@ bool LeanMetaReduce::isAtomicSmt(const Expr& c, const std::string& cname)
   return false;
 }
 
-bool LeanMetaReduce::isAtomicEo(const Expr& c, const std::string& cname)
+bool LeanMetaReduce::isAtomicEo(const Expr& c, const std::string& cname, size_t& arity)
 {
   if (!optionEoUserOp())
   {
     return false;
   }
   Attr attr = d_state.getAttributeKind(c.getValue());
+  std::string rawName = getName(c);
+  if (rawName.compare(0, 4, "$emb") == 0)
+  {
+    return false;
+  }
   if (attr != Attr::OPAQUE)
   {
     if (cname == "Stuck" || cname == "Type" || cname == "FunType"
@@ -145,9 +161,13 @@ bool LeanMetaReduce::isAtomicEo(const Expr& c, const std::string& cname)
     {
       return false;
     }
+    arity = 0;
     return true;
   }
-  return false;
+  Expr ct = c.getType();
+  Assert (ct.getKind()==Kind::FUNCTION_TYPE);
+  arity = ct.getNumChildren() - 1;
+  return true;
 }
 
 void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
@@ -177,15 +197,23 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
     else
     {
       bool needsCparen = false;
+      size_t uarity;
       if (k == MetaKind::SMT && isAtomicSmt(c, cname))
       {
         needsCparen = true;
         os << "(SmtTerm.TheoryOp SmtTheoryOp";
       }
-      else if (k == MetaKind::EUNOIA && isAtomicEo(c, cname))
+      else if (k == MetaKind::EUNOIA && isAtomicEo(c, cname, uarity))
       {
-        needsCparen = true;
-        os << "(Term.UOp UserOp";
+        if (uarity==0)
+        {
+          needsCparen = true;
+          os << "(Term.UOp UserOp";
+        }
+        else
+        {
+          os << "Term.UOp" << uarity << " UserOp" << uarity;
+        }
       }
       else if (!printMetaTypeKind(k, os))
       {
@@ -1067,14 +1095,22 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     nopqArgs = ct.getNumChildren() - 1;
     retType = ct[nopqArgs];
   }
+  size_t uarity;
   if (tk == MetaKind::SMT && isAtomicSmt(c, cnamek))
   {
     d_smtTOpDt << "  | " << cname << " : SmtTheoryOp" << std::endl;
     return;
   }
-  else if (tk == MetaKind::EUNOIA && isAtomicEo(c, cnamek))
+  else if (tk == MetaKind::EUNOIA && isAtomicEo(c, cnamek, uarity))
   {
-    d_embedTOpDt << "  | " << cname << " : UserOp" << std::endl;
+    Assert (uarity<4);
+    std::stringstream& etd = d_embedTOpDt[uarity];
+    etd << "  | " << cname << " : UserOp";
+    if (uarity>0)
+    {
+      etd << uarity;
+    }
+    etd << std::endl;
     return;
   }
   (*out) << "  | " << cname << " : ";
@@ -1118,7 +1154,10 @@ void LeanMetaReduce::finalizeChecker()
                        {{"$LEAN_DEFS$", d_defs.str()},
                         {"$LEAN_DEFS_TOTAL$", d_defsTotal.str()},
                         {"$LEAN_TERM_DEF$", d_embedTermDt.str()},
-                        {"$LEAN_EO_THEORY_OP_DEF$", d_embedTOpDt.str()},
+                        {"$LEAN_EO_THEORY_OP_DEF$", d_embedTOpDt[0].str()},
+                        {"$LEAN_EO_THEORY_OP1_DEF$", d_embedTOpDt[1].str()},
+                        {"$LEAN_EO_THEORY_OP2_DEF$", d_embedTOpDt[2].str()},
+                        {"$LEAN_EO_THEORY_OP3_DEF$", d_embedTOpDt[3].str()},
                         {"$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str()},
                         {"$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str()},
                         {"$LEAN_CHECKER_DEFS$", d_eoChecker.str()}});
@@ -1184,6 +1223,20 @@ void LeanMetaReduce::finalize()
     d_defs << "end" << std::endl << std::endl;
   }
 #endif
+
+  for (size_t i=0; i<4; i++)
+  {
+    std::stringstream& etd = d_embedTOpDt[i];
+    if (etd.str().empty())
+    {
+      etd << "  | None : UserOp";
+      if (i>0)
+      {
+        etd << i;
+      }
+      etd << std::endl;
+    }
+  }
   finalizeChecker();
   finalizeSmtModel();
   finalizeSpec();

@@ -206,10 +206,8 @@
 (program $eo_len ((T Type) (s1 $native_String) (w $native_Int) (n1 $native_Int))
   :signature (T) $eo_Term
   (
-  (($eo_len ($eot_string s1))
-    ($eot_numeral ($native_apply_1 "str.len" s1)))
-  (($eo_len ($eot_binary w n1))
-    ($eot_numeral w))
+  (($eo_len ($eot_string s1))   ($eot_numeral ($native_apply_1 "str.len" s1)))
+  (($eo_len ($eot_binary w n1)) ($eot_numeral w))
   )
 )
 (program $eo_eq ((t $eo_Term) (s $eo_Term))

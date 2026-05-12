@@ -113,7 +113,7 @@ int runMain(int argc, char* argv[], PluginFactory pluginFactory)
     else if (arg == "--show-config")
     {
       std::stringstream out;
-      out << "This is ethos version 0.2.2." << std::endl;
+      out << "This is ethos version 0.2.3." << std::endl;
       out << std::endl;
       size_t w = 15;
       out << std::setw(w) << "tracing : ";

@@ -416,10 +416,8 @@
 (program $eo_is_neg ((T Type) (n1 $native_Int) (r1 $native_Rat))
   :signature (T) Bool
   (
-  (($eo_is_neg ($eot_numeral n1))
-    ($eot_bool ($native_z_< n1 $native_z_zero)))
-  (($eo_is_neg ($eot_rational r1))
-    ($eot_bool ($native_q_< r1 $native_q_zero)))
+  (($eo_is_neg ($eot_numeral n1))   ($eot_bool ($native_z_< n1 $native_z_zero)))
+  (($eo_is_neg ($eot_rational r1))  ($eot_bool ($native_q_< r1 $native_q_zero)))
   )
 )
 
@@ -428,12 +426,9 @@
 (program $eo_neg ((T Type) (w $native_Int) (n1 $native_Int) (r1 $native_Rat))
   :signature (T) T
   (
-  (($eo_neg ($eot_numeral n1))
-    ($eot_numeral ($native_z_uneg n1)))
-  (($eo_neg ($eot_rational r1))
-    ($eot_rational ($native_q_uneg r1)))
-  (($eo_neg ($eot_binary w n1))
-    ($eo_binary_mod_w w ($native_z_uneg n1)))
+  (($eo_neg ($eot_numeral n1))  ($eot_numeral ($native_z_uneg n1)))
+  (($eo_neg ($eot_rational r1)) ($eot_rational ($native_q_uneg r1)))
+  (($eo_neg ($eot_binary w n1)) ($eo_binary_mod_w w ($native_z_uneg n1)))
   )
 )
 
@@ -445,10 +440,8 @@
 (program $eo_len ((T Type) (s1 $native_String) (w $native_Int) (n1 $native_Int))
   :signature (T) $eo_Term
   (
-  (($eo_len ($eot_string s1))
-    ($eot_numeral ($native_apply_1 "str.len" s1)))
-  (($eo_len ($eot_binary w n1))
-    ($eot_numeral w))
+  (($eo_len ($eot_string s1))   ($eot_numeral ($native_apply_1 "str.len" s1)))
+  (($eo_len ($eot_binary w n1)) ($eot_numeral w))
   )
 )
 
