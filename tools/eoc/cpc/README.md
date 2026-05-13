@@ -51,7 +51,7 @@ extra solver options through to that solve step, for example
 
 `run_count_deps RULE [RULE ...]` runs `trim-defs` for each rule and counts the
 non-comment, nonblank lines in `tools/eoc/out/trim_defs/trim_gen.eo`, ignoring
-the common literal builtin declarations that are pulled into almost every slice.
+`declare-const`, `declare-consts`, and `declare-parameterized-const` commands.
 For one rule it prints only the count; for multiple rules it prints
 `RULE COUNT` pairs. The counted trimmed EO slice is left at
 `tools/eoc/out/trim_defs/trim_gen.eo` for inspection. With multiple rules, this

@@ -31,11 +31,11 @@ count_trim_lines() {
       return d
     }
 
-    function is_builtin_literal_cmd(line) {
+    function is_uncounted_decl_cmd(line) {
       return \
-        line ~ /^[[:space:]]*\(declare-const[[:space:]]+(Int|Real|BitVec|Seq|Char|String)[[:space:]]/ || \
-        line ~ /^[[:space:]]*\(define[[:space:]]+String[[:space:]]+\(\)[[:space:]]+\(Seq[[:space:]]+Char\)[[:space:]]*\)/ || \
-        line ~ /^[[:space:]]*\(declare-consts[[:space:]]+<(numeral|rational|decimal|binary|string)>/
+        line ~ /^[[:space:]]*\(declare-const[[:space:]]/ || \
+        line ~ /^[[:space:]]*\(declare-consts[[:space:]]/ || \
+        line ~ /^[[:space:]]*\(declare-parameterized-const[[:space:]]/
     }
 
     /^[[:space:]]*$/ || /^[[:space:]]*;/ {
@@ -50,7 +50,7 @@ count_trim_lines() {
       next
     }
 
-    is_builtin_literal_cmd($0) {
+    is_uncounted_decl_cmd($0) {
       skip_depth = paren_delta($0)
       if (skip_depth < 0) {
         skip_depth = 0
