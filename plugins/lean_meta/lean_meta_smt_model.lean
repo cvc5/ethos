@@ -585,9 +585,9 @@ def __smtx_value_canonical (v : SmtValue) : Prop :=
   __smtx_value_canonical_bool v = true
 
 def model_total_typed (M : SmtModel) : Prop :=
-  (∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
-  (∀ s T, type_inhabited T -> __smtx_value_canonical (__smtx_model_lookup M s T)) ∧
-  (∀ s T, ¬ type_inhabited T -> __smtx_model_lookup M s T = SmtValue.NotValue)
+  (∀ s T, __smtx_type_wf T = true -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
+  (∀ s T, __smtx_type_wf T = true -> __smtx_value_canonical (__smtx_model_lookup M s T)) ∧
+  (∀ s T, __smtx_type_wf T = false -> __smtx_model_lookup M s T = SmtValue.NotValue)
 
 /-
 SMT interpretation is satisfiability, i.e. the existence of a model

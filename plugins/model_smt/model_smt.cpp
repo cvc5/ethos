@@ -917,7 +917,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // sequences
   // for empty, that the Eunoia uses (Seq T) as an argument, whereas SMT uses T.
   addRecReduceSym("seq.empty", {kType}, kAny, "($smtx_empty_seq x1)");
-  d_typeFullCase["seq.empty"] = "($smtx_typeof_guard_wf x1 ($tsm_Seq x1))";
+  d_typeFullCase["seq.empty"] = "($smtx_typeof_guard_wf ($tsm_Seq x1) ($tsm_Seq x1))";
   d_auxDef["seq.empty"] = R"(
 (program $eo_to_smt_seq.empty ((T $smt_Type))
   :signature ($smt_Type) $smt_Term
@@ -930,7 +930,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "($eo_to_smt_seq.empty ($eo_to_smt_type x1))";
   addRecReduceSym("seq.unit", {kAny}, d_kSeq, "($smtx_seq_unit e1)");
   d_typeFullCase["seq.unit"] =
-      "(eo::define ((T ($smtx_typeof x1))) ($smtx_typeof_guard_wf T ($tsm_Seq T)))";
+      "(eo::define ((T ($tsm_Seq ($smtx_typeof x1)))) ($smtx_typeof_guard_wf T T))";
   addRecReduceSym("seq.nth", {d_kSeq, kInt}, kAny, "($smtx_seq_nth M e1 e2)");
   addAuxTypeProgram("seq.nth", {d_kSeq, kInt}, "($smtx_typeof_guard_wf x1 x1)");
   // sets
@@ -938,7 +938,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTypeSym("Set", {kType});
   // for empty, that the Eunoia uses (Set T) as an argument, whereas SMT uses T.
   addRecReduceSym("set.empty", {kType}, kAny, "($smtx_empty_set x1)");
-  d_typeFullCase["set.empty"] = "($smtx_typeof_guard_wf x1 ($tsm_Set x1))";
+  d_typeFullCase["set.empty"] = "($smtx_typeof_guard_wf ($tsm_Set x1) ($tsm_Set x1))";
   d_auxDef["set.empty"] = R"(
 (program $eo_to_smt_set.empty ((T $smt_Type))
   :signature ($smt_Type) $smt_Term
@@ -951,7 +951,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "($eo_to_smt_set.empty ($eo_to_smt_type x1))";
   addTermReduceSym("set.singleton", {kAny}, d_kSet, "($smtx_set_singleton x1)");
   d_typeFullCase["set.singleton"] =
-      "(eo::define ((T ($smtx_typeof x1))) ($smtx_typeof_guard_wf T ($tsm_Set T)))";
+      "(eo::define ((T ($tsm_Set ($smtx_typeof x1)))) ($smtx_typeof_guard_wf T T))";
   addTermReduceSym(
       "set.inter", {d_kSet, d_kSet}, d_kSet, "($smtx_set_inter x1 x2)");
   addTermReduceSym(
