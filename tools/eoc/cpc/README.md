@@ -53,8 +53,9 @@ extra solver options through to that solve step, for example
 non-comment, nonblank lines in `tools/eoc/out/trim_defs/trim_gen.eo`, ignoring
 the common literal builtin declarations that are pulled into almost every slice.
 For one rule it prints only the count; for multiple rules it prints
-`RULE COUNT` pairs. The temporary `trim-defs` input is left at
-`tools/eoc/out/temp_trim.eo` for inspection.
+`RULE COUNT` pairs. The counted trimmed EO slice is left at
+`tools/eoc/out/trim_defs/trim_gen.eo` for inspection. With multiple rules, this
+file contains the slice for the last rule processed.
 
 Compatibility scripts restored from the old workflow:
 
