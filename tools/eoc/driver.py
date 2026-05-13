@@ -282,14 +282,10 @@ class Pipeline:
         for target in targets:
             pieces.append(f'(echo "trim-defs {target}")\n')
         temp_trim.write_text("".join(pieces))
-        try:
-            self.ethos(["--plugin.trim-defs", self.binary_path_arg(temp_trim)], quiet=True)
-            output_file.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(self.plugin_generated("trim_defs/trim_gen.eo"), output_file)
-            return output_file
-        finally:
-            if temp_trim.exists() and os.environ.get("EOC_KEEP_TEMP_TRIM", "0") == "0":
-                temp_trim.unlink()
+        self.ethos(["--plugin.trim-defs", self.binary_path_arg(temp_trim)], quiet=True)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(self.plugin_generated("trim_defs/trim_gen.eo"), output_file)
+        return output_file
 
     def desugar(
         self,

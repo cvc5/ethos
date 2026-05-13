@@ -21,8 +21,6 @@ Useful environment variables:
   use the current directory when it looks like a build tree, otherwise
   `<repo>/build`.
 - `EOC_NO_BUILD=1` for wrappers that previously supported skipping the rebuild.
-- `EOC_KEEP_TEMP_TRIM=1` to keep the temporary `trim-defs` input at
-  `tools/eoc/out/temp_trim.eo` for debugging.
 - `EOC_SKIP_CVC5=1` to skip solver parse checks.
 - `EOC_CPC_INPUT=/path/to/Cpc.eo` to override the default CPC signature.
 - `EOC_ALETHE_INPUT=/path/to/Alethe.eo` to override the default Alethe
@@ -55,7 +53,8 @@ extra solver options through to that solve step, for example
 non-comment, nonblank lines in `tools/eoc/out/trim_defs/trim_gen.eo`, ignoring
 the common literal builtin declarations that are pulled into almost every slice.
 For one rule it prints only the count; for multiple rules it prints
-`RULE COUNT` pairs.
+`RULE COUNT` pairs. The temporary `trim-defs` input is left at
+`tools/eoc/out/temp_trim.eo` for inspection.
 
 Compatibility scripts restored from the old workflow:
 
