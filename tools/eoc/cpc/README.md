@@ -40,6 +40,7 @@ Examples:
 tools/eoc/cpc/run_gen_vc --solve resolution
 EOC_CPC_INPUT=tests/Booleans-rules.eo tools/eoc/cpc/run_gen_vc_all --solve
 BUILD_DIR=build EOC_NO_BUILD=1 tools/eoc/cpc/run_gen_lean_all
+EOC_CPC_INPUT=tests/Uf-rules.eo EOC_NO_BUILD=1 tools/eoc/cpc/run_count_deps symm
 ```
 
 `run_gen_vc`, `run_gen_vc_all`, `run_gen_sygus`, and `run_gen_sygus_all`
@@ -47,6 +48,12 @@ accept `--solve` to run the configured `cvc5` executable on the generated
 artifact after any parse check. They also accept `--solve-args="..."` to pass
 extra solver options through to that solve step, for example
 `--solve-args="--tlimit=1000 --seed=7"`.
+
+`run_count_deps RULE [RULE ...]` runs `trim-defs` for each rule and counts the
+non-comment, nonblank lines in `tools/eoc/out/trim_defs/trim_gen.eo`, ignoring
+the common literal builtin declarations that are pulled into almost every slice.
+For one rule it prints only the count; for multiple rules it prints
+`RULE COUNT` pairs.
 
 Compatibility scripts restored from the old workflow:
 
