@@ -21,6 +21,8 @@ Useful environment variables:
   use the current directory when it looks like a build tree, otherwise
   `<repo>/build`.
 - `EOC_NO_BUILD=1` for wrappers that previously supported skipping the rebuild.
+- `EOC_KEEP_TEMP_TRIM=1` to keep the temporary `trim-defs` input at
+  `tools/eoc/out/temp_trim.eo` for debugging.
 - `EOC_SKIP_CVC5=1` to skip solver parse checks.
 - `EOC_CPC_INPUT=/path/to/Cpc.eo` to override the default CPC signature.
 - `EOC_ALETHE_INPUT=/path/to/Alethe.eo` to override the default Alethe
