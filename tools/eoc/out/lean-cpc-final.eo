@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 409
+; #trim-defs: 419
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -57,11 +57,14 @@
 (define $native_str_= ((x1 $native_String) (x2 $native_String)) ($native_apply_2 "streq" x1 x2))
 (define $native_not ((b $native_Bool)) ($native_apply_1 "not" b))
 (define $native_and ((b1 $native_Bool) (b2 $native_Bool)) ($native_apply_2 "and" b1 b2))
+(define $native_or ((b1 $native_Bool) (b2 $native_Bool)) ($native_apply_2 "or" b1 b2))
 (define $native_z_= ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zeq" x1 x2))
 (define $native_z_<= ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zleq" x1 x2))
 (define $native_z_+ ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zplus" x1 x2))
 (define $native_z_uneg ((W Type :implicit) (x1 W)) ($native_apply_1 "zneg" x1))
 (define $native_z_pow2 ((W Type :implicit) (x1 W)) ($native_apply_1 "int.pow2" x1))
+(define $native_z_/_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "mk_rational" x1 x2))
+(define $native_q_zero () ($native_z_/_total $native_z_zero $native_z_one))
 (define $native_mod_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "mod_total" x1 x2))
 (define $native_z_neg_one () ($native_z_uneg $native_z_one))
 (define $native_z_dec ((x1 $native_Int)) ($native_z_+ x1 $native_z_neg_one))
@@ -952,6 +955,7 @@
   )
 )
 (define $smtx_empty_set ((T $smt_Type)) ($vsm_set ($msm_empty_set T)))
+(define $smtx_empty_seq ((T $smt_Type)) ($vsm_seq ($ssm_empty T)))
 (program $smtx_model_eval_dt_sel
   ((M $smt_Model) (n $native_Nat) (m $native_Nat) (v $smt_Value)
    (s $native_String) (d $smt_Datatype))
@@ -1259,13 +1263,13 @@
   (($eo_to_smt y)                   $sm_none)
   )
 )
-(program smtx_is_unit_type () :signature ($smt_Type) $native_Bool)
+(program $smtx_is_unit_type () :signature ($smt_Type) $native_Bool)
 (program $smtx_is_unit_datatype_cons ((T $smt_Type) (c $smt_DatatypeCons))
   :signature ($smt_DatatypeCons) $native_Bool
   (
   (($smtx_is_unit_datatype_cons $dtc_unit) $native_true)
   (($smtx_is_unit_datatype_cons ($dtc_cons T c))
-    ($native_and (smtx_is_unit_type T) ($smtx_is_unit_datatype_cons c)))
+    ($native_and ($smtx_is_unit_type T) ($smtx_is_unit_datatype_cons c)))
   )
 )
 (program $smtx_is_unit_datatype ((d $smt_Datatype) (c $smt_DatatypeCons))
@@ -1275,80 +1279,120 @@
   (($smtx_is_unit_datatype d)                     $native_false)
   )
 )
-(program smtx_is_unit_type
+(program $smtx_is_unit_type
   ((w $native_Nat) (T $smt_Type) (U $smt_Type) (s $native_String) (d $smt_Datatype))
   :signature ($smt_Type) $native_Bool
   (
-  ((smtx_is_unit_type ($tsm_BitVec w))      ($native_n_= w $native_n_zero))
-  ((smtx_is_unit_type ($tsm_Datatype s d))  ($smtx_is_unit_datatype d))
-  ((smtx_is_unit_type ($tsm_Map T U))       (smtx_is_unit_type U))
-  ((smtx_is_unit_type ($tsm_FunType T U))   (smtx_is_unit_type U))
-  ((smtx_is_unit_type T)                    $native_false)
+  (($smtx_is_unit_type ($tsm_BitVec w))      ($native_n_= w $native_n_zero))
+  (($smtx_is_unit_type ($tsm_Datatype s d))  ($smtx_is_unit_datatype d))
+  (($smtx_is_unit_type ($tsm_Map T U))       ($smtx_is_unit_type U))
+  (($smtx_is_unit_type ($tsm_FunType T U))   ($smtx_is_unit_type U))
+  (($smtx_is_unit_type T)                    $native_false)
   )
 )
-(program $smtx_finite_type_default () :signature ($smt_Type) $smt_Value)
-(program $smtx_finite_datatype_cons_default
-  ((v $smt_Value) (T $smt_Type) (c $smt_DatatypeCons))
-  :signature ($smt_Value $smt_DatatypeCons) $smt_Value
+(program $smtx_is_finite_type () :signature ($smt_Type) $native_Bool)
+(program $smtx_is_finite_datatype_cons ((T $smt_Type) (c $smt_DatatypeCons))
+  :signature ($smt_DatatypeCons) $native_Bool
   (
-  (($smtx_finite_datatype_cons_default v $dtc_unit) v)
-  (($smtx_finite_datatype_cons_default v ($dtc_cons T c))
-    (eo::define ((va ($smtx_finite_type_default T)))
-      ($native_ite ($native_veq va $vsm_not_value) $vsm_not_value
-        ($smtx_finite_datatype_cons_default ($vsm_apply v va) c))))
+  (($smtx_is_finite_datatype_cons $dtc_unit) $native_true)
+  (($smtx_is_finite_datatype_cons ($dtc_cons T c))
+    ($native_and ($smtx_is_finite_type T) ($smtx_is_finite_datatype_cons c)))
   )
 )
-(program $smtx_finite_datatype_default
+(program $smtx_is_finite_datatype ((d $smt_Datatype) (c $smt_DatatypeCons))
+  :signature ($smt_Datatype) $native_Bool
+  (
+  (($smtx_is_finite_datatype $dt_null)              $native_true)
+  (($smtx_is_finite_datatype ($dt_sum c d))
+    ($native_and ($smtx_is_finite_datatype_cons c) ($smtx_is_finite_datatype d)))
+  )
+)
+(program $smtx_is_finite_type
+  ((w $native_Nat) (T $smt_Type) (U $smt_Type) (s $native_String) (d $smt_Datatype))
+  :signature ($smt_Type) $native_Bool
+  (
+  (($smtx_is_finite_type $tsm_Bool)             $native_true)
+  (($smtx_is_finite_type ($tsm_BitVec w))       $native_true)
+  (($smtx_is_finite_type $tsm_Char)             $native_true)
+  (($smtx_is_finite_type ($tsm_Datatype s d))   ($smtx_is_finite_datatype d))
+  (($smtx_is_finite_type ($tsm_Map T U))
+    ($native_or ($smtx_is_unit_type U) 
+      ($native_and ($smtx_is_finite_type T) ($smtx_is_finite_type U))))
+  (($smtx_is_finite_type ($tsm_FunType T U))
+    ($native_or ($smtx_is_unit_type U) 
+      ($native_and ($smtx_is_finite_type T) ($smtx_is_finite_type U))))
+  (($smtx_is_finite_type ($tsm_Set T))          ($smtx_is_finite_type T))
+  (($smtx_is_finite_type ($tsm_Seq T))          ($smtx_is_finite_type T))
+  (($smtx_is_finite_type T)                     $native_false)
+  )
+)
+(program $smtx_value_dt_substitute_apply
+  ((s $native_String) (s2 $native_String) (d $smt_Datatype) (i $native_Nat)
+   (v1 $smt_Value) (v2 $smt_Value) (v $smt_Value))
+  :signature ($native_String $smt_Value $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_value_dt_substitute_apply s v1 v2 ($vsm_DtCons s2 d i))
+    ($native_ite ($native_str_= s s2) v1 v2))
+  (($smtx_value_dt_substitute_apply s v1 v2 v) v2)
+  )
+)
+(program $smtx_value_dt_substitute
+  ((s $native_String) (d $smt_Datatype) (s2 $native_String) (d2 $smt_Datatype)
+   (i $native_Nat) (f $smt_Value) (v $smt_Value))
+  :signature ($native_String $smt_Datatype $smt_Value) $smt_Value
+  (
+  (($smtx_value_dt_substitute s d ($vsm_DtCons s2 d2 i))
+    ($vsm_DtCons s2 ($native_ite ($native_str_= s s2) d2 ($smtx_dt_substitute s d d2)) i))
+  (($smtx_value_dt_substitute s d ($vsm_apply f v))
+    ($smtx_value_dt_substitute_apply s 
+      ($vsm_apply f v)
+      ($vsm_apply ($smtx_value_dt_substitute s d f)
+                  ($smtx_value_dt_substitute s d v))
+      ($vsm_apply_head f)))
+  (($smtx_value_dt_substitute s d v) v)
+  )
+)
+(program $smtx_type_default () :signature ($smt_Type) $smt_Value)
+(program $smtx_datatype_cons_default
+  ((s $native_String) (d $smt_Datatype) (v $smt_Value) (T $smt_Type) (c $smt_DatatypeCons))
+  :signature ($native_String $smt_Datatype $smt_Value $smt_DatatypeCons) $smt_Value
+  (
+  (($smtx_datatype_cons_default s d v $dtc_unit) v)
+  (($smtx_datatype_cons_default s d v ($dtc_cons T c))
+    (eo::define ((va ($smtx_value_dt_substitute s d ($smtx_type_default T))))
+      ($native_ite ($native_veq va $vsm_not_value) $vsm_not_value
+        ($smtx_datatype_cons_default s d ($vsm_apply v va) c))))
+  )
+)
+(program $smtx_datatype_default
   ((s $native_String) (d0 $smt_Datatype) (d $smt_Datatype) (c $smt_DatatypeCons) (n $native_Nat))
   :signature ($native_String $smt_Datatype $smt_Datatype $native_Nat) $smt_Value
   (
-  (($smtx_finite_datatype_default s d0 $dt_null n) $vsm_not_value)
-  (($smtx_finite_datatype_default s d0 ($dt_sum c $dt_null) n)
-    ($smtx_finite_datatype_cons_default ($vsm_DtCons s d0 n) c))
-  (($smtx_finite_datatype_default s d0 ($dt_sum c d) n)
-    (eo::define ((v1 ($smtx_finite_datatype_cons_default ($vsm_DtCons s d0 n) c)))
-    (eo::define ((v2 ($smtx_finite_datatype_default s d0 d ($native_n_succ n))))
-      ($native_ite ($native_and
-                      ($native_not ($native_veq v1 $vsm_not_value))
-                      ($native_not ($native_veq v2 $vsm_not_value)))
+  (($smtx_datatype_default s d0 $dt_null n) $vsm_not_value)
+  (($smtx_datatype_default s d0 ($dt_sum c d) n)
+    (eo::define ((v1 ($smtx_datatype_cons_default s d0 ($vsm_DtCons s d0 n) c)))
+      ($native_ite ($native_not ($native_veq v1 $vsm_not_value))
         v1
-        $vsm_not_value))))
+        ($smtx_datatype_default s d0 d ($native_n_succ n)))))
   )
 )
-(program $smtx_finite_type_default
-  ((w $native_Nat) (T $smt_Type) (U $smt_Type) (s $native_String) (d $smt_Datatype))
+(program $smtx_type_default
+  ((w $native_Nat) (T $smt_Type) (U $smt_Type) (s $native_String)
+   (d $smt_Datatype) (i $native_Nat))
   :signature ($smt_Type) $smt_Value
   (
-  (($smtx_finite_type_default $tsm_Bool) $vsm_false)
-  (($smtx_finite_type_default ($tsm_BitVec w)) ($vsm_binary ($native_n_to_z w) $native_z_zero))
-  (($smtx_finite_type_default $tsm_Char) ($vsm_char ($native_n_to_char $native_n_zero)))
-  (($smtx_finite_type_default ($tsm_Datatype s d)) ($smtx_finite_datatype_default s d d $native_n_zero))
-  (($smtx_finite_type_default ($tsm_Map T U))
-    (eo::define ((uf ($smtx_finite_type_default U)))
-    ($native_ite (smtx_is_unit_type U)
-      
-      ($vsm_map ($msm_default T uf))
-      (eo::define ((tf ($smtx_finite_type_default T)))
-      ($native_ite ($native_and
-        ($native_not ($native_veq tf $vsm_not_value))
-        ($native_not ($native_veq uf $vsm_not_value)))
-        ($vsm_map ($msm_default T uf))
-        $vsm_not_value)))))
-  (($smtx_finite_type_default ($tsm_Set T))
-    (eo::define ((v ($smtx_finite_type_default T)))
-      ($native_ite ($native_veq v $vsm_not_value) $vsm_not_value ($smtx_empty_set T))))
-  (($smtx_finite_type_default ($tsm_FunType T U))
-    (eo::define ((uf ($smtx_finite_type_default U)))
-    ($native_ite (smtx_is_unit_type U)
-      
-      ($vsm_fun ($msm_default T uf))
-      (eo::define ((tf ($smtx_finite_type_default T)))
-      ($native_ite ($native_and
-        ($native_not ($native_veq tf $vsm_not_value))
-        ($native_not ($native_veq uf $vsm_not_value)))
-        ($vsm_fun ($msm_default T uf))
-        $vsm_not_value)))))
-  (($smtx_finite_type_default T) $vsm_not_value)
+  (($smtx_type_default $tsm_Bool)           $vsm_false)
+  (($smtx_type_default $tsm_Int)            ($vsm_numeral $native_z_zero))
+  (($smtx_type_default $tsm_Real)           ($vsm_rational $native_q_zero))
+  (($smtx_type_default ($tsm_BitVec w))     ($vsm_binary ($native_n_to_z w) $native_z_zero))
+  (($smtx_type_default $tsm_Char)           ($vsm_char ($native_n_to_char $native_n_zero)))
+  (($smtx_type_default ($tsm_Datatype s d)) ($smtx_datatype_default s d d $native_n_zero))
+  (($smtx_type_default ($tsm_Map T U))      ($vsm_map ($msm_default T ($smtx_type_default U))))
+  (($smtx_type_default ($tsm_Set T))        ($smtx_empty_set T))
+  (($smtx_type_default ($tsm_Seq T))        ($smtx_empty_seq T))
+  (($smtx_type_default ($tsm_USort i))      ($vsm_uvalue i $native_n_zero))
+  (($smtx_type_default ($tsm_FunType T U))  ($vsm_fun ($msm_default T ($smtx_type_default U))))
+  (($smtx_type_default T) $vsm_not_value)
   )
 )
 (program $smtx_value_canonical_bool () :signature ($smt_Value) $native_Bool)
@@ -1366,9 +1410,9 @@
   (($smtx_map_default_canonical T e)
     (eo::define ((U ($smtx_typeof_value e)))
     
-    ($native_ite ($native_veq ($smtx_finite_type_default ($tsm_Map T U)) $vsm_not_value)
-      $native_true
-      ($native_veq e ($smtx_finite_type_default U)))))
+    ($native_ite ($smtx_is_finite_type T)
+      ($native_veq e ($smtx_type_default U))
+      $native_true)))
   )
 )
 (program $smtx_map_canonical
