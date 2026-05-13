@@ -3601,15 +3601,46 @@
   )
 )
 
+; ($smtx_value_dt_substitute_apply s v1 v2 v) is called where v is the
+; head of an apply below, v1 is original, v2 is the substituted, we return
+; v1 if the head shadows the name s.
+(program $smtx_value_dt_substitute_apply
+  ((s $native_String) (s2 $native_String) (d $smt_Datatype) (i $native_Nat)
+   (v1 $smt_Value) (v2 $smt_Value) (v $smt_Value))
+  :signature ($native_String $smt_Value $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_value_dt_substitute_apply s v1 v2 ($vsm_DtCons s2 d i))
+    ($native_ite ($native_str_= s s2) v1 v2))
+  (($smtx_value_dt_substitute_apply s v1 v2 v) v2)
+  )
+)
+
+(program $smtx_value_dt_substitute
+  ((s $native_String) (d $smt_Datatype) (s2 $native_String) (d2 $smt_Datatype)
+   (i $native_Nat) (f $smt_Value) (v $smt_Value))
+  :signature ($native_String $smt_Datatype $smt_Value) $smt_Value
+  (
+  (($smtx_value_dt_substitute s d ($vsm_DtCons s2 d2 i))
+    ($vsm_DtCons s2 ($native_ite ($native_str_= s s2) d2 ($smtx_dt_substitute s d d2)) i))
+  (($smtx_value_dt_substitute s d ($vsm_apply f v))
+    ($smtx_value_dt_substitute_apply s 
+      ($vsm_apply f v)
+      ($vsm_apply ($smtx_value_dt_substitute s d f)
+                  ($smtx_value_dt_substitute s d v))
+      ($vsm_apply_head f)))
+  (($smtx_value_dt_substitute s d v) v)
+  )
+)
+
 (program $smtx_type_default () :signature ($smt_Type) $smt_Value)
 
 (program $smtx_datatype_cons_default
-  ((v $smt_Value) (T $smt_Type) (c $smt_DatatypeCons))
-  :signature ($smt_Value $smt_DatatypeCons) $smt_Value
+  ((s $native_String) (d $smt_Datatype) (v $smt_Value) (T $smt_Type) (c $smt_DatatypeCons))
+  :signature ($native_String $smt_Datatype $smt_Value $smt_DatatypeCons) $smt_Value
   (
-  (($smtx_datatype_cons_default v $dtc_unit) v)
-  (($smtx_datatype_cons_default v ($dtc_cons T c))
-    (eo::define ((va ($smtx_type_default T)))
+  (($smtx_datatype_cons_default s d v $dtc_unit) v)
+  (($smtx_datatype_cons_default s d v ($dtc_cons T c))
+    (eo::define ((va ($smtx_value_dt_substitute s d ($smtx_type_default T))))
       ($native_ite ($native_veq va $vsm_not_value) $vsm_not_value
         ($smtx_datatype_cons_default ($vsm_apply v va) c))))
   )
@@ -3621,7 +3652,7 @@
   (
   (($smtx_datatype_default s d0 $dt_null n) $vsm_not_value)
   (($smtx_datatype_default s d0 ($dt_sum c d) n)
-    (eo::define ((v1 ($smtx_datatype_cons_default ($vsm_DtCons s d0 n) c)))
+    (eo::define ((v1 ($smtx_datatype_cons_default s d0 ($vsm_DtCons s d0 n) c)))
       ($native_ite ($native_not ($native_veq v1 $vsm_not_value))
         v1
         ($smtx_datatype_default s d0 d ($native_n_succ n)))))
