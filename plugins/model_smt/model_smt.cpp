@@ -809,17 +809,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                     "$e1 (int.pow2 (int.log2 $e1)))))",
                     true));
   // arrays
-  std::stringstream ssArrayDiffVar;
-  ssArrayDiffVar << "($sm_Var $native_str_vname T)";
-  std::stringstream ssArrayDiff;
-  ssArrayDiff << "(eo::define ((T ($eo_to_smt_type ($eo_typeof "
-                 "(@array_deq_diff x1 x2))))) ";
-  ssArrayDiff << "(eo::define ((i ($sm_Var $native_str_vname T))) ";
-  ssArrayDiff << "($sm_choice $native_str_vname T ";
-  ssArrayDiff << smtToSmtEmbed(
-      "(not (= (select ($eo_to_smt x1) i) (select ($eo_to_smt x2) i)))", true)
-              << ")))";
-  addEunoiaReduceSym("@array_deq_diff", {kT, kT}, ssArrayDiff.str());
+  addEunoiaReduceSym("@array_deq_diff", {kT, kT}, "($native_ite ($native_Teq ($eo_to_smt_type (@array_deq_diff x1 x2)) $tsm_none) $sm_none ($sm_map_diff ($eo_to_smt x1) ($eo_to_smt x2)))");
   // strings
   addConstFoldSym("str.update", {d_kSeq, kInt, d_kSeq}, d_kSeq);
   addAuxTypeProgram(
@@ -969,10 +959,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   std::stringstream ssSetsChoose;
   ssSetsChoose
       << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (set.choose x1))))) ";
-  ssSetsChoose << "(eo::define ((i ($sm_Var $native_str_vname T))) ";
-  ssSetsChoose << "($sm_choice $native_str_vname T ";
-  ssSetsChoose << smtToSmtEmbed("(set.member i ($eo_to_smt x1))", true)
-               << ")))";
+  ssSetsChoose << "($sm_map_diff ($eo_to_smt x1) ($sm_set.empty T)))";
   addEunoiaReduceSym("set.choose", {kAny}, ssSetsChoose.str());
   std::stringstream ssSetsIsSingleton;
   ssSetsIsSingleton
@@ -986,15 +973,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // more concise?
   // addEunoiaReduceSym("set.is_singleton", {kT}, "($eo_to_smt (= x1
   // (set.singleton (set.choose x1))))");
-  std::stringstream ssSetsDiff;
-  ssSetsDiff << "(eo::define ((T ($eo_to_smt_type ($eo_typeof (@sets_deq_diff "
-                "x1 x2))))) ";
-  ssSetsDiff << "(eo::define ((i ($sm_Var $native_str_vname T))) ";
-  ssSetsDiff << "($sm_choice $native_str_vname T ";
-  ssSetsDiff << smtToSmtEmbed(
-      "(not (= (set.member i ($eo_to_smt x1)) (set.member i ($eo_to_smt x2))))",
-      true) << ")))";
-  addEunoiaReduceSym("@sets_deq_diff", {kAny, kAny}, ssSetsDiff.str());
+  addEunoiaReduceSym("@sets_deq_diff", {kAny, kAny}, "($native_ite ($native_Teq ($eo_to_smt_type (@sets_deq_diff x1 x2)) $tsm_none) $sm_none ($sm_map_diff ($eo_to_smt x1) ($eo_to_smt x2)))");
   addEunoiaReduceSym(
       "set.is_empty",
       {kAny},

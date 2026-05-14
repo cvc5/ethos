@@ -421,6 +421,28 @@ macro_rules
                     evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
                 | _ => SmtValue.NotValue
           exact evalChoiceNth $M $s $T $body $n)
+  | `(native_eval_map_diff_msm $m1 $m2) => do
+      let lookupId := Lean.mkIdent `__smtx_msm_lookup
+      let typeofMapValueId := Lean.mkIdent `__smtx_typeof_map_value
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let typeDefaultId := Lean.mkIdent `__smtx_type_default
+      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      `(by
+          classical
+          exact
+            match ($typeofMapValueId $m1, $typeofMapValueId $m2) with
+            | (SmtType.Map T1 U1, SmtType.Map T2 U2) =>
+                native_ite (native_and (native_Teq T1 T2) (native_Teq U1 U2))
+                  (if hDiff :
+                      ∃ i : SmtValue,
+                        $typeofValueId i = T1 ∧
+                          $canonId i = true ∧
+                            native_veq ($lookupId $m1 i) ($lookupId $m2 i) = false then
+                    Classical.choose hDiff
+                  else
+                    $typeDefaultId T1)
+                  SmtValue.NotValue
+            | _ => SmtValue.NotValue)
 
 /- Definition of SMT-LIB model semantics -/
 

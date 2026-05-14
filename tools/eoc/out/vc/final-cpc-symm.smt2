@@ -239,6 +239,8 @@
   (sm.forall (sm.forall.arg1 String) (sm.forall.arg2 tsm.Type) (sm.forall.arg3 sm.Term))
   ; smt-cons: choice_nth
   (sm.choice_nth (sm.choice_nth.arg1 String) (sm.choice_nth.arg2 tsm.Type) (sm.choice_nth.arg3 sm.Term) (sm.choice_nth.arg4 Nat))
+  ; smt-cons: map_diff
+  (sm.map_diff (sm.map_diff.arg1 sm.Term) (sm.map_diff.arg2 sm.Term))
   ; smt-cons: DtCons
   (sm.DtCons (sm.DtCons.arg1 String) (sm.DtCons.arg2 dt.Datatype) (sm.DtCons.arg3 Nat))
   ; smt-cons: DtSel
@@ -710,6 +712,17 @@
     vsm.NotValue
 )))
 
+; program: $smtx_model_eval_map_diff
+(define-fun $smtx_model_eval_map_diff ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
+  (ite (and ((_ is vsm.Map) x1) ((_ is vsm.Map) x2))
+    (eval_map_diff_msm (vsm.Map.arg1 x1) (vsm.Map.arg1 x2))
+  (ite (and ((_ is vsm.Fun) x1) ((_ is vsm.Fun) x2))
+    (eval_map_diff_msm (vsm.Fun.arg1 x1) (vsm.Fun.arg1 x2))
+  (ite (and ((_ is vsm.Set) x1) ((_ is vsm.Set) x2))
+    (eval_map_diff_msm (vsm.Set.arg1 x1) (vsm.Set.arg1 x2))
+    vsm.NotValue
+))))
+
 ; program: $smtx_model_eval_dt_sel
 (define-fun $smtx_model_eval_dt_sel ((x1 smm.SmtModel) (x2 String) (x3 dt.Datatype) (x4 Nat) (x5 Nat) (x6 vsm.Value)) vsm.Value
     (ite (veq ($vsm_apply_head x6) (vsm.DtCons x2 x3 x4)) ($vsm_apply_arg_nth x6 x5 ($smtx_dt_num_sels x3 x4)) ($smtx_map_select ($smtx_map_select ($smtx_map_select ($smtx_model_lookup x1 wrong_apply_sel_id (tsm.Map tsm.Int (tsm.Map tsm.Int (tsm.Map (tsm.Datatype x2 x3) ($smtx_ret_typeof_sel x2 x3 x4 x5))))) (vsm.Numeral (nat.to_int x4))) (vsm.Numeral (nat.to_int x5))) x6))
@@ -782,6 +795,8 @@
     (eval_tforall x1 (sm.forall.arg1 x2) (sm.forall.arg2 x2) (sm.forall.arg3 x2))
   (ite ((_ is sm.choice_nth) x2)
     (eval_tchoice_nth x1 (sm.choice_nth.arg1 x2) (sm.choice_nth.arg2 x2) (sm.choice_nth.arg3 x2) (sm.choice_nth.arg4 x2))
+  (ite ((_ is sm.map_diff) x2)
+    ($smtx_model_eval_map_diff ($smtx_model_eval x1 (sm.map_diff.arg1 x2)) ($smtx_model_eval x1 (sm.map_diff.arg2 x2)))
   (ite ((_ is sm.DtCons) x2)
     (vsm.DtCons (sm.DtCons.arg1 x2) (sm.DtCons.arg2 x2) (sm.DtCons.arg3 x2))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.DtSel) (sm.Apply.arg1 x2)))
@@ -795,7 +810,7 @@
   (ite ((_ is sm.UConst) x2)
     ($smtx_model_lookup x1 (sm.UConst.arg1 x2) (sm.UConst.arg2 x2))
     vsm.NotValue
-))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
+)))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_typeof_ite
 (define-fun $smtx_typeof_ite ((x1 tsm.Type) (x2 tsm.Type) (x3 tsm.Type)) tsm.Type
@@ -829,6 +844,17 @@
     tsm.None
 ))) :pattern (($smtx_typeof_choice_nth x1 x2 x3)))) :named sm.axiom.$smtx_typeof_choice_nth))
 
+; program: $smtx_typeof_map_diff
+(define-fun $smtx_typeof_map_diff ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
+  (ite (and ((_ is tsm.Map) x1) ((_ is tsm.Map) x2))
+    (ite (and (Teq (tsm.Map.arg1 x1) (tsm.Map.arg1 x2)) (Teq (tsm.Map.arg2 x1) (tsm.Map.arg2 x2))) (tsm.Map.arg1 x1) tsm.None)
+  (ite (and ((_ is tsm.FunType) x1) ((_ is tsm.FunType) x2))
+    (ite (and (Teq (tsm.FunType.arg1 x1) (tsm.FunType.arg1 x2)) (Teq (tsm.FunType.arg2 x1) (tsm.FunType.arg2 x2))) (tsm.FunType.arg1 x1) tsm.None)
+  (ite (and ((_ is tsm.Set) x1) ((_ is tsm.Set) x2))
+    (ite (Teq (tsm.Set.arg1 x1) (tsm.Set.arg1 x2)) (tsm.Set.arg1 x1) tsm.None)
+    tsm.None
+))))
+
 ; program: $smtx_typeof
 (assert (! (forall ((x1 sm.Term))
   (! (= ($smtx_typeof x1)
@@ -856,6 +882,8 @@
     (ite (Teq ($smtx_typeof (sm.forall.arg3 x1)) tsm.Bool) tsm.Bool tsm.None)
   (ite ((_ is sm.choice_nth) x1)
     ($smtx_typeof_choice_nth (sm.choice_nth.arg2 x1) (sm.choice_nth.arg3 x1) (sm.choice_nth.arg4 x1))
+  (ite ((_ is sm.map_diff) x1)
+    ($smtx_typeof_map_diff ($smtx_typeof (sm.map_diff.arg1 x1)) ($smtx_typeof (sm.map_diff.arg2 x1)))
   (ite ((_ is sm.DtCons) x1)
     ($smtx_typeof_guard_wf (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_typeof_dt_cons_rec (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_dt_substitute (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1) (sm.DtCons.arg2 x1)) (sm.DtCons.arg3 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtSel) (sm.Apply.arg1 x1)))
@@ -869,7 +897,7 @@
   (ite ((_ is sm.UConst) x1)
     ($smtx_typeof_guard_wf (sm.UConst.arg2 x1) (sm.UConst.arg2 x1))
     tsm.None
-))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
+)))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
 
 ; fwd-decl: $eo_to_smt
 (declare-fun $eo_to_smt (eo.Term) sm.Term)

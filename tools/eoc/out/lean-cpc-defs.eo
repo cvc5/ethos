@@ -1981,10 +1981,10 @@
   ($sm_choice_nth s T F $native_n_zero))
   
 ; map difference
-;(declare-parameterized-const $emb_sm.map_diff
-;  ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque))
-;  $smt_Term)
-;(define $sm_map_diff ((x1 $smt_Term) (x2 $smt_Term)) ($emb_sm.map_diff x1 x2))
+(declare-parameterized-const $emb_sm.map_diff
+  ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque))
+  $smt_Term)
+(define $sm_map_diff ((x1 $smt_Term) (x2 $smt_Term)) ($emb_sm.map_diff x1 x2))
 
 ; the ci^th constructor of datatype ($tsm_Datatype s d).
 (declare-parameterized-const $emb_sm.DtCons
@@ -2833,6 +2833,17 @@
   )
 )
 
+(program $smtx_model_eval_map_diff
+  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_map_diff ($vsm_map m1) ($vsm_map m2)) ($native_apply_2 "eval_map_diff_msm" m1 m2))
+  (($smtx_model_eval_map_diff ($vsm_fun m1) ($vsm_fun m2)) ($native_apply_2 "eval_map_diff_msm" m1 m2))
+  (($smtx_model_eval_map_diff ($vsm_set m1) ($vsm_set m2)) ($native_apply_2 "eval_map_diff_msm" m1 m2))
+  (($smtx_model_eval_map_diff v1 v2) $vsm_not_value)
+  )
+)
+
 ;;; Sets
 
 ; Empty set
@@ -3075,8 +3086,8 @@
     ($native_apply_4 "eval_tforall" M s T x1))
   (($smtx_model_eval M ($sm_choice_nth s T x1 i))
     ($native_apply_5 "eval_tchoice_nth" M s T x1 i))
-  ;(($smtx_model_eval M ($sm_map_diff x1 x2))
-  ;  ($native_apply_2 "eval_map_diff" ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+  (($smtx_model_eval M ($sm_map_diff x1 x2))
+    ($smtx_model_eval_map_diff ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
   ; datatypes
   (($smtx_model_eval M ($sm_DtCons s d i)) ($vsm_DtCons s d i))
   (($smtx_model_eval M ($sm_apply ($sm_DtSel s d i j) x1))
@@ -3136,19 +3147,19 @@
   )
 )
 
-;(program $smtx_typeof_map_diff
-;  ((T1 $smt_Type) (U1 $smt_Type) (T2 $smt_Type) (U2 $smt_Type))
-;  :signature ($smt_Type $smt_Type) $smt_Type
-;  (
-;  (($smtx_typeof_map_diff ($tsm_Map T1 U1) ($tsm_Map T2 U2))
-;    ($smtx_typeof_guard ($native_and ($native_Teq T1 T2) ($native_Teq U1 U2)) T1))
-;  (($smtx_typeof_map_diff ($tsm_FunType T1 U1) ($tsm_FunType T2 U2))
-;    ($smtx_typeof_guard ($native_and ($native_Teq T1 T2) ($native_Teq U1 U2)) T1))
-;  (($smtx_typeof_map_diff ($tsm_Set T1) ($tsm_Set T2))
-;    ($smtx_typeof_guard ($native_Teq T1 T2) T1))
-;  (($smtx_typeof_map_diff T1 T2) $tsm_none)
-;  )
-;)
+(program $smtx_typeof_map_diff
+  ((T1 $smt_Type) (U1 $smt_Type) (T2 $smt_Type) (U2 $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_map_diff ($tsm_Map T1 U1) ($tsm_Map T2 U2))
+    ($native_ite ($native_and ($native_Teq T1 T2) ($native_Teq U1 U2)) T1 $tsm_none))
+  (($smtx_typeof_map_diff ($tsm_FunType T1 U1) ($tsm_FunType T2 U2))
+    ($native_ite ($native_and ($native_Teq T1 T2) ($native_Teq U1 U2)) T1 $tsm_none))
+  (($smtx_typeof_map_diff ($tsm_Set T1) ($tsm_Set T2))
+    ($native_ite ($native_Teq T1 T2) T1 $tsm_none))
+  (($smtx_typeof_map_diff T1 T2) $tsm_none)
+  )
+)
 
 (program $smtx_typeof_bv_op_2
   ((T $smt_Type) (U $smt_Type) (n1 $native_Nat) (n2 $native_Nat))
@@ -3314,8 +3325,8 @@
     ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
   (($smtx_typeof ($sm_choice_nth s T x1 n))
     ($smtx_typeof_choice_nth T x1 n))
-  ;(($smtx_typeof ($sm_map_diff x1 x2))
-  ;  ($smtx_typeof_map_diff ($smtx_typeof x1) ($smtx_typeof x2)))
+  (($smtx_typeof ($sm_map_diff x1 x2))
+    ($smtx_typeof_map_diff ($smtx_typeof x1) ($smtx_typeof x2)))
   ; datatypes
   (($smtx_typeof ($sm_DtCons s d i))
     ($smtx_typeof_guard_wf ($tsm_Datatype s d)
