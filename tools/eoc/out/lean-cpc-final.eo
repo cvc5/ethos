@@ -1073,6 +1073,8 @@
   (($smtx_model_eval M ($sm_choice_nth s T x1 i))
     ($native_apply_5 "eval_tchoice_nth" M s T x1 i))
   
+  
+  
   (($smtx_model_eval M ($sm_DtCons s d i)) ($vsm_DtCons s d i))
   (($smtx_model_eval M ($sm_apply ($sm_DtSel s d i j) x1))
     ($smtx_model_eval_dt_sel M s d i j ($smtx_model_eval M x1)))
@@ -1125,7 +1127,7 @@
   )
 )
 (program $smtx_typeof
-  ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (d $smt_Datatype)
+  ((M $smt_Model) (f $smt_Term) (T $smt_Type) (d $smt_Datatype)
    (i $native_Nat) (j $native_Nat)
    (b $native_Bool) (w $native_Int) (n $native_Int)
    (m $native_Int) (r $native_Real) (s $native_String)
@@ -1162,6 +1164,8 @@
   (($smtx_typeof ($sm_choice_nth s T x1 n))
     ($smtx_typeof_choice_nth T x1 n))
   
+  
+  
   (($smtx_typeof ($sm_DtCons s d i))
     ($smtx_typeof_guard_wf ($tsm_Datatype s d)
       ($smtx_typeof_dt_cons_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) i)))
@@ -1172,9 +1176,12 @@
         ($tsm_FunType ($tsm_Datatype s d) ret)
         ($smtx_typeof x1)))))
   (($smtx_typeof ($sm_apply ($sm_DtTester s d i) x1))
-    ($smtx_typeof_apply
-      ($tsm_FunType ($tsm_Datatype s d) $tsm_Bool)
-      ($smtx_typeof x1)))
+    ($smtx_typeof_guard
+      
+      ($smtx_typeof_dt_cons_rec ($tsm_Datatype s d) ($smtx_dt_substitute s d d) i)
+      ($smtx_typeof_apply
+        ($tsm_FunType ($tsm_Datatype s d) $tsm_Bool)
+        ($smtx_typeof x1))))
   
   (($smtx_typeof ($sm_apply f x1))  ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
   (($smtx_typeof ($sm_Var s T))     ($smtx_typeof_guard_wf T T))

@@ -861,7 +861,7 @@
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtSel) (sm.Apply.arg1 x1)))
     ($smtx_typeof_guard_wf ($smtx_ret_typeof_sel (sm.DtSel.arg1 (sm.Apply.arg1 x1)) (sm.DtSel.arg2 (sm.Apply.arg1 x1)) (sm.DtSel.arg3 (sm.Apply.arg1 x1)) (sm.DtSel.arg4 (sm.Apply.arg1 x1))) ($smtx_typeof_apply (tsm.FunType (tsm.Datatype (sm.DtSel.arg1 (sm.Apply.arg1 x1)) (sm.DtSel.arg2 (sm.Apply.arg1 x1))) ($smtx_ret_typeof_sel (sm.DtSel.arg1 (sm.Apply.arg1 x1)) (sm.DtSel.arg2 (sm.Apply.arg1 x1)) (sm.DtSel.arg3 (sm.Apply.arg1 x1)) (sm.DtSel.arg4 (sm.Apply.arg1 x1)))) ($smtx_typeof (sm.Apply.arg2 x1))))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtTester) (sm.Apply.arg1 x1)))
-    ($smtx_typeof_apply (tsm.FunType (tsm.Datatype (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) tsm.Bool) ($smtx_typeof (sm.Apply.arg2 x1)))
+    ($smtx_typeof_guard ($smtx_typeof_dt_cons_rec (tsm.Datatype (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) ($smtx_dt_substitute (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) (sm.DtTester.arg3 (sm.Apply.arg1 x1))) ($smtx_typeof_apply (tsm.FunType (tsm.Datatype (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) tsm.Bool) ($smtx_typeof (sm.Apply.arg2 x1))))
   (ite ((_ is sm.Apply) x1)
     ($smtx_typeof_apply ($smtx_typeof (sm.Apply.arg1 x1)) ($smtx_typeof (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Var) x1)
