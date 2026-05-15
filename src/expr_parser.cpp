@@ -1299,7 +1299,7 @@ void ExprParser::typeCheckProgramFwdDecl(Expr& prevProg,
     }
   }
   std::stringstream ss;
-  ss << "Foward declaration of program " << progName << " had different type.";
+  ss << "Forward declaration of program " << progName << " had different type.";
   d_lex.parseError(ss.str());
 }
 

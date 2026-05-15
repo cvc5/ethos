@@ -806,7 +806,8 @@ bool CmdParser::parseNextCommand()
         }
         // ensure that its type is compatible with the previous definition
         d_eparser.typeCheckProgramFwdDecl(pprev, progType, name);
-        // we use the old program that was globally bound already
+        // we use the forward declaration of the program that was globally bound
+        // already
         pvar = pprev;
       }
       else
