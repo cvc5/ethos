@@ -378,8 +378,7 @@
 (declare-fun eval_tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tchoice_nth (smm.SmtModel String tsm.Type sm.Term Nat) vsm.Value)
 (declare-fun inhabited_type (tsm.Type) Bool)
-(declare-fun eval_tlambda (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
-(declare-fun eval_tapply (smm.SmtModel vsm.Value vsm.Value) vsm.Value)
+(declare-fun eval_map_diff_msm (msm.Map msm.Map) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (msm.Map msm.Map) Bool)
   
@@ -1099,6 +1098,13 @@
         (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))
   :pattern ((veq_ext v1 v2))))
   :named smtx.veq_ext.def))
+
+; FIXME
+;(assert (! (forall ((v1 msm.Map) (v2 msm.Map))
+;  (! (= (eval_map_diff_msm v1 v2)
+;        (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))
+;  :pattern ((veq_ext v1 v2))))
+;  :named smtx.veq_ext.def))
 
 ;;; The verification condition
 
