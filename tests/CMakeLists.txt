@@ -125,6 +125,7 @@ set(ethos_test_file_list
     implicit-then-var.eo
     is_eq.eo
     simple-reference.eo
+    reference-define-fun.eo
     simple-quant-reference.eo
     simple-lra-reference.eo
     left-cons.eo
