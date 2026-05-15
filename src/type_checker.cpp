@@ -63,8 +63,8 @@ Expr TypeChecker::getLiteralTypeRuleMaybeInit(Kind k, ExprValue* self)
   if (it==d_literalTypeRules.end())
   {
     std::stringstream ss;
-    EO_FATAL() << "TypeChecker::getLiteralTypeRuleMaybeInit: cannot get type rule for kind "
-                 << k;
+    EO_FATAL() << "TypeChecker::getLiteralTypeRuleMaybeInit: cannot get type "
+               << "rule for kind " << k;
   }
   Expr tp;
   if (it->second.isNull())
@@ -1827,13 +1827,10 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_FIND:
       return getLiteralTypeRuleMaybeInit(Kind::NUMERAL);
     case Kind::EVAL_RAT_DIV:
-    case Kind::EVAL_TO_RAT:
-      return getLiteralTypeRuleMaybeInit(Kind::RATIONAL);
+    case Kind::EVAL_TO_RAT: return getLiteralTypeRuleMaybeInit(Kind::RATIONAL);
     case Kind::EVAL_NAME_OF:
-    case Kind::EVAL_TO_STRING:
-      return getLiteralTypeRuleMaybeInit(Kind::STRING);
-    case Kind::EVAL_TO_BIN:
-      return getLiteralTypeRuleMaybeInit(Kind::BINARY);
+    case Kind::EVAL_TO_STRING: return getLiteralTypeRuleMaybeInit(Kind::STRING);
+    case Kind::EVAL_TO_BIN: return getLiteralTypeRuleMaybeInit(Kind::BINARY);
     case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS: return d_state.mkListType();
     default:break;
