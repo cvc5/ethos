@@ -444,7 +444,9 @@
   :signature ($smt_Type $smt_RefList) $native_Bool
   (
   (($smtx_type_wf_rec ($tsm_Datatype s d) refs)
-    ($smtx_dt_wf_rec d ($native_apply_2 "reflist_insert" refs s)))
+    ($native_ite ($native_apply_2 "reflist_contains" refs s)
+      $native_false
+      ($smtx_dt_wf_rec d ($native_apply_2 "reflist_insert" refs s))))
   (($smtx_type_wf_rec ($tsm_TypeRef s) refs) $native_false)
   (($smtx_type_wf_rec ($tsm_Seq x1) refs)
     ($native_and ($native_inhabited_type x1) ($smtx_type_wf_rec x1 $native_reflist_nil)))

@@ -809,7 +809,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                     "$e1 (int.pow2 (int.log2 $e1)))))",
                     true));
   // arrays
-  addEunoiaReduceSym("@array_deq_diff", {kT, kT}, "($native_ite ($native_Teq ($eo_to_smt_type (@array_deq_diff x1 x2)) $tsm_none) $sm_none ($sm_map_diff ($eo_to_smt x1) ($eo_to_smt x2)))");
+  addEunoiaReduceSym("@array_deq_diff", {kT, kT}, "($native_ite ($native_Teq ($eo_to_smt_type ($eo_typeof (@array_deq_diff x1 x2))) $tsm_none) $sm_none ($sm_map_diff ($eo_to_smt x1) ($eo_to_smt x2)))");
   // strings
   addConstFoldSym("str.update", {d_kSeq, kInt, d_kSeq}, d_kSeq);
   addAuxTypeProgram(

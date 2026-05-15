@@ -484,7 +484,7 @@
 (assert (! (forall ((x1 tsm.Type) (x2 srl.RefList))
   (! (= ($smtx_type_wf_rec x1 x2)
   (ite ((_ is tsm.Datatype) x1)
-    ($smtx_dt_wf_rec (tsm.Datatype.arg2 x1) (reflist_insert x2 (tsm.Datatype.arg1 x1)))
+    (ite (reflist_contains x2 (tsm.Datatype.arg1 x1)) false ($smtx_dt_wf_rec (tsm.Datatype.arg2 x1) (reflist_insert x2 (tsm.Datatype.arg1 x1))))
   (ite ((_ is tsm.TypeRef) x1)
     false
   (ite ((_ is tsm.Seq) x1)

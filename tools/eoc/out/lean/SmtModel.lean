@@ -504,7 +504,10 @@ mutual
 
 def native_inhabited_type (T : SmtType) : native_Bool := by
   classical
-  exact decide (∃ v : SmtValue, __smtx_typeof_value v = T)
+  exact
+    native_and
+      (decide (__smtx_typeof_value (__smtx_type_default T) = T))
+      (__smtx_value_canonical_bool (__smtx_type_default T))
 
 def __vsm_apply_head : SmtValue -> SmtValue
   | (SmtValue.Apply f a) => (__vsm_apply_head f)
@@ -529,7 +532,7 @@ def __smtx_dt_wf_rec : SmtDatatype -> RefList -> native_Bool
 
 
 def __smtx_type_wf_rec : SmtType -> RefList -> native_Bool
-  | (SmtType.Datatype s d), refs => (__smtx_dt_wf_rec d (native_reflist_insert refs s))
+  | (SmtType.Datatype s d), refs => (native_ite (native_reflist_contains refs s) false (__smtx_dt_wf_rec d (native_reflist_insert refs s)))
   | (SmtType.TypeRef s), refs => false
   | (SmtType.Seq x1), refs => (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 native_reflist_nil))
   | (SmtType.Map x1 x2), refs => (native_and (native_inhabited_type x1) (native_and (__smtx_type_wf_rec x1 native_reflist_nil) (native_and (native_inhabited_type x2) (__smtx_type_wf_rec x2 native_reflist_nil))))
@@ -808,14 +811,9 @@ def __smtx_is_finite_type : SmtType -> native_Bool
   | T => false
 
 
-def __smtx_value_dt_substitute_apply (s : native_String) (v1 : SmtValue) (v2 : SmtValue) : SmtValue -> SmtValue
-  | (SmtValue.DtCons s2 d i) => (native_ite (native_streq s s2) v1 v2)
-  | v => v2
-
-
 def __smtx_value_dt_substitute (s : native_String) (d : SmtDatatype) : SmtValue -> SmtValue
-  | (SmtValue.DtCons s2 d2 i) => (SmtValue.DtCons s2 (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s d d2)) i)
-  | (SmtValue.Apply f v) => (__smtx_value_dt_substitute_apply s (SmtValue.Apply f v) (SmtValue.Apply (__smtx_value_dt_substitute s d f) (__smtx_value_dt_substitute s d v)) (__vsm_apply_head f))
+  | (SmtValue.DtCons s2 d2 i) => (SmtValue.DtCons s2 (__smtx_dt_substitute s d d2) i)
+  | (SmtValue.Apply f v) => (SmtValue.Apply (__smtx_value_dt_substitute s d f) (__smtx_value_dt_substitute s d v))
   | v => v
 
 
@@ -837,6 +835,7 @@ def __smtx_type_default : SmtType -> SmtValue
   | SmtType.Bool => (SmtValue.Boolean false)
   | SmtType.Int => (SmtValue.Numeral 0)
   | SmtType.Real => (SmtValue.Rational (native_mk_rational 0 1))
+  | SmtType.RegLan => (SmtValue.RegLan native_re_none)
   | (SmtType.BitVec w) => (SmtValue.Binary (native_nat_to_int w) 0)
   | SmtType.Char => (SmtValue.Char (native_nat_to_char native_nat_zero))
   | (SmtType.Datatype s d) => (__smtx_datatype_default s d d native_nat_zero)

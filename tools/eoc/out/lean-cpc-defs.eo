@@ -2369,7 +2369,9 @@
   :signature ($smt_Type $smt_RefList) $native_Bool
   (
   (($smtx_type_wf_rec ($tsm_Datatype s d) refs)
-    ($smtx_dt_wf_rec d ($native_apply_2 "reflist_insert" refs s)))
+    ($native_ite ($native_apply_2 "reflist_contains" refs s)
+      $native_false
+      ($smtx_dt_wf_rec d ($native_apply_2 "reflist_insert" refs s))))
   (($smtx_type_wf_rec ($tsm_TypeRef s) refs) $native_false)
   (($smtx_type_wf_rec ($tsm_Seq x1) refs)
     ($native_and ($native_inhabited_type x1) ($smtx_type_wf_rec x1 $native_reflist_nil)))
@@ -3685,19 +3687,6 @@
   )
 )
 
-; ($smtx_value_dt_substitute_apply s v1 v2 v) is called where v is the
-; head of an apply below, v1 is original, v2 is the substituted, we return
-; v1 if the head shadows the name s.
-(program $smtx_value_dt_substitute_apply
-  ((s $native_String) (s2 $native_String) (d $smt_Datatype) (i $native_Nat)
-   (v1 $smt_Value) (v2 $smt_Value) (v $smt_Value))
-  :signature ($native_String $smt_Value $smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_value_dt_substitute_apply s v1 v2 ($vsm_DtCons s2 d i))
-    ($native_ite ($native_str_= s s2) v1 v2))
-  (($smtx_value_dt_substitute_apply s v1 v2 v) v2)
-  )
-)
 
 (program $smtx_value_dt_substitute
   ((s $native_String) (d $smt_Datatype) (s2 $native_String) (d2 $smt_Datatype)
@@ -3705,13 +3694,9 @@
   :signature ($native_String $smt_Datatype $smt_Value) $smt_Value
   (
   (($smtx_value_dt_substitute s d ($vsm_DtCons s2 d2 i))
-    ($vsm_DtCons s2 ($native_ite ($native_str_= s s2) d2 ($smtx_dt_substitute s d d2)) i))
+    ($vsm_DtCons s2 ($smtx_dt_substitute s d d2) i))
   (($smtx_value_dt_substitute s d ($vsm_apply f v))
-    ($smtx_value_dt_substitute_apply s 
-      ($vsm_apply f v)
-      ($vsm_apply ($smtx_value_dt_substitute s d f)
-                  ($smtx_value_dt_substitute s d v))
-      ($vsm_apply_head f)))
+    ($vsm_apply ($smtx_value_dt_substitute s d f) ($smtx_value_dt_substitute s d v)))
   (($smtx_value_dt_substitute s d v) v)
   )
 )
@@ -3754,6 +3739,7 @@
   (($smtx_type_default $tsm_Bool)           $vsm_false)
   (($smtx_type_default $tsm_Int)            ($vsm_numeral $native_z_zero))
   (($smtx_type_default $tsm_Real)           ($vsm_rational $native_q_zero))
+  (($smtx_type_default $tsm_RegLan)         ($vsm_re ($native_apply_0 "re.none")))
   (($smtx_type_default ($tsm_BitVec w))     ($vsm_binary ($native_n_to_z w) $native_z_zero))
   (($smtx_type_default $tsm_Char)           ($vsm_char ($native_n_to_char $native_n_zero)))
   (($smtx_type_default ($tsm_Datatype s d)) ($smtx_datatype_default s d d $native_n_zero))
