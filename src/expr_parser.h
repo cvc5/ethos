@@ -166,6 +166,16 @@ class ExprParser
    * terms with free parameters that are not bound during pattern matching.
    */
   void typeCheckProgramPair(Expr& pat, Expr& ret, bool checkPreservation);
+  /**
+   * Type check program with forward declaration. Ensure that the forward
+   * declaration in prevProg has a type that is compatible with newType.
+   * In particular, note that forward declared programs may have non-ground
+   * type. Since parameters are not normalized, we need to check whether
+   * newType is alpha equivalent to the previously declared type.
+   */
+  void typeCheckProgramFwdDecl(Expr& prevProg,
+                               Expr& newType,
+                               const std::string& progName);
   /** get variable, else error */
   Expr getVar(const std::string& name);
   /** get variable, else error */
