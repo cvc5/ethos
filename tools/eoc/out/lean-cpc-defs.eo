@@ -2603,15 +2603,6 @@
 
 ;; datatypes
 
-(program $smtx_dtc_concat
-  ((U $smt_Type) (c1 $smt_DatatypeCons) (c2 $smt_DatatypeCons))
-  :signature ($smt_DatatypeCons $smt_DatatypeCons) $smt_DatatypeCons
-  (
-  (($smtx_dtc_concat ($dtc_cons U c1) c2) ($dtc_cons U ($smtx_dtc_concat c1 c2)))
-  (($smtx_dtc_concat $dtc_unit c2)        c2)
-  )
-)
-
 (program $smtx_dtc_num_sels ((U $smt_Type) (c $smt_DatatypeCons))
   :signature ($smt_DatatypeCons) $native_Nat
   (
@@ -3442,25 +3433,27 @@
 
 ; helper for CPC tuple constructor
 ; In eo_to_smt, (tuple x1 x2) returns
-;   ($sm_apply ($eo_to_smt_tuple_app_extend x1 ($eo_to_smt_type ($eo_typeof x2))) ($eo_to_smt x2))
+;   ($sm_apply ($eo_to_smt_tuple_cons x1 ($eo_to_smt_type ($eo_typeof x2))) ($eo_to_smt x2))
 ; and tuple.unit returns
 ;   ($sm_DtCons $native_str_tuple_name ($dt_sum $dtc_unit $dt_null) $native_z_zero).
 ; Given an application of (tuple a1 ... an), returns the same application
 ; but where now tuple is the instance of the tuple constructor that expects
 ; another argument of type T.
-(program $eo_to_smt_tuple_app_extend
+(program $eo_to_smt_tuple_cons
   ((t $smt_Term) (f $smt_Term) (a $smt_Term) (T $smt_Type) (s $native_String) (c $smt_DatatypeCons))
-  :signature ($smt_Term $smt_Type) $smt_Term
+  :signature ($smt_Term $smt_Type $smt_Term) $smt_Term
   (
-  (($eo_to_smt_tuple_app_extend ($sm_apply f a) T)
-    ($sm_apply ($eo_to_smt_tuple_app_extend f T) a))
-  (($eo_to_smt_tuple_app_extend ($sm_DtCons $native_str_tuple_name ($dt_sum c $dt_null) $native_n_zero) T)
+  (($eo_to_smt_tuple_cons ($sm_apply f a) T t)
+    ($sm_apply ($eo_to_smt_tuple_cons f T t) a))
+  (($eo_to_smt_tuple_cons ($sm_DtCons $native_str_tuple_name ($dt_sum c $dt_null) $native_n_zero) T t)
     ; extend the datatype with a new argument, we are still the first constructor
-    ($sm_DtCons
-      $native_str_tuple_name
-      ($dt_sum ($smtx_dtc_concat c ($dtc_cons T $dtc_unit)) $dt_null)
-      $native_n_zero))
-  (($eo_to_smt_tuple_app_extend s T) $sm_none)
+    ($sm_apply
+      ($sm_DtCons
+        $native_str_tuple_name
+        ($dt_sum ($dtc_cons T c) $dt_null)
+        $native_n_zero)
+      t))
+  (($eo_to_smt_tuple_cons s T a) $sm_none)
   )
 )
 
@@ -3499,8 +3492,8 @@
   (
   (($eo_to_smt_updater_rec ($sm_DtSel s d n m) $native_n_zero t u acc) acc)
   (($eo_to_smt_updater_rec ($sm_DtSel s d n m) ($native_n_succ k) t u acc)
-    (eo::define ((arg ($native_ite ($native_n_= m k) u ($sm_apply ($sm_DtSel s d n m) t))))
-      ($eo_to_smt_updater_rec ($sm_DtSel s d n m) k t u ($sm_apply acc arg))))
+    (eo::define ((arg ($native_ite ($native_n_= m k) u ($sm_apply ($sm_DtSel s d n k) t))))
+      ($sm_apply ($eo_to_smt_updater_rec ($sm_DtSel s d n m) k t u acc) arg)))
   (($eo_to_smt_updater_rec v k t u acc) $sm_none)
   )
 )
