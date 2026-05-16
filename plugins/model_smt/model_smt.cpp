@@ -1082,7 +1082,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym("tuple",
                      {kT, kT},
                      "($eo_to_smt_tuple_cons ($eo_to_smt x2) "
-                     "($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1))");
+                     "($eo_to_smt_type ($eo_typeof x1)) ($eo_to_smt x1))");
   addEunoiaReduceSym("tuple.unit",
                      {},
                      "($sm_DtCons $native_str_tuple_name ($dt_sum "
