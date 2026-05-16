@@ -336,23 +336,23 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("div_total", {kInt, kInt}, kInt);
   addConstFoldSym("mod_total", {kInt, kInt}, kInt);
   std::stringstream ssQDiv;
-  ssQDiv << "(ite (= e2 0/1) (apply ($smtx_model_lookup M "
+  ssQDiv << "(ite (= e2 0/1) (apply M ($smtx_model_lookup M "
          << smtApp0("/_by_zero_id")
          << "($tsm_FunType $tsm_Real $tsm_Real)) e1) (/_total e1 e2))";
   addRecReduceSym("/", {kT, kT}, kReal, smtToSmtEmbed(ssQDiv.str()));
   std::stringstream ssDiv;
-  ssDiv << "(ite (= e2 0) (apply ($smtx_model_lookup M "
+  ssDiv << "(ite (= e2 0) (apply M ($smtx_model_lookup M "
         << smtApp0("div_by_zero_id")
         << "($tsm_FunType $tsm_Int $tsm_Int)) e1) (div_total e1 e2))";
   addRecReduceSym("div", {kInt, kInt}, kInt, smtToSmtEmbed(ssDiv.str()));
   std::stringstream ssMod;
-  ssMod << "(ite (= e2 0) (apply ($smtx_model_lookup M "
+  ssMod << "(ite (= e2 0) (apply M ($smtx_model_lookup M "
         << smtApp0("mod_by_zero_id")
         << "($tsm_FunType $tsm_Int $tsm_Int)) e1) (mod_total e1 e2))";
   addRecReduceSym("mod", {kInt, kInt}, kInt, smtToSmtEmbed(ssMod.str()));
   std::stringstream ssZExp;
   ssZExp
-      << "(ite (>= e2 0) (**_total e1 e2) (ite (= e1 0) (apply "
+      << "(ite (>= e2 0) (**_total e1 e2) (ite (= e1 0) (apply M "
          "($smtx_model_lookup M "
       << smtApp0("div_by_zero_id")
       << "($tsm_FunType $tsm_Int $tsm_Int)) 1) (div_total 1 (**_total e1 (- 0 "

@@ -217,7 +217,8 @@ def native_re_all : native_RegLan := .star .allchar
 def native_qdiv_by_zero_id : native_String := "@qdiv_by_zero"
 def native_div_by_zero_id : native_String := "@div_by_zero"
 def native_mod_by_zero_id : native_String := "@mod_by_zero"
-def native_wrong_apply_sel_id : native_String := "@wrong_apply_sel"
+def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
+  "@wrong_apply_sel_" ++ toString n ++ "_" ++ toString m
 def native_oob_seq_nth_id : native_String := "@oob_seq_nth"
 def native_uconst_id : native_Nat -> native_String
   | i => "@u." ++ toString i
@@ -286,6 +287,9 @@ deriving Repr, DecidableEq, Inhabited, Ord
 
 end
 
+abbrev SmtNativeFun := SmtValue -> SmtValue
+
+def native_default_ifun_id : native_String := "@native_default_ifun"
 
 /- SMT-LIB model -/
 structure SmtModelKey where
@@ -293,25 +297,33 @@ structure SmtModelKey where
   ty : SmtType
 deriving Repr, DecidableEq, Inhabited
 
-abbrev SmtModel := SmtModelKey -> Option SmtValue
+structure SmtModel where
+  values : SmtModelKey -> Option SmtValue
+  nativeFuns : SmtModelKey -> Option SmtNativeFun
+deriving Inhabited
+
 
 def SmtModel.empty : SmtModel :=
-  fun _ => none
+  { values := fun _ => none
+    nativeFuns := fun _ => none }
 
 def __smtx_model_key (s : native_String) (T : SmtType) : SmtModelKey :=
   { name := s, ty := T }
 
 def __smtx_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
-  match M (__smtx_model_key s T) with
+  match M.values (__smtx_model_key s T) with
   | some v => v
   | none => SmtValue.NotValue
 
 def __smtx_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
-  fun k =>
-    if k = (__smtx_model_key s T) then
-      some v
-    else
-      M k
+  { M with values := fun k =>
+      if k = (__smtx_model_key s T) then
+        some v
+      else
+        M.values k }
+
+def __smtx_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : Option SmtNativeFun :=
+  M.nativeFuns (__smtx_model_key fid (SmtType.FunType T U))
 
 abbrev RefList := List native_String
 
@@ -459,6 +471,15 @@ def native_inhabited_type (T : SmtType) : native_Bool := by
 
 $LEAN_SMT_EVAL_DEFS$
 
+def native_eval_ifun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) (i : SmtValue) : SmtValue :=
+  let fallback := __smtx_type_default U
+  if fid = native_default_ifun_id then
+    fallback
+  else
+    match __smtx_model_fun_lookup M fid T U with
+    | some f => f i
+    | none => fallback
+
 def native_unpack_seq : SmtSeq -> List SmtValue
   | (SmtSeq.cons v vs) => v :: (native_unpack_seq vs)
   | (SmtSeq.empty _) => []
@@ -594,10 +615,18 @@ def type_inhabited (T : SmtType) : Prop :=
 def __smtx_value_canonical (v : SmtValue) : Prop :=
   __smtx_value_canonical_bool v = true
 
+def native_fun_typed (M : SmtModel) : Prop :=
+  ∀ fid A B i,
+    __smtx_type_wf (SmtType.FunType A B) = true ->
+    __smtx_typeof_value i = A ->
+    __smtx_typeof_value (native_eval_ifun_apply M fid A B i) = B ∧
+      __smtx_value_canonical (native_eval_ifun_apply M fid A B i)
+
 def model_total_typed (M : SmtModel) : Prop :=
   (∀ s T, __smtx_type_wf T = true -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
   (∀ s T, __smtx_type_wf T = true -> __smtx_value_canonical (__smtx_model_lookup M s T)) ∧
-  (∀ s T, __smtx_type_wf T = false -> __smtx_model_lookup M s T = SmtValue.NotValue)
+  (∀ s T, __smtx_type_wf T = false -> __smtx_model_lookup M s T = SmtValue.NotValue) ∧
+  native_fun_typed M
 
 /-
 SMT interpretation is satisfiability, i.e. the existence of a model
