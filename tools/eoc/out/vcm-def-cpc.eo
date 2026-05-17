@@ -2623,6 +2623,23 @@
 (program $smtx_dt_substitute ()
   :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype)
 
+(program $smtx_type_substitute
+  ((s $native_String) (d $smt_Datatype) (T $smt_Type)
+   (s2 $native_String) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_Type) $smt_Type
+  (
+  (($smtx_type_substitute s d ($tsm_Datatype s2 d2))
+    ; possible mutual recursion, subsitute into the datatype, unless there is
+    ; name shadowing
+    ($tsm_Datatype s2
+      ($native_ite ($native_str_= s s2) d2 ($smtx_dt_substitute s d d2))))
+  (($smtx_type_substitute s d ($tsm_TypeRef s2))
+    ; if it is a recursive reference to the type we are substituting, replace
+    ($native_ite ($native_str_= s s2) ($tsm_Datatype s d) ($tsm_TypeRef s2)))
+  (($smtx_type_substitute s d T) T)
+  )
+)
+
 ; Replaces ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
 ; of a datatype constructor.
 ; Note that this assumes there is no nested recursion, i.e. occurrences of
@@ -2632,19 +2649,8 @@
    (s2 $native_String) (d2 $smt_Datatype))
   :signature ($native_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
   (
-  (($smtx_dtc_substitute s d ($dtc_cons ($tsm_Datatype s2 d2) c))
-    ; possible mutual recursion, subsitute into the datatype, unless there is
-    ; name shadowing
-    ($dtc_cons ($tsm_Datatype s2
-      ($native_ite ($native_str_= s s2) d2 ($smtx_dt_substitute s d d2)))
-      ($smtx_dtc_substitute s d c)))
   (($smtx_dtc_substitute s d ($dtc_cons T c))
-    ($dtc_cons
-      ; if it is a recursive reference to the type we are substituting, replace
-      ($native_ite ($native_Teq T ($tsm_TypeRef s))
-        ($tsm_Datatype s d)
-        T)
-      ($smtx_dtc_substitute s d c)))
+    ($dtc_cons ($smtx_type_substitute s d T) ($smtx_dtc_substitute s d c)))
   (($smtx_dtc_substitute s d $dtc_unit) $dtc_unit)
   )
 )

@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 420
+; #trim-defs: 421
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -812,24 +812,29 @@
 )
 (program $smtx_dt_substitute ()
   :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype)
+(program $smtx_type_substitute
+  ((s $native_String) (d $smt_Datatype) (T $smt_Type)
+   (s2 $native_String) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_Type) $smt_Type
+  (
+  (($smtx_type_substitute s d ($tsm_Datatype s2 d2))
+    
+    
+    ($tsm_Datatype s2
+      ($native_ite ($native_str_= s s2) d2 ($smtx_dt_substitute s d d2))))
+  (($smtx_type_substitute s d ($tsm_TypeRef s2))
+    
+    ($native_ite ($native_str_= s s2) ($tsm_Datatype s d) ($tsm_TypeRef s2)))
+  (($smtx_type_substitute s d T) T)
+  )
+)
 (program $smtx_dtc_substitute
   ((s $native_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons)
    (s2 $native_String) (d2 $smt_Datatype))
   :signature ($native_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
   (
-  (($smtx_dtc_substitute s d ($dtc_cons ($tsm_Datatype s2 d2) c))
-    
-    
-    ($dtc_cons ($tsm_Datatype s2
-      ($native_ite ($native_str_= s s2) d2 ($smtx_dt_substitute s d d2)))
-      ($smtx_dtc_substitute s d c)))
   (($smtx_dtc_substitute s d ($dtc_cons T c))
-    ($dtc_cons
-      
-      ($native_ite ($native_Teq T ($tsm_TypeRef s))
-        ($tsm_Datatype s d)
-        T)
-      ($smtx_dtc_substitute s d c)))
+    ($dtc_cons ($smtx_type_substitute s d T) ($smtx_dtc_substitute s d c)))
   (($smtx_dtc_substitute s d $dtc_unit) $dtc_unit)
   )
 )

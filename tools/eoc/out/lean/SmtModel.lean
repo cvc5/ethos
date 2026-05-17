@@ -608,9 +608,14 @@ def __smtx_dt_num_sels : SmtDatatype -> native_Nat -> native_Nat
   | SmtDatatype.null, n => native_nat_zero
 
 
+def __smtx_type_substitute (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
+  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s d d2)))
+  | (SmtType.TypeRef s2) => (native_ite (native_streq s s2) (SmtType.Datatype s d) (SmtType.TypeRef s2))
+  | T => T
+
+
 def __smtx_dtc_substitute (s : native_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
-  | (SmtDatatypeCons.cons (SmtType.Datatype s2 d2) c) => (SmtDatatypeCons.cons (SmtType.Datatype s2 (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s d d2))) (__smtx_dtc_substitute s d c))
-  | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (native_ite (native_Teq T (SmtType.TypeRef s)) (SmtType.Datatype s d) T) (__smtx_dtc_substitute s d c))
+  | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (__smtx_type_substitute s d T) (__smtx_dtc_substitute s d c))
   | SmtDatatypeCons.unit => SmtDatatypeCons.unit
 
 
