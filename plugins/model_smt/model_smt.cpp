@@ -963,16 +963,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym("set.choose", {kAny}, ssSetsChoose.str());
   std::stringstream ssSetsIsSingleton;
   ssSetsIsSingleton
-      << "(eo::define (($T ($eo_to_smt_type ($eo_typeof (set.choose x1))))) ";
-  ssSetsIsSingleton << "(eo::define ((i ($sm_Var $native_str_vname $T))) ";
-  ssSetsIsSingleton << "($sm_exists $native_str_vname $T ";
-  ssSetsIsSingleton << smtToSmtEmbed("(= ($eo_to_smt x1) (set.singleton i))",
-                                     true)
-                    << ")))";
+      << "($sm_= ($eo_to_smt x1) ($sm_set.singleton " << ssSetsChoose.str() << "))";
   addEunoiaReduceSym("set.is_singleton", {kAny}, ssSetsIsSingleton.str());
-  // more concise?
-  // addEunoiaReduceSym("set.is_singleton", {kT}, "($eo_to_smt (= x1
-  // (set.singleton (set.choose x1))))");
   addEunoiaReduceSym("@sets_deq_diff", {kAny, kAny}, "($native_ite ($native_Teq ($eo_to_smt_type (@sets_deq_diff x1 x2)) $tsm_none) $sm_none ($sm_map_diff ($eo_to_smt x1) ($eo_to_smt x2)))");
   addEunoiaReduceSym(
       "set.is_empty",
