@@ -45,7 +45,8 @@
 (define-fun /_by_zero_id () String "@/_by_zero")
 (define-fun div_by_zero_id () String "@div_by_zero")
 (define-fun mod_by_zero_id () String "@mod_by_zero")
-(define-fun wrong_apply_sel_id () String "@wrong_apply_sel")
+(define-fun wrong_apply_sel_id ((x Nat) (y Nat)) String 
+  (str.++ "@wrong_apply_sel_" (str.from_int (nat.to_int x)) "_" (str.from_int (nat.to_int y))))
 (define-fun oob_seq_nth_id () String "@oob_seq_nth")
 (define-fun uconst_id ((x Nat)) String (str.++ "@u." (str.from_int (nat.to_int x))))
 
@@ -379,6 +380,7 @@
 (declare-fun eval_tchoice_nth (smm.SmtModel String tsm.Type sm.Term Nat) vsm.Value)
 (declare-fun inhabited_type (tsm.Type) Bool)
 (declare-fun eval_map_diff_msm (msm.Map msm.Map) vsm.Value)
+(declare-fun eval_ifun_apply (smm.SmtModel String tsm.Type tsm.Type vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (msm.Map msm.Map) Bool)
   
@@ -521,6 +523,15 @@
 (define-fun $smtx_typeof_guard_wf ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
     (ite ($smtx_type_wf x1) x2 tsm.None)
 )
+
+; program: $smtx_msm_lookup
+(declare-fun $smtx_msm_lookup (msm.Map vsm.Value) vsm.Value)
+(assert (! (forall ((x1 msm.Map) (x2 vsm.Value))
+  (! (= ($smtx_msm_lookup x1 x2)
+  (ite ((_ is msm.cons) x1)
+    (ite (veq (msm.cons.arg1 x1) x2) (msm.cons.arg2 x1) ($smtx_msm_lookup (msm.cons.arg3 x1) x2))
+    (msm.default.arg2 x1)
+)) :pattern (($smtx_msm_lookup x1 x2)))) :named sm.axiom.$smtx_msm_lookup))
 
 ; program: $smtx_typeof_map_value
 (declare-fun $smtx_typeof_map_value (msm.Map) tsm.Type)

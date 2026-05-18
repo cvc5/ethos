@@ -29,7 +29,8 @@ INCLUDE_RE = re.compile(r'^\(include\s+"([^"]+)"\s*\)')
 
 DESUGAR_VC_DEPS = (
     "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply "
-    "$smtx_typeof_value $smtx_model_update $smtx_model_eval_apply"
+    "$smtx_typeof_value $smtx_model_update $smtx_model_eval_apply "
+    "$smtx_msm_lookup"
 )
 
 LEAN_ALL_DEPS = (

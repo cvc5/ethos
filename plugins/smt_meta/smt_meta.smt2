@@ -45,7 +45,8 @@
 (define-fun /_by_zero_id () String "@/_by_zero")
 (define-fun div_by_zero_id () String "@div_by_zero")
 (define-fun mod_by_zero_id () String "@mod_by_zero")
-(define-fun wrong_apply_sel_id () String "@wrong_apply_sel")
+(define-fun wrong_apply_sel_id ((x Nat) (y Nat)) String 
+  (str.++ "@wrong_apply_sel_" (str.from_int (nat.to_int x)) "_" (str.from_int (nat.to_int y))))
 (define-fun oob_seq_nth_id () String "@oob_seq_nth")
 (define-fun uconst_id ((x Nat)) String (str.++ "@u." (str.from_int (nat.to_int x))))
 
@@ -217,6 +218,7 @@ $SM_TYPE_DECL$
 (declare-fun eval_tchoice_nth (smm.SmtModel String tsm.Type sm.Term Nat) vsm.Value)
 (declare-fun inhabited_type (tsm.Type) Bool)
 (declare-fun eval_map_diff_msm (msm.Map msm.Map) vsm.Value)
+(declare-fun eval_ifun_apply (smm.SmtModel String tsm.Type tsm.Type vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (msm.Map msm.Map) Bool)
   

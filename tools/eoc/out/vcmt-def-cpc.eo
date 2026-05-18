@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 293
+; #trim-defs: 294
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -488,6 +488,14 @@
   :signature ($smt_Type $smt_Type) $smt_Type
   (
   (($smtx_typeof_guard_wf T U) ($native_ite ($smtx_type_wf T) U $tsm_none))
+  )
+)
+(program $smtx_msm_lookup
+  ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Map $smt_Value) $smt_Value
+  (
+  (($smtx_msm_lookup ($msm_cons j e m) i)  ($native_ite ($native_veq j i) e ($smtx_msm_lookup m i)))
+  (($smtx_msm_lookup ($msm_default T e) i) e)
   )
 )
 (program $smtx_typeof_map_value
@@ -1020,4 +1028,4 @@
   (($eovc_symm F $eoM) (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_model_unsat $eoM ($eo_prog_symm ($eo_pf F))) true true)))
   )
 )
-(echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply ")
+(echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply $smtx_msm_lookup ")
