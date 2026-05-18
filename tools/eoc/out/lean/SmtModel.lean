@@ -871,7 +871,7 @@ def __smtx_seq_canonical : SmtSeq -> native_Bool
 def __smtx_value_canonical_bool : SmtValue -> native_Bool
   | (SmtValue.Binary w n) => (native_ite (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w))) true)
   | (SmtValue.Map m) => (__smtx_map_canonical m)
-  | (SmtValue.Set m) => (__smtx_map_canonical m)
+  | (SmtValue.Set m) => (native_and (__smtx_map_canonical m) (native_veq (__smtx_msm_get_default m) (SmtValue.Boolean false)))
   | (SmtValue.Seq s) => (__smtx_seq_canonical s)
   | (SmtValue.Apply f v) => (native_and (__smtx_value_canonical_bool f) (__smtx_value_canonical_bool v))
   | v => true

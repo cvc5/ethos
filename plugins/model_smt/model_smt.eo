@@ -1906,7 +1906,8 @@ $EO_TO_SMT_CASES$
       ($native_z_= n ($native_mod_total n ($native_z_pow2 w)))
       $native_true))
   (($smtx_value_canonical_bool ($vsm_map m)) ($smtx_map_canonical m))
-  (($smtx_value_canonical_bool ($vsm_set m)) ($smtx_map_canonical m))
+  (($smtx_value_canonical_bool ($vsm_set m)) 
+    ($native_and ($smtx_map_canonical m) ($native_veq ($smtx_msm_get_default m) $vsm_false)))
   (($smtx_value_canonical_bool ($vsm_seq s)) ($smtx_seq_canonical s))
   (($smtx_value_canonical_bool ($vsm_apply f v))
     ($native_and
