@@ -1548,23 +1548,31 @@ $EO_TO_SMT_TYPE_CASES$
 ; but where now tuple is the instance of the tuple constructor that expects
 ; another argument of type T.
 (program $eo_to_smt_tuple_cons
-  ((t $smt_Term) (f $smt_Term) (a $smt_Term) (T $smt_Type) (s $native_String) (c $smt_DatatypeCons))
+  ((t $smt_Term) (f $smt_Term) (a $smt_Term) (T $smt_Type) 
+   (s $native_String) (c $smt_DatatypeCons) (c2 $smt_DatatypeCons))
   :signature ($smt_Term $smt_Type $smt_Term) $smt_Term
   (
-  (($eo_to_smt_tuple_cons ($sm_apply f a) T t)
-    ($sm_apply ($eo_to_smt_tuple_cons f T t) a))
-  (($eo_to_smt_tuple_cons ($sm_DtCons $native_str_tuple_name ($dt_sum c $dt_null) $native_n_zero) T t)
+  (($eo_to_smt_tuple_cons t T ($sm_apply f a))
+    ($sm_apply ($eo_to_smt_tuple_cons t T f) a))
+  (($eo_to_smt_tuple_cons 
+    t T ($sm_DtCons $native_str_tuple_name ($dt_sum c $dt_null) $native_n_zero))
     ; extend the datatype with a new argument, we are still the first constructor
     ($sm_apply
-      ($sm_DtCons
-        $native_str_tuple_name
+      ($sm_DtCons $native_str_tuple_name 
         ($dt_sum ($dtc_cons T c) $dt_null)
-        $native_n_zero)
-      t))
-  (($eo_to_smt_tuple_cons s T a) $sm_none)
+        $native_n_zero) t))
+  (($eo_to_smt_tuple_cons t T a) $sm_none)
   )
 )
 
+(program $eo_to_smt_tuple_cons_guarded
+  ((t $smt_Term) (T $smt_Type) (c $smt_DatatypeCons))
+  :signature ($smt_Type $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_tuple_cons_guarded ($tsm_Datatype $native_str_tuple_name ($dt_sum c $dt_null)) t) t)
+  (($eo_to_smt_tuple_cons_guarded T t) $sm_none)
+  )
+)
 
 ; In eo_to_smt, (tuple.select x1 x2) returns
 ;   ($eo_to_smt_tuple_select ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))

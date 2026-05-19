@@ -1071,10 +1071,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      {kInt, kT, kT},
                      "($eo_to_smt_tuple_update ($eo_to_smt_type ($eo_typeof "
                      "x2)) ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
+  std::stringstream ssTuple;
+  ssTuple << "(eo::define ((r ($eo_to_smt_tuple_cons ($eo_to_smt x1) ";
+  ssTuple << "($eo_to_smt_type ($eo_typeof x1)) ($eo_to_smt x2)))) ";
+  ssTuple << "($eo_to_smt_tuple_cons_guarded ($smtx_typeof ($eo_to_smt x2)) ($eo_to_smt_tuple_cons_guarded ($smtx_typeof r) r)))";
   addEunoiaReduceSym("tuple",
                      {kT, kT},
-                     "($eo_to_smt_tuple_cons ($eo_to_smt x2) "
-                     "($eo_to_smt_type ($eo_typeof x1)) ($eo_to_smt x1))");
+                     ssTuple.str());
   addEunoiaReduceSym("tuple.unit",
                      {},
                      "($sm_DtCons $native_str_tuple_name ($dt_sum "
