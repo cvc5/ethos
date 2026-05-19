@@ -658,14 +658,13 @@ $SMT_TYPE_CONSTRUCTORS$
   )
 )
 
-(program $smtx_elem_typeof_map ((T $smt_Type) (U $smt_Type))
-  :signature ($smt_Type) $smt_Type
-  (
-  (($smtx_elem_typeof_map ($tsm_Map T U)) U)
-  (($smtx_elem_typeof_map T) $tsm_none)
-  )
-)
-
+;(program $smtx_elem_typeof_map ((T $smt_Type) (U $smt_Type))
+;  :signature ($smt_Type) $smt_Type
+;  (
+;  (($smtx_elem_typeof_map ($tsm_Map T U)) U)
+;  (($smtx_elem_typeof_map T) $tsm_none)
+;  )
+;)
 
 ;;; Map as sets
 

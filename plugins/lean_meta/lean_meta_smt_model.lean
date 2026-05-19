@@ -223,13 +223,6 @@ def native_oob_seq_nth_id : native_String := "@oob_seq_nth"
 def native_uconst_id : native_Nat -> native_String
   | i => "@u." ++ toString i
 
-/-
-Ordinary SMT-LIB theory operators.
--/
-inductive SmtTheoryOp : Type where
-$LEAN_SMT_THEORY_OP_DEF$
-deriving Repr, Inhabited
-
 mutual
 
 /-
@@ -302,11 +295,6 @@ structure SmtModel where
   nativeFuns : SmtModelKey -> Option SmtNativeFun
 deriving Inhabited
 
-
-def SmtModel.empty : SmtModel :=
-  { values := fun _ => none
-    nativeFuns := fun _ => none }
-
 def __smtx_model_key (s : native_String) (T : SmtType) : SmtModelKey :=
   { name := s, ty := T }
 
@@ -345,17 +333,6 @@ def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
   | _ => false
 
 macro_rules
-  | `(native_veq_ext $m1 $m2) => do
-      let lookupId := Lean.mkIdent `__smtx_msm_lookup
-      `(by
-          classical
-          exact
-            if hExt :
-                ∀ v : SmtValue,
-                  $lookupId $m1 v = $lookupId $m2 v then
-              true
-            else
-              false)
   | `(native_re_ext_eq $r1 $r2) => do
       let strInReId := Lean.mkIdent `native_str_in_re
       `(by
