@@ -556,10 +556,13 @@ def __smtx_type_wf_rec : SmtType -> RefList -> native_Bool
   | T, refs => true
 
 
+def __smtx_type_wf_component (T : SmtType) : native_Bool :=
+  (native_and (native_inhabited_type T) (__smtx_type_wf_rec T native_reflist_nil))
+
 def __smtx_type_wf : SmtType -> native_Bool
   | SmtType.RegLan => true
-  | (SmtType.FunType T U) => (native_and (native_and (native_inhabited_type T) (__smtx_type_wf_rec T native_reflist_nil)) (native_and (native_inhabited_type U) (__smtx_type_wf_rec U native_reflist_nil)))
-  | T => (native_and (native_inhabited_type T) (__smtx_type_wf_rec T native_reflist_nil))
+  | (SmtType.FunType T U) => (native_and (__smtx_type_wf_component T) (__smtx_type_wf_component U))
+  | T => (__smtx_type_wf_component T)
 
 
 def __smtx_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=

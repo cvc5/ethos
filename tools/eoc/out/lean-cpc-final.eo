@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 421
+; #trim-defs: 422
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -721,16 +721,22 @@
   (($smtx_type_wf_rec T refs) $native_true)
   )
 )
+(program $smtx_type_wf_component ((T $smt_Type))
+  :signature ($smt_Type) $native_Bool
+  (
+  (($smtx_type_wf_component T)
+    
+    ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T $native_reflist_nil)))
+  )
+)
 (program $smtx_type_wf ((T $smt_Type) (U $smt_Type))
   :signature ($smt_Type) $native_Bool
   (
   
   (($smtx_type_wf $tsm_RegLan) $native_true)
   (($smtx_type_wf ($tsm_FunType T U))
-    ($native_and
-      ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T $native_reflist_nil))
-      ($native_and ($native_inhabited_type U) ($smtx_type_wf_rec U $native_reflist_nil))))
-  (($smtx_type_wf T) ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T $native_reflist_nil)))
+    ($native_and ($smtx_type_wf_component T) ($smtx_type_wf_component U)))
+  (($smtx_type_wf T) ($smtx_type_wf_component T))
   )
 )
 (program $smtx_typeof_guard ((T $smt_Type) (U $smt_Type))

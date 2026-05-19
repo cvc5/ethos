@@ -2387,16 +2387,23 @@
 ;  )
 ;)
 
+(program $smtx_type_wf_component ((T $smt_Type))
+  :signature ($smt_Type) $native_Bool
+  (
+  (($smtx_type_wf_component T)
+    ; must be inhabited and well-formed
+    ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T $native_reflist_nil)))
+  )
+)
+
 (program $smtx_type_wf ((T $smt_Type) (U $smt_Type))
   :signature ($smt_Type) $native_Bool
   (
   ; reglan only allowed at top-level
   (($smtx_type_wf $tsm_RegLan) $native_true)
   (($smtx_type_wf ($tsm_FunType T U))
-    ($native_and
-      ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T $native_reflist_nil))
-      ($native_and ($native_inhabited_type U) ($smtx_type_wf_rec U $native_reflist_nil))))
-  (($smtx_type_wf T) ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T $native_reflist_nil)))
+    ($native_and ($smtx_type_wf_component T) ($smtx_type_wf_component U)))
+  (($smtx_type_wf T) ($smtx_type_wf_component T))
   )
 )
 
@@ -3347,7 +3354,9 @@
   :signature ($smt_Type $smt_Type) $smt_Type
   (
   (($eo_to_smt_type_tuple U ($tsm_Datatype $native_str_tuple_name ($dt_sum c $dt_null)))
-    ($tsm_Datatype $native_str_tuple_name ($dt_sum ($dtc_cons U c) $dt_null)))
+    ($native_ite ($smtx_type_wf_component U)
+      ($tsm_Datatype $native_str_tuple_name ($dt_sum ($dtc_cons U c) $dt_null))
+      $tsm_none))
   (($eo_to_smt_type_tuple U T) $tsm_none)
   )
 )
