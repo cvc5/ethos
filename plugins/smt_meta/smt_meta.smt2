@@ -212,6 +212,8 @@ $SM_TYPE_DECL$
 (define-fun tcmp ((a eo.Term) (b eo.Term)) Bool (< (thash a) (thash b)))
 
 ; forward declarations
+(declare-fun model_lookup (smm.SmtModel String tsm.Type) vsm.Value)
+(declare-fun model_push (smm.SmtModel String tsm.Type vsm.Value) smm.SmtModel)
 (declare-fun eval_texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
@@ -229,13 +231,13 @@ $SM_DEFS$
 ;;; Meta-level properties of models
 
 (assert (! (forall ((M smm.SmtModel) (id String) (T tsm.Type))
-  (! (= ($smtx_model_lookup M id T) (select M (tuple id T)))
-  :pattern (($smtx_model_lookup M id T))))
+  (! (= (model_lookup M id T) (select M (tuple id T)))
+  :pattern ((model_lookup M id T))))
   :named smtx.model_lookup_def))
 
 (assert (! (forall ((M smm.SmtModel) (id String) (T tsm.Type) (v vsm.Value))
-  (! (= ($smtx_model_update M id T v) (store M (tuple id T) v))
-  :pattern (($smtx_model_update M id T v))))
+  (! (= (model_push M id T v) (store M (tuple id T) v))
+  :pattern ((model_push M id T v))))
   :named smtx.model_update_def))
 
 ; true iff there exists a value of type T that when substituted into F
@@ -245,13 +247,13 @@ $SM_DEFS$
 (define-fun texists_eq ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (exists ((v vsm.Value))
     (and (= ($smtx_typeof_value v) T)
-         (= ($smtx_model_eval ($smtx_model_update M s T v) F) tgt))))
+         (= ($smtx_model_eval (model_push M s T v) F) tgt))))
 
 ; true iff all values of type T when substituted into F are evaluated as tgt.
 (define-fun tforall_eq ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (forall ((v vsm.Value))
     (=> (= ($smtx_typeof_value v) T)
-        (= ($smtx_model_eval ($smtx_model_update M s T v) F) tgt))))
+        (= ($smtx_model_eval (model_push M s T v) F) tgt))))
 
 ; exists
 (assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term))
@@ -276,7 +278,7 @@ $SM_DEFS$
 ; that substituting with choice also makes it true.
 (assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
   (! (=> (texists_eq M s T F (vsm.Boolean true))
-      (= ($smtx_model_eval ($smtx_model_update M s T (eval_tchoice M s T F)) F)
+      (= ($smtx_model_eval (model_push M s T (eval_tchoice M s T F)) F)
          (vsm.Boolean true)))
   :pattern ((eval_tchoice M s T F))))
   :named smtx.tchoice.def))
@@ -286,7 +288,7 @@ $SM_DEFS$
        (ite ((_ is nat.succ) n)
          (ite ((_ is sm.exists) F)
            (eval_tchoice_nth 
-            ($smtx_model_update M s T (eval_tchoice M s T F))
+            (model_push M s T (eval_tchoice M s T F))
             (sm.exists.arg1 F) (sm.exists.arg2 F) (sm.exists.arg3 F) (nat.succ.arg1 n))
            vsm.NotValue)
          (eval_tchoice M s T F)))

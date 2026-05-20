@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 295
+; #trim-defs: 293
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -410,8 +410,6 @@
 (program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
 (program $smtx_typeof () :signature ($smt_Term) $smt_Type)
 (program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
-(program $smtx_model_lookup () :signature ($smt_Model $native_String $smt_Type) $smt_Value)
-(program $smtx_model_update () :signature ($smt_Model $native_String $smt_Type $smt_Value) $smt_Model)
 (declare-const $smt_RefList Type)
 (define $native_reflist_nil () ($native_apply_0 "reflist_nil"))
 (program $smtx_type_wf_rec () :signature ($smt_Type $smt_RefList) $native_Bool)
@@ -735,7 +733,7 @@
       
       
         ($smtx_model_eval_apply M
-          ($smtx_model_lookup M ($native_apply_2 "wrong_apply_sel_id" n m)
+          ($native_apply_3 "model_lookup" M ($native_apply_2 "wrong_apply_sel_id" n m)
             ($tsm_FunType ($tsm_Datatype s d) ($smtx_ret_typeof_sel s d n m)))
         v)))
   )
@@ -813,8 +811,8 @@
   
   (($smtx_model_eval M ($sm_apply f x1))
     ($smtx_model_eval_apply M ($smtx_model_eval M f) ($smtx_model_eval M x1)))
-  (($smtx_model_eval M ($sm_Var s T))     ($smtx_model_lookup M s T))
-  (($smtx_model_eval M ($sm_UConst s T))  ($smtx_model_lookup M s T))
+  (($smtx_model_eval M ($sm_Var s T))     ($native_apply_3 "model_lookup" M s T))
+  (($smtx_model_eval M ($sm_UConst s T))  ($native_apply_3 "model_lookup" M s T))
   (($smtx_model_eval M x1)   $vsm_not_value)
   )
 )
