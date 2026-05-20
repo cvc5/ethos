@@ -70,6 +70,26 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
       }
     }
   }
+  d_partialExc.insert("$arith_eval_int_log_2_rec");
+  d_partialExc.insert("$some_pairwise_distinct_term");
+  d_partialExc.insert("$bv_div_mod_impl");
+  d_partialExc.insert("$bv_const_to_bitlist_rec");
+  d_partialExc.insert("$bv_mk_bitblast_step_var_rec");
+  d_partialExc.insert("$bv_smulo_elim_rec");
+  d_partialExc.insert("$bv_umulo_elim_rec");
+  d_partialExc.insert("$str_eval_str_in_re");
+  d_partialExc.insert("$str_flatten_word");
+  d_partialExc.insert("$str_collect");
+  d_partialExc.insert("$str_mk_re_loop_elim_rec");
+  d_partialExc.insert("$str_from_int_eval_rec");
+  d_partialExc.insert("$str_eval_replace_all_rec");
+  d_partialExc.insert("$abconv_ubv_to_int_elim");
+  d_partialExc.insert("$abconv_int_to_bv_elim");
+  d_partialExc.insert("$set_is_not_subset");
+  d_partialExc.insert("$seq_distinct_terms");
+  d_partialExc.insert("$str_re_includes_lhs_union");
+  d_partialExc.insert("$str_re_includes_rhs_inter");
+  d_partialExc.insert("$str_re_includes_lhs_star");
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}
@@ -727,22 +747,26 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
         prets.push_back(prog[i][1]);
       }
       Expr allRets = d_state.mkExpr(Kind::TUPLE, prets);
-      bool hasNumeral = (!getSubtermsKind(Kind::NUMERAL, allRets).empty());
       std::vector<Expr> calls =
           StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, allRets);
       for (const Expr& e : calls)
       {
         // if there is any (mutual) recursion, or reference to a non-total
         // function, set needsPartial to true.
-        if (d_totalDefProgs.find(e) == d_totalDefProgs.end())
+        if (d_partialDefProgs.find(e) != d_partialDefProgs.end())
         {
-          if (e == v && !hasNumeral)
-          {
-            continue;
-          }
           needsPartial = true;
           break;
         }
+      }
+      std::string rawName = vname;
+      if (vname.compare(0,6,"$eo.l.")==0)
+      {
+        rawName = vname.substr(8);
+      }
+      if (d_partialExc.find(rawName)!=d_partialExc.end())
+      {
+        needsPartial = true;
       }
     }
 #ifndef INFER_TOTAL_DEFS
@@ -758,6 +782,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       }
       out = &d_defs;
       decl << "partial ";
+      d_partialDefProgs.insert(v);
     }
     else
     {

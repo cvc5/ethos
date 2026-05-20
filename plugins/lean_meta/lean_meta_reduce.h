@@ -182,10 +182,13 @@ class LeanMetaReduce : public MetaReducePlugin
   std::set<Expr> d_progIsDefine;
   /** Programs inferred to require total definitions. */
   std::set<Expr> d_totalDefProgs;
+  std::set<Expr> d_partialDefProgs;
   /** Return a Lean-safe version of an SMT-LIB identifier. */
   static std::string cleanSmtId(const std::string& id);
   /** Return a Lean-safe version of a general generated identifier. */
   static std::string cleanId(const std::string& id);
+  // TEMPORARY
+  std::unordered_set<std::string> d_partialExc;
 };
 
 }  // namespace ethos
