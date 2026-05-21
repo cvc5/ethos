@@ -3408,6 +3408,14 @@
   )
 )
 
+(program $eo_to_smt_nat_is_valid ((n $native_Int) (t $eo_Term))
+  :signature ($eo_Term) $native_Bool
+  (
+  (($eo_to_smt_nat_is_valid ($eot_numeral n)) ($native_z_<= $native_z_zero n))
+  (($eo_to_smt_nat_is_valid t) $native_false)
+  )
+)
+
 (program $eo_to_smt_datatype_cons ((U $eo_Term) (c $eo_DatatypeCons))
   :signature ($eo_DatatypeCons) $smt_DatatypeCons
   (
