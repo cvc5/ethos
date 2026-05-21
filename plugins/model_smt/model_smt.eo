@@ -1518,6 +1518,14 @@ $EO_TO_SMT_AUX$
   )
 )
 
+(program $eo_to_smt_set_elem_type ((T $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($eo_to_smt_set_elem_type ($tsm_Set T)) T)
+  (($eo_to_smt_set_elem_type T) $tsm_none)
+  )
+)
+
 (program $eo_to_smt_type
   ((T Type) (n1 $native_Int) (i $native_Nat) (s $native_String) (d $eo_Datatype)
   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
