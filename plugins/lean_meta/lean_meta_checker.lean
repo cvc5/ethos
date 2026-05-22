@@ -17,17 +17,17 @@ def native_str_concat : native_String -> native_String -> native_String
 def native_str_substr (s : native_String) (i n : native_Int) : native_String :=
   let len : Int := (native_str_len s)
   if i < 0 || n <= 0 || i >= len then
-    ""
+    []
   else
     let start : Nat := Int.toNat i
     let take  : Nat := Int.toNat (min n (len - i))
-    String.Pos.Raw.extract s ⟨start⟩ ⟨start + take⟩
+    (s.drop start).take take
 def native_str_indexof_rec (s t : native_String) (i len fuel : Nat) : native_Int :=
   match fuel with
   | 0 => -1
   | fuel + 1 =>
-      if String.Pos.Raw.substrEq s ⟨i⟩ t ⟨0⟩ len then
-        i
+      if native_string_prefix_eq t (s.drop i) then
+        Int.ofNat i
       else
         native_str_indexof_rec s t (i + 1) len fuel
 def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=

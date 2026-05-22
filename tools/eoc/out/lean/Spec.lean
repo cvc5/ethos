@@ -14,7 +14,7 @@ Definitions for eo_to_smt_type, eo_to_smt
 noncomputable section
 
 def native_reserved_datatype_name (s : native_String) : native_Bool :=
-  s.startsWith "@"
+  native_string_prefix_eq (native_string_lit "@") s
 
 mutual
 

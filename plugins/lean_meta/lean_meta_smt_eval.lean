@@ -5,9 +5,26 @@ namespace SmtEval
 abbrev native_Bool := Bool
 abbrev native_Int := Int
 abbrev native_Rat := Rat
-abbrev native_String := String
 abbrev native_Nat := Nat
-abbrev native_Char := Char
+abbrev native_Char := Nat
+abbrev native_String := List native_Char
+
+def native_char_valid (c : native_Char) : native_Bool :=
+  c < 196608
+
+def native_string_valid (s : native_String) : native_Bool :=
+  s.all native_char_valid
+
+def native_string_lit (s : String) : native_String :=
+  s.toList.map Char.toNat
+
+def native_string_of_lean_string (s : String) : native_String :=
+  native_string_lit s
+
+def native_string_prefix_eq : native_String -> native_String -> native_Bool
+  | [], _ => true
+  | _ :: _, [] => false
+  | c :: cs, d :: ds => decide (c = d) && native_string_prefix_eq cs ds
 
 instance : Ord Rat where
   compare a b :=
@@ -84,17 +101,15 @@ def native_to_real : native_Int -> native_Rat
   | x => (native_mk_rational x 1)
 
 -- Strings
-def native_nat_to_char : native_Nat -> native_Char
-  | x => (Char.ofNat x)
 def native_str_to_code (s : native_String) : native_Int :=
-  match s.toList with
-  | [c] => Int.ofNat c.toNat
+  match s with
+  | [c] => if native_char_valid c then Int.ofNat c else -1
   | _   => -1
 def native_str_from_code (i : native_Int) : native_String :=
-  if (0 <= i && i <= 196608) then
-    String.singleton (native_nat_to_char (Int.toNat i))
+  if (0 <= i && (native_char_valid (Int.toNat i))) then
+    [(Int.toNat i)]
   else
-    ""
+    native_string_lit ""
 def native_streq : native_String -> native_String -> native_Bool
   | x, y => decide (x = y)
 

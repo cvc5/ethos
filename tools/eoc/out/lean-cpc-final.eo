@@ -74,7 +74,7 @@
 (define $native_n_= ((x1 $native_Nat) (x2 $native_Nat)) ($native_apply_2 "nateq" x1 x2))
 (define $native_z_to_n ((x1 $native_Int)) ($native_apply_1 "int.to_nat" x1))
 (define $native_n_to_z ((x1 $native_Nat)) ($native_apply_1 "nat.to_int" x1))
-(define $native_n_to_char ((n $native_Nat)) ($native_apply_1 "nat.to_char" n))
+(define $native_n_to_char ((n $native_Nat)) n)
 (define $native_to_uconst_id ((x1 $native_Nat)) ($native_apply_1 "uconst_id" x1))
 (define $native_reserved_datatype_name ((s $native_String))
   ($native_apply_1 "reserved_datatype_name" s))
@@ -1456,17 +1456,20 @@
   )
 )
 (program $smtx_value_canonical_bool
-  ((m $smt_Map) (s $smt_Seq) (f $smt_Value) (v $smt_Value) (w $native_Int) (n $native_Int))
+  ((m $smt_Map) (s $smt_Seq) (f $smt_Value) (v $smt_Value) (w $native_Int)
+   (n $native_Int) (r $native_RegLan) (c $native_Char))
   :signature ($smt_Value) $native_Bool
   (
   (($smtx_value_canonical_bool ($vsm_binary w n))
     ($native_ite ($native_z_<= $native_z_zero w)
       ($native_z_= n ($native_mod_total n ($native_z_pow2 w)))
       $native_true))
+  (($smtx_value_canonical_bool ($vsm_char c)) ($native_apply_1 "char_valid" c))
   (($smtx_value_canonical_bool ($vsm_map m)) ($smtx_map_canonical m))
   (($smtx_value_canonical_bool ($vsm_set m)) 
     ($native_and ($smtx_map_canonical m) ($native_veq ($smtx_msm_get_default m) $vsm_false)))
   (($smtx_value_canonical_bool ($vsm_seq s)) ($smtx_seq_canonical s))
+  (($smtx_value_canonical_bool ($vsm_re r)) ($native_apply_1 "re_canonical" r))
   (($smtx_value_canonical_bool ($vsm_apply f v))
     ($native_and
       ($smtx_value_canonical_bool f)

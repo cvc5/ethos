@@ -225,8 +225,8 @@
 (define $native_n_to_z ((x1 $native_Nat)) ($native_apply_1 "nat.to_int" x1))
 (define $native_n_+ ((x1 $native_Nat) (x2 $native_Nat))
   ($native_z_to_n ($native_z_+ ($native_n_to_z x1) ($native_n_to_z x2))))
-; char
-(define $native_n_to_char ((n $native_Nat)) ($native_apply_1 "nat.to_char" n))
+; nat to char, currently a no-op
+(define $native_n_to_char ((n $native_Nat)) n)
 ; uconst utility
 (define $native_to_uconst_id ((x1 $native_Nat)) ($native_apply_1 "uconst_id" x1))
 
@@ -3350,8 +3350,11 @@
   ((U $smt_Type) (T $smt_Type) (s $native_String) (c $smt_DatatypeCons))
   :signature ($smt_Type $smt_Type) $smt_Type
   (
-  (($eo_to_smt_type_tuple U ($tsm_Datatype $native_str_tuple_name ($dt_sum c $dt_null)))
-    ($native_ite ($smtx_type_wf_component U)
+  (($eo_to_smt_type_tuple U ($tsm_Datatype s ($dt_sum c $dt_null)))
+    ($native_ite
+      ($native_and
+        ($native_str_= s $native_str_tuple_name)
+        ($smtx_type_wf_component U))
       ($tsm_Datatype $native_str_tuple_name ($dt_sum ($dtc_cons U c) $dt_null))
       $tsm_none))
   (($eo_to_smt_type_tuple U T) $tsm_none)
@@ -3450,14 +3453,18 @@
 )
 
 (program $eo_to_smt_tuple_prepend_of_type
-  ((T $smt_Type) (h $smt_Term) (hT $smt_Type) (tail $smt_Term) (c $smt_DatatypeCons))
+  ((T $smt_Type) (h $smt_Term) (hT $smt_Type) (tail $smt_Term) 
+   (c $smt_DatatypeCons) (s $native_String))
   :signature ($smt_Type $smt_Term $smt_Type $smt_Term) $smt_Term
   (
   (($eo_to_smt_tuple_prepend_of_type 
-    ($tsm_Datatype $native_str_tuple_name ($dt_sum c $dt_null)) h hT tail)
+    ($tsm_Datatype s ($dt_sum c $dt_null)) h hT tail)
       (eo::define ((d ($dt_sum c $dt_null)))
       (eo::define ((d2 ($dt_sum ($dtc_cons hT c) $dt_null)))
-      ($native_ite ($smtx_type_wf ($tsm_Datatype $native_str_tuple_name d2)) 
+      ($native_ite
+        ($native_and
+          ($native_str_= s $native_str_tuple_name)
+          ($smtx_type_wf ($tsm_Datatype $native_str_tuple_name d2)))
         ($eo_to_smt_tuple_prepend_rec d tail ($smtx_dt_num_sels d $native_n_zero)
           ($sm_apply ($sm_DtCons $native_str_tuple_name d2 $native_n_zero) h))
         $sm_none))))
@@ -3477,11 +3484,14 @@
 ; In eo_to_smt, (tuple.select x1 x2) returns
 ;   ($eo_to_smt_tuple_select ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))
 (program $eo_to_smt_tuple_select
-  ((T $smt_Type) (d $smt_Datatype) (n $native_Int) (t $smt_Term))
+  ((T $smt_Type) (s $native_String) (d $smt_Datatype) (n $native_Int) (t $smt_Term))
   :signature ($smt_Type $smt_Term $smt_Term) $smt_Term
   (
-  (($eo_to_smt_tuple_select ($tsm_Datatype $native_str_tuple_name d) ($sm_numeral n) t)
-    ($native_ite ($native_z_<= $native_z_zero n)
+  (($eo_to_smt_tuple_select ($tsm_Datatype s d) ($sm_numeral n) t)
+    ($native_ite 
+      ($native_and
+        ($native_str_= s $native_str_tuple_name)
+        ($native_z_<= $native_z_zero n))
       ($sm_apply ($sm_DtSel $native_str_tuple_name d $native_n_zero ($native_z_to_n n)) t)
       $sm_none))
   (($eo_to_smt_tuple_select T n t)                    $sm_none)
@@ -3537,11 +3547,14 @@
 ;   ($eo_to_smt_tuple_update
 ;     ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))
 (program $eo_to_smt_tuple_update
-  ((T $smt_Type) (d $smt_Datatype) (n $native_Int) (t $smt_Term) (u $smt_Term))
+  ((T $smt_Type) (d $smt_Datatype) (n $native_Int) (t $smt_Term) (u $smt_Term) (s $native_String))
   :signature ($smt_Type $smt_Term $smt_Term $smt_Term) $smt_Term
   (
-  (($eo_to_smt_tuple_update ($tsm_Datatype $native_str_tuple_name d) ($sm_numeral n) t u)
-    ($native_ite ($native_z_<= $native_z_zero n)
+  (($eo_to_smt_tuple_update ($tsm_Datatype s d) ($sm_numeral n) t u)
+    ($native_ite 
+      ($native_and
+        ($native_str_= s $native_str_tuple_name)
+        ($native_z_<= $native_z_zero n))
       ($eo_to_smt_updater ($sm_DtSel $native_str_tuple_name d $native_n_zero ($native_z_to_n n)) t u)
       $sm_none))
   (($eo_to_smt_tuple_update T n t u)                    $sm_none)
@@ -3809,17 +3822,20 @@
 )
 
 (program $smtx_value_canonical_bool
-  ((m $smt_Map) (s $smt_Seq) (f $smt_Value) (v $smt_Value) (w $native_Int) (n $native_Int))
+  ((m $smt_Map) (s $smt_Seq) (f $smt_Value) (v $smt_Value) (w $native_Int)
+   (n $native_Int) (r $native_RegLan) (c $native_Char))
   :signature ($smt_Value) $native_Bool
   (
   (($smtx_value_canonical_bool ($vsm_binary w n))
     ($native_ite ($native_z_<= $native_z_zero w)
       ($native_z_= n ($native_mod_total n ($native_z_pow2 w)))
       $native_true))
+  (($smtx_value_canonical_bool ($vsm_char c)) ($native_apply_1 "char_valid" c))
   (($smtx_value_canonical_bool ($vsm_map m)) ($smtx_map_canonical m))
   (($smtx_value_canonical_bool ($vsm_set m)) 
     ($native_and ($smtx_map_canonical m) ($native_veq ($smtx_msm_get_default m) $vsm_false)))
   (($smtx_value_canonical_bool ($vsm_seq s)) ($smtx_seq_canonical s))
+  (($smtx_value_canonical_bool ($vsm_re r)) ($native_apply_1 "re_canonical" r))
   (($smtx_value_canonical_bool ($vsm_apply f v))
     ($native_and
       ($smtx_value_canonical_bool f)

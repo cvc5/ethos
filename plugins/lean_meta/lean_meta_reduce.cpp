@@ -298,8 +298,20 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
       os << bv.getSize() << " " << bvi.toString() << ")";
     }
     else if (k == Kind::STRING)
-    {
-      os << "(Term.String " << c << ")";
+    {     
+      os << "(Term.String ";
+      std::string css = l->toString();
+      if (css.empty())
+      {
+        // empty string
+        os << "[]";
+      }
+      else
+      {
+        // native literals
+        os << "(native_string_lit \"" << css << "\")";
+      }
+      os << ")";
     }
     else
     {
@@ -331,10 +343,21 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   const Literal* l = oApp[1].getValue()->asLiteral();
   std::string smtStr = l->d_str.toString();
   // literals don't need native_
-  if (is_integer(smtStr) || smtStr == "true" || smtStr == "false"
-      || (!smtStr.empty() && smtStr.compare(0, 1, "\"") == 0))
+  if (is_integer(smtStr) || smtStr == "true" || smtStr == "false")
   {
     return smtStr;
+  }
+  if (!smtStr.empty() && smtStr.compare(0, 1, "\"") == 0)
+  {
+    if (smtStr.length()==2)
+    {
+      // empty string
+      return "[]";
+    }
+    // native literals
+    std::stringstream ss;
+    ss << "(native_string_lit " << smtStr << ")";
+    return ss.str();
   }
   std::stringstream ss;
   ss << "native_" << cleanSmtId(smtStr);
