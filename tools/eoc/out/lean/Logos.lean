@@ -484,6 +484,12 @@ def __eo_checker_is_refutation : Term -> CCmdList -> native_Bool
 
 
 
+/- Definition of refutation -/
+inductive eo_is_refutation : Term -> CCmdList -> Prop
+  | intro (F : Term) (c : CCmdList) : 
+    (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
+
+
 /-- API for logos -/
 def logos_init_state : CState := CState.nil
 def logos_invoke_assume (s : CState) (A : Term) : CState := (CState.cons (CStateObj.assume A) s)

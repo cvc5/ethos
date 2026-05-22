@@ -146,8 +146,6 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_embedTermDt;
   /** Eunoia operator embedding */
   std::stringstream d_embedTOpDt[4];
-  /** Eunoia to object inductive prop */
-  std::stringstream d_eoIsObj;
   /** Eunoia is refutation prop */
   std::stringstream d_eoIsRef;
   /** Generated Lean checker body. */

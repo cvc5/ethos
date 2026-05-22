@@ -182,6 +182,10 @@ deriving Repr, Inhabited
 
 $LEAN_CHECKER_DEFS$
 
+/- Definition of refutation -/
+inductive eo_is_refutation : Term -> CCmdList -> Prop
+$LEAN_EO_IS_REFUTATION_DEF$
+
 /-- API for logos -/
 def logos_init_state : CState := CState.nil
 def logos_invoke_assume (s : CState) (A : Term) : CState := (CState.cons (CStateObj.assume A) s)

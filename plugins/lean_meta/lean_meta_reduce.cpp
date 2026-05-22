@@ -1185,7 +1185,8 @@ void LeanMetaReduce::finalizeChecker()
                         {"$LEAN_EO_THEORY_OP3_DEF$", d_embedTOpDt[3].str()},
                         {"$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str()},
                         {"$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str()},
-                        {"$LEAN_CHECKER_DEFS$", d_eoChecker.str()}});
+                        {"$LEAN_CHECKER_DEFS$", d_eoChecker.str()},
+                        {"$LEAN_EO_IS_REFUTATION_DEF$", d_eoIsRef.str()}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }
 
@@ -1208,9 +1209,7 @@ void LeanMetaReduce::finalizeSpec()
   const std::string outPath =
       emitResourceFile("plugins/lean_meta/lean_meta_spec.lean",
                        "plugins/lean_meta/lean_meta_spec_gen.lean",
-                       {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()},
-                        {"$LEAN_EO_IS_OBJ$", d_eoIsObj.str()},
-                        {"$LEAN_EO_IS_REFUTATION_DEF$", d_eoIsRef.str()}});
+                       {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }
 
@@ -1228,9 +1227,6 @@ void LeanMetaReduce::finalizeLemmas()
 void LeanMetaReduce::finalize()
 {
   finalizePrograms();
-  // is obj is trivial, call the method
-  d_eoIsObj << "  | intro (x : Term) : eo_is_obj x (__eo_to_smt x)"
-            << std::endl;
   // refutation is if the method returns true
   d_eoIsRef << "  | intro (F : Term) (c : CCmdList) : " << std::endl;
   d_eoIsRef << "    (__eo_checker_is_refutation F c) = true -> "

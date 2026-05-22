@@ -353,12 +353,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("div_total", {kInt, kInt}, kInt);
   addConstFoldSym("mod_total", {kInt, kInt}, kInt);
   std::stringstream ssQDiv;
-  ssQDiv << "(ite (= e2 0/1) (apply M "
+  ssQDiv << "(ite (= (to_real e2) 0/1) (apply M "
          << smtApp3("model_lookup",
                     "M",
                     smtApp0("/_by_zero_id"),
                     "($tsm_FunType $tsm_Real $tsm_Real)")
-         << " e1) (/_total (to_real e1) (to_real e2)))";
+         << " (to_real e1)) (/_total (to_real e1) (to_real e2)))";
   addRecReduceSym("/", {kT, kT}, kReal, smtToSmtEmbed(ssQDiv.str()));
   std::stringstream ssDiv;
   ssDiv << "(ite (= e2 0) (apply M "
