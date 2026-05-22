@@ -72,10 +72,11 @@ tools/eoc/out/
   sygus/final-*.sy
   lean/
     Logos.lean
+    LogosTerm.lean
     SmtEval.lean
     SmtModel.lean
     Spec.lean
-    Lemmas.lean
+    RuleLemmas.lean
 ```
 
 ## Quick start

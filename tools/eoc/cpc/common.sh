@@ -171,6 +171,7 @@ eoc_copy_lean_outputs() {
 
   mkdir -p "$dest_dir" "$dest_dir/Proofs" "$dest_dir/Proofs/Rules"
   cp "$lean_dir/Logos.lean" "$dest_dir/Logos.lean"
+  cp "$lean_dir/LogosTerm.lean" "$dest_dir/LogosTerm.lean"
   cp "$lean_dir/SmtEval.lean" "$dest_dir/SmtEval.lean"
   cp "$lean_dir/SmtModel.lean" "$dest_dir/SmtModel.lean"
   cp "$lean_dir/Spec.lean" "$dest_dir/Spec.lean"
