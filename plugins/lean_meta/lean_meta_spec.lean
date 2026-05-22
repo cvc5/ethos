@@ -28,7 +28,7 @@ end
 Eunoia satisfiability depends on SMT satisfiability.
 -/
 def eo_satisfiability (t : Term) (b : Bool) : Prop :=
-  (smt_satisfiability (eo_to_smt t) b)
+  (smt_satisfiability (__eo_to_smt t) b)
 
 
 /- ---------------------------------------------- -/
