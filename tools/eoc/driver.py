@@ -373,6 +373,10 @@ class Pipeline:
             out_lean / "Logos.lean",
         )
         shutil.copyfile(
+            self.plugin_generated("lean_meta/lean_meta_checker_term_gen.lean"),
+            out_lean / "LogosTerm.lean",
+        )
+        shutil.copyfile(
             REPO_ROOT / "plugins" / "lean_meta" / "lean_meta_smt_eval.lean",
             out_lean / "SmtEval.lean",
         )

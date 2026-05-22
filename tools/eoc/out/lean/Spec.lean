@@ -1,5 +1,5 @@
 import Cpc.SmtModel
-import Cpc.Logos
+import Cpc.LogosTerm
 
 open SmtEval
 open Eo

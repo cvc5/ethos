@@ -1,5 +1,5 @@
 import $EO_CALC$.SmtModel
-import $EO_CALC$.Logos
+import $EO_CALC$.LogosTerm
 
 open SmtEval
 open Eo

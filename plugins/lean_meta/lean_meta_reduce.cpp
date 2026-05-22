@@ -1172,17 +1172,21 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
 }
 
 void LeanMetaReduce::finalizeChecker()
-{
+{  
+  const std::string outPatht =
+      emitResourceFile("plugins/lean_meta/lean_meta_checker_term.lean",
+                       "plugins/lean_meta/lean_meta_checker_term_gen.lean",
+                       {{"$LEAN_TERM_DEF$", d_embedTermDt.str()},
+                        {"$LEAN_EO_THEORY_OP_DEF$", d_embedTOpDt[0].str()},
+                        {"$LEAN_EO_THEORY_OP1_DEF$", d_embedTOpDt[1].str()},
+                        {"$LEAN_EO_THEORY_OP2_DEF$", d_embedTOpDt[2].str()},
+                        {"$LEAN_EO_THEORY_OP3_DEF$", d_embedTOpDt[3].str()}});
+  Trace("lean-meta") << "Write lean-defs-term " << outPatht << std::endl;
   const std::string outPath =
       emitResourceFile("plugins/lean_meta/lean_meta_checker.lean",
                        "plugins/lean_meta/lean_meta_checker_gen.lean",
                        {{"$LEAN_DEFS$", d_defs.str()},
                         {"$LEAN_DEFS_TOTAL$", d_defsTotal.str()},
-                        {"$LEAN_TERM_DEF$", d_embedTermDt.str()},
-                        {"$LEAN_EO_THEORY_OP_DEF$", d_embedTOpDt[0].str()},
-                        {"$LEAN_EO_THEORY_OP1_DEF$", d_embedTOpDt[1].str()},
-                        {"$LEAN_EO_THEORY_OP2_DEF$", d_embedTOpDt[2].str()},
-                        {"$LEAN_EO_THEORY_OP3_DEF$", d_embedTOpDt[3].str()},
                         {"$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str()},
                         {"$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str()},
                         {"$LEAN_CHECKER_DEFS$", d_eoChecker.str()},
