@@ -681,7 +681,7 @@
   (ite ((_ is vsm.Seq) x1)
     ($smtx_typeof_seq_value (vsm.Seq.arg1 x1))
   (ite ((_ is vsm.Char) x1)
-    tsm.Char
+    (ite (char_valid (vsm.Char.arg1 x1)) tsm.Char tsm.None)
   (ite ((_ is vsm.UValue) x1)
     (tsm.USort (vsm.UValue.arg1 x1))
   (ite ((_ is vsm.DtCons) x1)
@@ -856,7 +856,7 @@
   (ite ((_ is sm.Rational) x1)
     tsm.Real
   (ite ((_ is sm.String) x1)
-    (tsm.Seq tsm.Char)
+    (ite (string_valid (sm.String.arg1 x1)) (tsm.Seq tsm.Char) tsm.None)
   (ite ((_ is sm.Binary) x1)
     (ite (and (zleq 0 (sm.Binary.arg1 x1)) (zeq (sm.Binary.arg2 x1) (mod_total (sm.Binary.arg2 x1) (int.pow2 (sm.Binary.arg1 x1))))) (tsm.BitVec (int.to_nat (sm.Binary.arg1 x1))) tsm.None)
   (ite ((_ is sm.not) x1)

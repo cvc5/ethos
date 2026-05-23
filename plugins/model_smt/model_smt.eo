@@ -919,7 +919,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (($smtx_typeof_value ($vsm_set m))        ($smtx_map_to_set_type ($smtx_typeof_map_value m)))
   (($smtx_typeof_value ($vsm_fun i T U))    ($tsm_FunType T U))
   (($smtx_typeof_value ($vsm_seq ss))       ($smtx_typeof_seq_value ss))
-  (($smtx_typeof_value ($vsm_char c))       $tsm_Char)
+  (($smtx_typeof_value ($vsm_char c))       ($native_ite ($native_apply_1 "char_valid" c) $tsm_Char $tsm_none))
   (($smtx_typeof_value ($vsm_uvalue i e))   ($tsm_USort i))
   ; not guarded by well-foundedness as this creates circular dependencies
   (($smtx_typeof_value ($vsm_DtCons s d i)) ($smtx_typeof_dt_cons_value s d i))
@@ -1414,7 +1414,8 @@ $SMT_TYPEOF_AUX$
   (($smtx_typeof ($sm_bool b))      $tsm_Bool)
   (($smtx_typeof ($sm_numeral n))   $tsm_Int)
   (($smtx_typeof ($sm_rational r))  $tsm_Real)
-  (($smtx_typeof ($sm_string s))    $tsm_String)
+  (($smtx_typeof ($sm_string s))
+    ($native_ite ($native_apply_1 "string_valid" s) $tsm_String $tsm_none))
   (($smtx_typeof ($sm_binary w n))
     ; must be legal width and value
     ($native_ite
