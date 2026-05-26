@@ -71,7 +71,6 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
     }
   }
   d_partialExc.insert("$arith_eval_int_log_2_rec");
-  d_partialExc.insert("$some_pairwise_distinct_term");
   d_partialExc.insert("$bv_div_mod_impl");
   d_partialExc.insert("$bv_const_to_bitlist_rec");
   d_partialExc.insert("$bv_mk_bitblast_step_var_rec");
@@ -83,8 +82,6 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   d_partialExc.insert("$str_mk_re_loop_elim_rec");
   d_partialExc.insert("$str_from_int_eval_rec");
   d_partialExc.insert("$str_eval_replace_all_rec");
-  d_partialExc.insert("$set_is_not_subset");
-  d_partialExc.insert("$seq_distinct_terms");
   d_partialExc.insert("$str_re_includes_lhs_union");
   d_partialExc.insert("$str_re_includes_rhs_inter");
   d_partialExc.insert("$str_re_includes_lhs_star");

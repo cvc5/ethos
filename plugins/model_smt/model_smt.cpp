@@ -738,9 +738,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
     {
       op = "bvsmod";
       ssRet << "(eo::define (($abs_s "
-            << "(ite $msb_s x1 (bvneg x1))" << ")) ";
+            << "(ite $msb_s (bvneg x1) x1)" << ")) ";
       ssRet << "(eo::define (($abs_t "
-            << "(ite $msb_t x2 (bvneg x2))" << ")) ";
+            << "(ite $msb_t (bvneg x2) x2)" << ")) ";
       ssRet << "(eo::define (($u " << "(bvurem $abs_s $abs_t"
             << "))) ";
       ssRetEnd << ")))";
