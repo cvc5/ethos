@@ -173,6 +173,7 @@ set(ethos_test_file_list
     code-point-oob.eo
     homogeneous-list-ops.eo
     quant-sk-type.eo
+    fwd-decl-nground.eo
 )
 
 macro(ethos_test file)
