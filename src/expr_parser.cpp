@@ -1279,8 +1279,10 @@ void ExprParser::typeCheckProgramFwdDecl(Expr& prevProg,
   const Expr& prevType = d_state.getTypeChecker().getType(prevProg);
   if (prevType == newType)
   {
+    // already ok, return
     return;
   }
+  // rename the old variables to the new ones
   std::vector<Expr> vso = Expr::getVariables(prevType);
   std::vector<Expr> vsn = Expr::getVariables(newType);
   if (vso.size() == vsn.size())
@@ -1292,11 +1294,12 @@ void ExprParser::typeCheckProgramFwdDecl(Expr& prevProg,
     }
     if (d_state.getTypeChecker().evaluate(prevType.getValue(), ctx) == newType)
     {
+      // same after renaming, return
       return;
     }
   }
   std::stringstream ss;
-  ss << "Foward declaration of program " << progName << " had different type.";
+  ss << "Forward declaration of program " << progName << " had different type.";
   d_lex.parseError(ss.str());
 }
 

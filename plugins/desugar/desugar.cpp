@@ -1081,8 +1081,8 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
     {
       Expr ty = d_state.mkSymbol(Kind::CONST, "t", d_state.mkAny());
       Expr gt = getGroundTermForLiteralKind(k);
-      ltg = d_tc.getOrSetLiteralTypeRule(k, gt.getValue());
-      ltinst = d_tc.getOrSetLiteralTypeRule(k, ty.getValue());
+      ltg = d_tc.getLiteralTypeRuleMaybeInit(k, gt.getValue());
+      ltinst = d_tc.getLiteralTypeRuleMaybeInit(k, ty.getValue());
       d_litTypeDecl << "; (approx) type-rules: " << k << std::endl;
     }
     d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << ltg << ")"

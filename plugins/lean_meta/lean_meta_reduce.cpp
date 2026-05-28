@@ -79,7 +79,6 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   d_partialExc.insert("$str_eval_str_in_re");
   d_partialExc.insert("$str_re_consume_rec");
   d_partialExc.insert("$str_collect");
-  d_partialExc.insert("$str_mk_re_loop_elim_rec");
   d_partialExc.insert("$str_from_int_eval_rec");
   d_partialExc.insert("$str_eval_replace_all_rec");
   d_partialExc.insert("$set_is_not_subset");

@@ -57,14 +57,14 @@ void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
   it->second = t;
 }
 
-Expr TypeChecker::getOrSetLiteralTypeRule(Kind k, ExprValue* self)
+Expr TypeChecker::getLiteralTypeRuleMaybeInit(Kind k, ExprValue* self)
 {
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
   {
     std::stringstream ss;
-    EO_FATAL() << "TypeChecker::getOrSetLiteralTypeRule: cannot get type rule for kind "
-                 << k;
+    EO_FATAL() << "TypeChecker::getLiteralTypeRuleMaybeInit: cannot get type "
+               << "rule for kind " << k;
   }
   Expr tp;
   if (it->second.isNull())
@@ -284,7 +284,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     case Kind::STRING:
     {
       // use the literal type rule
-      return getOrSetLiteralTypeRule(k, e);
+      return getLiteralTypeRuleMaybeInit(k, e);
     }
     case Kind::AS:
     case Kind::AS_RETURN:
@@ -305,7 +305,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     {
       Expr ctype1 = Expr(d_state.lookupType(e->d_children[0]));
       Expr ctype2 = Expr(d_state.lookupType(e->d_children[1]));
-      if (ctype1 != getOrSetLiteralTypeRule(Kind::STRING, e->d_children[0]))
+      if (ctype1 != getLiteralTypeRuleMaybeInit(Kind::STRING, e->d_children[0]))
       {
         if (out)
         {
@@ -1854,15 +1854,12 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_FIND:
     case Kind::EVAL_LIST_LENGTH:
     case Kind::EVAL_LIST_FIND:
-      return getOrSetLiteralTypeRule(Kind::NUMERAL);
+      return getLiteralTypeRuleMaybeInit(Kind::NUMERAL);
     case Kind::EVAL_RAT_DIV:
-    case Kind::EVAL_TO_RAT:
-      return getOrSetLiteralTypeRule(Kind::RATIONAL);
+    case Kind::EVAL_TO_RAT: return getLiteralTypeRuleMaybeInit(Kind::RATIONAL);
     case Kind::EVAL_NAME_OF:
-    case Kind::EVAL_TO_STRING:
-      return getOrSetLiteralTypeRule(Kind::STRING);
-    case Kind::EVAL_TO_BIN:
-      return getOrSetLiteralTypeRule(Kind::BINARY);
+    case Kind::EVAL_TO_STRING: return getLiteralTypeRuleMaybeInit(Kind::STRING);
+    case Kind::EVAL_TO_BIN: return getLiteralTypeRuleMaybeInit(Kind::BINARY);
     case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS: return d_state.mkListType();
     default:break;
