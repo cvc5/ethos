@@ -82,6 +82,10 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   d_partialExc.insert("$str_mk_re_loop_elim_rec");
   d_partialExc.insert("$str_from_int_eval_rec");
   d_partialExc.insert("$str_eval_replace_all_rec");
+  d_partialExc.insert("$set_is_not_subset");
+  d_partialExc.insert("$seq_distinct_terms");
+  d_partialExc.insert("$dt_distinct_terms_arg");
+  d_partialExc.insert("$seq_eval_replace_all_rec");
   d_partialExc.insert("$str_re_includes_lhs_union");
   d_partialExc.insert("$str_re_includes_rhs_inter");
   d_partialExc.insert("$str_re_includes_lhs_star");

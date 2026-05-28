@@ -839,7 +839,7 @@
      $eo_List_nil)
   (($eo_datatype_cons_selectors_rec s d n ($edt_sum ($edtc_cons U c) d2) $native_n_zero ai)
     ($eo_List_cons ($eot_DtSel s d n ai)
-      ($eo_datatype_cons_selectors_rec s d n d2 $native_n_zero ($native_n_succ ai))))
+      ($eo_datatype_cons_selectors_rec s d n ($edt_sum c d2) $native_n_zero ($native_n_succ ai))))
   (($eo_datatype_cons_selectors_rec s d n ($edt_sum c d2) ($native_n_succ ci) ai)
     ($eo_datatype_cons_selectors_rec s d n d2 ci ai))
   )

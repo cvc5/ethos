@@ -50,6 +50,9 @@
 (define-fun oob_seq_nth_id () String "@oob_seq_nth")
 (define-fun uconst_id ((x Nat)) String (str.++ "@u." (str.from_int (nat.to_int x))))
 
+(define-fun char_valid ((x Int)) Bool (< x 196608))
+(define-fun string_valid ((x String)) Bool true)
+
 ; integer exponentiation is not handled by cvc5, axiomatize it
 (declare-fun zexp_total (Int Int) Int)
 (assert (! (forall ((x Int) (y Int)) 
