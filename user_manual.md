@@ -789,7 +789,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
 - `(eo::cmp t1 t2)`
   - Equivalent to `(eo::gt (eo::hash t1) (eo::hash t2))`. Note that this method corresponds to an arbitrary total order on terms.
 - `(eo::log t1 t2)`
-  - If `t1` is a numeral value and `t2` is a numeral, decimal, or rational value, this returns their rounded-down logarithm as a numeral value, following Lean's `Int.log` semantics. If `t1` is non-positive or `1`, or `t2` is non-positive, this returns `0`. Otherwise, it returns the greatest integer `n` such that `t1^n` is at most `t2`. If these literal kind requirements fail, this operator does not evaluate.
+  - If `t1` is a numeral value and `t2` is a numeral, decimal, or rational value, this returns their rounded-down logarithm as a numeral value. If `t1` is non-positive or `1`, or `t2` is non-positive, this returns `0`. For `t2` at least `1`, it returns the greatest non-negative integer `m` such that `(eo::pow t1 m)` is at most `t2`. For positive `t2` less than `1`, it returns `-m` where `m` is the least non-negative integer such that `(eo::pow t1 m)` is at least `1/t2`. If these literal kind requirements fail, this operator does not evaluate.
 - `(eo::is_z t)`
   - Equivalent to `(eo::is_eq (eo::to_z t) t)`.
 - `(eo::is_q t)`

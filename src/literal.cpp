@@ -250,7 +250,9 @@ Integer rationalCeil(const Rational& r)
   return -((-r).floor());
 }
 
-bool leanIntLog(const Integer& base, const Rational& value, Integer& result)
+bool integerRationalLog(const Integer& base,
+                        const Rational& value,
+                        Integer& result)
 {
   Integer oneInt(1);
   Rational one(oneInt);
@@ -431,7 +433,7 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       }
       Rational value;
       if (literalToRational(args[1], value)
-          && leanIntLog(args[0]->d_int, value, exp))
+          && integerRationalLog(args[0]->d_int, value, exp))
       {
         return Literal(exp);
       }
