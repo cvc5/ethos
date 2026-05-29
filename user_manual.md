@@ -789,7 +789,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
 - `(eo::cmp t1 t2)`
   - Equivalent to `(eo::gt (eo::hash t1) (eo::hash t2))`. Note that this method corresponds to an arbitrary total order on terms.
 - `(eo::log t1 t2)`
-  - If `t1` and `t2` are positive numeral, decimal, or rational values, and `t1` is not `1`, this returns a non-negative numeral value `n` such that `(eo::pow t1 n)` is `t2`. Otherwise, this operator does not evaluate.
+  - If `t1` is a numeral value and `t2` is a numeral, decimal, or rational value, this returns their rounded-down logarithm as a numeral value, following Lean's `Int.log` semantics. If `t1` is non-positive or `1`, or `t2` is non-positive, this returns `0`. Otherwise, it returns the greatest integer `n` such that `t1^n` is at most `t2`. If these literal kind requirements fail, this operator does not evaluate.
 - `(eo::is_z t)`
   - Equivalent to `(eo::is_eq (eo::to_z t) t)`.
 - `(eo::is_q t)`
@@ -994,9 +994,11 @@ Note the following examples of core operators for the given signature
 (eo::requires x x y)                 == y
 (eo::requires x x Int)               == Int
 (eo::log 2 8)                        == 3
-(eo::log 2 3)                        == (eo::log 2 3)             ; since no non-negative numeral exponent exists
-(eo::log 4 2)                        == (eo::log 4 2)             ; since logarithm is not a numeral
-(eo::log 1/2 1/8)                    == 3
+(eo::log 2 3)                        == 1
+(eo::log 4 2)                        == 0
+(eo::log 2 1/8)                      == -3
+(eo::log 2 1/3)                      == -2
+(eo::log 2 0)                        == 0
 ```
 
 In the above, it is important to note that `eo::eq` and `eo::is_eq` are checks for syntactic equality, which is different from saying the terms are semantically distinct in all models.

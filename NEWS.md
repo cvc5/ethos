@@ -4,7 +4,7 @@ ethos 0.2.4 prerelease
 ======================
 
 - Adds builtin operators `eo::pow` and `eo::list_repeat`. The exponent of `eo::pow` and the count of `eo::list_repeat` must be non-negative 32-bit numeral values.
-- Adds builtin operators `eo::log` and `eo::list_singleton_intro`. The base and argument of `eo::log` must be positive numeral, decimal, or rational values, and it returns a non-negative numeral exponent when exact.
+- Adds builtin operators `eo::log` and `eo::list_singleton_intro`. `eo::log` follows Lean's `Int.log`-style rounded-down integer logarithm for a numeral base and numeral, decimal, or rational argument.
 
 ethos 0.2.3
 ===========

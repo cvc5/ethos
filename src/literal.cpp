@@ -134,48 +134,99 @@ bool allSameBitWidth(const std::vector<const Literal*>& args)
   return true;
 }
 
-bool integerLog(const Integer& base,
-                const Integer& value,
-                uint32_t& result,
-                bool& anyExponent)
+Integer sizeToInteger(size_t n)
 {
-  anyExponent = false;
-  if (base.sgn() <= 0 || value.sgn() <= 0)
+  return Integer(std::to_string(n));
+}
+
+bool incrementLogResult(size_t& result)
+{
+  if (result == std::numeric_limits<size_t>::max())
   {
     return false;
   }
+  result++;
+  return true;
+}
+
+bool integerFloorLog(const Integer& base, const Integer& value, Integer& result)
+{
   Integer one(1);
-  if (value == one)
+  result = Integer(0);
+  if (value.sgn() <= 0 || !(base > one))
   {
-    if (base == one)
-    {
-      anyExponent = true;
-      return true;
-    }
-    result = 0;
     return true;
   }
-  if (base == one)
+  if (base > value)
   {
-    return false;
+    return true;
   }
-  Integer power(1);
-  uint32_t exp = 0;
-  while (!(power > value))
+  const mpz_class& b = base.getValue();
+  const mpz_class& v = value.getValue();
+  if (b.fits_sint_p())
   {
-    if (power == value)
+    long bLong = b.get_si();
+    if (2 <= bLong && bLong <= 62)
     {
-      result = exp;
+      size_t exp = mpz_sizeinbase(v.get_mpz_t(), static_cast<int>(bLong)) - 1;
+      mpz_class power;
+      mpz_pow_ui(power.get_mpz_t(), b.get_mpz_t(), exp);
+      while (power > v)
+      {
+        exp--;
+        power /= b;
+      }
+      while (true)
+      {
+        mpz_class next = power * b;
+        if (next > v)
+        {
+          break;
+        }
+        if (!incrementLogResult(exp))
+        {
+          return false;
+        }
+        power = next;
+      }
+      result = sizeToInteger(exp);
       return true;
     }
-    if (exp == std::numeric_limits<uint32_t>::max())
+  }
+  size_t exp = 0;
+  mpz_class power(1);
+  while (true)
+  {
+    mpz_class next = power * b;
+    if (next > v)
+    {
+      break;
+    }
+    if (!incrementLogResult(exp))
     {
       return false;
     }
-    exp++;
-    power = power * base;
+    power = next;
   }
-  return false;
+  result = sizeToInteger(exp);
+  return true;
+}
+
+bool integerCeilLog(const Integer& base, const Integer& value, Integer& result)
+{
+  Integer one(1);
+  result = Integer(0);
+  if (value.sgn() <= 0 || !(base > one) || !(value > one))
+  {
+    return true;
+  }
+  Integer predecessor = value + (-one);
+  if (!integerFloorLog(base, predecessor, result))
+  {
+    return false;
+  }
+  result = result + one;
+  return true;
 }
 
 bool literalToRational(const Literal* l, Rational& out)
@@ -194,38 +245,30 @@ bool literalToRational(const Literal* l, Rational& out)
   return false;
 }
 
-bool rationalLog(const Rational& base, const Rational& value, uint32_t& result)
+Integer rationalCeil(const Rational& r)
 {
-  if (base.sgn() <= 0 || value.sgn() <= 0
-      || base == Rational(Integer(1)))
+  return -((-r).floor());
+}
+
+bool leanIntLog(const Integer& base, const Rational& value, Integer& result)
+{
+  Integer oneInt(1);
+  Rational one(oneInt);
+  result = Integer(0);
+  if (!(base > oneInt) || value.sgn() <= 0)
   {
-    return false;
-  }
-  uint32_t numLog = 0;
-  uint32_t denLog = 0;
-  bool anyNum = false;
-  bool anyDen = false;
-  if (!integerLog(base.getNumerator(), value.getNumerator(), numLog, anyNum)
-      || !integerLog(
-          base.getDenominator(), value.getDenominator(), denLog, anyDen))
-  {
-    return false;
-  }
-  if (anyNum)
-  {
-    result = denLog;
     return true;
   }
-  if (anyDen)
+  if (value > one || value == one)
   {
-    result = numLog;
-    return true;
+    return integerFloorLog(base, value.floor(), result);
   }
-  if (numLog != denLog)
+  Rational inverse = one / value;
+  if (!integerCeilLog(base, rationalCeil(inverse), result))
   {
     return false;
   }
-  result = numLog;
+  result = -result;
   return true;
 }
 
@@ -381,14 +424,16 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       break;
     case Kind::EVAL_LOG:
     {
-      Rational base;
-      Rational value;
-      uint32_t exp = 0;
-      if (literalToRational(args[0], base)
-          && literalToRational(args[1], value)
-          && rationalLog(base, value, exp))
+      Integer exp;
+      if (args[0]->getKind() != Kind::NUMERAL)
       {
-        return Literal(Integer(exp));
+        break;
+      }
+      Rational value;
+      if (literalToRational(args[1], value)
+          && leanIntLog(args[0]->d_int, value, exp))
+      {
+        return Literal(exp);
       }
     }
       break;
