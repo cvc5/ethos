@@ -788,6 +788,8 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - If `t1` is a variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
 - `(eo::cmp t1 t2)`
   - Equivalent to `(eo::gt (eo::hash t1) (eo::hash t2))`. Note that this method corresponds to an arbitrary total order on terms.
+- `(eo::log t1 t2)`
+  - If `t1` and `t2` are positive numeral, decimal, or rational values, and `t1` is not `1`, this returns a non-negative numeral value `n` such that `(eo::pow t1 n)` is `t2`. Otherwise, this operator does not evaluate.
 - `(eo::is_z t)`
   - Equivalent to `(eo::is_eq (eo::to_z t) t)`.
 - `(eo::is_q t)`
@@ -991,6 +993,10 @@ Note the following examples of core operators for the given signature
 (eo::requires x 0 true)              == (eo::requires x 0 true)  ; x and 0 are not syntactically equal
 (eo::requires x x y)                 == y
 (eo::requires x x Int)               == Int
+(eo::log 2 8)                        == 3
+(eo::log 2 3)                        == (eo::log 2 3)             ; since no non-negative numeral exponent exists
+(eo::log 4 2)                        == (eo::log 4 2)             ; since logarithm is not a numeral
+(eo::log 1/2 1/8)                    == 3
 ```
 
 In the above, it is important to note that `eo::eq` and `eo::is_eq` are checks for syntactic equality, which is different from saying the terms are semantically distinct in all models.
@@ -1039,6 +1045,8 @@ We describe a signature that gives these definitions in [derived-ops](#derived-o
   - (Intersection) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that do not occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we erase one copy of it from that list and append it to the final result.
 - `(eo::list_singleton_elim f t1)`
   - (Singleton elimination) If `t1` is an `f`-list containing a single child `t11`, this returns `t11`. All other `f`-lists `t1` are returned unchanged. Otherwise, this operator does not evaluate.
+- `(eo::list_singleton_intro f t1)`
+  - (Singleton introduction) If `t1` is an `f`-list, this returns `t1` unchanged. Otherwise, this returns the singleton `f`-list containing `t1`.
 - `(eo::list_repeat f t1 t2)`
   - If `t2` is a non-negative 32-bit numeral value, then this returns the `f`-list with `t1` repeated `t2` times.
 
@@ -1133,6 +1141,9 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_singleton_elim or (or a b c))     == (or a b c)
 (eo::list_singleton_elim or (or a a a))     == (or a a a)
 (eo::list_singleton_elim or (or a))         == a
+(eo::list_singleton_intro or a)             == (or a)
+(eo::list_singleton_intro or (or a b))      == (or a b)
+(eo::list_singleton_intro or false)         == false
 (eo::list_repeat or a 0)                    == false
 (eo::list_repeat or a 3)                    == (or a a a)
 (eo::list_repeat or a 4294967296)           == (eo::list_repeat or a 4294967296)  ; since count is not a 32-bit numeral value

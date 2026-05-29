@@ -10,6 +10,7 @@
 
 #include "base/check.h"
 #include <iostream>
+#include <limits>
 
 namespace ethos {
 
@@ -133,11 +134,107 @@ bool allSameBitWidth(const std::vector<const Literal*>& args)
   return true;
 }
 
+bool integerLog(const Integer& base,
+                const Integer& value,
+                uint32_t& result,
+                bool& anyExponent)
+{
+  anyExponent = false;
+  if (base.sgn() <= 0 || value.sgn() <= 0)
+  {
+    return false;
+  }
+  Integer one(1);
+  if (value == one)
+  {
+    if (base == one)
+    {
+      anyExponent = true;
+      return true;
+    }
+    result = 0;
+    return true;
+  }
+  if (base == one)
+  {
+    return false;
+  }
+  Integer power(1);
+  uint32_t exp = 0;
+  while (!(power > value))
+  {
+    if (power == value)
+    {
+      result = exp;
+      return true;
+    }
+    if (exp == std::numeric_limits<uint32_t>::max())
+    {
+      return false;
+    }
+    exp++;
+    power = power * base;
+  }
+  return false;
+}
+
+bool literalToRational(const Literal* l, Rational& out)
+{
+  switch (l->getKind())
+  {
+    case Kind::NUMERAL:
+      out = Rational(l->d_int);
+      return true;
+    case Kind::DECIMAL:
+    case Kind::RATIONAL:
+      out = l->d_rat;
+      return true;
+    default: break;
+  }
+  return false;
+}
+
+bool rationalLog(const Rational& base, const Rational& value, uint32_t& result)
+{
+  if (base.sgn() <= 0 || value.sgn() <= 0
+      || base == Rational(Integer(1)))
+  {
+    return false;
+  }
+  uint32_t numLog = 0;
+  uint32_t denLog = 0;
+  bool anyNum = false;
+  bool anyDen = false;
+  if (!integerLog(base.getNumerator(), value.getNumerator(), numLog, anyNum)
+      || !integerLog(
+          base.getDenominator(), value.getDenominator(), denLog, anyDen))
+  {
+    return false;
+  }
+  if (anyNum)
+  {
+    result = denLog;
+    return true;
+  }
+  if (anyDen)
+  {
+    result = numLog;
+    return true;
+  }
+  if (numLog != denLog)
+  {
+    return false;
+  }
+  result = numLog;
+  return true;
+}
+
 Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
 {
   Assert (k!=Kind::EVAL_IS_EQ && k!=Kind::EVAL_IF_THEN_ELSE && k!=Kind::EVAL_REQUIRES);
   Kind ka = Kind::NONE;
-  if (k != Kind::EVAL_EXTRACT && k != Kind::EVAL_TO_BIN && k != Kind::EVAL_POW)
+  if (k != Kind::EVAL_EXTRACT && k != Kind::EVAL_TO_BIN
+      && k != Kind::EVAL_POW && k != Kind::EVAL_LOG)
   {
     ka = allSameKind(args);
     if (ka==Kind::NONE)
@@ -281,6 +378,19 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
           default: break;
         }
       }
+      break;
+    case Kind::EVAL_LOG:
+    {
+      Rational base;
+      Rational value;
+      uint32_t exp = 0;
+      if (literalToRational(args[0], base)
+          && literalToRational(args[1], value)
+          && rationalLog(base, value, exp))
+      {
+        return Literal(Integer(exp));
+      }
+    }
       break;
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:

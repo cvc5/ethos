@@ -69,6 +69,12 @@ class Rational
 
   int sgn() const { return mpq_sgn(d_value.get_mpq_t()); }
 
+  /** Return the numerator of this rational in canonical form. */
+  Integer getNumerator() const { return Integer(d_value.get_num()); }
+
+  /** Return the denominator of this rational in canonical form. */
+  Integer getDenominator() const { return Integer(d_value.get_den()); }
+
   Integer floor() const
   {
     mpz_class q;

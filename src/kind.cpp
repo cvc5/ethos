@@ -56,6 +56,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_TYPE_OF: o << "EVAL_TYPE_OF"; break;
     case Kind::EVAL_NAME_OF: o << "EVAL_NAME_OF"; break;
     case Kind::EVAL_COMPARE: o << "EVAL_COMPARE"; break;
+    case Kind::EVAL_LOG: o << "EVAL_LOG"; break;
     case Kind::EVAL_IS_Z: o << "EVAL_IS_Z"; break;
     case Kind::EVAL_IS_Q: o << "EVAL_IS_Q"; break;
     case Kind::EVAL_IS_BIN: o << "EVAL_IS_BIN"; break;
@@ -80,6 +81,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_LIST_DIFF: o << "EVAL_LIST_DIFF"; break;
     case Kind::EVAL_LIST_INTER: o << "EVAL_LIST_INTER"; break;
     case Kind::EVAL_LIST_SINGLETON_ELIM: o << "EVAL_LIST_SINGLETON_ELIM"; break;
+    case Kind::EVAL_LIST_SINGLETON_INTRO: o << "EVAL_LIST_SINGLETON_INTRO"; break;
     case Kind::EVAL_LIST_REPEAT: o << "EVAL_LIST_REPEAT"; break;
     // boolean
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
@@ -151,6 +153,7 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_TYPE_OF: ss << "typeof"; break;
           case Kind::EVAL_NAME_OF: ss << "nameof"; break;
           case Kind::EVAL_COMPARE: ss << "cmp"; break;
+          case Kind::EVAL_LOG: ss << "log"; break;
           case Kind::EVAL_IS_Z: ss << "is_z"; break;
           case Kind::EVAL_IS_Q: ss << "is_q"; break;
           case Kind::EVAL_IS_BIN: ss << "is_bin"; break;
@@ -176,6 +179,9 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_LIST_INTER: ss << "list_inter"; break;
           case Kind::EVAL_LIST_SINGLETON_ELIM:
             ss << "list_singleton_elim";
+            break;
+          case Kind::EVAL_LIST_SINGLETON_INTRO:
+            ss << "list_singleton_intro";
             break;
           case Kind::EVAL_LIST_REPEAT: ss << "list_repeat"; break;
           // boolean
@@ -257,6 +263,7 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_TYPE_OF:
     case Kind::EVAL_NAME_OF:
     case Kind::EVAL_COMPARE:
+    case Kind::EVAL_LOG:
     case Kind::EVAL_IS_Z:
     case Kind::EVAL_IS_Q:
     case Kind::EVAL_IS_BIN:
@@ -282,6 +289,7 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_LIST_INTER:
     case Kind::EVAL_LIST_SINGLETON_ELIM:
     case Kind::EVAL_LIST_REPEAT:
+    case Kind::EVAL_LIST_SINGLETON_INTRO:
     // boolean
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:
@@ -349,6 +357,7 @@ bool isListLiteralOp(Kind k)
     case Kind::EVAL_LIST_DIFF:
     case Kind::EVAL_LIST_INTER:
     case Kind::EVAL_LIST_SINGLETON_ELIM:
+    case Kind::EVAL_LIST_SINGLETON_INTRO:
     case Kind::EVAL_LIST_REPEAT: return true;
     default:
       break;
