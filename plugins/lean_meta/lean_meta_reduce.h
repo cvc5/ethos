@@ -187,6 +187,7 @@ class LeanMetaReduce : public MetaReducePlugin
   static std::string cleanId(const std::string& id);
   // TEMPORARY
   std::unordered_set<std::string> d_partialExc;
+  std::map<std::string, std::string> d_terminatingBy;
 };
 
 }  // namespace ethos

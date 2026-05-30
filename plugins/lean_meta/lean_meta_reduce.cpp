@@ -74,20 +74,28 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   d_partialExc.insert("$bv_div_mod_impl");
   d_partialExc.insert("$bv_const_to_bitlist_rec");
   d_partialExc.insert("$bv_mk_bitblast_step_var_rec");
-  d_partialExc.insert("$bv_smulo_elim_rec");
-  d_partialExc.insert("$bv_umulo_elim_rec");
   d_partialExc.insert("$str_eval_str_in_re");
   d_partialExc.insert("$str_re_consume_rec");
   d_partialExc.insert("$str_collect");
   d_partialExc.insert("$str_from_int_eval_rec");
   d_partialExc.insert("$str_eval_replace_all_rec");
-  d_partialExc.insert("$set_is_not_subset");
-  d_partialExc.insert("$seq_distinct_terms");
-  d_partialExc.insert("$dt_distinct_terms_arg");
+  //d_partialExc.insert("$set_is_not_subset");
+  //d_partialExc.insert("$seq_distinct_terms");
+  //d_partialExc.insert("$dt_distinct_terms");
   d_partialExc.insert("$seq_eval_replace_all_rec");
   d_partialExc.insert("$str_re_includes_lhs_union");
   d_partialExc.insert("$str_re_includes_rhs_inter");
   d_partialExc.insert("$str_re_includes_lhs_star");
+  d_terminatingBy["$set_is_not_subset"] =
+    "termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2";
+  d_terminatingBy["$seq_distinct_terms"] =
+  "termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2";
+  d_terminatingBy["$dt_distinct_terms"] =
+  "termination_by x1 x2 => sizeOf x1 + sizeOf x2";
+  d_terminatingBy["$are_distinct_terms_type"] = R"(termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2 + 1
+decreasing_by
+  all_goals simp_wf
+  all_goals omega)";
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}
@@ -1034,12 +1042,15 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       cases << " => " << retType.str() << ".Stuck" << std::endl;
     }
   }
-  // axiom
   (*out) << decl.str();
   (*out) << cases.str();
+  std::map<std::string, std::string>::iterator ittb = d_terminatingBy.find(vname);
+  if (ittb!=d_terminatingBy.end())
+  {
+    (*out) << ittb->second << std::endl;
+  }
   (*out) << std::endl;
   (*out) << std::endl;
-  // if it corresponds to a proof rule, print a Lean theorem
 }
 
 void LeanMetaReduce::define(const std::string& name, const Expr& e)
