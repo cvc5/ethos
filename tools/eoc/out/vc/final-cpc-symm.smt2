@@ -349,7 +349,7 @@
   :named smtx.char_of_value.def))
 
 ; models
-(define-sort smk.SmtModelKey () (Tuple String tsm.Type))
+(define-sort smk.SmtModelKey () (Tuple Bool String tsm.Type))
 (define-sort smm.SmtModel () (Array smk.SmtModelKey vsm.Value))
 
 (declare-datatype srl.RefList
@@ -378,6 +378,7 @@
 
 ; forward declarations
 (declare-fun model_lookup (smm.SmtModel String tsm.Type) vsm.Value)
+(declare-fun model_var_lookup (smm.SmtModel String tsm.Type) vsm.Value)
 (declare-fun model_push (smm.SmtModel String tsm.Type vsm.Value) smm.SmtModel)
 (declare-fun eval_texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
@@ -802,7 +803,7 @@
   (ite ((_ is sm.Apply) x2)
     ($smtx_model_eval_apply x1 ($smtx_model_eval x1 (sm.Apply.arg1 x2)) ($smtx_model_eval x1 (sm.Apply.arg2 x2)))
   (ite ((_ is sm.Var) x2)
-    (model_lookup x1 (sm.Var.arg1 x2) (sm.Var.arg2 x2))
+    (model_var_lookup x1 (sm.Var.arg1 x2) (sm.Var.arg2 x2))
   (ite ((_ is sm.UConst) x2)
     (model_lookup x1 (sm.UConst.arg1 x2) (sm.UConst.arg2 x2))
     vsm.NotValue
@@ -1016,12 +1017,17 @@
 ;;; Meta-level properties of models
 
 (assert (! (forall ((M smm.SmtModel) (id String) (T tsm.Type))
-  (! (= (model_lookup M id T) (select M (tuple id T)))
+  (! (= (model_lookup M id T) (select M (tuple false id T)))
   :pattern ((model_lookup M id T))))
   :named smtx.model_lookup_def))
 
+(assert (! (forall ((M smm.SmtModel) (id String) (T tsm.Type))
+  (! (= (model_var_lookup M id T) (select M (tuple true id T)))
+  :pattern ((model_var_lookup M id T))))
+  :named smtx.model_var_lookup_def))
+
 (assert (! (forall ((M smm.SmtModel) (id String) (T tsm.Type) (v vsm.Value))
-  (! (= (model_push M id T v) (store M (tuple id T) v))
+  (! (= (model_push M id T v) (store M (tuple true id T) v))
   :pattern ((model_push M id T v))))
   :named smtx.model_update_def))
 

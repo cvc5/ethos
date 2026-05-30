@@ -3120,7 +3120,7 @@
   ; All interpreted f should be handled in the evaluation cases above.
   (($smtx_model_eval M ($sm_apply f x1))
     ($smtx_model_eval_apply M ($smtx_model_eval M f) ($smtx_model_eval M x1)))
-  (($smtx_model_eval M ($sm_Var s T))     ($native_apply_3 "model_lookup" M s T))
+  (($smtx_model_eval M ($sm_Var s T))     ($native_apply_3 "model_var_lookup" M s T))
   (($smtx_model_eval M ($sm_UConst s T))  ($native_apply_3 "model_lookup" M s T))
   (($smtx_model_eval M x1)   $vsm_not_value)
   )
