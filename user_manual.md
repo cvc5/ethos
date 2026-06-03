@@ -788,8 +788,6 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - If `t1` is a variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
 - `(eo::cmp t1 t2)`
   - Equivalent to `(eo::gt (eo::hash t1) (eo::hash t2))`. Note that this method corresponds to an arbitrary total order on terms.
-- `(eo::log t1 t2)`
-  - If `t1` is a numeral value and `t2` is a numeral, decimal, or rational value, this returns the greatest non-negative integer `m` such that `(eo::pow t1 m)` is at most `t2`, as a numeral value. If `t1` is non-positive or `1`, or `t2` is less than `1`, this returns `0`. In other words, this is the rounded-down logarithm of `t2` in base `t1`, clamped to be non-negative so that it pairs with `eo::pow`. If these literal kind requirements fail, this operator does not evaluate.
 - `(eo::is_z t)`
   - Equivalent to `(eo::is_eq (eo::to_z t) t)`.
 - `(eo::is_q t)`
@@ -830,6 +828,8 @@ Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` 
   - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
 - `(eo::pow t1 t2)`
   - If `t1` is an arithmetic value and `t2` is a non-negative 32-bit numeral value, then this returns `t1` to the power of `t2`.
+- `(eo::log t1 t2)`
+  - If `t1` is a numeral value and `t2` is an arithmetic value, this returns the greatest non-negative integer `m` such that `(eo::pow t1 m)` is at most `t2`, as a numeral value. If `t1` is non-positive or `1`, or `t2` is less than `1`, this returns `0`. In other words, this is the rounded-down logarithm of `t2` in base `t1`, clamped to be non-negative so that it pairs with `eo::pow`. If these literal kind requirements fail, this operator does not evaluate.
 - `(eo::neg t1)`
   - If `t1` is a arithmetic value, this returns the arithmetic negation of `t1`.
   - If `t1` is a binary value, this returns its (signed) arithmetic negation.
