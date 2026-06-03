@@ -829,12 +829,12 @@ Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` 
   - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`.
   - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
 - `(eo::pow t1 t2)`
-  - If `t1` is an integer or real value and `t2` is a non-negative 32-bit numeral value, then this returns `t1` to the power of `t2`.
+  - If `t1` is an arithmetic value and `t2` is a non-negative 32-bit numeral value, then this returns `t1` to the power of `t2`.
 - `(eo::neg t1)`
   - If `t1` is a arithmetic value, this returns the arithmetic negation of `t1`.
   - If `t1` is a binary value, this returns its (signed) arithmetic negation.
 - `(eo::qdiv t1 t2)`
-  - If `t1` and `t2` are values of the same category and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
+  - If `t1` and `t2` are arithmetic values of the same category and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
 - `(eo::zdiv t1 t2)`
   - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer division (floor) of `t1` and `t2`.
   - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) division, where division by zero returns the max unsigned value.
