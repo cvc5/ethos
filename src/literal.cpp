@@ -145,12 +145,15 @@ Integer integerFloorLog(const Integer& base, const Integer& value)
   {
     return Integer(0);
   }
+  // Repeatedly divide the value by the base, counting the steps until it drops
+  // below the base. We divide rather than build up successive powers so that
+  // the intermediate values stay bounded by the original value.
   Integer result(0);
-  Integer power = base;
-  while (!(power > value))
+  Integer remaining = value;
+  while (!(base > remaining))
   {
     result = result + one;
-    power = power * base;
+    remaining = remaining.floorDivideQuotient(base);
   }
   return result;
 }
