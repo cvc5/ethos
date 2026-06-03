@@ -789,7 +789,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
 - `(eo::cmp t1 t2)`
   - Equivalent to `(eo::gt (eo::hash t1) (eo::hash t2))`. Note that this method corresponds to an arbitrary total order on terms.
 - `(eo::log t1 t2)`
-  - If `t1` is a numeral value and `t2` is a numeral, decimal, or rational value, this returns their rounded-down logarithm as a numeral value. If `t1` is non-positive or `1`, or `t2` is non-positive, this returns `0`. For `t2` at least `1`, it returns the greatest non-negative integer `m` such that `(eo::pow t1 m)` is at most `t2`. For positive `t2` less than `1`, it returns `-m` where `m` is the least non-negative integer such that `(eo::pow t1 m)` is at least `1/t2`. If these literal kind requirements fail, this operator does not evaluate.
+  - If `t1` is a numeral value and `t2` is a numeral, decimal, or rational value, this returns the greatest non-negative integer `m` such that `(eo::pow t1 m)` is at most `t2`, as a numeral value. If `t1` is non-positive or `1`, or `t2` is less than `1`, this returns `0`. In other words, this is the rounded-down logarithm of `t2` in base `t1`, clamped to be non-negative so that it pairs with `eo::pow`. If these literal kind requirements fail, this operator does not evaluate.
 - `(eo::is_z t)`
   - Equivalent to `(eo::is_eq (eo::to_z t) t)`.
 - `(eo::is_q t)`
@@ -996,8 +996,8 @@ Note the following examples of core operators for the given signature
 (eo::log 2 8)                        == 3
 (eo::log 2 3)                        == 1
 (eo::log 4 2)                        == 0
-(eo::log 2 1/8)                      == -3
-(eo::log 2 1/3)                      == -2
+(eo::log 2 1/8)                      == 0
+(eo::log 2 1/3)                      == 0
 (eo::log 2 0)                        == 0
 ```
 

@@ -1854,36 +1854,11 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_DIFF:
     case Kind::EVAL_LIST_INTER:
     case Kind::EVAL_LIST_SINGLETON_ELIM:
-      return Expr(childTypes[1]);
+    // Like the other list operators above, we approximate the return type as
+    // the type of the second argument. This is exact when the argument is
+    // already a list, and a sound approximation when it is an element.
     case Kind::EVAL_LIST_SINGLETON_INTRO:
-    {
-      ExprValue* op = children[0];
-      op = op->getKind() == Kind::PARAMETERIZED ? (*op)[1] : op;
-      AppInfo* ac = d_state.getAppInfo(op);
-      if (ac != nullptr && isListNilAttr(ac->d_attrCons))
-      {
-        Expr opType(childTypes[0]);
-        std::pair<std::vector<Expr>, Expr> ft = opType.getFunctionType();
-        if (ft.first.size() >= 2)
-        {
-          bool isLeft = (ac->d_attrCons == Attr::LEFT_ASSOC_NIL
-                         || ac->d_attrCons == Attr::LEFT_ASSOC_NS_NIL);
-          Expr listType = ft.first[isLeft ? 0 : 1];
-          Expr elemType = ft.first[isLeft ? 1 : 0];
-          Ctx ctx;
-          if (match(listType.getValue(), childTypes[1], ctx))
-          {
-            return evaluate(ft.second.getValue(), ctx);
-          }
-          ctx.clear();
-          if (match(elemType.getValue(), childTypes[1], ctx))
-          {
-            return evaluate(ft.second.getValue(), ctx);
-          }
-        }
-      }
       return Expr(childTypes[1]);
-    }
     case Kind::EVAL_LIST_REPEAT:
     {
       Expr opType(childTypes[0]);

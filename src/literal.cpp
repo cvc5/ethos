@@ -10,7 +10,6 @@
 
 #include "base/check.h"
 #include <iostream>
-#include <limits>
 
 namespace ethos {
 
@@ -134,99 +133,26 @@ bool allSameBitWidth(const std::vector<const Literal*>& args)
   return true;
 }
 
-Integer sizeToInteger(size_t n)
-{
-  return Integer(std::to_string(n));
-}
-
-bool incrementLogResult(size_t& result)
-{
-  if (result == std::numeric_limits<size_t>::max())
-  {
-    return false;
-  }
-  result++;
-  return true;
-}
-
-bool integerFloorLog(const Integer& base, const Integer& value, Integer& result)
+/**
+ * Returns the greatest non-negative integer m such that base^m <= value, or 0
+ * if base is not greater than one or value is non-positive. Since the result is
+ * never negative, this is the (rounded-down) inverse of eo::pow.
+ */
+Integer integerFloorLog(const Integer& base, const Integer& value)
 {
   Integer one(1);
-  result = Integer(0);
-  if (value.sgn() <= 0 || !(base > one))
+  if (!(base > one) || value.sgn() <= 0)
   {
-    return true;
+    return Integer(0);
   }
-  if (base > value)
+  Integer result(0);
+  Integer power = base;
+  while (!(power > value))
   {
-    return true;
+    result = result + one;
+    power = power * base;
   }
-  const mpz_class& b = base.getValue();
-  const mpz_class& v = value.getValue();
-  if (b.fits_sint_p())
-  {
-    long bLong = b.get_si();
-    if (2 <= bLong && bLong <= 62)
-    {
-      size_t exp = mpz_sizeinbase(v.get_mpz_t(), static_cast<int>(bLong)) - 1;
-      mpz_class power;
-      mpz_pow_ui(power.get_mpz_t(), b.get_mpz_t(), exp);
-      while (power > v)
-      {
-        exp--;
-        power /= b;
-      }
-      while (true)
-      {
-        mpz_class next = power * b;
-        if (next > v)
-        {
-          break;
-        }
-        if (!incrementLogResult(exp))
-        {
-          return false;
-        }
-        power = next;
-      }
-      result = sizeToInteger(exp);
-      return true;
-    }
-  }
-  size_t exp = 0;
-  mpz_class power(1);
-  while (true)
-  {
-    mpz_class next = power * b;
-    if (next > v)
-    {
-      break;
-    }
-    if (!incrementLogResult(exp))
-    {
-      return false;
-    }
-    power = next;
-  }
-  result = sizeToInteger(exp);
-  return true;
-}
-
-bool integerCeilLog(const Integer& base, const Integer& value, Integer& result)
-{
-  Integer one(1);
-  result = Integer(0);
-  if (value.sgn() <= 0 || !(base > one) || !(value > one))
-  {
-    return true;
-  }
-  Integer predecessor = value + (-one);
-  if (!integerFloorLog(base, predecessor, result))
-  {
-    return false;
-  }
-  result = result + one;
-  return true;
+  return result;
 }
 
 bool literalToRational(const Literal* l, Rational& out)
@@ -243,35 +169,6 @@ bool literalToRational(const Literal* l, Rational& out)
     default: break;
   }
   return false;
-}
-
-Integer rationalCeil(const Rational& r)
-{
-  return -((-r).floor());
-}
-
-bool integerRationalLog(const Integer& base,
-                        const Rational& value,
-                        Integer& result)
-{
-  Integer oneInt(1);
-  Rational one(oneInt);
-  result = Integer(0);
-  if (!(base > oneInt) || value.sgn() <= 0)
-  {
-    return true;
-  }
-  if (value > one || value == one)
-  {
-    return integerFloorLog(base, value.floor(), result);
-  }
-  Rational inverse = one / value;
-  if (!integerCeilLog(base, rationalCeil(inverse), result))
-  {
-    return false;
-  }
-  result = -result;
-  return true;
 }
 
 Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
@@ -426,16 +323,16 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       break;
     case Kind::EVAL_LOG:
     {
-      Integer exp;
       if (args[0]->getKind() != Kind::NUMERAL)
       {
         break;
       }
       Rational value;
-      if (literalToRational(args[1], value)
-          && integerRationalLog(args[0]->d_int, value, exp))
+      if (literalToRational(args[1], value))
       {
-        return Literal(exp);
+        // Note the floor of a value in (0, 1) is 0, so values below one
+        // evaluate to 0, ensuring the result is never negative.
+        return Literal(integerFloorLog(args[0]->d_int, value.floor()));
       }
     }
       break;
