@@ -106,6 +106,10 @@
 (define $native_mod_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "mod_total" x1 x2))
 (define $native_z_**_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zexp_total" x1 x2))
 (define $native_q_**_total ((x1 $native_Real) (x2 $native_Int)) ($native_apply_2 "qexp_total" x1 x2))
+; The (rounded-down) integer logarithm of x2 in base x1. This is the inverse of
+; $native_z_**_total: it returns the greatest m>=0 such that x1^m <= x2, and 0
+; when x1 <= 1 or x2 <= 0.
+(define $native_z_log ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "int_log" x1 x2))
 (define $native_z_neg_one () ($native_z_uneg $native_z_one))
 (define $native_z_inc ((x1 $native_Int)) ($native_z_+ x1 $native_z_one))
 (define $native_z_dec ((x1 $native_Int)) ($native_z_+ x1 $native_z_neg_one))

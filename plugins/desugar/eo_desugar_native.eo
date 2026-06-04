@@ -388,6 +388,24 @@
   )
 )
 
+; program: $eo_log
+; implements: eo::log
+; note: >
+;   The base (first argument) must be a numeral; a rational base is stuck. The
+;   value (second argument) is floored to an integer, so a rational value is
+;   first converted via to_int. The result is computed by $native_z_log, which
+;   is the (rounded-down) integer inverse of $eo_pow and is never negative.
+(program $eo_log
+  ((n1 $native_Int) (n2 $native_Int) (r2 $native_Rat))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_log ($eot_numeral n1) ($eot_numeral n2))
+    ($eot_numeral ($native_z_log n1 n2)))
+  (($eo_log ($eot_numeral n1) ($eot_rational r2))
+    ($eot_numeral ($native_z_log n1 ($native_apply_1 "to_int" r2))))
+  )
+)
+
 (program $eo_qdiv
   ((T Type) (n1 $native_Int) (n2 $native_Int)
    (r1 $native_Rat) (r2 $native_Rat))

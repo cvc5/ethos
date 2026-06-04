@@ -65,6 +65,21 @@ def native_mod_total : native_Int -> native_Int -> native_Int
   | x, y => x%y
 def native_zexp_total (x : native_Int) (y : native_Int) : native_Int :=
   if y < 0 then 0 else (x ^ (Int.toNat y))
+-- Helper for native_int_log: repeatedly divides `remaining` by `base`, counting
+-- the steps until it drops below `base`. `fuel` bounds the recursion (the caller
+-- passes the value itself, which is always at least the number of steps when
+-- base >= 2).
+def native_int_log_rec (base : native_Nat) : native_Nat -> native_Nat -> native_Nat
+  | 0, _ => 0
+  | fuel + 1, remaining =>
+    if remaining < base then 0 else 1 + native_int_log_rec base fuel (remaining / base)
+-- The (rounded-down) integer logarithm of `v` in base `b`, i.e. the greatest
+-- m >= 0 such that b^m <= v, or 0 when b <= 1 or v <= 0. This aligns with Lean's
+-- `Nat.log` and is the integer inverse of native_zexp_total.
+def native_int_log (b : native_Int) (v : native_Int) : native_Int :=
+  let base := Int.toNat b
+  let value := Int.toNat v
+  if base <= 1 || value == 0 then 0 else Int.ofNat (native_int_log_rec base value value)
 def native_int_pow2 (n : native_Int) : native_Int :=
   (native_zexp_total 2 n)
 def native_piand : native_Int -> native_Int -> native_Int -> native_Int

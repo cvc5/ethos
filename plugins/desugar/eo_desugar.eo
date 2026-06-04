@@ -413,6 +413,19 @@ $EO_LITERAL_TYPE_DECL$
   (eo::requires ($eo_is_list f a) true
     ($eo_list_singleton_elim_2 a)))
 
+;;; $eo_list_singleton_intro
+
+; define: $eo_list_singleton_intro
+; implements: eo::list_singleton_intro
+; note: >
+;   The counterpart to $eo_list_singleton_elim. If a is already a list, it is
+;   returned unchanged; otherwise it is wrapped as the singleton list (f a nil),
+;   where nil is the nil terminator for the type of a.
+(define $eo_list_singleton_intro
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::ite ($eo_is_list f a) a ($eo_cons f a ($eo_nil f ($eo_typeof a)))))
+
 ;;; $eo_list_repeat
 
 (program $eo_list_repeat_rec ((T Type) (U Type) (f (-> T T T)) (a T) (n $native_Nat))
