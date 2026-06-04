@@ -108,6 +108,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("typeof", Kind::EVAL_TYPE_OF);
   bindBuiltinEval("var", Kind::VARIABLE);
   bindBuiltinEval("cmp", Kind::EVAL_COMPARE);
+  bindBuiltinEval("log", Kind::EVAL_LOG);
   bindBuiltinEval("is_z", Kind::EVAL_IS_Z);
   bindBuiltinEval("is_q", Kind::EVAL_IS_Q);
   bindBuiltinEval("is_bin", Kind::EVAL_IS_BIN);
@@ -130,6 +131,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_diff", Kind::EVAL_LIST_DIFF);
   bindBuiltinEval("list_inter", Kind::EVAL_LIST_INTER);
   bindBuiltinEval("list_singleton_elim", Kind::EVAL_LIST_SINGLETON_ELIM);
+  bindBuiltinEval("list_singleton_intro", Kind::EVAL_LIST_SINGLETON_INTRO);
   bindBuiltinEval("list_repeat", Kind::EVAL_LIST_REPEAT);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);

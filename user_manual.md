@@ -827,12 +827,14 @@ Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` 
   - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`.
   - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
 - `(eo::pow t1 t2)`
-  - If `t1` is an integer or real value and `t2` is a non-negative 32-bit numeral value, then this returns `t1` to the power of `t2`.
+  - If `t1` is an arithmetic value and `t2` is a non-negative 32-bit numeral value, then this returns `t1` to the power of `t2`.
+- `(eo::log t1 t2)`
+  - If `t1` is a numeral value and `t2` is an arithmetic value, this returns the greatest non-negative integer `m` such that `(eo::pow t1 m)` is at most `t2`, as a numeral value. If `t1` is non-positive or `1`, or `t2` is less than `1`, this returns `0`. In other words, this is the rounded-down logarithm of `t2` in base `t1`, clamped to be non-negative so that it pairs with `eo::pow`. If these literal kind requirements fail, this operator does not evaluate.
 - `(eo::neg t1)`
   - If `t1` is a arithmetic value, this returns the arithmetic negation of `t1`.
   - If `t1` is a binary value, this returns its (signed) arithmetic negation.
 - `(eo::qdiv t1 t2)`
-  - If `t1` and `t2` are values of the same category and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
+  - If `t1` and `t2` are arithmetic values of the same category and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
 - `(eo::zdiv t1 t2)`
   - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer division (floor) of `t1` and `t2`.
   - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) division, where division by zero returns the max unsigned value.
@@ -991,6 +993,12 @@ Note the following examples of core operators for the given signature
 (eo::requires x 0 true)              == (eo::requires x 0 true)  ; x and 0 are not syntactically equal
 (eo::requires x x y)                 == y
 (eo::requires x x Int)               == Int
+(eo::log 2 8)                        == 3
+(eo::log 2 3)                        == 1
+(eo::log 4 2)                        == 0
+(eo::log 2 1/8)                      == 0
+(eo::log 2 1/3)                      == 0
+(eo::log 2 0)                        == 0
 ```
 
 In the above, it is important to note that `eo::eq` and `eo::is_eq` are checks for syntactic equality, which is different from saying the terms are semantically distinct in all models.
@@ -1039,6 +1047,8 @@ We describe a signature that gives these definitions in [derived-ops](#derived-o
   - (Intersection) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that do not occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we erase one copy of it from that list and append it to the final result.
 - `(eo::list_singleton_elim f t1)`
   - (Singleton elimination) If `t1` is an `f`-list containing a single child `t11`, this returns `t11`. All other `f`-lists `t1` are returned unchanged. Otherwise, this operator does not evaluate.
+- `(eo::list_singleton_intro f t1)`
+  - (Singleton introduction) If `t1` is an `f`-list, this returns `t1` unchanged. Otherwise, this returns the singleton `f`-list containing `t1`.
 - `(eo::list_repeat f t1 t2)`
   - If `t2` is a non-negative 32-bit numeral value, then this returns the `f`-list with `t1` repeated `t2` times.
 
@@ -1133,6 +1143,9 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_singleton_elim or (or a b c))     == (or a b c)
 (eo::list_singleton_elim or (or a a a))     == (or a a a)
 (eo::list_singleton_elim or (or a))         == a
+(eo::list_singleton_intro or a)             == (or a)
+(eo::list_singleton_intro or (or a b))      == (or a b)
+(eo::list_singleton_intro or false)         == false
 (eo::list_repeat or a 0)                    == false
 (eo::list_repeat or a 3)                    == (or a a a)
 (eo::list_repeat or a 4294967296)           == (eo::list_repeat or a 4294967296)  ; since count is not a 32-bit numeral value
