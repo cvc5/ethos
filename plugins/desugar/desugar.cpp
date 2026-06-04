@@ -180,6 +180,10 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     finalizeDatatype(e, cattr, cattrCons);
     // also handle it as a normal declaration below
   }
+  else if (cattr == Attr::BINDER)
+  {
+    finalizeBinder(e, cattrCons);
+  }
   bool isAmb = (cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR);
   bool hasOpaqueArg = (cattr == Attr::OPAQUE || isAmb);
   // check for eo::List
@@ -789,6 +793,11 @@ void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
   os << ")" << std::endl;
 }
 
+void Desugar::finalizeBinder(const Expr& e, const Expr& attrCons)
+{
+  d_eoIsClosed << "  (($eo_is_closed_rec (" << e << " vs x) env) ($eo_is_closed_rec x (eo::list_concat $eo_List_cons vs env)))" << std::endl;
+}
+
 void Desugar::finalize()
 {
   // ensure all literal types are defined
@@ -861,6 +870,7 @@ void Desugar::finalize()
   replace(finalEo, "$EO_NIL_CASES$", d_eoNil.str());
   replace(finalEo, "$EO_NIL_NGROUND_DEFS$", d_eoNilNground.str());
   replace(finalEo, "$EO_TYPEOF_CASES$", d_eoTypeof.str());
+  replace(finalEo, "$EO_IS_CLOSED_CASES$", d_eoIsClosed.str());
   replace(finalEo, "$EO_TYPEOF_NGROUND_DEFS$", d_eoTypeofNGround.str());
   replace(finalEo, "$EO_DT_CONSTRUCTORS_PARAM$", d_eoDtConsParam.str());
   replace(finalEo, "$EO_DT_CONSTRUCTORS_CASES$", d_eoDtCons.str());

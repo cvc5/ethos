@@ -105,6 +105,10 @@ class Desugar : public StdPlugin
    * Emit datatype reflection cases for datatypes, constructors, and selectors.
    */
   void finalizeDatatype(const Expr& d, Attr a, const Expr& attrCons);
+  /**
+   * Emit is_closed cases for the binder e.
+   */
+  void finalizeBinder(const Expr& e, const Expr& attrCons);
   /** Reserved hook for well-foundedness artifacts. */
   void finalizeWellFounded();
   /** Sanitize an expression using the default overload-renaming map. */
@@ -173,6 +177,8 @@ class Desugar : public StdPlugin
   std::stringstream d_eoNil;
   /** Generated `$eo_typeof` cases. */
   std::stringstream d_eoTypeof;
+  /** Generated `$eo_is_closed` cases. */
+  std::stringstream d_eoIsClosed;
   /** Generated helper programs for non-ground `$eo_typeof` cases. */
   std::stringstream d_eoTypeofNGround;
   /** Generated parameter binders for datatype-constructor reflection. */

@@ -38,7 +38,7 @@ LEAN_ALL_DEPS = (
     "$eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval "
     "$eo_checker_is_refutation and $eot_UConst $eot_USort "
     "$smtx_typeof $smtx_typeof_value $smtx_value_canonical_bool "
-    "$smtx_msm_lookup"
+    "$smtx_msm_lookup $emb_UOp"
 )
 
 LEAN_SINGLE_DEPS = (
@@ -46,7 +46,7 @@ LEAN_SINGLE_DEPS = (
     "$eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval "
     "$eo_checker_is_refutation and => $eot_UConst $eot_USort "
     "$smtx_model_eval_apply $smtx_typeof $smtx_typeof_value "
-    "$smtx_value_canonical_bool $smtx_msm_lookup"
+    "$smtx_value_canonical_bool $smtx_msm_lookup $emb_UOp"
 )
 
 

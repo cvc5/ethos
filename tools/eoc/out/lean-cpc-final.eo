@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 421
+; #trim-defs: 430
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -11,10 +11,6 @@
 (declare-const Char Type)
 (declare-const Seq (-> Type Type))
 (declare-consts <string> (Seq Char))
-(declare-const $eo_List Type)
-(declare-const $eo_List_nil $eo_List)
-(declare-parameterized-const $eo_List_cons ((T Type :implicit))
-  (-> T $eo_List $eo_List))
 (declare-const $native_BuiltinType Type)
 (declare-parameterized-const $native_type_0
   (($smt_id Type :implicit) (op $smt_id :opaque))
@@ -85,6 +81,27 @@
 (define $native_teq ((x1 $eo_Term) (x2 $eo_Term)) ($native_apply_2 "teq" x1 x2))
 (declare-const $eo_DatatypeCons Type)
 (declare-const $eo_Datatype Type)
+(declare-parameterized-const $emb_UOp 
+  ((u ($native_type_0 "UserOp") :opaque)) $eo_Term)
+(declare-parameterized-const $emb_UOp1 
+  ((u ($native_type_0 "UserOp1") :opaque) (t1 $eo_Term :opaque)) $eo_Term)
+(define $eot_uop1 ((u ($native_type_0 "UserOp")) (t1 $eo_Term)) 
+  ($emb_UOp1 u t1))
+(declare-parameterized-const $emb_UOp2 
+  ((u ($native_type_0 "UserOp2") :opaque) (t1 $eo_Term :opaque)
+   (t2 $eo_Term :opaque)) $eo_Term)
+(define $eot_uop2 ((u ($native_type_0 "UserOp")) (t1 $eo_Term) (t2 $eo_Term)) 
+  ($emb_UOp2 u t1 t2))
+(declare-parameterized-const $emb_UOp3 
+  ((u ($native_type_0 "UserOp3") :opaque) (t1 $eo_Term :opaque) 
+   (t2 $eo_Term :opaque) (t3 $eo_Term :opaque)) $eo_Term)
+(define $eot_uop3 
+  ((u ($native_type_0 "UserOp")) (t1 $eo_Term) (t2 $eo_Term) (t3 $eo_Term)) 
+  ($emb_UOp3 u t1 t2 t3))
+(declare-const $eo_List Type)
+(declare-const $eo_List_nil $eo_List)
+(declare-parameterized-const $eo_List_cons ((T Type :implicit))
+  (-> T $eo_List $eo_List))
 (declare-const $emb_Bool $eo_Term)
 (define $eot_Bool () $emb_Bool)
 (declare-parameterized-const $emb_Boolean
@@ -434,6 +451,31 @@
 
   (($eo_typeof ($eo_f $eo_x))
     ($eo_typeof_apply ($eo_typeof $eo_f) ($eo_typeof $eo_x)))
+  )
+)
+(program $eo_is_closed_rec
+  ((T Type) (U Type) (V Type) (s $eo_Term) (env $eo_List) 
+   (f (-> U V T)) (x U) (vs $eo_List) (X Type) (u X) (x2 U) (x3 U))
+  :signature ($eo_Term $eo_List) $eo_Term
+  (
+  (($eo_is_closed_rec ($eot_Var s T) $eo_List_nil) false)
+  (($eo_is_closed_rec ($eot_Var s T) ($eo_List_cons x vs))
+    (eo::ite (eo::eq ($eot_Var s T) x) true ($eo_is_closed_rec ($eot_Var s T) vs)))
+
+  (($eo_is_closed_rec (f x) env)
+    (eo::and ($eo_is_closed_rec f env) ($eo_is_closed_rec x env)))
+  (($eo_is_closed_rec ($eot_uop1 u x) env) ($eo_is_closed_rec x env))
+  (($eo_is_closed_rec ($eot_uop2 u x x2) env) 
+    (eo::and ($eo_is_closed_rec x env) ($eo_is_closed_rec x2 env)))
+  (($eo_is_closed_rec ($eot_uop3 u x x2 x3) env) 
+    (eo::and (eo::and ($eo_is_closed_rec x env) ($eo_is_closed_rec x2 env)) ($eo_is_closed_rec x3 env)))
+  (($eo_is_closed_rec x env) true)
+  )
+)
+(program $eo_is_closed ((t $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_is_closed t) ($eo_is_closed_rec t $eo_List_nil))
   )
 )
 (declare-const $smt_Model Type)
@@ -1134,7 +1176,7 @@
   (($smtx_typeof_choice_nth T F $native_n_zero)
     ($native_ite ($native_Teq ($smtx_typeof F) $tsm_Bool) ($smtx_typeof_guard_wf T T) $tsm_none))
   (($smtx_typeof_choice_nth T ($sm_exists s U F) ($native_n_succ n))
-    ($smtx_typeof_choice_nth U F n))
+    ($smtx_typeof_guard_wf T ($smtx_typeof_choice_nth U F n)))
   (($smtx_typeof_choice_nth T F n) $tsm_none)
   )
 )
@@ -1182,9 +1224,9 @@
     ($smtx_typeof_= ($smtx_typeof x1) ($smtx_typeof x2)))
   
   (($smtx_typeof ($sm_exists s T x1))
-    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
+    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T $tsm_Bool) $tsm_none))
   (($smtx_typeof ($sm_forall s T x1))
-    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
+    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T $tsm_Bool) $tsm_none))
   (($smtx_typeof ($sm_choice_nth s T x1 n))
     ($smtx_typeof_choice_nth T x1 n))
   (($smtx_typeof ($sm_map_diff x1 x2))
@@ -1632,7 +1674,8 @@
   :signature ($eo_State $eo_Cmd) $eo_State
   (
   (($eo_invoke_cmd $s_stuck c) $s_stuck)
-  (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume_check ($eo_is_bool_type proven) proven S))
+  (($eo_invoke_cmd S ($cmd_assume_push proven))  
+    ($eo_push_assume_check (eo::and ($eo_is_bool_type proven) ($eo_is_closed proven)) proven S))
   (($eo_invoke_cmd S ($cmd_check_proven proven)) ($eo_invoke_cmd_check_proven S proven))
   (($eo_invoke_cmd S ($cmd_step r args premises))
     ($eo_push_proven ($eo_cmd_step_proven S r args premises) S))
@@ -1664,7 +1707,7 @@
   :signature ($eo_State Bool) $eo_State
   (
   (($eo_invoke_assume_list S (and F as))
-    ($eo_push_input_assume_check ($eo_is_bool_type F) F ($eo_invoke_assume_list S as)))
+    ($eo_push_input_assume_check (eo::and ($eo_is_bool_type F) ($eo_is_closed F)) F ($eo_invoke_assume_list S as)))
   (($eo_invoke_assume_list S true) S)
   (($eo_invoke_assume_list S as) $s_stuck)
   )
@@ -1676,5 +1719,5 @@
     ($eo_state_is_refutation ($eo_invoke_cmd_list ($eo_invoke_assume_list $s_nil as) cs)))
   )
 )
-(echo "lean-meta $eo_prog_contra :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value $smtx_value_canonical_bool $smtx_msm_lookup ")
-(echo "lean-meta $eo_prog_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value $smtx_value_canonical_bool $smtx_msm_lookup ")
+(echo "lean-meta $eo_prog_contra :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value $smtx_value_canonical_bool $smtx_msm_lookup $emb_UOp ")
+(echo "lean-meta $eo_prog_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value $smtx_value_canonical_bool $smtx_msm_lookup $emb_UOp ")

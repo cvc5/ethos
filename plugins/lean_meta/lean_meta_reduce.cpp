@@ -51,25 +51,6 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   {
     d_smtTOpDt << "  | None : SmtTheoryOp" << std::endl;
   }
-  if (optionEoUserOp())
-  {
-    for (size_t i=0; i<4; i++)
-    {
-      if (i==0)
-      {
-        d_embedTermDt << "  | UOp : UserOp -> Term" << std::endl;
-      }
-      else
-      {
-        d_embedTermDt << "  | UOp" << i << " : UserOp" << i << " -> ";
-        for (size_t j=0; j<i; j++)
-        {
-          d_embedTermDt << "Term -> ";
-        }
-        d_embedTermDt << "Term" << std::endl;
-      }
-    }
-  }
   d_partialExc.insert("$arith_eval_int_log_2_rec");
   d_partialExc.insert("$bv_div_mod_impl");
   d_partialExc.insert("$bv_const_to_bitlist_rec");
@@ -364,6 +345,10 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
     std::stringstream ss;
     ss << "(native_string_lit " << smtStr << ")";
     return ss.str();
+  }
+  else if (smtStr.compare(0, 6, "UserOp")==0)
+  {
+    return smtStr;
   }
   std::stringstream ss;
   ss << "native_" << cleanSmtId(smtStr);
@@ -1305,13 +1290,17 @@ void LeanMetaReduce::printStepCase(std::ostream& out,
                                    bool isPop)
 {
   std::stringstream thmName;
-  thmName << "cmd_step_" << (isPop ? "pop_" : "") << prule << "_properties";
+  thmName << (isPop ? "" : "exact ") << "cmd_step_" << (isPop ? "pop_" : "") << prule << "_properties";
   out << "  | " << prule << " =>" << std::endl;
   out << "      exact cmd_step_" << (isPop ? "pop_" : "")
       << "facts_of_rule_properties";
-  out << (isPop ? " M hM root tail A premises hsRoot hSuffix "
-                : " M s premises hs ")
-      << "<|" << std::endl;
+  out << (isPop ? " M hM root tail A premises hsRoot hsRootStable hSuffix "
+                : " M hM s premises hs hsStable ")
+      << "<|" << (isPop ? "" : " by") << std::endl;
+  if (!isPop)
+  {
+    out << "        intro N hN _hAgree" << std::endl;
+  }
   out << "        " << thmName.str() << " ";
   if (isPop)
   {
@@ -1321,7 +1310,7 @@ void LeanMetaReduce::printStepCase(std::ostream& out,
   }
   else
   {
-    out << "M hM s args premises" << std::endl;
+    out << "N hN s args premises" << std::endl;
     out << "          (by simpa using hCmdTrans) hPremisesBool hResultTy"
         << std::endl;
   }

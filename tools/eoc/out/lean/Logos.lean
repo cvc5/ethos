@@ -242,6 +242,25 @@ def __eo_typeof : Term -> Term
   | _ => Term.Stuck
 
 
+def __eo_is_closed_rec : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Var s T), Term.__eo_List_nil => (Term.Boolean false)
+  | (Term.Var s T), (Term.Apply (Term.Apply Term.__eo_List_cons x) vs) => 
+    let _v0 := (Term.Var s T)
+    (__eo_ite (__eo_eq _v0 x) (Term.Boolean true) (__eo_is_closed_rec _v0 vs))
+  | (Term.Apply f x), env => (__eo_and (__eo_is_closed_rec f env) (__eo_is_closed_rec x env))
+  | (Term.UOp1 u x), env => (__eo_is_closed_rec x env)
+  | (Term.UOp2 u x x2), env => (__eo_and (__eo_is_closed_rec x env) (__eo_is_closed_rec x2 env))
+  | (Term.UOp3 u x x2 x3), env => (__eo_and (__eo_and (__eo_is_closed_rec x env) (__eo_is_closed_rec x2 env)) (__eo_is_closed_rec x3 env))
+  | x, env => (Term.Boolean true)
+
+
+def __eo_is_closed : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | t => (__eo_is_closed_rec t Term.__eo_List_nil)
+
+
 end
 
 
@@ -368,7 +387,7 @@ def __eo_invoke_cmd_step_pop (s : CState) : CState -> CRule -> CArgList -> CInde
 
 def __eo_invoke_cmd : CState -> CCmd -> CState
   | CState.Stuck, c => CState.Stuck
-  | S, (CCmd.assume_push proven) => (__eo_push_assume_check (__eo_is_bool_type proven) proven S)
+  | S, (CCmd.assume_push proven) => (__eo_push_assume_check (__eo_and (__eo_is_bool_type proven) (__eo_is_closed proven)) proven S)
   | S, (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
   | S, (CCmd.step r args premises) => (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
   | S, (CCmd.step_pop r args premises) => (__eo_invoke_cmd_step_pop S S r args premises)
@@ -383,7 +402,7 @@ def __eo_state_is_refutation (s : CState) : native_Bool :=
   (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
 
 def __eo_invoke_assume_list (S : CState) : Term -> CState
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) => (__eo_push_input_assume_check (__eo_is_bool_type F) F (__eo_invoke_assume_list S as))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) => (__eo_push_input_assume_check (__eo_and (__eo_is_bool_type F) (__eo_is_closed F)) F (__eo_invoke_assume_list S as))
   | (Term.Boolean true) => S
   | as => CState.Stuck
 

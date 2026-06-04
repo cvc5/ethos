@@ -206,7 +206,8 @@ $EO_INVOKE_POP$
   :signature ($eo_State $eo_Cmd) $eo_State
   (
   (($eo_invoke_cmd $s_stuck c) $s_stuck)
-  (($eo_invoke_cmd S ($cmd_assume_push proven))  ($eo_push_assume_check ($eo_is_bool_type proven) proven S))
+  (($eo_invoke_cmd S ($cmd_assume_push proven))  
+    ($eo_push_assume_check (eo::and ($eo_is_bool_type proven) ($eo_is_closed proven)) proven S))
   (($eo_invoke_cmd S ($cmd_check_proven proven)) ($eo_invoke_cmd_check_proven S proven))
   (($eo_invoke_cmd S ($cmd_step r args premises))
     ($eo_push_proven ($eo_cmd_step_proven S r args premises) S))
@@ -243,7 +244,7 @@ $EO_INVOKE_POP$
   :signature ($eo_State Bool) $eo_State
   (
   (($eo_invoke_assume_list S (and F as))
-    ($eo_push_input_assume_check ($eo_is_bool_type F) F ($eo_invoke_assume_list S as)))
+    ($eo_push_input_assume_check (eo::and ($eo_is_bool_type F) ($eo_is_closed F)) F ($eo_invoke_assume_list S as)))
   (($eo_invoke_assume_list S true) S)
   (($eo_invoke_assume_list S as) $s_stuck)
   )

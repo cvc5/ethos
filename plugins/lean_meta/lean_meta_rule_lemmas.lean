@@ -18,7 +18,8 @@ theorem cmd_step_proven_facts_of_invariants
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (_hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
-  checkerTruthInvariant M s ->
+  checkerLocalTruthInvariant M s ->
+  checkerAssumptionStabilityInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
   cmdTranslationOk (CCmd.step r args premises) ->
@@ -26,7 +27,7 @@ theorem cmd_step_proven_facts_of_invariants
   CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
 :=
 by
-  intro hs hsTy hsTrans hCmdTrans hResultTy
+  intro hs hsStable hsTy hsTrans hCmdTrans hResultTy
   have hProg : __eo_cmd_step_proven s r args premises ≠ Term.Stuck :=
     term_ne_stuck_of_typeof_bool hResultTy
   have hPremisesBool : AllHaveBoolType (premiseTermList s premises) :=
@@ -44,7 +45,8 @@ theorem cmd_step_pop_proven_facts_of_invariants
     (M : SmtModel) (hM : model_total_typed M)
     (root tail : CState) (A : Term)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
-  checkerTruthInvariant M root ->
+  checkerLocalTruthInvariant M root ->
+  checkerAssumptionStabilityInvariant M root ->
   checkerTypeInvariant root ->
   checkerTranslationInvariant root ->
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
@@ -52,7 +54,7 @@ theorem cmd_step_pop_proven_facts_of_invariants
   CmdStepFacts M tail (__eo_cmd_step_pop_proven root r args A premises)
 :=
 by
-  intro hsRoot hsRootTy hsRootTrans hSuffix hResultTy
+  intro hsRoot hsRootStable hsRootTy hsRootTrans hSuffix hResultTy
   have hProg : __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck :=
     term_ne_stuck_of_typeof_bool hResultTy
   have hsCurTy : checkerTypeInvariant (CState.cons (CStateObj.assume_push A) tail) :=

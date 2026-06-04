@@ -837,7 +837,7 @@
   (ite (= x3 nat.zero)
     (ite (Teq ($smtx_typeof x2) tsm.Bool) ($smtx_typeof_guard_wf x1 x1) tsm.None)
   (ite (and ((_ is sm.exists) x2) ((_ is nat.succ) x3))
-    ($smtx_typeof_choice_nth (sm.exists.arg2 x2) (sm.exists.arg3 x2) (nat.succ.arg1 x3))
+    ($smtx_typeof_guard_wf x1 ($smtx_typeof_choice_nth (sm.exists.arg2 x2) (sm.exists.arg3 x2) (nat.succ.arg1 x3)))
     tsm.None
 ))) :pattern (($smtx_typeof_choice_nth x1 x2 x3)))) :named sm.axiom.$smtx_typeof_choice_nth))
 
@@ -872,9 +872,9 @@
   (ite ((_ is sm.=) x1)
     ($smtx_typeof_= ($smtx_typeof (sm.=.arg1 x1)) ($smtx_typeof (sm.=.arg2 x1)))
   (ite ((_ is sm.exists) x1)
-    (ite (Teq ($smtx_typeof (sm.exists.arg3 x1)) tsm.Bool) tsm.Bool tsm.None)
+    (ite (Teq ($smtx_typeof (sm.exists.arg3 x1)) tsm.Bool) ($smtx_typeof_guard_wf (sm.exists.arg2 x1) tsm.Bool) tsm.None)
   (ite ((_ is sm.forall) x1)
-    (ite (Teq ($smtx_typeof (sm.forall.arg3 x1)) tsm.Bool) tsm.Bool tsm.None)
+    (ite (Teq ($smtx_typeof (sm.forall.arg3 x1)) tsm.Bool) ($smtx_typeof_guard_wf (sm.forall.arg2 x1) tsm.Bool) tsm.None)
   (ite ((_ is sm.choice_nth) x1)
     ($smtx_typeof_choice_nth (sm.choice_nth.arg2 x1) (sm.choice_nth.arg3 x1) (sm.choice_nth.arg4 x1))
   (ite ((_ is sm.map_diff) x1)

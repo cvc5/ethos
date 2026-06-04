@@ -35,12 +35,6 @@ $EO_LITERAL_TYPE_DECL$
 
 ;;; $eo_List
 
-; The builtin Eunoia list.
-(declare-const $eo_List Type)
-(declare-const $eo_List_nil $eo_List)
-(declare-parameterized-const $eo_List_cons ((T Type :implicit))
-  (-> T $eo_List $eo_List))
-
 ;;; forward declarations
 
 ; forward declaration
@@ -597,6 +591,31 @@ $EO_TYPEOF_CASES$
   )
 )
 
+(program $eo_is_closed_rec
+  ((T Type) (U Type) (V Type) (s $eo_Term) (env $eo_List) 
+   (f (-> U V T)) (x U) (vs $eo_List) (X Type) (u X) (x2 U) (x3 U))
+  :signature ($eo_Term $eo_List) $eo_Term
+  (
+  (($eo_is_closed_rec ($eot_Var s T) $eo_List_nil) false)
+  (($eo_is_closed_rec ($eot_Var s T) ($eo_List_cons x vs))
+    (eo::ite (eo::eq ($eot_Var s T) x) true ($eo_is_closed_rec ($eot_Var s T) vs)))
+$EO_IS_CLOSED_CASES$
+  (($eo_is_closed_rec (f x) env)
+    (eo::and ($eo_is_closed_rec f env) ($eo_is_closed_rec x env)))
+  (($eo_is_closed_rec ($eot_uop1 u x) env) ($eo_is_closed_rec x env))
+  (($eo_is_closed_rec ($eot_uop2 u x x2) env) 
+    (eo::and ($eo_is_closed_rec x env) ($eo_is_closed_rec x2 env)))
+  (($eo_is_closed_rec ($eot_uop3 u x x2 x3) env) 
+    (eo::and (eo::and ($eo_is_closed_rec x env) ($eo_is_closed_rec x2 env)) ($eo_is_closed_rec x3 env)))
+  (($eo_is_closed_rec x env) true)
+  )
+)
+(program $eo_is_closed ((t $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_is_closed t) ($eo_is_closed_rec t $eo_List_nil))
+  )
+)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_smt
 
 ; The following functions may be used to define the verification condition we

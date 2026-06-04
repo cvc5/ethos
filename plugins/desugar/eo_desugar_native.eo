@@ -34,6 +34,32 @@
 
 ;;; Eunoia datatype constructors
 
+; User terms
+(declare-parameterized-const $emb_UOp 
+  ((u ($native_type_0 "UserOp") :opaque)) $eo_Term)
+(define $eot_uop ((u ($native_type_0 "UserOp"))) ($emb_UOp u))
+(declare-parameterized-const $emb_UOp1 
+  ((u ($native_type_0 "UserOp1") :opaque) (t1 $eo_Term :opaque)) $eo_Term)
+(define $eot_uop1 ((u ($native_type_0 "UserOp")) (t1 $eo_Term)) 
+  ($emb_UOp1 u t1))
+(declare-parameterized-const $emb_UOp2 
+  ((u ($native_type_0 "UserOp2") :opaque) (t1 $eo_Term :opaque)
+   (t2 $eo_Term :opaque)) $eo_Term)
+(define $eot_uop2 ((u ($native_type_0 "UserOp")) (t1 $eo_Term) (t2 $eo_Term)) 
+  ($emb_UOp2 u t1 t2))
+(declare-parameterized-const $emb_UOp3 
+  ((u ($native_type_0 "UserOp3") :opaque) (t1 $eo_Term :opaque) 
+   (t2 $eo_Term :opaque) (t3 $eo_Term :opaque)) $eo_Term)
+(define $eot_uop3 
+  ((u ($native_type_0 "UserOp")) (t1 $eo_Term) (t2 $eo_Term) (t3 $eo_Term)) 
+  ($emb_UOp3 u t1 t2 t3))
+
+; The builtin Eunoia list.
+(declare-const $eo_List Type)
+(declare-const $eo_List_nil $eo_List)
+(declare-parameterized-const $eo_List_cons ((T Type :implicit))
+  (-> T $eo_List $eo_List))
+  
 ; The Boolean type
 (declare-const $emb_Bool $eo_Term)
 (define $eot_Bool () $emb_Bool)
