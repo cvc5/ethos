@@ -159,11 +159,13 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_TO_BIN:
     case Kind::EVAL_FIND:
     case Kind::EVAL_COMPARE:
+    case Kind::EVAL_LOG:
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_LENGTH:
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF:
     case Kind::EVAL_LIST_SINGLETON_ELIM:
+    case Kind::EVAL_LIST_SINGLETON_INTRO:
     case Kind::EVAL_NIL: ret = (nargs == 2); break;
     case Kind::EVAL_LIST_CONCAT: ret = (nargs == 3); break;
     case Kind::PROOF:
@@ -1391,6 +1393,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   bool isLeft = (ck == Attr::LEFT_ASSOC_NIL || ck == Attr::LEFT_ASSOC_NS_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
+  if (k == Kind::EVAL_LIST_SINGLETON_INTRO)
+  {
+    return evaluateListSingletonIntroInternal(
+        op, ac->d_attrConsTerm.getValue(), isLeft, args);
+  }
   // infer the nil expression, which may depend on the type of args[1]
   Expr nilExpr;
   if (k == Kind::EVAL_NIL)
@@ -1776,6 +1783,34 @@ Expr TypeChecker::evaluateListDiffInterInternal(
   return prependNAryChildren(op, ret, result, isLeft);
 }
 
+Expr TypeChecker::evaluateListSingletonIntroInternal(
+    ExprValue* op,
+    ExprValue* nil,
+    bool isLeft,
+    const std::vector<ExprValue*>& args)
+{
+  Expr cref(args[1]);
+  getType(cref);
+  ExprValue* argType = d_state.lookupType(args[1]);
+  Expr nilExpr = evaluateNil(op, nil, isLeft, argType, true);
+  if (!nilExpr.isNull()
+      && isNAryList(args[1], op, nilExpr.getValue(), isLeft))
+  {
+    return Expr(args[1]);
+  }
+  nilExpr = evaluateNil(op, nil, isLeft, argType, false);
+  if (nilExpr.isNull())
+  {
+    return d_null;
+  }
+  if (isNAryList(args[1], op, nilExpr.getValue(), isLeft))
+  {
+    return Expr(args[1]);
+  }
+  std::vector<ExprValue*> hargs{args[1]};
+  return prependNAryChildren(op, nilExpr.getValue(), hargs, isLeft);
+}
+
 Expr TypeChecker::getLiteralOpType(Kind k,
                                    std::vector<ExprValue*>& children,
                                    std::vector<ExprValue*>& childTypes,
@@ -1818,7 +1853,12 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_SETOF:
     case Kind::EVAL_LIST_DIFF:
     case Kind::EVAL_LIST_INTER:
-    case Kind::EVAL_LIST_SINGLETON_ELIM: return Expr(childTypes[1]);
+    case Kind::EVAL_LIST_SINGLETON_ELIM:
+    // Like the other list operators above, we approximate the return type as
+    // the type of the second argument. This is exact when the argument is
+    // already a list, and a sound approximation when it is an element.
+    case Kind::EVAL_LIST_SINGLETON_INTRO:
+      return Expr(childTypes[1]);
     case Kind::EVAL_LIST_REPEAT:
     {
       Expr opType(childTypes[0]);
@@ -1847,6 +1887,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_MINCLUDE:
     case Kind::EVAL_LIST_MEQ: return d_state.mkBoolType();
     case Kind::EVAL_HASH:
+    case Kind::EVAL_LOG:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
     case Kind::EVAL_TO_INT:

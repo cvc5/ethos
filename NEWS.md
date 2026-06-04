@@ -3,7 +3,7 @@ This file contains a summary of important user-visible changes.
 ethos 0.2.4 prerelease
 ======================
 
-- Adds builtin operators `eo::pow` and `eo::list_repeat`. The exponent of `eo::pow` and the count of `eo::list_repeat` must be non-negative 32-bit numeral values.
+- Adds builtin operators `eo::pow` (exponentiation), `eo::log` (integer logarithm), `eo::list_repeat` (repeat a list element a given number of times), and `eo::list_singleton_intro` (turn a term into a singleton list).
 
 ethos 0.2.3
 ===========

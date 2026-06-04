@@ -70,6 +70,7 @@ enum class Kind
   EVAL_TYPE_OF,
   EVAL_NAME_OF,
   EVAL_COMPARE,
+  EVAL_LOG,
   // testers
   EVAL_IS_Z,
   EVAL_IS_Q,
@@ -95,6 +96,7 @@ enum class Kind
   EVAL_LIST_DIFF,
   EVAL_LIST_INTER,
   EVAL_LIST_SINGLETON_ELIM,
+  EVAL_LIST_SINGLETON_INTRO,
   EVAL_LIST_REPEAT,
   // boolean
   EVAL_NOT,

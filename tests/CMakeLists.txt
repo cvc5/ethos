@@ -18,6 +18,7 @@ set(ethos_test_file_list
     or-repl-all-basic.eo
     constant-eval.eo
     constant-eval-args.eo
+    log.eo
     chainable.eo
     substitution.eo
     pf-substitution.eo

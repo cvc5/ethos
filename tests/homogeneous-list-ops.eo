@@ -16,6 +16,12 @@
 (define test2 () (eo::cons @@TypedList.cons a (@@TypedList.cons a b c))
   :is_eq (@@TypedList.cons a a b c))
 
+(define test2_intro1 () (eo::list_singleton_intro @@TypedList.cons a)
+  :is_eq (@@TypedList.cons a))
+
+(define test2_intro2 () (eo::list_singleton_intro @@TypedList.cons (@@TypedList.cons a b))
+  :is_eq (@@TypedList.cons a b))
+
 ; homogeneous-typed list
 (declare-parameterized-const @@TypedLList ((T Type)) Type)
 (declare-parameterized-const @@TypedLList.nil ((T Type)) (@@TypedLList T))
@@ -32,3 +38,9 @@
 
 (define test5 () (eo::list_rev @@TypedLList.cons (@@TypedLList.cons a b c))
   :is_eq (@@TypedLList.cons c b a))
+
+(define test5_intro1 () (eo::list_singleton_intro @@TypedLList.cons a)
+  :is_eq (@@TypedLList.cons a))
+
+(define test5_intro2 () (eo::list_singleton_intro @@TypedLList.cons (@@TypedLList.cons a b))
+  :is_eq (@@TypedLList.cons a b))
