@@ -908,14 +908,20 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ((s $native_String) (T $smt_Type) (F $smt_Term) (n $native_Nat) (t $smt_Term))
   :signature ($smt_Term $native_Nat) $smt_Term
   (
-  (($eo_to_smt_quantifiers_skolemize ($sm_not ($sm_exists s T F)) n) ($sm_choice_nth s T F n))
+  (($eo_to_smt_quantifiers_skolemize ($sm_exists s T F) n) ($sm_choice_nth s T F n))
   (($eo_to_smt_quantifiers_skolemize F t) $sm_none)
   )
 ))";
-  addEunoiaReduceSym("@quantifiers_skolemize", {kT, kT},
-               smtGuard("($eo_to_smt_nat_is_valid x2)",
-                        "($eo_to_smt_quantifiers_skolemize ($eo_to_smt x1) ($eo_to_smt_nat x2))"));
-  d_eoToSmtGuardClosed["@quantifiers_skolemize"].push_back(0);
+  // note that negative indices are silently treated as 0 here
+  d_specialCases["@quantifiers_skolemize"].emplace_back(
+      "(@quantifiers_skolemize (forall x1 x2) x3)",
+               smtGuard("($eo_to_smt_nat_is_valid x3)",
+                        "($eo_to_smt_guard_closed (forall x1 x2) "
+                        "($eo_to_smt_quantifiers_skolemize ($eo_to_smt_exists "
+                        "x1 ($sm_not "
+                        "($eo_to_smt x2))) "
+                        "($eo_to_smt_nat x3)))"));
+  d_symIgnore["@quantifiers_skolemize"] = true;
 
   // re pos unfold
   d_auxDef["@re_unfold_pos_component"] = R"(
