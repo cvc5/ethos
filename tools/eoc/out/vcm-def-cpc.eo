@@ -206,6 +206,10 @@
 (define $native_mod_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "mod_total" x1 x2))
 (define $native_z_**_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zexp_total" x1 x2))
 (define $native_q_**_total ((x1 $native_Real) (x2 $native_Int)) ($native_apply_2 "qexp_total" x1 x2))
+; The (rounded-down) integer logarithm of x2 in base x1. This is the inverse of
+; $native_z_**_total: it returns the greatest m>=0 such that x1^m <= x2, and 0
+; when x1 <= 1 or x2 <= 0.
+(define $native_z_log ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "int_log" x1 x2))
 (define $native_z_neg_one () ($native_z_uneg $native_z_one))
 (define $native_z_inc ((x1 $native_Int)) ($native_z_+ x1 $native_z_one))
 (define $native_z_dec ((x1 $native_Int)) ($native_z_+ x1 $native_z_neg_one))
@@ -715,6 +719,24 @@
     ($eot_numeral ($native_z_**_total n1 n2)))
   (($eo_pow ($eot_rational r1) ($eot_numeral n2))
     ($eot_rational ($native_q_**_total r1 n2)))
+  )
+)
+
+; program: $eo_log
+; implements: eo::log
+; note: >
+;   The base (first argument) must be a numeral; a rational base is stuck. The
+;   value (second argument) is floored to an integer, so a rational value is
+;   first converted via to_int. The result is computed by $native_z_log, which
+;   is the (rounded-down) integer inverse of $eo_pow and is never negative.
+(program $eo_log
+  ((n1 $native_Int) (n2 $native_Int) (r2 $native_Rat))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_log ($eot_numeral n1) ($eot_numeral n2))
+    ($eot_numeral ($native_z_log n1 n2)))
+  (($eo_log ($eot_numeral n1) ($eot_rational r2))
+    ($eot_numeral ($native_z_log n1 ($native_apply_1 "to_int" r2))))
   )
 )
 
@@ -1567,6 +1589,19 @@
    (f (-> T U V)) (a W))
   (eo::requires ($eo_is_list f a) true
     ($eo_list_singleton_elim_2 a)))
+
+;;; $eo_list_singleton_intro
+
+; define: $eo_list_singleton_intro
+; implements: eo::list_singleton_intro
+; note: >
+;   The counterpart to $eo_list_singleton_elim. If a is already a list, it is
+;   returned unchanged; otherwise it is wrapped as the singleton list (f a nil),
+;   where nil is the nil terminator for the type of a.
+(define $eo_list_singleton_intro
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::ite ($eo_is_list f a) a ($eo_cons f a ($eo_nil f ($eo_typeof a)))))
 
 ;;; $eo_list_repeat
 
@@ -3377,12 +3412,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;
 
 
-
 ;;; Quantifiers
 
 ; forward declarations
 (program $eo_to_smt ((T Type)) :signature (T) $smt_Term)
 (program $eo_to_smt_type () :signature (Type) $smt_Type)
+
+
+; utilities
+(program $eo_to_smt_guard_closed ((t $eo_Term) (s $smt_Term))
+  :signature ($eo_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_guard_closed t s) ($native_ite ($native_apply_1 "eo_to_smt_closed" t) s $sm_none))
+  )
+)
 
 ; auxiliary definitions for defining $eo_to_smt / $eo_to_smt_type
 

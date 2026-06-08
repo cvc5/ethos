@@ -16,6 +16,38 @@ noncomputable section
 def native_reserved_datatype_name (s : native_String) : native_Bool :=
   native_string_prefix_eq (native_string_lit "@") s
 
+def native_eo_to_smt_term_mem (x : Term) : List Term -> native_Bool
+  | [] => false
+  | y :: ys => native_or (decide (x = y)) (native_eo_to_smt_term_mem x ys)
+
+def native_eo_to_smt_term_list : Term -> Option (List Term)
+  | Term.__eo_List_nil => some []
+  | Term.Apply (Term.Apply Term.__eo_List_cons x) xs =>
+    match native_eo_to_smt_term_list xs with
+    | some ys => some (x :: ys)
+    | none => none
+  | _ => none
+
+def native_eo_to_smt_closed_rec : Term -> List Term -> native_Bool
+  | Term.Stuck, _ => false
+  | Term.Var x T, env => native_eo_to_smt_term_mem (Term.Var x T) env
+  | Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) x, env =>
+    match native_eo_to_smt_term_list vs with
+    | some xs => native_eo_to_smt_closed_rec x (xs ++ env)
+    | none => false
+  | Term.Apply (Term.Apply (Term.UOp UserOp.exists) vs) x, env =>
+    match native_eo_to_smt_term_list vs with
+    | some xs => native_eo_to_smt_closed_rec x (xs ++ env)
+    | none => false
+  | Term.Apply f x, env =>
+    native_and (native_eo_to_smt_closed_rec f env) (native_eo_to_smt_closed_rec x env)
+  | _, _ => true
+
+def native_eo_to_smt_closed (x : Term) : native_Bool :=
+  native_eo_to_smt_closed_rec x []
+
+
+
 mutual
 
 def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons

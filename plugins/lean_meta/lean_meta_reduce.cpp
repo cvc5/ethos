@@ -749,59 +749,70 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   else
   {
     out = &d_defsTotal;
-    bool needsPartial = false;
-    // insist that builtin eo:: operators are all total.
-    if (vname.compare(0, 4, "$eo_") != 0
-        || vname.compare(0, 9, "$eo_prog_") == 0)
+  }
+  bool isSimple = false;
+  bool needsPartial = false;
+  // check if trivially not recursive?
+  std::vector<Expr> prets;
+  for (size_t i = 0, nchildren = prog.getNumChildren(); i < nchildren; i++)
+  {
+    prets.push_back(prog[i][1]);
+  }
+  Expr allRets = d_state.mkExpr(Kind::TUPLE, prets);
+  std::vector<Expr> calls =
+      StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, allRets);
+  for (const Expr& e : calls)
+  {
+    // if there is any (mutual) recursion, or reference to a non-total
+    // function, set needsPartial to true.
+    if (d_partialDefProgs.find(e) != d_partialDefProgs.end())
     {
-      // check if trivially not recursive?
-      std::vector<Expr> prets;
-      for (size_t i = 0, nchildren = prog.getNumChildren(); i < nchildren; i++)
-      {
-        prets.push_back(prog[i][1]);
-      }
-      Expr allRets = d_state.mkExpr(Kind::TUPLE, prets);
-      std::vector<Expr> calls =
-          StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, allRets);
-      for (const Expr& e : calls)
-      {
-        // if there is any (mutual) recursion, or reference to a non-total
-        // function, set needsPartial to true.
-        if (d_partialDefProgs.find(e) != d_partialDefProgs.end())
-        {
-          needsPartial = true;
-          break;
-        }
-      }
-      std::string rawName = vname;
-      if (vname.compare(0,6,"$eo.l.")==0)
-      {
-        rawName = vname.substr(8);
-      }
-      if (d_partialExc.find(rawName)!=d_partialExc.end())
-      {
-        needsPartial = true;
-      }
+      needsPartial = true;
+      isSimple = false;
+      break;
     }
-#ifndef INFER_TOTAL_DEFS
-    // FIXME
+    if (e!=prog && d_simpleDefProgs.find(e)==d_simpleDefProgs.end())
+    {
+      isSimple = false;
+    }
+  }
+  std::string rawName = vname;
+  if (vname.compare(0,6,"$eo.l.")==0)
+  {
+    rawName = vname.substr(8);
+  }
+  if (d_partialExc.find(rawName)!=d_partialExc.end())
+  {
     needsPartial = true;
+  }
+  // insist that builtin eo:: operators are all total.
+  if (vname.compare(0, 4, "$eo_") == 0
+    && vname.compare(0, 9, "$eo_prog_") != 0)
+  {
+    needsPartial = false;
+  }
+#ifndef INFER_TOTAL_DEFS
+  // FIXME
+  needsPartial = true;
 #endif
-    if (needsPartial)
+  if (isSimple)
+  {
+    d_simpleDefProgs.insert(prog);
+  }
+  if (needsPartial)
+  {
+    if (!d_hasDefs)
     {
-      if (!d_hasDefs)
-      {
-        d_hasDefs = true;
-        d_defs << "mutual" << std::endl << std::endl;
-      }
-      out = &d_defs;
-      decl << "partial ";
-      d_partialDefProgs.insert(v);
+      d_hasDefs = true;
+      d_defs << "mutual" << std::endl << std::endl;
     }
-    else
-    {
-      d_totalDefProgs.insert(v);
-    }
+    out = &d_defs;
+    decl << "partial ";
+    d_partialDefProgs.insert(v);
+  }
+  else
+  {
+    d_totalDefProgs.insert(v);
   }
 
   // $eo_model is used only for VC generation
@@ -812,7 +823,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   // exception: conversion from Eunoia to SMT is printed on defs
   if (vname.compare(0, 10, "$eo_to_smt") == 0)
   {
-    out = &d_eoIsObjDefs;
+    out = isSimple ? &d_eoIsObjDefsSimple : &d_eoIsObjDefs;
   }
   if (vname == "$smtx_model_eval")
   {
@@ -1230,7 +1241,9 @@ void LeanMetaReduce::finalizeSpec()
   const std::string outPath =
       emitResourceFile("plugins/lean_meta/lean_meta_spec.lean",
                        "plugins/lean_meta/lean_meta_spec_gen.lean",
-                       {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()}});
+                       {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()},
+                        {"$LEAN_EO_IS_OBJ_SIMPLE_DEFS$", d_eoIsObjDefsSimple.str()}
+                      });
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }
 

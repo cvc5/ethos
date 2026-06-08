@@ -273,6 +273,8 @@ class ModelSmt : public StdPlugin
   //--------
   /** Full custom `$eo_to_smt` returns for selected SMT-LIB symbols. */
   std::map<std::string, std::string> d_eoToSmtFullCase;
+  /** Guard closed indices to $eo_to_smt */
+  std::map<std::string, std::vector<size_t>> d_eoToSmtGuardClosed;
   //-------- for defining SMT term type rules
   /** Auxiliary type programs called from `$smtx_typeof`. */
   std::map<std::string, std::string> d_typeCase;
@@ -317,6 +319,8 @@ class ModelSmt : public StdPlugin
   static std::string eoDefine(const std::string& x,
                               const std::string& t,
                               const std::string& ret);
+  /** */
+  std::string guardClosed(const std::string& def, const std::string& t);
   /** Print type internal */
   bool printTypeInternal(const std::string& name, Kind k, std::ostream& out);
   /** Pseudo-kind used for set arguments in generation tables. */

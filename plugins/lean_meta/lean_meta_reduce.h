@@ -142,6 +142,7 @@ class LeanMetaReduce : public MetaReducePlugin
   bool d_hasDefs;
   /** Generated helper definitions for Eunoia-object membership. */
   std::stringstream d_eoIsObjDefs;
+  std::stringstream d_eoIsObjDefsSimple;
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
   /** Eunoia operator embedding */
@@ -181,6 +182,7 @@ class LeanMetaReduce : public MetaReducePlugin
   /** Programs inferred to require total definitions. */
   std::set<Expr> d_totalDefProgs;
   std::set<Expr> d_partialDefProgs;
+  std::set<Expr> d_simpleDefProgs;
   /** Return a Lean-safe version of an SMT-LIB identifier. */
   static std::string cleanSmtId(const std::string& id);
   /** Return a Lean-safe version of a general generated identifier. */
