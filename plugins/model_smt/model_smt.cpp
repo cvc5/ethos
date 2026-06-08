@@ -913,14 +913,15 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   )
 ))";
   // note that negative indices are silently treated as 0 here
+  // FIXME
   d_specialCases["@quantifiers_skolemize"].emplace_back(
       "(@quantifiers_skolemize (forall x1 x2) x3)",
                smtGuard("($eo_to_smt_nat_is_valid x3)",
-                        "($eo_to_smt_guard_closed (forall x1 x2) "
+  //                      "($eo_to_smt_guard_closed (forall x1 x2) "
                         "($eo_to_smt_quantifiers_skolemize ($eo_to_smt_exists "
                         "x1 ($sm_not "
                         "($eo_to_smt x2))) "
-                        "($eo_to_smt_nat x3)))"));
+                        "($eo_to_smt_nat x3))"));
   d_symIgnore["@quantifiers_skolemize"] = true;
 
   // re pos unfold
@@ -2269,6 +2270,8 @@ void ModelSmt::finalize()
 
 std::string ModelSmt::guardClosed(const std::string& def, const std::string& t)
 {
+  // FIXME
+  return t;
   std::string ret = t;
   std::map<std::string, std::vector<size_t>>::iterator itgc = d_eoToSmtGuardClosed.find(def);
   if (itgc!=d_eoToSmtGuardClosed.end())

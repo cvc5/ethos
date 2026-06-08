@@ -3420,12 +3420,12 @@
 
 
 ; utilities
-(program $eo_to_smt_guard_closed ((t $eo_Term) (s $smt_Term))
-  :signature ($eo_Term $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_guard_closed t s) ($native_ite ($native_apply_1 "eo_to_smt_closed" t) s $sm_none))
-  )
-)
+;(program $eo_to_smt_guard_closed ((t $eo_Term) (s $smt_Term))
+;  :signature ($eo_Term $smt_Term) $smt_Term
+;  (
+;  (($eo_to_smt_guard_closed t s) ($native_ite ($native_apply_1 "eo_to_smt_closed" t) s $sm_none))
+;  )
+;)
 
 ; auxiliary definitions for defining $eo_to_smt / $eo_to_smt_type
 
