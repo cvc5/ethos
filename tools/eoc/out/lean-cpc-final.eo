@@ -1390,7 +1390,6 @@
     ($native_or ($smtx_is_unit_type U) 
       ($native_and ($smtx_is_finite_type T) ($smtx_is_finite_type U))))
   (($smtx_is_finite_type ($tsm_Set T))          ($smtx_is_finite_type T))
-  (($smtx_is_finite_type ($tsm_Seq T))          ($smtx_is_finite_type T))
   
   (($smtx_is_finite_type T)                     $native_false)
   )

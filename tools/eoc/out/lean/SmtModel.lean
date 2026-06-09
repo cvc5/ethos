@@ -829,7 +829,6 @@ def __smtx_is_finite_type : SmtType -> native_Bool
   | (SmtType.Datatype s d) => (__smtx_is_finite_datatype d)
   | (SmtType.Map T U) => (native_or (__smtx_is_unit_type U) (native_and (__smtx_is_finite_type T) (__smtx_is_finite_type U)))
   | (SmtType.Set T) => (__smtx_is_finite_type T)
-  | (SmtType.Seq T) => (__smtx_is_finite_type T)
   | T => false
 
 
