@@ -523,6 +523,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // RE operators
   addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
   addConstFoldSym("str.indexof_re", {kString, kRegLan, kInt}, kInt);
+  addConstFoldSym("str.indexof_re_split", {kString, kRegLan, kRegLan}, kInt);
   addConstFoldSym("str.replace_re", {kString, kRegLan, kString}, kString);
   addConstFoldSym("str.replace_re_all", {kString, kRegLan, kString}, kString);
   // bitvectors
@@ -931,14 +932,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   :signature ($smt_Term $smt_Term $native_Nat) $smt_Term
   (
   (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) $native_n_zero)
-    (eo::define ((x ($sm_Var $native_str_vname $tsm_String)))
-    (eo::define ((xrem ($sm_str.substr s ($sm_str.len x) ($sm_- ($sm_str.len s) ($sm_str.len x)))))
-      ($sm_choice $native_str_vname $tsm_String
-        ($sm_and ($sm_= s ($sm_str.++ x xrem)) ($sm_and ($sm_str.in_re x r1) ($sm_str.in_re xrem r2)))))))
+    ($sm_str.substr s $sm_z_zero ($sm_str.indexof_re_split s r1 r2)))
   (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) ($native_n_succ n))
-    (eo::define ((k ($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) $native_n_zero)))
+    (eo::define ((i ($sm_str.indexof_re_split s r1 r2)))
       ($eo_to_smt_re_unfold_pos_component
-        ($sm_str.substr s ($sm_str.len k) ($sm_- ($sm_str.len s) ($sm_str.len k)))
+        ($sm_str.substr s i ($sm_- ($sm_str.len s) i))
         r2 n)))
   (($eo_to_smt_re_unfold_pos_component s r1 n) $sm_none)
   )

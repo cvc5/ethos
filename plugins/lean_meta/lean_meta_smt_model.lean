@@ -223,6 +223,24 @@ def native_str_indexof_re : native_String -> native_RegLan -> native_Int -> nati
           | none => -1
         else
           -1
+/-- Searches for the smallest split point of `s` into a prefix matching `r1` and a
+suffix matching `r2`.  `pre` is the prefix consumed so far (i.e. `s` with `suf`
+dropped) and `i` its length; recursion is structural on the remaining suffix. -/
+def native_str_indexof_re_split_aux (r1 r2 : native_RegLan) :
+    native_String -> native_String -> native_Nat -> native_Int
+  | pre, suf, i =>
+      if native_str_in_re pre r1 && native_str_in_re suf r2 then
+        Int.ofNat i
+      else
+        match suf with
+        | [] => -1
+        | c :: cs => native_str_indexof_re_split_aux r1 r2 (pre ++ [c]) cs (i + 1)
+def native_str_indexof_re_split : native_String -> native_RegLan -> native_RegLan -> native_Int
+  | s, r1, r2 =>
+      if native_string_valid s then
+        native_str_indexof_re_split_aux r1 r2 [] s 0
+      else
+        -1
 def native_str_replace_re : native_String -> native_RegLan -> native_String -> native_String
   | s, r, replacement =>
       match native_re_find_idx_from r s 0 with
