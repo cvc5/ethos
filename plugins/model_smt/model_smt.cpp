@@ -895,12 +895,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   std::stringstream ssWitnessStringLength;
   ssWitnessStringLength << "(eo::define (($T ($eo_to_smt_type x1))) ";
   ssWitnessStringLength << "(eo::define (($i (Var $native_str_vname $T))) ";
-  ssWitnessStringLength << "($native_ite ($native_Teq ($smtx_typeof ($eo_to_smt x3)) $tsm_Int) ";
   ssWitnessStringLength << "(choice $native_str_vname $T ";
-  ssWitnessStringLength << "(= (str.len $i) ($eo_to_smt x2))) $sm_none)))";
+  ssWitnessStringLength << "(= (str.len $i) ($eo_to_smt x2)))))";
   addEunoiaReduceSym("@witness_string_length",
                      {kType, kInt, kInt},
-                     smtToSmtEmbed(ssWitnessStringLength.str(), true));
+                     smtGuard("($eo_to_smt_nat_is_valid x2)",
+                     smtGuard("($eo_to_smt_nat_is_valid x3)",
+                     smtToSmtEmbed(ssWitnessStringLength.str(), true))));
   d_eoToSmtGuardClosed["@witness_string_length"].push_back(1);
   d_eoToSmtGuardClosed["@witness_string_length"].push_back(2);
   // curried choice as an auxiliary program
