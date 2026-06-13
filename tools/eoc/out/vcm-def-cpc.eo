@@ -851,7 +851,7 @@
       $eo_empty_binary
       ($eo_mk_binary
         ($native_z_inc nw)
-        ($native_binary_extract w n1 n2 n3)))))
+        ($native_binary_extract w n1 n3 n2)))))
   )
 )
 
