@@ -1037,16 +1037,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 (program $eo_to_smt_set.insert ((T Type) (t1 T) (t2 $eo_List) (t3 $smt_Term))
   :signature ($eo_List $smt_Term) $smt_Term
   (
-  (($eo_to_smt_set.insert ($eo_List_cons t1 t2) t3)
+  (($eo_to_smt_set.insert (@@TypedList.cons t1 t2) t3)
     ($sm_set.union ($sm_set.singleton ($eo_to_smt t1)) ($eo_to_smt_set.insert t2 t3)))
-  (($eo_to_smt_set.insert $eo_List_nil t3) t3)
+  (($eo_to_smt_set.insert (@@TypedList.nil T) t3) ($native_ite ($native_Teq ($smtx_typeof t3) ($tsm_Set ($eo_to_smt_type T))) t3 $sm_none))
   (($eo_to_smt_set.insert t2 t3) $sm_none)
   )
 ))";
   addEunoiaReduceSym(
       "set.insert", {kT, kT}, "($eo_to_smt_set.insert x1 ($eo_to_smt x2))");
-  d_specialCases["set.insert"].emplace_back("(set.insert $eo_List_nil x1)",
-                                            "$sm_none");
   //   bitvectors
   addEunoiaReduceSym(
       "bvite",
