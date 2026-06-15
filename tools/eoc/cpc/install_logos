@@ -44,3 +44,6 @@ if [[ -d "$LOGOS_TESTS_DIR" ]]; then
     done
   )
 fi
+
+echo "********* Clean *********"
+"$SCRIPT_DIR/run_clean"

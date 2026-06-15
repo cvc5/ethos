@@ -53,7 +53,6 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   }
   d_partialExc.insert("$arith_eval_int_log_2_rec");
   d_partialExc.insert("$bv_div_mod_impl");
-  d_partialExc.insert("$bv_const_to_bitlist_rec");
   d_partialExc.insert("$bv_mk_bitblast_step_var_rec");
   d_partialExc.insert("$str_eval_str_in_re");
   d_partialExc.insert("$str_re_consume_rec");
