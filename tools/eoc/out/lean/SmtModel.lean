@@ -1023,7 +1023,8 @@ def native_seq_update (xs : List SmtValue) (i : native_Int) (ys : List SmtValue)
     xs
   else
     let idx := Int.toNat i
-    (xs.take idx) ++ ys ++ (xs.drop (idx + 1))
+    (xs.take idx) ++ (ys.take (xs.length - idx)) ++
+      (xs.drop (idx + ys.length))
     
 def native_seq_rev : List SmtValue -> List SmtValue
   | xs => xs.reverse
