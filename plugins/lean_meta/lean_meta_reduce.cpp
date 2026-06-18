@@ -51,14 +51,8 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   {
     d_smtTOpDt << "  | None : SmtTheoryOp" << std::endl;
   }
-  d_partialExc.insert("$arith_eval_int_log_2_rec");
-  d_partialExc.insert("$str_eval_str_in_re");
   d_partialExc.insert("$str_re_consume_rec");
   d_partialExc.insert("$str_re_includes_rec");
-  //d_partialExc.insert("$set_is_not_subset");
-  //d_partialExc.insert("$seq_distinct_terms");
-  //d_partialExc.insert("$dt_distinct_terms");
-  d_partialExc.insert("$seq_eval_replace_all_rec");
   d_partialExc.insert("$str_re_includes_lhs_union");
   d_partialExc.insert("$str_re_includes_rhs_inter");
   d_partialExc.insert("$str_re_includes_lhs_star");
