@@ -186,6 +186,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_IS_STR:
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
+    case Kind::EVAL_IS_CLOSED:
     case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS: ret = (nargs == 1); break;
     case Kind::EVAL_REQUIRES:
@@ -972,6 +973,220 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
   return Expr(d_state.mkExprInternal(k, args));
 }
 
+bool TypeChecker::isClosed(ExprValue* e)
+{
+  std::unordered_set<ExprValue*> bound;
+  return isClosedInternal(e, bound);
+}
+
+bool TypeChecker::isClosedInternal(ExprValue* e,
+                                   std::unordered_set<ExprValue*>& bound)
+{
+  // We traverse all subterms reachable from e without crossing a binder
+  // iteratively. We only recurse (back into this method) when we cross a
+  // binder, i.e. when the set of bound variables changes. This keeps the
+  // recursion depth bounded by the binder nesting depth rather than the term
+  // depth, minimizing the chance of stack overflow on deep terms.
+  std::unordered_set<ExprValue*> visited;
+  std::vector<ExprValue*> visit;
+  visit.push_back(e);
+  while (!visit.empty())
+  {
+    ExprValue* cur = visit.back();
+    visit.pop_back();
+    // Optimization: subterms with no variable as a subterm are closed.
+    if (!cur->hasVariable())
+    {
+      continue;
+    }
+    if (!visited.insert(cur).second)
+    {
+      continue;
+    }
+    Kind k = cur->getKind();
+    if (k == Kind::VARIABLE)
+    {
+      // a variable occurrence is free unless it is bound by an enclosing binder
+      if (bound.find(cur) == bound.end())
+      {
+        return false;
+      }
+      continue;
+    }
+    if (k == Kind::APPLY)
+    {
+      // Applications are curried into binary applications. Walk down the head
+      // spine to find the head symbol and the list of arguments it is applied
+      // to, where args are collected outermost (last applied) first.
+      std::vector<ExprValue*> args;
+      ExprValue* head = cur;
+      while (head->getKind() == Kind::APPLY && head->getNumChildren() == 2)
+      {
+        args.push_back((*head)[1]);
+        head = (*head)[0];
+      }
+      // If the head is marked :binder or :let-binder, then the first argument
+      // it is applied to (the innermost) is the variable list, which binds
+      // variables in the body arguments.
+      Attr a = d_state.getAttributeKind(head);
+      if (!args.empty() && (a == Attr::BINDER || a == Attr::LET_BINDER))
+      {
+        // Terms that must be checked in the current (outer) scope, e.g. the
+        // bound terms of a :let-binder, are appended to visit so that they are
+        // processed by this same loop.
+        if (!isClosedBinder(a, head, args, bound, visit))
+        {
+          return false;
+        }
+        continue;
+      }
+    }
+    for (ExprValue* c : cur->getChildren())
+    {
+      visit.push_back(c);
+    }
+  }
+  return true;
+}
+
+bool TypeChecker::isClosedBinder(Attr a,
+                                 ExprValue* head,
+                                 const std::vector<ExprValue*>& args,
+                                 std::unordered_set<ExprValue*>& bound,
+                                 std::vector<ExprValue*>& outerTerms)
+{
+  // The variable list is the first argument the binder is applied to, i.e. the
+  // innermost (last collected) argument.
+  ExprValue* vlist = args.back();
+  std::vector<ExprValue*> newlyBound;
+  if (a == Attr::LET_BINDER)
+  {
+    // For a :let-binder, the variable list is a list of pairs (pairCons v t),
+    // where v is a bound variable and t is a term that is evaluated in the
+    // outer scope. We obtain the pair constructor from the binder's attribute
+    // term, which is a tuple (pairCons listCons).
+    Expr consTerm = d_state.getAttributeTerm(head);
+    if (consTerm.getKind() == Kind::TUPLE && consTerm.getNumChildren() == 2)
+    {
+      ExprValue* pairCons = consTerm[0].getValue();
+      // collect the pairs occurring in the variable list
+      std::vector<ExprValue*> pairs;
+      std::vector<ExprValue*> visit{vlist};
+      while (!visit.empty())
+      {
+        ExprValue* cur = visit.back();
+        visit.pop_back();
+        // determine whether cur is an application of pairCons
+        ExprValue* ph = cur;
+        while (ph->getKind() == Kind::APPLY && ph->getNumChildren() == 2)
+        {
+          ph = (*ph)[0];
+        }
+        if (ph == pairCons && cur->getKind() == Kind::APPLY)
+        {
+          pairs.push_back(cur);
+          // do not descend into the pair
+          continue;
+        }
+        for (ExprValue* c : cur->getChildren())
+        {
+          visit.push_back(c);
+        }
+      }
+      for (ExprValue* p : pairs)
+      {
+        // p is (pairCons v t): v is the innermost argument, t the next one.
+        std::vector<ExprValue*> pargs;
+        ExprValue* ph = p;
+        while (ph->getKind() == Kind::APPLY && ph->getNumChildren() == 2)
+        {
+          pargs.push_back((*ph)[1]);
+          ph = (*ph)[0];
+        }
+        if (pargs.size() < 2)
+        {
+          continue;
+        }
+        // the bound term is checked in the outer scope
+        outerTerms.push_back(pargs[pargs.size() - 2]);
+        // the bound variable(s) are the variables of the first pair component
+        std::unordered_set<ExprValue*> pvars;
+        collectVariables(pargs.back(), pvars);
+        for (ExprValue* v : pvars)
+        {
+          if (bound.insert(v).second)
+          {
+            newlyBound.push_back(v);
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    Assert(a == Attr::BINDER);
+    // The bound variables are the variables occurring in the variable list. We
+    // collect all variables to be agnostic to how the list is constructed.
+    std::unordered_set<ExprValue*> vlistVars;
+    collectVariables(vlist, vlistVars);
+    for (ExprValue* v : vlistVars)
+    {
+      if (bound.insert(v).second)
+      {
+        newlyBound.push_back(v);
+      }
+    }
+  }
+  bool ret = true;
+  // Check the body arguments (all arguments except the variable list) in the
+  // scope extended with the bound variables. This is the only place we recurse,
+  // since the bound set has changed.
+  for (size_t i = 0, nargs = args.size() - 1; i < nargs; i++)
+  {
+    if (!isClosedInternal(args[i], bound))
+    {
+      ret = false;
+      break;
+    }
+  }
+  for (ExprValue* v : newlyBound)
+  {
+    bound.erase(v);
+  }
+  return ret;
+}
+
+void TypeChecker::collectVariables(ExprValue* e,
+                                   std::unordered_set<ExprValue*>& vars)
+{
+  std::unordered_set<ExprValue*> visited;
+  std::vector<ExprValue*> visit;
+  visit.push_back(e);
+  while (!visit.empty())
+  {
+    ExprValue* cur = visit.back();
+    visit.pop_back();
+    // pruning: subterms with no variable cannot contribute
+    if (!cur->hasVariable())
+    {
+      continue;
+    }
+    if (!visited.insert(cur).second)
+    {
+      continue;
+    }
+    if (cur->getKind() == Kind::VARIABLE)
+    {
+      vars.insert(cur);
+      continue;
+    }
+    for (ExprValue* c : cur->getChildren())
+    {
+      visit.push_back(c);
+    }
+  }
+}
+
 Expr TypeChecker::evaluateNil(ExprValue* op,
                               ExprValue* nil,
                               bool isLeft,
@@ -1236,6 +1451,14 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
       Literal lb(args[0]->getKind()==kk);
       return Expr(d_state.mkLiteralInternal(lb));
+    }
+    break;
+    case Kind::EVAL_IS_CLOSED:
+    {
+      Assert(args.size() == 1);
+      // true iff the argument has no free occurrences of variables, taking
+      // into account binders.
+      return d_state.mkBool(isClosed(args[0]));
     }
     break;
     case Kind::EVAL_TYPE_OF:
@@ -1883,6 +2106,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_STR:
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
+    case Kind::EVAL_IS_CLOSED:
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_MINCLUDE:
     case Kind::EVAL_LIST_MEQ: return d_state.mkBoolType();

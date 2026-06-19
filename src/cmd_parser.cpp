@@ -113,6 +113,15 @@ bool CmdParser::parseNextCommand()
       std::string name = d_eparser.parseSymbol();
       // parse what is proven
       Expr proven = d_eparser.parseFormula();
+      // assumptions must be closed, i.e. they must not have free occurrences
+      // of variables.
+      if (!d_state.getTypeChecker().isClosed(proven.getValue()))
+      {
+        std::stringstream ss;
+        ss << "The assumption " << name << " is not closed, i.e. it has free "
+           << "occurrences of variables";
+        d_lex.parseError(ss.str());
+      }
       d_state.notifyAssume(name, proven, (tok == Token::ASSUME_PUSH));
       // bind the assumption to (pf <proven>).
       Expr pt = d_state.mkProof(proven);

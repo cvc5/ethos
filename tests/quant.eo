@@ -1,7 +1,13 @@
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
-(declare-parameterized-const forall ((T Type :implicit)) (-> T Bool Bool))
-(declare-parameterized-const exists ((T Type :implicit)) (-> T Bool Bool))
+; a variable list constructor, used as the :binder attribute for the
+; quantifiers below.
+(declare-const @List Type)
+(declare-const @list.nil @List)
+(declare-parameterized-const @list ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @list.nil)
+
+(declare-parameterized-const forall ((T Type :implicit)) (-> T Bool Bool) :binder @list)
+(declare-parameterized-const exists ((T Type :implicit)) (-> T Bool Bool) :binder @list)
 
 ; (skolem U t), where U is the type of the skolem and t is an index
 (declare-parameterized-const skolem ((U Type) (T Type :implicit)) (-> T U))

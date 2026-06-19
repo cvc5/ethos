@@ -1,8 +1,8 @@
 (include "Utils.eo")
 
-(declare-const forall (-> @List Bool Bool))
+(declare-const forall (-> @List Bool Bool) :binder @list)
 
-(declare-const exists (-> @List Bool Bool))
+(declare-const exists (-> @List Bool Bool) :binder @list)
 
 (declare-parameterized-const witness ((T Type :implicit)) (-> T Bool T))
 

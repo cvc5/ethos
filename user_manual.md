@@ -800,6 +800,8 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - Equivalent to `(eo::or (eo::is_eq t true) (eo::is_eq t false))`.
 - `(eo::is_var t)`
   - Equivalent to `(eo::is_eq (eo::var (eo::nameof t) (eo::typeof t)) t)`.
+- `(eo::is_closed t)`
+  - Returns `true` if `t` is closed, i.e. it has no free occurrences of variables, and `false` otherwise. An occurrence of a variable is free unless it is bound by an enclosing application whose head is marked `:binder` or `:let-binder`. For example, `(eo::is_closed (forall ((x Bool)) (P x)))` is `true` when `forall` is a `:binder`, whereas `(eo::is_closed (P (eo::var "x" Bool)))` is `false`. For a `:let-binder`, the bound variables are bound in the body, but the bound terms are evaluated in the outer scope; for example `(eo::is_closed (let ((x t)) x))` is `true` only if `t` is itself closed.
 
 Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` is intentionally not listed above, as it is an ordinary term.
 
@@ -1645,6 +1647,8 @@ where
 <premises>     ::= :premises (<term>*)
 <arguments>    ::= :args (<term>*)
 ```
+
+The `<term>` provided to `assume` (and `assume-push`) must be closed, that is, it must have no free occurrences of variables (see `eo::is_closed`). Otherwise, an error is thrown.
 
 ### Example proof: symmetry of equality
 

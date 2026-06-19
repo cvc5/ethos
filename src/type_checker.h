@@ -74,7 +74,35 @@ class TypeChecker
    * operator does not evaluate.
    */
   Expr evaluateLiteralOp(Kind k, const std::vector<ExprValue*>& args);
+  /**
+   * Return true iff e is closed, i.e. it has no free occurrences of variables
+   * (Kind::VARIABLE). Occurrences of variables that are bound by an enclosing
+   * application whose head is marked :binder do not count as free.
+   */
+  bool isClosed(ExprValue* e);
  private:
+  /**
+   * Helper for isClosed, where bound is the set of variables that are bound by
+   * an enclosing binder. This checks whether e (and its subterms reachable
+   * without crossing a further binder) has no free variables. It recurses only
+   * when crossing a binder, so its recursion depth is bounded by the binder
+   * nesting depth.
+   */
+  bool isClosedInternal(ExprValue* e, std::unordered_set<ExprValue*>& bound);
+  /**
+   * Helper for isClosedInternal, for an application of a binder (with attribute
+   * a, either BINDER or LET_BINDER) whose head is head and whose arguments are
+   * args (collected outermost first). Returns false if a free variable is found
+   * in a body argument. Terms that should be checked in the current (outer)
+   * scope, e.g. the bound terms of a let-binder, are appended to outerTerms.
+   */
+  bool isClosedBinder(Attr a,
+                      ExprValue* head,
+                      const std::vector<ExprValue*>& args,
+                      std::unordered_set<ExprValue*>& bound,
+                      std::vector<ExprValue*>& outerTerms);
+  /** Collect the variables (Kind::VARIABLE) occurring as subterms of e. */
+  void collectVariables(ExprValue* e, std::unordered_set<ExprValue*>& vars);
   /**
    * Match expression a with b. If this returns true, then ctx is a substitution
    * that when applied to b gives a. The substitution

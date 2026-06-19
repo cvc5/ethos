@@ -22,7 +22,7 @@
 (declare-parameterized-const = ((A Type :implicit)) (-> A A Bool) :chainable and
 )
 
-(declare-parameterized-const lambda ((A Type :implicit) (B Type :implicit)) (-> A B (-> A B)))
+(declare-parameterized-const lambda ((A Type :implicit) (B Type :implicit)) (-> A B (-> A B)) :binder @list)
 
 (declare-parameterized-const distinct ((A Type :implicit)) (-> A A Bool) :pairwise and)
 

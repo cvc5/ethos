@@ -152,6 +152,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("is_str", Kind::EVAL_IS_STR);
   bindBuiltinEval("is_bool", Kind::EVAL_IS_BOOL);
   bindBuiltinEval("is_var", Kind::EVAL_IS_VAR);
+  bindBuiltinEval("is_closed", Kind::EVAL_IS_CLOSED);
   // lists
   bindBuiltinEval("nil", Kind::EVAL_NIL);
   bindBuiltinEval("cons", Kind::EVAL_CONS);

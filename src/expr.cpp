@@ -92,6 +92,12 @@ void ExprValue::computeFlags()
         // literal operator kinds are evaluatable
         cur->setFlag(Flag::IS_EVAL, true);
       }
+      if (ck == Kind::VARIABLE)
+      {
+        // variables are (eo::var <name> <type>) terms; mark that this term
+        // contains a variable as a subterm.
+        cur->setFlag(Flag::HAS_VARIABLE, true);
+      }
       // flags are a union of the flags of the children
       for (ExprValue* c : children)
       {
@@ -111,6 +117,12 @@ bool ExprValue::isGround()
 {
   computeFlags();
   return !getFlag(ExprValue::Flag::IS_NON_GROUND);
+}
+
+bool ExprValue::hasVariable()
+{
+  computeFlags();
+  return getFlag(ExprValue::Flag::HAS_VARIABLE);
 }
 
 void ExprValue::dec()
