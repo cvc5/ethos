@@ -1,0 +1,4 @@
+; Assumptions must be closed: this assumption has a free variable and is
+; therefore rejected.
+(declare-const P (-> Bool Bool))
+(assume @a (P (eo::var "x" Bool)))
