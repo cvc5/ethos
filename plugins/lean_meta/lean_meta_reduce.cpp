@@ -52,17 +52,28 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
     d_smtTOpDt << "  | None : SmtTheoryOp" << std::endl;
   }
   d_partialExc.insert("$str_re_consume_rec");
-  d_partialExc.insert("$str_re_includes_rec");
-  d_partialExc.insert("$str_re_includes_lhs_union");
-  d_partialExc.insert("$str_re_includes_rhs_inter");
-  d_partialExc.insert("$str_re_includes_lhs_star");
-  d_terminatingBy["$set_is_not_subset"] =
-    "termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2";
-  d_terminatingBy["$seq_distinct_terms"] =
-  "termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2";
+  std::string terminate1 = "termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2";
+  d_terminatingBy["$set_is_not_subset"] = terminate1;
+  d_terminatingBy["$seq_distinct_terms"] = terminate1;
   d_terminatingBy["$dt_distinct_terms"] =
   "termination_by x1 x2 => sizeOf x1 + sizeOf x2";
   d_terminatingBy["$are_distinct_terms_type"] = R"(termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2 + 1
+decreasing_by
+  all_goals simp_wf
+  all_goals omega)";
+  d_terminatingBy["$re_flatten"] = R"(termination_by rev flag tree => 2 * sizeOf tree + (if flag = Term.Boolean true then 1 else 0)
+decreasing_by
+  all_goals simp_wf
+  all_goals omega)";
+  std::string terminate2 = R"(termination_by a b => 4 * (sizeOf a + sizeOf b)
+decreasing_by
+  all_goals simp_wf
+  all_goals omega)";
+  d_terminatingBy["$str_re_includes_lhs_union"] = terminate2;
+  d_terminatingBy["$str_re_includes_lhs_star"] = terminate2;
+  d_terminatingBy["$str_re_includes_rhs_inter"] = terminate2;
+  d_terminatingBy["$str_re_includes_rec"] = terminate2;
+  d_terminatingBy["$str_re_includes_base"] = R"(termination_by a b => 4 * (sizeOf a + sizeOf b) + 1
 decreasing_by
   all_goals simp_wf
   all_goals omega)";
