@@ -980,14 +980,15 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
   return Expr(d_state.mkExprInternal(k, args));
 }
 
-bool TypeChecker::isClosed(ExprValue* e)
+bool TypeChecker::isClosed(ExprValue* e, bool& ok)
 {
   std::unordered_set<ExprValue*> bound;
-  return isClosedInternal(e, bound);
+  return isClosedInternal(e, bound, ok);
 }
 
 bool TypeChecker::isClosedInternal(ExprValue* e,
-                                   std::unordered_set<ExprValue*>& bound)
+                                   std::unordered_set<ExprValue*>& bound,
+                                   bool& ok)
 {
   // We traverse all subterms reachable from e without crossing a binder
   // iteratively. We only recurse (back into this method) when we cross a
@@ -1038,7 +1039,7 @@ bool TypeChecker::isClosedInternal(ExprValue* e,
       // account here, i.e. let-bound variables are treated as free.
       if (!args.empty() && d_state.getAttributeKind(head) == Attr::BINDER)
       {
-        if (!isClosedBinder(head, args, bound))
+        if (!isClosedBinder(head, args, bound, ok) || !ok)
         {
           return false;
         }
@@ -1055,18 +1056,30 @@ bool TypeChecker::isClosedInternal(ExprValue* e,
 
 bool TypeChecker::isClosedBinder(ExprValue* head,
                                  const std::vector<ExprValue*>& args,
-                                 std::unordered_set<ExprValue*>& bound)
+                                 std::unordered_set<ExprValue*>& bound,
+                                 bool& ok)
 {
   // The variable list is the first argument the binder is applied to, i.e. the
   // innermost (last collected) argument. Its elements are the bound variables.
   // We collect them as the n-ary children of the variable list, whose list
   // constructor is the binder's attribute term.
   ExprValue* op = d_state.getAttributeTerm(head).getValue();
-  Attr opa = d_state.getAttributeKind(op);
-  bool isLeft =
-      (opa == Attr::LEFT_ASSOC_NIL || opa == Attr::LEFT_ASSOC_NS_NIL);
+  op = op->getKind() == Kind::PARAMETERIZED ? (*op)[1] : op;
+  AppInfo* ac = d_state.getAppInfo(op);
   std::vector<ExprValue*> vlistVars;
-  getNAryChildren(args.back(), op, nullptr, vlistVars, isLeft);
+  if (ac == nullptr || !isListNilAttr(ac->d_attrCons)
+      || getNAryChildren(args.back(),
+                         op,
+                         ac->d_attrConsTerm.getValue(),
+                         vlistVars,
+                         ac->d_attrCons == Attr::LEFT_ASSOC_NIL
+                             || ac->d_attrCons == Attr::LEFT_ASSOC_NS_NIL)
+             == nullptr)
+  {
+    // the variable list is not a proper list; closedness cannot be determined
+    ok = false;
+    return false;
+  }
   std::vector<ExprValue*> newlyBound;
   for (ExprValue* v : vlistVars)
   {
@@ -1081,7 +1094,7 @@ bool TypeChecker::isClosedBinder(ExprValue* head,
   // since the set of bound variables has changed.
   for (size_t i = 0, nargs = args.size() - 1; i < nargs; i++)
   {
-    if (!isClosedInternal(args[i], bound))
+    if (!isClosedInternal(args[i], bound, ok))
     {
       ret = false;
       break;
@@ -1364,8 +1377,15 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     {
       Assert(args.size() == 1);
       // true iff the argument has no free occurrences of variables, taking
-      // into account applications whose heads are marked :binder.
-      return d_state.mkBool(isClosed(args[0]));
+      // into account applications whose heads are marked :binder. Does not
+      // evaluate if a binder with an improper variable list is encountered.
+      bool ok = true;
+      bool closed = isClosed(args[0], ok);
+      if (!ok)
+      {
+        return d_null;
+      }
+      return d_state.mkBool(closed);
     }
     break;
     case Kind::EVAL_TYPE_OF:

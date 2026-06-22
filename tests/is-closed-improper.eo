@@ -1,0 +1,15 @@
+; eo::is_closed fails (does not evaluate) when a binder is applied to a
+; variable list that is not a proper list. With --check-closed enabled, the
+; assumption below is therefore rejected.
+(set-option :check-closed true)
+(declare-const @List Type)
+(declare-const @list.nil @List)
+(declare-parameterized-const @list ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @list.nil)
+(declare-const forall (-> @List Bool Bool) :binder @list)
+; badlist is a constant of type @List that is not built from @list/@list.nil,
+; i.e. it is not a proper list.
+(declare-const badlist @List)
+(declare-const P (-> Bool Bool))
+; the body contains a variable so the term is not pruned by the no-variable
+; optimization, forcing the binder variable list to be inspected.
+(assume @a (forall badlist (P (eo::var "y" Bool))))

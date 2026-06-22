@@ -79,27 +79,37 @@ class TypeChecker
    * (Kind::VARIABLE). Occurrences of variables that are bound by an enclosing
    * application whose head is marked :binder do not count as free. Note that
    * :let-binder is not taken into account.
+   *
+   * The flag ok is set to false if e contains a binder application whose
+   * variable list is not a proper list (with respect to the binder's list
+   * constructor and nil terminator). In this case the return value is
+   * meaningless and the caller should treat the closedness as undetermined.
    */
-  bool isClosed(ExprValue* e);
+  bool isClosed(ExprValue* e, bool& ok);
  private:
   /**
    * Helper for isClosed, where bound is the set of variables that are bound by
    * an enclosing binder. This checks whether e (and its subterms reachable
    * without crossing a further binder) has no free variables. It recurses only
    * when crossing a binder, so its recursion depth is bounded by the binder
-   * nesting depth.
+   * nesting depth. The flag ok is set to false if an improper binder variable
+   * list is encountered, see isClosed.
    */
-  bool isClosedInternal(ExprValue* e, std::unordered_set<ExprValue*>& bound);
+  bool isClosedInternal(ExprValue* e,
+                        std::unordered_set<ExprValue*>& bound,
+                        bool& ok);
   /**
    * Helper for isClosedInternal, for an application of a binder whose head is
    * head and whose arguments are args (collected outermost first). The bound
    * variables are the n-ary children of the variable list (the innermost
-   * argument), using the binder's attribute term as the list constructor.
-   * Returns false if a free variable is found in a body argument.
+   * argument), using the binder's list constructor and nil terminator. Sets ok
+   * to false if the variable list is not a proper list. Returns false if a free
+   * variable is found in a body argument.
    */
   bool isClosedBinder(ExprValue* head,
                       const std::vector<ExprValue*>& args,
-                      std::unordered_set<ExprValue*>& bound);
+                      std::unordered_set<ExprValue*>& bound,
+                      bool& ok);
   /**
    * Match expression a with b. If this returns true, then ctx is a substitution
    * that when applied to b gives a. The substitution

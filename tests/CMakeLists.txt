@@ -211,3 +211,8 @@ ethos_fail_test(parser-overflow-declare-sort.eo
 # With --check-closed, an assumption with free variables is rejected.
 ethos_fail_test(assume-open.eo
                 "is not closed")
+
+# With --check-closed, an assumption with a binder whose variable list is not a
+# proper list is rejected, since eo::is_closed does not evaluate on it.
+ethos_fail_test(is-closed-improper.eo
+                "is not closed")
