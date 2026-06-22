@@ -1,0 +1,43 @@
+; Tests for eo::is_closed.
+
+(declare-const @List Type)
+(declare-const @list.nil @List)
+(declare-parameterized-const @list ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @list.nil)
+(declare-const forall (-> @List Bool Bool) :binder @list)
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))
+(declare-const P (-> Bool Bool))
+(declare-const a Bool)
+
+; A rule that proves (= F F) only when (eo::is_closed F) equals the given bool b.
+(declare-rule check ((F Bool) (b Bool))
+  :args (F b)
+  :requires (((eo::is_closed F) b))
+  :conclusion (= F F))
+
+; closed: no variables at all
+(step @c1 (= a a) :rule check :args (a true))
+
+; closed: variable bound by an enclosing binder
+(step @c2 (= (forall ((x Bool)) (P x)) (forall ((x Bool)) (P x)))
+  :rule check :args ((forall ((x Bool)) (P x)) true))
+
+; not closed: a free variable
+(step @c3 (= (P (eo::var "x" Bool)) (P (eo::var "x" Bool)))
+  :rule check :args ((P (eo::var "x" Bool)) false))
+
+; closed: a binder occurring as a subterm is still closed
+(step @c4 (= (P (forall ((x Bool)) (P x))) (P (forall ((x Bool)) (P x))))
+  :rule check :args ((P (forall ((x Bool)) (P x))) true))
+
+; not closed: y is free, x is bound
+(step @c5
+  (= (forall ((x Bool)) (= (P x) (P (eo::var "y" Bool))))
+     (forall ((x Bool)) (= (P x) (P (eo::var "y" Bool)))))
+  :rule check :args ((forall ((x Bool)) (= (P x) (P (eo::var "y" Bool)))) false))
+
+; closed: the same variable name is free in one binder and bound in another;
+; here both occurrences of x are bound by their respective binders
+(step @c6
+  (= (= (forall ((x Bool)) (P x)) (forall ((x Bool)) (P x)))
+     (= (forall ((x Bool)) (P x)) (forall ((x Bool)) (P x))))
+  :rule check :args ((= (forall ((x Bool)) (P x)) (forall ((x Bool)) (P x))) true))

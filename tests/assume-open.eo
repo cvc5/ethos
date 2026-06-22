@@ -1,0 +1,5 @@
+; With --check-closed enabled, assumptions must be closed: this assumption has
+; a free variable and is therefore rejected.
+(set-option :check-closed true)
+(declare-const P (-> Bool Bool))
+(assume @a (P (eo::var "x" Bool)))
