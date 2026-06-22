@@ -802,6 +802,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - Equivalent to `(eo::is_eq (eo::var (eo::nameof t) (eo::typeof t)) t)`.
 - `(eo::is_closed t)`
   - Returns `true` if `t` is closed, i.e. it has no free occurrences of variables, and `false` otherwise. An occurrence of a variable is free unless it is bound by an enclosing application whose head is marked `:binder`. For example, `(eo::is_closed (forall ((x Bool)) (P x)))` is `true` when `forall` is a `:binder`, whereas `(eo::is_closed (P (eo::var "x" Bool)))` is `false`. Note that variables bound by `:let-binder` applications are *not* taken into account, i.e. they are treated as free.
+  - This operator does not evaluate if `t` contains an application of a `:binder` whose variable list is not a proper list, that is, a list constructed by the binder's list constructor and terminated by its nil terminator. For example, if `forall` is declared as a `:binder` whose list constructor is `@list` (with nil terminator `@list.nil`), then `(eo::is_closed (forall c (P (eo::var "x" Bool))))` does not evaluate when `c` is not a proper `@list`.
 
 Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` is intentionally not listed above, as it is an ordinary term.
 
