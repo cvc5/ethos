@@ -13,7 +13,7 @@ import difflib
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Union
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,7 @@ class Token:
 class Node:
     kind: str
     text: str = ""
-    children: list["Node"] | None = None
+    children: Optional[list["Node"]] = None
     line: int = 0
     col: int = 0
     trailing: bool = False
@@ -286,8 +286,13 @@ class Formatter:
                 lines[-1] += trailing
                 return
             target = insert_before if insert_before is not None else len(lines) - 1
+            # Skip past comments already moved to this location so repeated
+            # inserts keep their original relative order instead of reversing.
+            while target < len(lines) and lines[target].lstrip().startswith(";"):
+                target += 1
+            indent_ref = target if target < len(lines) else len(lines) - 1
             lines[target:target] = self.format_comment_with_indent(
-                node, self.leading_whitespace(lines[target])
+                node, self.leading_whitespace(lines[indent_ref])
             )
             return
         lines.extend(self.format_comment(node, level))
@@ -413,8 +418,8 @@ class Formatter:
 
     def program_case_info(
         self, children: list[Node], case_level: int
-    ) -> dict[int, Optional[dict[str, int | str]]]:
-        info: dict[int, Optional[dict[str, int | str]]] = {}
+    ) -> dict[int, Optional[dict[str, Union[int, str]]]]:
+        info: dict[int, Optional[dict[str, Union[int, str]]]] = {}
         for idx, child in enumerate(children):
             if not child.is_list():
                 info[idx] = None
@@ -440,7 +445,7 @@ class Formatter:
     def inline_program_cases(
         self,
         children: list[Node],
-        case_info: dict[int, Optional[dict[str, int | str]]],
+        case_info: dict[int, Optional[dict[str, Union[int, str]]]],
     ) -> dict[int, int]:
         inline_cols: dict[int, int] = {}
         group: list[int] = []
@@ -514,7 +519,7 @@ class Formatter:
     def trailing_program_case_comments(
         self,
         children: list[Node],
-        case_info: dict[int, Optional[dict[str, int | str]]],
+        case_info: dict[int, Optional[dict[str, Union[int, str]]]],
     ) -> dict[int, Node]:
         trailing_comments: dict[int, Node] = {}
         for idx, child in enumerate(children[:-1]):
@@ -993,7 +998,7 @@ def collect_files(paths: list[Path], recursive: bool) -> list[Path]:
         seen.add(resolved)
         if not resolved.exists():
             raise FormatError(f"{path}: file does not exist")
-        text = resolved.read_text()
+        text = resolved.read_text(encoding="utf-8")
         nodes = parse_eunoia(text, str(resolved))
         if recursive:
             for include in iter_include_paths(nodes):
@@ -1015,7 +1020,7 @@ def collect_files(paths: list[Path], recursive: bool) -> list[Path]:
 
 
 def format_file(path: Path, formatter: Formatter) -> tuple[str, str]:
-    original = path.read_text()
+    original = path.read_text(encoding="utf-8")
     formatted = formatter.format_document(parse_eunoia(original, str(path)))
     return original, formatted
 
@@ -1071,7 +1076,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             if args.diff:
                 print(unified_diff(path, original, formatted), end="")
             elif not args.check:
-                path.write_text(formatted)
+                path.write_text(formatted, encoding="utf-8")
         if args.check and changed:
             for path in changed:
                 print(f"would reformat {path}", file=sys.stderr)
