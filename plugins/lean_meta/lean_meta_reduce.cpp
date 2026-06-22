@@ -51,7 +51,10 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
   {
     d_smtTOpDt << "  | None : SmtTheoryOp" << std::endl;
   }
-  d_partialExc.insert("$str_re_consume_rec");
+  // NOTE: any partial def can be forced by adding the method names to
+  // d_partialExc, e.g. d_partialExc.insert("$str_re_consume_rec");
+
+  // CPC-specific termination clauses
   std::string terminate1 = "termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2";
   d_terminatingBy["$set_is_not_subset"] = terminate1;
   d_terminatingBy["$seq_distinct_terms"] = terminate1;
