@@ -21,6 +21,13 @@
 
 namespace ethos {
 
+/** Get nary children, see definition below. */
+ExprValue* getNAryChildren(ExprValue* e,
+                           ExprValue* op,
+                           ExprValue* checkNil,
+                           std::vector<ExprValue*>& children,
+                           bool isLeft);
+
 TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s), d_plugin(nullptr), d_sts(s.getStats())
 {
   std::set<Kind> literalKinds = { Kind::BOOLEAN, Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING, Kind::DECIMAL, Kind::HEXADECIMAL };
@@ -1031,7 +1038,7 @@ bool TypeChecker::isClosedInternal(ExprValue* e,
       // account here, i.e. let-bound variables are treated as free.
       if (!args.empty() && d_state.getAttributeKind(head) == Attr::BINDER)
       {
-        if (!isClosedBinder(args, bound))
+        if (!isClosedBinder(head, args, bound))
         {
           return false;
         }
@@ -1046,15 +1053,20 @@ bool TypeChecker::isClosedInternal(ExprValue* e,
   return true;
 }
 
-bool TypeChecker::isClosedBinder(const std::vector<ExprValue*>& args,
+bool TypeChecker::isClosedBinder(ExprValue* head,
+                                 const std::vector<ExprValue*>& args,
                                  std::unordered_set<ExprValue*>& bound)
 {
   // The variable list is the first argument the binder is applied to, i.e. the
-  // innermost (last collected) argument. Its variables are bound in the body
-  // arguments. We collect all variables of the variable list to be agnostic to
-  // how the list is constructed.
-  std::unordered_set<ExprValue*> vlistVars;
-  collectVariables(args.back(), vlistVars);
+  // innermost (last collected) argument. Its elements are the bound variables.
+  // We collect them as the n-ary children of the variable list, whose list
+  // constructor is the binder's attribute term.
+  ExprValue* op = d_state.getAttributeTerm(head).getValue();
+  Attr opa = d_state.getAttributeKind(op);
+  bool isLeft =
+      (opa == Attr::LEFT_ASSOC_NIL || opa == Attr::LEFT_ASSOC_NS_NIL);
+  std::vector<ExprValue*> vlistVars;
+  getNAryChildren(args.back(), op, nullptr, vlistVars, isLeft);
   std::vector<ExprValue*> newlyBound;
   for (ExprValue* v : vlistVars)
   {
@@ -1080,37 +1092,6 @@ bool TypeChecker::isClosedBinder(const std::vector<ExprValue*>& args,
     bound.erase(v);
   }
   return ret;
-}
-
-void TypeChecker::collectVariables(ExprValue* e,
-                                   std::unordered_set<ExprValue*>& vars)
-{
-  std::unordered_set<ExprValue*> visited;
-  std::vector<ExprValue*> visit;
-  visit.push_back(e);
-  while (!visit.empty())
-  {
-    ExprValue* cur = visit.back();
-    visit.pop_back();
-    // pruning: subterms with no variable cannot contribute
-    if (!cur->hasVariable())
-    {
-      continue;
-    }
-    if (!visited.insert(cur).second)
-    {
-      continue;
-    }
-    if (cur->getKind() == Kind::VARIABLE)
-    {
-      vars.insert(cur);
-      continue;
-    }
-    for (ExprValue* c : cur->getChildren())
-    {
-      visit.push_back(c);
-    }
-  }
 }
 
 Expr TypeChecker::evaluateNil(ExprValue* op,

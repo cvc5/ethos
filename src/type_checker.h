@@ -91,14 +91,15 @@ class TypeChecker
    */
   bool isClosedInternal(ExprValue* e, std::unordered_set<ExprValue*>& bound);
   /**
-   * Helper for isClosedInternal, for an application of a binder whose arguments
-   * are args (collected outermost first). Returns false if a free variable is
-   * found in a body argument.
+   * Helper for isClosedInternal, for an application of a binder whose head is
+   * head and whose arguments are args (collected outermost first). The bound
+   * variables are the n-ary children of the variable list (the innermost
+   * argument), using the binder's attribute term as the list constructor.
+   * Returns false if a free variable is found in a body argument.
    */
-  bool isClosedBinder(const std::vector<ExprValue*>& args,
+  bool isClosedBinder(ExprValue* head,
+                      const std::vector<ExprValue*>& args,
                       std::unordered_set<ExprValue*>& bound);
-  /** Collect the variables (Kind::VARIABLE) occurring as subterms of e. */
-  void collectVariables(ExprValue* e, std::unordered_set<ExprValue*>& vars);
   /**
    * Match expression a with b. If this returns true, then ctx is a substitution
    * that when applied to b gives a. The substitution
