@@ -28,6 +28,7 @@ Options::Options()
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
+  d_checkClosed = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -72,6 +73,10 @@ bool Options::setOption(const std::string& key, bool val)
   {
     d_normalizeHexadecimal = val;
   }
+  else if (key == "check-closed")
+  {
+    d_checkClosed = val;
+  }
   else
   {
     return false;
@@ -115,6 +120,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("is_str", Kind::EVAL_IS_STR);
   bindBuiltinEval("is_bool", Kind::EVAL_IS_BOOL);
   bindBuiltinEval("is_var", Kind::EVAL_IS_VAR);
+  bindBuiltinEval("is_closed", Kind::EVAL_IS_CLOSED);
   // lists
   bindBuiltinEval("nil", Kind::EVAL_NIL);
   bindBuiltinEval("cons", Kind::EVAL_CONS);

@@ -78,6 +78,7 @@ enum class Kind
   EVAL_IS_STR,
   EVAL_IS_BOOL,
   EVAL_IS_VAR,
+  EVAL_IS_CLOSED,
   // equality
   EVAL_EQ,
   // lists

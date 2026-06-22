@@ -186,6 +186,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_IS_STR:
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
+    case Kind::EVAL_IS_CLOSED:
     case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS: ret = (nargs == 1); break;
     case Kind::EVAL_REQUIRES:
@@ -972,6 +973,146 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
   return Expr(d_state.mkExprInternal(k, args));
 }
 
+bool TypeChecker::isClosed(ExprValue* e)
+{
+  std::unordered_set<ExprValue*> bound;
+  return isClosedInternal(e, bound);
+}
+
+bool TypeChecker::isClosedInternal(ExprValue* e,
+                                   std::unordered_set<ExprValue*>& bound)
+{
+  // We traverse all subterms reachable from e without crossing a binder
+  // iteratively. We only recurse (back into this method) when we cross a
+  // binder, i.e. when the set of bound variables changes. This keeps the
+  // recursion depth bounded by the binder nesting depth rather than the term
+  // depth, minimizing the chance of stack overflow on deep terms.
+  std::unordered_set<ExprValue*> visited;
+  std::vector<ExprValue*> visit;
+  visit.push_back(e);
+  while (!visit.empty())
+  {
+    ExprValue* cur = visit.back();
+    visit.pop_back();
+    // Optimization: subterms with no variable as a subterm are closed.
+    if (!cur->hasVariable())
+    {
+      continue;
+    }
+    if (!visited.insert(cur).second)
+    {
+      continue;
+    }
+    Kind k = cur->getKind();
+    if (k == Kind::VARIABLE)
+    {
+      // a variable occurrence is free unless it is bound by an enclosing binder
+      if (bound.find(cur) == bound.end())
+      {
+        return false;
+      }
+      continue;
+    }
+    if (k == Kind::APPLY)
+    {
+      // Applications are curried into binary applications. Walk down the head
+      // spine to find the head symbol and the list of arguments it is applied
+      // to, where args are collected outermost (last applied) first.
+      std::vector<ExprValue*> args;
+      ExprValue* head = cur;
+      while (head->getKind() == Kind::APPLY && head->getNumChildren() == 2)
+      {
+        args.push_back((*head)[1]);
+        head = (*head)[0];
+      }
+      // If the head is marked :binder, then the first argument it is applied to
+      // (the innermost) is the variable list, which binds variables in the
+      // body arguments. Note that :let-binder is intentionally not taken into
+      // account here, i.e. let-bound variables are treated as free.
+      if (!args.empty() && d_state.getAttributeKind(head) == Attr::BINDER)
+      {
+        if (!isClosedBinder(args, bound))
+        {
+          return false;
+        }
+        continue;
+      }
+    }
+    for (ExprValue* c : cur->getChildren())
+    {
+      visit.push_back(c);
+    }
+  }
+  return true;
+}
+
+bool TypeChecker::isClosedBinder(const std::vector<ExprValue*>& args,
+                                 std::unordered_set<ExprValue*>& bound)
+{
+  // The variable list is the first argument the binder is applied to, i.e. the
+  // innermost (last collected) argument. Its variables are bound in the body
+  // arguments. We collect all variables of the variable list to be agnostic to
+  // how the list is constructed.
+  std::unordered_set<ExprValue*> vlistVars;
+  collectVariables(args.back(), vlistVars);
+  std::vector<ExprValue*> newlyBound;
+  for (ExprValue* v : vlistVars)
+  {
+    if (bound.insert(v).second)
+    {
+      newlyBound.push_back(v);
+    }
+  }
+  bool ret = true;
+  // Check the body arguments (all arguments except the variable list) in the
+  // scope extended with the bound variables. This is the only place we recurse,
+  // since the set of bound variables has changed.
+  for (size_t i = 0, nargs = args.size() - 1; i < nargs; i++)
+  {
+    if (!isClosedInternal(args[i], bound))
+    {
+      ret = false;
+      break;
+    }
+  }
+  for (ExprValue* v : newlyBound)
+  {
+    bound.erase(v);
+  }
+  return ret;
+}
+
+void TypeChecker::collectVariables(ExprValue* e,
+                                   std::unordered_set<ExprValue*>& vars)
+{
+  std::unordered_set<ExprValue*> visited;
+  std::vector<ExprValue*> visit;
+  visit.push_back(e);
+  while (!visit.empty())
+  {
+    ExprValue* cur = visit.back();
+    visit.pop_back();
+    // pruning: subterms with no variable cannot contribute
+    if (!cur->hasVariable())
+    {
+      continue;
+    }
+    if (!visited.insert(cur).second)
+    {
+      continue;
+    }
+    if (cur->getKind() == Kind::VARIABLE)
+    {
+      vars.insert(cur);
+      continue;
+    }
+    for (ExprValue* c : cur->getChildren())
+    {
+      visit.push_back(c);
+    }
+  }
+}
+
 Expr TypeChecker::evaluateNil(ExprValue* op,
                               ExprValue* nil,
                               bool isLeft,
@@ -1236,6 +1377,14 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
       Literal lb(args[0]->getKind()==kk);
       return Expr(d_state.mkLiteralInternal(lb));
+    }
+    break;
+    case Kind::EVAL_IS_CLOSED:
+    {
+      Assert(args.size() == 1);
+      // true iff the argument has no free occurrences of variables, taking
+      // into account applications whose heads are marked :binder.
+      return d_state.mkBool(isClosed(args[0]));
     }
     break;
     case Kind::EVAL_TYPE_OF:
@@ -1883,6 +2032,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_STR:
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
+    case Kind::EVAL_IS_CLOSED:
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_MINCLUDE:
     case Kind::EVAL_LIST_MEQ: return d_state.mkBoolType();

@@ -800,6 +800,8 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - Equivalent to `(eo::or (eo::is_eq t true) (eo::is_eq t false))`.
 - `(eo::is_var t)`
   - Equivalent to `(eo::is_eq (eo::var (eo::nameof t) (eo::typeof t)) t)`.
+- `(eo::is_closed t)`
+  - Returns `true` if `t` is closed, i.e. it has no free occurrences of variables, and `false` otherwise. An occurrence of a variable is free unless it is bound by an enclosing application whose head is marked `:binder`. For example, `(eo::is_closed (forall ((x Bool)) (P x)))` is `true` when `forall` is a `:binder`, whereas `(eo::is_closed (P (eo::var "x" Bool)))` is `false`. Note that variables bound by `:let-binder` applications are *not* taken into account, i.e. they are treated as free.
 
 Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` is intentionally not listed above, as it is an ordinary term.
 
@@ -2109,6 +2111,7 @@ The user is responsible for ensuring that, for example, the proof contains a ste
 The Ethos command line interface can be invoked by `ethos <option>* <file>` where `<option>` is one of the following:
 
 - `--help`: displays a help message.
+- `--check-closed`: check that assumptions (introduced via `assume` and `assume-push`) are closed, i.e. that they have no free occurrences of variables (see `eo::is_closed`). This option is disabled by default.
 - `--include=X`: includes the file specified by `X`.
 - `--no-print-dag`: do not dagify the output of terms in error messages and trace messages.
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.

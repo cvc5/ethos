@@ -63,6 +63,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_IS_STR: o << "EVAL_IS_STR"; break;
     case Kind::EVAL_IS_BOOL: o << "EVAL_IS_BOOL"; break;
     case Kind::EVAL_IS_VAR: o << "EVAL_IS_VAR"; break;
+    case Kind::EVAL_IS_CLOSED: o << "EVAL_IS_CLOSED"; break;
     // equality
     case Kind::EVAL_EQ: o << "EVAL_EQ"; break;
     // lists
@@ -160,6 +161,7 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_IS_STR: ss << "is_str"; break;
           case Kind::EVAL_IS_BOOL: ss << "is_bool"; break;
           case Kind::EVAL_IS_VAR: ss << "is_var"; break;
+          case Kind::EVAL_IS_CLOSED: ss << "is_closed"; break;
           // equality
           case Kind::EVAL_EQ: ss << "eq"; break;
           // lists
@@ -270,6 +272,7 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_IS_STR:
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
+    case Kind::EVAL_IS_CLOSED:
     // equality
     case Kind::EVAL_EQ:
     // lists

@@ -45,6 +45,8 @@ class Options
   bool d_normalizeHexadecimal;
   /** Treat numerals as rational literals */
   bool d_normalizeNumeral;
+  /** Check that assumptions are closed (have no free variables) */
+  bool d_checkClosed;
 };
 
 /**

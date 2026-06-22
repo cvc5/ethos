@@ -175,6 +175,7 @@ set(ethos_test_file_list
     homogeneous-list-ops.eo
     quant-sk-type.eo
     fwd-decl-nground.eo
+    is-closed.eo
 )
 
 macro(ethos_test file)
@@ -206,3 +207,7 @@ endforeach()
 
 ethos_fail_test(parser-overflow-declare-sort.eo
                 "Numerals must fit into 32-bit unsigned integers")
+
+# With --check-closed, an assumption with free variables is rejected.
+ethos_fail_test(assume-open.eo
+                "is not closed")

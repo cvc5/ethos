@@ -57,6 +57,12 @@ class ExprValue
   bool isEvaluatable();
   /** Has variable */
   bool isGround();
+  /**
+   * Does this term contain a variable (Kind::VARIABLE) as a subterm? This is
+   * an overapproximation of being non-closed: if this returns false, the term
+   * has no free variables and hence is closed.
+   */
+  bool hasVariable();
  protected:
   /** The kind */
   Kind d_kind;
@@ -79,6 +85,11 @@ class ExprValue
      * Is the term non-ground, i.e. contains a parameter as a subterm?
      */
     IS_NON_GROUND = (1 << 2),
+    /**
+     * Does the term contain a variable (Kind::VARIABLE) as a subterm? This is
+     * an overapproximation of the term being non-closed.
+     */
+    HAS_VARIABLE = (1 << 3),
   };
   char d_flags;
   /** */
