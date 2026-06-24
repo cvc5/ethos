@@ -76,7 +76,7 @@ decreasing_by
   d_terminatingBy["$str_re_includes_lhs_star"] = terminate2;
   d_terminatingBy["$str_re_includes_rhs_inter"] = terminate2;
   d_terminatingBy["$str_re_includes_rec"] = terminate2;
-  d_terminatingBy["$str_re_includes_base"] = R"(termination_by a b => 4 * (sizeOf a + sizeOf b) + 1
+  d_terminatingBy["$str_re_includes_base_rec"] = R"(termination_by a b => 4 * (sizeOf a + sizeOf b) + 1
 decreasing_by
   all_goals simp_wf
   all_goals omega)";
