@@ -663,7 +663,7 @@ inductive smt_satisfiability : SmtTerm -> Bool -> Prop
       (exists M : SmtModel, model_total_typed M /\ (smt_interprets M t true)) ->
       smt_satisfiability t true
   | intro_false (t : SmtTerm) :
-      (forall M : SmtModel, model_total_typed M -> ¬ (smt_interprets M t true))->
+      (forall M : SmtModel, model_total_typed M -> (smt_interprets M t false))->
       smt_satisfiability t false
 
 /- ---------------------------------------------- -/
