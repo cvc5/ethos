@@ -7,14 +7,10 @@
  * directory for licensing information.
  ******************************************************************************/
 
-#ifndef PLUGIN_SMT_META_UTILS_H
-#define PLUGIN_SMT_META_UTILS_H
+#ifndef PLUGIN_UTILS_H
+#define PLUGIN_UTILS_H
 
-#include <map>
-#include <sstream>
 #include <string>
-
-#include "state.h"
 
 namespace ethos {
 
@@ -69,34 +65,6 @@ std::string metaKindToString(MetaKind k);
 std::string metaKindToPrefix(MetaKind k);
 bool isSmtMetaKind(MetaKind k);
 bool isCheckerMetaKind(MetaKind k);
-
-/** A utility for printing conjunctions */
-class ConjPrint
-{
- public:
-  ConjPrint();
-  void push(const std::string& str);
-  void printConjunction(std::ostream& os, bool isDisj = false);
-  bool empty() const { return d_npush == 0; }
-  std::stringstream d_ss;
-  size_t d_npush;
-};
-
-class SelectorCtx
-{
- public:
-  SelectorCtx();
-  void clear();
-  /**
-   * Maps parameters to a string representation of what
-   * that parameter was mapped to. This is a chain of
-   * datatype selectors, where we do not model the AST
-   * of this chain.
-   */
-  std::map<Expr, std::string> d_ctx;
-  /** The context it was matched in */
-  std::map<Expr, MetaKind> d_tctx;
-};
 
 }  // namespace ethos
 

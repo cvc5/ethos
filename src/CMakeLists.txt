@@ -18,6 +18,7 @@ add_executable(ethos-eoc EXCLUDE_FROM_ALL
   ../plugins/smt_meta/smt_meta_reduce.cpp
   ../plugins/smt_meta/smt_meta_sygus.cpp
   ../plugins/smt_meta/utils.cpp
+  ../plugins/utils.cpp
   ../plugins/desugar/desugar.cpp
   ../plugins/desugar/desugar_checker.cpp
   ../plugins/trim_defs/trim_defs.cpp
