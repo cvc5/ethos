@@ -15,7 +15,18 @@
 namespace ethos {
 
 /**
- * The datatype we are at.
+ * Shared utilities for the experimental eoc meta-reduction plugins (see
+ * MetaReducePlugin). The central definition is MetaKind, which classifies the
+ * deep embedding of a term, together with helpers for naming and categorizing
+ * these kinds.
+ */
+
+/**
+ * Identifies the meta-level category of a term's deep embedding during
+ * meta-reduction. Each constant declared by a plugin is classified into one of
+ * these kinds, which determines how the term is embedded and printed, e.g. as a
+ * Eunoia term, an SMT-LIB term/type/value, a datatype, or a proof-checker
+ * construct.
  */
 enum class MetaKind
 {
@@ -42,8 +53,6 @@ enum class MetaKind
   SMT_BUILTIN,
   /** A builtin SMT-LIB datatype used in the final embedding, e.g. Nat */
   SMT_BUILTIN_DATATYPE,
-  /** A program */
-  PROGRAM,
   /** A proof */
   PROOF,
   // datatypes
@@ -61,9 +70,17 @@ enum class MetaKind
   /** No context */
   NONE
 };
+/** Get a human-readable name for the meta-kind k, e.g. "SMT_TYPE". */
 std::string metaKindToString(MetaKind k);
+/**
+ * Get the symbol-name prefix associated with meta-kind k, e.g. "eo." for
+ * EUNOIA or "edt." for DATATYPE. Returns a placeholder string for kinds that
+ * have no dedicated prefix.
+ */
 std::string metaKindToPrefix(MetaKind k);
+/** Return true if k is one of the SMT-LIB meta-kinds. */
 bool isSmtMetaKind(MetaKind k);
+/** Return true if k is one of the proof-checker (CHECKER_*) meta-kinds. */
 bool isCheckerMetaKind(MetaKind k);
 
 }  // namespace ethos

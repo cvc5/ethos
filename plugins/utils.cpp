@@ -21,7 +21,6 @@ std::string metaKindToString(MetaKind k)
     case MetaKind::EUNOIA: ss << "EUNOIA"; break;
     case MetaKind::DATATYPE: ss << "DATATYPE"; break;
     case MetaKind::DATATYPE_CONSTRUCTOR: ss << "DATATYPE_CONSTRUCTOR"; break;
-    case MetaKind::PROGRAM: ss << "PROGRAM"; break;
     case MetaKind::PROOF: ss << "PROOF"; break;
     case MetaKind::SMT_MODEL: return "SMT_MODEL"; break;
     case MetaKind::SMT_REFLIST: return "SMT_REFLIST"; break;
