@@ -1030,7 +1030,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "set.is_empty",
       {kAny},
       smtToSmtEmbed(
-          "(= ($eo_to_smt x1) (set.empty ($smtx_typeof ($eo_to_smt x1))))",
+          "(= ($eo_to_smt x1) (set.empty ($eo_to_smt_set_elem_type ($smtx_typeof ($eo_to_smt x1)))))",
           true));
 
   d_auxDef["set.insert"] = R"(
