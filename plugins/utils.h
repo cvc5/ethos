@@ -30,44 +30,53 @@ namespace ethos {
  */
 enum class MetaKind
 {
-  /** A context in which the deep embedding of the term is a Eunoia term */
+  /** The deep embedding of the term is a Eunoia term. */
   EUNOIA,
-  /** A Eunoia datatype / datatype constructor */
+  /** The deep embedding of the term is a Eunoia datatype. */
   DATATYPE,
+  /** The deep embedding of the term is a Eunoia datatype constructor. */
   DATATYPE_CONSTRUCTOR,
-  /** smt model */
+  /** The deep embedding of the term is an SMT-LIB model. */
   SMT_MODEL,
-  /** a list of references for datatypes */
+  /** The deep embedding of the term is a list of datatype references. */
   SMT_REFLIST,
-  /** A context in which the deep embedding of the term is an SMT-LIB term */
+  /** The deep embedding of the term is an SMT-LIB term. */
   SMT,
-  /** A context in which the deep embedding of the term is an SMT-LIB type */
+  /** The deep embedding of the term is an SMT-LIB type. */
   SMT_TYPE,
-  /** A context in which the deep embedding of the term is an SMT-LIB value */
+  /** The deep embedding of the term is an SMT-LIB value. */
   SMT_VALUE,
-  /** A context in which the term is an SMT-LIB map value */
+  /** The deep embedding of the term is an SMT-LIB map value. */
   SMT_MAP,
-  /** A context in which the term is an SMT-LIB sequence value */
+  /** The deep embedding of the term is an SMT-LIB sequence value. */
   SMT_SEQ,
-  /** A builtin SMT-LIB term context */
+  /** The deep embedding of the term is a builtin SMT-LIB term. */
   SMT_BUILTIN,
-  /** A builtin SMT-LIB datatype used in the final embedding, e.g. Nat */
+  /** The deep embedding of the term is a builtin SMT-LIB datatype (e.g. Nat). */
   SMT_BUILTIN_DATATYPE,
-  /** A proof */
+  /** The deep embedding of the term is a proof. */
   PROOF,
-  // datatypes
+  /** The deep embedding of the term is an SMT-LIB datatype. */
   SMT_DATATYPE,
+  /** The deep embedding of the term is an SMT-LIB datatype constructor. */
   SMT_DATATYPE_CONSTRUCTOR,
-  // checker
+  /** The deep embedding of the term is a proof-checker rule. */
   CHECKER_RULE,
+  /** The deep embedding of the term is a proof-checker state. */
   CHECKER_STATE,
+  /** The deep embedding of the term is a proof-checker state object. */
   CHECKER_STATE_OBJ,
+  /** The deep embedding of the term is a proof-checker command. */
   CHECKER_CMD,
+  /** The deep embedding of the term is a list of proof-checker commands. */
   CHECKER_CMD_LIST,
+  /** The deep embedding of the term is a proof-checker index. */
   CHECKER_INDEX,
+  /** The deep embedding of the term is a list of proof-checker indices. */
   CHECKER_INDEX_LIST,
+  /** The deep embedding of the term is a list of proof-checker arguments. */
   CHECKER_ARG_LIST,
-  /** No context */
+  /** No meta-kind context. */
   NONE
 };
 /** Get a human-readable name for the meta-kind k, e.g. "SMT_TYPE". */
