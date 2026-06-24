@@ -15,8 +15,8 @@
 #include <utility>
 #include <vector>
 
-#include "smt_meta/utils.h"
 #include "std_plugin.h"
+#include "utils.h"
 
 namespace ethos {
 
