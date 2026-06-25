@@ -627,16 +627,6 @@ end
 
 $LEAN_SMT_EVAL$
 
-inductive smt_interprets : SmtModel -> SmtTerm -> Bool -> Prop
-  | intro_true  (M : SmtModel) (t : SmtTerm) :
-      (__smtx_typeof t) = SmtType.Bool ->
-      (__smtx_model_eval M t) = (SmtValue.Boolean true) ->
-      (smt_interprets M t true)
-  | intro_false (M : SmtModel) (t : SmtTerm) :
-      (__smtx_typeof t) = SmtType.Bool ->
-      (__smtx_model_eval M t) = (SmtValue.Boolean false)->
-      smt_interprets M t false
-
 def native_fun_typed (M : SmtModel) : Prop :=
   ∀ fid A B i,
     __smtx_type_wf (SmtType.FunType A B) = true ->
@@ -660,10 +650,10 @@ interpreting the free constants.
 -/
 inductive smt_satisfiability : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
-      (exists M : SmtModel, model_total_typed M /\ (smt_interprets M t true)) ->
+      (exists M : SmtModel, model_total_typed M /\ (__smtx_model_eval M t) = (SmtValue.Boolean true)) ->
       smt_satisfiability t true
   | intro_false (t : SmtTerm) :
-      (forall M : SmtModel, model_total_typed M -> (smt_interprets M t false))->
+      (forall M : SmtModel, model_total_typed M -> (__smtx_model_eval M t) = (SmtValue.Boolean false))->
       smt_satisfiability t false
 
 /- ---------------------------------------------- -/
