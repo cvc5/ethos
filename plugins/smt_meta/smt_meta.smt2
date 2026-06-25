@@ -224,6 +224,7 @@ $SM_TYPE_DECL$
 (declare-fun eval_tchoice_nth (smm.SmtModel String tsm.Type sm.Term Nat) vsm.Value)
 (declare-fun inhabited_type (tsm.Type) Bool)
 (declare-fun eval_map_diff_msm (msm.Map msm.Map) vsm.Value)
+(declare-fun eval_seq_diff_ssm (ssm.Seq ssm.Seq) vsm.Value)
 (declare-fun eval_ifun_apply (smm.SmtModel String tsm.Type tsm.Type vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (msm.Map msm.Map) Bool)

@@ -882,14 +882,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                     "$native_str_c9))) 0)",
                     true));
   d_eoToSmtGuardClosed["@strings_stoi_non_digit"].push_back(0);
-  std::stringstream ssStringsDeqDiff;
-  ssStringsDeqDiff << "(eo::define ((i ($sm_Var $native_str_vname $tsm_Int))) ";
-  ssStringsDeqDiff << "($sm_choice $native_str_vname $tsm_Int ";
-  ssStringsDeqDiff << smtToSmtEmbed(
-      "(not (= (str.substr ($eo_to_smt x1) i 1) (str.substr "
-      "($eo_to_smt x2) i 1)))",
-      true) << "))";
-  addEunoiaReduceSym("@strings_deq_diff", {kT, kT}, ssStringsDeqDiff.str());
+  // The difference of two sequences is an index at which they differ, given
+  // by the dedicated $sm_seq_diff operator. This avoids introducing a choice
+  // (witness) term, as was previously done here.
+  addEunoiaReduceSym("@strings_deq_diff",
+                     {kT, kT},
+                     "($sm_seq_diff ($eo_to_smt x1) ($eo_to_smt x2))");
   d_eoToSmtGuardClosed["@strings_deq_diff"].push_back(0);
   d_eoToSmtGuardClosed["@strings_deq_diff"].push_back(1);
   std::stringstream ssWitnessStringLength;
