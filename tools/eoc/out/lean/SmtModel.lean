@@ -897,6 +897,7 @@ def __smtx_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatype
   | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) => 
     let _v0 := (__smtx_type_default_rec TF TU)
     (native_ite (native_veq _v0 SmtValue.NotValue) SmtValue.NotValue (__smtx_datatype_cons_default (SmtValue.Apply v _v0) cF cU))
+  | cF, cU => SmtValue.NotValue
 
 
 def __smtx_datatype_default (s : native_String) (d : SmtDatatype) (n : native_Nat) : SmtDatatype -> SmtDatatype -> SmtValue

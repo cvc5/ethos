@@ -1923,6 +1923,7 @@ $EO_TO_SMT_CASES$
     (eo::define ((va ($smtx_type_default_rec TF TU)))
       ($native_ite ($native_veq va $vsm_not_value) $vsm_not_value
         ($smtx_datatype_cons_default ($vsm_apply v va) cF cU))))
+  (($smtx_datatype_cons_default v cF cU) $vsm_not_value)
   )
 )
 

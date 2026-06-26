@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 438
+; #trim-defs: 442
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -240,6 +240,39 @@
 (program $eo_lit_type_Rational ((T Type)) :signature (T) Type)
 (program $eo_lit_type_Binary ((T Type)) :signature (T) Type)
 (program $eo_lit_type_String ((T Type)) :signature (T) Type)
+(program $eo_dt_lift ()
+  :signature ($native_String $eo_Datatype $eo_Datatype) $eo_Datatype)
+(program $eo_type_lift
+  ((s $native_String) (d $eo_Datatype) (T Type)
+   (s2 $native_String) (d2 $eo_Datatype))
+  :signature ($native_String $eo_Datatype Type) Type
+  (
+  (($eo_type_lift s d ($eot_DatatypeType s2 d2))
+    ($native_ite ($native_teq ($eot_DatatypeType s d) ($eot_DatatypeType s2 d2))
+      ($eot_DatatypeTypeRef s)
+      ($eot_DatatypeType s2 ($eo_dt_lift s d d2))))
+  (($eo_type_lift s d T) T)
+  )
+)
+(program $eo_dtc_lift
+  ((s $native_String) (d $eo_Datatype) (T Type) (c $eo_DatatypeCons)
+   (s2 $native_String) (d2 $eo_Datatype))
+  :signature ($native_String $eo_Datatype $eo_DatatypeCons) $eo_DatatypeCons
+  (
+  (($eo_dtc_lift s d ($edtc_cons T c))
+    ($edtc_cons ($eo_type_lift s d T) ($eo_dtc_lift s d c)))
+  (($eo_dtc_lift s d $edtc_unit) $edtc_unit)
+  )
+)
+(program $eo_dt_lift
+  ((s $native_String) (d $eo_Datatype) (c $eo_DatatypeCons) (d2 $eo_Datatype))
+  :signature ($native_String $eo_Datatype $eo_Datatype) $eo_Datatype
+  (
+  (($eo_dt_lift s d ($edt_sum c d2))
+    ($edt_sum ($eo_dtc_lift s d c) ($eo_dt_lift s d d2)))
+  (($eo_dt_lift s d $edt_null) $edt_null)
+  )
+)
 (program $eo_dt_substitute ()
   :signature ($native_String $eo_Datatype $eo_Datatype) $eo_Datatype)
 (program $eo_dtc_substitute
@@ -251,7 +284,7 @@
     
     
     ($edtc_cons ($eot_DatatypeType s2
-      ($native_ite ($native_str_= s s2) d2 ($eo_dt_substitute s d d2)))
+      ($native_ite ($native_str_= s s2) d2 ($eo_dt_substitute s ($eo_dt_lift s2 d2 d) d2)))
       ($eo_dtc_substitute s d c)))
   (($eo_dtc_substitute s d ($edtc_cons T c))
     ($edtc_cons
@@ -1463,6 +1496,7 @@
     (eo::define ((va ($smtx_type_default_rec TF TU)))
       ($native_ite ($native_veq va $vsm_not_value) $vsm_not_value
         ($smtx_datatype_cons_default ($vsm_apply v va) cF cU))))
+  (($smtx_datatype_cons_default v cF cU) $vsm_not_value)
   )
 )
 (program $smtx_datatype_default

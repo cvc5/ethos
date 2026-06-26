@@ -795,10 +795,52 @@
 
 ; forward declaration
 
+(program $eo_dt_lift ()
+  :signature ($native_String $eo_Datatype $eo_Datatype) $eo_Datatype)
+  
+(program $eo_type_lift
+  ((s $native_String) (d $eo_Datatype) (T Type)
+   (s2 $native_String) (d2 $eo_Datatype))
+  :signature ($native_String $eo_Datatype Type) Type
+  (
+  (($eo_type_lift s d ($eot_DatatypeType s2 d2))
+    ($native_ite ($native_teq ($eot_DatatypeType s d) ($eot_DatatypeType s2 d2))
+      ($eot_DatatypeTypeRef s)
+      ($eot_DatatypeType s2 ($eo_dt_lift s d d2))))
+  (($eo_type_lift s d T) T)
+  )
+)
+
+(program $eo_dtc_lift
+  ((s $native_String) (d $eo_Datatype) (T Type) (c $eo_DatatypeCons)
+   (s2 $native_String) (d2 $eo_Datatype))
+  :signature ($native_String $eo_Datatype $eo_DatatypeCons) $eo_DatatypeCons
+  (
+  (($eo_dtc_lift s d ($edtc_cons T c))
+    ($edtc_cons ($eo_type_lift s d T) ($eo_dtc_lift s d c)))
+  (($eo_dtc_lift s d $edtc_unit) $edtc_unit)
+  )
+)
+
+; ($eo_dt_lift s d d2)
+; Substitutes ($eot_DatatypeType s d) by ($tsm_TypeRef s) in all arguments
+; of datatype constructors of a datatype d2.
+; Note that this assumes there is no nested recursion, i.e. occurrences of
+; ($tsm_TypeRef s) that are beneath applications of other types.
+(program $eo_dt_lift
+  ((s $native_String) (d $eo_Datatype) (c $eo_DatatypeCons) (d2 $eo_Datatype))
+  :signature ($native_String $eo_Datatype $eo_Datatype) $eo_Datatype
+  (
+  (($eo_dt_lift s d ($edt_sum c d2))
+    ($edt_sum ($eo_dtc_lift s d c) ($eo_dt_lift s d d2)))
+  (($eo_dt_lift s d $edt_null) $edt_null)
+  )
+)
+
 (program $eo_dt_substitute ()
   :signature ($native_String $eo_Datatype $eo_Datatype) $eo_Datatype)
   
-; Replaces ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
+; Replaces ($tsm_TypeRef s) by ($eot_DatatypeType s d) in all arguments
 ; of a datatype constructor.
 ; Note that this assumes there is no nested recursion, i.e. occurrences of
 ; ($eot_DatatypeTypeRef s) that are beneath applications of other types.
@@ -811,7 +853,7 @@
     ; possible mutual recursion, subsitute into the datatype, unless there is
     ; name shadowing
     ($edtc_cons ($eot_DatatypeType s2
-      ($native_ite ($native_str_= s s2) d2 ($eo_dt_substitute s d d2)))
+      ($native_ite ($native_str_= s s2) d2 ($eo_dt_substitute s ($eo_dt_lift s2 d2 d) d2)))
       ($eo_dtc_substitute s d c)))
   (($eo_dtc_substitute s d ($edtc_cons T c))
     ($edtc_cons
