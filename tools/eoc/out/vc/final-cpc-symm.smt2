@@ -245,6 +245,8 @@
   (sm.choice_nth (sm.choice_nth.arg1 String) (sm.choice_nth.arg2 tsm.Type) (sm.choice_nth.arg3 sm.Term) (sm.choice_nth.arg4 Nat))
   ; smt-cons: map_diff
   (sm.map_diff (sm.map_diff.arg1 sm.Term) (sm.map_diff.arg2 sm.Term))
+  ; smt-cons: seq_diff
+  (sm.seq_diff (sm.seq_diff.arg1 sm.Term) (sm.seq_diff.arg2 sm.Term))
   ; smt-cons: DtCons
   (sm.DtCons (sm.DtCons.arg1 String) (sm.DtCons.arg2 dt.Datatype) (sm.DtCons.arg3 Nat))
   ; smt-cons: DtSel
@@ -386,6 +388,7 @@
 (declare-fun eval_tchoice_nth (smm.SmtModel String tsm.Type sm.Term Nat) vsm.Value)
 (declare-fun inhabited_type (tsm.Type) Bool)
 (declare-fun eval_map_diff_msm (msm.Map msm.Map) vsm.Value)
+(declare-fun eval_seq_diff_ssm (ssm.Seq ssm.Seq) vsm.Value)
 (declare-fun eval_ifun_apply (smm.SmtModel String tsm.Type tsm.Type vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (msm.Map msm.Map) Bool)
@@ -720,6 +723,13 @@
     vsm.NotValue
 )))
 
+; program: $smtx_model_eval_seq_diff
+(define-fun $smtx_model_eval_seq_diff ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
+  (ite (and ((_ is vsm.Seq) x1) ((_ is vsm.Seq) x2))
+    (eval_seq_diff_ssm (vsm.Seq.arg1 x1) (vsm.Seq.arg1 x2))
+    vsm.NotValue
+))
+
 ; program: $smtx_model_eval_apply
 (define-fun $smtx_model_eval_apply ((x1 smm.SmtModel) (x2 vsm.Value) (x3 vsm.Value)) vsm.Value
   (ite (= x3 vsm.NotValue)
@@ -794,6 +804,8 @@
     (eval_tchoice_nth x1 (sm.choice_nth.arg1 x2) (sm.choice_nth.arg2 x2) (sm.choice_nth.arg3 x2) (sm.choice_nth.arg4 x2))
   (ite ((_ is sm.map_diff) x2)
     ($smtx_model_eval_map_diff ($smtx_model_eval x1 (sm.map_diff.arg1 x2)) ($smtx_model_eval x1 (sm.map_diff.arg2 x2)))
+  (ite ((_ is sm.seq_diff) x2)
+    ($smtx_model_eval_seq_diff ($smtx_model_eval x1 (sm.seq_diff.arg1 x2)) ($smtx_model_eval x1 (sm.seq_diff.arg2 x2)))
   (ite ((_ is sm.DtCons) x2)
     (vsm.DtCons (sm.DtCons.arg1 x2) (sm.DtCons.arg2 x2) (sm.DtCons.arg3 x2))
   (ite (and ((_ is sm.Apply) x2) ((_ is sm.DtSel) (sm.Apply.arg1 x2)))
@@ -807,7 +819,7 @@
   (ite ((_ is sm.UConst) x2)
     (model_lookup x1 (sm.UConst.arg1 x2) (sm.UConst.arg2 x2))
     vsm.NotValue
-)))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
+))))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_typeof_ite
 (define-fun $smtx_typeof_ite ((x1 tsm.Type) (x2 tsm.Type) (x3 tsm.Type)) tsm.Type
@@ -850,6 +862,13 @@
     tsm.None
 )))
 
+; program: $smtx_typeof_seq_diff
+(define-fun $smtx_typeof_seq_diff ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
+  (ite (and ((_ is tsm.Seq) x1) ((_ is tsm.Seq) x2))
+    (ite (Teq (tsm.Seq.arg1 x1) (tsm.Seq.arg1 x2)) tsm.Int tsm.None)
+    tsm.None
+))
+
 ; program: $smtx_typeof
 (assert (! (forall ((x1 sm.Term))
   (! (= ($smtx_typeof x1)
@@ -879,6 +898,8 @@
     ($smtx_typeof_choice_nth (sm.choice_nth.arg2 x1) (sm.choice_nth.arg3 x1) (sm.choice_nth.arg4 x1))
   (ite ((_ is sm.map_diff) x1)
     ($smtx_typeof_map_diff ($smtx_typeof (sm.map_diff.arg1 x1)) ($smtx_typeof (sm.map_diff.arg2 x1)))
+  (ite ((_ is sm.seq_diff) x1)
+    ($smtx_typeof_seq_diff ($smtx_typeof (sm.seq_diff.arg1 x1)) ($smtx_typeof (sm.seq_diff.arg2 x1)))
   (ite ((_ is sm.DtCons) x1)
     ($smtx_typeof_guard_wf (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_typeof_dt_cons_rec (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_dt_substitute (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1) (sm.DtCons.arg2 x1)) (sm.DtCons.arg3 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtSel) (sm.Apply.arg1 x1)))
@@ -892,7 +913,7 @@
   (ite ((_ is sm.UConst) x1)
     ($smtx_typeof_guard_wf (sm.UConst.arg2 x1) (sm.UConst.arg2 x1))
     tsm.None
-)))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
+))))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
 
 ; fwd-decl: $eo_to_smt
 (declare-fun $eo_to_smt (eo.Term) sm.Term)

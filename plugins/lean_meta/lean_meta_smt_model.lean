@@ -490,6 +490,23 @@ macro_rules
                     $typeDefaultId T1)
                   SmtValue.NotValue
             | _ => SmtValue.NotValue)
+  | `(native_eval_seq_diff_ssm $s1 $s2) => do
+      `(by
+          classical
+          exact
+            -- an arbitrary index at which the two sequences differ: a
+            -- position whose elements disagree, where a missing element
+            -- past the end of the shorter sequence counts as a
+            -- disagreement. Such an index exists exactly when the two
+            -- sequences are unequal; when they are equal we return -1.
+            (let rec seqNth : SmtSeq -> Nat -> SmtValue
+              | SmtSeq.cons v _, 0 => v
+              | SmtSeq.cons _ vs, Nat.succ n => seqNth vs n
+              | SmtSeq.empty _, _ => SmtValue.NotValue
+              if hDiff : ∃ i : Nat, native_not (native_veq (seqNth $s1 i) (seqNth $s2 i)) then
+                SmtValue.Numeral (Int.ofNat (Classical.choose hDiff))
+              else
+                SmtValue.Numeral (-1)))
 
 /- Definition of SMT-LIB model semantics -/
 
@@ -497,12 +514,10 @@ noncomputable section
 
 mutual
 
-def native_inhabited_type (T : SmtType) : native_Bool := by
-  classical
-  exact
-    native_and
-      (decide (__smtx_typeof_value (__smtx_type_default T) = T))
-      (__smtx_value_canonical_bool (__smtx_type_default T))
+def native_inhabited_type (T : SmtType) : native_Bool :=
+  native_and
+    (native_Teq (__smtx_typeof_value (__smtx_type_default T)) T)
+    (__smtx_value_canonical_bool (__smtx_type_default T))
 
 $LEAN_SMT_EVAL_DEFS$
 

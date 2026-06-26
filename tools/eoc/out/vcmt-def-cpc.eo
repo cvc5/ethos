@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 293
+; #trim-defs: 297
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -247,6 +247,10 @@
   ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque))
   $smt_Term)
 (define $sm_map_diff ((x1 $smt_Term) (x2 $smt_Term)) ($emb_sm.map_diff x1 x2))
+(declare-parameterized-const $emb_sm.seq_diff
+  ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque))
+  $smt_Term)
+(define $sm_seq_diff ((x1 $smt_Term) (x2 $smt_Term)) ($emb_sm.seq_diff x1 x2))
 (declare-parameterized-const $emb_sm.DtCons
   ((s $native_String :opaque) (d $smt_Datatype :opaque)
    (ci $native_Nat :opaque))
@@ -702,6 +706,14 @@
   (($smtx_model_eval_map_diff v1 v2) $vsm_not_value)
   )
 )
+(program $smtx_model_eval_seq_diff
+  ((s1 $smt_Seq) (s2 $smt_Seq) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_seq_diff ($vsm_seq s1) ($vsm_seq s2)) ($native_apply_2 "eval_seq_diff_ssm" s1 s2))
+  (($smtx_model_eval_seq_diff v1 v2) $vsm_not_value)
+  )
+)
 (program $smtx_model_eval_apply
   ((m $smt_Map) (i $smt_Value) (f $smt_Value) (v $smt_Value) (n $native_Nat)
    (T $smt_Type) (U $smt_Type) (M $smt_Model)
@@ -799,6 +811,8 @@
     ($native_apply_5 "eval_tchoice_nth" M s T x1 i))
   (($smtx_model_eval M ($sm_map_diff x1 x2))
     ($smtx_model_eval_map_diff ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+  (($smtx_model_eval M ($sm_seq_diff x1 x2))
+    ($smtx_model_eval_seq_diff ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
   
   (($smtx_model_eval M ($sm_DtCons s d i)) ($vsm_DtCons s d i))
   (($smtx_model_eval M ($sm_apply ($sm_DtSel s d i j) x1))
@@ -862,6 +876,15 @@
   (($smtx_typeof_map_diff T1 T2) $tsm_none)
   )
 )
+(program $smtx_typeof_seq_diff
+  ((T1 $smt_Type) (T2 $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_diff ($tsm_Seq T1) ($tsm_Seq T2))
+    ($native_ite ($native_Teq T1 T2) $tsm_Int $tsm_none))
+  (($smtx_typeof_seq_diff T1 T2) $tsm_none)
+  )
+)
 (program $smtx_typeof
   ((M $smt_Model) (f $smt_Term) (T $smt_Type) (d $smt_Datatype)
    (i $native_Nat) (j $native_Nat)
@@ -900,6 +923,8 @@
     ($smtx_typeof_choice_nth T x1 n))
   (($smtx_typeof ($sm_map_diff x1 x2))
     ($smtx_typeof_map_diff ($smtx_typeof x1) ($smtx_typeof x2)))
+  (($smtx_typeof ($sm_seq_diff x1 x2))
+    ($smtx_typeof_seq_diff ($smtx_typeof x1) ($smtx_typeof x2)))
   
   (($smtx_typeof ($sm_DtCons s d i))
     ($smtx_typeof_guard_wf ($tsm_Datatype s d)
