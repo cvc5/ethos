@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 297
+; #trim-defs: 301
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -553,6 +553,39 @@
   (($smtx_dt_num_sels $dt_null n)                        $native_n_zero)
   )
 )
+(program $smtx_dt_lift ()
+  :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype)
+(program $smtx_type_lift
+  ((s $native_String) (d $smt_Datatype) (T $smt_Type)
+   (s2 $native_String) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_Type) $smt_Type
+  (
+  (($smtx_type_lift s d ($tsm_Datatype s2 d2))
+    ($native_ite ($native_Teq ($tsm_Datatype s d) ($tsm_Datatype s2 d2))
+      ($tsm_TypeRef s)
+      ($tsm_Datatype s2 ($smtx_dt_lift s d d2))))
+  (($smtx_type_lift s d T) T)
+  )
+)
+(program $smtx_dtc_lift
+  ((s $native_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons)
+   (s2 $native_String) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
+  (
+  (($smtx_dtc_lift s d ($dtc_cons T c))
+    ($dtc_cons ($smtx_type_lift s d T) ($smtx_dtc_lift s d c)))
+  (($smtx_dtc_lift s d $dtc_unit) $dtc_unit)
+  )
+)
+(program $smtx_dt_lift
+  ((s $native_String) (d $smt_Datatype) (c $smt_DatatypeCons) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype
+  (
+  (($smtx_dt_lift s d ($dt_sum c d2))
+    ($dt_sum ($smtx_dtc_lift s d c) ($smtx_dt_lift s d d2)))
+  (($smtx_dt_lift s d $dt_null) $dt_null)
+  )
+)
 (program $smtx_dt_substitute ()
   :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype)
 (program $smtx_type_substitute
@@ -564,7 +597,7 @@
     
     
     ($tsm_Datatype s2
-      ($native_ite ($native_str_= s s2) d2 ($smtx_dt_substitute s d d2))))
+      ($native_ite ($native_str_= s s2) d2 ($smtx_dt_substitute s ($smtx_dt_lift s2 d2 d) d2))))
   (($smtx_type_substitute s d ($tsm_TypeRef s2))
     
     ($native_ite ($native_str_= s s2) ($tsm_Datatype s d) ($tsm_TypeRef s2)))

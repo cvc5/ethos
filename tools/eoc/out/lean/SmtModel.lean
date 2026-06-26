@@ -661,8 +661,23 @@ def __smtx_dt_num_sels : SmtDatatype -> native_Nat -> native_Nat
   | SmtDatatype.null, n => native_nat_zero
 
 
+def __smtx_type_lift (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
+  | (SmtType.Datatype s2 d2) => (native_ite (native_Teq (SmtType.Datatype s d) (SmtType.Datatype s2 d2)) (SmtType.TypeRef s) (SmtType.Datatype s2 (__smtx_dt_lift s d d2)))
+  | T => T
+
+
+def __smtx_dtc_lift (s : native_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
+  | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (__smtx_type_lift s d T) (__smtx_dtc_lift s d c))
+  | SmtDatatypeCons.unit => SmtDatatypeCons.unit
+
+
+def __smtx_dt_lift (s : native_String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
+  | (SmtDatatype.sum c d2) => (SmtDatatype.sum (__smtx_dtc_lift s d c) (__smtx_dt_lift s d d2))
+  | SmtDatatype.null => SmtDatatype.null
+
+
 def __smtx_type_substitute (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s d d2)))
+  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s (__smtx_dt_lift s2 d2 d) d2)))
   | (SmtType.TypeRef s2) => (native_ite (native_streq s s2) (SmtType.Datatype s d) (SmtType.TypeRef s2))
   | T => T
 
