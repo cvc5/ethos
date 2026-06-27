@@ -469,7 +469,7 @@
   (ite (and ((_ is dtc.cons) x1) ((_ is tsm.TypeRef) (dtc.cons.arg1 x1)))
     (ite (reflist_contains x2 (tsm.TypeRef.arg1 (dtc.cons.arg1 x1))) ($smtx_dt_cons_wf_rec (dtc.cons.arg2 x1) x2) false)
   (ite ((_ is dtc.cons) x1)
-    (ite (inhabited_type (dtc.cons.arg1 x1)) (ite ($smtx_type_wf_rec (dtc.cons.arg1 x1) x2) ($smtx_dt_cons_wf_rec (dtc.cons.arg2 x1) x2) false) false)
+    (ite ($smtx_type_wf_rec (dtc.cons.arg1 x1) x2) ($smtx_dt_cons_wf_rec (dtc.cons.arg2 x1) x2) false)
     true
 ))) :pattern (($smtx_dt_cons_wf_rec x1 x2)))) :named sm.axiom.$smtx_dt_cons_wf_rec))
 

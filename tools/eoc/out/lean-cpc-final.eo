@@ -755,10 +755,8 @@
   (($smtx_dt_cons_wf_rec ($dtc_cons ($tsm_TypeRef s) c) refs)
     ($native_ite ($native_apply_2 "reflist_contains" refs s) ($smtx_dt_cons_wf_rec c refs) $native_false))
   (($smtx_dt_cons_wf_rec ($dtc_cons T c) refs)
-    ($native_ite ($native_inhabited_type T)
-      ($native_ite ($smtx_type_wf_rec T refs)
-        ($smtx_dt_cons_wf_rec c refs)
-        $native_false) 
+    ($native_ite ($smtx_type_wf_rec T refs)
+      ($smtx_dt_cons_wf_rec c refs)
       $native_false))
   (($smtx_dt_cons_wf_rec $dtc_unit refs) $native_true)
   )
@@ -1517,7 +1515,7 @@
    (sF $native_String) (sU $native_String) (dF $smt_Datatype) (dU $smt_Datatype) (i $native_Nat))
   :signature ($smt_Type $smt_Type) $smt_Value
   (
-  (($smtx_type_default_rec ($tsm_Datatype sF dF) ($tsm_Datatype sU dU)) 
+  (($smtx_type_default_rec ($tsm_Datatype sF dF) ($tsm_Datatype sU dU))
     ($smtx_datatype_default sF dF $native_n_zero ($smtx_dt_substitute sF dF dF) dU))
   (($smtx_type_default_rec V $tsm_Bool)           $vsm_false)
   (($smtx_type_default_rec V $tsm_Int)            ($vsm_numeral $native_z_zero))

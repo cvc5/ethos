@@ -515,7 +515,10 @@ noncomputable section
 mutual
 
 def native_inhabited_type (T : SmtType) : native_Bool :=
-  (native_Teq (__smtx_typeof_value (__smtx_type_default T)) T)
+  (native_and
+    (native_not (native_Teq T SmtType.None))
+    (native_Teq (__smtx_typeof_value (__smtx_type_default T)) T))
+
 
 $LEAN_SMT_EVAL_DEFS$
 
