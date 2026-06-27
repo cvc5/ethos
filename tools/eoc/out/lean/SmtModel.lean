@@ -567,9 +567,7 @@ noncomputable section
 mutual
 
 def native_inhabited_type (T : SmtType) : native_Bool :=
-  native_and
-    (native_Teq (__smtx_typeof_value (__smtx_type_default T)) T)
-    (__smtx_value_canonical_bool (__smtx_type_default T))
+  (native_Teq (__smtx_typeof_value (__smtx_type_default T)) T)
 
 def __vsm_apply_head : SmtValue -> SmtValue
   | (SmtValue.Apply f a) => (__vsm_apply_head f)
@@ -915,7 +913,9 @@ def __smtx_type_default_rec : SmtType -> SmtType -> SmtValue
   | V, SmtType.RegLan => (SmtValue.RegLan native_re_none)
   | V, (SmtType.BitVec w) => (SmtValue.Binary (native_nat_to_int w) 0)
   | V, SmtType.Char => (SmtValue.Char native_nat_zero)
-  | V, (SmtType.Map T U) => (SmtValue.Map (SmtMap.default T (__smtx_type_default_rec U U)))
+  | V, (SmtType.Map T U) => 
+    let _v0 := (__smtx_type_default_rec U U)
+    (native_ite (native_veq _v0 SmtValue.NotValue) SmtValue.NotValue (SmtValue.Map (SmtMap.default T _v0)))
   | V, (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
   | V, (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
   | V, (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
