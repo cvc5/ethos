@@ -576,10 +576,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "extract", {d_kIntQuote, d_kIntQuote, kBitVec}, kT, ssExtractRet.str());
   std::string ssExtractType = smtGuardType(
       "($native_z_<= $native_z_zero x2)",
-      smtGuardType("($native_z_<= x2 x1)",
                    smtGuardType("($native_z_< x1 ($native_n_to_z x3))",
-                                "($tsm_BitVec ($native_z_to_n ($native_z_inc "
-                                "($native_z_- x1 x2))))")));
+                   smtGuardType("($native_z_<= $native_z_zero "
+                                "($native_z_- ($native_z_inc x1) x2))",
+                                "($tsm_BitVec ($native_z_to_n "
+                                "($native_z_- ($native_z_inc x1) x2)))")));
   addAuxTypeProgram(
       "extract", {d_kIntQuote, d_kIntQuote, kBitVec}, ssExtractType);
   addLitBinSym("concat",
