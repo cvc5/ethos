@@ -469,7 +469,7 @@
   (ite (and ((_ is dtc.cons) x1) ((_ is tsm.TypeRef) (dtc.cons.arg1 x1)))
     (ite (reflist_contains x2 (tsm.TypeRef.arg1 (dtc.cons.arg1 x1))) ($smtx_dt_cons_wf_rec (dtc.cons.arg2 x1) x2) false)
   (ite ((_ is dtc.cons) x1)
-    (ite (inhabited_type (dtc.cons.arg1 x1)) (ite ($smtx_type_wf_rec (dtc.cons.arg1 x1) x2) ($smtx_dt_cons_wf_rec (dtc.cons.arg2 x1) x2) false) false)
+    (ite ($smtx_type_wf_rec (dtc.cons.arg1 x1) x2) ($smtx_dt_cons_wf_rec (dtc.cons.arg2 x1) x2) false)
     true
 ))) :pattern (($smtx_dt_cons_wf_rec x1 x2)))) :named sm.axiom.$smtx_dt_cons_wf_rec))
 
@@ -586,13 +586,40 @@
     nat.zero
 ))) :pattern (($smtx_dt_num_sels x1 x2)))) :named sm.axiom.$smtx_dt_num_sels))
 
+; fwd-decl: $smtx_dt_lift
+(declare-fun $smtx_dt_lift (String dt.Datatype dt.Datatype) dt.Datatype)
+
+; program: $smtx_type_lift
+(define-fun $smtx_type_lift ((x1 String) (x2 dt.Datatype) (x3 tsm.Type)) tsm.Type
+  (ite ((_ is tsm.Datatype) x3)
+    (ite (Teq (tsm.Datatype x1 x2) (tsm.Datatype (tsm.Datatype.arg1 x3) (tsm.Datatype.arg2 x3))) (tsm.TypeRef x1) (tsm.Datatype (tsm.Datatype.arg1 x3) ($smtx_dt_lift x1 x2 (tsm.Datatype.arg2 x3))))
+    x3
+))
+
+; program: $smtx_dtc_lift
+(declare-fun $smtx_dtc_lift (String dt.Datatype dtc.DatatypeCons) dtc.DatatypeCons)
+(assert (! (forall ((x1 String) (x2 dt.Datatype) (x3 dtc.DatatypeCons))
+  (! (= ($smtx_dtc_lift x1 x2 x3)
+  (ite ((_ is dtc.cons) x3)
+    (dtc.cons ($smtx_type_lift x1 x2 (dtc.cons.arg1 x3)) ($smtx_dtc_lift x1 x2 (dtc.cons.arg2 x3)))
+    dtc.unit
+)) :pattern (($smtx_dtc_lift x1 x2 x3)))) :named sm.axiom.$smtx_dtc_lift))
+
+; program: $smtx_dt_lift
+(assert (! (forall ((x1 String) (x2 dt.Datatype) (x3 dt.Datatype))
+  (! (= ($smtx_dt_lift x1 x2 x3)
+  (ite ((_ is dt.sum) x3)
+    (dt.sum ($smtx_dtc_lift x1 x2 (dt.sum.arg1 x3)) ($smtx_dt_lift x1 x2 (dt.sum.arg2 x3)))
+    dt.null
+)) :pattern (($smtx_dt_lift x1 x2 x3)))) :named sm.axiom.$smtx_dt_lift))
+
 ; fwd-decl: $smtx_dt_substitute
 (declare-fun $smtx_dt_substitute (String dt.Datatype dt.Datatype) dt.Datatype)
 
 ; program: $smtx_type_substitute
 (define-fun $smtx_type_substitute ((x1 String) (x2 dt.Datatype) (x3 tsm.Type)) tsm.Type
   (ite ((_ is tsm.Datatype) x3)
-    (tsm.Datatype (tsm.Datatype.arg1 x3) (ite (streq x1 (tsm.Datatype.arg1 x3)) (tsm.Datatype.arg2 x3) ($smtx_dt_substitute x1 x2 (tsm.Datatype.arg2 x3))))
+    (tsm.Datatype (tsm.Datatype.arg1 x3) (ite (streq x1 (tsm.Datatype.arg1 x3)) (tsm.Datatype.arg2 x3) ($smtx_dt_substitute x1 ($smtx_dt_lift (tsm.Datatype.arg1 x3) (tsm.Datatype.arg2 x3) x2) (tsm.Datatype.arg2 x3))))
   (ite ((_ is tsm.TypeRef) x3)
     (ite (streq x1 (tsm.TypeRef.arg1 x3)) (tsm.Datatype x1 x2) (tsm.TypeRef (tsm.TypeRef.arg1 x3)))
     x3
