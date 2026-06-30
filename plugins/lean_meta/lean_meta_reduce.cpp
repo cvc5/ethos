@@ -80,10 +80,6 @@ decreasing_by
 decreasing_by
   all_goals simp_wf
   all_goals omega)";
-  std::string terminate3 = R"(termination_by t => sizeOf t
-decreasing_by
-  all_goals simp_wf
-  all_goals omega)";
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}

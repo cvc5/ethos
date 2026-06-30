@@ -474,21 +474,19 @@
 ))) :pattern (($smtx_dt_cons_wf_rec x1 x2)))) :named sm.axiom.$smtx_dt_cons_wf_rec))
 
 ; program: $smtx_dt_wf_rec
-(declare-fun $smtx_dt_wf_rec (dt.Datatype srl.RefList) Bool)
-(assert (! (forall ((x1 dt.Datatype) (x2 srl.RefList))
-  (! (= ($smtx_dt_wf_rec x1 x2)
-  (ite (= x1 dt.null)
-    false
-  (ite (and ((_ is dt.sum) x1) (= (dt.sum.arg2 x1) dt.null))
-    ($smtx_dt_cons_wf_rec (dt.sum.arg1 x1) x2)
-    (ite ($smtx_dt_cons_wf_rec (dt.sum.arg1 x1) x2) ($smtx_dt_wf_rec (dt.sum.arg2 x1) x2) false)
-))) :pattern (($smtx_dt_wf_rec x1 x2)))) :named sm.axiom.$smtx_dt_wf_rec))
+(declare-fun $smtx_dt_wf_rec (String srl.RefList Bool dt.Datatype) Bool)
+(assert (! (forall ((x1 String) (x2 srl.RefList) (x3 Bool) (x4 dt.Datatype))
+  (! (= ($smtx_dt_wf_rec x1 x2 x3 x4)
+  (ite (= x4 dt.null)
+    x3
+    (and ($smtx_dt_cons_wf_rec (dt.sum.arg1 x4) (reflist_insert x2 x1)) ($smtx_dt_wf_rec x1 x2 (or x3 ($smtx_dt_cons_wf_rec (dt.sum.arg1 x4) x2)) (dt.sum.arg2 x4)))
+)) :pattern (($smtx_dt_wf_rec x1 x2 x3 x4)))) :named sm.axiom.$smtx_dt_wf_rec))
 
 ; program: $smtx_type_wf_rec
 (assert (! (forall ((x1 tsm.Type) (x2 srl.RefList))
   (! (= ($smtx_type_wf_rec x1 x2)
   (ite ((_ is tsm.Datatype) x1)
-    (ite (reflist_contains x2 (tsm.Datatype.arg1 x1)) false ($smtx_dt_wf_rec (tsm.Datatype.arg2 x1) (reflist_insert x2 (tsm.Datatype.arg1 x1))))
+    (ite (reflist_contains x2 (tsm.Datatype.arg1 x1)) false ($smtx_dt_wf_rec (tsm.Datatype.arg1 x1) x2 false (tsm.Datatype.arg2 x1)))
   (ite ((_ is tsm.TypeRef) x1)
     false
   (ite ((_ is tsm.Seq) x1)

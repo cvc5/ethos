@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 301
+; #trim-defs: 302
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -52,6 +52,7 @@
 (define $native_str_= ((x1 $native_String) (x2 $native_String)) ($native_apply_2 "streq" x1 x2))
 (define $native_not ((b $native_Bool)) ($native_apply_1 "not" b))
 (define $native_and ((b1 $native_Bool) (b2 $native_Bool)) ($native_apply_2 "and" b1 b2))
+(define $native_or ((b1 $native_Bool) (b2 $native_Bool)) ($native_apply_2 "or" b1 b2))
 (define $native_z_= ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zeq" x1 x2))
 (define $native_z_<= ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zleq" x1 x2))
 (define $native_z_pow2 ((W Type :implicit) (x1 W)) ($native_apply_1 "int.pow2" x1))
@@ -431,13 +432,14 @@
   )
 )
 (program $smtx_dt_wf_rec
-  ((d $smt_Datatype) (c $smt_DatatypeCons) (refs $smt_RefList))
-  :signature ($smt_Datatype $smt_RefList) $native_Bool
+  ((s $native_String) (refs $smt_RefList) (haveBase $native_Bool) (d $smt_Datatype)
+   (c $smt_DatatypeCons))
+  :signature ($native_String $smt_RefList $native_Bool $smt_Datatype) $native_Bool
   (
-  (($smtx_dt_wf_rec $dt_null refs)              $native_false)
-  (($smtx_dt_wf_rec ($dt_sum c $dt_null) refs)  ($smtx_dt_cons_wf_rec c refs))
-  (($smtx_dt_wf_rec ($dt_sum c d) refs)
-    ($native_ite ($smtx_dt_cons_wf_rec c refs) ($smtx_dt_wf_rec d refs) $native_false))
+  (($smtx_dt_wf_rec s refs haveBase $dt_null)              haveBase)
+  (($smtx_dt_wf_rec s refs haveBase ($dt_sum c d))
+    ($native_and ($smtx_dt_cons_wf_rec c ($native_apply_2 "reflist_insert" refs s))
+      ($smtx_dt_wf_rec s refs ($native_or haveBase ($smtx_dt_cons_wf_rec c refs)) d)))
   )
 )
 (program $smtx_type_wf_rec
@@ -448,7 +450,7 @@
   (($smtx_type_wf_rec ($tsm_Datatype s d) refs)
     ($native_ite ($native_apply_2 "reflist_contains" refs s)
       $native_false
-      ($smtx_dt_wf_rec d ($native_apply_2 "reflist_insert" refs s))))
+      ($smtx_dt_wf_rec s refs $native_false d)))
   (($smtx_type_wf_rec ($tsm_TypeRef s) refs) $native_false)
   (($smtx_type_wf_rec ($tsm_Seq x1) refs)
     ($native_and ($native_inhabited_type x1) ($smtx_type_wf_rec x1 $native_reflist_nil)))
