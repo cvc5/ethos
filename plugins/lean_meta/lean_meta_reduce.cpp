@@ -64,7 +64,7 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
 decreasing_by
   all_goals simp_wf
   all_goals omega)";
-  d_terminatingBy["$re_flatten"] = R"(termination_by rev flag tree => 2 * sizeOf tree + (if flag = Term.Boolean true then 1 else 0)
+  d_terminatingBy["$re_flatten"] = R"(termination_by flag tree => 2 * sizeOf tree + (if flag = Term.Boolean true then 1 else 0)
 decreasing_by
   all_goals simp_wf
   all_goals omega)";
@@ -77,6 +77,10 @@ decreasing_by
   d_terminatingBy["$str_re_includes_rhs_inter"] = terminate2;
   d_terminatingBy["$str_re_includes_rec"] = terminate2;
   d_terminatingBy["$str_re_includes_base_rec"] = R"(termination_by a b => 4 * (sizeOf a + sizeOf b) + 1
+decreasing_by
+  all_goals simp_wf
+  all_goals omega)";
+  std::string terminate3 = R"(termination_by t => sizeOf t
 decreasing_by
   all_goals simp_wf
   all_goals omega)";
