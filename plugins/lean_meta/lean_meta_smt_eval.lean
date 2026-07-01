@@ -53,8 +53,6 @@ def native_zmult : native_Int -> native_Int -> native_Int
   | x, y => x*y
 def native_zneg : native_Int -> native_Int
   | x => -x
-def native_zabs : native_Int -> native_Int
-  | x => if x < 0 then -x else x
 def native_zeq : native_Int -> native_Int -> native_Bool
   | x, y => decide (x = y)
 def native_zleq : native_Int -> native_Int -> native_Bool
@@ -100,8 +98,6 @@ def native_qmult : native_Rat -> native_Rat -> native_Rat
   | x, y => x*y
 def native_qneg : native_Rat -> native_Rat
   | x => -x
-def native_qabs : native_Rat -> native_Rat
-  | x => if x < 0 then -x else x
 def native_qeq : native_Rat -> native_Rat -> native_Bool
   | x, y => decide (x = y)
 def native_qleq : native_Rat -> native_Rat -> native_Bool
