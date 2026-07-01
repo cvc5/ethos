@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 301
+; #trim-defs: 299
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -484,60 +484,58 @@
   (($smtx_dt_substitute s d $dt_null) $dt_null)
   )
 )
-(declare-const $smt_RefList Type)
-(define $native_reflist_nil () ($native_apply_0 "reflist_nil"))
-(program $smtx_type_wf_rec () :signature ($smt_Type $smt_Type $smt_RefList) $native_Bool)
+(program $smtx_type_wf_rec () :signature ($smt_Type $smt_Type) $native_Bool)
 (program $smtx_dt_cons_wf_rec
-  ((TU $smt_Type) (cU $smt_DatatypeCons) (TF $smt_Type) (s $native_String) (cF $smt_DatatypeCons) (refs $smt_RefList))
-  :signature ($smt_DatatypeCons $smt_DatatypeCons $smt_RefList) $native_Bool
+  ((TU $smt_Type) (cU $smt_DatatypeCons) (TF $smt_Type)
+    (s $native_String) (sU $native_String) (d $smt_Datatype) (cF $smt_DatatypeCons))
+  :signature ($smt_DatatypeCons $smt_DatatypeCons) $native_Bool
   (
   
-  
-  (($smtx_dt_cons_wf_rec ($dtc_cons TF cF) ($dtc_cons TU cU) refs)
+  (($smtx_dt_cons_wf_rec ($dtc_cons ($tsm_Datatype s d) cF) ($dtc_cons ($tsm_TypeRef sU) cU))
+    $native_true)
+  (($smtx_dt_cons_wf_rec ($dtc_cons TF cF) ($dtc_cons TU cU))
     ($native_ite ($native_inhabited_type TF)
-      ($native_ite ($smtx_type_wf_rec TF TU refs)
-        ($smtx_dt_cons_wf_rec cF cU refs)
+      ($native_ite ($smtx_type_wf_rec TF TU)
+        ($smtx_dt_cons_wf_rec cF cU)
         $native_false)
       $native_false))
-  (($smtx_dt_cons_wf_rec $dtc_unit $dtc_unit refs) $native_true)
-  (($smtx_dt_cons_wf_rec cF cU refs) $native_false)
+  (($smtx_dt_cons_wf_rec $dtc_unit $dtc_unit) $native_true)
+  (($smtx_dt_cons_wf_rec cF cU) $native_false)
   )
 )
 (program $smtx_dt_wf_rec
-  ((dU $smt_Datatype) (cU $smt_DatatypeCons) (dF $smt_Datatype) (cF $smt_DatatypeCons) (refs $smt_RefList))
-  :signature ($smt_Datatype $smt_Datatype $smt_RefList) $native_Bool
+  ((dU $smt_Datatype) (cU $smt_DatatypeCons) (dF $smt_Datatype) (cF $smt_DatatypeCons))
+  :signature ($smt_Datatype $smt_Datatype) $native_Bool
   (
-  (($smtx_dt_wf_rec ($dt_sum cF $dt_null) ($dt_sum cU $dt_null) refs)  ($smtx_dt_cons_wf_rec cF cU refs))
-  (($smtx_dt_wf_rec ($dt_sum cF dF) ($dt_sum cU dU) refs)
-    ($native_ite ($smtx_dt_cons_wf_rec cF cU refs) ($smtx_dt_wf_rec dF dU refs) $native_false))
-  (($smtx_dt_wf_rec dF dU refs)              $native_false)
+  (($smtx_dt_wf_rec ($dt_sum cF $dt_null) ($dt_sum cU $dt_null))  ($smtx_dt_cons_wf_rec cF cU))
+  (($smtx_dt_wf_rec ($dt_sum cF dF) ($dt_sum cU dU))
+    ($native_ite ($smtx_dt_cons_wf_rec cF cU) ($smtx_dt_wf_rec dF dU) $native_false))
+  (($smtx_dt_wf_rec dF dU)              $native_false)
   )
 )
 (program $smtx_type_wf_rec
   ((T $smt_Type) (U Type) (sF $native_String) (dF $smt_Datatype)
-   (sU $native_String) (dU $smt_Datatype) (refs $smt_RefList)
+   (sU $native_String) (dU $smt_Datatype)
    (x1 Type) (x2 Type))
-  :signature ($smt_Type $smt_Type $smt_RefList) $native_Bool
+  :signature ($smt_Type $smt_Type) $native_Bool
   (
-  (($smtx_type_wf_rec ($tsm_Datatype sF dF) ($tsm_Datatype sU dU) refs)
-    ($native_ite ($native_apply_2 "reflist_contains" refs sF)
-      $native_false
-      ($smtx_dt_wf_rec ($smtx_dt_substitute sF dF dF) dU ($native_apply_2 "reflist_insert" refs sF))))
-  (($smtx_type_wf_rec T ($tsm_TypeRef sF) refs) $native_false)
-  (($smtx_type_wf_rec T ($tsm_Seq x1) refs)
-    ($native_and ($native_inhabited_type x1) ($smtx_type_wf_rec x1 $native_reflist_nil)))
-  (($smtx_type_wf_rec T ($tsm_Array x1 x2) refs)
+  (($smtx_type_wf_rec ($tsm_Datatype sF dF) ($tsm_Datatype sU dU))
+      ($smtx_dt_wf_rec ($smtx_dt_substitute sF dF dF) dU))
+  (($smtx_type_wf_rec T ($tsm_TypeRef sF)) $native_false)
+  (($smtx_type_wf_rec T ($tsm_Seq x1))
+    ($native_and ($native_inhabited_type x1) ($smtx_type_wf_rec x1 x1)))
+  (($smtx_type_wf_rec T ($tsm_Array x1 x2))
     ($native_and ($native_inhabited_type x1)
-    ($native_and ($smtx_type_wf_rec x1 $native_reflist_nil)
-    ($native_and ($native_inhabited_type x2) ($smtx_type_wf_rec x2 $native_reflist_nil)))))
-  (($smtx_type_wf_rec T ($tsm_FunType x1 x2) refs) $native_false)
-  (($smtx_type_wf_rec T ($tsm_Set x1) refs)
-    ($native_and ($native_inhabited_type x1) ($smtx_type_wf_rec x1 $native_reflist_nil)))
+    ($native_and ($smtx_type_wf_rec x1 x1)
+    ($native_and ($native_inhabited_type x2) ($smtx_type_wf_rec x2 x2)))))
+  (($smtx_type_wf_rec T ($tsm_FunType x1 x2)) $native_false)
+  (($smtx_type_wf_rec T ($tsm_Set x1))
+    ($native_and ($native_inhabited_type x1) ($smtx_type_wf_rec x1 x1)))
   
-  (($smtx_type_wf_rec T ($tsm_DtcAppType x1 x2) refs) $native_false)
-  (($smtx_type_wf_rec T $tsm_none refs) $native_false)
-  (($smtx_type_wf_rec T $tsm_RegLan refs) $native_false)
-  (($smtx_type_wf_rec T U refs) $native_true)
+  (($smtx_type_wf_rec T ($tsm_DtcAppType x1 x2)) $native_false)
+  (($smtx_type_wf_rec T $tsm_none) $native_false)
+  (($smtx_type_wf_rec T $tsm_RegLan) $native_false)
+  (($smtx_type_wf_rec T U) $native_true)
   )
 )
 (program $smtx_type_wf_component ((T $smt_Type))
@@ -545,7 +543,7 @@
   (
   (($smtx_type_wf_component T)
     
-    ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T T $native_reflist_nil)))
+    ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T T)))
   )
 )
 (program $smtx_type_wf ((T $smt_Type) (U $smt_Type))
