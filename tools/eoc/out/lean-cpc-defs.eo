@@ -2571,12 +2571,10 @@
   (
   ; a substituted type ref is in scope
   (($smtx_dt_cons_wf_rec ($dtc_cons ($tsm_Datatype s d) cF) ($dtc_cons ($tsm_TypeRef sU) cU))
-    $native_true)
+    ($smtx_dt_cons_wf_rec cF cU))
   (($smtx_dt_cons_wf_rec ($dtc_cons TF cF) ($dtc_cons TU cU))
-    ($native_ite ($native_inhabited_type TF)
-      ($native_ite ($smtx_type_wf_rec TF TU)
-        ($smtx_dt_cons_wf_rec cF cU)
-        $native_false)
+    ($native_ite ($native_and ($native_inhabited_type TF) ($smtx_type_wf_rec TF TU))
+      ($smtx_dt_cons_wf_rec cF cU)
       $native_false))
   (($smtx_dt_cons_wf_rec $dtc_unit $dtc_unit) $native_true)
   (($smtx_dt_cons_wf_rec cF cU) $native_false)
@@ -2587,9 +2585,9 @@
   ((dU $smt_Datatype) (cU $smt_DatatypeCons) (dF $smt_Datatype) (cF $smt_DatatypeCons))
   :signature ($smt_Datatype $smt_Datatype) $native_Bool
   (
-  (($smtx_dt_wf_rec ($dt_sum cF $dt_null) ($dt_sum cU $dt_null))  ($smtx_dt_cons_wf_rec cF cU))
   (($smtx_dt_wf_rec ($dt_sum cF dF) ($dt_sum cU dU))
     ($native_ite ($smtx_dt_cons_wf_rec cF cU) ($smtx_dt_wf_rec dF dU) $native_false))
+  (($smtx_dt_wf_rec $dt_null $dt_null)  $native_true)
   (($smtx_dt_wf_rec dF dU)              $native_false)
   )
 )

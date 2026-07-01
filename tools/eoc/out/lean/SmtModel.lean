@@ -614,15 +614,15 @@ def __smtx_dt_substitute (s : native_String) (d : SmtDatatype) : SmtDatatype -> 
 
 
 def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> SmtDatatypeCons -> native_Bool
-  | (SmtDatatypeCons.cons (SmtType.Datatype s d) cF), (SmtDatatypeCons.cons (SmtType.TypeRef sU) cU) => true
-  | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) => (native_ite (native_inhabited_type TF) (native_ite (__smtx_type_wf_rec TF TU) (__smtx_dt_cons_wf_rec cF cU) false) false)
+  | (SmtDatatypeCons.cons (SmtType.Datatype s d) cF), (SmtDatatypeCons.cons (SmtType.TypeRef sU) cU) => (__smtx_dt_cons_wf_rec cF cU)
+  | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) => (native_ite (native_and (native_inhabited_type TF) (__smtx_type_wf_rec TF TU)) (__smtx_dt_cons_wf_rec cF cU) false)
   | SmtDatatypeCons.unit, SmtDatatypeCons.unit => true
   | cF, cU => false
 
 
 def __smtx_dt_wf_rec : SmtDatatype -> SmtDatatype -> native_Bool
-  | (SmtDatatype.sum cF SmtDatatype.null), (SmtDatatype.sum cU SmtDatatype.null) => (__smtx_dt_cons_wf_rec cF cU)
   | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) => (native_ite (__smtx_dt_cons_wf_rec cF cU) (__smtx_dt_wf_rec dF dU) false)
+  | SmtDatatype.null, SmtDatatype.null => true
   | dF, dU => false
 
 

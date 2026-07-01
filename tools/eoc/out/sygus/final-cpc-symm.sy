@@ -523,9 +523,9 @@
 (assert (! (forall ((x1 dtc.DatatypeCons) (x2 dtc.DatatypeCons))
   (! (= ($smtx_dt_cons_wf_rec x1 x2)
   (ite (and ((_ is dtc.cons) x1) ((_ is tsm.Datatype) (dtc.cons.arg1 x1)) ((_ is dtc.cons) x2) ((_ is tsm.TypeRef) (dtc.cons.arg1 x2)))
-    true
+    ($smtx_dt_cons_wf_rec (dtc.cons.arg2 x1) (dtc.cons.arg2 x2))
   (ite (and ((_ is dtc.cons) x1) ((_ is dtc.cons) x2))
-    (ite (inhabited_type (dtc.cons.arg1 x1)) (ite ($smtx_type_wf_rec (dtc.cons.arg1 x1) (dtc.cons.arg1 x2)) ($smtx_dt_cons_wf_rec (dtc.cons.arg2 x1) (dtc.cons.arg2 x2)) false) false)
+    (ite (and (inhabited_type (dtc.cons.arg1 x1)) ($smtx_type_wf_rec (dtc.cons.arg1 x1) (dtc.cons.arg1 x2))) ($smtx_dt_cons_wf_rec (dtc.cons.arg2 x1) (dtc.cons.arg2 x2)) false)
   (ite (and (= x1 dtc.unit) (= x2 dtc.unit))
     true
     false
@@ -535,10 +535,10 @@
 (declare-fun $smtx_dt_wf_rec (dt.Datatype dt.Datatype) Bool)
 (assert (! (forall ((x1 dt.Datatype) (x2 dt.Datatype))
   (! (= ($smtx_dt_wf_rec x1 x2)
-  (ite (and ((_ is dt.sum) x1) (= (dt.sum.arg2 x1) dt.null) ((_ is dt.sum) x2) (= (dt.sum.arg2 x2) dt.null))
-    ($smtx_dt_cons_wf_rec (dt.sum.arg1 x1) (dt.sum.arg1 x2))
   (ite (and ((_ is dt.sum) x1) ((_ is dt.sum) x2))
     (ite ($smtx_dt_cons_wf_rec (dt.sum.arg1 x1) (dt.sum.arg1 x2)) ($smtx_dt_wf_rec (dt.sum.arg2 x1) (dt.sum.arg2 x2)) false)
+  (ite (and (= x1 dt.null) (= x2 dt.null))
+    true
     false
 ))) :pattern (($smtx_dt_wf_rec x1 x2)))) :named sm.axiom.$smtx_dt_wf_rec))
 
