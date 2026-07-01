@@ -339,8 +339,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("uneg", {kT}, kT);
   d_overloadRevert["$eoo_-.2"] = "uneg";
   d_overloadRevertRev["uneg"] = "$eoo_-.2";
-  // addConstFoldSym("abs", {kInt}, kInt);
-  addTermReduceSym("abs", {kInt}, kInt, "(ite (< x1 0) (- 0 x1) x1)");
+  // abs is Int/Real typed and evaluated by a first-class native definition
+  addConstFoldSym("abs", {kT}, kT);
   // addConstFoldSym(">=", {kT, kT}, kBool);
   addTermReduceSym(">=", {kT, kT}, kBool, "(<= x2 x1)");
   addConstFoldSym("<=", {kT, kT}, kBool);
