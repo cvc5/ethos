@@ -85,6 +85,7 @@
 (define $native_z_* ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zmult" x1 x2))
 (define $native_z_uneg ((W Type :implicit) (x1 W)) ($native_apply_1 "zneg" x1))
 (define $native_z_- ((W Type :implicit) (x1 W) (x2 W)) ($native_z_+ x1 ($native_z_uneg x2)))
+(define $native_z_abs ((x1 $native_Int)) ($native_apply_1 "zabs" x1))
 (define $native_z_pow2 ((W Type :implicit) (x1 W)) ($native_apply_1 "int.pow2" x1))
 (define $native_z_piand ((W Type :implicit) (x1 W) (x2 W) (x3 W)) ($native_apply_3 "piand" x1 x2 x3))
 ; Real operators
@@ -96,6 +97,7 @@
 (define $native_q_* ((x1 $native_Real) (x2 $native_Real)) ($native_apply_2 "qmult" x1 x2))
 (define $native_q_uneg ((x1 $native_Real)) ($native_apply_1 "qneg" x1))
 (define $native_q_- ((x1 $native_Real) (x2 $native_Real)) ($native_q_+ x1 ($native_q_uneg x2)))
+(define $native_q_abs ((x1 $native_Real)) ($native_apply_1 "qabs" x1))
 ; other arithmetic
 (define $native_z_to_real ((x1 $native_Int)) ($native_apply_1 "to_real" x1))
 (define $native_q_to_real ((x1 $native_Real)) x1)

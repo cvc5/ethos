@@ -27,6 +27,10 @@ abbrev native_RegLan := SmtRegLan
 
 def native_int_log2 : native_Int -> native_Int
   | x => Int.ofNat (Nat.log2 (Int.toNat x))
+def native_zabs : native_Int -> native_Int
+  | x => if x < 0 then -x else x
+def native_qabs : native_Rat -> native_Rat
+  | x => if x < 0 then -x else x
   
 def native_char_is_digit (c : native_Char) : native_Bool :=
   48 <= c && c <= 57
