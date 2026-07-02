@@ -2463,62 +2463,200 @@
 (program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
 (program $smtx_is_finite_type () :signature ($smt_Type) $native_Bool)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Closedness for types
+;;; dt substitute
+
+; forward declaration
+(program $smtx_dt_lift ()
+  :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype)
+
+(program $smtx_type_lift
+  ((s $native_String) (d $smt_Datatype) (T $smt_Type)
+   (s2 $native_String) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_Type) $smt_Type
+  (
+  (($smtx_type_lift s d ($tsm_Datatype s2 d2))
+    ($native_ite ($native_Teq ($tsm_Datatype s d) ($tsm_Datatype s2 d2))
+      ($tsm_TypeRef s)
+      ($tsm_Datatype s2 ($smtx_dt_lift s d d2))))
+  (($smtx_type_lift s d T) T)
+  )
+)
+
+(program $smtx_dtc_lift
+  ((s $native_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons)
+   (s2 $native_String) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
+  (
+  (($smtx_dtc_lift s d ($dtc_cons T c))
+    ($dtc_cons ($smtx_type_lift s d T) ($smtx_dtc_lift s d c)))
+  (($smtx_dtc_lift s d $dtc_unit) $dtc_unit)
+  )
+)
+
+; ($smtx_dt_lift s d d2)
+; Substitutes ($tsm_Datatype s d) by ($tsm_TypeRef s) in all arguments
+; of datatype constructors of a datatype d2.
+; Note that this assumes there is no nested recursion, i.e. occurrences of
+; ($tsm_TypeRef s) that are beneath applications of other types.
+(program $smtx_dt_lift
+  ((s $native_String) (d $smt_Datatype) (c $smt_DatatypeCons) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype
+  (
+  (($smtx_dt_lift s d ($dt_sum c d2))
+    ($dt_sum ($smtx_dtc_lift s d c) ($smtx_dt_lift s d d2)))
+  (($smtx_dt_lift s d $dt_null) $dt_null)
+  )
+)
+
+; forward declaration
+(program $smtx_dt_substitute ()
+  :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype)
+
+(program $smtx_type_substitute
+  ((s $native_String) (d $smt_Datatype) (T $smt_Type)
+   (s2 $native_String) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_Type) $smt_Type
+  (
+  (($smtx_type_substitute s d ($tsm_Datatype s2 d2))
+    ; possible mutual recursion, subsitute into the datatype, unless there is
+    ; name shadowing
+    ($tsm_Datatype s2
+      ($native_ite ($native_str_= s s2) d2 ($smtx_dt_substitute s ($smtx_dt_lift s2 d2 d) d2))))
+  (($smtx_type_substitute s d ($tsm_TypeRef s2))
+    ; if it is a recursive reference to the type we are substituting, replace
+    ($native_ite ($native_str_= s s2) ($tsm_Datatype s d) ($tsm_TypeRef s2)))
+  (($smtx_type_substitute s d T) T)
+  )
+)
+
+; Replaces ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
+; of a datatype constructor.
+; Note that this assumes there is no nested recursion, i.e. occurrences of
+; ($tsm_TypeRef s) that are beneath applications of other types.
+(program $smtx_dtc_substitute
+  ((s $native_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons)
+   (s2 $native_String) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
+  (
+  (($smtx_dtc_substitute s d ($dtc_cons T c))
+    ($dtc_cons ($smtx_type_substitute s d T) ($smtx_dtc_substitute s d c)))
+  (($smtx_dtc_substitute s d $dtc_unit) $dtc_unit)
+  )
+)
+
+; ($smtx_dt_substitute s d d2)
+; Substitutes ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
+; of datatype constructors of a datatype d2.
+; Note that this assumes there is no nested recursion, i.e. occurrences of
+; ($tsm_TypeRef s) that are beneath applications of other types.
+(program $smtx_dt_substitute
+  ((s $native_String) (d $smt_Datatype) (c $smt_DatatypeCons) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype
+  (
+  (($smtx_dt_substitute s d ($dt_sum c d2))
+    ($dt_sum ($smtx_dtc_substitute s d c) ($smtx_dt_substitute s d d2)))
+  (($smtx_dt_substitute s d $dt_null) $dt_null)
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Well-foundedness for types
 
 (declare-const $smt_RefList Type)
 (define $native_reflist_nil () ($native_apply_0 "reflist_nil"))
 
-(program $smtx_type_wf_rec () :signature ($smt_Type $smt_RefList) $native_Bool)
+(program $smtx_type_no_alias_rec () :signature ($smt_RefList $smt_Type) $native_Bool)
+
+(program $smtx_dt_cons_no_alias_rec
+  ((T $smt_Type) (s $native_String) (c $smt_DatatypeCons) (refs $smt_RefList))
+  :signature ($smt_RefList $smt_DatatypeCons) $native_Bool
+  (
+  (($smtx_dt_cons_no_alias_rec refs ($dtc_cons T c))
+    ($native_ite ($smtx_type_no_alias_rec refs T)
+      ($smtx_dt_cons_no_alias_rec refs c)
+      $native_false))
+  (($smtx_dt_cons_no_alias_rec refs $dtc_unit) $native_true)
+  )
+)
+
+(program $smtx_dt_no_alias_rec
+  ((d $smt_Datatype) (c $smt_DatatypeCons) (refs $smt_RefList))
+  :signature ($smt_RefList $smt_Datatype) $native_Bool
+  (
+  (($smtx_dt_no_alias_rec refs $dt_null)              $native_true)
+  (($smtx_dt_no_alias_rec refs ($dt_sum c d))
+    ($native_ite ($smtx_dt_cons_no_alias_rec refs c) ($smtx_dt_no_alias_rec refs d) $native_false))
+  )
+)
+
+(program $smtx_type_no_alias_rec
+  ((T $smt_Type) (s $native_String) (d $smt_Datatype) (refs $smt_RefList)
+   (x1 Type) (x2 Type))
+  :signature ($smt_RefList $smt_Type) $native_Bool
+  (
+  (($smtx_type_no_alias_rec refs ($tsm_Datatype s d))
+    ($native_ite ($native_apply_2 "reflist_contains" refs s)
+      $native_false
+      ($smtx_dt_no_alias_rec ($native_apply_2 "reflist_insert" refs s) d)))
+  (($smtx_type_no_alias_rec T refs) $native_true)
+  )
+)
+(define $smtx_type_no_alias ((T $smt_Type))
+  ($smtx_type_no_alias_rec $native_reflist_nil T))
+
+(program $smtx_type_wf_rec () :signature ($smt_Type $smt_Type) $native_Bool)
 
 (program $smtx_dt_cons_wf_rec
-  ((T $smt_Type) (s $native_String) (c $smt_DatatypeCons) (refs $smt_RefList))
-  :signature ($smt_DatatypeCons $smt_RefList) $native_Bool
+  ((TU $smt_Type) (cU $smt_DatatypeCons) (TF $smt_Type)
+    (s $native_String) (sU $native_String) (d $smt_Datatype) (cF $smt_DatatypeCons))
+  :signature ($smt_DatatypeCons $smt_DatatypeCons) $native_Bool
   (
-  (($smtx_dt_cons_wf_rec ($dtc_cons ($tsm_TypeRef s) c) refs)
-    ($native_ite ($native_apply_2 "reflist_contains" refs s) ($smtx_dt_cons_wf_rec c refs) $native_false))
-  (($smtx_dt_cons_wf_rec ($dtc_cons T c) refs)
-    ($native_ite ($smtx_type_wf_rec T refs)
-      ($smtx_dt_cons_wf_rec c refs)
+  ; a substituted type ref is in scope
+  (($smtx_dt_cons_wf_rec ($dtc_cons ($tsm_Datatype s d) cF) ($dtc_cons ($tsm_TypeRef sU) cU))
+    ($smtx_dt_cons_wf_rec cF cU))
+  (($smtx_dt_cons_wf_rec ($dtc_cons TF cF) ($dtc_cons TU cU))
+    ($native_ite ($native_and ($native_inhabited_type TF) ($smtx_type_wf_rec TF TU))
+      ($smtx_dt_cons_wf_rec cF cU)
       $native_false))
-  (($smtx_dt_cons_wf_rec $dtc_unit refs) $native_true)
+  (($smtx_dt_cons_wf_rec $dtc_unit $dtc_unit) $native_true)
+  (($smtx_dt_cons_wf_rec cF cU) $native_false)
   )
 )
 
 (program $smtx_dt_wf_rec
-  ((d $smt_Datatype) (c $smt_DatatypeCons) (refs $smt_RefList))
-  :signature ($smt_Datatype $smt_RefList) $native_Bool
+  ((dU $smt_Datatype) (cU $smt_DatatypeCons) (dF $smt_Datatype) (cF $smt_DatatypeCons))
+  :signature ($smt_Datatype $smt_Datatype) $native_Bool
   (
-  (($smtx_dt_wf_rec $dt_null refs)              $native_false)
-  (($smtx_dt_wf_rec ($dt_sum c $dt_null) refs)  ($smtx_dt_cons_wf_rec c refs))
-  (($smtx_dt_wf_rec ($dt_sum c d) refs)
-    ($native_ite ($smtx_dt_cons_wf_rec c refs) ($smtx_dt_wf_rec d refs) $native_false))
+  (($smtx_dt_wf_rec ($dt_sum cF dF) ($dt_sum cU dU))
+    ($native_ite ($smtx_dt_cons_wf_rec cF cU) ($smtx_dt_wf_rec dF dU) $native_false))
+  (($smtx_dt_wf_rec $dt_null $dt_null)  $native_true)
+  (($smtx_dt_wf_rec dF dU)              $native_false)
   )
 )
 
+(define $smtx_type_wf_component_rec ((T $smt_Type))
+  ($native_and ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T T)) ($smtx_type_no_alias T)))
+  
 (program $smtx_type_wf_rec
-  ((T $smt_Type) (s $native_String) (d $smt_Datatype) (refs $smt_RefList)
+  ((T $smt_Type) (U Type) (sF $native_String) (dF $smt_Datatype)
+   (sU $native_String) (dU $smt_Datatype)
    (x1 Type) (x2 Type))
-  :signature ($smt_Type $smt_RefList) $native_Bool
+  :signature ($smt_Type $smt_Type) $native_Bool
   (
-  (($smtx_type_wf_rec ($tsm_Datatype s d) refs)
-    ($native_ite ($native_apply_2 "reflist_contains" refs s)
-      $native_false
-      ($smtx_dt_wf_rec d ($native_apply_2 "reflist_insert" refs s))))
-  (($smtx_type_wf_rec ($tsm_TypeRef s) refs) $native_false)
-  (($smtx_type_wf_rec ($tsm_Seq x1) refs)
-    ($native_and ($native_inhabited_type x1) ($smtx_type_wf_rec x1 $native_reflist_nil)))
-  (($smtx_type_wf_rec ($tsm_Array x1 x2) refs)
-    ($native_and ($native_inhabited_type x1)
-    ($native_and ($smtx_type_wf_rec x1 $native_reflist_nil)
-    ($native_and ($native_inhabited_type x2) ($smtx_type_wf_rec x2 $native_reflist_nil)))))
-  (($smtx_type_wf_rec ($tsm_FunType x1 x2) refs) $native_false)
-  (($smtx_type_wf_rec ($tsm_Set x1) refs)
-    ($native_and ($native_inhabited_type x1) ($smtx_type_wf_rec x1 $native_reflist_nil)))
+  (($smtx_type_wf_rec ($tsm_Datatype sF dF) ($tsm_Datatype sU dU))
+      ($smtx_dt_wf_rec ($smtx_dt_substitute sF dF dF) dU))
+  (($smtx_type_wf_rec T ($tsm_TypeRef sF)) $native_false)
+  (($smtx_type_wf_rec T ($tsm_Seq x1))
+    ($smtx_type_wf_component_rec x1))
+  (($smtx_type_wf_rec T ($tsm_Array x1 x2))
+    ($native_and ($smtx_type_wf_component_rec x1) ($smtx_type_wf_component_rec x2)))
+  (($smtx_type_wf_rec T ($tsm_FunType x1 x2)) $native_false)
+  (($smtx_type_wf_rec T ($tsm_Set x1))
+    ($smtx_type_wf_component_rec x1))
   ; partially applied datatype constructors is not a first class type
-  (($smtx_type_wf_rec ($tsm_DtcAppType x1 x2) refs) $native_false)
-  (($smtx_type_wf_rec $tsm_none refs) $native_false)
-  (($smtx_type_wf_rec $tsm_RegLan refs) $native_false)
-  (($smtx_type_wf_rec T refs) $native_true)
+  (($smtx_type_wf_rec T ($tsm_DtcAppType x1 x2)) $native_false)
+  (($smtx_type_wf_rec T $tsm_none) $native_false)
+  (($smtx_type_wf_rec T $tsm_RegLan) $native_false)
+  (($smtx_type_wf_rec T U) $native_true)
   )
 )
 
@@ -2528,21 +2666,19 @@
 ;  (
 ;  (($smtx_fun_type_wf T ($tsm_FunType U V))
 ;    ($native_and
-;      ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T $native_reflist_nil))
+;      ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T T $native_reflist_nil))
 ;      ($smtx_fun_type_wf U V)))
 ;  (($smtx_fun_type_wf T U)
 ;    ($native_and
-;      ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T $native_reflist_nil))
-;      ($native_and ($native_inhabited_type U) ($smtx_type_wf_rec U $native_reflist_nil))))
+;      ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T T $native_reflist_nil))
+;      ($native_and ($native_inhabited_type U) ($smtx_type_wf_rec U U $native_reflist_nil))))
 ;  )
 ;)
 
 (program $smtx_type_wf_component ((T $smt_Type))
   :signature ($smt_Type) $native_Bool
   (
-  (($smtx_type_wf_component T)
-    ; must be inhabited and well-formed
-    ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T $native_reflist_nil)))
+  (($smtx_type_wf_component T) ($smtx_type_wf_component_rec T))
   )
 )
 
@@ -2772,100 +2908,6 @@
   (($smtx_dt_num_sels ($dt_sum c d) ($native_n_succ n))
      ($smtx_dt_num_sels d n))
   (($smtx_dt_num_sels $dt_null n)                        $native_n_zero)
-  )
-)
-
-; forward declaration
-(program $smtx_dt_lift ()
-  :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype)
-  
-(program $smtx_type_lift
-  ((s $native_String) (d $smt_Datatype) (T $smt_Type)
-   (s2 $native_String) (d2 $smt_Datatype))
-  :signature ($native_String $smt_Datatype $smt_Type) $smt_Type
-  (
-  (($smtx_type_lift s d ($tsm_Datatype s2 d2))
-    ($native_ite ($native_Teq ($tsm_Datatype s d) ($tsm_Datatype s2 d2))
-      ($tsm_TypeRef s)
-      ($tsm_Datatype s2 ($smtx_dt_lift s d d2))))
-  (($smtx_type_lift s d T) T)
-  )
-)
-
-(program $smtx_dtc_lift
-  ((s $native_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons)
-   (s2 $native_String) (d2 $smt_Datatype))
-  :signature ($native_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
-  (
-  (($smtx_dtc_lift s d ($dtc_cons T c))
-    ($dtc_cons ($smtx_type_lift s d T) ($smtx_dtc_lift s d c)))
-  (($smtx_dtc_lift s d $dtc_unit) $dtc_unit)
-  )
-)
-
-; ($smtx_dt_lift s d d2)
-; Substitutes ($tsm_Datatype s d) by ($tsm_TypeRef s) in all arguments
-; of datatype constructors of a datatype d2.
-; Note that this assumes there is no nested recursion, i.e. occurrences of
-; ($tsm_TypeRef s) that are beneath applications of other types.
-(program $smtx_dt_lift
-  ((s $native_String) (d $smt_Datatype) (c $smt_DatatypeCons) (d2 $smt_Datatype))
-  :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype
-  (
-  (($smtx_dt_lift s d ($dt_sum c d2))
-    ($dt_sum ($smtx_dtc_lift s d c) ($smtx_dt_lift s d d2)))
-  (($smtx_dt_lift s d $dt_null) $dt_null)
-  )
-)
-
-; forward declaration
-(program $smtx_dt_substitute ()
-  :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype)
-
-(program $smtx_type_substitute
-  ((s $native_String) (d $smt_Datatype) (T $smt_Type)
-   (s2 $native_String) (d2 $smt_Datatype))
-  :signature ($native_String $smt_Datatype $smt_Type) $smt_Type
-  (
-  (($smtx_type_substitute s d ($tsm_Datatype s2 d2))
-    ; possible mutual recursion, subsitute into the datatype, unless there is
-    ; name shadowing
-    ($tsm_Datatype s2
-      ($native_ite ($native_str_= s s2) d2 ($smtx_dt_substitute s ($smtx_dt_lift s2 d2 d) d2))))
-  (($smtx_type_substitute s d ($tsm_TypeRef s2))
-    ; if it is a recursive reference to the type we are substituting, replace
-    ($native_ite ($native_str_= s s2) ($tsm_Datatype s d) ($tsm_TypeRef s2)))
-  (($smtx_type_substitute s d T) T)
-  )
-)
-
-; Replaces ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
-; of a datatype constructor.
-; Note that this assumes there is no nested recursion, i.e. occurrences of
-; ($tsm_TypeRef s) that are beneath applications of other types.
-(program $smtx_dtc_substitute
-  ((s $native_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons)
-   (s2 $native_String) (d2 $smt_Datatype))
-  :signature ($native_String $smt_Datatype $smt_DatatypeCons) $smt_DatatypeCons
-  (
-  (($smtx_dtc_substitute s d ($dtc_cons T c))
-    ($dtc_cons ($smtx_type_substitute s d T) ($smtx_dtc_substitute s d c)))
-  (($smtx_dtc_substitute s d $dtc_unit) $dtc_unit)
-  )
-)
-
-; ($smtx_dt_substitute s d d2)
-; Substitutes ($tsm_TypeRef s) by ($tsm_Datatype s d) in all arguments
-; of datatype constructors of a datatype d2.
-; Note that this assumes there is no nested recursion, i.e. occurrences of
-; ($tsm_TypeRef s) that are beneath applications of other types.
-(program $smtx_dt_substitute
-  ((s $native_String) (d $smt_Datatype) (c $smt_DatatypeCons) (d2 $smt_Datatype))
-  :signature ($native_String $smt_Datatype $smt_Datatype) $smt_Datatype
-  (
-  (($smtx_dt_substitute s d ($dt_sum c d2))
-    ($dt_sum ($smtx_dtc_substitute s d c) ($smtx_dt_substitute s d d2)))
-  (($smtx_dt_substitute s d $dt_null) $dt_null)
   )
 )
 
