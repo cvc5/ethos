@@ -613,6 +613,21 @@ def __smtx_dt_substitute (s : native_String) (d : SmtDatatype) : SmtDatatype -> 
   | SmtDatatype.null => SmtDatatype.null
 
 
+def __smtx_dt_cons_no_alias_rec (refs : RefList) : SmtDatatypeCons -> native_Bool
+  | (SmtDatatypeCons.cons T c) => (native_ite (__smtx_type_no_alias_rec refs T) (__smtx_dt_cons_no_alias_rec refs c) false)
+  | SmtDatatypeCons.unit => true
+
+
+def __smtx_dt_no_alias_rec (refs : RefList) : SmtDatatype -> native_Bool
+  | SmtDatatype.null => true
+  | (SmtDatatype.sum c d) => (native_ite (__smtx_dt_cons_no_alias_rec refs c) (__smtx_dt_no_alias_rec refs d) false)
+
+
+def __smtx_type_no_alias_rec : RefList -> SmtType -> native_Bool
+  | refs, (SmtType.Datatype s d) => (native_ite (native_reflist_contains refs s) false (__smtx_dt_no_alias_rec (native_reflist_insert refs s) d))
+  | T, refs => true
+
+
 def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> SmtDatatypeCons -> native_Bool
   | (SmtDatatypeCons.cons (SmtType.Datatype s d) cF), (SmtDatatypeCons.cons (SmtType.TypeRef sU) cU) => (__smtx_dt_cons_wf_rec cF cU)
   | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) => (native_ite (native_and (native_inhabited_type TF) (__smtx_type_wf_rec TF TU)) (__smtx_dt_cons_wf_rec cF cU) false)
@@ -629,10 +644,10 @@ def __smtx_dt_wf_rec : SmtDatatype -> SmtDatatype -> native_Bool
 def __smtx_type_wf_rec : SmtType -> SmtType -> native_Bool
   | (SmtType.Datatype sF dF), (SmtType.Datatype sU dU) => (__smtx_dt_wf_rec (__smtx_dt_substitute sF dF dF) dU)
   | T, (SmtType.TypeRef sF) => false
-  | T, (SmtType.Seq x1) => (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 x1))
-  | T, (SmtType.Map x1 x2) => (native_and (native_inhabited_type x1) (native_and (__smtx_type_wf_rec x1 x1) (native_and (native_inhabited_type x2) (__smtx_type_wf_rec x2 x2))))
+  | T, (SmtType.Seq x1) => (native_and (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 x1)) (__smtx_type_no_alias_rec native_reflist_nil x1))
+  | T, (SmtType.Map x1 x2) => (native_and (native_and (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 x1)) (__smtx_type_no_alias_rec native_reflist_nil x1)) (native_and (native_and (native_inhabited_type x2) (__smtx_type_wf_rec x2 x2)) (__smtx_type_no_alias_rec native_reflist_nil x2)))
   | T, (SmtType.FunType x1 x2) => false
-  | T, (SmtType.Set x1) => (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 x1))
+  | T, (SmtType.Set x1) => (native_and (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 x1)) (__smtx_type_no_alias_rec native_reflist_nil x1))
   | T, (SmtType.DtcAppType x1 x2) => false
   | T, SmtType.None => false
   | T, SmtType.RegLan => false
@@ -640,7 +655,7 @@ def __smtx_type_wf_rec : SmtType -> SmtType -> native_Bool
 
 
 def __smtx_type_wf_component (T : SmtType) : native_Bool :=
-  (native_and (native_inhabited_type T) (__smtx_type_wf_rec T T))
+  (native_and (native_and (native_inhabited_type T) (__smtx_type_wf_rec T T)) (__smtx_type_no_alias_rec native_reflist_nil T))
 
 def __smtx_type_wf : SmtType -> native_Bool
   | SmtType.RegLan => true

@@ -515,6 +515,35 @@
     dt.null
 )) :pattern (($smtx_dt_substitute x1 x2 x3)))) :named sm.axiom.$smtx_dt_substitute))
 
+; fwd-decl: $smtx_type_no_alias_rec
+(declare-fun $smtx_type_no_alias_rec (srl.RefList tsm.Type) Bool)
+
+; program: $smtx_dt_cons_no_alias_rec
+(declare-fun $smtx_dt_cons_no_alias_rec (srl.RefList dtc.DatatypeCons) Bool)
+(assert (! (forall ((x1 srl.RefList) (x2 dtc.DatatypeCons))
+  (! (= ($smtx_dt_cons_no_alias_rec x1 x2)
+  (ite ((_ is dtc.cons) x2)
+    (ite ($smtx_type_no_alias_rec x1 (dtc.cons.arg1 x2)) ($smtx_dt_cons_no_alias_rec x1 (dtc.cons.arg2 x2)) false)
+    true
+)) :pattern (($smtx_dt_cons_no_alias_rec x1 x2)))) :named sm.axiom.$smtx_dt_cons_no_alias_rec))
+
+; program: $smtx_dt_no_alias_rec
+(declare-fun $smtx_dt_no_alias_rec (srl.RefList dt.Datatype) Bool)
+(assert (! (forall ((x1 srl.RefList) (x2 dt.Datatype))
+  (! (= ($smtx_dt_no_alias_rec x1 x2)
+  (ite (= x2 dt.null)
+    true
+    (ite ($smtx_dt_cons_no_alias_rec x1 (dt.sum.arg1 x2)) ($smtx_dt_no_alias_rec x1 (dt.sum.arg2 x2)) false)
+)) :pattern (($smtx_dt_no_alias_rec x1 x2)))) :named sm.axiom.$smtx_dt_no_alias_rec))
+
+; program: $smtx_type_no_alias_rec
+(assert (! (forall ((x1 srl.RefList) (x2 tsm.Type))
+  (! (= ($smtx_type_no_alias_rec x1 x2)
+  (ite ((_ is tsm.Datatype) x2)
+    (ite (reflist_contains x1 (tsm.Datatype.arg1 x2)) false ($smtx_dt_no_alias_rec (reflist_insert x1 (tsm.Datatype.arg1 x2)) (tsm.Datatype.arg2 x2)))
+    true
+)) :pattern (($smtx_type_no_alias_rec x1 x2)))) :named sm.axiom.$smtx_type_no_alias_rec))
+
 ; fwd-decl: $smtx_type_wf_rec
 (declare-fun $smtx_type_wf_rec (tsm.Type tsm.Type) Bool)
 
@@ -550,13 +579,13 @@
   (ite ((_ is tsm.TypeRef) x2)
     false
   (ite ((_ is tsm.Seq) x2)
-    (and (inhabited_type (tsm.Seq.arg1 x2)) ($smtx_type_wf_rec (tsm.Seq.arg1 x2) (tsm.Seq.arg1 x2)))
+    (and (and (inhabited_type (tsm.Seq.arg1 x2)) ($smtx_type_wf_rec (tsm.Seq.arg1 x2) (tsm.Seq.arg1 x2))) ($smtx_type_no_alias_rec reflist_nil (tsm.Seq.arg1 x2)))
   (ite ((_ is tsm.Map) x2)
-    (and (inhabited_type (tsm.Map.arg1 x2)) (and ($smtx_type_wf_rec (tsm.Map.arg1 x2) (tsm.Map.arg1 x2)) (and (inhabited_type (tsm.Map.arg2 x2)) ($smtx_type_wf_rec (tsm.Map.arg2 x2) (tsm.Map.arg2 x2)))))
+    (and (and (and (inhabited_type (tsm.Map.arg1 x2)) ($smtx_type_wf_rec (tsm.Map.arg1 x2) (tsm.Map.arg1 x2))) ($smtx_type_no_alias_rec reflist_nil (tsm.Map.arg1 x2))) (and (and (inhabited_type (tsm.Map.arg2 x2)) ($smtx_type_wf_rec (tsm.Map.arg2 x2) (tsm.Map.arg2 x2))) ($smtx_type_no_alias_rec reflist_nil (tsm.Map.arg2 x2))))
   (ite ((_ is tsm.FunType) x2)
     false
   (ite ((_ is tsm.Set) x2)
-    (and (inhabited_type (tsm.Set.arg1 x2)) ($smtx_type_wf_rec (tsm.Set.arg1 x2) (tsm.Set.arg1 x2)))
+    (and (and (inhabited_type (tsm.Set.arg1 x2)) ($smtx_type_wf_rec (tsm.Set.arg1 x2) (tsm.Set.arg1 x2))) ($smtx_type_no_alias_rec reflist_nil (tsm.Set.arg1 x2)))
   (ite ((_ is tsm.DtcAppType) x2)
     false
   (ite (= x2 tsm.None)
@@ -568,7 +597,7 @@
 
 ; program: $smtx_type_wf_component
 (define-fun $smtx_type_wf_component ((x1 tsm.Type)) Bool
-    (and (inhabited_type x1) ($smtx_type_wf_rec x1 x1))
+    (and (and (inhabited_type x1) ($smtx_type_wf_rec x1 x1)) ($smtx_type_no_alias_rec reflist_nil x1))
 )
 
 ; program: $smtx_type_wf
