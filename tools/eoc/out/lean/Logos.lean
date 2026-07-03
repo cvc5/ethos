@@ -106,7 +106,7 @@ def __eo_eq : Term -> Term -> Term
 
 def __eo_type_lift (s : native_String) (d : Datatype) : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | (Term.DatatypeType s2 d2) => (native_ite (native_teq (Term.DatatypeType s d) (Term.DatatypeType s2 d2)) (Term.DatatypeTypeRef s) (Term.DatatypeType s2 (__eo_dt_lift s d d2)))
+  | (Term.DatatypeType s2 d2) => (native_ite (native_streq s s2) (Term.DatatypeTypeRef s) (Term.DatatypeType s2 (__eo_dt_lift s d d2)))
   | T => T
 
 

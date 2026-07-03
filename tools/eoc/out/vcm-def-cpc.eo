@@ -1140,7 +1140,7 @@
   :signature ($native_String $eo_Datatype Type) Type
   (
   (($eo_type_lift s d ($eot_DatatypeType s2 d2))
-    ($native_ite ($native_teq ($eot_DatatypeType s d) ($eot_DatatypeType s2 d2))
+    ($native_ite ($native_str_= s s2)
       ($eot_DatatypeTypeRef s)
       ($eot_DatatypeType s2 ($eo_dt_lift s d d2))))
   (($eo_type_lift s d T) T)
@@ -2454,7 +2454,7 @@
   :signature ($native_String $smt_Datatype $smt_Type) $smt_Type
   (
   (($smtx_type_lift s d ($tsm_Datatype s2 d2))
-    ($native_ite ($native_Teq ($tsm_Datatype s d) ($tsm_Datatype s2 d2))
+    ($native_ite ($native_str_= s s2)
       ($tsm_TypeRef s)
       ($tsm_Datatype s2 ($smtx_dt_lift s d d2))))
   (($smtx_type_lift s d T) T)

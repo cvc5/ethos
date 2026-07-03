@@ -587,7 +587,7 @@ def __vsm_apply_arg_nth : SmtValue -> native_Nat -> native_Nat -> SmtValue
 
 
 def __smtx_type_lift (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) => (native_ite (native_Teq (SmtType.Datatype s d) (SmtType.Datatype s2 d2)) (SmtType.TypeRef s) (SmtType.Datatype s2 (__smtx_dt_lift s d d2)))
+  | (SmtType.Datatype s2 d2) => (native_ite (native_streq s s2) (SmtType.TypeRef s) (SmtType.Datatype s2 (__smtx_dt_lift s d d2)))
   | T => T
 
 

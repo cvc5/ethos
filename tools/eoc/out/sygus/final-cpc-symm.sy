@@ -467,7 +467,7 @@
 ; program: $smtx_type_lift
 (define-fun $smtx_type_lift ((x1 String) (x2 dt.Datatype) (x3 tsm.Type)) tsm.Type
   (ite ((_ is tsm.Datatype) x3)
-    (ite (Teq (tsm.Datatype x1 x2) (tsm.Datatype (tsm.Datatype.arg1 x3) (tsm.Datatype.arg2 x3))) (tsm.TypeRef x1) (tsm.Datatype (tsm.Datatype.arg1 x3) ($smtx_dt_lift x1 x2 (tsm.Datatype.arg2 x3))))
+    (ite (streq x1 (tsm.Datatype.arg1 x3)) (tsm.TypeRef x1) (tsm.Datatype (tsm.Datatype.arg1 x3) ($smtx_dt_lift x1 x2 (tsm.Datatype.arg2 x3))))
     x3
 ))
 
