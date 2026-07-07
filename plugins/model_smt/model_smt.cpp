@@ -451,12 +451,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // reduce
   addTermReduceSym(
       "str.suffixof",
-      {kString, kString},
+      {d_kSeq, d_kSeq},
       kBool,
       "(= x1 (str.substr x2 (- (str.len x2) (str.len x1)) (str.len x1)))");
   // addConstFoldSym("str.prefixof", {kString, kString}, kBool);
   addTermReduceSym("str.prefixof",
-                   {kString, kString},
+                   {d_kSeq, d_kSeq},
                    kBool,
                    "(= x1 (str.substr x2 0 (str.len x1)))");
   // addConstFoldSym("str.<=", {kString, kString}, kBool);
