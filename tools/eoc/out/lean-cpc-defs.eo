@@ -2561,47 +2561,120 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Well-foundedness for types
 
-(declare-const $smt_RefList Type)
-(define $native_reflist_nil () ($native_apply_0 "reflist_nil"))
 
-(program $smtx_type_no_alias_rec () :signature ($smt_RefList $smt_Type) $native_Bool)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Name consistency for datatypes
 
-(program $smtx_dt_cons_no_alias_rec
-  ((T $smt_Type) (s $native_String) (c $smt_DatatypeCons) (refs $smt_RefList))
-  :signature ($smt_RefList $smt_DatatypeCons) $native_Bool
+; The following programs check that a type is "name consistent", meaning that
+; whenever a datatype binder name appears, it always binds the same datatype
+; body. This ensures that ($tsm_Datatype s d) uniquely determines d for a given
+; name s within a type component.
+
+; ($smtx_type_name_agrees s d T)
+; Checks that every ($tsm_Datatype s2 d2) occurring in T that shares the name s
+; also has the same body as d. We compare the lifted datatype types
+; ($tsm_Datatype s d) and ($tsm_Datatype s2 d2) using type equality, rather
+; than comparing datatype bodies directly.
+; forward declaration
+(program $smtx_type_name_agrees ()
+  :signature ($native_String $smt_Datatype $smt_Type) $native_Bool)
+
+(program $smtx_dt_cons_name_agrees
+  ((s $native_String) (d $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons))
+  :signature ($native_String $smt_Datatype $smt_DatatypeCons) $native_Bool
   (
-  (($smtx_dt_cons_no_alias_rec refs ($dtc_cons T c))
-    ($native_ite ($smtx_type_no_alias_rec refs T)
-      ($smtx_dt_cons_no_alias_rec refs c)
+  (($smtx_dt_cons_name_agrees s d ($dtc_cons T c))
+    ($native_ite ($smtx_type_name_agrees s d T)
+      ($smtx_dt_cons_name_agrees s d c)
       $native_false))
-  (($smtx_dt_cons_no_alias_rec refs $dtc_unit) $native_true)
+  (($smtx_dt_cons_name_agrees s d $dtc_unit) $native_true)
   )
 )
 
-(program $smtx_dt_no_alias_rec
-  ((d $smt_Datatype) (c $smt_DatatypeCons) (refs $smt_RefList))
-  :signature ($smt_RefList $smt_Datatype) $native_Bool
+(program $smtx_dt_name_agrees
+  ((s $native_String) (d $smt_Datatype) (c $smt_DatatypeCons) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_Datatype) $native_Bool
   (
-  (($smtx_dt_no_alias_rec refs $dt_null)              $native_true)
-  (($smtx_dt_no_alias_rec refs ($dt_sum c d))
-    ($native_ite ($smtx_dt_cons_no_alias_rec refs c) ($smtx_dt_no_alias_rec refs d) $native_false))
+  (($smtx_dt_name_agrees s d ($dt_sum c d2))
+    ($native_ite ($smtx_dt_cons_name_agrees s d c)
+      ($smtx_dt_name_agrees s d d2)
+      $native_false))
+  (($smtx_dt_name_agrees s d $dt_null) $native_true)
   )
 )
 
-(program $smtx_type_no_alias_rec
-  ((T $smt_Type) (s $native_String) (d $smt_Datatype) (refs $smt_RefList)
-   (x1 Type) (x2 Type))
-  :signature ($smt_RefList $smt_Type) $native_Bool
+(program $smtx_type_name_agrees
+  ((s $native_String) (d $smt_Datatype) (T $smt_Type)
+   (s2 $native_String) (d2 $smt_Datatype))
+  :signature ($native_String $smt_Datatype $smt_Type) $native_Bool
   (
-  (($smtx_type_no_alias_rec refs ($tsm_Datatype s d))
-    ($native_ite ($native_apply_2 "reflist_contains" refs s)
-      $native_false
-      ($smtx_dt_no_alias_rec ($native_apply_2 "reflist_insert" refs s) d)))
-  (($smtx_type_no_alias_rec T refs) $native_true)
+  (($smtx_type_name_agrees s d ($tsm_Datatype s2 d2))
+    ($native_ite ($native_str_= s s2)
+      ; same name: the bodies must agree, checked by lifting to the datatype
+      ; type and using type equality
+      ($native_ite ($native_Teq ($tsm_Datatype s d) ($tsm_Datatype s2 d2))
+        ($smtx_dt_name_agrees s d d2)
+        $native_false)
+      ($smtx_dt_name_agrees s d d2)))
+  (($smtx_type_name_agrees s d T) $native_true)
   )
 )
-(define $smtx_type_no_alias ((T $smt_Type))
-  ($smtx_type_no_alias_rec $native_reflist_nil T))
+
+; ($smtx_type_names_consistent_rec root T)
+; Recursively checks that for every datatype ($tsm_Datatype s2 d2) reachable in
+; T, the name s2 agrees with body d2 throughout root.
+; forward declaration
+(program $smtx_type_names_consistent_rec ()
+  :signature ($smt_Datatype $smt_Type) $native_Bool)
+
+(program $smtx_dt_cons_names_consistent_rec
+  ((root $smt_Datatype) (T $smt_Type) (c $smt_DatatypeCons))
+  :signature ($smt_Datatype $smt_DatatypeCons) $native_Bool
+  (
+  (($smtx_dt_cons_names_consistent_rec root ($dtc_cons T c))
+    ($native_ite ($smtx_type_names_consistent_rec root T)
+      ($smtx_dt_cons_names_consistent_rec root c)
+      $native_false))
+  (($smtx_dt_cons_names_consistent_rec root $dtc_unit) $native_true)
+  )
+)
+
+(program $smtx_dt_names_consistent_rec
+  ((root $smt_Datatype) (c $smt_DatatypeCons) (d2 $smt_Datatype))
+  :signature ($smt_Datatype $smt_Datatype) $native_Bool
+  (
+  (($smtx_dt_names_consistent_rec root ($dt_sum c d2))
+    ($native_ite ($smtx_dt_cons_names_consistent_rec root c)
+      ($smtx_dt_names_consistent_rec root d2)
+      $native_false))
+  (($smtx_dt_names_consistent_rec root $dt_null) $native_true)
+  )
+)
+
+(program $smtx_type_names_consistent_rec
+  ((root $smt_Datatype) (T $smt_Type) (s2 $native_String) (d2 $smt_Datatype))
+  :signature ($smt_Datatype $smt_Type) $native_Bool
+  (
+  (($smtx_type_names_consistent_rec root ($tsm_Datatype s2 d2))
+    ($native_ite ($smtx_dt_name_agrees s2 d2 root)
+      ($smtx_dt_names_consistent_rec root d2)
+      $native_false))
+  (($smtx_type_names_consistent_rec root T) $native_true)
+  )
+)
+
+; ($smtx_type_names_consistent T)
+; Top-level name consistency check for a type.
+(program $smtx_type_names_consistent
+  ((T $smt_Type) (s $native_String) (d $smt_Datatype))
+  :signature ($smt_Type) $native_Bool
+  (
+  (($smtx_type_names_consistent ($tsm_Datatype s d))
+    ($native_ite ($smtx_dt_name_agrees s d d)
+      ($smtx_dt_names_consistent_rec d d)
+      $native_false))
+  (($smtx_type_names_consistent T) $native_true)
+  )
+)
 
 (program $smtx_type_wf_rec () :signature ($smt_Type $smt_Type) $native_Bool)
 
@@ -2634,7 +2707,7 @@
 )
 
 (define $smtx_type_wf_component_rec ((T $smt_Type))
-  ($native_and ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T T)) ($smtx_type_no_alias T)))
+  ($native_and ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T T)) ($smtx_type_names_consistent T)))
   
 (program $smtx_type_wf_rec
   ((T $smt_Type) (U Type) (sF $native_String) (dF $smt_Datatype)

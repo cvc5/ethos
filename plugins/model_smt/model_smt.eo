@@ -572,47 +572,6 @@ $SMT_TYPE_CONSTRUCTORS$
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Well-foundedness for types
 
-(declare-const $smt_RefList Type)
-(define $native_reflist_nil () ($native_apply_0 "reflist_nil"))
-
-(program $smtx_type_no_alias_rec () :signature ($smt_RefList $smt_Type) $native_Bool)
-
-(program $smtx_dt_cons_no_alias_rec
-  ((T $smt_Type) (s $native_String) (c $smt_DatatypeCons) (refs $smt_RefList))
-  :signature ($smt_RefList $smt_DatatypeCons) $native_Bool
-  (
-  (($smtx_dt_cons_no_alias_rec refs ($dtc_cons T c))
-    ($native_ite ($smtx_type_no_alias_rec refs T)
-      ($smtx_dt_cons_no_alias_rec refs c)
-      $native_false))
-  (($smtx_dt_cons_no_alias_rec refs $dtc_unit) $native_true)
-  )
-)
-
-(program $smtx_dt_no_alias_rec
-  ((d $smt_Datatype) (c $smt_DatatypeCons) (refs $smt_RefList))
-  :signature ($smt_RefList $smt_Datatype) $native_Bool
-  (
-  (($smtx_dt_no_alias_rec refs $dt_null)              $native_true)
-  (($smtx_dt_no_alias_rec refs ($dt_sum c d))
-    ($native_ite ($smtx_dt_cons_no_alias_rec refs c) ($smtx_dt_no_alias_rec refs d) $native_false))
-  )
-)
-
-(program $smtx_type_no_alias_rec
-  ((T $smt_Type) (s $native_String) (d $smt_Datatype) (refs $smt_RefList)
-   (x1 Type) (x2 Type))
-  :signature ($smt_RefList $smt_Type) $native_Bool
-  (
-  (($smtx_type_no_alias_rec refs ($tsm_Datatype s d))
-    ($native_ite ($native_apply_2 "reflist_contains" refs s)
-      $native_false
-      ($smtx_dt_no_alias_rec ($native_apply_2 "reflist_insert" refs s) d)))
-  (($smtx_type_no_alias_rec T refs) $native_true)
-  )
-)
-(define $smtx_type_no_alias ((T $smt_Type))
-  ($smtx_type_no_alias_rec $native_reflist_nil T))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Name consistency for datatypes
 
