@@ -903,14 +903,22 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      smtToSmtEmbed(ssWitnessStringLength.str(), true))));
   d_eoToSmtGuardClosed["@witness_string_length"].push_back(1);
   d_eoToSmtGuardClosed["@witness_string_length"].push_back(2);
-  // curried choice as an auxiliary program
+  // Skolemization of the n^th variable in a chain of existentials, expressed
+  // as a nested combination of bind and choice. For index 0, this is simply
+  // the choice for the outermost existential. For a successor index, we bind
+  // the outer variable to its choice and recurse into the body for the
+  // remaining variables.
   d_auxDef["@quantifiers_skolemize"] = R"(
 (program $eo_to_smt_quantifiers_skolemize
-  ((s $native_String) (T $smt_Type) (F $smt_Term) (n $native_Nat) (t $smt_Term))
-  :signature ($smt_Term $native_Nat) $smt_Term
+  ((s $native_String) (T $eo_Term) (vs $eo_List) (F $smt_Term) (G $smt_Term) (n $native_Nat) (t $smt_Term))
+  :signature ($eo_List $smt_Term $native_Nat) $smt_Term
   (
-  (($eo_to_smt_quantifiers_skolemize ($sm_exists s T F) n) ($sm_choice_nth s T F n))
-  (($eo_to_smt_quantifiers_skolemize F t) $sm_none)
+  (($eo_to_smt_quantifiers_skolemize ($eo_List_cons ($eot_Var ($eot_string s) T) vs) G $native_n_zero)
+    ($sm_choice s ($eo_to_smt_type T) ($eo_to_smt_exists vs G)))
+  (($eo_to_smt_quantifiers_skolemize ($eo_List_cons ($eot_Var ($eot_string s) T) vs) G ($native_n_succ n))
+    ($eo_to_smt_quantifiers_skolemize vs
+      ($sm_bind s ($eo_to_smt_type T) ($sm_choice s ($eo_to_smt_type T) ($eo_to_smt_exists vs G)) G) n))
+  (($eo_to_smt_quantifiers_skolemize vs G t) $sm_none)
   )
 ))";
   // note that negative indices are silently treated as 0 here
@@ -919,9 +927,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "(@quantifiers_skolemize (forall x1 x2) x3)",
                smtGuard("($eo_to_smt_nat_is_valid x3)",
   //                      "($eo_to_smt_guard_closed (forall x1 x2) "
-                        "($eo_to_smt_quantifiers_skolemize ($eo_to_smt_exists "
-                        "x1 ($sm_not "
-                        "($eo_to_smt x2))) "
+                        "($eo_to_smt_quantifiers_skolemize x1 ($sm_not ($eo_to_smt x2))"
                         "($eo_to_smt_nat x3))"));
   d_symIgnore["@quantifiers_skolemize"] = true;
 

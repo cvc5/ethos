@@ -243,8 +243,10 @@
   (sm.exists (sm.exists.arg1 String) (sm.exists.arg2 tsm.Type) (sm.exists.arg3 sm.Term))
   ; smt-cons: forall
   (sm.forall (sm.forall.arg1 String) (sm.forall.arg2 tsm.Type) (sm.forall.arg3 sm.Term))
-  ; smt-cons: choice_nth
-  (sm.choice_nth (sm.choice_nth.arg1 String) (sm.choice_nth.arg2 tsm.Type) (sm.choice_nth.arg3 sm.Term) (sm.choice_nth.arg4 Nat))
+  ; smt-cons: choice
+  (sm.choice (sm.choice.arg1 String) (sm.choice.arg2 tsm.Type) (sm.choice.arg3 sm.Term))
+  ; smt-cons: bind
+  (sm.bind (sm.bind.arg1 String) (sm.bind.arg2 tsm.Type) (sm.bind.arg3 sm.Term) (sm.bind.arg4 sm.Term))
   ; smt-cons: map_diff
   (sm.map_diff (sm.map_diff.arg1 sm.Term) (sm.map_diff.arg2 sm.Term))
   ; smt-cons: seq_diff
@@ -387,7 +389,6 @@
 (declare-fun eval_texists (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tforall (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_tchoice (smm.SmtModel String tsm.Type sm.Term) vsm.Value)
-(declare-fun eval_tchoice_nth (smm.SmtModel String tsm.Type sm.Term Nat) vsm.Value)
 (declare-fun inhabited_type (tsm.Type) Bool)
 (declare-fun eval_map_diff_msm (msm.Map msm.Map) vsm.Value)
 (declare-fun eval_seq_diff_ssm (ssm.Seq ssm.Seq) vsm.Value)
@@ -860,8 +861,10 @@
     (eval_texists x1 (sm.exists.arg1 x2) (sm.exists.arg2 x2) (sm.exists.arg3 x2))
   (ite ((_ is sm.forall) x2)
     (eval_tforall x1 (sm.forall.arg1 x2) (sm.forall.arg2 x2) (sm.forall.arg3 x2))
-  (ite ((_ is sm.choice_nth) x2)
-    (eval_tchoice_nth x1 (sm.choice_nth.arg1 x2) (sm.choice_nth.arg2 x2) (sm.choice_nth.arg3 x2) (sm.choice_nth.arg4 x2))
+  (ite ((_ is sm.choice) x2)
+    (eval_tchoice x1 (sm.choice.arg1 x2) (sm.choice.arg2 x2) (sm.choice.arg3 x2))
+  (ite ((_ is sm.bind) x2)
+    ($smtx_model_eval (model_push x1 (sm.bind.arg1 x2) (sm.bind.arg2 x2) ($smtx_model_eval x1 (sm.bind.arg3 x2))) (sm.bind.arg4 x2))
   (ite ((_ is sm.map_diff) x2)
     ($smtx_model_eval_map_diff ($smtx_model_eval x1 (sm.map_diff.arg1 x2)) ($smtx_model_eval x1 (sm.map_diff.arg2 x2)))
   (ite ((_ is sm.seq_diff) x2)
@@ -879,7 +882,7 @@
   (ite ((_ is sm.UConst) x2)
     (model_lookup x1 (sm.UConst.arg1 x2) (sm.UConst.arg2 x2))
     vsm.NotValue
-))))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
+)))))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_typeof_ite
 (define-fun $smtx_typeof_ite ((x1 tsm.Type) (x2 tsm.Type) (x3 tsm.Type)) tsm.Type
@@ -901,17 +904,6 @@
     ($smtx_typeof_guard (tsm.DtcAppType.arg1 x1) (ite (Teq (tsm.DtcAppType.arg1 x1) x2) (tsm.DtcAppType.arg2 x1) tsm.None))
     tsm.None
 )))
-
-; program: $smtx_typeof_choice_nth
-(declare-fun $smtx_typeof_choice_nth (tsm.Type sm.Term Nat) tsm.Type)
-(assert (! (forall ((x1 tsm.Type) (x2 sm.Term) (x3 Nat))
-  (! (= ($smtx_typeof_choice_nth x1 x2 x3)
-  (ite (= x3 nat.zero)
-    (ite (Teq ($smtx_typeof x2) tsm.Bool) ($smtx_typeof_guard_wf x1 x1) tsm.None)
-  (ite (and ((_ is sm.exists) x2) ((_ is nat.succ) x3))
-    ($smtx_typeof_guard_wf x1 ($smtx_typeof_choice_nth (sm.exists.arg2 x2) (sm.exists.arg3 x2) (nat.succ.arg1 x3)))
-    tsm.None
-))) :pattern (($smtx_typeof_choice_nth x1 x2 x3)))) :named sm.axiom.$smtx_typeof_choice_nth))
 
 ; program: $smtx_typeof_map_diff
 (define-fun $smtx_typeof_map_diff ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
@@ -954,8 +946,10 @@
     (ite (Teq ($smtx_typeof (sm.exists.arg3 x1)) tsm.Bool) ($smtx_typeof_guard_wf (sm.exists.arg2 x1) tsm.Bool) tsm.None)
   (ite ((_ is sm.forall) x1)
     (ite (Teq ($smtx_typeof (sm.forall.arg3 x1)) tsm.Bool) ($smtx_typeof_guard_wf (sm.forall.arg2 x1) tsm.Bool) tsm.None)
-  (ite ((_ is sm.choice_nth) x1)
-    ($smtx_typeof_choice_nth (sm.choice_nth.arg2 x1) (sm.choice_nth.arg3 x1) (sm.choice_nth.arg4 x1))
+  (ite ((_ is sm.choice) x1)
+    (ite (Teq ($smtx_typeof (sm.choice.arg3 x1)) tsm.Bool) ($smtx_typeof_guard_wf (sm.choice.arg2 x1) (sm.choice.arg2 x1)) tsm.None)
+  (ite ((_ is sm.bind) x1)
+    (ite (Teq ($smtx_typeof (sm.bind.arg3 x1)) (sm.bind.arg2 x1)) ($smtx_typeof_guard_wf (sm.bind.arg2 x1) ($smtx_typeof (sm.bind.arg4 x1))) tsm.None)
   (ite ((_ is sm.map_diff) x1)
     ($smtx_typeof_map_diff ($smtx_typeof (sm.map_diff.arg1 x1)) ($smtx_typeof (sm.map_diff.arg2 x1)))
   (ite ((_ is sm.seq_diff) x1)
@@ -973,7 +967,7 @@
   (ite ((_ is sm.UConst) x1)
     ($smtx_typeof_guard_wf (sm.UConst.arg2 x1) (sm.UConst.arg2 x1))
     tsm.None
-))))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
+)))))))))))))))))))))) :pattern (($smtx_typeof x1)))) :named sm.axiom.$smtx_typeof))
 
 ; fwd-decl: $eo_to_smt
 (declare-fun $eo_to_smt (eo.Term) sm.Term)
@@ -1154,18 +1148,6 @@
          (vsm.Boolean true)))
   :pattern ((eval_tchoice M s T F))))
   :named smtx.tchoice.def))
-
-(assert (! (forall ((M smm.SmtModel) (s String) (T tsm.Type) (F sm.Term) (n Nat))
-  (! (= (eval_tchoice_nth M s T F n)
-       (ite ((_ is nat.succ) n)
-         (ite ((_ is sm.exists) F)
-           (eval_tchoice_nth 
-            (model_push M s T (eval_tchoice M s T F))
-            (sm.exists.arg1 F) (sm.exists.arg2 F) (sm.exists.arg3 F) (nat.succ.arg1 n))
-           vsm.NotValue)
-         (eval_tchoice M s T F)))
-  :pattern ((eval_tchoice_nth M s T F n))))
-  :named smtx.tchoice_nth.def))
 
 ; typeof choice, must be an inhabitant, else it is ill-typed.
 (assert (! (forall ((T tsm.Type))

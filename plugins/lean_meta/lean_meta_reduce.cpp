@@ -84,6 +84,14 @@ decreasing_by
 decreasing_by
   all_goals simp_wf
   all_goals omega)";
+    d_terminatingBy["$str_re_includes_lhs_union"] = terminate2;
+  std::string terminateM = R"(termination_by structural t => t
+
+private theorem __smtx_model_eval_eqns_cache (M : SmtModel) (b : native_Bool) :
+    __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
+  unfold __smtx_model_eval
+  rfl)";
+  d_terminatingBy["$smtx_model_eval"] = terminateM;
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}

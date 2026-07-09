@@ -114,14 +114,24 @@ $EO_DESUGAR_AUX$
 (define $sm_forall ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.forall s T F))
 
 ; choice
-(declare-parameterized-const $emb_sm.choice_nth
-  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque) (n $native_Nat :opaque))
+; A Hilbert choice binder: choice s:T. F denotes a value of type T that makes
+; F true, if such a value exists.
+(declare-parameterized-const $emb_sm.choice
+  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque))
   $smt_Term)
-(define $sm_choice_nth
-  ((s $native_String) (T $smt_Type) (F $smt_Term) (n $native_Nat))
-  ($emb_sm.choice_nth s T F n))
 (define $sm_choice ((s $native_String) (T $smt_Type) (F $smt_Term))
-  ($sm_choice_nth s T F $native_n_zero))
+  ($emb_sm.choice s T F))
+
+; bind
+; ($sm_bind s T t1 t2) binds the variable s of type T to the result of
+; evaluating t1, then evaluates t2 under that binding. Together with choice,
+; this is used to express (skolemized) nested quantifiers.
+(declare-parameterized-const $emb_sm.bind
+  ((s $native_String :opaque) (T $smt_Type :opaque)
+   (t1 $smt_Term :opaque) (t2 $smt_Term :opaque))
+  $smt_Term)
+(define $sm_bind ((s $native_String) (T $smt_Type) (t1 $smt_Term) (t2 $smt_Term))
+  ($emb_sm.bind s T t1 t2))
   
 ; map difference
 (declare-parameterized-const $emb_sm.map_diff
@@ -1301,8 +1311,12 @@ $SMT_EVAL_CASES$
     ($native_apply_4 "eval_texists" M s T x1))
   (($smtx_model_eval M ($sm_forall s T x1))
     ($native_apply_4 "eval_tforall" M s T x1))
-  (($smtx_model_eval M ($sm_choice_nth s T x1 i))
-    ($native_apply_5 "eval_tchoice_nth" M s T x1 i))
+  (($smtx_model_eval M ($sm_choice s T x1))
+    ($native_apply_4 "eval_tchoice" M s T x1))
+  ; bind evaluates its body in the model extended with s bound to the value of
+  ; the first term.
+  (($smtx_model_eval M ($sm_bind s T x1 x2))
+    ($smtx_model_eval ($native_apply_4 "model_push" M s T ($smtx_model_eval M x1)) x2))
   (($smtx_model_eval M ($sm_map_diff x1 x2))
     ($smtx_model_eval_map_diff ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
   (($smtx_model_eval M ($sm_seq_diff x1 x2))
@@ -1351,18 +1365,6 @@ $SMT_EVAL_CASES$
   (($smtx_typeof_apply ($tsm_DtcAppType T U) V)
     ($smtx_typeof_guard T ($native_ite ($native_Teq T V) U $tsm_none)))
   (($smtx_typeof_apply T U)               $tsm_none)
-  )
-)
-
-(program $smtx_typeof_choice_nth
-  ((T $smt_Type) (n $native_Nat) (s $native_String) (U $smt_Type) (F $smt_Term))
-  :signature ($smt_Type $smt_Term $native_Nat) $smt_Type
-  (
-  (($smtx_typeof_choice_nth T F $native_n_zero)
-    ($native_ite ($native_Teq ($smtx_typeof F) $tsm_Bool) ($smtx_typeof_guard_wf T T) $tsm_none))
-  (($smtx_typeof_choice_nth T ($sm_exists s U F) ($native_n_succ n))
-    ($smtx_typeof_guard_wf T ($smtx_typeof_choice_nth U F n)))
-  (($smtx_typeof_choice_nth T F n) $tsm_none)
   )
 )
 
@@ -1547,8 +1549,13 @@ $SMT_TYPEOF_CASES$
     ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T $tsm_Bool) $tsm_none))
   (($smtx_typeof ($sm_forall s T x1))
     ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T $tsm_Bool) $tsm_none))
-  (($smtx_typeof ($sm_choice_nth s T x1 n))
-    ($smtx_typeof_choice_nth T x1 n))
+  ; choice s:T. F has type T when F is Boolean and T is well-formed/inhabited.
+  (($smtx_typeof ($sm_choice s T x1))
+    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T T) $tsm_none))
+  ; bind s:T := t1 in t2 has the type of t2, provided t1 has type T (so that
+  ; the binding is well-typed) and T is well-formed/inhabited.
+  (($smtx_typeof ($sm_bind s T x1 x2))
+    ($native_ite ($native_Teq ($smtx_typeof x1) T) ($smtx_typeof_guard_wf T ($smtx_typeof x2)) $tsm_none))
   (($smtx_typeof ($sm_map_diff x1 x2))
     ($smtx_typeof_map_diff ($smtx_typeof x1) ($smtx_typeof x2)))
   (($smtx_typeof ($sm_seq_diff x1 x2))
@@ -1586,7 +1593,7 @@ $SMT_TYPEOF_CASES$
 ; forward declarations
 (program $eo_to_smt ((T Type)) :signature (T) $smt_Term)
 (program $eo_to_smt_type () :signature (Type) $smt_Type)
-
+(program $eo_to_smt_exists () :signature ($eo_List $smt_Term) $smt_Term)
 
 ; utilities
 ;(program $eo_to_smt_guard_closed ((t $eo_Term) (s $smt_Term))
@@ -1815,7 +1822,7 @@ $EO_TO_SMT_TYPE_CASES$
 )
 
 (program $eo_to_smt_exists
-  ((s $native_String) (T $eo_Term) (vs $eo_List :list) (F $eo_Term))
+  ((s $native_String) (T $eo_Term) (vs $eo_List) (F $eo_Term))
   :signature ($eo_List $smt_Term) $smt_Term
   (
   (($eo_to_smt_exists $eo_List_nil F) F)
