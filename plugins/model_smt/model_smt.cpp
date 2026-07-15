@@ -733,8 +733,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       ssTermRet
           << " (ite (and $msb_s (not $msb_t)) (bvneg (bvurem (bvneg x1) x2))";
       ssTermRet
-          << " (ite (and (not $msb_s) $msb_t) (bvneg (bvurem x1 (bvneg x2)))";
-      ssTermRet << " (bvurem (bvneg x1) (bvneg x2)))))";
+          << " (ite (and (not $msb_s) $msb_t) (bvurem x1 (bvneg x2))";
+      ssTermRet << " (bvneg (bvurem (bvneg x1) (bvneg x2))))))";
     }
     else
     {
