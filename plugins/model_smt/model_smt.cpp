@@ -1090,13 +1090,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
           "(bvcomp ($eo_to_smt x1) (bvnot ($sm_binary ($smtx_bv_sizeof_type "
           "($smtx_typeof ($eo_to_smt x1))) $native_z_zero)))",
           true));
-  // (@bv value width) is the bitvector of the given width whose value is
-  // (value mod 2^width). This is exactly (int_to_bv width value), so we reuse
-  // the int_to_bv constructor rather than introducing a dedicated one. Note
-  // int_to_bv takes the width first and the value second.
-  addEunoiaReduceSym("@bv",
-                     {d_kIntQuote, d_kIntQuote},
-                     "($sm_int_to_bv ($eo_to_smt x2) ($eo_to_smt x1))");
   addEunoiaReduceSym(
       "@bit",
       {kInt, kBitVec},
