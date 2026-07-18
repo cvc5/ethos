@@ -139,8 +139,10 @@ eoc_detect_generated_lean_calc() {
     return 1
   fi
   import_line="$(grep -m1 '^import ' "$logos_file" || true)"
-  if [[ "$import_line" =~ ^import[[:space:]]+([^.]+)\. ]]; then
-    printf '%s\n' "${BASH_REMATCH[1]}"
+  # Allow an optional `all` modifier (Lean's `import all Foo`) before the module
+  # name so the calc name is detected without swallowing the modifier.
+  if [[ "$import_line" =~ ^import[[:space:]]+(all[[:space:]]+)?([^.]+)\. ]]; then
+    printf '%s\n' "${BASH_REMATCH[2]}"
     return 0
   fi
   return 1
@@ -156,7 +158,9 @@ eoc_rewrite_lean_calc_imports() {
     return
   fi
   while IFS= read -r -d '' file; do
-    sed -i "s/import ${src_calc}\\./import ${dst_calc}\\./g" "$file"
+    # Preserve an optional `all` modifier (captured as \1) when rewriting the
+    # calc namespace so `import all ${src_calc}.` stays `import all ${dst_calc}.`.
+    sed -i "s/import \\(all \\)\\{0,1\\}${src_calc}\\./import \\1${dst_calc}\\./g" "$file"
   done < <(find "$dest_dir" -type f -name '*.lean' -print0)
 }
 
