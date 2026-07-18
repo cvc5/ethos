@@ -376,6 +376,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    "($tsm_FunType $tsm_Int $tsm_Int)")
         << " e1) (mod_total e1 e2))";
   addRecReduceSym("mod", {kInt, kInt}, kInt, smtToSmtEmbed(ssMod.str()));
+  /*
   std::stringstream ssZExp;
   ssZExp
       << "(ite (>= e2 0) (**_total e1 e2) (ite (= e1 0) (apply M "
@@ -385,8 +386,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                  "($tsm_FunType $tsm_Int $tsm_Int)")
       << " 1) (div_total 1 (**_total e1 (- 0 "
          "e2)))))";
-  addRecReduceSym("**", {kInt, kInt}, kInt, smtToSmtEmbed(ssZExp.str()));
-  addConstFoldSym("**_total", {kInt, kInt}, kInt);
+      */
+  //addRecReduceSym("**", {kInt, kInt}, kInt, smtToSmtEmbed(ssZExp.str()));
+  //addConstFoldSym("**_total", {kInt, kInt}, kInt);
   addConstFoldSym("to_int", {kReal}, kInt);
   addConstFoldSym("to_real", {kT}, kReal);
   d_typeFullCase["to_real"] =
@@ -577,7 +579,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   std::string ssExtractType = smtGuardType(
       "($native_z_<= $native_z_zero x2)",
                    smtGuardType("($native_z_< x1 ($native_n_to_z x3))",
-                   smtGuardType("($native_z_<= $native_z_zero "
+                   smtGuardType("($native_z_< $native_z_zero "
                                 "($native_z_- ($native_z_inc x1) x2))",
                                 "($tsm_BitVec ($native_z_to_n "
                                 "($native_z_- ($native_z_inc x1) x2)))")));
@@ -821,7 +823,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // addEunoiaReduceSym(
   //    "lambda", {kT, kT}, "($eo_to_smt_lambda x1 ($eo_to_smt x2))");
   addTermReduceSym("@purify", {kT}, kT, "x1");
-  d_eoToSmtGuardClosed["@purify"].push_back(0);
   d_typeFullCase["@purify"] = "($smtx_typeof x1)";
   // arithmetic
   addConstFoldSym("int.pow2", {kInt}, kInt);
@@ -851,8 +852,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 )
 )";
   addEunoiaReduceSym("@array_deq_diff", {kT, kT}, "($eo_to_smt_array_deq_diff ($eo_to_smt x1) ($smtx_typeof ($eo_to_smt x1)) ($eo_to_smt x2) ($smtx_typeof ($eo_to_smt x2)))");
-  d_eoToSmtGuardClosed["@array_deq_diff"].push_back(0);
-  d_eoToSmtGuardClosed["@array_deq_diff"].push_back(1);
   // strings
   addConstFoldSym("str.update", {d_kSeq, kInt, d_kSeq}, d_kSeq);
   addAuxTypeProgram(
@@ -863,34 +862,29 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.to_lower", {kString}, kString);
   addConstFoldSym("str.to_upper", {kString}, kString);
   std::stringstream ssItosRes;
-  ssItosRes << "(mod ($eo_to_smt x1) (** (numeral " << smtZ(10)
-            << ") ($eo_to_smt x2)))";
+  ssItosRes << "(ite (= ($eo_to_smt x2) 0) 0 ";
+  ssItosRes << "(str.to_int (str.substr (str.from_int ($eo_to_smt x1)) 0 ($eo_to_smt x2))))";
   addEunoiaReduceSym("@strings_itos_result",
                      {kInt, kInt},
                      smtToSmtEmbed(ssItosRes.str(), true));
-  d_eoToSmtGuardClosed["@strings_itos_result"].push_back(0);
   addEunoiaReduceSym(
       "@strings_stoi_result",
       {kString, kInt},
       smtToSmtEmbed(
         "(str.to_int (str.substr ($eo_to_smt x1) 0 ($eo_to_smt x2)))", true));
-  d_eoToSmtGuardClosed["@strings_stoi_result"].push_back(0);
   addEunoiaReduceSym(
       "@strings_stoi_non_digit",
       {kString},
-      smtToSmtEmbed("(str.indexof_re ($eo_to_smt x1) (re.comp (re.range "
+      smtToSmtEmbed("(str.indexof_re ($eo_to_smt x1) (re.inter $sm_re.allchar (re.comp (re.range "
                     "($sm_string $native_str_c0) ($sm_string "
-                    "$native_str_c9))) 0)",
+                    "$native_str_c9)))) 0)",
                     true));
-  d_eoToSmtGuardClosed["@strings_stoi_non_digit"].push_back(0);
   // The difference of two sequences is an index at which they differ, given
   // by the dedicated $sm_seq_diff operator. This avoids introducing a choice
   // (witness) term, as was previously done here.
   addEunoiaReduceSym("@strings_deq_diff",
                      {kT, kT},
                      "($sm_seq_diff ($eo_to_smt x1) ($eo_to_smt x2))");
-  d_eoToSmtGuardClosed["@strings_deq_diff"].push_back(0);
-  d_eoToSmtGuardClosed["@strings_deq_diff"].push_back(1);
   std::stringstream ssWitnessStringLength;
   ssWitnessStringLength << "(eo::define (($T ($eo_to_smt_type x1))) ";
   ssWitnessStringLength << "(eo::define (($i (Var $native_str_vname $T))) ";
@@ -901,8 +895,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      smtGuard("($eo_to_smt_nat_is_valid x2)",
                      smtGuard("($eo_to_smt_nat_is_valid x3)",
                      smtToSmtEmbed(ssWitnessStringLength.str(), true))));
-  d_eoToSmtGuardClosed["@witness_string_length"].push_back(1);
-  d_eoToSmtGuardClosed["@witness_string_length"].push_back(2);
   // Skolemization of the n^th variable in a chain of existentials, expressed
   // as a nested combination of bind and choice. For index 0, this is simply
   // the choice for the outermost existential. For a successor index, we bind
@@ -956,8 +948,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                        "($eo_to_smt_re_unfold_pos_component ($eo_to_smt x1) "
                        "($eo_to_smt x2) ($eo_to_smt_nat x3))",
                                  true)));
-  d_eoToSmtGuardClosed["@re_unfold_pos_component"].push_back(0);
-  d_eoToSmtGuardClosed["@re_unfold_pos_component"].push_back(1);
   // sequences
   // for empty, that the Eunoia uses (Seq T) as an argument, whereas SMT uses T.
   addRecReduceSym("seq.empty", {kType}, kAny, "($smtx_empty_seq x1)");
@@ -1029,8 +1019,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 )
 )";
   addEunoiaReduceSym("@sets_deq_diff", {kAny, kAny}, "($eo_to_smt_sets_deq_diff ($eo_to_smt x1) ($smtx_typeof ($eo_to_smt x1)) ($eo_to_smt x2) ($smtx_typeof ($eo_to_smt x2)))");
-  d_eoToSmtGuardClosed["@sets_deq_diff"].push_back(0);
-  d_eoToSmtGuardClosed["@sets_deq_diff"].push_back(1);
   addEunoiaReduceSym(
       "set.is_empty",
       {kAny},
@@ -1370,7 +1358,6 @@ void ModelSmt::finalizeDecl(const std::string& ename, const Expr& e)
     }
     else
     {
-      ret = guardClosed(name, ret);
       printEvalCallBase(d_eoToSmt, "$eo_to_smt", name, args, ret);
     }
     return;
@@ -1548,7 +1535,6 @@ void ModelSmt::printDecl(const std::string& name,
     eoToSmtRetReqEnd << " $" << prefix << "_none)";
   }
   // guard closed indices
-  eoToSmtRet = guardClosed(name, eoToSmtRet);
   if (ret == Kind::TYPE)
   {
     d_eoToSmtType << "  (($eo_to_smt_type " << eoToSmtPat << ") "
@@ -1710,11 +1696,6 @@ void ModelSmt::printConstFold(const std::string& name,
     {
       ssret << "($native_" << (kas == Kind::NUMERAL ? "z" : "q") << "_"
             << opName.str();
-    }
-    else if (opName.str() == "**_total")
-    {
-      // FIXME: dont special case this
-      ssret << "($native_z_**_total";
     }
     else
     {
@@ -2255,25 +2236,6 @@ void ModelSmt::finalize()
   std::string outPath = getOutputPath("plugins/model_smt/model_smt_gen.eo");
   std::ofstream oute(outPath);
   oute << finalSmt;
-}
-
-std::string ModelSmt::guardClosed(const std::string& def, const std::string& t)
-{
-  // FIXME
-  return t;
-  std::string ret = t;
-  std::map<std::string, std::vector<size_t>>::iterator itgc = d_eoToSmtGuardClosed.find(def);
-  if (itgc!=d_eoToSmtGuardClosed.end())
-  {
-    for (size_t i=0, nindices=itgc->second.size(); i<nindices; i++)
-    {
-      size_t ii = (nindices-i)-1;
-      std::stringstream ssg;
-      ssg << "($eo_to_smt_guard_closed x" << itgc->second[ii]+1 << " " << ret << ")";
-      ret = ssg.str();
-    }
-  }
-  return ret;
 }
 
 }  // namespace ethos
