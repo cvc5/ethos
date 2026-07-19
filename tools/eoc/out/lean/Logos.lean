@@ -1,5 +1,11 @@
-import Cpc.LogosTerm
-import Cpc.SmtEval
+module
+
+public import Cpc.LogosTerm
+import all Cpc.LogosTerm
+public import Cpc.SmtEval
+import all Cpc.SmtEval
+
+public section
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000

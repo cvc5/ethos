@@ -1,3 +1,9 @@
+module
+
+public import Init
+
+public section
+
 set_option linter.unusedVariables false
 
 namespace SmtEval

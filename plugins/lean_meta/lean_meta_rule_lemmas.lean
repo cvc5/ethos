@@ -1,6 +1,11 @@
-import $EO_CALC$.Proofs.CheckerCore
-import $EO_CALC$.Proofs.RuleSupport.Support
+module
+
+public import $EO_CALC$.Proofs.CheckerCore
+public import $EO_CALC$.Proofs.RuleSupport.Support
+import all $EO_CALC$.Logos
 $EO_RULE_LEMMA_INCLUDE$
+
+public section
 
 open Eo
 open SmtEval

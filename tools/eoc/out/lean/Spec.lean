@@ -1,5 +1,11 @@
-import Cpc.SmtModel
-import Cpc.LogosTerm
+module
+
+public import Cpc.SmtModel
+import all Cpc.SmtModel
+public import Cpc.LogosTerm
+import all Cpc.LogosTerm
+
+@[expose] public section
 
 open SmtEval
 open Eo

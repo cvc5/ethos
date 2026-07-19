@@ -1,4 +1,7 @@
-import $EO_CALC$.Proofs.RuleSupport.Support
+module
+
+public import $EO_CALC$.Proofs.RuleSupport.Support
+import all $EO_CALC$.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -7,7 +10,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-theorem cmd_step_$EO_RULE$_properties
+public theorem cmd_step_$EO_RULE$_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.$EO_RULE$ args premises) ->

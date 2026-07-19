@@ -1,5 +1,11 @@
-import $EO_CALC$.LogosTerm
-import $EO_CALC$.SmtEval
+module
+
+public import $EO_CALC$.LogosTerm
+import all $EO_CALC$.LogosTerm
+public import $EO_CALC$.SmtEval
+import all $EO_CALC$.SmtEval
+
+public section
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000

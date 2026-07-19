@@ -1,5 +1,11 @@
-import $EO_CALC$.SmtModel
-import $EO_CALC$.LogosTerm
+module
+
+public import $EO_CALC$.SmtModel
+import all $EO_CALC$.SmtModel
+public import $EO_CALC$.LogosTerm
+import all $EO_CALC$.LogosTerm
+
+@[expose] public section
 
 open SmtEval
 open Eo
