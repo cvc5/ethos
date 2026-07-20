@@ -129,15 +129,21 @@ def native_re_of_list : List native_Char -> native_RegLan
   | [] => .epsilon
   | c :: cs => native_re_mk_concat (.char c) (native_re_of_list cs)
 
-def native_re_prefix_match_len? (r : native_RegLan) (xs : List native_Char) : Option Nat :=
-  let rec go (cur : native_RegLan) (rest : List native_Char) (n : Nat) : Option Nat :=
-    if native_re_nullable cur then
-      some n
-    else
-      match rest with
-      | [] => none
-      | c :: cs => if native_char_valid c then go (native_re_deriv c cur) cs (n + 1) else none
-  go r xs 0
+def native_re_prefix_match_len?.go (r : native_RegLan) :
+    List native_Char → Nat → Option Nat
+  | [], n =>
+      if native_re_nullable r then some n else none
+  | c :: cs, n =>
+      if native_re_nullable r then
+        some n
+      else if native_char_valid c then
+        native_re_prefix_match_len?.go (native_re_deriv c r) cs (n + 1)
+      else
+        none
+
+def native_re_prefix_match_len? (r : native_RegLan)
+    (xs : List native_Char) : Option Nat :=
+  native_re_prefix_match_len?.go r xs 0
 
 def native_re_positive_prefix_match_len? (r : native_RegLan) :
     List native_Char -> Option Nat
@@ -649,8 +655,6 @@ def model_total_typed (M : SmtModel) : Prop :=
   (∀ isVar s T, __smtx_type_wf T = true ->
     __smtx_value_canonical_bool
       (M.values { isVar := isVar, name := s, ty := T }) = true) ∧
-  (∀ isVar s T, __smtx_type_wf T = false ->
-    M.values { isVar := isVar, name := s, ty := T } = SmtValue.NotValue) ∧
   native_fun_typed M
 
 /-

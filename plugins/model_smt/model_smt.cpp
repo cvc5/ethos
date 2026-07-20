@@ -871,7 +871,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "@strings_stoi_result",
       {kString, kInt},
       smtToSmtEmbed(
-        "(str.to_int (str.substr ($eo_to_smt x1) 0 ($eo_to_smt x2)))", true));
+        "(ite (= ($eo_to_smt x2) 0) 0 (str.to_int (str.substr ($eo_to_smt x1) 0 ($eo_to_smt x2))))", true));
   addEunoiaReduceSym(
       "@strings_stoi_non_digit",
       {kString},
