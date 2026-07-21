@@ -39,6 +39,8 @@ by
     premiseTermList_has_bool_type s premises hsTy hsTrans
   cases r with
 $EO_RULE_LEMMA_STEP_CASES$
+  | _ =>
+      exact False.elim (hProg (by simp only [__eo_cmd_step_proven]))
 
 /-
 Central expansion point for `step_pop` rules.
@@ -76,3 +78,5 @@ by
     premiseTermList_has_typeof_bool root premises hsRootTy
   cases r with
 $EO_RULE_LEMMA_STEP_POP_CASES$
+  | _ =>
+      exact False.elim (hProg (by simp only [__eo_cmd_step_pop_proven]))
