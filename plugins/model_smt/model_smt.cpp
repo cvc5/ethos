@@ -1139,6 +1139,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_symIgnore["@strings_occur_index"] = true;
   d_symIgnore["@strings_occur_index_re"] = true;
   d_symIgnore["@strings_replace_all_result"] = true;
+  d_symIgnore["@strings_replace_re_all_result"] = true;
   d_symIgnore["lambda"] = true;
 
   // for alethe
