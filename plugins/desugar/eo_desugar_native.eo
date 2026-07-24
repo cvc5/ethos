@@ -32,6 +32,9 @@
 ; A datatype
 (declare-const $eo_Datatype Type)
 
+; A datatype declaration
+(declare-const $eo_DatatypeDecl Type)
+
 ;;; Eunoia datatype constructors
 
 ; User terms
@@ -120,9 +123,9 @@
   ($emb_Var s T))
 
 (declare-parameterized-const $emb_DatatypeType
-  ((s $native_String :opaque) (d $eo_Datatype :opaque))
+  ((s $native_String :opaque) (d $eo_DatatypeDecl :opaque))
   $eo_Term)
-(define $eot_DatatypeType ((s $native_String) (d $eo_Datatype))
+(define $eot_DatatypeType ((s $native_String) (d $eo_DatatypeDecl))
   ($emb_DatatypeType s d))
 
 (declare-parameterized-const $emb_DatatypeTypeRef 
@@ -138,20 +141,20 @@
 
 ; the ci^th constructor of datatype T.
 (declare-parameterized-const $emb_DtCons
-  ((s $native_String :opaque) (d $eo_Datatype :opaque)
+  ((s $native_String :opaque) (d $eo_DatatypeDecl :opaque)
    (ci $native_Nat :opaque))
   $eo_Term)
 (define $eot_DtCons
-  ((s $native_String) (d $eo_Datatype) (ci $native_Nat))
+  ((s $native_String) (d $eo_DatatypeDecl) (ci $native_Nat))
   ($emb_DtCons s d ci))
 
 ; the selector of the ai^th argument of the ci^th constructor of datatype T.
 (declare-parameterized-const $emb_DtSel
-  ((s $native_String :opaque) (d $eo_Datatype :opaque)
+  ((s $native_String :opaque) (d $eo_DatatypeDecl :opaque)
    (ci $native_Nat :opaque) (ai $native_Nat :opaque))
   $eo_Term)
 (define $eot_DtSel
-  ((s $native_String) (d $eo_Datatype) (ci $native_Nat)
+  ((s $native_String) (d $eo_DatatypeDecl) (ci $native_Nat)
    (ai $native_Nat))
   ($emb_DtSel s d ci ai))
   
@@ -193,6 +196,17 @@
 (define $edt_sum ((c $eo_DatatypeCons) (d $eo_Datatype))
   ($emb_edt.sum c d))
 
+; An empty datatype declaration
+(declare-const $emb_edd.nil $eo_DatatypeDecl)
+(define $edd_nil () $emb_edd.nil)
+  
+; A datatype declaration having at least one datatype
+(declare-parameterized-const $emb_edd.cons
+  ((s $native_String :opaque) (d $eo_Datatype :opaque) (dd $eo_DatatypeDecl :opaque))
+  $eo_DatatypeDecl)
+(define $edd_cons ((s $native_String) (d $eo_Datatype) (dd $eo_DatatypeDecl))
+  ($emb_edd.cons s d dd))
+  
 ;;; Utilities
 
 ; return: The embedding of (-> T1 T2).
@@ -795,88 +809,44 @@
 
 ; forward declaration
 
-(program $eo_dt_lift ()
-  :signature ($native_String $eo_Datatype $eo_Datatype) $eo_Datatype)
+(program $eo_dtc_resolve
+  ((s $native_String) (T $eo_Term) (c $eo_DatatypeCons) (dd $eo_DatatypeDecl))
+  :signature ($eo_DatatypeCons $eo_DatatypeDecl) $eo_DatatypeCons
+  (
+  (($eo_dtc_resolve ($edtc_cons ($eot_DatatypeTypeRef s) c) dd)
+    ($edtc_cons ($eot_DatatypeType s dd) ($eo_dtc_resolve c dd)))
+  (($eo_dtc_resolve ($edtc_cons T c) dd)
+    ($edtc_cons T ($eo_dtc_resolve c dd)))
+  (($eo_dtc_resolve $edtc_unit dd) $edtc_unit)
+  )
+)
+
+(program $eo_dt_resolve
+  ((d $eo_Datatype) (c $eo_DatatypeCons) (dd $eo_DatatypeDecl))
+  :signature ($eo_Datatype $eo_DatatypeDecl) $eo_Datatype
+  (
+  (($eo_dt_resolve ($edt_sum c d) dd)
+    ($edt_sum ($eo_dtc_resolve c dd) ($eo_dt_resolve d dd)))
+  (($eo_dt_resolve $edt_null dd) $edt_null)
+  )
+)
+
+(program $eo_dd_lookup
+  ((s $native_String) (s2 $native_String) (d $eo_Datatype) (c $eo_DatatypeCons) 
+   (dd $eo_DatatypeDecl))
+  :signature ($native_String $eo_DatatypeDecl) $eo_Datatype
+  (
+  (($eo_dd_lookup s ($edd_cons s2 d dd))
+    ($native_ite ($native_str_= s s2) d ($eo_dd_lookup s dd)))
+  (($eo_dd_lookup s $edd_nil) $edt_null)
+  )
+)
   
-(program $eo_type_lift
-  ((s $native_String) (d $eo_Datatype) (T Type)
-   (s2 $native_String) (d2 $eo_Datatype))
-  :signature ($native_String $eo_Datatype Type) Type
+(program $eo_dd_resolve
+  ((s $native_String) (dd $eo_DatatypeDecl))
+  :signature ($native_String $eo_DatatypeDecl) $eo_Datatype
   (
-  (($eo_type_lift s d ($eot_DatatypeType s2 d2))
-    ($native_ite ($native_teq ($eot_DatatypeType s d) ($eot_DatatypeType s2 d2))
-      ($eot_DatatypeTypeRef s)
-      ($eot_DatatypeType s2 ($eo_dt_lift s d d2))))
-  (($eo_type_lift s d T) T)
-  )
-)
-
-(program $eo_dtc_lift
-  ((s $native_String) (d $eo_Datatype) (T Type) (c $eo_DatatypeCons)
-   (s2 $native_String) (d2 $eo_Datatype))
-  :signature ($native_String $eo_Datatype $eo_DatatypeCons) $eo_DatatypeCons
-  (
-  (($eo_dtc_lift s d ($edtc_cons T c))
-    ($edtc_cons ($eo_type_lift s d T) ($eo_dtc_lift s d c)))
-  (($eo_dtc_lift s d $edtc_unit) $edtc_unit)
-  )
-)
-
-; ($eo_dt_lift s d d2)
-; Substitutes ($eot_DatatypeType s d) by ($tsm_TypeRef s) in all arguments
-; of datatype constructors of a datatype d2.
-; Note that this assumes there is no nested recursion, i.e. occurrences of
-; ($tsm_TypeRef s) that are beneath applications of other types.
-(program $eo_dt_lift
-  ((s $native_String) (d $eo_Datatype) (c $eo_DatatypeCons) (d2 $eo_Datatype))
-  :signature ($native_String $eo_Datatype $eo_Datatype) $eo_Datatype
-  (
-  (($eo_dt_lift s d ($edt_sum c d2))
-    ($edt_sum ($eo_dtc_lift s d c) ($eo_dt_lift s d d2)))
-  (($eo_dt_lift s d $edt_null) $edt_null)
-  )
-)
-
-(program $eo_dt_substitute ()
-  :signature ($native_String $eo_Datatype $eo_Datatype) $eo_Datatype)
-  
-; Replaces ($tsm_TypeRef s) by ($eot_DatatypeType s d) in all arguments
-; of a datatype constructor.
-; Note that this assumes there is no nested recursion, i.e. occurrences of
-; ($eot_DatatypeTypeRef s) that are beneath applications of other types.
-(program $eo_dtc_substitute
-  ((s $native_String) (d $eo_Datatype) (T $eo_Term) (c $eo_DatatypeCons)
-   (s2 $native_String) (d2 $eo_Datatype))
-  :signature ($native_String $eo_Datatype $eo_DatatypeCons) $eo_DatatypeCons
-  (
-  (($eo_dtc_substitute s d ($edtc_cons ($eot_DatatypeType s2 d2) c))
-    ; possible mutual recursion, subsitute into the datatype, unless there is
-    ; name shadowing
-    ($edtc_cons ($eot_DatatypeType s2
-      ($native_ite ($native_str_= s s2) d2 ($eo_dt_substitute s ($eo_dt_lift s2 d2 d) d2)))
-      ($eo_dtc_substitute s d c)))
-  (($eo_dtc_substitute s d ($edtc_cons T c))
-    ($edtc_cons
-      ; if it is a recursive reference to the type we are substituting, replace
-      ($native_ite ($native_teq T ($eot_DatatypeTypeRef s))
-        ($eot_DatatypeType s d)
-        T)
-      ($eo_dtc_substitute s d c)))
-  (($eo_dtc_substitute s d $edtc_unit) $edtc_unit)
-  )
-)
-
-; Substitutes ($eot_TypeRef s) by ($eo_Datatype s d) in all arguments
-; of datatype constructors of a datatype.
-; Note that this assumes there is no nested recursion, i.e. occurrences of
-; ($tsm_TypeRef s) that are beneath applications of other types.
-(program $eo_dt_substitute
-  ((s $native_Int) (d $eo_Datatype) (c $eo_DatatypeCons) (d2 $eo_Datatype))
-  :signature ($native_String $eo_Datatype $eo_Datatype) $eo_Datatype
-  (
-  (($eo_dt_substitute s d ($edt_sum c d2))
-    ($edt_sum ($eo_dtc_substitute s d c) ($eo_dt_substitute s d d2)))
-  (($eo_dt_substitute s d $edt_null) $edt_null)
+  (($eo_dd_resolve s dd) ($eo_dt_resolve ($eo_dd_lookup s dd) dd))
   )
 )
 
@@ -885,27 +855,27 @@
 (program $eo_dt_constructors_main () :signature (Type) $eo_List)
 
 (program $eo_datatype_constructors_rec
-  ((s $native_String) (d $eo_Datatype) (c $eo_DatatypeCons)
+  ((s $native_String) (dd $eo_DatatypeDecl) (c $eo_DatatypeCons)
    (d2 $eo_Datatype) (i $native_Nat))
-  :signature ($native_String $eo_Datatype $eo_Datatype $native_Nat) $eo_List
+  :signature ($native_String $eo_DatatypeDecl $eo_Datatype $native_Nat) $eo_List
   (
-  (($eo_datatype_constructors_rec s d ($edt_sum c d2) i)
-    ($eo_List_cons ($eot_DtCons s d i)
-      ($eo_datatype_constructors_rec s d d2 ($native_n_succ i))))
+  (($eo_datatype_constructors_rec s dd ($edt_sum c d2) i)
+    ($eo_List_cons ($eot_DtCons s dd i)
+      ($eo_datatype_constructors_rec s dd d2 ($native_n_succ i))))
   ; assumes d2 is $edt_null
-  (($eo_datatype_constructors_rec s d d2 i) $eo_List_nil)
+  (($eo_datatype_constructors_rec s dd d2 i) $eo_List_nil)
   )
 )
 
 ; program: $eo_dt_constructors
 ; implements: eo::dt_constructors
 (program $eo_dt_constructors
-  ((s $native_String) (d $eo_Datatype) (T $eo_Term))
+  ((s $native_String) (dd $eo_DatatypeDecl) (T $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
   ; a user-defined datatype
-  (($eo_dt_constructors ($eot_DatatypeType s d))
-    ($eo_datatype_constructors_rec s d d $native_n_zero))
+  (($eo_dt_constructors ($eot_DatatypeType s dd))
+    ($eo_datatype_constructors_rec s dd ($eo_dd_lookup s dd) $native_n_zero))
   ; otherwise, a datatype declared in the signature
   (($eo_dt_constructors T) ($eo_dt_constructors_main T))
   )
@@ -916,30 +886,30 @@
 (program $eo_dt_selectors_main ((T Type)) :signature (T) $eo_List)
 
 (program $eo_datatype_cons_selectors_rec
-  ((s $native_String) (d $eo_Datatype) (n $native_Nat)
+  ((s $native_String) (dd $eo_DatatypeDecl) (n $native_Nat)
    (U $eo_Term) (c $eo_DatatypeCons) (d2 $eo_Datatype)
    (ci $native_Nat) (ai $native_Nat))
-  :signature ($native_String $eo_Datatype $native_Nat $eo_Datatype $native_Nat $native_Nat) $eo_List
+  :signature ($native_String $eo_DatatypeDecl $native_Nat $eo_Datatype $native_Nat $native_Nat) $eo_List
   (
-  (($eo_datatype_cons_selectors_rec s d n ($edt_sum $edtc_unit d2) $native_n_zero ai)
+  (($eo_datatype_cons_selectors_rec s dd n ($edt_sum $edtc_unit d2) $native_n_zero ai)
      $eo_List_nil)
-  (($eo_datatype_cons_selectors_rec s d n ($edt_sum ($edtc_cons U c) d2) $native_n_zero ai)
-    ($eo_List_cons ($eot_DtSel s d n ai)
-      ($eo_datatype_cons_selectors_rec s d n ($edt_sum c d2) $native_n_zero ($native_n_succ ai))))
-  (($eo_datatype_cons_selectors_rec s d n ($edt_sum c d2) ($native_n_succ ci) ai)
-    ($eo_datatype_cons_selectors_rec s d n d2 ci ai))
+  (($eo_datatype_cons_selectors_rec s dd n ($edt_sum ($edtc_cons U c) d2) $native_n_zero ai)
+    ($eo_List_cons ($eot_DtSel s dd n ai)
+      ($eo_datatype_cons_selectors_rec s dd n ($edt_sum c d2) $native_n_zero ($native_n_succ ai))))
+  (($eo_datatype_cons_selectors_rec s dd n ($edt_sum c d2) ($native_n_succ ci) ai)
+    ($eo_datatype_cons_selectors_rec s dd n d2 ci ai))
   )
 )
 
 ; program: $eo_dt_selectors
 ; implements: eo::dt_selectors
 (program $eo_dt_selectors 
-  ((s $native_String) (d $eo_Datatype) (n $native_Int) (t $eo_Term))
+  ((s $native_String) (dd $eo_DatatypeDecl) (n $native_Nat) (t $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
   ; a constructor of a user-defined datatype
-  (($eo_dt_selectors ($eot_DtCons s d n))
-    ($eo_datatype_cons_selectors_rec s d n d n $native_n_zero))
+  (($eo_dt_selectors ($eot_DtCons s dd n))
+    ($eo_datatype_cons_selectors_rec s dd n ($eo_dd_resolve s dd) n $native_n_zero))
   ; otherwise, a datatype constructor declared in the signature
   (($eo_dt_selectors t) ($eo_dt_selectors_main t))
   )

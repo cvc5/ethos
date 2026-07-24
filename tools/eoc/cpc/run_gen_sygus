@@ -10,7 +10,7 @@ source "$SCRIPT_DIR/common.sh"
 
 BUILD_DIR="$(eoc_build_dir)"
 INPUT="$(eoc_cpc_input)"
-ARGS=(vc --build-dir "$BUILD_DIR" --sygus "$INPUT")
+ARGS=(vc --build-dir "$BUILD_DIR" --sygus)
 
 eoc_add_skip_cvc5
 eoc_extract_solve_options "$@"
@@ -18,6 +18,6 @@ if (( ${#EOC_FILTERED_ARGS[@]} != 1 )); then
   echo "usage: $0 [--solve] [--solve-args=\"ARGS\"] RULE" >&2
   exit 2
 fi
-ARGS+=("${EOC_FILTERED_ARGS[0]}")
+ARGS+=("$INPUT" "${EOC_FILTERED_ARGS[0]}")
 
 eoc_exec_driver "${ARGS[@]}"

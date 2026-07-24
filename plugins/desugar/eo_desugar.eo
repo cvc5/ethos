@@ -565,7 +565,7 @@ $EO_TYPEOF_NGROUND_DEFS$
 (program $eo_typeof
   ((t $eo_Term) (T $eo_Term) (b $native_Bool) (n $native_Int)
    (i $native_Nat) (j $native_Nat) (w $native_Int) (r $native_Rat)
-   (s $native_String) (d $eo_Datatype)
+   (s $native_String) (dd $eo_DatatypeDecl)
    ($eo_T Type) ($eo_U Type) ($eo_V Type) ($eo_W Type)
    ($eo_f (-> $eo_U $eo_V $eo_T)) ($eo_x $eo_U) ($eo_t $eo_T)
    ($eo_W1 Type) ($eo_x1 $eo_W1)
@@ -581,12 +581,11 @@ $EO_TYPEOF_NGROUND_DEFS$
   (($eo_typeof ($eot_binary w n))             ($eo_lit_type_Binary ($eot_binary w n)))
   ; to sync with eo_to_smt, we require the name is indeed a concrete string
   (($eo_typeof ($eot_Var ($eot_string s) T))  T)
-  (($eo_typeof ($eot_DatatypeType s d))       Type)
-  (($eo_typeof ($eot_DatatypeTypeRef s))      Type)
-  (($eo_typeof ($eot_DtCons s d i))
-    ($eo_typeof_dt_cons_rec ($eot_DatatypeType s d) ($eo_dt_substitute s d d) i))
-  (($eo_typeof ($eot_DtSel s d i j))
-    (-> ($eot_DatatypeType s d) ($eo_typeof_dt_sel_return ($eo_dt_substitute s d d) i j)))
+  (($eo_typeof ($eot_DatatypeType s dd))      Type)
+  (($eo_typeof ($eot_DtCons s dd i))
+    ($eo_typeof_dt_cons_rec ($eot_DatatypeType s dd) ($eo_dd_resolve s dd) i))
+  (($eo_typeof ($eot_DtSel s dd i j))
+    (-> ($eot_DatatypeType s dd) ($eo_typeof_dt_sel_return ($eo_dd_resolve s dd) i j)))
   (($eo_typeof ($eot_USort i))                Type)
   (($eo_typeof ($eot_UConst i T))             T)
   ; otherwise, invoke the routine for user types from the signature.

@@ -80,6 +80,38 @@ decreasing_by
 decreasing_by
   all_goals simp_wf
   all_goals omega)";
+  // Datatype defaults recurse through a mutually inductive type/declaration
+  // tree. The declaration suffix is the datatype recursion budget; the small
+  // offsets orient calls through datatype, constructor, and field helpers.
+  d_terminatingBy["$smtx_type_default"] =
+      "termination_by T => 2 * sizeOf T";
+  d_terminatingBy["$smtx_datatype_decl_default"] =
+      "termination_by ddF => 2 * sizeOf ddF";
+  d_terminatingBy["$smtx_datatype_default"] =
+      "termination_by dF ddF => 2 * (sizeOf dF + sizeOf ddF) + 1";
+  d_terminatingBy["$smtx_datatype_cons_default"] =
+      "termination_by c ddF => 2 * (sizeOf c + sizeOf ddF) + 2";
+  d_terminatingBy["$smtx_field_type_default"] = R"(termination_by T ddF => 2 * (sizeOf T + sizeOf ddF) + 3
+decreasing_by
+  all_goals simp_wf
+  all_goals omega)";
+  // Type boundedness (unit/finite) computes a fixpoint over datatype
+  // declarations. The lexicographic measures decrease on the structural
+  // component for descents into subterms, on the pass countdown for the
+  // fixpoint iteration, and on the final component for the tie between
+  // field types and their recheck as ordinary types.
+  d_terminatingBy["$smtx_type_bounded"] =
+      "termination_by T => (sizeOf T, 0)";
+  d_terminatingBy["$smtx_datatype_decl_bounded"] =
+      "termination_by ddC dd ddB => (sizeOf dd, sizeOf ddC)";
+  d_terminatingBy["$smtx_datatype_decl_bounded_step"] =
+      "termination_by ddR ddB => (sizeOf ddR, 0)";
+  d_terminatingBy["$smtx_datatype_bounded"] =
+      "termination_by dF ddB => (sizeOf dF, 0)";
+  d_terminatingBy["$smtx_datatype_cons_bounded"] =
+      "termination_by c ddB => (sizeOf c, 0)";
+  d_terminatingBy["$smtx_field_type_bounded"] =
+      "termination_by T ddB => (sizeOf T, 1)";
   std::string terminate3 = R"(termination_by t => sizeOf t
 decreasing_by
   all_goals simp_wf
@@ -121,6 +153,7 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
   switch (k)
   {
     case MetaKind::EUNOIA: os << "Term"; break;
+    case MetaKind::DATATYPE_DECL: os << "DatatypeDecl"; break;
     case MetaKind::DATATYPE: os << "Datatype"; break;
     case MetaKind::DATATYPE_CONSTRUCTOR: os << "DatatypeCons"; break;
     case MetaKind::SMT_TYPE: os << "SmtType"; break;
@@ -131,6 +164,7 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
     case MetaKind::SMT_MAP: os << "SmtMap"; break;
     case MetaKind::SMT_SEQ: os << "SmtSeq"; break;
     case MetaKind::PROOF: os << "Proof"; break;
+    case MetaKind::SMT_DATATYPE_DECL: os << "SmtDatatypeDecl"; break;
     case MetaKind::SMT_DATATYPE: os << "SmtDatatype"; break;
     case MetaKind::SMT_DATATYPE_CONSTRUCTOR: os << "SmtDatatypeCons"; break;
     case MetaKind::CHECKER_STATE: os << "CState"; break;

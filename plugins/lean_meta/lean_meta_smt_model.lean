@@ -332,6 +332,14 @@ inductive SmtSeq : Type where
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
+SMT-LIB datatype declarations.
+-/
+inductive SmtDatatypeDecl : Type where
+  | nil : SmtDatatypeDecl
+  | cons : native_String -> SmtDatatype -> SmtDatatypeDecl -> SmtDatatypeDecl
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
 SMT-LIB datatypes.
 -/
 inductive SmtDatatype : Type where

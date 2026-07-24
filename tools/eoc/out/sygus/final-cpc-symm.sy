@@ -102,9 +102,9 @@
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
 (declare-datatypes
-  ((eo.Term 0)  (edt.Datatype 0) (edtc.DatatypeCons 0)
+  ((eo.Term 0) (edd.DatatypeDecl 0)  (edt.Datatype 0) (edtc.DatatypeCons 0)
    (vsm.Value 0) (msm.Map 0) (ssm.Seq 0) (sm.Term 0) (tsm.Type 0)
-   (dt.Datatype 0) (dtc.DatatypeCons 0))
+   (dd.DatatypeDecl 0) (dt.Datatype 0) (dtc.DatatypeCons 0))
   (
   (
   ; user-decl: $eo_Proof
@@ -121,6 +121,8 @@
   (eo.Char)
   ; user-decl: Seq
   (eo.Seq)
+  ; user-decl: $eo_DatatypeDecl
+  (eo.$eo_DatatypeDecl)
   ; smt-cons: Bool
   (eo.Bool)
   ; smt-cons: Boolean
@@ -144,15 +146,15 @@
   ; smt-cons: Var
   (eo.Var (eo.Var.arg1 eo.Term) (eo.Var.arg2 eo.Term))
   ; smt-cons: DatatypeType
-  (eo.DatatypeType (eo.DatatypeType.arg1 String) (eo.DatatypeType.arg2 edt.Datatype))
+  (eo.DatatypeType (eo.DatatypeType.arg1 String) (eo.DatatypeType.arg2 edd.DatatypeDecl))
   ; smt-cons: DatatypeTypeRef
   (eo.DatatypeTypeRef (eo.DatatypeTypeRef.arg1 String))
   ; smt-cons: DtcAppType
   (eo.DtcAppType (eo.DtcAppType.arg1 eo.Term) (eo.DtcAppType.arg2 eo.Term))
   ; smt-cons: DtCons
-  (eo.DtCons (eo.DtCons.arg1 String) (eo.DtCons.arg2 edt.Datatype) (eo.DtCons.arg3 Nat))
+  (eo.DtCons (eo.DtCons.arg1 String) (eo.DtCons.arg2 edd.DatatypeDecl) (eo.DtCons.arg3 Nat))
   ; smt-cons: DtSel
-  (eo.DtSel (eo.DtSel.arg1 String) (eo.DtSel.arg2 edt.Datatype) (eo.DtSel.arg3 Nat) (eo.DtSel.arg4 Nat))
+  (eo.DtSel (eo.DtSel.arg1 String) (eo.DtSel.arg2 edd.DatatypeDecl) (eo.DtSel.arg3 Nat) (eo.DtSel.arg4 Nat))
   ; smt-cons: USort
   (eo.USort (eo.USort.arg1 Nat))
   ; smt-cons: UConst
@@ -164,6 +166,10 @@
   ; user-decl: =
   (eo.=)
 
+  )
+  (
+  (edd.nil)
+  (edd.cons (edd.cons.arg1 String) (edd.cons.arg2 edt.Datatype) (edd.cons.arg3 edd.DatatypeDecl))
   )
   (
   (edt.null)
@@ -199,7 +205,7 @@
   ; smt-cons: RegLan
   (vsm.RegLan (vsm.RegLan.arg1 RegLan))
   ; smt-cons: DtCons
-  (vsm.DtCons (vsm.DtCons.arg1 String) (vsm.DtCons.arg2 dt.Datatype) (vsm.DtCons.arg3 Nat))
+  (vsm.DtCons (vsm.DtCons.arg1 String) (vsm.DtCons.arg2 dd.DatatypeDecl) (vsm.DtCons.arg3 Nat))
   ; smt-cons: Apply
   (vsm.Apply (vsm.Apply.arg1 vsm.Value) (vsm.Apply.arg2 vsm.Value))
 
@@ -252,11 +258,11 @@
   ; smt-cons: seq_diff
   (sm.seq_diff (sm.seq_diff.arg1 sm.Term) (sm.seq_diff.arg2 sm.Term))
   ; smt-cons: DtCons
-  (sm.DtCons (sm.DtCons.arg1 String) (sm.DtCons.arg2 dt.Datatype) (sm.DtCons.arg3 Nat))
+  (sm.DtCons (sm.DtCons.arg1 String) (sm.DtCons.arg2 dd.DatatypeDecl) (sm.DtCons.arg3 Nat))
   ; smt-cons: DtSel
-  (sm.DtSel (sm.DtSel.arg1 String) (sm.DtSel.arg2 dt.Datatype) (sm.DtSel.arg3 Nat) (sm.DtSel.arg4 Nat))
+  (sm.DtSel (sm.DtSel.arg1 String) (sm.DtSel.arg2 dd.DatatypeDecl) (sm.DtSel.arg3 Nat) (sm.DtSel.arg4 Nat))
   ; smt-cons: DtTester
-  (sm.DtTester (sm.DtTester.arg1 String) (sm.DtTester.arg2 dt.Datatype) (sm.DtTester.arg3 Nat))
+  (sm.DtTester (sm.DtTester.arg1 String) (sm.DtTester.arg2 dd.DatatypeDecl) (sm.DtTester.arg3 Nat))
   ; smt-cons: UConst
   (sm.UConst (sm.UConst.arg1 String) (sm.UConst.arg2 tsm.Type))
   ; smt-cons: not
@@ -287,7 +293,7 @@
   ; smt-cons: Char
   (tsm.Char)
   ; smt-cons: Datatype
-  (tsm.Datatype (tsm.Datatype.arg1 String) (tsm.Datatype.arg2 dt.Datatype))
+  (tsm.Datatype (tsm.Datatype.arg1 String) (tsm.Datatype.arg2 dd.DatatypeDecl))
   ; smt-cons: TypeRef
   (tsm.TypeRef (tsm.TypeRef.arg1 String))
   ; smt-cons: USort
@@ -297,6 +303,10 @@
   ; smt-cons: DtcAppType
   (tsm.DtcAppType (tsm.DtcAppType.arg1 tsm.Type) (tsm.DtcAppType.arg2 tsm.Type))
 
+  )
+  (
+  (dd.nil)
+  (dd.cons (dd.cons.arg1 String) (dd.cons.arg2 dt.Datatype) (dd.cons.arg3 dd.DatatypeDecl))
   )
   (
   (dt.null)
@@ -462,145 +472,103 @@
 ; fwd-decl: $smtx_model_eval
 (declare-fun $smtx_model_eval (smm.SmtModel sm.Term) vsm.Value)
 
-; fwd-decl: $smtx_dt_lift
-(declare-fun $smtx_dt_lift (String dt.Datatype dt.Datatype) dt.Datatype)
-
-; program: $smtx_type_lift
-(define-fun $smtx_type_lift ((x1 String) (x2 dt.Datatype) (x3 tsm.Type)) tsm.Type
-  (ite ((_ is tsm.Datatype) x3)
-    (ite (Teq (tsm.Datatype x1 x2) (tsm.Datatype (tsm.Datatype.arg1 x3) (tsm.Datatype.arg2 x3))) (tsm.TypeRef x1) (tsm.Datatype (tsm.Datatype.arg1 x3) ($smtx_dt_lift x1 x2 (tsm.Datatype.arg2 x3))))
-    x3
-))
-
-; program: $smtx_dtc_lift
-(declare-fun $smtx_dtc_lift (String dt.Datatype dtc.DatatypeCons) dtc.DatatypeCons)
-(assert (! (forall ((x1 String) (x2 dt.Datatype) (x3 dtc.DatatypeCons))
-  (! (= ($smtx_dtc_lift x1 x2 x3)
-  (ite ((_ is dtc.cons) x3)
-    (dtc.cons ($smtx_type_lift x1 x2 (dtc.cons.arg1 x3)) ($smtx_dtc_lift x1 x2 (dtc.cons.arg2 x3)))
+; program: $smtx_dtc_resolve
+(declare-fun $smtx_dtc_resolve (dtc.DatatypeCons dd.DatatypeDecl) dtc.DatatypeCons)
+(assert (! (forall ((x1 dtc.DatatypeCons) (x2 dd.DatatypeDecl))
+  (! (= ($smtx_dtc_resolve x1 x2)
+  (ite (and ((_ is dtc.cons) x1) ((_ is tsm.TypeRef) (dtc.cons.arg1 x1)))
+    (dtc.cons (tsm.Datatype (tsm.TypeRef.arg1 (dtc.cons.arg1 x1)) x2) ($smtx_dtc_resolve (dtc.cons.arg2 x1) x2))
+  (ite ((_ is dtc.cons) x1)
+    (dtc.cons (dtc.cons.arg1 x1) ($smtx_dtc_resolve (dtc.cons.arg2 x1) x2))
     dtc.unit
-)) :pattern (($smtx_dtc_lift x1 x2 x3)))) :named sm.axiom.$smtx_dtc_lift))
+))) :pattern (($smtx_dtc_resolve x1 x2)))) :named sm.axiom.$smtx_dtc_resolve))
 
-; program: $smtx_dt_lift
-(assert (! (forall ((x1 String) (x2 dt.Datatype) (x3 dt.Datatype))
-  (! (= ($smtx_dt_lift x1 x2 x3)
-  (ite ((_ is dt.sum) x3)
-    (dt.sum ($smtx_dtc_lift x1 x2 (dt.sum.arg1 x3)) ($smtx_dt_lift x1 x2 (dt.sum.arg2 x3)))
+; program: $smtx_dt_resolve
+(declare-fun $smtx_dt_resolve (dt.Datatype dd.DatatypeDecl) dt.Datatype)
+(assert (! (forall ((x1 dt.Datatype) (x2 dd.DatatypeDecl))
+  (! (= ($smtx_dt_resolve x1 x2)
+  (ite ((_ is dt.sum) x1)
+    (dt.sum ($smtx_dtc_resolve (dt.sum.arg1 x1) x2) ($smtx_dt_resolve (dt.sum.arg2 x1) x2))
     dt.null
-)) :pattern (($smtx_dt_lift x1 x2 x3)))) :named sm.axiom.$smtx_dt_lift))
+)) :pattern (($smtx_dt_resolve x1 x2)))) :named sm.axiom.$smtx_dt_resolve))
 
-; fwd-decl: $smtx_dt_substitute
-(declare-fun $smtx_dt_substitute (String dt.Datatype dt.Datatype) dt.Datatype)
-
-; program: $smtx_type_substitute
-(define-fun $smtx_type_substitute ((x1 String) (x2 dt.Datatype) (x3 tsm.Type)) tsm.Type
-  (ite ((_ is tsm.Datatype) x3)
-    (tsm.Datatype (tsm.Datatype.arg1 x3) (ite (streq x1 (tsm.Datatype.arg1 x3)) (tsm.Datatype.arg2 x3) ($smtx_dt_substitute x1 ($smtx_dt_lift (tsm.Datatype.arg1 x3) (tsm.Datatype.arg2 x3) x2) (tsm.Datatype.arg2 x3))))
-  (ite ((_ is tsm.TypeRef) x3)
-    (ite (streq x1 (tsm.TypeRef.arg1 x3)) (tsm.Datatype x1 x2) (tsm.TypeRef (tsm.TypeRef.arg1 x3)))
-    x3
-)))
-
-; program: $smtx_dtc_substitute
-(declare-fun $smtx_dtc_substitute (String dt.Datatype dtc.DatatypeCons) dtc.DatatypeCons)
-(assert (! (forall ((x1 String) (x2 dt.Datatype) (x3 dtc.DatatypeCons))
-  (! (= ($smtx_dtc_substitute x1 x2 x3)
-  (ite ((_ is dtc.cons) x3)
-    (dtc.cons ($smtx_type_substitute x1 x2 (dtc.cons.arg1 x3)) ($smtx_dtc_substitute x1 x2 (dtc.cons.arg2 x3)))
-    dtc.unit
-)) :pattern (($smtx_dtc_substitute x1 x2 x3)))) :named sm.axiom.$smtx_dtc_substitute))
-
-; program: $smtx_dt_substitute
-(assert (! (forall ((x1 String) (x2 dt.Datatype) (x3 dt.Datatype))
-  (! (= ($smtx_dt_substitute x1 x2 x3)
-  (ite ((_ is dt.sum) x3)
-    (dt.sum ($smtx_dtc_substitute x1 x2 (dt.sum.arg1 x3)) ($smtx_dt_substitute x1 x2 (dt.sum.arg2 x3)))
+; program: $smtx_dd_lookup
+(declare-fun $smtx_dd_lookup (String dd.DatatypeDecl) dt.Datatype)
+(assert (! (forall ((x1 String) (x2 dd.DatatypeDecl))
+  (! (= ($smtx_dd_lookup x1 x2)
+  (ite ((_ is dd.cons) x2)
+    (ite (streq x1 (dd.cons.arg1 x2)) (dd.cons.arg2 x2) ($smtx_dd_lookup x1 (dd.cons.arg3 x2)))
     dt.null
-)) :pattern (($smtx_dt_substitute x1 x2 x3)))) :named sm.axiom.$smtx_dt_substitute))
+)) :pattern (($smtx_dd_lookup x1 x2)))) :named sm.axiom.$smtx_dd_lookup))
 
-; fwd-decl: $smtx_type_no_alias_rec
-(declare-fun $smtx_type_no_alias_rec (srl.RefList tsm.Type) Bool)
-
-; program: $smtx_dt_cons_no_alias_rec
-(declare-fun $smtx_dt_cons_no_alias_rec (srl.RefList dtc.DatatypeCons) Bool)
-(assert (! (forall ((x1 srl.RefList) (x2 dtc.DatatypeCons))
-  (! (= ($smtx_dt_cons_no_alias_rec x1 x2)
-  (ite ((_ is dtc.cons) x2)
-    (ite ($smtx_type_no_alias_rec x1 (dtc.cons.arg1 x2)) ($smtx_dt_cons_no_alias_rec x1 (dtc.cons.arg2 x2)) false)
-    true
-)) :pattern (($smtx_dt_cons_no_alias_rec x1 x2)))) :named sm.axiom.$smtx_dt_cons_no_alias_rec))
-
-; program: $smtx_dt_no_alias_rec
-(declare-fun $smtx_dt_no_alias_rec (srl.RefList dt.Datatype) Bool)
-(assert (! (forall ((x1 srl.RefList) (x2 dt.Datatype))
-  (! (= ($smtx_dt_no_alias_rec x1 x2)
-  (ite (= x2 dt.null)
-    true
-    (ite ($smtx_dt_cons_no_alias_rec x1 (dt.sum.arg1 x2)) ($smtx_dt_no_alias_rec x1 (dt.sum.arg2 x2)) false)
-)) :pattern (($smtx_dt_no_alias_rec x1 x2)))) :named sm.axiom.$smtx_dt_no_alias_rec))
-
-; program: $smtx_type_no_alias_rec
-(assert (! (forall ((x1 srl.RefList) (x2 tsm.Type))
-  (! (= ($smtx_type_no_alias_rec x1 x2)
-  (ite ((_ is tsm.Datatype) x2)
-    (ite (reflist_contains x1 (tsm.Datatype.arg1 x2)) false ($smtx_dt_no_alias_rec (reflist_insert x1 (tsm.Datatype.arg1 x2)) (tsm.Datatype.arg2 x2)))
-    true
-)) :pattern (($smtx_type_no_alias_rec x1 x2)))) :named sm.axiom.$smtx_type_no_alias_rec))
+; program: $smtx_dd_has_dt
+(declare-fun $smtx_dd_has_dt (String dd.DatatypeDecl) Bool)
+(assert (! (forall ((x1 String) (x2 dd.DatatypeDecl))
+  (! (= ($smtx_dd_has_dt x1 x2)
+  (ite ((_ is dd.cons) x2)
+    (or (streq x1 (dd.cons.arg1 x2)) ($smtx_dd_has_dt x1 (dd.cons.arg3 x2)))
+    false
+)) :pattern (($smtx_dd_has_dt x1 x2)))) :named sm.axiom.$smtx_dd_has_dt))
 
 ; fwd-decl: $smtx_type_wf_rec
-(declare-fun $smtx_type_wf_rec (tsm.Type tsm.Type) Bool)
+(declare-fun $smtx_type_wf_rec (tsm.Type) Bool)
 
 ; program: $smtx_dt_cons_wf_rec
-(declare-fun $smtx_dt_cons_wf_rec (dtc.DatatypeCons dtc.DatatypeCons) Bool)
-(assert (! (forall ((x1 dtc.DatatypeCons) (x2 dtc.DatatypeCons))
+(declare-fun $smtx_dt_cons_wf_rec (dd.DatatypeDecl dtc.DatatypeCons) Bool)
+(assert (! (forall ((x1 dd.DatatypeDecl) (x2 dtc.DatatypeCons))
   (! (= ($smtx_dt_cons_wf_rec x1 x2)
-  (ite (and ((_ is dtc.cons) x1) ((_ is tsm.Datatype) (dtc.cons.arg1 x1)) ((_ is dtc.cons) x2) ((_ is tsm.TypeRef) (dtc.cons.arg1 x2)))
-    ($smtx_dt_cons_wf_rec (dtc.cons.arg2 x1) (dtc.cons.arg2 x2))
-  (ite (and ((_ is dtc.cons) x1) ((_ is dtc.cons) x2))
-    (ite (and (inhabited_type (dtc.cons.arg1 x1)) ($smtx_type_wf_rec (dtc.cons.arg1 x1) (dtc.cons.arg1 x2))) ($smtx_dt_cons_wf_rec (dtc.cons.arg2 x1) (dtc.cons.arg2 x2)) false)
-  (ite (and (= x1 dtc.unit) (= x2 dtc.unit))
+  (ite (and ((_ is dtc.cons) x2) ((_ is tsm.TypeRef) (dtc.cons.arg1 x2)))
+    (and ($smtx_dd_has_dt (tsm.TypeRef.arg1 (dtc.cons.arg1 x2)) x1) ($smtx_dt_cons_wf_rec x1 (dtc.cons.arg2 x2)))
+  (ite ((_ is dtc.cons) x2)
+    (and (and (inhabited_type (dtc.cons.arg1 x2)) ($smtx_type_wf_rec (dtc.cons.arg1 x2))) ($smtx_dt_cons_wf_rec x1 (dtc.cons.arg2 x2)))
     true
-    false
-)))) :pattern (($smtx_dt_cons_wf_rec x1 x2)))) :named sm.axiom.$smtx_dt_cons_wf_rec))
+))) :pattern (($smtx_dt_cons_wf_rec x1 x2)))) :named sm.axiom.$smtx_dt_cons_wf_rec))
 
 ; program: $smtx_dt_wf_rec
-(declare-fun $smtx_dt_wf_rec (dt.Datatype dt.Datatype) Bool)
-(assert (! (forall ((x1 dt.Datatype) (x2 dt.Datatype))
+(declare-fun $smtx_dt_wf_rec (dd.DatatypeDecl dt.Datatype) Bool)
+(assert (! (forall ((x1 dd.DatatypeDecl) (x2 dt.Datatype))
   (! (= ($smtx_dt_wf_rec x1 x2)
-  (ite (and ((_ is dt.sum) x1) ((_ is dt.sum) x2))
-    (ite ($smtx_dt_cons_wf_rec (dt.sum.arg1 x1) (dt.sum.arg1 x2)) ($smtx_dt_wf_rec (dt.sum.arg2 x1) (dt.sum.arg2 x2)) false)
-  (ite (and (= x1 dt.null) (= x2 dt.null))
+  (ite ((_ is dt.sum) x2)
+    (and ($smtx_dt_cons_wf_rec x1 (dt.sum.arg1 x2)) ($smtx_dt_wf_rec x1 (dt.sum.arg2 x2)))
     true
-    false
-))) :pattern (($smtx_dt_wf_rec x1 x2)))) :named sm.axiom.$smtx_dt_wf_rec))
+)) :pattern (($smtx_dt_wf_rec x1 x2)))) :named sm.axiom.$smtx_dt_wf_rec))
+
+; program: $smtx_decl_wf_rec
+(declare-fun $smtx_decl_wf_rec (dd.DatatypeDecl dd.DatatypeDecl) Bool)
+(assert (! (forall ((x1 dd.DatatypeDecl) (x2 dd.DatatypeDecl))
+  (! (= ($smtx_decl_wf_rec x1 x2)
+  (ite ((_ is dd.cons) x2)
+    (and ($smtx_dt_wf_rec x1 (dd.cons.arg2 x2)) (and (inhabited_type (tsm.Datatype (dd.cons.arg1 x2) x1)) (and ($smtx_decl_wf_rec x1 (dd.cons.arg3 x2)) (not ($smtx_dd_has_dt (dd.cons.arg1 x2) (dd.cons.arg3 x2))))))
+    true
+)) :pattern (($smtx_decl_wf_rec x1 x2)))) :named sm.axiom.$smtx_decl_wf_rec))
 
 ; program: $smtx_type_wf_rec
-(assert (! (forall ((x1 tsm.Type) (x2 tsm.Type))
-  (! (= ($smtx_type_wf_rec x1 x2)
-  (ite (and ((_ is tsm.Datatype) x1) ((_ is tsm.Datatype) x2))
-    ($smtx_dt_wf_rec ($smtx_dt_substitute (tsm.Datatype.arg1 x1) (tsm.Datatype.arg2 x1) (tsm.Datatype.arg2 x1)) (tsm.Datatype.arg2 x2))
-  (ite ((_ is tsm.TypeRef) x2)
+(assert (! (forall ((x1 tsm.Type))
+  (! (= ($smtx_type_wf_rec x1)
+  (ite ((_ is tsm.Datatype) x1)
+    (and ($smtx_dd_has_dt (tsm.Datatype.arg1 x1) (tsm.Datatype.arg2 x1)) ($smtx_decl_wf_rec (tsm.Datatype.arg2 x1) (tsm.Datatype.arg2 x1)))
+  (ite ((_ is tsm.TypeRef) x1)
     false
-  (ite ((_ is tsm.Seq) x2)
-    (and (and (inhabited_type (tsm.Seq.arg1 x2)) ($smtx_type_wf_rec (tsm.Seq.arg1 x2) (tsm.Seq.arg1 x2))) ($smtx_type_no_alias_rec reflist_nil (tsm.Seq.arg1 x2)))
-  (ite ((_ is tsm.Map) x2)
-    (and (and (and (inhabited_type (tsm.Map.arg1 x2)) ($smtx_type_wf_rec (tsm.Map.arg1 x2) (tsm.Map.arg1 x2))) ($smtx_type_no_alias_rec reflist_nil (tsm.Map.arg1 x2))) (and (and (inhabited_type (tsm.Map.arg2 x2)) ($smtx_type_wf_rec (tsm.Map.arg2 x2) (tsm.Map.arg2 x2))) ($smtx_type_no_alias_rec reflist_nil (tsm.Map.arg2 x2))))
-  (ite ((_ is tsm.FunType) x2)
+  (ite ((_ is tsm.Seq) x1)
+    (and (inhabited_type (tsm.Seq.arg1 x1)) ($smtx_type_wf_rec (tsm.Seq.arg1 x1)))
+  (ite ((_ is tsm.Map) x1)
+    (and (and (inhabited_type (tsm.Map.arg1 x1)) ($smtx_type_wf_rec (tsm.Map.arg1 x1))) (and (inhabited_type (tsm.Map.arg2 x1)) ($smtx_type_wf_rec (tsm.Map.arg2 x1))))
+  (ite ((_ is tsm.FunType) x1)
     false
-  (ite ((_ is tsm.Set) x2)
-    (and (and (inhabited_type (tsm.Set.arg1 x2)) ($smtx_type_wf_rec (tsm.Set.arg1 x2) (tsm.Set.arg1 x2))) ($smtx_type_no_alias_rec reflist_nil (tsm.Set.arg1 x2)))
-  (ite ((_ is tsm.DtcAppType) x2)
+  (ite ((_ is tsm.Set) x1)
+    (and (inhabited_type (tsm.Set.arg1 x1)) ($smtx_type_wf_rec (tsm.Set.arg1 x1)))
+  (ite ((_ is tsm.DtcAppType) x1)
     false
-  (ite (= x2 tsm.None)
+  (ite (= x1 tsm.None)
     false
-  (ite (= x2 tsm.RegLan)
+  (ite (= x1 tsm.RegLan)
     false
     true
-)))))))))) :pattern (($smtx_type_wf_rec x1 x2)))) :named sm.axiom.$smtx_type_wf_rec))
+)))))))))) :pattern (($smtx_type_wf_rec x1)))) :named sm.axiom.$smtx_type_wf_rec))
 
 ; program: $smtx_type_wf_component
 (define-fun $smtx_type_wf_component ((x1 tsm.Type)) Bool
-    (and (and (inhabited_type x1) ($smtx_type_wf_rec x1 x1)) ($smtx_type_no_alias_rec reflist_nil x1))
+    (and (inhabited_type x1) ($smtx_type_wf_rec x1))
 )
 
 ; program: $smtx_type_wf
@@ -716,8 +684,8 @@
 )))) :pattern (($smtx_ret_typeof_sel_rec x1 x2 x3)))) :named sm.axiom.$smtx_ret_typeof_sel_rec))
 
 ; program: $smtx_ret_typeof_sel
-(define-fun $smtx_ret_typeof_sel ((x1 String) (x2 dt.Datatype) (x3 Nat) (x4 Nat)) tsm.Type
-    ($smtx_ret_typeof_sel_rec ($smtx_dt_substitute x1 x2 x2) x3 x4)
+(define-fun $smtx_ret_typeof_sel ((x1 String) (x2 dd.DatatypeDecl) (x3 Nat) (x4 Nat)) tsm.Type
+    ($smtx_ret_typeof_sel_rec ($smtx_dt_resolve ($smtx_dd_lookup x1 x2) x2) x3 x4)
 )
 
 ; program: $smtx_typeof_apply_value
@@ -753,7 +721,7 @@
   (ite ((_ is vsm.UValue) x1)
     (tsm.USort (vsm.UValue.arg1 x1))
   (ite ((_ is vsm.DtCons) x1)
-    ($smtx_typeof_dt_cons_value_rec (tsm.Datatype (vsm.DtCons.arg1 x1) (vsm.DtCons.arg2 x1)) ($smtx_dt_substitute (vsm.DtCons.arg1 x1) (vsm.DtCons.arg2 x1) (vsm.DtCons.arg2 x1)) (vsm.DtCons.arg3 x1))
+    ($smtx_typeof_dt_cons_value_rec (tsm.Datatype (vsm.DtCons.arg1 x1) (vsm.DtCons.arg2 x1)) ($smtx_dt_resolve ($smtx_dd_lookup (vsm.DtCons.arg1 x1) (vsm.DtCons.arg2 x1)) (vsm.DtCons.arg2 x1)) (vsm.DtCons.arg3 x1))
   (ite ((_ is vsm.Apply) x1)
     ($smtx_typeof_apply_value ($smtx_typeof_value (vsm.Apply.arg1 x1)) ($smtx_typeof_value (vsm.Apply.arg2 x1)))
     tsm.None
@@ -805,12 +773,12 @@
 )))))
 
 ; program: $smtx_model_eval_dt_sel
-(define-fun $smtx_model_eval_dt_sel ((x1 smm.SmtModel) (x2 String) (x3 dt.Datatype) (x4 Nat) (x5 Nat) (x6 vsm.Value)) vsm.Value
-    (ite (veq ($vsm_apply_head x6) (vsm.DtCons x2 x3 x4)) ($vsm_apply_arg_nth x6 x5 ($smtx_dt_num_sels x3 x4)) ($smtx_model_eval_apply x1 (model_lookup x1 (wrong_apply_sel_id x4 x5) (tsm.FunType (tsm.Datatype x2 x3) ($smtx_ret_typeof_sel x2 x3 x4 x5))) x6))
+(define-fun $smtx_model_eval_dt_sel ((x1 smm.SmtModel) (x2 String) (x3 dd.DatatypeDecl) (x4 Nat) (x5 Nat) (x6 vsm.Value)) vsm.Value
+    (ite (veq ($vsm_apply_head x6) (vsm.DtCons x2 x3 x4)) ($vsm_apply_arg_nth x6 x5 ($smtx_dt_num_sels ($smtx_dd_lookup x2 x3) x4)) ($smtx_model_eval_apply x1 (model_lookup x1 (wrong_apply_sel_id x4 x5) (tsm.FunType (tsm.Datatype x2 x3) ($smtx_ret_typeof_sel x2 x3 x4 x5))) x6))
 )
 
 ; program: $smtx_model_eval_dt_tester
-(define-fun $smtx_model_eval_dt_tester ((x1 String) (x2 dt.Datatype) (x3 Nat) (x4 vsm.Value)) vsm.Value
+(define-fun $smtx_model_eval_dt_tester ((x1 String) (x2 dd.DatatypeDecl) (x3 Nat) (x4 vsm.Value)) vsm.Value
     (vsm.Boolean (veq ($vsm_apply_head x4) (vsm.DtCons x1 x2 x3)))
 )
 
@@ -955,11 +923,11 @@
   (ite ((_ is sm.seq_diff) x1)
     ($smtx_typeof_seq_diff ($smtx_typeof (sm.seq_diff.arg1 x1)) ($smtx_typeof (sm.seq_diff.arg2 x1)))
   (ite ((_ is sm.DtCons) x1)
-    ($smtx_typeof_guard_wf (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_typeof_dt_cons_rec (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_dt_substitute (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1) (sm.DtCons.arg2 x1)) (sm.DtCons.arg3 x1)))
+    ($smtx_typeof_guard_wf (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_typeof_dt_cons_rec (tsm.Datatype (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) ($smtx_dt_resolve ($smtx_dd_lookup (sm.DtCons.arg1 x1) (sm.DtCons.arg2 x1)) (sm.DtCons.arg2 x1)) (sm.DtCons.arg3 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtSel) (sm.Apply.arg1 x1)))
     ($smtx_typeof_guard_wf ($smtx_ret_typeof_sel (sm.DtSel.arg1 (sm.Apply.arg1 x1)) (sm.DtSel.arg2 (sm.Apply.arg1 x1)) (sm.DtSel.arg3 (sm.Apply.arg1 x1)) (sm.DtSel.arg4 (sm.Apply.arg1 x1))) ($smtx_typeof_apply (tsm.FunType (tsm.Datatype (sm.DtSel.arg1 (sm.Apply.arg1 x1)) (sm.DtSel.arg2 (sm.Apply.arg1 x1))) ($smtx_ret_typeof_sel (sm.DtSel.arg1 (sm.Apply.arg1 x1)) (sm.DtSel.arg2 (sm.Apply.arg1 x1)) (sm.DtSel.arg3 (sm.Apply.arg1 x1)) (sm.DtSel.arg4 (sm.Apply.arg1 x1)))) ($smtx_typeof (sm.Apply.arg2 x1))))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.DtTester) (sm.Apply.arg1 x1)))
-    ($smtx_typeof_guard ($smtx_typeof_dt_cons_rec (tsm.Datatype (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) ($smtx_dt_substitute (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) (sm.DtTester.arg3 (sm.Apply.arg1 x1))) ($smtx_typeof_apply (tsm.FunType (tsm.Datatype (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) tsm.Bool) ($smtx_typeof (sm.Apply.arg2 x1))))
+    ($smtx_typeof_guard ($smtx_typeof_dt_cons_rec (tsm.Datatype (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) ($smtx_dt_resolve ($smtx_dd_lookup (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) (sm.DtTester.arg3 (sm.Apply.arg1 x1))) ($smtx_typeof_apply (tsm.FunType (tsm.Datatype (sm.DtTester.arg1 (sm.Apply.arg1 x1)) (sm.DtTester.arg2 (sm.Apply.arg1 x1))) tsm.Bool) ($smtx_typeof (sm.Apply.arg2 x1))))
   (ite ((_ is sm.Apply) x1)
     ($smtx_typeof_apply ($smtx_typeof (sm.Apply.arg1 x1)) ($smtx_typeof (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Var) x1)
@@ -993,13 +961,22 @@
     dt.null
 )) :pattern (($eo_to_smt_datatype x1)))) :named sm.axiom.$eo_to_smt_datatype))
 
+; program: $eo_to_smt_datatype_decl
+(declare-fun $eo_to_smt_datatype_decl (edd.DatatypeDecl) dd.DatatypeDecl)
+(assert (! (forall ((x1 edd.DatatypeDecl))
+  (! (= ($eo_to_smt_datatype_decl x1)
+  (ite ((_ is edd.cons) x1)
+    (dd.cons (edd.cons.arg1 x1) ($eo_to_smt_datatype (edd.cons.arg2 x1)) ($eo_to_smt_datatype_decl (edd.cons.arg3 x1)))
+    dd.nil
+)) :pattern (($eo_to_smt_datatype_decl x1)))) :named sm.axiom.$eo_to_smt_datatype_decl))
+
 ; program: $eo_to_smt_type
 (assert (! (forall ((x1 eo.Term))
   (! (= ($eo_to_smt_type x1)
   (ite (= x1 eo.Bool)
     tsm.Bool
   (ite ((_ is eo.DatatypeType) x1)
-    (ite (reserved_datatype_name (eo.DatatypeType.arg1 x1)) tsm.None (tsm.Datatype (eo.DatatypeType.arg1 x1) ($eo_to_smt_datatype (eo.DatatypeType.arg2 x1))))
+    (ite (reserved_datatype_name (eo.DatatypeType.arg1 x1)) tsm.None (tsm.Datatype (eo.DatatypeType.arg1 x1) ($eo_to_smt_datatype_decl (eo.DatatypeType.arg2 x1))))
   (ite ((_ is eo.DatatypeTypeRef) x1)
     (ite (reserved_datatype_name (eo.DatatypeTypeRef.arg1 x1)) tsm.None (tsm.TypeRef (eo.DatatypeTypeRef.arg1 x1)))
   (ite ((_ is eo.DtcAppType) x1)
@@ -1037,9 +1014,9 @@
   (ite (and ((_ is eo.Var) x1) ((_ is eo.String) (eo.Var.arg1 x1)))
     (sm.Var (eo.String.arg1 (eo.Var.arg1 x1)) ($eo_to_smt_type (eo.Var.arg2 x1)))
   (ite ((_ is eo.DtCons) x1)
-    (ite (reserved_datatype_name (eo.DtCons.arg1 x1)) sm.None (sm.DtCons (eo.DtCons.arg1 x1) ($eo_to_smt_datatype (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1)))
+    (ite (reserved_datatype_name (eo.DtCons.arg1 x1)) sm.None (sm.DtCons (eo.DtCons.arg1 x1) ($eo_to_smt_datatype_decl (eo.DtCons.arg2 x1)) (eo.DtCons.arg3 x1)))
   (ite ((_ is eo.DtSel) x1)
-    (ite (reserved_datatype_name (eo.DtSel.arg1 x1)) sm.None (sm.DtSel (eo.DtSel.arg1 x1) ($eo_to_smt_datatype (eo.DtSel.arg2 x1)) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1)))
+    (ite (reserved_datatype_name (eo.DtSel.arg1 x1)) sm.None (sm.DtSel (eo.DtSel.arg1 x1) ($eo_to_smt_datatype_decl (eo.DtSel.arg2 x1)) (eo.DtSel.arg3 x1) (eo.DtSel.arg4 x1)))
   (ite ((_ is eo.UConst) x1)
     (sm.UConst (uconst_id (eo.UConst.arg1 x1)) ($eo_to_smt_type (eo.UConst.arg2 x1)))
   (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.not))
@@ -1184,7 +1161,7 @@
   (G_Rat Rat (0.0 (/ G_Int_C G_Int_C) (- (/ G_Int_C G_Int_C))))
   (G_String String ("" (str.++ G_String "A") (str.++ G_String "B")))
   (G_Nat Nat (nat.zero (nat.succ G_Nat)))
-  (T_Type eo.Term (eo.$eo_Proof eo.Int eo.Real (eo.Apply eo.BitVec T_Int) eo.Char (eo.Apply eo.Seq T_Type) eo.Bool ))
+  (T_Type eo.Term (eo.$eo_Proof eo.Int eo.Real (eo.Apply eo.BitVec T_Int) eo.Char (eo.Apply eo.Seq T_Type) eo.$eo_DatatypeDecl eo.Bool ))
   (T_$eo_Proof eo.Term ((eo.$eo_pf G_eo.Term) ))
   (T_SmtType eo.Term (T_Type ))
   (T_Fun eo.Term (eo.BitVec eo.Seq eo.not eo.and eo.= ))

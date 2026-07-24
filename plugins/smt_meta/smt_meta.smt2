@@ -102,12 +102,16 @@
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
 (declare-datatypes
-  ((eo.Term 0)  (edt.Datatype 0) (edtc.DatatypeCons 0)
+  ((eo.Term 0) (edd.DatatypeDecl 0)  (edt.Datatype 0) (edtc.DatatypeCons 0)
    (vsm.Value 0) (msm.Map 0) (ssm.Seq 0) (sm.Term 0) (tsm.Type 0)
-   (dt.Datatype 0) (dtc.DatatypeCons 0))
+   (dd.DatatypeDecl 0) (dt.Datatype 0) (dtc.DatatypeCons 0))
   (
   (
 $SM_EO_TERM_DECL$
+  )
+  (
+  (edd.nil)
+  (edd.cons (edd.cons.arg1 String) (edd.cons.arg2 edt.Datatype) (edd.cons.arg3 edd.DatatypeDecl))
   )
   (
   (edt.null)
@@ -131,6 +135,10 @@ $SM_TERM_DECL$
   )
   (
 $SM_TYPE_DECL$
+  )
+  (
+  (dd.nil)
+  (dd.cons (dd.cons.arg1 String) (dd.cons.arg2 dt.Datatype) (dd.cons.arg3 dd.DatatypeDecl))
   )
   (
   (dt.null)

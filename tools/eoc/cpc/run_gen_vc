@@ -10,10 +10,10 @@ source "$SCRIPT_DIR/common.sh"
 
 BUILD_DIR="$(eoc_build_dir)"
 INPUT="$(eoc_cpc_input)"
-ARGS=(batch --build-dir "$BUILD_DIR" vc "$INPUT")
+ARGS=(batch --build-dir "$BUILD_DIR")
 
 eoc_add_skip_cvc5
 eoc_extract_solve_options "$@"
 
-ARGS+=("${EOC_FILTERED_ARGS[@]}")
+ARGS+=(vc "$INPUT" "${EOC_FILTERED_ARGS[@]}")
 eoc_exec_driver "${ARGS[@]}"

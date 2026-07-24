@@ -32,6 +32,8 @@ enum class MetaKind
 {
   /** The deep embedding of the term is a Eunoia term. */
   EUNOIA,
+  /** The deep embedding of the term is a Eunoia datatype declaration. */
+  DATATYPE_DECL,
   /** The deep embedding of the term is a Eunoia datatype. */
   DATATYPE,
   /** The deep embedding of the term is a Eunoia datatype constructor. */
@@ -56,6 +58,8 @@ enum class MetaKind
   SMT_BUILTIN_DATATYPE,
   /** The deep embedding of the term is a proof. */
   PROOF,
+  /** The deep embedding of the term is an SMT-LIB datatype decl. */
+  SMT_DATATYPE_DECL,
   /** The deep embedding of the term is an SMT-LIB datatype. */
   SMT_DATATYPE,
   /** The deep embedding of the term is an SMT-LIB datatype constructor. */

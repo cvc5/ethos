@@ -23,6 +23,7 @@ MetaReducePlugin::~MetaReducePlugin() {}
 
 void MetaReducePlugin::initializeCommonMetaKinds()
 {
+  d_typeToMetaKind["$eo_DatatypeDecl"] = MetaKind::DATATYPE_DECL;
   d_typeToMetaKind["$eo_Datatype"] = MetaKind::DATATYPE;
   d_typeToMetaKind["$eo_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
   d_typeToMetaKind["$smt_Model"] = MetaKind::SMT_MODEL;
@@ -32,10 +33,12 @@ void MetaReducePlugin::initializeCommonMetaKinds()
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
+  d_typeToMetaKind["$smt_DatatypeDecl"] = MetaKind::SMT_DATATYPE_DECL;
   d_typeToMetaKind["$smt_Datatype"] = MetaKind::SMT_DATATYPE;
   d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
   d_typeToMetaKind["$native_BuiltinType"] = MetaKind::SMT_BUILTIN;
 
+  d_prefixToMetaKind["edd"] = MetaKind::DATATYPE_DECL;
   d_prefixToMetaKind["edt"] = MetaKind::DATATYPE;
   d_prefixToMetaKind["edtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
   d_prefixToMetaKind["sm"] = MetaKind::SMT;
@@ -43,6 +46,7 @@ void MetaReducePlugin::initializeCommonMetaKinds()
   d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
+  d_prefixToMetaKind["dd"] = MetaKind::SMT_DATATYPE_DECL;
   d_prefixToMetaKind["dt"] = MetaKind::SMT_DATATYPE;
   d_prefixToMetaKind["dtc"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
 }

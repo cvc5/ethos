@@ -29,7 +29,7 @@ if [[ -d "$LOGOS_DIR/$SUB_DIR" ]]; then
     cd "$LOGOS_DIR/$SUB_DIR"
     shopt -s nullglob
     while IFS= read -r -d '' file; do
-      sed -i 's/partial def /def /g' "$file"
-    done < <(find -type f -name '*.lean' -print0)
+      eoc_sed_in_place 's/partial def /def /g' "$file"
+    done < <(find . -type f -name '*.lean' -print0)
   )
 fi

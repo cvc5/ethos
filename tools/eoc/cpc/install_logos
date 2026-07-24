@@ -29,7 +29,9 @@ eoc_rewrite_lean_calc_imports "$LOGOS_DIR/Cpc" "$SOURCE_CALC" "Cpc"
 
 "$SCRIPT_DIR/install_logos_mini"
 
-if [[ -d "$LOGOS_TESTS_DIR" ]]; then
+if [[ -d "$LOGOS_TESTS_DIR" ]] \
+  && command -v "$CPC_GEN_LOGOS_CMD" >/dev/null 2>&1 \
+  && [[ -x "$CVC5_LOGOS" ]]; then
   (
     cd "$LOGOS_TESTS_DIR"
     shopt -s nullglob
@@ -43,7 +45,9 @@ if [[ -d "$LOGOS_TESTS_DIR" ]]; then
       rm -f temp.lean
     done
   )
+elif [[ -d "$LOGOS_TESTS_DIR" ]]; then
+  echo "warning: skipping Logos examples; CPC_GEN_LOGOS_CMD or CVC5_LOGOS is unavailable" >&2
 fi
 
 echo "********* Clean *********"
-"$SCRIPT_DIR/run_clean"
+EOC_SKIP_CVC5="${EOC_SKIP_CVC5:-1}" "$SCRIPT_DIR/run_clean"

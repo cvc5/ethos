@@ -46,6 +46,7 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
   switch (tk)
   {
     case MetaKind::EUNOIA: os << "eo.Term"; break;
+    case MetaKind::DATATYPE_DECL: os << "edd.DatatypeDecl"; break;
     case MetaKind::DATATYPE: os << "edt.Datatype"; break;
     case MetaKind::DATATYPE_CONSTRUCTOR: os << "edtc.DatatypeCons"; break;
     case MetaKind::SMT_MODEL: os << "smm.SmtModel"; break;
@@ -57,6 +58,7 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case MetaKind::SMT_BUILTIN_DATATYPE: os << getEmbedName(t); break;
     case MetaKind::SMT_MAP: os << "msm.Map"; break;
     case MetaKind::SMT_SEQ: os << "ssm.Seq"; break;
+    case MetaKind::SMT_DATATYPE_DECL: os << "dd.DatatypeDecl"; break;
     case MetaKind::SMT_DATATYPE: os << "dt.Datatype"; break;
     case MetaKind::SMT_DATATYPE_CONSTRUCTOR: os << "dtc.DatatypeCons"; break;
     default: return false;

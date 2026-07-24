@@ -148,6 +148,13 @@ eoc_detect_generated_lean_calc() {
   return 1
 }
 
+eoc_sed_in_place() {
+  local expression="$1"
+  local file="$2"
+  sed -i.bak -e "$expression" "$file"
+  rm -f "$file.bak"
+}
+
 eoc_rewrite_lean_calc_imports() {
   local dest_dir="$1"
   local src_calc="$2"
@@ -160,7 +167,9 @@ eoc_rewrite_lean_calc_imports() {
   while IFS= read -r -d '' file; do
     # Preserve an optional `all` modifier (captured as \1) when rewriting the
     # calc namespace so `import all ${src_calc}.` stays `import all ${dst_calc}.`.
-    sed -i "s/import \\(all \\)\\{0,1\\}${src_calc}\\./import \\1${dst_calc}\\./g" "$file"
+    eoc_sed_in_place \
+      "s/import \\(all \\)\\{0,1\\}${src_calc}\\./import \\1${dst_calc}\\./g" \
+      "$file"
   done < <(find "$dest_dir" -type f -name '*.lean' -print0)
 }
 

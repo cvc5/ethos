@@ -1,7 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # runs scripts to match the expected state of temporary added files for debugging
+set -euo pipefail
 
-./run_gen_vc symm
-./run_gen_lean symm contra
-./run_gen_sygus symm
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+"$SCRIPT_DIR/run_gen_vc" symm
+"$SCRIPT_DIR/run_gen_lean" symm contra
+"$SCRIPT_DIR/run_gen_sygus" symm

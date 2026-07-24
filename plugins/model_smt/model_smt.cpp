@@ -1098,8 +1098,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       true);
   addEunoiaReduceSym("UnitTuple",
                      {},
-                     "($tsm_Datatype $native_str_tuple_name ($dt_sum "
-                     "$dtc_unit $dt_null))",
+                     "($tsm_Datatype $native_str_tuple_name ($smtx_tuple_datatype_decl ($dt_sum "
+                     "$dtc_unit $dt_null)))",
                      true);
   addEunoiaReduceSym("tuple.select",
                      {kT, kT},
@@ -1114,8 +1114,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      "($eo_to_smt_tuple_prepend ($eo_to_smt x1) ($smtx_typeof ($eo_to_smt x1)) ($eo_to_smt x2))");
   addEunoiaReduceSym("tuple.unit",
                      {},
-                     "($sm_DtCons $native_str_tuple_name ($dt_sum "
-                     "$dtc_unit $dt_null) $native_n_zero)");
+                     "($sm_DtCons $native_str_tuple_name ($smtx_tuple_datatype_decl ($dt_sum "
+                     "$dtc_unit $dt_null)) $native_n_zero)");
   addEunoiaReduceSym(
       "is",
       {kT, kT},

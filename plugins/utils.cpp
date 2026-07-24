@@ -19,6 +19,7 @@ std::string metaKindToString(MetaKind k)
   switch (k)
   {
     case MetaKind::EUNOIA: ss << "EUNOIA"; break;
+    case MetaKind::DATATYPE_DECL: ss << "DATATYPE_DECL"; break;
     case MetaKind::DATATYPE: ss << "DATATYPE"; break;
     case MetaKind::DATATYPE_CONSTRUCTOR: ss << "DATATYPE_CONSTRUCTOR"; break;
     case MetaKind::PROOF: ss << "PROOF"; break;
@@ -31,6 +32,7 @@ std::string metaKindToString(MetaKind k)
     case MetaKind::SMT_VALUE: ss << "SMT_VALUE"; break;
     case MetaKind::SMT_MAP: ss << "SMT_MAP"; break;
     case MetaKind::SMT_SEQ: ss << "SMT_SEQ"; break;
+    case MetaKind::SMT_DATATYPE_DECL: ss << "SMT_DATATYPE_DECL"; break;
     case MetaKind::SMT_DATATYPE: ss << "SMT_DATATYPE"; break;
     case MetaKind::SMT_DATATYPE_CONSTRUCTOR:
       ss << "SMT_DATATYPE_CONSTRUCTOR";
@@ -54,12 +56,14 @@ std::string metaKindToPrefix(MetaKind k)
   switch (k)
   {
     case MetaKind::EUNOIA: ss << "eo."; break;
+    case MetaKind::DATATYPE_DECL: ss << "edd."; break;
     case MetaKind::DATATYPE: ss << "edt."; break;
     case MetaKind::DATATYPE_CONSTRUCTOR: ss << "edtc."; break;
     case MetaKind::SMT: ss << "sm."; break;
     case MetaKind::SMT_TYPE: ss << "tsm."; break;
     case MetaKind::SMT_VALUE: ss << "vsm."; break;
     case MetaKind::SMT_BUILTIN: ss << "?"; break;
+    case MetaKind::SMT_DATATYPE_DECL: ss << "dd."; break;
     case MetaKind::SMT_DATATYPE: ss << "dt."; break;
     case MetaKind::SMT_DATATYPE_CONSTRUCTOR: ss << "dtc."; break;
     default: ss << "?MetaKindPrefix_" << metaKindToString(k); break;
@@ -72,6 +76,7 @@ bool isSmtMetaKind(MetaKind k)
          || k == MetaKind::SMT_BUILTIN_DATATYPE || k == MetaKind::SMT
          || k == MetaKind::SMT_TYPE || k == MetaKind::SMT_VALUE
          || k == MetaKind::SMT_MAP || k == MetaKind::SMT_SEQ
+         || k == MetaKind::SMT_DATATYPE_DECL
          || k == MetaKind::SMT_DATATYPE
          || k == MetaKind::SMT_DATATYPE_CONSTRUCTOR;
 }

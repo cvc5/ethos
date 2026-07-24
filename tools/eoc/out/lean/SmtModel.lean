@@ -308,7 +308,7 @@ inductive SmtType : Type where
   | Set : SmtType -> SmtType
   | Seq : SmtType -> SmtType
   | Char : SmtType
-  | Datatype : native_String -> SmtDatatype -> SmtType
+  | Datatype : native_String -> SmtDatatypeDecl -> SmtType
   | TypeRef : native_String -> SmtType
   | USort : native_Nat -> SmtType
   | FunType : SmtType -> SmtType -> SmtType
@@ -336,9 +336,9 @@ inductive SmtTerm : Type where
   | bind : native_String -> SmtType -> SmtTerm -> SmtTerm -> SmtTerm
   | map_diff : SmtTerm -> SmtTerm -> SmtTerm
   | seq_diff : SmtTerm -> SmtTerm -> SmtTerm
-  | DtCons : native_String -> SmtDatatype -> native_Nat -> SmtTerm
-  | DtSel : native_String -> SmtDatatype -> native_Nat -> native_Nat -> SmtTerm
-  | DtTester : native_String -> SmtDatatype -> native_Nat -> SmtTerm
+  | DtCons : native_String -> SmtDatatypeDecl -> native_Nat -> SmtTerm
+  | DtSel : native_String -> SmtDatatypeDecl -> native_Nat -> native_Nat -> SmtTerm
+  | DtTester : native_String -> SmtDatatypeDecl -> native_Nat -> SmtTerm
   | UConst : native_String -> SmtType -> SmtTerm
   | not : SmtTerm -> SmtTerm
   | or : SmtTerm -> SmtTerm -> SmtTerm
@@ -363,7 +363,7 @@ inductive SmtValue : Type where
   | Char : native_Char -> SmtValue
   | UValue : native_Nat -> native_Nat -> SmtValue
   | RegLan : native_RegLan -> SmtValue
-  | DtCons : native_String -> SmtDatatype -> native_Nat -> SmtValue
+  | DtCons : native_String -> SmtDatatypeDecl -> native_Nat -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
 
 deriving Repr, DecidableEq, Inhabited, Ord
@@ -382,6 +382,14 @@ SMT-LIB sequence values.
 inductive SmtSeq : Type where
   | cons : SmtValue -> SmtSeq -> SmtSeq
   | empty : SmtType -> SmtSeq
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
+SMT-LIB datatype declarations.
+-/
+inductive SmtDatatypeDecl : Type where
+  | nil : SmtDatatypeDecl
+  | cons : native_String -> SmtDatatype -> SmtDatatypeDecl -> SmtDatatypeDecl
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
@@ -582,80 +590,58 @@ def __vsm_apply_arg_nth : SmtValue -> native_Nat -> native_Nat -> SmtValue
   | a, n, npos => SmtValue.NotValue
 
 
-def __smtx_type_lift (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) => (native_ite (native_Teq (SmtType.Datatype s d) (SmtType.Datatype s2 d2)) (SmtType.TypeRef s) (SmtType.Datatype s2 (__smtx_dt_lift s d d2)))
-  | T => T
+def __smtx_dtc_resolve : SmtDatatypeCons -> SmtDatatypeDecl -> SmtDatatypeCons
+  | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), dd => (SmtDatatypeCons.cons (SmtType.Datatype s dd) (__smtx_dtc_resolve c dd))
+  | (SmtDatatypeCons.cons T c), dd => (SmtDatatypeCons.cons T (__smtx_dtc_resolve c dd))
+  | SmtDatatypeCons.unit, dd => SmtDatatypeCons.unit
 
 
-def __smtx_dtc_lift (s : native_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
-  | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (__smtx_type_lift s d T) (__smtx_dtc_lift s d c))
-  | SmtDatatypeCons.unit => SmtDatatypeCons.unit
+def __smtx_dt_resolve : SmtDatatype -> SmtDatatypeDecl -> SmtDatatype
+  | (SmtDatatype.sum c d), dd => (SmtDatatype.sum (__smtx_dtc_resolve c dd) (__smtx_dt_resolve d dd))
+  | SmtDatatype.null, dd => SmtDatatype.null
 
 
-def __smtx_dt_lift (s : native_String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
-  | (SmtDatatype.sum c d2) => (SmtDatatype.sum (__smtx_dtc_lift s d c) (__smtx_dt_lift s d d2))
-  | SmtDatatype.null => SmtDatatype.null
+def __smtx_dd_lookup (s : native_String) : SmtDatatypeDecl -> SmtDatatype
+  | (SmtDatatypeDecl.cons s2 d dd) => (native_ite (native_streq s s2) d (__smtx_dd_lookup s dd))
+  | SmtDatatypeDecl.nil => SmtDatatype.null
 
 
-def __smtx_type_substitute (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s (__smtx_dt_lift s2 d2 d) d2)))
-  | (SmtType.TypeRef s2) => (native_ite (native_streq s s2) (SmtType.Datatype s d) (SmtType.TypeRef s2))
-  | T => T
+def __smtx_dd_has_dt (s : native_String) : SmtDatatypeDecl -> native_Bool
+  | (SmtDatatypeDecl.cons s2 d dd) => (native_or (native_streq s s2) (__smtx_dd_has_dt s dd))
+  | SmtDatatypeDecl.nil => false
 
 
-def __smtx_dtc_substitute (s : native_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
-  | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (__smtx_type_substitute s d T) (__smtx_dtc_substitute s d c))
-  | SmtDatatypeCons.unit => SmtDatatypeCons.unit
-
-
-def __smtx_dt_substitute (s : native_String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
-  | (SmtDatatype.sum c d2) => (SmtDatatype.sum (__smtx_dtc_substitute s d c) (__smtx_dt_substitute s d d2))
-  | SmtDatatype.null => SmtDatatype.null
-
-
-def __smtx_dt_cons_no_alias_rec (refs : RefList) : SmtDatatypeCons -> native_Bool
-  | (SmtDatatypeCons.cons T c) => (native_ite (__smtx_type_no_alias_rec refs T) (__smtx_dt_cons_no_alias_rec refs c) false)
+def __smtx_dt_cons_wf_rec (dd : SmtDatatypeDecl) : SmtDatatypeCons -> native_Bool
+  | (SmtDatatypeCons.cons (SmtType.TypeRef s) c) => (native_and (__smtx_dd_has_dt s dd) (__smtx_dt_cons_wf_rec dd c))
+  | (SmtDatatypeCons.cons T c) => (native_and (native_and (native_inhabited_type T) (__smtx_type_wf_rec T)) (__smtx_dt_cons_wf_rec dd c))
   | SmtDatatypeCons.unit => true
 
 
-def __smtx_dt_no_alias_rec (refs : RefList) : SmtDatatype -> native_Bool
+def __smtx_dt_wf_rec (dd : SmtDatatypeDecl) : SmtDatatype -> native_Bool
+  | (SmtDatatype.sum cF dF) => (native_and (__smtx_dt_cons_wf_rec dd cF) (__smtx_dt_wf_rec dd dF))
   | SmtDatatype.null => true
-  | (SmtDatatype.sum c d) => (native_ite (__smtx_dt_cons_no_alias_rec refs c) (__smtx_dt_no_alias_rec refs d) false)
 
 
-def __smtx_type_no_alias_rec : RefList -> SmtType -> native_Bool
-  | refs, (SmtType.Datatype s d) => (native_ite (native_reflist_contains refs s) false (__smtx_dt_no_alias_rec (native_reflist_insert refs s) d))
-  | T, refs => true
+def __smtx_decl_wf_rec (dd : SmtDatatypeDecl) : SmtDatatypeDecl -> native_Bool
+  | (SmtDatatypeDecl.cons s d ddF) => (native_and (__smtx_dt_wf_rec dd d) (native_and (native_inhabited_type (SmtType.Datatype s dd)) (native_and (__smtx_decl_wf_rec dd ddF) (native_not (__smtx_dd_has_dt s ddF)))))
+  | SmtDatatypeDecl.nil => true
 
 
-def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> SmtDatatypeCons -> native_Bool
-  | (SmtDatatypeCons.cons (SmtType.Datatype s d) cF), (SmtDatatypeCons.cons (SmtType.TypeRef sU) cU) => (__smtx_dt_cons_wf_rec cF cU)
-  | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) => (native_ite (native_and (native_inhabited_type TF) (__smtx_type_wf_rec TF TU)) (__smtx_dt_cons_wf_rec cF cU) false)
-  | SmtDatatypeCons.unit, SmtDatatypeCons.unit => true
-  | cF, cU => false
-
-
-def __smtx_dt_wf_rec : SmtDatatype -> SmtDatatype -> native_Bool
-  | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) => (native_ite (__smtx_dt_cons_wf_rec cF cU) (__smtx_dt_wf_rec dF dU) false)
-  | SmtDatatype.null, SmtDatatype.null => true
-  | dF, dU => false
-
-
-def __smtx_type_wf_rec : SmtType -> SmtType -> native_Bool
-  | (SmtType.Datatype sF dF), (SmtType.Datatype sU dU) => (__smtx_dt_wf_rec (__smtx_dt_substitute sF dF dF) dU)
-  | T, (SmtType.TypeRef sF) => false
-  | T, (SmtType.Seq x1) => (native_and (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 x1)) (__smtx_type_no_alias_rec native_reflist_nil x1))
-  | T, (SmtType.Map x1 x2) => (native_and (native_and (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 x1)) (__smtx_type_no_alias_rec native_reflist_nil x1)) (native_and (native_and (native_inhabited_type x2) (__smtx_type_wf_rec x2 x2)) (__smtx_type_no_alias_rec native_reflist_nil x2)))
-  | T, (SmtType.FunType x1 x2) => false
-  | T, (SmtType.Set x1) => (native_and (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 x1)) (__smtx_type_no_alias_rec native_reflist_nil x1))
-  | T, (SmtType.DtcAppType x1 x2) => false
-  | T, SmtType.None => false
-  | T, SmtType.RegLan => false
-  | T, U => true
+def __smtx_type_wf_rec : SmtType -> native_Bool
+  | (SmtType.Datatype s dd) => (native_and (__smtx_dd_has_dt s dd) (__smtx_decl_wf_rec dd dd))
+  | (SmtType.TypeRef s) => false
+  | (SmtType.Seq x1) => (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1))
+  | (SmtType.Map x1 x2) => (native_and (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1)) (native_and (native_inhabited_type x2) (__smtx_type_wf_rec x2)))
+  | (SmtType.FunType x1 x2) => false
+  | (SmtType.Set x1) => (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1))
+  | (SmtType.DtcAppType x1 x2) => false
+  | SmtType.None => false
+  | SmtType.RegLan => false
+  | U => true
 
 
 def __smtx_type_wf_component (T : SmtType) : native_Bool :=
-  (native_and (native_and (native_inhabited_type T) (__smtx_type_wf_rec T T)) (__smtx_type_no_alias_rec native_reflist_nil T))
+  (native_and (native_inhabited_type T) (__smtx_type_wf_rec T))
 
 def __smtx_type_wf : SmtType -> native_Bool
   | SmtType.RegLan => true
@@ -730,8 +716,8 @@ def __smtx_ret_typeof_sel_rec : SmtDatatype -> native_Nat -> native_Nat -> SmtTy
   | d, n, m => SmtType.None
 
 
-def __smtx_ret_typeof_sel (s : native_String) (d : SmtDatatype) (n : native_Nat) (m : native_Nat) : SmtType :=
-  (__smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d d) n m)
+def __smtx_ret_typeof_sel (s : native_String) (dd : SmtDatatypeDecl) (n : native_Nat) (m : native_Nat) : SmtType :=
+  (__smtx_ret_typeof_sel_rec (__smtx_dt_resolve (__smtx_dd_lookup s dd) dd) n m)
 
 def __smtx_typeof_apply_value : SmtType -> SmtType -> SmtType
   | (SmtType.DtcAppType T U), V => (__smtx_typeof_guard T (native_ite (native_Teq T V) U SmtType.None))
@@ -750,7 +736,7 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
   | (SmtValue.Char c) => (native_ite (native_char_valid c) SmtType.Char SmtType.None)
   | (SmtValue.UValue i e) => (SmtType.USort i)
-  | (SmtValue.DtCons s d i) => (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i)
+  | (SmtValue.DtCons s dd i) => (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s dd) (__smtx_dt_resolve (__smtx_dd_lookup s dd) dd) i)
   | (SmtValue.Apply f v) => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
   | v => SmtType.None
 
@@ -779,17 +765,17 @@ def __smtx_model_eval_seq_diff : SmtValue -> SmtValue -> SmtValue
 
 def __smtx_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
   | v, SmtValue.NotValue => SmtValue.NotValue
-  | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
+  | (SmtValue.DtCons s dd n), i => (SmtValue.Apply (SmtValue.DtCons s dd n) i)
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
   | (SmtValue.Fun s T U), i => (native_eval_ifun_apply M s T U i)
   | v, i => SmtValue.NotValue
 
 
-def __smtx_model_eval_dt_sel (M : SmtModel) (s : native_String) (d : SmtDatatype) (n : native_Nat) (m : native_Nat) (v : SmtValue) : SmtValue :=
-  (native_ite (native_veq (__vsm_apply_head v) (SmtValue.DtCons s d n)) (__vsm_apply_arg_nth v m (__smtx_dt_num_sels d n)) (__smtx_model_eval_apply M (native_model_lookup M (native_wrong_apply_sel_id n m) (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m))) v))
+def __smtx_model_eval_dt_sel (M : SmtModel) (s : native_String) (dd : SmtDatatypeDecl) (n : native_Nat) (m : native_Nat) (v : SmtValue) : SmtValue :=
+  (native_ite (native_veq (__vsm_apply_head v) (SmtValue.DtCons s dd n)) (__vsm_apply_arg_nth v m (__smtx_dt_num_sels (__smtx_dd_lookup s dd) n)) (__smtx_model_eval_apply M (native_model_lookup M (native_wrong_apply_sel_id n m) (SmtType.FunType (SmtType.Datatype s dd) (__smtx_ret_typeof_sel s dd n m))) v))
 
-def __smtx_model_eval_dt_tester (s : native_String) (d : SmtDatatype) (n : native_Nat) (v1 : SmtValue) : SmtValue :=
-  (SmtValue.Boolean (native_veq (__vsm_apply_head v1) (SmtValue.DtCons s d n)))
+def __smtx_model_eval_dt_tester (s : native_String) (dd : SmtDatatypeDecl) (n : native_Nat) (v1 : SmtValue) : SmtValue :=
+  (SmtValue.Boolean (native_veq (__vsm_apply_head v1) (SmtValue.DtCons s dd n)))
 
 def __smtx_model_eval_not : SmtValue -> SmtValue
   | (SmtValue.Boolean x1) => (SmtValue.Boolean (native_not x1))
@@ -852,93 +838,115 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.bind s T x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) T) (__smtx_typeof_guard_wf T (__smtx_typeof x2)) SmtType.None)
   | (SmtTerm.map_diff x1 x2) => (__smtx_typeof_map_diff (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.seq_diff x1 x2) => (__smtx_typeof_seq_diff (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.DtCons s d i) => 
-    let _v0 := (SmtType.Datatype s d)
-    (__smtx_typeof_guard_wf _v0 (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i))
-  | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => 
-    let _v0 := (__smtx_ret_typeof_sel s d i j)
-    (__smtx_typeof_guard_wf _v0 (__smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) _v0) (__smtx_typeof x1)))
-  | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => 
-    let _v0 := (SmtType.Datatype s d)
-    (__smtx_typeof_guard (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i) (__smtx_typeof_apply (SmtType.FunType _v0 SmtType.Bool) (__smtx_typeof x1)))
+  | (SmtTerm.DtCons s dd i) => 
+    let _v0 := (SmtType.Datatype s dd)
+    (__smtx_typeof_guard_wf _v0 (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_resolve (__smtx_dd_lookup s dd) dd) i))
+  | (SmtTerm.Apply (SmtTerm.DtSel s dd i j) x1) => 
+    let _v0 := (__smtx_ret_typeof_sel s dd i j)
+    (__smtx_typeof_guard_wf _v0 (__smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s dd) _v0) (__smtx_typeof x1)))
+  | (SmtTerm.Apply (SmtTerm.DtTester s dd i) x1) => 
+    let _v0 := (SmtType.Datatype s dd)
+    (__smtx_typeof_guard (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_resolve (__smtx_dd_lookup s dd) dd) i) (__smtx_typeof_apply (SmtType.FunType _v0 SmtType.Bool) (__smtx_typeof x1)))
   | (SmtTerm.Apply f x1) => (__smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x1))
   | (SmtTerm.Var s T) => (__smtx_typeof_guard_wf T T)
   | (SmtTerm.UConst s T) => (__smtx_typeof_guard_wf T T)
   | x1 => SmtType.None
 
 
-def __smtx_is_unit_datatype_cons : SmtDatatypeCons -> native_Bool
-  | SmtDatatypeCons.unit => true
-  | (SmtDatatypeCons.cons T c) => (native_and (__smtx_is_unit_type T) (__smtx_is_unit_datatype_cons c))
+def __smtx_is_finite_type (T : SmtType) : native_Bool :=
+  (__smtx_type_bounded false T)
+
+def __smtx_field_type_bounded (u : native_Bool) : SmtType -> SmtDatatypeDecl -> native_Bool
+  | (SmtType.TypeRef s), ddB => (__smtx_dd_has_dt s ddB)
+  | T, ddB => (__smtx_type_bounded u T)
+termination_by T ddB => (sizeOf T, 1)
 
 
-def __smtx_is_unit_datatype : SmtDatatype -> native_Bool
-  | (SmtDatatype.sum c SmtDatatype.null) => (__smtx_is_unit_datatype_cons c)
-  | d => false
+def __smtx_datatype_cons_bounded (u : native_Bool) : SmtDatatypeCons -> SmtDatatypeDecl -> native_Bool
+  | SmtDatatypeCons.unit, ddB => true
+  | (SmtDatatypeCons.cons T c), ddB => (native_and (__smtx_field_type_bounded u T ddB) (__smtx_datatype_cons_bounded u c ddB))
+termination_by c ddB => (sizeOf c, 0)
 
 
-def __smtx_is_unit_type : SmtType -> native_Bool
-  | (SmtType.BitVec w) => (native_nateq w native_nat_zero)
-  | (SmtType.Datatype s d) => (__smtx_is_unit_datatype d)
-  | (SmtType.Map T U) => (__smtx_is_unit_type U)
+def __smtx_datatype_bounded (u : native_Bool) : SmtDatatype -> SmtDatatypeDecl -> native_Bool
+  | (SmtDatatype.sum c SmtDatatype.null), ddB => (__smtx_datatype_cons_bounded u c ddB)
+  | (SmtDatatype.sum c dF), ddB => (native_and (native_not u) (native_and (__smtx_datatype_cons_bounded u c ddB) (__smtx_datatype_bounded u dF ddB)))
+  | dF, ddB => (native_not u)
+termination_by dF ddB => (sizeOf dF, 0)
+
+
+def __smtx_datatype_decl_bounded_step (u : native_Bool) : SmtDatatypeDecl -> SmtDatatypeDecl -> SmtDatatypeDecl
+  | (SmtDatatypeDecl.cons sF dF ddR), ddB => (__smtx_datatype_decl_bounded_step u ddR (native_ite (native_and (native_not (__smtx_dd_has_dt sF ddB)) (__smtx_datatype_bounded u dF ddB)) (SmtDatatypeDecl.cons sF dF ddB) ddB))
+  | SmtDatatypeDecl.nil, ddB => ddB
+termination_by ddR ddB => (sizeOf ddR, 0)
+
+
+def __smtx_datatype_decl_bounded (u : native_Bool) : SmtDatatypeDecl -> SmtDatatypeDecl -> SmtDatatypeDecl -> SmtDatatypeDecl
+  | (SmtDatatypeDecl.cons sC dC ddC), dd, ddB => (__smtx_datatype_decl_bounded u ddC dd (__smtx_datatype_decl_bounded_step u dd ddB))
+  | SmtDatatypeDecl.nil, dd, ddB => ddB
+termination_by ddC dd ddB => (sizeOf dd, sizeOf ddC)
+
+
+def __smtx_type_bounded (u : native_Bool) : SmtType -> native_Bool
+  | SmtType.Bool => (native_not u)
+  | (SmtType.BitVec w) => (native_or (native_not u) (native_nateq w native_nat_zero))
+  | SmtType.Char => (native_not u)
+  | (SmtType.Datatype s dd) => (__smtx_dd_has_dt s (__smtx_datatype_decl_bounded u dd dd SmtDatatypeDecl.nil))
+  | (SmtType.Map T U) => (native_or (__smtx_type_bounded true U) (native_and (native_not u) (native_and (__smtx_type_bounded u T) (__smtx_type_bounded u U))))
+  | (SmtType.Set T) => (native_and (native_not u) (__smtx_type_bounded u T))
   | T => false
+termination_by T => (sizeOf T, 0)
 
 
-def __smtx_is_finite_datatype_cons : SmtDatatypeCons -> native_Bool
-  | SmtDatatypeCons.unit => true
-  | (SmtDatatypeCons.cons T c) => (native_and (__smtx_is_finite_type T) (__smtx_is_finite_datatype_cons c))
+def __smtx_field_type_default (dd : SmtDatatypeDecl) : SmtType -> SmtDatatypeDecl -> SmtValue
+  | (SmtType.TypeRef s), ddF => (__smtx_datatype_decl_default s dd ddF)
+  | T, ddF => (__smtx_type_default T)
+termination_by T ddF => 2 * (sizeOf T + sizeOf ddF) + 3
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
 
 
-def __smtx_is_finite_datatype : SmtDatatype -> native_Bool
-  | SmtDatatype.null => true
-  | (SmtDatatype.sum c d) => (native_and (__smtx_is_finite_datatype_cons c) (__smtx_is_finite_datatype d))
+def __smtx_datatype_cons_default (v : SmtValue) (dd : SmtDatatypeDecl) : SmtDatatypeCons -> SmtDatatypeDecl -> SmtValue
+  | SmtDatatypeCons.unit, ddF => v
+  | (SmtDatatypeCons.cons T c), ddF => 
+    let _v0 := (__smtx_field_type_default dd T ddF)
+    (native_ite (native_veq _v0 SmtValue.NotValue) SmtValue.NotValue (__smtx_datatype_cons_default (SmtValue.Apply v _v0) dd c ddF))
+termination_by c ddF => 2 * (sizeOf c + sizeOf ddF) + 2
 
 
-def __smtx_is_finite_type : SmtType -> native_Bool
-  | SmtType.Bool => true
-  | (SmtType.BitVec w) => true
-  | SmtType.Char => true
-  | (SmtType.Datatype s d) => (__smtx_is_finite_datatype d)
-  | (SmtType.Map T U) => (native_or (__smtx_is_unit_type U) (native_and (__smtx_is_finite_type T) (__smtx_is_finite_type U)))
-  | (SmtType.Set T) => (__smtx_is_finite_type T)
-  | T => false
+def __smtx_datatype_default (s : native_String) (dd : SmtDatatypeDecl) (n : native_Nat) : SmtDatatype -> SmtDatatypeDecl -> SmtValue
+  | (SmtDatatype.sum cF dF), ddF => 
+    let _v0 := (__smtx_datatype_cons_default (SmtValue.DtCons s dd n) dd cF ddF)
+    (native_ite (native_not (native_veq _v0 SmtValue.NotValue)) _v0 (__smtx_datatype_default s dd (native_nat_succ n) dF ddF))
+  | dF, ddF => SmtValue.NotValue
+termination_by dF ddF => 2 * (sizeOf dF + sizeOf ddF) + 1
 
 
-def __smtx_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatypeCons -> SmtValue
-  | SmtDatatypeCons.unit, SmtDatatypeCons.unit => v
-  | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) => 
-    let _v0 := (__smtx_type_default_rec TF TU)
-    (native_ite (native_veq _v0 SmtValue.NotValue) SmtValue.NotValue (__smtx_datatype_cons_default (SmtValue.Apply v _v0) cF cU))
-  | cF, cU => SmtValue.NotValue
+def __smtx_datatype_decl_default (s : native_String) (dd : SmtDatatypeDecl) : SmtDatatypeDecl -> SmtValue
+  | (SmtDatatypeDecl.cons sF dF ddF) => (native_ite (native_streq s sF) (__smtx_datatype_default s dd native_nat_zero dF ddF) (__smtx_datatype_decl_default s dd ddF))
+  | ddF => SmtValue.NotValue
+termination_by ddF => 2 * sizeOf ddF
 
 
-def __smtx_datatype_default (s : native_String) (d : SmtDatatype) (n : native_Nat) : SmtDatatype -> SmtDatatype -> SmtValue
-  | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) => 
-    let _v0 := (__smtx_datatype_cons_default (SmtValue.DtCons s d n) cF cU)
-    (native_ite (native_not (native_veq _v0 SmtValue.NotValue)) _v0 (__smtx_datatype_default s d (native_nat_succ n) dF dU))
-  | dF, dU => SmtValue.NotValue
-
-
-def __smtx_type_default_rec : SmtType -> SmtType -> SmtValue
-  | (SmtType.Datatype sF dF), (SmtType.Datatype sU dU) => (__smtx_datatype_default sF dF native_nat_zero (__smtx_dt_substitute sF dF dF) dU)
-  | V, SmtType.Bool => (SmtValue.Boolean false)
-  | V, SmtType.Int => (SmtValue.Numeral 0)
-  | V, SmtType.Real => (SmtValue.Rational (native_mk_rational 0 1))
-  | V, SmtType.RegLan => (SmtValue.RegLan native_re_none)
-  | V, (SmtType.BitVec w) => (SmtValue.Binary (native_nat_to_int w) 0)
-  | V, SmtType.Char => (SmtValue.Char native_nat_zero)
-  | V, (SmtType.Map T U) => 
-    let _v0 := (__smtx_type_default_rec U U)
+def __smtx_type_default : SmtType -> SmtValue
+  | (SmtType.Datatype s dd) => (__smtx_datatype_decl_default s dd dd)
+  | SmtType.Bool => (SmtValue.Boolean false)
+  | SmtType.Int => (SmtValue.Numeral 0)
+  | SmtType.Real => (SmtValue.Rational (native_mk_rational 0 1))
+  | SmtType.RegLan => (SmtValue.RegLan native_re_none)
+  | (SmtType.BitVec w) => (SmtValue.Binary (native_nat_to_int w) 0)
+  | SmtType.Char => (SmtValue.Char native_nat_zero)
+  | (SmtType.Map T U) => 
+    let _v0 := (__smtx_type_default U)
     (native_ite (native_veq _v0 SmtValue.NotValue) SmtValue.NotValue (SmtValue.Map (SmtMap.default T _v0)))
-  | V, (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
-  | V, (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
-  | V, (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
-  | V, (SmtType.FunType T U) => (SmtValue.Fun native_default_ifun_id T U)
-  | V, T => SmtValue.NotValue
+  | (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
+  | (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
+  | (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
+  | (SmtType.FunType T U) => (SmtValue.Fun native_default_ifun_id T U)
+  | T => SmtValue.NotValue
+termination_by T => 2 * sizeOf T
 
-
-def __smtx_type_default (T : SmtType) : SmtValue :=
-  (__smtx_type_default_rec T T)
 
 def __smtx_map_entries_ordered_after (i : SmtValue) : SmtMap -> native_Bool
   | (SmtMap.cons j e m) => (native_vcmp j i)
@@ -1108,9 +1116,9 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.bind s T x1 x2) => (__smtx_model_eval (native_model_push M s T (__smtx_model_eval M x1)) x2)
   | (SmtTerm.map_diff x1 x2) => (__smtx_model_eval_map_diff (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.seq_diff x1 x2) => (__smtx_model_eval_seq_diff (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
-  | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
-  | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
+  | (SmtTerm.DtCons s dd i) => (SmtValue.DtCons s dd i)
+  | (SmtTerm.Apply (SmtTerm.DtSel s dd i j) x1) => (__smtx_model_eval_dt_sel M s dd i j (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.DtTester s dd i) x1) => (__smtx_model_eval_dt_tester s dd i (__smtx_model_eval M x1))
   | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x1))
   | (SmtTerm.Var s T) => (native_model_var_lookup M s T)
   | (SmtTerm.UConst s T) => (native_model_lookup M s T)
