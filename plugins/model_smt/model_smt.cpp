@@ -214,6 +214,108 @@ std::string eoDefine(const std::string& x,
   return ss.str();
 }
 
+namespace {
+
+constexpr const char* s_numOccurProgram = "$eo_to_smt_strings_num_occur";
+constexpr const char* s_numOccurReProgram =
+    "$eo_to_smt_strings_num_occur_re";
+
+/**
+ * Return an SMT term for the empty sequence having the same element type as
+ * s. Using substr instead of seq.empty avoids having to extract the element
+ * type from s.
+ */
+std::string stringsEmptyLike(const std::string& s)
+{
+  return "(str.substr " + s + " 0 0)";
+}
+
+/** Return a sequence of length one when s is nonempty, and empty otherwise. */
+std::string stringsUnitLike(const std::string& s)
+{
+  return "(str.substr " + s + " 0 1)";
+}
+
+/** Return the number of non-overlapping occurrences of t in s. */
+std::string stringsNumOccur(const std::string& s, const std::string& t)
+{
+  std::stringstream ss;
+  ss << "(- (str.len (str.replace_all " << s << " " << t << " "
+     << stringsUnitLike(s) << ")) "
+     << "(str.len (str.replace_all " << s << " " << t << " "
+     << stringsEmptyLike(s) << ")))";
+  return ss.str();
+}
+
+/** Return the number of nonempty, leftmost-shortest matches of r in s. */
+std::string stringsNumOccurRe(const std::string& s, const std::string& r)
+{
+  std::stringstream ss;
+  ss << "(- (str.len (str.replace_re_all " << s << " " << r
+     << " " << stringsUnitLike(s) << ")) "
+     << "(str.len (str.replace_re_all " << s << " " << r << " "
+     << stringsEmptyLike(s) << ")))";
+  return ss.str();
+}
+
+/** Return a call to the auxiliary occurrence-count program. */
+std::string stringsNumOccurCall(const std::string& s,
+                                const std::string& t,
+                                bool isRegex)
+{
+  std::stringstream ss;
+  ss << "(" << (isRegex ? s_numOccurReProgram : s_numOccurProgram) << " " << s
+     << " " << t << ")";
+  return ss.str();
+}
+
+/** Return an auxiliary Eunoia program with an occurrence-count body. */
+std::string stringsNumOccurProgram(const std::string& name,
+                                   const std::string& body)
+{
+  std::stringstream ss;
+  ss << "(program " << name << " ((s $smt_Term) (t $smt_Term))\n"
+     << "  :signature ($smt_Term $smt_Term) $smt_Term\n"
+     << "  (\n"
+     << "  ((" << name << " s t) " << body << ")\n"
+     << "  )\n"
+     << ")\n";
+  return ss.str();
+}
+
+/**
+ * Return the occurrence-index skolem applied to s, t, n. This is later
+ * embedded to the model leaf @strings_occur_index[_re].
+ */
+std::string stringsOccurIndexCall(const std::string& s,
+                                  const std::string& t,
+                                  const std::string& n,
+                                  bool isRegex)
+{
+  std::stringstream ss;
+  ss << "(" << (isRegex ? "@strings_occur_index_re" : "@strings_occur_index")
+     << " " << s << " " << t << " " << n << ")";
+  return ss.str();
+}
+
+/** Return the unprocessed replacement suffix following occurrence n. */
+std::string stringsReplaceAllResult(const std::string& s,
+                                    const std::string& pattern,
+                                    const std::string& replacement,
+                                    const std::string& n,
+                                    bool isRegex)
+{
+  const std::string index =
+      stringsOccurIndexCall(s, pattern, n, isRegex);
+  std::stringstream ss;
+  ss << "(" << (isRegex ? "str.replace_re_all" : "str.replace_all")
+     << " (str.substr " << s << " " << index << " (str.len " << s << ")) "
+     << pattern << " " << replacement << ")";
+  return ss.str();
+}
+
+}  // namespace
+
 ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 {
   // This constructor is the main source of the specification of the semantics
@@ -1124,22 +1226,53 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "update",
       {kT, kT, kT},
       "($eo_to_smt_updater ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
+  const std::string e1 = "($eo_to_smt x1)";
+  const std::string e2 = "($eo_to_smt x2)";
+  const std::string e3 = "($eo_to_smt x3)";
+  const std::string e4 = "($eo_to_smt x4)";
+  d_auxDef["@strings_num_occur"] = stringsNumOccurProgram(
+      s_numOccurProgram,
+      smtToSmtEmbed(stringsNumOccur("s", "t"), true));
+  d_auxDef["@strings_num_occur_re"] = stringsNumOccurProgram(
+      s_numOccurReProgram,
+      smtToSmtEmbed(stringsNumOccurRe("s", "t"), true));
   addEunoiaReduceSym("@strings_num_occur",
                      {kT, kT},
-                     smtToSmtEmbed("(div (- (str.len ($eo_to_smt x1)) (str.len "
-                                   "(str.replace_all ($eo_to_smt "
-                                   "x1) ($eo_to_smt x2) (seq.empty "
-                                   "$tsm_String)))) (str.len ($eo_to_smt x2)))",
-                                   true));
+                     stringsNumOccurCall(e1, e2, false));
+  addEunoiaReduceSym("@strings_num_occur_re",
+                     {kString, kRegLan},
+                     stringsNumOccurCall(e1, e2, true));
+  // The occurrence-index skolems are model leaves evaluated directly by the
+  // native model runtime (native_seq_occur_index / native_str_occur_index_re).
+  // @strings_occur_index shares the type checking of str.indexof: its first two
+  // arguments are sequences of the same element type and the third an integer,
+  // returning an integer.
+  addLitSym("@strings_occur_index",
+            {d_kSeq, d_kSeq, kInt},
+            kInt,
+            "($native_apply_3 \"seq.occur_index\" "
+            "($native_apply_1 \"unpack_seq\" x1) "
+            "($native_apply_1 \"unpack_seq\" x2) x3)");
+  d_typeFullCase["@strings_occur_index"] =
+      "($smtx_typeof_str.indexof ($smtx_typeof x1) ($smtx_typeof x2) "
+      "($smtx_typeof x3))";
+  addLitSym("@strings_occur_index_re",
+            {kString, kRegLan, kInt},
+            kInt,
+            "($native_apply_3 \"str.occur_index_re\" "
+            "($native_apply_1 \"unpack_string\" x1) x2 x3)");
+  // The result helpers are eliminated directly to the replacement term over
+  // the suffix following the requested occurrence.
+  addEunoiaReduceSym(
+      "@strings_replace_all_result",
+      {kT, kT, kT, kInt},
+      smtToSmtEmbed(stringsReplaceAllResult(e1, e2, e3, e4, false), true));
+  addEunoiaReduceSym(
+      "@strings_replace_re_all_result",
+      {kString, kRegLan, kString, kInt},
+      smtToSmtEmbed(stringsReplaceAllResult(e1, e2, e3, e4, true), true));
   // ignore, not in proof rules (NOTE: could be SMT const?)
   d_symIgnore["@const"] = true;
-  //
-  // FIXME: unhandled
-  d_symIgnore["@strings_num_occur_re"] = true;
-  d_symIgnore["@strings_occur_index"] = true;
-  d_symIgnore["@strings_occur_index_re"] = true;
-  d_symIgnore["@strings_replace_all_result"] = true;
-  d_symIgnore["@strings_replace_re_all_result"] = true;
   d_symIgnore["lambda"] = true;
 
   // for alethe
