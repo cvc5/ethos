@@ -457,12 +457,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("div_total", {kInt, kInt}, kInt);
   addConstFoldSym("mod_total", {kInt, kInt}, kInt);
   std::stringstream ssQDiv;
-  ssQDiv << "(ite (= (to_real e2) 0/1) (apply M "
+  ssQDiv << "(ite (= ($smtx_model_eval_to_real_coerce e2) 0/1) (apply M "
          << smtApp3("model_lookup",
                     "M",
                     smtApp0("/_by_zero_id"),
                     "($tsm_FunType $tsm_Real $tsm_Real)")
-         << " (to_real e1)) (/_total (to_real e1) (to_real e2)))";
+         << " ($smtx_model_eval_to_real_coerce e1)) (/_total ($smtx_model_eval_to_real_coerce e1) ($smtx_model_eval_to_real_coerce e2)))";
   addRecReduceSym("/", {kT, kT}, kReal, smtToSmtEmbed(ssQDiv.str()));
   std::stringstream ssDiv;
   ssDiv << "(ite (= e2 0) (apply M "
@@ -494,11 +494,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   //addRecReduceSym("**", {kInt, kInt}, kInt, smtToSmtEmbed(ssZExp.str()));
   //addConstFoldSym("**_total", {kInt, kInt}, kInt);
   addConstFoldSym("to_int", {kReal}, kInt);
-  addConstFoldSym("to_real", {kT}, kReal);
-  d_typeFullCase["to_real"] =
-      "(eo::define ((T ($smtx_typeof x1))) ($native_ite ($native_Teq T "
-      "$tsm_Int) $tsm_Real ($native_ite ($native_Teq T $tsm_Real) $tsm_Real "
-      "$tsm_none)))";
+  addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, kBool, "(= (mod_total x2 x1) 0)");
   // arrays
   addTypeSym("Array", {kType, kType});
