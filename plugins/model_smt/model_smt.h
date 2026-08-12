@@ -325,6 +325,16 @@ class ModelSmt : public StdPlugin
   Kind d_kArray;
   /** Pseudo-kind used for sequence arguments in generation tables. */
   Kind d_kSeq;
+  /**
+   * Pseudo-kind used for string arguments that are passed to the native
+   * layer as unpacked value sequences (List of SmtValue) rather than as
+   * native strings. This is used by the regular expression operators, whose
+   * native implementations operate directly on value sequences since
+   * regular languages carry SmtValue as base elements. Arguments and
+   * returns of this kind are typed as String (Seq Char) by the type
+   * checker, but are unpacked/packed with unpack_seq/pack_seq.
+   */
+  Kind d_kStrVSeq;
   /** Pseudo-kind used for bit-vector size arguments in generation tables. */
   Kind d_kBit;
   /** Pseudo-kind used for quoted Int parameters in generation tables. */

@@ -342,12 +342,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kArray = Kind::EVAL_LIST_NTH;
   d_kBit = Kind::EVAL_EXTRACT;
   d_kIntQuote = Kind::QUOTE_TYPE;
+  d_kStrVSeq = Kind::EVAL_CONCAT;
   d_kindToEoPrefix[kBool] = "bool";
   d_kindToEoPrefix[kInt] = "numeral";
   d_kindToEoPrefix[d_kIntQuote] = "numeral";
   d_kindToEoPrefix[kReal] = "rational";
   d_kindToEoPrefix[kString] = "seq";
   d_kindToEoPrefix[d_kSeq] = "seq";
+  d_kindToEoPrefix[d_kStrVSeq] = "seq";
   d_kindToEoPrefix[kBitVec] = "binary";
   d_kindToEoPrefix[kRegLan] = "re";
   d_kindToType[kBool] = "Bool";
@@ -573,7 +575,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addReduceSym(
       "re.none", {}, kRegLan, "($vsm_re ($native_apply_0 \"re.none\"))");
   addReduceSym("re.all", {}, kRegLan, "($vsm_re ($native_apply_0 \"re.all\"))");
-  addConstFoldSym("str.to_re", {kString}, kRegLan);
+  // String arguments of regular expression operators are passed to the
+  // native layer as unpacked value sequences (d_kStrVSeq); regular languages
+  // carry SmtValue base elements, making these operators uniform with the
+  // sequence operators.
+  addConstFoldSym("str.to_re", {d_kStrVSeq}, kRegLan);
   addConstFoldSym("re.*", {kRegLan}, kRegLan);
   // addConstFoldSym("re.+", {kRegLan}, kRegLan);
   addTermReduceSym("re.+", {kRegLan}, kRegLan, "(re.++ x1 (re.* x1))");
@@ -586,7 +592,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("re.inter", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.union", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.diff", {kRegLan, kRegLan}, kRegLan);  // TODO: term reduce
-  addConstFoldSym("re.range", {kString, kString}, kRegLan);
+  addConstFoldSym("re.range", {d_kStrVSeq, d_kStrVSeq}, kRegLan);
   printAuxNatRecProgram(
       "re.^",
       {kNone},
@@ -625,11 +631,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                                  smtGuardType(smtZLeq("$native_z_zero", "x2"),
                                               "$tsm_RegLan")));
   // RE operators
-  addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
-  addConstFoldSym("str.indexof_re", {kString, kRegLan, kInt}, kInt);
-  addConstFoldSym("str.indexof_re_split", {kString, kRegLan, kRegLan}, kInt);
-  addConstFoldSym("str.replace_re", {kString, kRegLan, kString}, kString);
-  addConstFoldSym("str.replace_re_all", {kString, kRegLan, kString}, kString);
+  addConstFoldSym("str.in_re", {d_kStrVSeq, kRegLan}, kBool);
+  addConstFoldSym("str.indexof_re", {d_kStrVSeq, kRegLan, kInt}, kInt);
+  addConstFoldSym("str.indexof_re_split", {d_kStrVSeq, kRegLan, kRegLan}, kInt);
+  addConstFoldSym("str.replace_re", {d_kStrVSeq, kRegLan, d_kStrVSeq}, d_kStrVSeq);
+  addConstFoldSym("str.replace_re_all", {d_kStrVSeq, kRegLan, d_kStrVSeq}, d_kStrVSeq);
   // bitvectors
   addTypeSym("BitVec", {kInt});
   // the following are return terms of aux program cases of the form:
@@ -1257,10 +1263,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "($smtx_typeof_str.indexof ($smtx_typeof x1) ($smtx_typeof x2) "
       "($smtx_typeof x3))";
   addLitSym("@strings_occur_index_re",
-            {kString, kRegLan, kInt},
+            {d_kStrVSeq, kRegLan, kInt},
             kInt,
-            "($native_apply_3 \"str.occur_index_re\" "
-            "($native_apply_1 \"unpack_string\" x1) x2 x3)");
+            "($native_apply_3 \"str_occur_index_re\" "
+            "($native_apply_1 \"unpack_seq\" x1) x2 x3)");
   // The result helpers are eliminated directly to the replacement term over
   // the suffix following the requested occurrence.
   addEunoiaReduceSym(
@@ -1772,12 +1778,25 @@ void ModelSmt::printConstFold(const std::string& name,
   {
     argSchemas.push_back(Kind::NONE);
   }
+  bool hasStrVSeq = (kret == d_kStrVSeq);
+  for (Kind ka : args)
+  {
+    hasStrVSeq = hasStrVSeq || (ka == d_kStrVSeq);
+  }
   std::stringstream opName;
   if (name.compare(0, 4, "str.") == 0 && args[0] == d_kSeq)
   {
     // mismatch str.substr vs seq.extract
     std::string oname = name.substr(4);
     opName << "seq." << (oname == "substr" ? "extract" : oname);
+  }
+  else if (hasStrVSeq)
+  {
+    // Value-sequence based (regular expression) operators use fresh names
+    // that are not SMT-LIB builtins, e.g. str.in_re becomes str_in_re.
+    // These are declared over sequences of values in the smt_meta preamble
+    // for the SMT2 target, and map to the same native_* names in Lean.
+    opName << replace_all(name, ".", "_");
   }
   else
   {
@@ -1800,7 +1819,7 @@ void ModelSmt::printConstFold(const std::string& name,
       Kind ka = args[i - 1];
       instArgs.push_back(ka == Kind::PARAM ? kas : ka);
       tmpParamCount++;
-      if (ka == Kind::STRING || ka == d_kSeq)
+      if (ka == Kind::STRING || ka == d_kSeq || ka == d_kStrVSeq)
       {
         retArgs << " ($native_apply_1 \"unpack_";
         retArgs << (ka == Kind::STRING ? "string" : "seq") << "\" x"
@@ -1815,14 +1834,19 @@ void ModelSmt::printConstFold(const std::string& name,
     Kind kr = kret == Kind::PARAM ? kas : kret;
     std::stringstream ssret;
     std::stringstream ssretEnd;
-    if (kr == Kind::STRING || kr == d_kSeq)
+    if (kr == Kind::STRING || kr == d_kSeq || kr == d_kStrVSeq)
     {
-      ssret << " ($native_apply_" << (kr == d_kSeq ? 2 : 1) << " \"pack_";
+      ssret << " ($native_apply_" << (kr == Kind::STRING ? 1 : 2) << " \"pack_";
       ssret << (kr == Kind::STRING ? "string" : "seq");
       ssret << "\" ";
       if (kr == d_kSeq)
       {
         ssret << "($smtx_elem_typeof_seq_value x1) ";
+      }
+      else if (kr == d_kStrVSeq)
+      {
+        // the result is a string, i.e. a sequence of characters
+        ssret << "$tsm_Char ";
       }
       ssretEnd << ")";
     }
@@ -2059,7 +2083,7 @@ bool ModelSmt::printTypeInternal(const std::string& name,
     out << "$tsm_Bool";
     return true;
   }
-  else if (k == Kind::STRING)
+  else if (k == Kind::STRING || k == d_kStrVSeq)
   {
     out << "$tsm_String";
     return true;
@@ -2290,7 +2314,7 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
       }
       progCases << d_kindToEoPrefix[ka] << " x" << paramCount << ")";
       progParams << "(x" << paramCount;
-      if (ka == d_kSeq)
+      if (ka == d_kSeq || ka == d_kStrVSeq)
       {
         progParams << " $smt_Seq";
       }
