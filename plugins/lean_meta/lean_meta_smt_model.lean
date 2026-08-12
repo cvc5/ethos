@@ -208,8 +208,12 @@ abbrev SmtRegLan := native_RegLan
 
 /-- Whether a base element of a regular language is a valid character value.
 This is the well-formedness condition on base elements: a well-formed
-regular language contains only valid characters (see native_re_canonical),
-and all matching operations treat other values as matching nothing. -/
+(canonical) regular language contains only valid characters (see
+native_re_canonical). Matching against a base element (.char) is structural
+equality on values, which allows regular languages over arbitrary value
+sequences; the sequence pattern operators (e.g. seq.replace_all) are
+evaluated via singleton regular expressions over their pattern. The
+allchar and range constructors match valid characters only. -/
 def native_re_elem_valid : SmtValue -> native_Bool
   | (SmtValue.Char c) => native_char_valid c
   | _ => false
@@ -273,7 +277,7 @@ def native_re_mk_star : native_RegLan -> native_RegLan
 def native_re_deriv (c : SmtValue) : native_RegLan -> native_RegLan
   | .empty => .empty
   | .epsilon => .empty
-  | .char d => if native_re_elem_valid c && native_re_elem_valid d && c = d then .epsilon else .empty
+  | .char d => if c = d then .epsilon else .empty
   | .range lo hi =>
       if native_re_elem_valid c && native_re_elem_valid lo && native_re_elem_valid hi
           && native_re_elem_le lo c && native_re_elem_le c hi then
@@ -301,10 +305,8 @@ def native_re_prefix_match_len?.go (r : native_RegLan) :
   | c :: cs, n =>
       if native_re_nullable r then
         some n
-      else if native_re_elem_valid c then
-        native_re_prefix_match_len?.go (native_re_deriv c r) cs (n + 1)
       else
-        none
+        native_re_prefix_match_len?.go (native_re_deriv c r) cs (n + 1)
 
 def native_re_prefix_match_len? (r : native_RegLan)
     (xs : List SmtValue) : Option Nat :=
@@ -314,12 +316,9 @@ def native_re_positive_prefix_match_len? (r : native_RegLan) :
     List SmtValue -> Option Nat
   | [] => none
   | c :: cs =>
-      if native_re_elem_valid c then
-        match native_re_prefix_match_len? (native_re_deriv c r) cs with
-        | some n => some (n + 1)
-        | none => none
-      else
-        none
+      match native_re_prefix_match_len? (native_re_deriv c r) cs with
+      | some n => some (n + 1)
+      | none => none
 
 def native_re_find_idx_aux (r : native_RegLan) (xs : List SmtValue) (idx : Nat) : Option (Nat × Nat) :=
   match native_re_prefix_match_len? r xs with
@@ -397,7 +396,7 @@ def native_str_indexof_re : List SmtValue -> native_RegLan -> native_Int -> nati
         -1
       else
         let start := Int.toNat i
-        if native_re_str_valid s && start <= s.length then
+        if start <= s.length then
           match native_re_find_idx_from r s start with
           | some (idx, _) => Int.ofNat idx
           | none => -1
@@ -445,21 +444,17 @@ def native_re_scan_ends_aux (fuel : Nat) (r : native_RegLan) (s : List SmtValue)
               (idx + len) :: native_re_scan_ends_aux fuel r s (idx + len)
           | none => []
 
-/-- The `n`-th entry of a boundary list produced by an occurrence scan: the
-boundary itself when `0 <= n <` the number of boundaries, and `-1` out of
-range. Shared by the sequence and regular expression occurrence-index
-operators. -/
-def native_occur_index_nth (bnds : List Nat) (n : native_Int) : native_Int :=
+/-- The `n`-th boundary of the nonempty-match scan of `r` over `s`: `0` for
+`n = 0`, the end position of the `n`-th match for `1 <= n <=` the number of
+matches, and `-1` out of range. The sequence occurrence-index operator is
+evaluated by this operator via a singleton regular expression over its
+pattern. -/
+def native_str_occur_index_re (s : List SmtValue) (r : native_RegLan) (n : native_Int) : native_Int :=
+  let bnds := 0 :: native_re_scan_ends_aux (s.length + 1) r s 0
   if 0 ≤ n ∧ Int.toNat n < bnds.length then
     Int.ofNat (bnds.getD (Int.toNat n) 0)
   else
     -1
-
-/-- The `n`-th boundary of the nonempty-match scan of `r` over `s`: `0` for
-`n = 0`, the end position of the `n`-th match for `1 <= n <=` the number of
-matches, and `-1` out of range. -/
-def native_str_occur_index_re (s : List SmtValue) (r : native_RegLan) (n : native_Int) : native_Int :=
-  native_occur_index_nth (0 :: native_re_scan_ends_aux (s.length + 1) r s 0) n
 
 def native_re_allchar : native_RegLan := .allchar
 def native_re_none : native_RegLan := .empty
@@ -621,11 +616,6 @@ def native_unpack_string (x : SmtSeq) : native_String :=
 def native_pack_string (s : native_String) : SmtSeq :=
   native_pack_seq SmtType.Char (s.map SmtValue.Char)
 
-def native_seq_prefix_eq : List SmtValue -> List SmtValue -> native_Bool
-  | [], _ => true
-  | _ :: _, [] => false
-  | v1 :: vs1, v2 :: vs2 => (native_veq v1 v2) && (native_seq_prefix_eq vs1 vs2)
-
 def native_seq_len : List SmtValue -> native_Int
   | x => Int.ofNat x.length
 
@@ -641,61 +631,6 @@ def native_seq_extract (xs : List SmtValue) (i : native_Int) (n : native_Int) : 
     let take : Nat := Int.toNat (min n (len - i))
     (xs.drop start).take take
 
-def native_seq_indexof_rec (xs pat : List SmtValue) (i fuel : Nat) : native_Int :=
-  match fuel with
-  | 0 => -1
-  | fuel + 1 =>
-      if native_seq_prefix_eq pat xs then
-        Int.ofNat i
-      else
-        match xs with
-        | [] => -1
-        | _ :: ys => (native_seq_indexof_rec ys pat (i + 1) fuel)
-
-def native_seq_indexof (xs pat : List SmtValue) (i : native_Int) : native_Int :=
-  if i < 0 then
-    -1
-  else
-    let start := Int.toNat i
-    let patLen := pat.length
-    let xsLen := xs.length
-    if h : start + patLen <= xsLen then
-      (native_seq_indexof_rec (xs.drop start) pat start (xsLen - (start + patLen) + 1))
-    else
-      -1
-
-def native_seq_replace (xs pat repl : List SmtValue) : List SmtValue :=
-  match pat with
-  | [] => repl ++ xs
-  | _ =>
-      let idx := native_seq_indexof xs pat 0
-      if idx < 0 then
-        xs
-      else
-        let n := Int.toNat idx
-        (xs.take n) ++ repl ++ (xs.drop (n + pat.length))
-
-
-def native_seq_replace_all_aux (fuel : Nat) (pat repl : List SmtValue) :
-    List SmtValue -> List SmtValue
-  | xs =>
-      match fuel with
-      | 0 => xs
-      | fuel + 1 =>
-          match pat with
-          | [] => xs
-          | _ =>
-              let idx := native_seq_indexof xs pat 0
-              if idx < 0 then
-                xs
-              else
-                let n := Int.toNat idx
-                (xs.take n) ++ repl ++
-                  (native_seq_replace_all_aux fuel pat repl (xs.drop (n + pat.length)))
-
-def native_seq_replace_all (xs pat repl : List SmtValue) : List SmtValue :=
-  (native_seq_replace_all_aux (xs.length + 1) pat repl xs)
-
 def native_seq_update (xs : List SmtValue) (i : native_Int) (ys : List SmtValue) : List SmtValue :=
   let len : native_Int := Int.ofNat xs.length
   if i < 0 || len <= i then
@@ -707,36 +642,6 @@ def native_seq_update (xs : List SmtValue) (i : native_Int) (ys : List SmtValue)
     
 def native_seq_rev : List SmtValue -> List SmtValue
   | xs => xs.reverse
-  
-def native_seq_contains (xs pat : List SmtValue) : native_Bool :=
-  (0 <= (native_seq_indexof xs pat 0))
-
-/-- End positions of the greedy leftmost occurrences of `pat` in `xs`
-(exactly the occurrences replaced by `native_seq_replace_all`); mirrors the
-fuel recursion of `native_seq_replace_all_aux`. -/
-def native_seq_occur_ends_aux (fuel : Nat) (pat : List SmtValue) :
-    List SmtValue -> List Nat
-  | xs =>
-      match fuel with
-      | 0 => []
-      | fuel + 1 =>
-          match pat with
-          | [] => []
-          | _ =>
-              let idx := native_seq_indexof xs pat 0
-              if idx < 0 then
-                []
-              else
-                let n := Int.toNat idx
-                (n + pat.length) ::
-                  (native_seq_occur_ends_aux fuel pat (xs.drop (n + pat.length))).map
-                    (· + (n + pat.length))
-
-/-- The `n`-th boundary of the greedy scan of `pat` over `xs`: `0` for
-`n = 0`, the end position of the `n`-th occurrence for `1 <= n <=` the
-number of occurrences, and `-1` out of range. -/
-def native_seq_occur_index (xs pat : List SmtValue) (n : native_Int) : native_Int :=
-  native_occur_index_nth (0 :: native_seq_occur_ends_aux (xs.length + 1) pat xs) n
 
 end
 
