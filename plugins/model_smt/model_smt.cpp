@@ -536,28 +536,16 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // addConstFoldSym("str.at", {kString, kInt}, kString);
   addTermReduceSym("str.at", {d_kSeq, kInt}, kString, "(str.substr x1 x2 1)");
   addAuxTypeProgram("str.at", {d_kSeq, kInt}, "($tsm_Seq x1)");
-  // The sequence pattern operators (indexof, replace, replace_all, contains)
-  // are evaluated via their regular expression counterparts, using the
-  // singleton regular expression (str.to_re pattern) for the pattern. This
-  // is possible since regular languages carry SmtValue base elements, where
-  // matching a base element is structural equality on values. Note that
-  // their types remain the generic sequence types; only their evaluators
-  // are reduced.
-  addTermReduceSym("str.indexof",
-                   {d_kSeq, d_kSeq, kInt},
-                   kInt,
-                   "(str.indexof_re x1 (str.to_re x2) x3)");
+  // The native sequence pattern operators are thin adapters over the regular
+  // expression implementation, using the singleton regular expression for
+  // the pattern. They remain separate native entry points so the SMT backend
+  // can map them directly to its generic seq.* operators.
+  addConstFoldSym("str.indexof", {d_kSeq, d_kSeq, kInt}, kInt);
   addAuxTypeProgram("str.indexof",
                     {d_kSeq, d_kSeq, kInt},
                     "($native_ite ($native_Teq x1 x2) $tsm_Int $tsm_none)");
-  addTermReduceSym("str.replace",
-                   {d_kSeq, d_kSeq, d_kSeq},
-                   d_kSeq,
-                   "(str.replace_re x1 (str.to_re x2) x3)");
-  addTermReduceSym("str.replace_all",
-                   {d_kSeq, d_kSeq, d_kSeq},
-                   d_kSeq,
-                   "(str.replace_re_all x1 (str.to_re x2) x3)");
+  addConstFoldSym("str.replace", {d_kSeq, d_kSeq, d_kSeq}, d_kSeq);
+  addConstFoldSym("str.replace_all", {d_kSeq, d_kSeq, d_kSeq}, d_kSeq);
   addConstFoldSym("str.from_code", {kInt}, kString);
   addConstFoldSym("str.to_code", {kString}, kInt);
   addConstFoldSym("str.from_int", {kInt}, kString);
@@ -568,8 +556,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             << " (str.to_code x1)) (<= (str.to_code x1) ($vsm_numeral "
             << smtZ(57) << ")))";
   addTermReduceSym("str.is_digit", {kString}, kBool, ssIsDigit.str());
-  addTermReduceSym(
-      "str.contains", {d_kSeq, d_kSeq}, kBool, "(<= 0 (str.indexof x1 x2 0))");
+  addConstFoldSym("str.contains", {d_kSeq, d_kSeq}, kBool);
   // addConstFoldSym("str.suffixof", {kString, kString}, kBool);
   // reduce
   addTermReduceSym(
@@ -1270,14 +1257,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // @strings_occur_index shares the type checking of str.indexof: its first two
   // arguments are sequences of the same element type and the third an integer,
   // returning an integer.
-  // Evaluated by the regular expression occurrence-index operator via the
-  // singleton regular expression for the pattern.
   addLitSym("@strings_occur_index",
             {d_kSeq, d_kSeq, kInt},
             kInt,
-            "($native_apply_3 \"str_occur_index_re\" "
+            "($native_apply_3 \"seq.occur_index\" "
             "($native_apply_1 \"unpack_seq\" x1) "
-            "($native_apply_1 \"str_to_re\" ($native_apply_1 \"unpack_seq\" x2)) x3)");
+            "($native_apply_1 \"unpack_seq\" x2) x3)");
   d_typeFullCase["@strings_occur_index"] =
       "($smtx_typeof_str.indexof ($smtx_typeof x1) ($smtx_typeof x2) "
       "($smtx_typeof x3))";

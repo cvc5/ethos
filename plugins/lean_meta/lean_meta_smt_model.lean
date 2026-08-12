@@ -244,7 +244,7 @@ def native_re_nullable : native_RegLan -> native_Bool
   | .star _ => true
   | .comp r => !(native_re_nullable r)
 
-def native_re_mk_concat (r₁ r₂ : native_RegLan) : native_RegLan :=
+def native_re_concat (r₁ r₂ : native_RegLan) : native_RegLan :=
   match r₁, r₂ with
   | .empty, _ => .empty
   | _, .empty => .empty
@@ -252,23 +252,23 @@ def native_re_mk_concat (r₁ r₂ : native_RegLan) : native_RegLan :=
   | r, .epsilon => r
   | r₁, r₂ => .concat r₁ r₂
 
-def native_re_mk_union (r₁ r₂ : native_RegLan) : native_RegLan :=
+def native_re_union (r₁ r₂ : native_RegLan) : native_RegLan :=
   match r₁, r₂ with
   | .empty, r => r
   | r, .empty => r
   | r₁, r₂ => if h : r₁ = r₂ then r₁ else .union r₁ r₂
 
-def native_re_mk_inter (r₁ r₂ : native_RegLan) : native_RegLan :=
+def native_re_inter (r₁ r₂ : native_RegLan) : native_RegLan :=
   match r₁, r₂ with
   | .empty, _ => .empty
   | _, .empty => .empty
   | r₁, r₂ => if h : r₁ = r₂ then r₁ else .inter r₁ r₂
 
-def native_re_mk_comp : native_RegLan -> native_RegLan
+def native_re_comp : native_RegLan -> native_RegLan
   | .comp r => r
   | r => .comp r
 
-def native_re_mk_star : native_RegLan -> native_RegLan
+def native_re_mult : native_RegLan -> native_RegLan
   | .empty => .epsilon
   | .epsilon => .epsilon
   | .star r => .star r
@@ -286,17 +286,17 @@ def native_re_deriv (c : SmtValue) : native_RegLan -> native_RegLan
         .empty
   | .allchar => if native_re_elem_valid c then .epsilon else .empty
   | .concat r₁ r₂ =>
-      native_re_mk_union
-        (native_re_mk_concat (native_re_deriv c r₁) r₂)
+      native_re_union
+        (native_re_concat (native_re_deriv c r₁) r₂)
         (if native_re_nullable r₁ then native_re_deriv c r₂ else .empty)
-  | .union r₁ r₂ => native_re_mk_union (native_re_deriv c r₁) (native_re_deriv c r₂)
-  | .inter r₁ r₂ => native_re_mk_inter (native_re_deriv c r₁) (native_re_deriv c r₂)
-  | .star r => native_re_mk_concat (native_re_deriv c r) (.star r)
-  | .comp r => native_re_mk_comp (native_re_deriv c r)
+  | .union r₁ r₂ => native_re_union (native_re_deriv c r₁) (native_re_deriv c r₂)
+  | .inter r₁ r₂ => native_re_inter (native_re_deriv c r₁) (native_re_deriv c r₂)
+  | .star r => native_re_concat (native_re_deriv c r) (.star r)
+  | .comp r => native_re_comp (native_re_deriv c r)
 
 def native_re_of_list : List SmtValue -> native_RegLan
   | [] => .epsilon
-  | c :: cs => native_re_mk_concat (.char c) (native_re_of_list cs)
+  | c :: cs => native_re_concat (.char c) (native_re_of_list cs)
 
 def native_re_prefix_match_len?.go (r : native_RegLan) :
     List SmtValue → Nat → Option Nat
@@ -365,20 +365,8 @@ def native_re_replace_all_nonempty_list (r : native_RegLan) (replacement xs : Li
 
 def native_str_to_re : List SmtValue -> native_RegLan
   | s => native_re_of_list s
-def native_re_mult : native_RegLan -> native_RegLan
-  | r => native_re_mk_star r
-def native_re_plus : native_RegLan -> native_RegLan
-  | r => native_re_mk_concat r (native_re_mk_star r)
-def native_re_comp : native_RegLan -> native_RegLan
-  | r => native_re_mk_comp r
-def native_re_concat : native_RegLan -> native_RegLan -> native_RegLan
-  | r₁, r₂ => native_re_mk_concat r₁ r₂
-def native_re_inter : native_RegLan -> native_RegLan -> native_RegLan
-  | r₁, r₂ => native_re_mk_inter r₁ r₂
 def native_re_diff : native_RegLan -> native_RegLan -> native_RegLan
-  | r₁, r₂ => native_re_mk_inter r₁ (native_re_mk_comp r₂)
-def native_re_union : native_RegLan -> native_RegLan -> native_RegLan
-  | r₁, r₂ => native_re_mk_union r₁ r₂
+  | r₁, r₂ => native_re_inter r₁ (native_re_comp r₂)
 def native_re_range : List SmtValue -> List SmtValue -> native_RegLan
   | s₁, s₂ =>
       match s₁, s₂ with
@@ -630,6 +618,24 @@ def native_seq_extract (xs : List SmtValue) (i : native_Int) (n : native_Int) : 
     let start : Nat := Int.toNat i
     let take : Nat := Int.toNat (min n (len - i))
     (xs.drop start).take take
+
+/-- Generic sequence pattern operations share the regular expression matcher.
+These small adapters also give the SMT backend distinct entry points that it
+can map directly to the corresponding polymorphic `seq.*` operators. -/
+def native_seq_indexof (xs pat : List SmtValue) (i : native_Int) : native_Int :=
+  native_str_indexof_re xs (native_str_to_re pat) i
+
+def native_seq_contains (xs pat : List SmtValue) : native_Bool :=
+  0 <= native_seq_indexof xs pat 0
+
+def native_seq_replace (xs pat repl : List SmtValue) : List SmtValue :=
+  native_str_replace_re xs (native_str_to_re pat) repl
+
+def native_seq_replace_all (xs pat repl : List SmtValue) : List SmtValue :=
+  native_str_replace_re_all xs (native_str_to_re pat) repl
+
+def native_seq_occur_index (xs pat : List SmtValue) (n : native_Int) : native_Int :=
+  native_str_occur_index_re xs (native_str_to_re pat) n
 
 def native_seq_update (xs : List SmtValue) (i : native_Int) (ys : List SmtValue) : List SmtValue :=
   let len : native_Int := Int.ofNat xs.length

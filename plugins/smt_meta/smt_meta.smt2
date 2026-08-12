@@ -215,9 +215,10 @@ $SM_TYPE_DECL$
   :pattern ((string_to_values x))))
   :named smtx.string_to_values.def))
 
-; the value-sequence based regular expression operators; these are the
-; SMT2 counterparts of the native regular expression operators of the
-; model semantics, which operate on unpacked sequences of values
+; the value-sequence based regular expression operators; these are the SMT2
+; counterparts of native string regular expression operators. Their arguments
+; are canonical character sequences, while generic sequence pattern operators
+; map directly to the polymorphic SMT seq.* operators.
 (define-fun str_to_re ((x (Seq vsm.Value))) RegLan
   (str.to_re (values_to_string x)))
 (define-fun re_range ((x (Seq vsm.Value)) (y (Seq vsm.Value))) RegLan
