@@ -640,7 +640,7 @@ $SMT_TYPE_CONSTRUCTORS$
   ; reglan only allowed at top-level
   (($smtx_type_wf $tsm_RegLan) $native_true)
   (($smtx_type_wf ($tsm_FunType T U))
-    ($native_and ($smtx_type_wf_component T) ($smtx_type_wf_component U)))
+    ($native_and ($smtx_type_wf_component T) ($smtx_type_wf U)))
   (($smtx_type_wf T) ($smtx_type_wf_component T))
   )
 )

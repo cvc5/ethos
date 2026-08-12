@@ -1189,7 +1189,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym(
       "@from_bools",
       {kBool, kBitVec},
-      smtToSmtEmbed("(concat (ite ($eo_to_smt x1) #b1 #b0) ($eo_to_smt x2))",
+      smtToSmtEmbed("(concat ($eo_to_smt x2) (ite ($eo_to_smt x1) #b1 #b0))",
                     true));
   // datatypes
   addEunoiaReduceSym(

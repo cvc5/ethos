@@ -670,7 +670,7 @@ def __smtx_type_wf_component (T : SmtType) : native_Bool :=
 
 def __smtx_type_wf : SmtType -> native_Bool
   | SmtType.RegLan => true
-  | (SmtType.FunType T U) => (native_and (__smtx_type_wf_component T) (__smtx_type_wf_component U))
+  | (SmtType.FunType T U) => (native_and (__smtx_type_wf_component T) (__smtx_type_wf U))
   | T => (__smtx_type_wf_component T)
 
 

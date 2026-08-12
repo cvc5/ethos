@@ -572,13 +572,15 @@
 )
 
 ; program: $smtx_type_wf
-(define-fun $smtx_type_wf ((x1 tsm.Type)) Bool
+(declare-fun $smtx_type_wf (tsm.Type) Bool)
+(assert (! (forall ((x1 tsm.Type))
+  (! (= ($smtx_type_wf x1)
   (ite (= x1 tsm.RegLan)
     true
   (ite ((_ is tsm.FunType) x1)
-    (and ($smtx_type_wf_component (tsm.FunType.arg1 x1)) ($smtx_type_wf_component (tsm.FunType.arg2 x1)))
+    (and ($smtx_type_wf_component (tsm.FunType.arg1 x1)) ($smtx_type_wf (tsm.FunType.arg2 x1)))
     ($smtx_type_wf_component x1)
-)))
+))) :pattern (($smtx_type_wf x1)))) :named sm.axiom.$smtx_type_wf))
 
 ; program: $smtx_typeof_guard
 (define-fun $smtx_typeof_guard ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type

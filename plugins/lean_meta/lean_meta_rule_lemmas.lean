@@ -40,7 +40,7 @@ by
   cases r with
 $EO_RULE_LEMMA_STEP_CASES$
   | _ =>
-      exact False.elim (hProg (by simp only [__eo_cmd_step_proven]))
+      exact False.elim (hProg rfl)
 
 /-
 Central expansion point for `step_pop` rules.
@@ -79,4 +79,4 @@ by
   cases r with
 $EO_RULE_LEMMA_STEP_POP_CASES$
   | _ =>
-      exact False.elim (hProg (by simp only [__eo_cmd_step_pop_proven]))
+      exact False.elim (hProg rfl)
