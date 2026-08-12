@@ -2957,6 +2957,17 @@
   )
 )
 
+;;; Arithmetic
+
+(program $smtx_model_eval_to_real_coerce ((x1 $native_Int) (x2 $native_Rat) (v $smt_Value))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_to_real_coerce ($vsm_numeral x1)) ($vsm_rational ($native_apply_1 "to_real" x1)))
+  (($smtx_model_eval_to_real_coerce ($vsm_rational x2)) ($vsm_rational x2))
+  (($smtx_model_eval_to_real_coerce v) $vsm_not_value)
+  )
+)
+
 ;;; Functions, arrays
 
 ; Array select
