@@ -49,6 +49,7 @@ public:
   std::map<const ExprValue*, RuleStat> d_pstats;
   std::string toString(State& s, bool compact, bool all) const;
 
+  /** Get the current time, in microseconds since the epoch. */
   static std::time_t getCurrentTime();
 };
 

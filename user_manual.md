@@ -2116,7 +2116,7 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
 - `--reference=X`: includes the file specified by `X` as a reference file.
 - `--show-config`: displays the build information for the given binary.
-- `--stats`: enables detailed statistics.
+- `--stats`: enables detailed statistics. All reported times are in microseconds.
 - `--stats-all`: enables all available statistics, including program invocations.
 - `--stats-compact`: print statistics in a compact format.
 - `-t <tag>`: enables the given trace tag (for debugging).
