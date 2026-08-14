@@ -33,6 +33,7 @@ void MetaReducePlugin::initializeCommonMetaKinds()
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
+  d_typeToMetaKind["$smt_RegLan"] = MetaKind::SMT_REGLAN;
   d_typeToMetaKind["$smt_DatatypeDecl"] = MetaKind::SMT_DATATYPE_DECL;
   d_typeToMetaKind["$smt_Datatype"] = MetaKind::SMT_DATATYPE;
   d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
@@ -46,6 +47,7 @@ void MetaReducePlugin::initializeCommonMetaKinds()
   d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
+  d_prefixToMetaKind["rsm"] = MetaKind::SMT_REGLAN;
   d_prefixToMetaKind["dd"] = MetaKind::SMT_DATATYPE_DECL;
   d_prefixToMetaKind["dt"] = MetaKind::SMT_DATATYPE;
   d_prefixToMetaKind["dtc"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;

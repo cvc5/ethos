@@ -44,7 +44,6 @@
 (define $native_Rat () ($native_type_0 "Rat"))
 (define $native_String () ($native_type_0 "String"))
 (define $native_Char () ($native_type_0 "Char"))
-(define $native_RegLan () ($native_type_0 "RegLan"))
 (define $native_true () ($native_apply_0 "true"))
 (define $native_false () ($native_apply_0 "false"))
 (define $native_ite ((W Type :implicit) (b $native_Bool) (x1 W) (x2 W)) ($native_apply_3 "ite" b x1 x2))
@@ -334,6 +333,7 @@
 (define $tsm_DtcAppType ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.DtcAppType Ti Te))
 (declare-const $smt_Map Type)
 (declare-const $smt_Seq Type)
+(declare-const $smt_RegLan Type)
 (declare-const $emb_vsm.NotValue $smt_Value)
 (define $vsm_not_value () $emb_vsm.NotValue)
 (declare-parameterized-const $emb_vsm.Boolean
@@ -368,8 +368,8 @@
 (declare-parameterized-const $emb_vsm.UValue 
   ((i $native_Nat :opaque) (e $native_Nat :opaque)) $smt_Value)
 (define $vsm_uvalue ((i $native_Nat) (e $native_Nat)) ($emb_vsm.UValue i e))
-(declare-parameterized-const $emb_vsm.RegLan ((r $native_RegLan :opaque)) $smt_Value)
-(define $vsm_re ((r $native_RegLan)) ($emb_vsm.RegLan r))
+(declare-parameterized-const $emb_vsm.RegLan ((r $smt_RegLan :opaque)) $smt_Value)
+(define $vsm_re ((r $smt_RegLan)) ($emb_vsm.RegLan r))
 (declare-parameterized-const $emb_vsm.DtCons
   ((s $native_String :opaque) (d $smt_DatatypeDecl :opaque) (ci $native_Nat :opaque))
   $smt_Value)
@@ -681,7 +681,7 @@
 (program $smtx_typeof_value
   ((v $smt_Value) (f $smt_Value) (dd $smt_DatatypeDecl)
    (b $native_Bool) (w $native_Nat) (n $native_Int) (i $native_Nat) (e $native_Nat)
-   (q $native_Real) (s $native_String) (r $native_RegLan) (c $native_Char)
+   (q $native_Real) (s $native_String) (r $smt_RegLan) (c $native_Char)
    (m $smt_Map) (ss $smt_Seq) (T $smt_Type) (U $smt_Type) (t $smt_Term))
   :signature ($smt_Value) $smt_Type
   (
@@ -719,7 +719,7 @@
 (program $smtx_model_eval_=
   ((v1 $smt_Value) (v2 $smt_Value) (f1 $smt_Value) (f2 $smt_Value)
    (T1 $smt_Type) (T2 $smt_Type) (m1 $smt_Map) (m2 $smt_Map)
-   (vs1 $smt_Seq) (vs2 $smt_Seq) (r1 $native_RegLan) (r2 $native_RegLan))
+   (vs1 $smt_Seq) (vs2 $smt_Seq) (r1 $smt_RegLan) (r2 $smt_RegLan))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_model_eval_= ($vsm_re r1) ($vsm_re r2)) ($vsm_bool ($native_apply_2 "re_ext_eq" r1 r2)))

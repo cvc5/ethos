@@ -155,7 +155,6 @@
 (define $native_Rat () ($native_type_0 "Rat"))
 (define $native_String () ($native_type_0 "String"))
 (define $native_Char () ($native_type_0 "Char"))
-(define $native_RegLan () ($native_type_0 "RegLan"))
 (define $native_true () ($native_apply_0 "true"))
 (define $native_false () ($native_apply_0 "false"))
 (define $native_ite ((W Type :implicit) (b $native_Bool) (x1 W) (x2 W)) ($native_apply_3 "ite" b x1 x2))

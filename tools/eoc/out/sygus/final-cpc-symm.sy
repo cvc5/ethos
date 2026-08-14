@@ -364,6 +364,45 @@
   :pattern ((char_of_value x))))
   :named smtx.char_of_value.def))
 
+; conversions between native strings and (unpacked) sequences of character
+; values, used by the value-sequence based regular expression operators below
+(declare-fun values_to_string ((Seq vsm.Value)) String)
+(assert (! (forall ((x (Seq vsm.Value)))
+  (! (= (values_to_string x)
+    (ite (> (seq.len x) 0)
+      (str.++ (char_of_value (seq.nth x 0)) (values_to_string (seq.extract x 1 (- (seq.len x) 1))))
+      ""))
+  :pattern ((values_to_string x))))
+  :named smtx.values_to_string.def))
+(declare-fun string_to_values (String) (Seq vsm.Value))
+(assert (! (forall ((x String))
+  (! (= (string_to_values x)
+    (ite (> (str.len x) 0)
+      (seq.++ (seq.unit (vsm.Char (str.to_code (str.substr x 0 1)))) (string_to_values (str.substr x 1 (- (str.len x) 1))))
+      (as seq.empty (Seq vsm.Value))))
+  :pattern ((string_to_values x))))
+  :named smtx.string_to_values.def))
+
+; the value-sequence based regular expression operators; these are the SMT2
+; counterparts of native string regular expression operators. Their arguments
+; are canonical character sequences, while generic sequence pattern operators
+; map directly to the polymorphic SMT seq.* operators.
+(define-fun str_to_re ((x (Seq vsm.Value))) RegLan
+  (str.to_re (values_to_string x)))
+(define-fun re_range ((x (Seq vsm.Value)) (y (Seq vsm.Value))) RegLan
+  (re.range (values_to_string x) (values_to_string y)))
+(define-fun str_in_re ((x (Seq vsm.Value)) (r RegLan)) Bool
+  (str.in_re (values_to_string x) r))
+(define-fun str_indexof_re ((x (Seq vsm.Value)) (r RegLan) (n Int)) Int
+  (str.indexof_re (values_to_string x) r n))
+(define-fun str_replace_re ((x (Seq vsm.Value)) (r RegLan) (y (Seq vsm.Value))) (Seq vsm.Value)
+  (string_to_values (str.replace_re (values_to_string x) r (values_to_string y))))
+(define-fun str_replace_re_all ((x (Seq vsm.Value)) (r RegLan) (y (Seq vsm.Value))) (Seq vsm.Value)
+  (string_to_values (str.replace_re_all (values_to_string x) r (values_to_string y))))
+; these operators are not SMT-LIB builtins; they are left uninterpreted here
+(declare-fun str_indexof_re_split ((Seq vsm.Value) RegLan RegLan) Int)
+(declare-fun str_occur_index_re ((Seq vsm.Value) RegLan Int) Int)
+
 ; models
 (define-sort smk.SmtModelKey () (Tuple Bool String tsm.Type))
 (define-sort smm.SmtModel () (Array smk.SmtModelKey vsm.Value))
