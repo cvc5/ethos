@@ -52,6 +52,8 @@ enum class MetaKind
   SMT_MAP,
   /** The deep embedding of the term is an SMT-LIB sequence value. */
   SMT_SEQ,
+  /** The deep embedding of the term is an SMT-LIB regular language value. */
+  SMT_REGLAN,
   /** The deep embedding of the term is a builtin SMT-LIB term. */
   SMT_BUILTIN,
   /** The deep embedding of the term is a builtin SMT-LIB datatype (e.g. Nat). */

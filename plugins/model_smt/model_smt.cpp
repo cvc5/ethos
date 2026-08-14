@@ -335,7 +335,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   Kind kAny = Kind::ANY;
   Kind kNone = Kind::NONE;
   Kind kType = Kind::TYPE;
-  Kind kRegLan = Kind::EVAL_TO_STRING;
+  d_kRegLan = Kind::EVAL_TO_STRING;
+  Kind kRegLan = d_kRegLan;
   // these don't matter, just need a unique identifier
   d_kSet = Kind::EVAL_LIST_SETOF;
   d_kSeq = Kind::EVAL_LIST_LENGTH;
@@ -2316,6 +2317,10 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
       if (ka == d_kSeq || ka == d_kStrVSeq)
       {
         progParams << " $smt_Seq";
+      }
+      else if (ka == d_kRegLan)
+      {
+        progParams << " $smt_RegLan";
       }
       else
       {

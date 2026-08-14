@@ -317,6 +317,12 @@ $SMT_TYPE_CONSTRUCTORS$
 ; The type used to define values for sequences in SMT-LIB.
 (declare-const $smt_Seq Type)
 
+; The type used to define values for regular languages in SMT-LIB. Its base
+; elements are $smt_Value, so that the regular expression operators can be
+; defined over the same (unpacked) sequence representation used by the
+; sequence operators.
+(declare-const $smt_RegLan Type)
+
 ;;; SMT value datatype constructors
 
 ; Denotes a failure case for values.
@@ -389,8 +395,8 @@ $SMT_TYPE_CONSTRUCTORS$
 (define $vsm_uvalue ((i $native_Nat) (e $native_Nat)) ($emb_vsm.UValue i e))
 
 ; A value denoting a regular language.
-(declare-parameterized-const $emb_vsm.RegLan ((r $native_RegLan :opaque)) $smt_Value)
-(define $vsm_re ((r $native_RegLan)) ($emb_vsm.RegLan r))
+(declare-parameterized-const $emb_vsm.RegLan ((r $smt_RegLan :opaque)) $smt_Value)
+(define $vsm_re ((r $smt_RegLan)) ($emb_vsm.RegLan r))
 
 ; A constructor value
 (declare-parameterized-const $emb_vsm.DtCons
@@ -935,7 +941,7 @@ $SMT_TYPE_CONSTRUCTORS$
 (program $smtx_typeof_value
   ((v $smt_Value) (f $smt_Value) (dd $smt_DatatypeDecl)
    (b $native_Bool) (w $native_Nat) (n $native_Int) (i $native_Nat) (e $native_Nat)
-   (q $native_Real) (s $native_String) (r $native_RegLan) (c $native_Char)
+   (q $native_Real) (s $native_String) (r $smt_RegLan) (c $native_Char)
    (m $smt_Map) (ss $smt_Seq) (T $smt_Type) (U $smt_Type) (t $smt_Term))
   :signature ($smt_Value) $smt_Type
   (
@@ -991,7 +997,7 @@ $SMT_TYPE_CONSTRUCTORS$
 (program $smtx_model_eval_=
   ((v1 $smt_Value) (v2 $smt_Value) (f1 $smt_Value) (f2 $smt_Value)
    (T1 $smt_Type) (T2 $smt_Type) (m1 $smt_Map) (m2 $smt_Map)
-   (vs1 $smt_Seq) (vs2 $smt_Seq) (r1 $native_RegLan) (r2 $native_RegLan))
+   (vs1 $smt_Seq) (vs2 $smt_Seq) (r1 $smt_RegLan) (r2 $smt_RegLan))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_model_eval_= ($vsm_re r1) ($vsm_re r2)) ($vsm_bool ($native_apply_2 "re_ext_eq" r1 r2)))
@@ -2119,7 +2125,7 @@ $EO_TO_SMT_CASES$
 
 (program $smtx_value_canonical_bool
   ((m $smt_Map) (s $smt_Seq) (f $smt_Value) (v $smt_Value) (w $native_Int)
-   (n $native_Int) (r $native_RegLan) (c $native_Char))
+   (n $native_Int) (r $smt_RegLan) (c $native_Char))
   :signature ($smt_Value) $native_Bool
   (
   (($smtx_value_canonical_bool ($vsm_binary w n))

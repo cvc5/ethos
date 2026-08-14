@@ -58,6 +58,8 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case MetaKind::SMT_BUILTIN_DATATYPE: os << getEmbedName(t); break;
     case MetaKind::SMT_MAP: os << "msm.Map"; break;
     case MetaKind::SMT_SEQ: os << "ssm.Seq"; break;
+    // regular languages are the builtin SMT-LIB sort
+    case MetaKind::SMT_REGLAN: os << "RegLan"; break;
     case MetaKind::SMT_DATATYPE_DECL: os << "dd.DatatypeDecl"; break;
     case MetaKind::SMT_DATATYPE: os << "dt.Datatype"; break;
     case MetaKind::SMT_DATATYPE_CONSTRUCTOR: os << "dtc.DatatypeCons"; break;
