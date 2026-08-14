@@ -1836,19 +1836,17 @@ void ModelSmt::printConstFold(const std::string& name,
     if (kr == d_kSeq || kr == d_kStrVSeq)
     {
       ssret << " ($native_apply_2 \"pack_seq\" ";
-      if (!args.empty() && (args[0] == d_kSeq || args[0] == d_kStrVSeq))
+      if (kr == d_kStrVSeq)
       {
-        // the element type of the result is that of the first argument,
-        // which is the subject sequence. Note this propagates the element
-        // type when a sequence operator is evaluated by a regular
-        // expression operator.
-        ssret << "($smtx_elem_typeof_seq_value x1) ";
+        // string operators always return a sequence of characters.
+        ssret << "$tsm_Char ";
       }
       else
       {
-        // operators that construct a string from a non-sequence argument
-        // (e.g. str.from_int) always return a sequence of characters.
-        ssret << "$tsm_Char ";
+        // for the polymorphic sequence operators, the element type of the
+        // result is that of the first argument, which is the subject
+        // sequence.
+        ssret << "($smtx_elem_typeof_seq_value x1) ";
       }
       ssretEnd << ")";
     }
