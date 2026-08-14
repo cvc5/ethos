@@ -222,22 +222,6 @@ def native_char_to_upper (c : native_Char) : native_Char :=
 def native_char_to_lower (c : native_Char) : native_Char :=
   if 65 <= c && c <= 90 then c + 32 else c
 
-def native_decimal_digits_to_nat (xs : native_String) : native_Nat :=
-  xs.foldl (fun acc c => 10 * acc + (c - 48)) 0
-
-def native_str_lt : native_String -> native_String -> native_Bool
-  | s₁, s₂ => decide (s₁ < s₂)
-def native_str_from_int : native_Int -> native_String
-  | i => if i < 0 then native_string_lit "" else native_string_lit (toString i)
-def native_str_to_int : native_String -> native_Int
-  | s => match s with
-          | [] => -1
-          | _ => if s.all native_char_is_digit then Int.ofNat (native_decimal_digits_to_nat s) else -1
-def native_str_to_upper : native_String -> native_String
-  | s => s.map native_char_to_upper
-def native_str_to_lower : native_String -> native_String
-  | s => s.map native_char_to_lower
-
 -- Partial semantics
 
 def native_qdiv_by_zero_id : native_String := (native_string_lit "@qdiv_by_zero")
@@ -268,7 +252,9 @@ def native_re_elem_le : SmtValue -> SmtValue -> native_Bool
   | (SmtValue.Char c₁), (SmtValue.Char c₂) => c₁ <= c₂
   | _, _ => false
 
-/-- The embedding of native strings as value sequences. -/
+/-- The embedding of native strings as value sequences. This is the only
+place where a native string is interpreted as a string; all string
+operations below are defined over sequences of character values. -/
 def native_string_to_values (s : native_String) : List SmtValue :=
   s.map SmtValue.Char
 
@@ -276,6 +262,56 @@ def native_string_to_values (s : native_String) : List SmtValue :=
 elements are valid character values. -/
 def native_re_str_valid (xs : List SmtValue) : native_Bool :=
   xs.all native_re_elem_valid
+
+/- String operators. Strings are sequences of character values, which makes
+these operators uniform with the sequence and regular expression operators
+below. All are total; they take their default value on sequences that are
+not sequences of characters. -/
+
+/-- Lexicographic comparison of character sequences. -/
+def native_str_lt : List SmtValue -> List SmtValue -> native_Bool
+  | [], (_ :: _) => true
+  | ((SmtValue.Char c₁) :: s₁), ((SmtValue.Char c₂) :: s₂) =>
+      if c₁ = c₂ then native_str_lt s₁ s₂ else decide (c₁ < c₂)
+  | _, _ => false
+
+def native_str_to_code : List SmtValue -> native_Int
+  | [(SmtValue.Char c)] => if native_char_valid c then Int.ofNat c else -1
+  | _ => -1
+
+def native_str_from_code (i : native_Int) : List SmtValue :=
+  if (0 <= i && (native_char_valid (Int.toNat i))) then
+    [(SmtValue.Char (Int.toNat i))]
+  else
+    []
+
+def native_value_is_digit : SmtValue -> native_Bool
+  | (SmtValue.Char c) => native_char_is_digit c
+  | _ => false
+
+def native_decimal_digits_to_nat (xs : List SmtValue) : native_Nat :=
+  xs.foldl (fun acc v => 10 * acc + (match v with | (SmtValue.Char c) => c - 48 | _ => 0)) 0
+
+def native_str_to_int : List SmtValue -> native_Int
+  | [] => -1
+  | s => if s.all native_value_is_digit then Int.ofNat (native_decimal_digits_to_nat s) else -1
+
+def native_str_from_int : native_Int -> List SmtValue
+  | i => if i < 0 then [] else native_string_to_values (native_string_lit (toString i))
+
+def native_value_to_upper : SmtValue -> SmtValue
+  | (SmtValue.Char c) => SmtValue.Char (native_char_to_upper c)
+  | v => v
+
+def native_value_to_lower : SmtValue -> SmtValue
+  | (SmtValue.Char c) => SmtValue.Char (native_char_to_lower c)
+  | v => v
+
+def native_str_to_upper : List SmtValue -> List SmtValue
+  | s => s.map native_value_to_upper
+
+def native_str_to_lower : List SmtValue -> List SmtValue
+  | s => s.map native_value_to_lower
 
 def native_re_nullable : SmtRegLan -> native_Bool
   | .empty => false
@@ -507,16 +543,15 @@ def native_re_canonical : SmtRegLan -> native_Bool
 
 macro_rules
   | `(native_re_ext_eq $r1 $r2) => do
+      -- Two regular languages are equal if they accept the same character
+      -- sequences. No validity guard is required: native_str_in_re is false
+      -- on sequences that are not sequences of characters.
       let strInReId := Lean.mkIdent `native_str_in_re
-      let validId := Lean.mkIdent `native_string_valid
-      let toValuesId := Lean.mkIdent `native_string_to_values
       `(by
           classical
           exact
             if hExt :
-                ∀ s : native_String,
-                  $validId s = true ->
-                    $strInReId ($toValuesId s) $r1 = $strInReId ($toValuesId s) $r2 then
+                ∀ s : List SmtValue, $strInReId s $r1 = $strInReId s $r2 then
               true
             else
               false)
@@ -1036,16 +1071,6 @@ def native_pack_seq (T : SmtType) : List SmtValue -> SmtSeq
   | [] => (SmtSeq.empty T)
   | v :: vs => (SmtSeq.cons v (native_pack_seq T vs))
 
-def native_ssm_char_of_value : SmtValue -> native_Char
-  | (SmtValue.Char c) => c
-  | _ => 0
-
-def native_unpack_string (x : SmtSeq) : native_String :=
-  (native_unpack_seq x).map native_ssm_char_of_value
-
-def native_pack_string (s : native_String) : SmtSeq :=
-  native_pack_seq SmtType.Char (s.map SmtValue.Char)
-
 def native_seq_len : List SmtValue -> native_Int
   | x => Int.ofNat x.length
 
@@ -1099,7 +1124,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
   | (SmtTerm.Numeral n) => (SmtValue.Numeral n)
   | (SmtTerm.Rational r) => (SmtValue.Rational r)
-  | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
+  | (SmtTerm.String s) => (SmtValue.Seq (native_pack_seq SmtType.Char (native_string_to_values s)))
   | (SmtTerm.Binary w n) => (SmtValue.Binary w n)
   | (SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval M x1))
   | (SmtTerm.or x1 x2) => (__smtx_model_eval_or (__smtx_model_eval M x1) (__smtx_model_eval M x2))

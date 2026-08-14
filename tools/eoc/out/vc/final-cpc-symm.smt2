@@ -322,8 +322,6 @@
 ; sequences and string conversions
 (declare-fun unpack_seq (ssm.Seq) (Seq vsm.Value))
 (declare-fun pack_seq (tsm.Type (Seq vsm.Value)) ssm.Seq)
-(declare-fun unpack_string (ssm.Seq) String)
-(declare-fun pack_string (String) ssm.Seq)
 (declare-fun char_of_value (vsm.Value) String)
 
 (assert (! (forall ((x ssm.Seq))
@@ -341,22 +339,6 @@
       (ssm.empty T)))
   :pattern ((pack_seq T x))))
   :named smtx.pack_seq.def))
-
-(assert (! (forall ((x ssm.Seq))
-  (! (= (unpack_string x)
-    (ite ((_ is ssm.cons) x)
-      (str.++ (char_of_value (ssm.cons.arg1 x)) (unpack_string (ssm.cons.arg2 x)))
-      ""))
-  :pattern ((unpack_string x))))
-  :named smtx.unpack_string.def))
-
-(assert (! (forall ((x String))
-  (! (= (pack_string x)
-    (ite (> (str.len x) 0)
-      (ssm.cons (vsm.Char (str.to_code (str.substr x 0 1))) (pack_string (str.substr x 1 (- (str.len x) 1))))
-      (ssm.empty tsm.Char)))
-  :pattern ((pack_string x))))
-  :named smtx.pack_string.def))
 
 (assert (! (forall ((x vsm.Value))
   (! (= (char_of_value x)
@@ -382,6 +364,24 @@
       (as seq.empty (Seq vsm.Value))))
   :pattern ((string_to_values x))))
   :named smtx.string_to_values.def))
+
+; the value-sequence based string operators; these are the SMT2 counterparts
+; of the native string operators, whose arguments and return values are
+; character sequences.
+(define-fun str_< ((x (Seq vsm.Value)) (y (Seq vsm.Value))) Bool
+  (str.< (values_to_string x) (values_to_string y)))
+(define-fun str_to_code ((x (Seq vsm.Value))) Int
+  (str.to_code (values_to_string x)))
+(define-fun str_from_code ((n Int)) (Seq vsm.Value)
+  (string_to_values (str.from_code n)))
+(define-fun str_to_int ((x (Seq vsm.Value))) Int
+  (str.to_int (values_to_string x)))
+(define-fun str_from_int ((n Int)) (Seq vsm.Value)
+  (string_to_values (str.from_int n)))
+(define-fun str_to_lower ((x (Seq vsm.Value))) (Seq vsm.Value)
+  (string_to_values (str.to_lower (values_to_string x))))
+(define-fun str_to_upper ((x (Seq vsm.Value))) (Seq vsm.Value)
+  (string_to_values (str.to_upper (values_to_string x))))
 
 ; the value-sequence based regular expression operators; these are the SMT2
 ; counterparts of native string regular expression operators. Their arguments
@@ -855,7 +855,7 @@
   (ite ((_ is sm.Rational) x2)
     (vsm.Rational (sm.Rational.arg1 x2))
   (ite ((_ is sm.String) x2)
-    (vsm.Seq (pack_string (sm.String.arg1 x2)))
+    (vsm.Seq (pack_seq tsm.Char (string_to_values (sm.String.arg1 x2))))
   (ite ((_ is sm.Binary) x2)
     (vsm.Binary (sm.Binary.arg1 x2) (sm.Binary.arg2 x2))
   (ite ((_ is sm.not) x2)

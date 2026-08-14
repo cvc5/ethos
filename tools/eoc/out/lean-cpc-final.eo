@@ -1148,7 +1148,11 @@
   (($smtx_model_eval M ($sm_bool b))      ($vsm_bool b))
   (($smtx_model_eval M ($sm_numeral n))   ($vsm_numeral n))
   (($smtx_model_eval M ($sm_rational r))  ($vsm_rational r))
-  (($smtx_model_eval M ($sm_string s))    ($vsm_seq ($native_apply_1 "pack_string" s)))
+  
+  
+  (($smtx_model_eval M ($sm_string s))
+    ($vsm_seq ($native_apply_2 "pack_seq" $tsm_Char
+                ($native_apply_1 "string_to_values" s))))
   (($smtx_model_eval M ($sm_binary w n))  ($vsm_binary w n))
   
   
