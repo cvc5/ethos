@@ -26,14 +26,12 @@ void MetaReducePlugin::initializeCommonMetaKinds()
   d_typeToMetaKind["$eo_DatatypeDecl"] = MetaKind::DATATYPE_DECL;
   d_typeToMetaKind["$eo_Datatype"] = MetaKind::DATATYPE;
   d_typeToMetaKind["$eo_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
-  d_typeToMetaKind["$smt_Model"] = MetaKind::SMT_MODEL;
   d_typeToMetaKind["$smt_RefList"] = MetaKind::SMT_REFLIST;
   d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
   d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
-  d_typeToMetaKind["$smt_RegLan"] = MetaKind::SMT_REGLAN;
   d_typeToMetaKind["$smt_DatatypeDecl"] = MetaKind::SMT_DATATYPE_DECL;
   d_typeToMetaKind["$smt_Datatype"] = MetaKind::SMT_DATATYPE;
   d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
@@ -47,7 +45,6 @@ void MetaReducePlugin::initializeCommonMetaKinds()
   d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
-  d_prefixToMetaKind["rsm"] = MetaKind::SMT_REGLAN;
   d_prefixToMetaKind["dd"] = MetaKind::SMT_DATATYPE_DECL;
   d_prefixToMetaKind["dt"] = MetaKind::SMT_DATATYPE;
   d_prefixToMetaKind["dtc"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
@@ -87,8 +84,13 @@ bool MetaReducePlugin::isSmtApplyApp(const Expr& oApp)
   }
   std::string sname = getName(oApp[0]);
   return (sname.compare(0, 14, "$native_apply_") == 0
-          || sname.compare(0, 13, "$native_type_") == 0
-          || sname.compare(0, 16, "$native_datatype") == 0);
+          || isNativeTypeOp(sname));
+}
+
+bool MetaReducePlugin::isNativeTypeOp(const std::string& sname)
+{
+  return sname.compare(0, 13, "$native_type_") == 0
+         || sname.compare(0, 16, "$native_datatype") == 0;
 }
 
 MetaKind MetaReducePlugin::prefixToMetaKind(const std::string& str,
@@ -111,13 +113,14 @@ MetaKind MetaReducePlugin::getTypeMetaKindFor(const Expr& typ,
   if (k == Kind::APPLY_OPAQUE)
   {
     std::string sname = getName(typ[0]);
-    if (sname.compare(0, 13, "$native_type_") == 0)
-    {
-      return MetaKind::SMT_BUILTIN;
-    }
+    // note $native_datatype is checked first, as it is also a type operator
     if (sname.compare(0, 16, "$native_datatype") == 0)
     {
       return MetaKind::SMT_BUILTIN_DATATYPE;
+    }
+    if (isNativeTypeOp(sname))
+    {
+      return MetaKind::SMT_BUILTIN;
     }
   }
   if (followFunctionRange && k == Kind::FUNCTION_TYPE)

@@ -49,7 +49,6 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case MetaKind::DATATYPE_DECL: os << "edd.DatatypeDecl"; break;
     case MetaKind::DATATYPE: os << "edt.Datatype"; break;
     case MetaKind::DATATYPE_CONSTRUCTOR: os << "edtc.DatatypeCons"; break;
-    case MetaKind::SMT_MODEL: os << "smm.SmtModel"; break;
     case MetaKind::SMT_REFLIST: os << "srl.RefList"; break;
     case MetaKind::SMT: os << "sm.Term"; break;
     case MetaKind::SMT_TYPE: os << "tsm.Type"; break;
@@ -58,8 +57,6 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case MetaKind::SMT_BUILTIN_DATATYPE: os << getEmbedName(t); break;
     case MetaKind::SMT_MAP: os << "msm.Map"; break;
     case MetaKind::SMT_SEQ: os << "ssm.Seq"; break;
-    // regular languages are the builtin SMT-LIB sort
-    case MetaKind::SMT_REGLAN: os << "RegLan"; break;
     case MetaKind::SMT_DATATYPE_DECL: os << "dd.DatatypeDecl"; break;
     case MetaKind::SMT_DATATYPE: os << "dt.Datatype"; break;
     case MetaKind::SMT_DATATYPE_CONSTRUCTOR: os << "dtc.DatatypeCons"; break;
@@ -769,16 +766,9 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
     cname << "vsm." << cnamek;
     out = &d_embedValueDt;
   }
-  else if (tk == MetaKind::SMT_MAP)
-  {
-    cname << "msm." << cnamek;
-    out = &d_embedMapDt;
-  }
-  else if (tk == MetaKind::SMT_SEQ)
-  {
-    cname << "ssm." << cnamek;
-    out = &d_embedSeqDt;
-  }
+  // Note that msm.Map and ssm.Seq are not generated: their constructors are
+  // fixed by model_smt.eo, so their datatype bodies are written out in
+  // smt_meta.smt2 directly.
   if (out == nullptr)
   {
     Trace("smt-meta") << "Do not include " << e << std::endl;
@@ -855,14 +845,6 @@ void SmtMetaReduce::finalize()
   {
     d_embedTermDt << "  (sm.None)" << std::endl;
   }
-  if (d_embedMapDt.str().empty())
-  {
-    d_embedMapDt << "  (msm.None)" << std::endl;
-  }
-  if (d_embedSeqDt.str().empty())
-  {
-    d_embedSeqDt << "  (ssm.None)" << std::endl;
-  }
   const std::string outPath =
       emitResourceFile("plugins/smt_meta/smt_meta.smt2",
                        "plugins/smt_meta/smt_meta_gen.smt2",
@@ -871,8 +853,6 @@ void SmtMetaReduce::finalize()
                         {"$SM_TYPE_DECL$", d_embedTypeDt.str()},
                         {"$SM_TERM_DECL$", d_embedTermDt.str()},
                         {"$SM_VALUE_DECL$", d_embedValueDt.str()},
-                        {"$SM_MAP_DECL$", d_embedMapDt.str()},
-                        {"$SM_SEQ_DECL$", d_embedSeqDt.str()},
                         {"$SM_EO_TERM_DECL$", d_embedEoTermDt.str()}});
   Trace("smt-meta") << "Write smt2-defs " << outPath << std::endl;
 }

@@ -157,13 +157,11 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
     case MetaKind::DATATYPE: os << "Datatype"; break;
     case MetaKind::DATATYPE_CONSTRUCTOR: os << "DatatypeCons"; break;
     case MetaKind::SMT_TYPE: os << "SmtType"; break;
-    case MetaKind::SMT_MODEL: os << "SmtModel"; break;
     case MetaKind::SMT_REFLIST: os << "RefList"; break;
     case MetaKind::SMT: os << "SmtTerm"; break;
     case MetaKind::SMT_VALUE: os << "SmtValue"; break;
     case MetaKind::SMT_MAP: os << "SmtMap"; break;
     case MetaKind::SMT_SEQ: os << "SmtSeq"; break;
-    case MetaKind::SMT_REGLAN: os << "SmtRegLan"; break;
     case MetaKind::PROOF: os << "Proof"; break;
     case MetaKind::SMT_DATATYPE_DECL: os << "SmtDatatypeDecl"; break;
     case MetaKind::SMT_DATATYPE: os << "SmtDatatype"; break;
@@ -379,6 +377,14 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   }
   const Literal* l = oApp[1].getValue()->asLiteral();
   std::string smtStr = l->d_str.toString();
+  // Types carry the name they have in the target verbatim, e.g. native_Int,
+  // SmtRegLan, UserOp. Only operators get a synthesized native_ prefix, since
+  // their string is the (bare) SMT-LIB operator name that the SMT2 backend
+  // needs.
+  if (isNativeTypeOp(aname))
+  {
+    return cleanSmtId(smtStr);
+  }
   // literals don't need native_
   if (is_integer(smtStr) || smtStr == "true" || smtStr == "false")
   {
@@ -395,10 +401,6 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
     std::stringstream ss;
     ss << "(native_string_lit " << smtStr << ")";
     return ss.str();
-  }
-  else if (smtStr.compare(0, 6, "UserOp")==0)
-  {
-    return smtStr;
   }
   std::stringstream ss;
   ss << "native_" << cleanSmtId(smtStr);
@@ -562,9 +564,7 @@ void LeanMetaReduce::printEmbTermInternal(
       std::string sname = ss.str();
       // operators that print the identifier embedding e.g.
       // `($native_apply_3 "ite"` becomes `(ite`
-      if (sname.compare(0, 14, "$native_apply_") == 0
-          || sname.compare(0, 13, "$native_type_") == 0
-          || sname.compare(0, 16, "$native_datatype") == 0)
+      if (sname.compare(0, 14, "$native_apply_") == 0 || isNativeTypeOp(sname))
       {
         std::string embName = getEmbedName(recTerm, tinit);
         if (recTerm.getNumChildren() > 2)

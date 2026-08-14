@@ -335,13 +335,6 @@ class ModelSmt : public StdPlugin
    * checker, but are unpacked/packed with unpack_seq/pack_seq.
    */
   Kind d_kStrVSeq;
-  /**
-   * Pseudo-kind used for regular language arguments in generation tables.
-   * Arguments of this kind are typed $smt_RegLan, which is the deep embedding
-   * of regular languages (SmtRegLan in the Lean backend, the builtin RegLan
-   * sort in the SMT2 backend).
-   */
-  Kind d_kRegLan;
   /** Pseudo-kind used for bit-vector size arguments in generation tables. */
   Kind d_kBit;
   /** Pseudo-kind used for quoted Int parameters in generation tables. */

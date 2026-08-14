@@ -38,8 +38,6 @@ enum class MetaKind
   DATATYPE,
   /** The deep embedding of the term is a Eunoia datatype constructor. */
   DATATYPE_CONSTRUCTOR,
-  /** The deep embedding of the term is an SMT-LIB model. */
-  SMT_MODEL,
   /** The deep embedding of the term is a list of datatype references. */
   SMT_REFLIST,
   /** The deep embedding of the term is an SMT-LIB term. */
@@ -52,8 +50,6 @@ enum class MetaKind
   SMT_MAP,
   /** The deep embedding of the term is an SMT-LIB sequence value. */
   SMT_SEQ,
-  /** The deep embedding of the term is an SMT-LIB regular language value. */
-  SMT_REGLAN,
   /** The deep embedding of the term is a builtin SMT-LIB term. */
   SMT_BUILTIN,
   /** The deep embedding of the term is a builtin SMT-LIB datatype (e.g. Nat). */

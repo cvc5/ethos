@@ -335,8 +335,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   Kind kAny = Kind::ANY;
   Kind kNone = Kind::NONE;
   Kind kType = Kind::TYPE;
-  d_kRegLan = Kind::EVAL_TO_STRING;
-  Kind kRegLan = d_kRegLan;
+  Kind kRegLan = Kind::EVAL_TO_STRING;
   // these don't matter, just need a unique identifier
   d_kSet = Kind::EVAL_LIST_SETOF;
   d_kSeq = Kind::EVAL_LIST_LENGTH;
@@ -353,14 +352,16 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToEoPrefix[d_kStrVSeq] = "seq";
   d_kindToEoPrefix[kBitVec] = "binary";
   d_kindToEoPrefix[kRegLan] = "re";
-  d_kindToType[kBool] = "Bool";
-  d_kindToType[d_kIntQuote] = "Int";
-  d_kindToType[kInt] = "Int";
-  d_kindToType[kReal] = "Real";
-  d_kindToType[kString] = "String";
-  d_kindToType[d_kSeq] = "Seq";
-  d_kindToType[kBitVec] = "Binary";
-  d_kindToType[kRegLan] = "RegLan";
+  // The EO type used for the argument of the $vsm_ constructor of each kind.
+  d_kindToType[kBool] = "$native_Bool";
+  d_kindToType[d_kIntQuote] = "$native_Int";
+  d_kindToType[kInt] = "$native_Int";
+  d_kindToType[kReal] = "$native_Real";
+  d_kindToType[kString] = "$native_String";
+  d_kindToType[kBitVec] = "$native_Binary";
+  d_kindToType[d_kSeq] = "$smt_Seq";
+  d_kindToType[d_kStrVSeq] = "$smt_Seq";
+  d_kindToType[kRegLan] = "$smt_RegLan";
   // All SMT-LIB symbols require having their semantics defined here.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
@@ -2314,18 +2315,7 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
       }
       progCases << d_kindToEoPrefix[ka] << " x" << paramCount << ")";
       progParams << "(x" << paramCount;
-      if (ka == d_kSeq || ka == d_kStrVSeq)
-      {
-        progParams << " $smt_Seq";
-      }
-      else if (ka == d_kRegLan)
-      {
-        progParams << " $smt_RegLan";
-      }
-      else
-      {
-        progParams << " $native_" << d_kindToType[ka];
-      }
+      progParams << " " << d_kindToType[ka];
       progParams << ")";
     }
     else

@@ -320,8 +320,10 @@ $SMT_TYPE_CONSTRUCTORS$
 ; The type used to define values for regular languages in SMT-LIB. Its base
 ; elements are $smt_Value, so that the regular expression operators can be
 ; defined over the same (unpacked) sequence representation used by the
-; sequence operators.
-(declare-const $smt_RegLan Type)
+; sequence operators. Unlike $smt_Map and $smt_Seq, it has no constructors in
+; this signature: it is provided by the target, as the SmtRegLan inductive in
+; the Lean template and as an alias of the builtin RegLan sort in SMT2.
+(define $smt_RegLan () ($native_type_0 "SmtRegLan"))
 
 ;;; SMT value datatype constructors
 

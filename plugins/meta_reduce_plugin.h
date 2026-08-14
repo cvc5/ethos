@@ -34,6 +34,16 @@ class MetaReducePlugin : public StdPlugin
   static std::string getName(const Expr& e);
   static bool isEmbedCons(const Expr& e);
   static bool isSmtApplyApp(const Expr& oApp);
+  /**
+   * Return true if sname is one of the operators that embed a target-language
+   * type, i.e. $native_type_N or $native_datatype. The string argument of
+   * these operators is the name of the type in the target, used verbatim by
+   * every backend, e.g. ($native_type_0 "native_Int") is native_Int and
+   * ($native_type_0 "SmtRegLan") is SmtRegLan. This is unlike
+   * $native_apply_N, whose string is an SMT-LIB operator name that the Lean
+   * backend prefixes with native_ and the SMT2 backend uses bare.
+   */
+  static bool isNativeTypeOp(const std::string& sname);
   MetaKind prefixToMetaKind(const std::string& str,
                             MetaKind elseKind = MetaKind::EUNOIA) const;
   MetaKind getTypeMetaKindFor(const Expr& typ,

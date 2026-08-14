@@ -23,7 +23,6 @@ std::string metaKindToString(MetaKind k)
     case MetaKind::DATATYPE: ss << "DATATYPE"; break;
     case MetaKind::DATATYPE_CONSTRUCTOR: ss << "DATATYPE_CONSTRUCTOR"; break;
     case MetaKind::PROOF: ss << "PROOF"; break;
-    case MetaKind::SMT_MODEL: return "SMT_MODEL"; break;
     case MetaKind::SMT_REFLIST: return "SMT_REFLIST"; break;
     case MetaKind::SMT: ss << "SMT"; break;
     case MetaKind::SMT_BUILTIN: ss << "SMT_BUILTIN"; break;
@@ -32,7 +31,6 @@ std::string metaKindToString(MetaKind k)
     case MetaKind::SMT_VALUE: ss << "SMT_VALUE"; break;
     case MetaKind::SMT_MAP: ss << "SMT_MAP"; break;
     case MetaKind::SMT_SEQ: ss << "SMT_SEQ"; break;
-    case MetaKind::SMT_REGLAN: ss << "SMT_REGLAN"; break;
     case MetaKind::SMT_DATATYPE_DECL: ss << "SMT_DATATYPE_DECL"; break;
     case MetaKind::SMT_DATATYPE: ss << "SMT_DATATYPE"; break;
     case MetaKind::SMT_DATATYPE_CONSTRUCTOR:
@@ -63,7 +61,6 @@ std::string metaKindToPrefix(MetaKind k)
     case MetaKind::SMT: ss << "sm."; break;
     case MetaKind::SMT_TYPE: ss << "tsm."; break;
     case MetaKind::SMT_VALUE: ss << "vsm."; break;
-    case MetaKind::SMT_REGLAN: ss << "rsm."; break;
     case MetaKind::SMT_BUILTIN: ss << "?"; break;
     case MetaKind::SMT_DATATYPE_DECL: ss << "dd."; break;
     case MetaKind::SMT_DATATYPE: ss << "dt."; break;
@@ -74,11 +71,11 @@ std::string metaKindToPrefix(MetaKind k)
 }
 bool isSmtMetaKind(MetaKind k)
 {
-  return k == MetaKind::SMT_MODEL || k == MetaKind::SMT_BUILTIN
+  return k == MetaKind::SMT_BUILTIN
          || k == MetaKind::SMT_BUILTIN_DATATYPE || k == MetaKind::SMT
          || k == MetaKind::SMT_TYPE || k == MetaKind::SMT_VALUE
          || k == MetaKind::SMT_MAP || k == MetaKind::SMT_SEQ
-         || k == MetaKind::SMT_REGLAN || k == MetaKind::SMT_DATATYPE_DECL
+         || k == MetaKind::SMT_DATATYPE_DECL
          || k == MetaKind::SMT_DATATYPE
          || k == MetaKind::SMT_DATATYPE_CONSTRUCTOR;
 }

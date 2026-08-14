@@ -125,10 +125,6 @@ class SmtMetaReduce : public MetaReducePlugin
   std::stringstream d_embedEoTermDt;
   /** SMT value embedding datatype cases. */
   std::stringstream d_embedValueDt;
-  /** SMT map embedding datatype cases. */
-  std::stringstream d_embedMapDt;
-  /** SMT sequence embedding datatype cases. */
-  std::stringstream d_embedSeqDt;
   /** Per-argument meta-kind overrides for embedded constructors. */
   std::map<std::pair<Expr, size_t>, MetaKind> d_metaKindArg;
   /** Helper that mirrors declarations for optional SyGuS output. */

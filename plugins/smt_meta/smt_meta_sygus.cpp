@@ -39,21 +39,24 @@ void SmtMetaSygus::initializeGrammars()
   tmp = allocateGrammar("G_ssm.Seq", "ssm.Seq");
   tmp->d_rules << "(ssm.cons G_vsm.Value G_ssm.Seq) ssm.empty";
 #endif
-  tmp = allocateGrammar("G_Bool", "Bool");
+  // Note these are keyed by the name the type is given in the deep embedding,
+  // e.g. native_Int, not by the underlying SMT-LIB sort.
+  tmp = allocateGrammar("G_native_Bool", "native_Bool");
   tmp->d_rules << "true false";
-  tmp = allocateGrammar("G_Int", "Int");
+  tmp = allocateGrammar("G_native_Int", "native_Int");
   tmp->d_rules << "0 (- G_Int_C) G_Int_C";
-  tmp = allocateGrammar("G_RegLan", "RegLan");
-  tmp->d_rules
-      << "re.all re.none (str.to_re G_String) (re.union G_RegLan G_RegLan)";
-  tmp = allocateGrammar("G_Int_C", "Int");
+  tmp = allocateGrammar("G_SmtRegLan", "SmtRegLan");
+  tmp->d_rules << "re.all re.none (str.to_re G_native_String) (re.union "
+                  "G_SmtRegLan G_SmtRegLan)";
+  tmp = allocateGrammar("G_Int_C", "native_Int");
   tmp->d_rules << "1 (+ G_Int_C 1)";
-  tmp = allocateGrammar("G_Rat", "Rat");
+  tmp = allocateGrammar("G_native_Rat", "native_Rat");
   tmp->d_rules << "0.0 (/ G_Int_C G_Int_C) (- (/ G_Int_C G_Int_C))";
-  tmp = allocateGrammar("G_String", "String");
-  tmp->d_rules << "\"\" (str.++ G_String \"A\") (str.++ G_String \"B\")";
-  tmp = allocateGrammar("G_Nat", "Nat");
-  tmp->d_rules << "nat.zero (nat.succ G_Nat)";
+  tmp = allocateGrammar("G_native_String", "native_String");
+  tmp->d_rules << "\"\" (str.++ G_native_String \"A\") (str.++ G_native_String "
+                  "\"B\")";
+  tmp = allocateGrammar("G_native_Nat", "native_Nat");
+  tmp->d_rules << "nat.zero (nat.succ G_native_Nat)";
 
   d_cnameToKind["Bool"] = Kind::TYPE;
   d_cnameToKind["Boolean"] = Kind::BOOLEAN;
@@ -145,12 +148,18 @@ Expr SmtMetaSygus::getGrammarTypeApprox(const Expr& e)
   {
     return cur;
   }
+  else if (ck == Kind::APPLY_OPAQUE)
+  {
+    // types embedded with $native_type_N / $native_datatype, e.g. native_Int
+    // or SmtModel, are approximated by the general Eunoia term grammar
+    return d_null;
+  }
   else if (ck == Kind::CONST)
   {
     std::stringstream ssc;
     ssc << cur;
     std::string cname = ssc.str();
-    if (cname == "$eo_Term" || cname == "$smt_Model")
+    if (cname == "$eo_Term")
     {
       // special case: those marked $eo_Term are general Eunoia terms
       return d_null;
@@ -275,8 +284,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
 #endif
     return;
   }
-  else if (tk == MetaKind::SMT_MAP || tk == MetaKind::SMT_SEQ
-           || tk == MetaKind::SMT_REGLAN || tk == MetaKind::SMT_MODEL)
+  else if (tk == MetaKind::SMT_MAP || tk == MetaKind::SMT_SEQ)
   {
     return;
   }

@@ -1,6 +1,19 @@
 (set-logic ALL)
 
 (define-sort Rat () Real)
+
+; Aliases for the types of the deep embedding. The eo signature names types by
+; the name they have in the target verbatim (see $native_type_0 in
+; native_embed.eo), so the names below are exactly the ones the Lean template
+; declares. Everything after this block is written in terms of the underlying
+; SMT-LIB sorts.
+(define-sort native_Bool () Bool)
+(define-sort native_Int () Int)
+(define-sort native_Real () Real)
+(define-sort native_Rat () Rat)
+(define-sort native_String () String)
+(define-sort SmtRegLan () RegLan)
+
 (define-fun iff ((x Bool) (y Bool)) Bool (= x y))
 ; Helpers to avoid mixed arithmetic
 (define-fun mk_rational ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))
@@ -21,11 +34,13 @@
 (define-fun zdiv_total ((x Int) (y Int)) Real (/_total (to_real x) (to_real y)))
 (define-fun qdiv_total ((x Real) (y Real)) Real (/_total x y))
 (define-sort Char () Int)
+(define-sort native_Char () Char)
 (define-fun streq ((x String) (y String)) Bool (= x y))
 ; can rely on first class equality for regular expressions
 (define-fun re_ext_eq ((r1 RegLan) (r2 RegLan)) Bool (= r1 r2))
 
 (declare-datatype Nat ((nat.zero) (nat.succ (nat.succ.arg1 Nat))))
+(define-sort native_Nat () Nat)
 (define-fun nateq ((x Nat) (y Nat)) Bool (= x y))
 (declare-fun int.to_nat (Int) Nat)
 (assert (! (forall ((x Int)) 
@@ -125,10 +140,12 @@ $SM_EO_TERM_DECL$
 $SM_VALUE_DECL$
   )
   (
-$SM_MAP_DECL$
+  (msm.cons (msm.cons.arg1 vsm.Value) (msm.cons.arg2 vsm.Value) (msm.cons.arg3 msm.Map))
+  (msm.default (msm.default.arg1 tsm.Type) (msm.default.arg2 vsm.Value))
   )
   (
-$SM_SEQ_DECL$
+  (ssm.cons (ssm.cons.arg1 vsm.Value) (ssm.cons.arg2 ssm.Seq))
+  (ssm.empty (ssm.empty.arg1 tsm.Type))
   )
   (
 $SM_TERM_DECL$
@@ -238,6 +255,7 @@ $SM_TYPE_DECL$
 ; models
 (define-sort smk.SmtModelKey () (Tuple Bool String tsm.Type))
 (define-sort smm.SmtModel () (Array smk.SmtModelKey vsm.Value))
+(define-sort SmtModel () smm.SmtModel)
 
 (declare-datatype srl.RefList
   ((reflist_nil) (reflist_insert (reflist_insert.arg1 srl.RefList) (reflist_insert.arg2 String))))
