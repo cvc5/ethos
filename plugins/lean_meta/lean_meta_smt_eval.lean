@@ -121,16 +121,10 @@ def native_to_int : native_Rat -> native_Int
 def native_to_real : native_Int -> native_Rat
   | x => (native_mk_rational x 1)
 
--- Strings
-def native_str_to_code (s : native_String) : native_Int :=
-  match s with
-  | [c] => if native_char_valid c then Int.ofNat c else -1
-  | _   => -1
-def native_str_from_code (i : native_Int) : native_String :=
-  if (0 <= i && (native_char_valid (Int.toNat i))) then
-    [(Int.toNat i)]
-  else
-    native_string_lit ""
+-- Strings. Note that native strings are used as names (of variables,
+-- datatypes, ...) and as the payload of string literals; the string
+-- operators themselves are defined over sequences of character values,
+-- see the string operators in the SMT model.
 def native_streq : native_String -> native_String -> native_Bool
   | x, y => decide (x = y)
 

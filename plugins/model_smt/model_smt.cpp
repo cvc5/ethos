@@ -329,7 +329,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   Kind kBool = Kind::BOOLEAN;
   Kind kInt = Kind::NUMERAL;
   Kind kReal = Kind::RATIONAL;
-  Kind kString = Kind::STRING;
   Kind kBitVec = Kind::BINARY;
   Kind kT = Kind::PARAM;
   Kind kAny = Kind::ANY;
@@ -348,7 +347,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToEoPrefix[kInt] = "numeral";
   d_kindToEoPrefix[d_kIntQuote] = "numeral";
   d_kindToEoPrefix[kReal] = "rational";
-  d_kindToEoPrefix[kString] = "seq";
   d_kindToEoPrefix[d_kSeq] = "seq";
   d_kindToEoPrefix[d_kStrVSeq] = "seq";
   d_kindToEoPrefix[kBitVec] = "binary";
@@ -357,7 +355,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToType[d_kIntQuote] = "Int";
   d_kindToType[kInt] = "Int";
   d_kindToType[kReal] = "Real";
-  d_kindToType[kString] = "String";
   d_kindToType[d_kSeq] = "Seq";
   d_kindToType[kBitVec] = "Binary";
   d_kindToType[kRegLan] = "RegLan";
@@ -530,8 +527,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.len", {d_kSeq}, kInt);
   addConstFoldSym("str.substr", {d_kSeq, kInt, kInt}, d_kSeq);
   addAuxTypeProgram("str.substr", {d_kSeq, kInt, kInt}, "($tsm_Seq x1)");
-  // addConstFoldSym("str.at", {kString, kInt}, kString);
-  addTermReduceSym("str.at", {d_kSeq, kInt}, kString, "(str.substr x1 x2 1)");
+  // addConstFoldSym("str.at", {d_kStrVSeq, kInt}, d_kStrVSeq);
+  addTermReduceSym(
+      "str.at", {d_kSeq, kInt}, d_kStrVSeq, "(str.substr x1 x2 1)");
   addAuxTypeProgram("str.at", {d_kSeq, kInt}, "($tsm_Seq x1)");
   // The native sequence pattern operators are thin adapters over the regular
   // expression implementation, using the singleton regular expression for
@@ -543,33 +541,35 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                     "($native_ite ($native_Teq x1 x2) $tsm_Int $tsm_none)");
   addConstFoldSym("str.replace", {d_kSeq, d_kSeq, d_kSeq}, d_kSeq);
   addConstFoldSym("str.replace_all", {d_kSeq, d_kSeq, d_kSeq}, d_kSeq);
-  addConstFoldSym("str.from_code", {kInt}, kString);
-  addConstFoldSym("str.to_code", {kString}, kInt);
-  addConstFoldSym("str.from_int", {kInt}, kString);
-  addConstFoldSym("str.to_int", {kString}, kInt);
-  // addConstFoldSym("str.is_digit", {kString}, kBool);
+  addConstFoldSym("str.from_code", {kInt}, d_kStrVSeq);
+  addConstFoldSym("str.to_code", {d_kStrVSeq}, kInt);
+  addConstFoldSym("str.from_int", {kInt}, d_kStrVSeq);
+  addConstFoldSym("str.to_int", {d_kStrVSeq}, kInt);
+  // addConstFoldSym("str.is_digit", {d_kStrVSeq}, kBool);
   std::stringstream ssIsDigit;
   ssIsDigit << "(and (<= ($vsm_numeral " << smtZ(48) << ")"
             << " (str.to_code x1)) (<= (str.to_code x1) ($vsm_numeral "
             << smtZ(57) << ")))";
-  addTermReduceSym("str.is_digit", {kString}, kBool, ssIsDigit.str());
+  addTermReduceSym("str.is_digit", {d_kStrVSeq}, kBool, ssIsDigit.str());
   addConstFoldSym("str.contains", {d_kSeq, d_kSeq}, kBool);
-  // addConstFoldSym("str.suffixof", {kString, kString}, kBool);
+  // addConstFoldSym("str.suffixof", {d_kSeq, d_kSeq}, kBool);
   // reduce
   addTermReduceSym(
       "str.suffixof",
       {d_kSeq, d_kSeq},
       kBool,
       "(= x1 (str.substr x2 (- (str.len x2) (str.len x1)) (str.len x1)))");
-  // addConstFoldSym("str.prefixof", {kString, kString}, kBool);
+  // addConstFoldSym("str.prefixof", {d_kSeq, d_kSeq}, kBool);
   addTermReduceSym("str.prefixof",
                    {d_kSeq, d_kSeq},
                    kBool,
                    "(= x1 (str.substr x2 0 (str.len x1)))");
-  // addConstFoldSym("str.<=", {kString, kString}, kBool);
-  addTermReduceSym(
-      "str.<=", {kString, kString}, kBool, "(or (= x1 x2) (str.< x1 x2))");
-  addConstFoldSym("str.<", {kString, kString}, kBool);
+  // addConstFoldSym("str.<=", {d_kStrVSeq, d_kStrVSeq}, kBool);
+  addTermReduceSym("str.<=",
+                   {d_kStrVSeq, d_kStrVSeq},
+                   kBool,
+                   "(or (= x1 x2) (str.< x1 x2))");
+  addConstFoldSym("str.<", {d_kStrVSeq, d_kStrVSeq}, kBool);
   // regular expressions
   addReduceSym(
       "re.allchar", {}, kRegLan, "($vsm_re ($native_apply_0 \"re.allchar\"))");
@@ -968,8 +968,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       {d_kSeq, kInt, d_kSeq},
       "($native_ite ($native_Teq x1 x2) ($tsm_Seq x1) $tsm_none)");
   addConstFoldSym("str.rev", {d_kSeq}, d_kSeq);
-  addConstFoldSym("str.to_lower", {kString}, kString);
-  addConstFoldSym("str.to_upper", {kString}, kString);
+  addConstFoldSym("str.to_lower", {d_kStrVSeq}, d_kStrVSeq);
+  addConstFoldSym("str.to_upper", {d_kStrVSeq}, d_kStrVSeq);
   std::stringstream ssItosRes;
   ssItosRes << "(ite (= ($eo_to_smt x2) 0) 0 ";
   ssItosRes << "(str.to_int (str.substr (str.from_int ($eo_to_smt x1)) 0 ($eo_to_smt x2))))";
@@ -978,12 +978,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      smtToSmtEmbed(ssItosRes.str(), true));
   addEunoiaReduceSym(
       "@strings_stoi_result",
-      {kString, kInt},
+      {d_kStrVSeq, kInt},
       smtToSmtEmbed(
         "(ite (= ($eo_to_smt x2) 0) 0 (str.to_int (str.substr ($eo_to_smt x1) 0 ($eo_to_smt x2))))", true));
   addEunoiaReduceSym(
       "@strings_stoi_non_digit",
-      {kString},
+      {d_kStrVSeq},
       smtToSmtEmbed("(str.indexof_re ($eo_to_smt x1) (re.inter $sm_re.allchar (re.comp (re.range "
                     "($sm_string $native_str_c0) ($sm_string "
                     "$native_str_c9)))) 0)",
@@ -1247,7 +1247,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      {kT, kT},
                      stringsNumOccurCall(e1, e2, false));
   addEunoiaReduceSym("@strings_num_occur_re",
-                     {kString, kRegLan},
+                     {d_kStrVSeq, kRegLan},
                      stringsNumOccurCall(e1, e2, true));
   // The occurrence-index skolems are model leaves evaluated directly by the
   // native model runtime (native_seq_occur_index / native_str_occur_index_re).
@@ -1276,7 +1276,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       smtToSmtEmbed(stringsReplaceAllResult(e1, e2, e3, e4, false), true));
   addEunoiaReduceSym(
       "@strings_replace_re_all_result",
-      {kString, kRegLan, kString, kInt},
+      {d_kStrVSeq, kRegLan, d_kStrVSeq, kInt},
       smtToSmtEmbed(stringsReplaceAllResult(e1, e2, e3, e4, true), true));
   // ignore, not in proof rules (NOTE: could be SMT const?)
   d_symIgnore["@const"] = true;
@@ -1820,11 +1820,9 @@ void ModelSmt::printConstFold(const std::string& name,
       Kind ka = args[i - 1];
       instArgs.push_back(ka == Kind::PARAM ? kas : ka);
       tmpParamCount++;
-      if (ka == Kind::STRING || ka == d_kSeq || ka == d_kStrVSeq)
+      if (ka == d_kSeq || ka == d_kStrVSeq)
       {
-        retArgs << " ($native_apply_1 \"unpack_";
-        retArgs << (ka == Kind::STRING ? "string" : "seq") << "\" x"
-                << tmpParamCount << ")";
+        retArgs << " ($native_apply_1 \"unpack_seq\" x" << tmpParamCount << ")";
       }
       else
       {
@@ -1835,18 +1833,22 @@ void ModelSmt::printConstFold(const std::string& name,
     Kind kr = kret == Kind::PARAM ? kas : kret;
     std::stringstream ssret;
     std::stringstream ssretEnd;
-    if (kr == Kind::STRING || kr == d_kSeq || kr == d_kStrVSeq)
+    if (kr == d_kSeq || kr == d_kStrVSeq)
     {
-      ssret << " ($native_apply_" << (kr == Kind::STRING ? 1 : 2) << " \"pack_";
-      ssret << (kr == Kind::STRING ? "string" : "seq");
-      ssret << "\" ";
-      if (kr == d_kSeq || kr == d_kStrVSeq)
+      ssret << " ($native_apply_2 \"pack_seq\" ";
+      if (!args.empty() && (args[0] == d_kSeq || args[0] == d_kStrVSeq))
       {
         // the element type of the result is that of the first argument,
         // which is the subject sequence. Note this propagates the element
         // type when a sequence operator is evaluated by a regular
         // expression operator.
         ssret << "($smtx_elem_typeof_seq_value x1) ";
+      }
+      else
+      {
+        // operators that construct a string from a non-sequence argument
+        // (e.g. str.from_int) always return a sequence of characters.
+        ssret << "$tsm_Char ";
       }
       ssretEnd << ")";
     }
@@ -2083,7 +2085,7 @@ bool ModelSmt::printTypeInternal(const std::string& name,
     out << "$tsm_Bool";
     return true;
   }
-  else if (k == Kind::STRING || k == d_kStrVSeq)
+  else if (k == d_kStrVSeq)
   {
     out << "$tsm_String";
     return true;
