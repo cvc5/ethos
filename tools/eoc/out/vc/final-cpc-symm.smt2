@@ -441,7 +441,7 @@
 (declare-fun inhabited_type (tsm.Type) Bool)
 (declare-fun eval_map_diff_msm (msm.Map msm.Map) vsm.Value)
 (declare-fun eval_seq_diff_ssm (ssm.Seq ssm.Seq) vsm.Value)
-(declare-fun eval_ifun_apply (smm.SmtModel String tsm.Type tsm.Type vsm.Value) vsm.Value)
+(declare-fun eval_fun_apply (smm.SmtModel String tsm.Type tsm.Type vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (msm.Map msm.Map) Bool)
   
@@ -809,7 +809,7 @@
   (ite ((_ is vsm.Apply) x2)
     (vsm.Apply (vsm.Apply (vsm.Apply.arg1 x2) (vsm.Apply.arg2 x2)) x3)
   (ite ((_ is vsm.Fun) x2)
-    (eval_ifun_apply x1 (vsm.Fun.arg1 x2) (vsm.Fun.arg2 x2) (vsm.Fun.arg3 x2) x3)
+    (eval_fun_apply x1 (vsm.Fun.arg1 x2) (vsm.Fun.arg2 x2) (vsm.Fun.arg3 x2) x3)
     vsm.NotValue
 )))))
 

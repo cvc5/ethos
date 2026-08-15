@@ -152,7 +152,7 @@ end
 
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
-def native_default_ifun_id : native_String := (native_string_lit "@native_default_ifun")
+def native_default_fun_id : native_String := (native_string_lit "@native_default_fun")
 
 /- SMT-LIB model -/
 structure SmtModelKey where
@@ -809,7 +809,7 @@ def __smtx_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
   | v, SmtValue.NotValue => SmtValue.NotValue
   | (SmtValue.DtCons s dd n), i => (SmtValue.Apply (SmtValue.DtCons s dd n) i)
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
-  | (SmtValue.Fun s T U), i => (native_eval_ifun_apply M s T U i)
+  | (SmtValue.Fun s T U), i => (native_eval_fun_apply M s T U i)
   | v, i => SmtValue.NotValue
 
 
@@ -985,7 +985,7 @@ def __smtx_type_default : SmtType -> SmtValue
   | (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
   | (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
   | (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
-  | (SmtType.FunType T U) => (SmtValue.Fun native_default_ifun_id T U)
+  | (SmtType.FunType T U) => (SmtValue.Fun native_default_fun_id T U)
   | T => SmtValue.NotValue
 termination_by T => 2 * sizeOf T
 
@@ -1021,9 +1021,9 @@ def __smtx_value_canonical_bool : SmtValue -> native_Bool
 
 
 
-def native_eval_ifun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) (i : SmtValue) : SmtValue :=
+def native_eval_fun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) (i : SmtValue) : SmtValue :=
   let fallback := __smtx_type_default U
-  if fid = native_default_ifun_id then
+  if fid = native_default_fun_id then
     fallback
   else
     native_model_fun_lookup M fid T U i
@@ -1134,8 +1134,8 @@ def native_fun_typed (M : SmtModel) : Prop :=
   ∀ fid A B i,
     __smtx_type_wf (SmtType.FunType A B) = true ->
     __smtx_typeof_value i = A ->
-    __smtx_typeof_value (native_eval_ifun_apply M fid A B i) = B ∧
-      __smtx_value_canonical_bool (native_eval_ifun_apply M fid A B i) = true
+    __smtx_typeof_value (native_eval_fun_apply M fid A B i) = B ∧
+      __smtx_value_canonical_bool (native_eval_fun_apply M fid A B i) = true
 
 def model_total_typed (M : SmtModel) : Prop :=
   (∀ isVar s T, __smtx_type_wf T = true ->

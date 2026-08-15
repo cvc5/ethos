@@ -99,7 +99,7 @@ end
 
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
-def native_default_ifun_id : native_String := (native_string_lit "@native_default_ifun")
+def native_default_fun_id : native_String := (native_string_lit "@native_default_fun")
 
 /- SMT-LIB model -/
 structure SmtModelKey where
@@ -571,9 +571,9 @@ def native_inhabited_type (T : SmtType) : native_Bool :=
 
 $LEAN_SMT_EVAL_DEFS$
 
-def native_eval_ifun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) (i : SmtValue) : SmtValue :=
+def native_eval_fun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) (i : SmtValue) : SmtValue :=
   let fallback := __smtx_type_default U
-  if fid = native_default_ifun_id then
+  if fid = native_default_fun_id then
     fallback
   else
     native_model_fun_lookup M fid T U i
@@ -651,8 +651,8 @@ def native_fun_typed (M : SmtModel) : Prop :=
   ∀ fid A B i,
     __smtx_type_wf (SmtType.FunType A B) = true ->
     __smtx_typeof_value i = A ->
-    __smtx_typeof_value (native_eval_ifun_apply M fid A B i) = B ∧
-      __smtx_value_canonical_bool (native_eval_ifun_apply M fid A B i) = true
+    __smtx_typeof_value (native_eval_fun_apply M fid A B i) = B ∧
+      __smtx_value_canonical_bool (native_eval_fun_apply M fid A B i) = true
 
 def model_total_typed (M : SmtModel) : Prop :=
   (∀ isVar s T, __smtx_type_wf T = true ->

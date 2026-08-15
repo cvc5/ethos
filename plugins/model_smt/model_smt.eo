@@ -1181,7 +1181,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (($smtx_model_eval_apply M ($vsm_apply f v) i) ($vsm_apply ($vsm_apply f v) i))
   ; Call the native apply lookup
   (($smtx_model_eval_apply M ($vsm_fun s T U) i)
-    ($native_apply_5 "eval_ifun_apply" M s T U i))
+    ($native_apply_5 "eval_fun_apply" M s T U i))
   ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply M v i)                 $vsm_not_value)
   )
@@ -2064,7 +2064,7 @@ $EO_TO_SMT_CASES$
   (($smtx_type_default ($tsm_Set T))        ($smtx_empty_set T))
   (($smtx_type_default ($tsm_Seq T))        ($smtx_empty_seq T))
   (($smtx_type_default ($tsm_USort i))      ($vsm_uvalue i $native_n_zero))
-  (($smtx_type_default ($tsm_FunType T U))  ($vsm_fun ($native_apply_0 "default_ifun_id") T U))
+  (($smtx_type_default ($tsm_FunType T U))  ($vsm_fun ($native_apply_0 "default_fun_id") T U))
   (($smtx_type_default T) $vsm_not_value)
   )
 )  
