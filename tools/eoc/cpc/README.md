@@ -61,3 +61,18 @@ Compatibility scripts restored from the old workflow:
 
 - `install_logos`
 - `install_logos_mini`
+
+Both installers also publish the generated proof parser as
+`$LOGOS_DIR/Cpc/Parser.lean` (or the corresponding mini-calculus module). The
+generated module is only a `Logos.Parser.Config`: the operator and proof-rule
+tables of the calculus, plus the mapping of literals, datatype declarations and
+proof commands into its term language. The parser itself is the hand-written,
+calculus-independent `Logos/Parser.lean` in the Logos repository, which is where
+that module lives rather than in a generated calculus package.
+
+An operator's arity comes from its Eunoia argument-list attribute, carried
+through the stages as echo metadata because desugaring strips it from the
+emitted declarations. `:arg-list` becomes `.listArg`, so `(distinct a b c)`
+gathers into `(distinct (@tlist a b c))`; an operator that merely takes a
+`@@TypedList` without that attribute, such as `set.insert`, is applied to an
+explicit list and stays `.exact`.

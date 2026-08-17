@@ -377,6 +377,10 @@ class Pipeline:
             out_lean / "LogosTerm.lean",
         )
         shutil.copyfile(
+            self.plugin_generated("lean_meta/lean_meta_parser_gen.lean"),
+            out_lean / "Parser.lean",
+        )
+        shutil.copyfile(
             REPO_ROOT / "plugins" / "lean_meta" / "lean_meta_smt_eval.lean",
             out_lean / "SmtEval.lean",
         )
@@ -502,7 +506,12 @@ class Pipeline:
         )
         print(f"**** lean_meta: Run ethos + model-smt on {init_desugar} to generate {vcm_defs}")
         self.model_smt(init_desugar, vcm_defs)
+        # The generated proof parser expands parameterized n-ary syntax with
+        # the calculus' own nil/type utilities. Keep those utilities even when
+        # compiling only a small set of rules; parser metadata echoes are
+        # intentionally preserved by trim-defs as well.
         target_progs = [f"$eo_prog_{target}" for target in targets]
+        target_progs.extend(["$eo_nil", "$eo_typeof"])
         print(f"**** lean_meta: Run ethos + trim-deps on {vcm_defs} to generate {final_defs}")
         self.trim_defs(self.binary_path_arg(vcm_defs), target_progs, final_defs)
         print(f"**** lean_meta: Verify ethos parses {final_defs}")

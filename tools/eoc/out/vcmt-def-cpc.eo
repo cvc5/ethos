@@ -1,5 +1,13 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 311
+; #trim-defs: 319
+(echo "lean-parser-op Int Int 0 0 none -")
+(echo "lean-parser-op Real Real 0 0 none -")
+(echo "lean-parser-op BitVec BitVec 0 1 none -")
+(echo "lean-parser-op Char Char 0 0 none -")
+(echo "lean-parser-op Seq Seq 0 1 none -")
+(echo "lean-parser-op not not 0 1 none -")
+(echo "lean-parser-op and and 0 2 right-assoc-nil -")
+(echo "lean-parser-op = = 0 2 chainable and")
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)

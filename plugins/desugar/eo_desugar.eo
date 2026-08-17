@@ -22,6 +22,10 @@
 ;    $eo_typeof_main.
 ; 4. A verification condition (EO_VC).
 
+; Parser metadata is carried as echo commands because the declarations emitted
+; by this stage intentionally omit their original desugaring attributes.
+$EO_LEAN_PARSER_METADATA$
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; proofs
 
 ; The return type of proof rules.

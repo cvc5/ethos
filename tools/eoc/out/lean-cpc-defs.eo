@@ -22,6 +22,20 @@
 ;    $eo_typeof_main.
 ; 4. A verification condition (EO_VC).
 
+; Parser metadata is carried as echo commands because the declarations emitted
+; by this stage intentionally omit their original desugaring attributes.
+(echo "lean-parser-op Int Int 0 0 none -")
+(echo "lean-parser-op Real Real 0 0 none -")
+(echo "lean-parser-op BitVec BitVec 0 1 none -")
+(echo "lean-parser-op Char Char 0 0 none -")
+(echo "lean-parser-op Seq Seq 0 1 none -")
+(echo "lean-parser-op not not 0 1 none -")
+(echo "lean-parser-op or or 0 2 right-assoc-nil -")
+(echo "lean-parser-op and and 0 2 right-assoc-nil -")
+(echo "lean-parser-op => => 0 2 right-assoc -")
+(echo "lean-parser-op = = 0 2 chainable and")
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; proofs
 
 ; The return type of proof rules.
@@ -4289,7 +4303,9 @@
 
 ; Rule constructors
 
+(echo "lean-parser-rule contra contra")
 (declare-const $emb_r.contra $eo_Rule)
+(echo "lean-parser-rule symm symm")
 (declare-const $emb_r.symm $eo_Rule)
 
 

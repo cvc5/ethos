@@ -150,6 +150,14 @@ def __eo_prog_symm : Proof -> Term
   | _ => Term.Stuck
 
 
+def __eo_nil : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.UOp UserOp.or), T => (Term.Boolean false)
+  | (Term.UOp UserOp.and), T => (Term.Boolean true)
+  | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
+  | _, _ => Term.Stuck
+
+
 def __eo_typeof_dt_cons_rec : Term -> Datatype -> native_Nat -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | T, (Datatype.sum DatatypeCons.unit d), native_nat_zero => T

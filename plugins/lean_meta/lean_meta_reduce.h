@@ -13,6 +13,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "../meta_reduce_plugin.h"
 
@@ -113,6 +114,8 @@ class LeanMetaReduce : public MetaReducePlugin
   static bool isProgram(const Expr& t);
   /** Emit the Lean checker definitions. */
   void finalizeChecker();
+  /** Emit the generated, signature-specific Logos parser configuration. */
+  void finalizeParser();
   /** Emit Lean definitions for the SMT model layer. */
   void finalizeSmtModel();
   /** Emit Lean specifications for generated proof-rule targets. */
@@ -187,6 +190,32 @@ class LeanMetaReduce : public MetaReducePlugin
   static std::string cleanSmtId(const std::string& id);
   /** Return a Lean-safe version of a general generated identifier. */
   static std::string cleanId(const std::string& id);
+  /** Quote a string as a Lean string literal. */
+  static std::string quoteLeanString(const std::string& value);
+
+  /** Surface syntax for an operator, preserved by the desugar stage. */
+  struct ParserOp
+  {
+    std::string d_surface;
+    std::string d_generated;
+    size_t d_indexArity;
+    size_t d_termArity;
+    std::string d_attr;
+    /**
+     * The constructor operand of `d_attr`: the operator that chains a chainable
+     * one, or the one that builds the list of an `arg-list`. "-" if the
+     * attribute takes no operand.
+     */
+    std::string d_connector;
+  };
+  /** Parser operator records received through desugaring echo metadata. */
+  std::vector<ParserOp> d_parserOps;
+  /** Surface/generated proof-rule names received through echo metadata. */
+  std::vector<std::pair<std::string, std::string>> d_parserRules;
+  /** UserOp constructors actually emitted by the Lean backend. */
+  std::set<std::pair<std::string, size_t>> d_emittedUserOps;
+  /** CRule constructors actually emitted by the Lean backend. */
+  std::set<std::string> d_emittedRules;
   // TEMPORARY
   std::unordered_set<std::string> d_partialExc;
   std::map<std::string, std::string> d_terminatingBy;

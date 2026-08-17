@@ -1170,6 +1170,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   else if (tk == MetaKind::CHECKER_RULE)
   {
     out = &d_ruleDt;
+    d_emittedRules.insert(cname);
   }
   else if (tk == MetaKind::CHECKER_CMD)
   {
@@ -1207,6 +1208,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   else if (tk == MetaKind::EUNOIA && isAtomicEo(c, cnamek, uarity))
   {
     Assert (uarity<4);
+    d_emittedUserOps.insert(std::make_pair(cname, uarity));
     std::stringstream& etd = d_embedTOpDt[uarity];
     etd << "  | " << cname << " : UserOp";
     if (uarity>0)
@@ -1270,6 +1272,173 @@ void LeanMetaReduce::finalizeChecker()
                         {"$LEAN_CHECKER_DEFS$", d_eoChecker.str()},
                         {"$LEAN_EO_IS_REFUTATION_DEF$", d_eoIsRef.str()}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
+}
+
+void LeanMetaReduce::finalizeParser()
+{
+  // The Lean term for a nullary operator named by its surface syntax, e.g. the
+  // operator that chains a chainable one or that builds a gathered list. Empty
+  // if the Lean backend did not emit that operator.
+  auto userOpTerm = [this](const std::string& surface) {
+    for (const ParserOp& other : d_parserOps)
+    {
+      std::string otherGenerated = cleanSmtId(other.d_generated);
+      if (other.d_surface == surface
+          && d_emittedUserOps.find(std::make_pair(otherGenerated, 0))
+                 != d_emittedUserOps.end())
+      {
+        return "(Term.UOp UserOp." + otherGenerated + ")";
+      }
+    }
+    return std::string();
+  };
+  std::stringstream ops;
+  std::set<std::string> seenOps;
+  for (const ParserOp& op : d_parserOps)
+  {
+    std::string generated = cleanSmtId(op.d_generated);
+    if (d_emittedUserOps.find(std::make_pair(generated, op.d_indexArity))
+        == d_emittedUserOps.end())
+    {
+      continue;
+    }
+    std::stringstream opKey;
+    opKey << op.d_surface << "\n" << generated << "\n" << op.d_indexArity
+          << "\n" << op.d_termArity << "\n" << op.d_attr;
+    if (!seenOps.insert(opKey.str()).second)
+    {
+      continue;
+    }
+
+    std::stringstream term;
+    if (op.d_indexArity == 0)
+    {
+      term << "(Term.UOp UserOp." << generated << ")";
+    }
+    else
+    {
+      term << "(Term.UOp" << op.d_indexArity << " UserOp"
+           << op.d_indexArity << "." << generated;
+      for (size_t i = 0; i < op.d_indexArity; ++i)
+      {
+        term << " x" << (i + 1);
+      }
+      term << ")";
+    }
+
+    std::string arity;
+    if (op.d_attr == "left-assoc")
+    {
+      arity = ".leftAssoc";
+    }
+    else if (op.d_attr == "right-assoc")
+    {
+      arity = ".rightAssoc";
+    }
+    else if (op.d_attr == "left-assoc-nil")
+    {
+      arity = ".leftAssocNil (parserNil " + term.str() + ")";
+    }
+    else if (op.d_attr == "right-assoc-nil")
+    {
+      arity = ".rightAssocNil (parserNil " + term.str() + ")";
+    }
+    else if (op.d_attr == "left-assoc-ns-nil")
+    {
+      arity = ".leftAssocNonSingletonNil (parserNil " + term.str() + ")";
+    }
+    else if (op.d_attr == "right-assoc-ns-nil")
+    {
+      arity = ".rightAssocNonSingletonNil (parserNil " + term.str() + ")";
+    }
+    else if (op.d_attr == "arg-list")
+    {
+      // The operator gathers its leading arguments into a list, e.g.
+      // `(distinct a b c)` denotes `(distinct (@tlist a b c))`. Its remaining
+      // arguments, if any, follow that list.
+      std::string consTerm = userOpTerm(op.d_connector);
+      if (!consTerm.empty() && op.d_termArity > 0)
+      {
+        std::stringstream listArg;
+        listArg << ".listArg " << (op.d_termArity - 1)
+                << " (fun ts => Logos.Parser.rightAssocNil Term.Apply "
+                << consTerm << " (parserNil " << consTerm << ") ts)";
+        arity = listArg.str();
+      }
+    }
+    else if (op.d_attr == "chainable" || op.d_attr == "pairwise")
+    {
+      std::string connectorTerm = userOpTerm(op.d_connector);
+      if (!connectorTerm.empty())
+      {
+        arity = "." + op.d_attr
+                + " (fun ts => Logos.Parser.rightAssocNil Term.Apply "
+                + connectorTerm + " (parserNil " + connectorTerm + ") ts)";
+      }
+    }
+    if (arity.empty())
+    {
+      std::stringstream exact;
+      exact << ".exact " << op.d_termArity;
+      arity = exact.str();
+    }
+    // `Logos.Parser.Arity` does not model every argument-list attribute. These
+    // do not occur in CPC; warn rather than silently emit Lean that will not
+    // compile.
+    if (arity.rfind(".leftAssocNil", 0) == 0 || arity.rfind(".pairwise", 0) == 0
+        || arity.find("NonSingletonNil") != std::string::npos)
+    {
+      Warning() << "Lean parser: operator " << op.d_surface
+                << " has argument-list attribute " << op.d_attr
+                << ", which Logos.Parser.Arity does not model" << std::endl;
+    }
+
+    ops << "  { name := " << quoteLeanString(op.d_surface) << std::endl;
+    ops << "    indexArity := " << op.d_indexArity << std::endl;
+    ops << "    arity := " << arity << std::endl;
+    ops << "    build := fun" << std::endl;
+    ops << "      | [";
+    for (size_t i = 0; i < op.d_indexArity; ++i)
+    {
+      if (i > 0)
+      {
+        ops << ", ";
+      }
+      ops << "x" << (i + 1);
+    }
+    ops << "] => some " << term.str() << std::endl;
+    ops << "      | _ => none }," << std::endl;
+  }
+
+  std::stringstream rules;
+  std::set<std::string> seenRules;
+  bool firstRule = true;
+  for (const std::pair<std::string, std::string>& rule : d_parserRules)
+  {
+    std::string generated = cleanSmtId(rule.second);
+    if (d_emittedRules.find(generated) == d_emittedRules.end()
+        || !seenRules.insert(rule.first).second)
+    {
+      continue;
+    }
+    if (!firstRule)
+    {
+      rules << "," << std::endl;
+    }
+    firstRule = false;
+    rules << "  (" << quoteLeanString(rule.first) << ", ." << generated << ")";
+  }
+  if (!firstRule)
+  {
+    rules << std::endl;
+  }
+
+  const std::string outPath = emitResourceFile(
+      "plugins/lean_meta/lean_meta_parser.lean",
+      "plugins/lean_meta/lean_meta_parser_gen.lean",
+      {{"$LEAN_PARSER_OPS$", ops.str()},
+       {"$LEAN_PARSER_RULES$", rules.str()}});
+  Trace("lean-meta") << "Write lean parser " << outPath << std::endl;
 }
 
 void LeanMetaReduce::finalizeSmtModel()
@@ -1343,6 +1512,7 @@ void LeanMetaReduce::finalize()
     }
   }
   finalizeChecker();
+  finalizeParser();
   finalizeSmtModel();
   finalizeSpec();
   finalizeLemmas();
@@ -1410,6 +1580,38 @@ void LeanMetaReduce::printStepEmptyCase(std::ostream& out,
 
 bool LeanMetaReduce::echo(const std::string& msg)
 {
+  if (msg.compare(0, 15, "lean-parser-op ") == 0)
+  {
+    std::istringstream in(msg.substr(15));
+    ParserOp op;
+    if (in >> op.d_surface >> op.d_generated >> op.d_indexArity
+           >> op.d_termArity >> op.d_attr >> op.d_connector)
+    {
+      d_parserOps.push_back(op);
+    }
+    else
+    {
+      Warning() << "Malformed lean parser operator metadata: " << msg
+                << std::endl;
+    }
+    return false;
+  }
+  if (msg.compare(0, 17, "lean-parser-rule ") == 0)
+  {
+    std::istringstream in(msg.substr(17));
+    std::string surface;
+    std::string generated;
+    if (in >> surface >> generated)
+    {
+      d_parserRules.emplace_back(surface, generated);
+    }
+    else
+    {
+      Warning() << "Malformed lean parser rule metadata: " << msg
+                << std::endl;
+    }
+    return false;
+  }
   std::cout << "ECHO " << msg << std::endl;
   if (msg.compare(0, 10, "lean-meta ") == 0)
   {
@@ -1502,6 +1704,26 @@ std::string LeanMetaReduce::cleanId(const std::string& id)
   std::string idc = id;
   idc = replace_all(idc, "-", "_");
   return cleanSmtId(idc);
+}
+
+std::string LeanMetaReduce::quoteLeanString(const std::string& value)
+{
+  std::stringstream out;
+  out << '"';
+  for (char c : value)
+  {
+    switch (c)
+    {
+      case '\\': out << "\\\\"; break;
+      case '"': out << "\\\""; break;
+      case '\n': out << "\\n"; break;
+      case '\r': out << "\\r"; break;
+      case '\t': out << "\\t"; break;
+      default: out << c; break;
+    }
+  }
+  out << '"';
+  return out.str();
 }
 
 }  // namespace ethos

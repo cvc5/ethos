@@ -17,6 +17,28 @@
 
 namespace ethos {
 
+namespace {
+
+const char* leanParserAttrName(Attr a)
+{
+  switch (a)
+  {
+    case Attr::LEFT_ASSOC: return "left-assoc";
+    case Attr::RIGHT_ASSOC: return "right-assoc";
+    case Attr::LEFT_ASSOC_NIL: return "left-assoc-nil";
+    case Attr::RIGHT_ASSOC_NIL: return "right-assoc-nil";
+    case Attr::LEFT_ASSOC_NS_NIL: return "left-assoc-ns-nil";
+    case Attr::RIGHT_ASSOC_NS_NIL: return "right-assoc-ns-nil";
+    case Attr::CHAINABLE: return "chainable";
+    case Attr::PAIRWISE: return "pairwise";
+    case Attr::ARG_LIST: return "arg-list";
+    case Attr::OPAQUE: return "opaque";
+    default: return "none";
+  }
+}
+
+}  // namespace
+
 Desugar::Desugar(State& s) : StdPlugin(s), d_dchecker(s)
 {
   // we require santization of the eo::List at this stage
@@ -209,6 +231,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   std::map<Expr, bool> visited;
   std::vector<Expr> params;
   std::stringstream opaqueArgs;
+  size_t parserIndexArity = 0;
   if (ct.getKind() == Kind::FUNCTION_TYPE)
   {
     if (cattr == Attr::OPAQUE)
@@ -217,6 +240,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       Assert(anum.getKind() == Kind::NUMERAL);
       Assert(anum.getValue()->asLiteral()->d_int.fitsUnsignedInt());
       size_t novars = anum.getValue()->asLiteral()->d_int.toUnsignedInt();
+      parserIndexArity = novars;
       for (size_t i = 0; i < novars; i++)
       {
         Expr v;
@@ -294,9 +318,40 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     printTerm(ct, os);
   }
   os << ")" << std::endl;
+
+  // Applications in this output are already desugared, so re-emitting the
+  // original constructor attributes would desugar them a second time. Echo
+  // commands safely carry the small amount of syntax metadata through
+  // model-smt and trim-defs to lean-meta instead.
+  std::stringstream parserSurface;
+  parserSurface << e;
+  size_t parserTermArity = argTypes.size();
+  if (isAmb && parserTermArity > 0)
+  {
+    // Ambiguous constants are desugared by turning their first disambiguating
+    // type argument into an opaque argument (see the declaration loop above).
+    // Lean represents that argument in UserOp1 rather than as Term.Apply.
+    ++parserIndexArity;
+    --parserTermArity;
+  }
+  // The attributes that combine an operator's arguments into a term take a
+  // constructor as their operand: the operator that chains a chainable one, or
+  // the one that builds the list of an `:arg-list`.
+  std::string parserConnector = "-";
+  if (cattr == Attr::CHAINABLE || cattr == Attr::PAIRWISE
+      || cattr == Attr::ARG_LIST)
+  {
+    std::stringstream ssConnector;
+    ssConnector << cattrCons;
+    parserConnector = ssConnector.str();
+  }
+  d_leanParserMetadata << "(echo \"lean-parser-op " << parserSurface.str()
+                       << " " << cname << " " << parserIndexArity << " "
+                       << parserTermArity << " " << leanParserAttrName(cattr)
+                       << " " << parserConnector << "\")" << std::endl;
   d_declProcessed.insert(e);
   // handle eo_nil
-  if (cattr == Attr::RIGHT_ASSOC_NIL || cattr == Attr::LEFT_ASSOC_NIL)
+  if (isListNilAttr(cattr))
   {
     d_eoNil << "  (($eo_nil " << e << " T) ";
     d_eoIsListNil << "  (($eo_is_list_nil " << e << " ";
@@ -869,6 +924,7 @@ void Desugar::finalize()
   replace(finalEo, "$EO_IS_LIST_NIL_CASES$", d_eoIsListNil.str());
   replace(finalEo, "$EO_NIL_CASES$", d_eoNil.str());
   replace(finalEo, "$EO_NIL_NGROUND_DEFS$", d_eoNilNground.str());
+  replace(finalEo, "$EO_LEAN_PARSER_METADATA$", d_leanParserMetadata.str());
   replace(finalEo, "$EO_TYPEOF_CASES$", d_eoTypeof.str());
   replace(finalEo, "$EO_IS_CLOSED_CASES$", d_eoIsClosed.str());
   replace(finalEo, "$EO_TYPEOF_NGROUND_DEFS$", d_eoTypeofNGround.str());

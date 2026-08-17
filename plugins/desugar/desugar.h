@@ -175,6 +175,12 @@ class Desugar : public StdPlugin
   std::stringstream d_eoNilNground;
   /** Generated `$eo_nil` cases. */
   std::stringstream d_eoNil;
+  /**
+   * Parser-only metadata preserved for the Lean backend. Desugaring removes
+   * constructor attributes from emitted declarations, so this records the
+   * original surface syntax before that information is lost.
+   */
+  std::stringstream d_leanParserMetadata;
   /** Generated `$eo_typeof` cases. */
   std::stringstream d_eoTypeof;
   /** Generated `$eo_is_closed` cases. */

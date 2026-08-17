@@ -107,9 +107,12 @@ void DesugarChecker::finalizeRule(const Expr& v)
   }
   std::stringstream ssv;
   ssv << v;
-  std::string vname = ssv.str();
+  std::string surfaceName = ssv.str();
+  std::string vname = surfaceName;
   vname = replace_all(vname, "-", "_");
   std::ostream* rout = isAssume ? &d_ruleInvokesPop : &d_ruleInvokes;
+  d_rules << "(echo \"lean-parser-rule " << surfaceName << " " << vname
+          << "\")" << std::endl;
   d_rules << "(declare-const $emb_r." << vname << " $eo_Rule)" << std::endl;
   (*rout) << "  (($eo_cmd_step_" << (isAssume ? "pop_" : "")
           << "proven S $emb_r." << vname << invokePat.str() << ") ";

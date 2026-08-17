@@ -1,5 +1,15 @@
-; trim-defs: $eo_prog_symm $eo_prog_contra
-; #trim-defs: 450
+; trim-defs: $eo_prog_symm $eo_prog_contra $eo_nil $eo_typeof
+; #trim-defs: 466
+(echo "lean-parser-op Int Int 0 0 none -")
+(echo "lean-parser-op Real Real 0 0 none -")
+(echo "lean-parser-op BitVec BitVec 0 1 none -")
+(echo "lean-parser-op Char Char 0 0 none -")
+(echo "lean-parser-op Seq Seq 0 1 none -")
+(echo "lean-parser-op not not 0 1 none -")
+(echo "lean-parser-op or or 0 2 right-assoc-nil -")
+(echo "lean-parser-op and and 0 2 right-assoc-nil -")
+(echo "lean-parser-op => => 0 2 right-assoc -")
+(echo "lean-parser-op = = 0 2 chainable and")
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (declare-const Int Type)
@@ -11,6 +21,8 @@
 (declare-const Char Type)
 (declare-const Seq (-> Type Type))
 (declare-consts <string> (Seq Char))
+(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
+  :signature ((-> T U V) (eo::quote W)) W)
 (declare-const $native_BuiltinType Type)
 (declare-parameterized-const $native_type_0
   (($smt_id Type :implicit) (op $smt_id :opaque))
@@ -312,6 +324,17 @@
   :signature ($eo_Proof) Bool
   (
   (($eo_prog_symm ($eo_pf F)) ($mk_symm F))
+  )
+)
+(program $eo_nil
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)))
+  :signature ((-> T U V) (eo::quote W)) W
+  (
+  (($eo_nil or T) false)
+  (($eo_nil and T) true)
+
+  
+  (($eo_nil $eo_List_cons $eo_List) $eo_List_nil)
   )
 )
 (program $eo_typeof_dt_cons_rec
@@ -1697,7 +1720,9 @@
   (($eo_push_proven F s)  ($eo_push_proven_check ($eo_is_bool_type F) F s))
   )
 )
+(echo "lean-parser-rule contra contra")
 (declare-const $emb_r.contra $eo_Rule)
+(echo "lean-parser-rule symm symm")
 (declare-const $emb_r.symm $eo_Rule)
 (declare-parameterized-const $emb_cmd.assume_push ((x Bool :opaque)) $eo_Cmd)
 (define $cmd_assume_push ((x Bool)) ($emb_cmd.assume_push x))

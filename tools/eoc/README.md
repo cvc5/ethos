@@ -73,6 +73,7 @@ tools/eoc/out/
   lean/
     Logos.lean
     LogosTerm.lean
+    Parser.lean
     SmtEval.lean
     SmtModel.lean
     Spec.lean
@@ -178,7 +179,10 @@ python3 tools/eoc/driver.py lean --build-dir build --all INPUT
 ```
 
 Generated files are written to `tools/eoc/out/lean/` by default, including
-per-rule files in `tools/eoc/out/lean/Rules/`.
+per-rule files in `tools/eoc/out/lean/Rules/`. `Parser.lean` is the minimal
+calculus-specific instantiation of the generic Logos proof parser: it contains
+only the generated operator/rule tables, indexed-operator constructors, and
+surface desugaring configuration.
 
 ### `desugar`
 
