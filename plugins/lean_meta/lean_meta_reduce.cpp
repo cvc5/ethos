@@ -1353,17 +1353,13 @@ void LeanMetaReduce::finalizeParser()
     }
     else if (op.d_attr == "arg-list")
     {
-      // The operator gathers its leading arguments into a list, e.g.
-      // `(distinct a b c)` denotes `(distinct (@tlist a b c))`. Its remaining
-      // arguments, if any, follow that list.
+      // The unary operator gathers all of its explicit arguments into a list,
+      // e.g. `(distinct a b c)` denotes `(distinct (@tlist a b c))`.
       std::string consTerm = userOpTerm(op.d_connector);
-      if (!consTerm.empty() && op.d_termArity > 0)
+      if (!consTerm.empty())
       {
-        std::stringstream listArg;
-        listArg << ".listArg " << (op.d_termArity - 1)
-                << " (fun ts => Logos.Parser.rightAssocNil Term.Apply "
-                << consTerm << " (parserNil " << consTerm << ") ts)";
-        arity = listArg.str();
+        arity = ".argList (fun ts => Logos.Parser.rightAssocNil Term.Apply "
+                + consTerm + " (parserNil " + consTerm + ") ts)";
       }
     }
     else if (op.d_attr == "chainable" || op.d_attr == "pairwise")

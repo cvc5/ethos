@@ -72,7 +72,7 @@ that module lives rather than in a generated calculus package.
 
 An operator's arity comes from its Eunoia argument-list attribute, carried
 through the stages as echo metadata because desugaring strips it from the
-emitted declarations. `:arg-list` becomes `.listArg`, so `(distinct a b c)`
+emitted declarations. `:arg-list` becomes `.argList`, so `(distinct a b c)`
 gathers into `(distinct (@tlist a b c))`; an operator that merely takes a
 `@@TypedList` without that attribute, such as `set.insert`, is applied to an
 explicit list and stays `.exact`.
