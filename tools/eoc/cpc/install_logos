@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # Generate the full CPC Lean package and install it into local Logos trees.
 # Usage: install_logos
-# Output: reads generated Lean files from tools/eoc/out/lean/ and copies them
-# to $LOGOS_DIR/Cpc, including per-rule files under
-# Proofs/Rules/. Existing rule files are preserved in $LOGOS_DIR/Cpc, and
-# imports are rewritten from the generated source module to Cpc. It then
-# optionally regenerates example files from $LOGOS_TESTS_DIR when that
-# directory exists.
+# Output: reads the generated Lean files from tools/eoc/out/lean/ and installs
+# them under $LOGOS_DIR/Cpc, namely the signature-wide modules listed in
+# EOC_LEAN_OUTPUTS in common.sh (Logos.lean, LogosTerm.lean, Parser.lean,
+# SmtEval.lean, SmtModelDefs.lean, SmtValueOrder.lean, SmtModel.lean and
+# Spec.lean directly in $LOGOS_DIR/Cpc, RuleLemmas.lean in
+# $LOGOS_DIR/Cpc/Proofs) and the per-rule files in $LOGOS_DIR/Cpc/Proofs/Rules.
+# Existing rule files there are preserved, and imports are rewritten from the
+# generated source module to Cpc. It then optionally regenerates example files
+# from $LOGOS_TESTS_DIR when that directory exists.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

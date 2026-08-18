@@ -75,6 +75,8 @@ tools/eoc/out/
     LogosTerm.lean
     Parser.lean
     SmtEval.lean
+    SmtModelDefs.lean
+    SmtValueOrder.lean
     SmtModel.lean
     Spec.lean
     RuleLemmas.lean

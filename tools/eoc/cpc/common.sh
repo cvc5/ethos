@@ -173,33 +173,65 @@ eoc_rewrite_lean_calc_imports() {
   done < <(find "$dest_dir" -type f -name '*.lean' -print0)
 }
 
+# The signature-wide Lean files installed by eoc_copy_lean_outputs, in module
+# dependency order. Each entry is "<source under out/lean> <destination
+# relative to the installed package directory>". This list must cover every
+# file written by the lean subcommand of tools/eoc/driver.py apart from the
+# per-rule files under out/lean/Rules/, which eoc_copy_lean_outputs installs
+# into Proofs/Rules/; a file added there but not here is silently left behind.
+EOC_LEAN_OUTPUTS=(
+  "Logos.lean Logos.lean"
+  "LogosTerm.lean LogosTerm.lean"
+  "Parser.lean Parser.lean"
+  "SmtEval.lean SmtEval.lean"
+  "SmtModelDefs.lean SmtModelDefs.lean"
+  "SmtValueOrder.lean SmtValueOrder.lean"
+  "SmtModel.lean SmtModel.lean"
+  "Spec.lean Spec.lean"
+  "RuleLemmas.lean Proofs/RuleLemmas.lean"
+)
+
 eoc_copy_lean_outputs() {
   local dest_dir="$1"
   local final_out_dir="$2"
   local preserve_existing_rules="${3:-0}"
   local lean_dir="$final_out_dir/lean"
   local rules_dir="$lean_dir/Rules"
+  local entry
+  local src
+  local dest
   local file
   local rule_dest
+  local copied
+  local preserved
 
   mkdir -p "$dest_dir" "$dest_dir/Proofs" "$dest_dir/Proofs/Rules"
-  cp "$lean_dir/Logos.lean" "$dest_dir/Logos.lean"
-  cp "$lean_dir/LogosTerm.lean" "$dest_dir/LogosTerm.lean"
-  cp "$lean_dir/Parser.lean" "$dest_dir/Parser.lean"
-  cp "$lean_dir/SmtEval.lean" "$dest_dir/SmtEval.lean"
-  cp "$lean_dir/SmtModel.lean" "$dest_dir/SmtModel.lean"
-  cp "$lean_dir/Spec.lean" "$dest_dir/Spec.lean"
-  cp "$lean_dir/RuleLemmas.lean" "$dest_dir/Proofs/RuleLemmas.lean"
+  echo "Installing generated Lean files from $lean_dir into $dest_dir"
+  for entry in "${EOC_LEAN_OUTPUTS[@]}"; do
+    read -r src dest <<< "$entry"
+    if [[ ! -f "$lean_dir/$src" ]]; then
+      echo "error: $lean_dir/$src was not generated" >&2
+      return 1
+    fi
+    echo "  $src -> $dest_dir/$dest"
+    cp "$lean_dir/$src" "$dest_dir/$dest"
+  done
   if [[ -d "$rules_dir" ]]; then
     (
       shopt -s nullglob
+      copied=0
+      preserved=0
       for file in "$rules_dir"/*.lean; do
         rule_dest="$dest_dir/Proofs/Rules/$(basename "$file")"
         if [[ "$preserve_existing_rules" != "0" && -e "$rule_dest" ]]; then
+          preserved=$((preserved + 1))
           continue
         fi
         cp "$file" "$rule_dest"
+        copied=$((copied + 1))
       done
+      echo "  Rules/*.lean -> $dest_dir/Proofs/Rules/" \
+        "($copied copied, $preserved existing preserved)"
     )
   fi
 }

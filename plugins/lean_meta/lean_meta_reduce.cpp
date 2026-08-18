@@ -1227,6 +1227,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     Assert(firstDot != std::string::npos && firstDot > 5);
     cnamek = cnamek.substr(5, firstDot - 5);
   }
+  std::vector<std::string> argTypes;
   for (size_t i = 0; i < nopqArgs; i++)
   {
     // print its type using the utility,
@@ -1243,12 +1244,83 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
       // TODO: never happens?
       sst << "Term";
     }
+    argTypes.push_back(sst.str());
     (*out) << sst.str() << " -> ";
     //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
     // sst.str() << "\" " << termKindToString(tk) << std::endl;
   }
   printMetaTypeKind(tk, *out);
   (*out) << std::endl;
+  // the ordering key methods are generated in lockstep with the datatypes they
+  // order, so that the tag of a constructor is its index in the datatype.
+  if (tk == MetaKind::SMT_TYPE)
+  {
+    printOrderKeyCase(cname, argTypes, d_smtTypeNcons, d_smtTypeKey);
+    d_smtTypeNcons++;
+  }
+  else if (tk == MetaKind::SMT_VALUE)
+  {
+    printOrderKeyCase(cname, argTypes, d_smtValueNcons, d_smtValueKey);
+    d_smtValueNcons++;
+  }
+}
+
+std::string LeanMetaReduce::getOrderKeyMethod(const std::string& t)
+{
+  // By convention, the key method for a type is named after the type: drop the
+  // Smt or native_ prefix, lowercase the first letter and append Key, e.g.
+  // SmtDatatypeDecl is ordered by datatypeDeclKey and native_Int by intKey.
+  // The methods for the types that are not generated are given by the
+  // lean_meta_smt_value_order.lean template.
+  std::string base;
+  if (t.compare(0, 3, "Smt") == 0)
+  {
+    base = t.substr(3);
+  }
+  else if (t.compare(0, 7, "native_") == 0)
+  {
+    base = t.substr(7);
+  }
+  if (base.empty())
+  {
+    return std::string();
+  }
+  base[0] = std::tolower(static_cast<unsigned char>(base[0]));
+  return base + "Key";
+}
+
+void LeanMetaReduce::printOrderKeyCase(const std::string& cname,
+                                       const std::vector<std::string>& argTypes,
+                                       size_t tag,
+                                       std::ostream& os) const
+{
+  std::stringstream keys;
+  for (size_t i = 0, nargs = argTypes.size(); i < nargs; i++)
+  {
+    std::string method = getOrderKeyMethod(argTypes[i]);
+    if (method.empty())
+    {
+      // An argument whose type does not follow the naming convention, so that
+      // we cannot name its key method. This does not happen for the value and
+      // type datatypes; warn rather than silently emit Lean that will not
+      // compile.
+      Warning() << "Lean value order: constructor " << cname
+                << " has argument of type " << argTypes[i]
+                << ", which does not name an ordering key method" << std::endl;
+      method = "natKey";
+    }
+    if (i > 0)
+    {
+      keys << ", ";
+    }
+    keys << method << " x" << (i + 1);
+  }
+  os << "  | ." << cname;
+  for (size_t i = 0, nargs = argTypes.size(); i < nargs; i++)
+  {
+    os << " x" << (i + 1);
+  }
+  os << " => node " << tag << " [" << keys.str() << "]" << std::endl;
 }
 
 void LeanMetaReduce::finalizeChecker()
@@ -1439,14 +1511,24 @@ void LeanMetaReduce::finalizeParser()
 
 void LeanMetaReduce::finalizeSmtModel()
 {
-  const std::string outPath =
-      emitResourceFile("plugins/lean_meta/lean_meta_smt_model.lean",
-                       "plugins/lean_meta/lean_meta_smt_model_gen.lean",
+  const std::string outPathDefs =
+      emitResourceFile("plugins/lean_meta/lean_meta_smt_model_defs.lean",
+                       "plugins/lean_meta/lean_meta_smt_model_defs_gen.lean",
                        {{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
                         {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()},
                         {"$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str()},
-                        {"$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str()},
-                        {"$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str()},
+                        {"$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str()}});
+  Trace("lean-meta") << "Write lean-defs " << outPathDefs << std::endl;
+  const std::string outPathOrder =
+      emitResourceFile("plugins/lean_meta/lean_meta_smt_value_order.lean",
+                       "plugins/lean_meta/lean_meta_smt_value_order_gen.lean",
+                       {{"$LEAN_SMT_TYPE_KEY$", d_smtTypeKey.str()},
+                        {"$LEAN_SMT_VALUE_KEY$", d_smtValueKey.str()}});
+  Trace("lean-meta") << "Write lean-order " << outPathOrder << std::endl;
+  const std::string outPath =
+      emitResourceFile("plugins/lean_meta/lean_meta_smt_model.lean",
+                       "plugins/lean_meta/lean_meta_smt_model_gen.lean",
+                       {{"$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str()},
                         {"$LEAN_SMT_EVAL$", d_smt.str()}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }

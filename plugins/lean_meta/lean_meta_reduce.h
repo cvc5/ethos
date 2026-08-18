@@ -59,6 +59,24 @@ class LeanMetaReduce : public MetaReducePlugin
                      MetaKind tctx = MetaKind::NONE) const;
   /** Print the Lean type name corresponding to a meta-kind. */
   bool printMetaTypeKind(MetaKind k, std::ostream& os) const;
+  /**
+   * Print the case of the ordering-key method for a constructor of one of the
+   * deeply embedded datatypes, which is used to generate SmtValueOrder. The
+   * case maps the constructor named cname, whose index in its datatype is tag
+   * and whose argument types (as printed by printMetaType) are argTypes, to
+   * (node tag [k1 x1, ..., kn xn]), where ki is the key method for the i^th
+   * argument type.
+   * @param cname The (already cleaned) name of the constructor.
+   * @param argTypes The printed Lean types of its arguments.
+   * @param tag The index of the constructor in its datatype.
+   * @param os The output stream.
+   */
+  void printOrderKeyCase(const std::string& cname,
+                         const std::vector<std::string>& argTypes,
+                         size_t tag,
+                         std::ostream& os) const;
+  /** Return the name of the ordering-key method for Lean type t, if any. */
+  static std::string getOrderKeyMethod(const std::string& t);
   using MetaReducePlugin::getName;
   using MetaReducePlugin::isEmbedCons;
   /**
@@ -166,6 +184,14 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_smtTypeDt;
   /** SMT value datatype cases. */
   std::stringstream d_smtValueDt;
+  /** SMT type ordering-key cases, see printOrderKeyCase. */
+  std::stringstream d_smtTypeKey;
+  /** SMT value ordering-key cases, see printOrderKeyCase. */
+  std::stringstream d_smtValueKey;
+  /** Number of constructors emitted for the SMT type datatype. */
+  size_t d_smtTypeNcons = 0;
+  /** Number of constructors emitted for the SMT value datatype. */
+  size_t d_smtValueNcons = 0;
   /** Checker command datatype cases. */
   std::stringstream d_cmdDt;
   /** Checker rule datatype cases. */

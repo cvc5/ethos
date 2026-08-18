@@ -1,7 +1,7 @@
 module
 
-public import Cpc.SmtEval
-import all Cpc.SmtEval
+public import Cpc.SmtValueOrder
+import all Cpc.SmtValueOrder
 
 public section
 
@@ -12,143 +12,6 @@ namespace Smtm
 
 open SmtEval
 
-mutual
-
-/-
-SMT-LIB types.
--/
-inductive SmtType : Type where
-  | None : SmtType
-  | Bool : SmtType
-  | Int : SmtType
-  | Real : SmtType
-  | RegLan : SmtType
-  | BitVec : native_Nat -> SmtType
-  | Map : SmtType -> SmtType -> SmtType
-  | Set : SmtType -> SmtType
-  | Seq : SmtType -> SmtType
-  | Char : SmtType
-  | Datatype : native_String -> SmtDatatypeDecl -> SmtType
-  | TypeRef : native_String -> SmtType
-  | USort : native_Nat -> SmtType
-  | FunType : SmtType -> SmtType -> SmtType
-  | DtcAppType : SmtType -> SmtType -> SmtType
-
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/- 
-SMT-LIB terms.
--/
-inductive SmtTerm : Type where
-  | None : SmtTerm
-  | Boolean : native_Bool -> SmtTerm
-  | Numeral : native_Int -> SmtTerm
-  | Rational : native_Rat -> SmtTerm
-  | String : native_String -> SmtTerm
-  | Binary : native_Int -> native_Int -> SmtTerm
-  | Apply : SmtTerm -> SmtTerm -> SmtTerm
-  | Var : native_String -> SmtType -> SmtTerm
-  | ite : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | eq : SmtTerm -> SmtTerm -> SmtTerm
-  | exists : native_String -> SmtType -> SmtTerm -> SmtTerm
-  | forall : native_String -> SmtType -> SmtTerm -> SmtTerm
-  | choice : native_String -> SmtType -> SmtTerm -> SmtTerm
-  | bind : native_String -> SmtType -> SmtTerm -> SmtTerm -> SmtTerm
-  | map_diff : SmtTerm -> SmtTerm -> SmtTerm
-  | seq_diff : SmtTerm -> SmtTerm -> SmtTerm
-  | DtCons : native_String -> SmtDatatypeDecl -> native_Nat -> SmtTerm
-  | DtSel : native_String -> SmtDatatypeDecl -> native_Nat -> native_Nat -> SmtTerm
-  | DtTester : native_String -> SmtDatatypeDecl -> native_Nat -> SmtTerm
-  | UConst : native_String -> SmtType -> SmtTerm
-  | not : SmtTerm -> SmtTerm
-  | or : SmtTerm -> SmtTerm -> SmtTerm
-  | and : SmtTerm -> SmtTerm -> SmtTerm
-  | imp : SmtTerm -> SmtTerm -> SmtTerm
-
-deriving Repr, DecidableEq, Inhabited
-
-/- 
-SMT-LIB values.
--/
-inductive SmtValue : Type where
-  | NotValue : SmtValue
-  | Boolean : native_Bool -> SmtValue
-  | Numeral : native_Int -> SmtValue
-  | Rational : native_Rat -> SmtValue
-  | Binary : native_Int -> native_Int -> SmtValue
-  | Map : SmtMap -> SmtValue
-  | Fun : native_String -> SmtType -> SmtType -> SmtValue
-  | Set : SmtMap -> SmtValue
-  | Seq : SmtSeq -> SmtValue
-  | Char : native_Char -> SmtValue
-  | UValue : native_Nat -> native_Nat -> SmtValue
-  | RegLan : SmtRegLan -> SmtValue
-  | DtCons : native_String -> SmtDatatypeDecl -> native_Nat -> SmtValue
-  | Apply : SmtValue -> SmtValue -> SmtValue
-
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-Regular languages. Base elements are SmtValue, which allows regular
-expression operations to be defined uniformly over the same (unpacked)
-sequence representation used by the sequence operations. Well-formed
-regular languages carry only valid character values as base elements
-(see native_re_canonical and native_re_elem_valid below).
--/
-inductive SmtRegLan : Type where
-  | empty : SmtRegLan
-  | epsilon : SmtRegLan
-  | char : SmtValue -> SmtRegLan
-  | range : SmtValue -> SmtValue -> SmtRegLan
-  | allchar : SmtRegLan
-  | concat : SmtRegLan -> SmtRegLan -> SmtRegLan
-  | union : SmtRegLan -> SmtRegLan -> SmtRegLan
-  | inter : SmtRegLan -> SmtRegLan -> SmtRegLan
-  | star : SmtRegLan -> SmtRegLan
-  | comp : SmtRegLan -> SmtRegLan
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-SMT-LIB map values.
--/
-inductive SmtMap : Type where
-  | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
-  | default : SmtType -> SmtValue -> SmtMap
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/- 
-SMT-LIB sequence values.
--/
-inductive SmtSeq : Type where
-  | cons : SmtValue -> SmtSeq -> SmtSeq
-  | empty : SmtType -> SmtSeq
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-SMT-LIB datatype declarations.
--/
-inductive SmtDatatypeDecl : Type where
-  | nil : SmtDatatypeDecl
-  | cons : native_String -> SmtDatatype -> SmtDatatypeDecl -> SmtDatatypeDecl
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-SMT-LIB datatypes.
--/
-inductive SmtDatatype : Type where
-  | null : SmtDatatype
-  | sum : SmtDatatypeCons -> SmtDatatype -> SmtDatatype
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-SMT-LIB datatype constructors.
--/
-inductive SmtDatatypeCons : Type where
-  | unit : SmtDatatypeCons
-  | cons : SmtType -> SmtDatatypeCons -> SmtDatatypeCons
-deriving Repr, DecidableEq, Inhabited, Ord
-
-end
 
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
@@ -200,9 +63,7 @@ def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
 /- Value comparsion -/
 def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
-  match compare v1 v2 with
-  | Ordering.lt => true
-  | _ => false
+  SmtValueOrder.lt v1 v2
 
 -- SMT Beyond Eunoia
 

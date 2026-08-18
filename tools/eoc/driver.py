@@ -24,6 +24,25 @@ DEFAULT_FINAL_OUT_DIR = SCRIPT_DIR / "out"
 DEFAULT_CVC5 = Path("~/bin/cvc5-test").expanduser()
 LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
 
+# The signature-wide Lean files written by the lean subcommand, in module
+# dependency order. Each entry is (source relative to plugins/, name written
+# under <final out dir>/lean, whether the source is rendered by the Lean
+# backend rather than copied verbatim from the plugin source tree). The
+# per-rule files under lean/Rules/ are published separately, see
+# publish_generated_lean_rule_outputs. Keep this in sync with EOC_LEAN_OUTPUTS
+# in tools/eoc/cpc/common.sh, which installs these files into a Logos package.
+LEAN_OUTPUTS: tuple[tuple[str, str, bool], ...] = (
+    ("lean_meta/lean_meta_checker_gen.lean", "Logos.lean", True),
+    ("lean_meta/lean_meta_checker_term_gen.lean", "LogosTerm.lean", True),
+    ("lean_meta/lean_meta_parser_gen.lean", "Parser.lean", True),
+    ("lean_meta/lean_meta_smt_eval.lean", "SmtEval.lean", False),
+    ("lean_meta/lean_meta_smt_model_defs_gen.lean", "SmtModelDefs.lean", True),
+    ("lean_meta/lean_meta_smt_value_order_gen.lean", "SmtValueOrder.lean", True),
+    ("lean_meta/lean_meta_smt_model_gen.lean", "SmtModel.lean", True),
+    ("lean_meta/lean_meta_spec_gen.lean", "Spec.lean", True),
+    ("lean_meta/lean_meta_rule_lemmas_gen.lean", "RuleLemmas.lean", True),
+)
+
 DECLARE_RULE_RE = re.compile(r"^\(declare-rule\s+([^\s(]+)")
 INCLUDE_RE = re.compile(r'^\(include\s+"([^"]+)"\s*\)')
 
@@ -368,34 +387,13 @@ class Pipeline:
         out_lean.mkdir(parents=True, exist_ok=True)
         self.clean_generated_lean_rule_outputs()
         self.ethos(["--plugin.lean-meta", self.binary_path_arg(input_file)], quiet=True)
-        shutil.copyfile(
-            self.plugin_generated("lean_meta/lean_meta_checker_gen.lean"),
-            out_lean / "Logos.lean",
-        )
-        shutil.copyfile(
-            self.plugin_generated("lean_meta/lean_meta_checker_term_gen.lean"),
-            out_lean / "LogosTerm.lean",
-        )
-        shutil.copyfile(
-            self.plugin_generated("lean_meta/lean_meta_parser_gen.lean"),
-            out_lean / "Parser.lean",
-        )
-        shutil.copyfile(
-            REPO_ROOT / "plugins" / "lean_meta" / "lean_meta_smt_eval.lean",
-            out_lean / "SmtEval.lean",
-        )
-        shutil.copyfile(
-            self.plugin_generated("lean_meta/lean_meta_smt_model_gen.lean"),
-            out_lean / "SmtModel.lean",
-        )
-        shutil.copyfile(
-            self.plugin_generated("lean_meta/lean_meta_spec_gen.lean"),
-            out_lean / "Spec.lean",
-        )
-        shutil.copyfile(
-            self.plugin_generated("lean_meta/lean_meta_rule_lemmas_gen.lean"),
-            out_lean / "RuleLemmas.lean",
-        )
+        for source, name, generated in LEAN_OUTPUTS:
+            source_path = (
+                self.plugin_generated(source)
+                if generated
+                else REPO_ROOT / "plugins" / source
+            )
+            shutil.copyfile(source_path, out_lean / name)
         self.publish_generated_lean_rule_outputs(out_lean)
         self.materialize_lean_calc(out_lean, calc_name)
         return out_lean
