@@ -46,7 +46,7 @@ class Desugar : public StdPlugin
 {
  public:
   /** Construct the desugaring plugin and initialize builtin helper symbols. */
-  Desugar(State& s);
+  Desugar(State& s, bool genVcs = false);
   /** Destroy the desugaring plugin. */
   ~Desugar();
   /** Remember supported macro definitions for processing during finalize(). */

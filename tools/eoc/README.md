@@ -20,12 +20,18 @@ only when you want the Eunoia-to-SMT2 or Eunoia-to-Lean pipeline.
 
 ## Building `ethos-eoc`
 
-From the repository root:
+`ethos-eoc` is built by the standalone CMake project in `plugins/`, which
+compiles the ethos core sources together with the plugins. The main ethos
+build is unaffected. From the repository root:
 
 ```bash
-./configure.sh debug
-cmake --build build --target ethos-eoc -j4
+cmake -S plugins -B build-eoc
+cmake --build build-eoc --target ethos-eoc -j4
 ```
+
+Pass `-DCMAKE_BUILD_TYPE=Debug` to the configure step for a debug build with
+assertions and tracing. The driver configures the build directory
+automatically if it does not exist yet.
 
 If you use a different build directory, pass it explicitly everywhere with
 `--build-dir`.
@@ -38,7 +44,7 @@ The driver resolves input paths relative to the directory where you invoke
 For example, from the repository root:
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build tests/Booleans-rules.eo and_intro
+python3 tools/eoc/driver.py vc --build-dir build-eoc tests/Booleans-rules.eo and_intro
 ```
 
 The input path `tests/Booleans-rules.eo` is interpreted relative to the
@@ -87,25 +93,25 @@ tools/eoc/out/
 Generate one VC:
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build tests/Booleans-rules.eo and_intro
+python3 tools/eoc/driver.py vc --build-dir build-eoc tests/Booleans-rules.eo and_intro
 ```
 
 Generate one SyGuS query:
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build --sygus tests/Booleans-rules.eo and_intro
+python3 tools/eoc/driver.py vc --build-dir build-eoc --sygus tests/Booleans-rules.eo and_intro
 ```
 
 Generate Lean for selected rules:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build tests/Booleans-rules.eo and_intro contra
+python3 tools/eoc/driver.py lean --build-dir build-eoc tests/Booleans-rules.eo and_intro contra
 ```
 
 Generate Lean for the whole signature:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build --all ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo
+python3 tools/eoc/driver.py lean --build-dir build-eoc --all ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo
 ```
 
 List all rules declared by a signature and its includes:
@@ -117,13 +123,13 @@ python3 tools/eoc/driver.py list-rules ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo
 Run every discovered rule through the VC pipeline:
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build vc ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc vc ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo --all-rules --clean
 ```
 
 Run every discovered rule through the SyGuS pipeline:
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build sygus ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc sygus ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo --all-rules --clean
 ```
 
 ## Command reference
@@ -133,7 +139,7 @@ python3 tools/eoc/driver.py batch --build-dir build sygus ../../cvc5-ajr/proofs/
 Generate a single SMT2 VC for one rule.
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build INPUT RULE
+python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE
 ```
 
 Useful options:
@@ -150,7 +156,7 @@ Useful options:
 Run many rules through the same pipeline.
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build vc INPUT RULE1 RULE2 RULE3
+python3 tools/eoc/driver.py batch --build-dir build-eoc vc INPUT RULE1 RULE2 RULE3
 ```
 
 Useful options:
@@ -171,13 +177,13 @@ Generate Lean output either for selected rules or for the full signature.
 Selected rules:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build INPUT RULE1 RULE2
+python3 tools/eoc/driver.py lean --build-dir build-eoc INPUT RULE1 RULE2
 ```
 
 Whole signature:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build --all INPUT
+python3 tools/eoc/driver.py lean --build-dir build-eoc --all INPUT
 ```
 
 Generated files are written to `tools/eoc/out/lean/` by default, including
@@ -191,7 +197,7 @@ surface desugaring configuration.
 Generate the desugared EO form of an input.
 
 ```bash
-python3 tools/eoc/driver.py desugar --build-dir build INPUT
+python3 tools/eoc/driver.py desugar --build-dir build-eoc INPUT
 ```
 
 Output:
@@ -205,7 +211,7 @@ tools/eoc/out/desugar.eo
 Run only the trim stage.
 
 ```bash
-python3 tools/eoc/driver.py trim-defs --build-dir build INPUT TARGET1 TARGET2
+python3 tools/eoc/driver.py trim-defs --build-dir build-eoc INPUT TARGET1 TARGET2
 ```
 
 ### `list-rules`
@@ -223,20 +229,20 @@ This walks `include` chains and preserves declaration order.
 ### Reproduce the old `run_gen_vc_single`
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build INPUT RULE
+python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE
 ```
 
 ### Reproduce the old "run all rules" scripts
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build vc INPUT --all-rules --clean
-python3 tools/eoc/driver.py batch --build-dir build sygus INPUT --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc vc INPUT --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc sygus INPUT --all-rules --clean
 ```
 
 ### Generate Lean and then copy files elsewhere
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build --all INPUT
+python3 tools/eoc/driver.py lean --build-dir build-eoc --all INPUT
 ls tools/eoc/out/lean
 ```
 
@@ -254,25 +260,25 @@ directly to `ethos-eoc` if you want to debug a later stage manually.
 Examples:
 
 ```bash
-build/src/ethos-eoc tools/eoc/out/trim-d-booleans-rules.eo
-build/src/ethos-eoc --plugin.smt-meta tools/eoc/out/vcmt-def-booleans-rules.eo
-build/src/ethos-eoc --plugin.smt-meta-sygus tools/eoc/out/vcmt-def-booleans-rules.eo
+build-eoc/ethos-eoc tools/eoc/out/trim-d-booleans-rules.eo
+build-eoc/ethos-eoc --plugin.smt-meta tools/eoc/out/vcmt-def-booleans-rules.eo
+build-eoc/ethos-eoc --plugin.smt-meta-sygus tools/eoc/out/vcmt-def-booleans-rules.eo
 ```
 
 ## Migration from the old `build-debug` scripts
 
 | Old script | Replacement |
 | --- | --- |
-| `run_gen_vc_single INPUT RULE` | `python3 tools/eoc/driver.py vc --build-dir build INPUT RULE` |
-| `run_gen_vc_all_* [INPUT]` | `python3 tools/eoc/driver.py batch --build-dir build vc INPUT --all-rules --clean` |
-| `run_gen_sygus RULE` | `python3 tools/eoc/driver.py vc --build-dir build --sygus INPUT RULE` |
-| `run_gen_sygus_all [INPUT]` | `python3 tools/eoc/driver.py batch --build-dir build sygus INPUT --all-rules --clean` |
-| `run_gen_lean INPUT RULE...` | `python3 tools/eoc/driver.py lean --build-dir build INPUT RULE...` |
-| `run_gen_lean_all [INPUT]` | `python3 tools/eoc/driver.py lean --build-dir build --all INPUT` |
-| `run_gen_desugar_all [INPUT]` | `python3 tools/eoc/driver.py desugar --build-dir build INPUT` |
-| `run_trim_defs INPUT TARGET...` | `python3 tools/eoc/driver.py trim-defs --build-dir build INPUT TARGET...` |
+| `run_gen_vc_single INPUT RULE` | `python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE` |
+| `run_gen_vc_all_* [INPUT]` | `python3 tools/eoc/driver.py batch --build-dir build-eoc vc INPUT --all-rules --clean` |
+| `run_gen_sygus RULE` | `python3 tools/eoc/driver.py vc --build-dir build-eoc --sygus INPUT RULE` |
+| `run_gen_sygus_all [INPUT]` | `python3 tools/eoc/driver.py batch --build-dir build-eoc sygus INPUT --all-rules --clean` |
+| `run_gen_lean INPUT RULE...` | `python3 tools/eoc/driver.py lean --build-dir build-eoc INPUT RULE...` |
+| `run_gen_lean_all [INPUT]` | `python3 tools/eoc/driver.py lean --build-dir build-eoc --all INPUT` |
+| `run_gen_desugar_all [INPUT]` | `python3 tools/eoc/driver.py desugar --build-dir build-eoc INPUT` |
+| `run_trim_defs INPUT TARGET...` | `python3 tools/eoc/driver.py trim-defs --build-dir build-eoc INPUT TARGET...` |
 | `mkscripts INPUT` | `python3 tools/eoc/driver.py list-rules INPUT` |
-| `debug_smt_meta` | Run `build/src/ethos-eoc` directly on files in `tools/eoc/out/` while debugging a late stage |
+| `debug_smt_meta` | Run `build-eoc/ethos-eoc` directly on files in `tools/eoc/out/` while debugging a late stage |
 | `run_test_plugin` | Use `desugar`, `vc`, or direct `ethos-eoc` invocations shown above |
 | `run_sygus_cex FILE.sy` | Invoke your preferred solver directly on `tools/eoc/out/sygus/final-*.sy` |
 | `install_logos` / `install_logos_mini` | `tools/eoc/cpc/install_logos` / `tools/eoc/cpc/install_logos_mini` |

@@ -13,11 +13,11 @@ EOC_DEFAULT_ALETHE_INPUT="$EOC_REPO_ROOT/../AletheInEunoia/signature/Alethe.eo"
 EOC_DEFAULT_FINAL_OUT_DIR="$EOC_TOOLS_DIR/out"
 
 eoc_default_build_dir() {
-  if [[ -x "$PWD/src/ethos-eoc" ]]; then
+  if [[ -x "$PWD/ethos-eoc" ]]; then
     printf '%s\n' "$PWD"
     return
   fi
-  printf '%s\n' "$EOC_REPO_ROOT/build"
+  printf '%s\n' "$EOC_REPO_ROOT/build-eoc"
 }
 
 eoc_build_dir() {

@@ -38,7 +38,7 @@ enum class ConjectureType
 class StdPlugin : public Plugin
 {
  public:
-  StdPlugin(State& s);
+  StdPlugin(State& s, ConjectureType conjType = ConjectureType::VC);
   ~StdPlugin();
 
  protected:
@@ -66,6 +66,8 @@ class StdPlugin : public Plugin
   TypeChecker& d_tc;
   /** type variable counter */
   size_t d_typeVarCounter;
+  /** The type of the emitted conjecture, set at construction. */
+  ConjectureType d_conjectureType;
   /** The root directory containing the EOC plugin resources. */
   static std::string s_plugin_path;
   /** The root directory where generated EOC artifacts are written. */

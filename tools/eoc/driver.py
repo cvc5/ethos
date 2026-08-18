@@ -185,7 +185,7 @@ class Pipeline:
         self.jobs = jobs
         self.cvc5 = cvc5
         self.solve_args = list(solve_args)
-        self.binary = self.build_dir / "src" / "ethos-eoc"
+        self.binary = self.build_dir / "ethos-eoc"
         self.stage_out_dir = self.final_out_dir
         self.plugin_out_dir = self.build_dir / "out" / "plugins"
 
@@ -208,6 +208,19 @@ class Pipeline:
         return shlex.join(cmd)
 
     def build(self) -> None:
+        # ethos-eoc is built by the standalone plugins/ project; configure the
+        # build directory against it if this has not been done yet
+        if not (self.build_dir / "CMakeCache.txt").exists():
+            self.run(
+                [
+                    "cmake",
+                    "-S",
+                    str(REPO_ROOT / "plugins"),
+                    "-B",
+                    str(self.build_dir),
+                ],
+                cwd=REPO_ROOT,
+            )
         self.run(
             ["cmake", "--build", ".", "--target", "ethos-eoc", f"-j{self.jobs}"]
         )
@@ -559,7 +572,7 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--build-dir",
         default=os.getcwd(),
-        help="Build directory containing src/ethos-eoc and out/.",
+        help="Build directory for the plugins/ project, containing ethos-eoc and out/.",
     )
     parser.add_argument(
         "--final-out-dir",

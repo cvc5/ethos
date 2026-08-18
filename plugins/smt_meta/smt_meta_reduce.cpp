@@ -17,7 +17,10 @@
 
 namespace ethos {
 
-SmtMetaReduce::SmtMetaReduce(State& s) : MetaReducePlugin(s), d_smSygus(s)
+SmtMetaReduce::SmtMetaReduce(State& s, bool sygus)
+    : MetaReducePlugin(s,
+                       sygus ? ConjectureType::SYGUS : ConjectureType::VC),
+      d_smSygus(s)
 {
   d_prefixToMetaKind["eo"] = MetaKind::EUNOIA;
 

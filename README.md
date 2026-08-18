@@ -56,10 +56,12 @@ ctest -R arith
 
 ## Optional `ethos-eoc` pipeline
 
-The experimental Eunoia compiler workflow is built as a separate target:
+The experimental Eunoia compiler workflow is built as a separate standalone
+project in [`plugins/`](plugins/), leaving the core ethos build untouched:
 
 ```bash
-cmake --build build --target ethos-eoc -j4
+cmake -S plugins -B build-eoc
+cmake --build build-eoc --target ethos-eoc -j4
 ```
 
 Use the source-controlled driver at

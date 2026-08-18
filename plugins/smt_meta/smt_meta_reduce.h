@@ -38,7 +38,7 @@ class SmtMetaReduce : public MetaReducePlugin
 {
  public:
   /** Construct the SMT meta reducer and initialize optional SyGuS support. */
-  SmtMetaReduce(State& s);
+  SmtMetaReduce(State& s, bool sygus = false);
   /** Destroy the SMT meta reducer. */
   ~SmtMetaReduce() override;
   /** Remember a program definition for later SMT-LIB emission. */

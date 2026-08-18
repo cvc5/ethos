@@ -181,11 +181,7 @@ bool StdPlugin::optionSmtMetaDebugConjecture() { return false; }
 // type of conjecture
 ConjectureType StdPlugin::optionSmtMetaConjectureType() const
 {
-  if (d_state.getOptions().d_pluginSmtMetaSygus)
-  {
-    return ConjectureType::SYGUS;
-  }
-  return ConjectureType::VC;
+  return d_conjectureType;
 }
 // whether we are optimizing with a sygus grammar
 bool StdPlugin::optionSmtMetaSygusGrammar() { return true; }
@@ -208,7 +204,8 @@ bool StdPlugin::optionSmtTheoryOp() { return false; }
 // whether to collapse EO operators to UserOp
 bool StdPlugin::optionEoUserOp() { return true; }
 
-StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
+StdPlugin::StdPlugin(State& s, ConjectureType conjType)
+    : d_state(s), d_tc(s.getTypeChecker()), d_conjectureType(conjType)
 {
   d_typeVarCounter = 0;
   if (s_plugin_path.empty())

@@ -39,7 +39,7 @@ const char* leanParserAttrName(Attr a)
 
 }  // namespace
 
-Desugar::Desugar(State& s) : StdPlugin(s), d_dchecker(s)
+Desugar::Desugar(State& s, bool genVcs) : StdPlugin(s), d_dchecker(s)
 {
   // we require santization of the eo::List at this stage
   // TODO: maybe just use text replace??
@@ -57,7 +57,7 @@ Desugar::Desugar(State& s) : StdPlugin(s), d_dchecker(s)
   Expr pft = s.mkProofType();
   d_overloadSanVisited[pft] =
       d_state.mkSymbol(Kind::CONST, "$eo_Proof", s.mkType());
-  d_genVcs = d_state.getOptions().d_pluginDesugarGenVc;
+  d_genVcs = genVcs;
   d_genChecker = !d_genVcs;
   if (d_genVcs)
   {

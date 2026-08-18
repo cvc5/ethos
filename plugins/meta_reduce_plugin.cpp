@@ -16,7 +16,8 @@
 
 namespace ethos {
 
-MetaReducePlugin::MetaReducePlugin(State& s) : StdPlugin(s)
+MetaReducePlugin::MetaReducePlugin(State& s, ConjectureType conjType)
+    : StdPlugin(s, conjType)
 {
   initializeCommonMetaKinds();
 }

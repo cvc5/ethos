@@ -33,7 +33,7 @@ class MetaReducePlugin : public StdPlugin
   /** A (tag, replacement) pair used when rendering a resource file. */
   using Replacement = std::pair<std::string, std::string>;
 
-  MetaReducePlugin(State& s);
+  MetaReducePlugin(State& s, ConjectureType conjType = ConjectureType::VC);
   ~MetaReducePlugin() override;
 
   /** Notification that name was bound to e; dispatches to finalizeDecl. */

@@ -28,13 +28,6 @@ Options::Options()
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
-  d_pluginDesugar = false;
-  d_pluginDesugarGenVc = false;
-  d_pluginSmtMeta = false;
-  d_pluginSmtMetaSygus = false;
-  d_pluginLeanMeta = false;
-  d_pluginTrimDefs = false;
-  d_pluginModelSmt = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -78,36 +71,6 @@ bool Options::setOption(const std::string& key, bool val)
   else if (key == "normalize-hex")
   {
     d_normalizeHexadecimal = val;
-  }
-  else if (key == "plugin.desugar")
-  {
-    d_pluginDesugar = true;
-  }
-  else if (key == "plugin.desugar-vc")
-  {
-    d_pluginDesugar = true;
-    d_pluginDesugarGenVc = true;
-  }
-  else if (key == "plugin.smt-meta")
-  {
-    d_pluginSmtMeta = true;
-  }
-  else if (key == "plugin.smt-meta-sygus")
-  {
-    d_pluginSmtMeta = true;
-    d_pluginSmtMetaSygus = true;
-  }
-  else if (key == "plugin.lean-meta")
-  {
-    d_pluginLeanMeta = true;
-  }
-  else if (key == "plugin.trim-defs")
-  {
-    d_pluginTrimDefs = true;
-  }
-  else if (key == "plugin.model-smt")
-  {
-    d_pluginModelSmt = true;
   }
   else
   {
@@ -822,7 +785,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     else
     {
       Warning() << "Wrong number of arguments when applying literal op " << k
-                << ", " << children.size() << std::endl;
+                << ", " << children.size() << " arguments" << std::endl;
     }
   }
   else if (k == Kind::AS_RETURN)
