@@ -338,8 +338,8 @@ class ModelSmt : public StdPlugin
   /**
    * Pseudo-kind used for regular language arguments in generation tables.
    * Arguments of this kind are typed $smt_RegLan, which is the deep embedding
-   * of regular languages (SmtRegLan in the Lean backend, the builtin RegLan
-   * sort in the SMT2 backend).
+   * of regular languages (SmtRegLan in both backends; in the SMT2 backend
+   * this is an alias of the builtin RegLan sort).
    */
   Kind d_kRegLan;
   /** Pseudo-kind used for bit-vector size arguments in generation tables. */

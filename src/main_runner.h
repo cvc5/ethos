@@ -16,9 +16,20 @@
 
 namespace ethos {
 
+/**
+ * Constructs the plugin requested by the given options, if any. Used by
+ * runMain to instantiate the plugin selected on the command line; returns
+ * nullptr if no plugin was requested.
+ */
 using PluginFactory = std::unique_ptr<Plugin> (*)(Options&, State&);
 
+/** Return true if the options request running a plugin. */
 bool hasPluginRequest(const Options& opts);
+/**
+ * The shared main entry point of the ethos and ethos-eoc binaries: parses
+ * the command line into options, constructs a plugin via pluginFactory if
+ * one was requested, and runs the interpreter on the given inputs.
+ */
 int runMain(int argc, char* argv[], PluginFactory pluginFactory);
 
 }  // namespace ethos

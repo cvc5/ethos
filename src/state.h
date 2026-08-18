@@ -45,13 +45,20 @@ class Options
   bool d_normalizeHexadecimal;
   /** Treat numerals as rational literals */
   bool d_normalizeNumeral;
-  /** plugins */
+  //----- eoc plugin selection (see plugins/, at most one is enabled)
+  /** Run the desugar plugin, generating the executable checker. */
   bool d_pluginDesugar;
+  /** Run the desugar plugin, generating verification conditions. */
   bool d_pluginDesugarGenVc;
+  /** Run the SMT-LIB meta-reduction backend. */
   bool d_pluginSmtMeta;
+  /** Run the SMT-LIB meta-reduction backend in SyGuS mode. */
   bool d_pluginSmtMetaSygus;
+  /** Run the Lean meta-reduction backend. */
   bool d_pluginLeanMeta;
+  /** Run the definition-trimming pass. */
   bool d_pluginTrimDefs;
+  /** Run the SMT-LIB model semantics generator. */
   bool d_pluginModelSmt;
 };
 

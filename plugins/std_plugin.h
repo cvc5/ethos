@@ -23,9 +23,12 @@ namespace ethos {
 class State;
 class TypeChecker;
 
+/** The kind of conjecture emitted by the smt-meta backend. */
 enum class ConjectureType
 {
+  /** A verification condition, checked by an SMT solver. */
   VC,
+  /** A syntax-guided synthesis conjecture. */
   SYGUS
 };
 /**
@@ -47,13 +50,13 @@ class StdPlugin : public Plugin
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** Get the subterms of a kind */
   std::vector<Expr> getSubtermsKind(Kind k, const Expr& t);
-  /** */
+  /** Get the name of the literal kind k, e.g. "Numeral" for NUMERAL. */
   static std::string literalKindToString(Kind k);
-  // basic utilities
+  /** Replace the first occurrence of tag in txt by replacement. */
   static void replace(std::string& txt,
                       const std::string& tag,
                       const std::string& replacement);
-  /** replace all in string */
+  /** Replace all occurrences of from in str by to and return the result. */
   static std::string replace_all(std::string str,
                                  const std::string& from,
                                  const std::string& to);
@@ -63,7 +66,9 @@ class StdPlugin : public Plugin
   TypeChecker& d_tc;
   /** type variable counter */
   size_t d_typeVarCounter;
+  /** The root directory containing the EOC plugin resources. */
   static std::string s_plugin_path;
+  /** The root directory where generated EOC artifacts are written. */
   static std::string s_plugin_output_path;
   /** Determine the root containing the EOC plugin resources */
   static std::string initializePluginPath();
@@ -75,19 +80,41 @@ class StdPlugin : public Plugin
   static std::string getOutputPath(const std::string& relativePath);
   /** Copy a static resource into the generated output tree */
   static void copyResourceToOutput(const std::string& relativePath);
-  /** Standard configurations for the reduction */
+  //--------- standard configurations for the reduction
+  /** Strict VC mode, i.e. we are not debugging completeness. */
   static bool optionVcUseModelStrict();
+  /** Whether to use triggers (:pattern) in the final encoding. */
   static bool optionSmtMetaUseTriggers();
+  /** Whether to emit the conjecture in a form easy to debug via models. */
   static bool optionSmtMetaDebugConjecture();
+  /** The type of the emitted conjecture (VC or SyGuS). */
   ConjectureType optionSmtMetaConjectureType() const;
+  /** Whether to optimize SyGuS conjectures with a grammar. */
   static bool optionSmtMetaSygusGrammar();
+  /** Whether the SyGuS grammar is designed to enumerate well-typed terms. */
   static bool optionSmtMetaSygusGrammarWellTyped();
+  /**
+   * Whether the VC requires the types of premises and the conclusion to be
+   * Bool to witness unsoundness.
+   */
   static bool optionVcUseTypeof();
+  /** Whether we emit typing for partial applications. */
   static bool optionEoTypeofHo();
+  /** Whether we combine terms of the same type when defining eo::typeof. */
   static bool optionEoTypeCanonize();
+  /**
+   * Whether we use custom definitions of is_list_nil for operators with
+   * non-ground nil terminators.
+   */
   static bool optionFwdDeclIsListNilNground();
+  /**
+   * Whether theory symbols are first-order in the final embedding, e.g.
+   * (and : SmtTerm -> SmtTerm -> SmtTerm) instead of (and : SmtTerm).
+   */
   static bool optionSmtFoTheorySymbols();
+  /** Whether to collapse atomic theory operators into SmtTheoryOp. */
   static bool optionSmtTheoryOp();
+  /** Whether to collapse atomic user operators into UserOp. */
   static bool optionEoUserOp();
 };
 

@@ -163,6 +163,7 @@ class LeanMetaReduce : public MetaReducePlugin
   bool d_hasDefs;
   /** Generated helper definitions for Eunoia-object membership. */
   std::stringstream d_eoIsObjDefs;
+  /** As above, for programs with simple (non-recursive) definitions. */
   std::stringstream d_eoIsObjDefsSimple;
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
@@ -210,7 +211,9 @@ class LeanMetaReduce : public MetaReducePlugin
   std::set<Expr> d_progIsDefine;
   /** Programs inferred to require total definitions. */
   std::set<Expr> d_totalDefProgs;
+  /** Programs inferred to require partial (stuck-extended) definitions. */
   std::set<Expr> d_partialDefProgs;
+  /** Programs with simple definitions, i.e. trivially not recursive. */
   std::set<Expr> d_simpleDefProgs;
   /** Return a Lean-safe version of an SMT-LIB identifier. */
   static std::string cleanSmtId(const std::string& id);
@@ -222,10 +225,15 @@ class LeanMetaReduce : public MetaReducePlugin
   /** Surface syntax for an operator, preserved by the desugar stage. */
   struct ParserOp
   {
+    /** The name of the operator in the surface (user) syntax. */
     std::string d_surface;
+    /** The name of the operator in the generated signature. */
     std::string d_generated;
+    /** Its number of indices (opaque arguments). */
     size_t d_indexArity;
+    /** Its number of ordinary term arguments. */
     size_t d_termArity;
+    /** Its syntactic attribute, e.g. ":right-assoc-nil", or "-" if none. */
     std::string d_attr;
     /**
      * The constructor operand of `d_attr`: the operator that chains a chainable
@@ -243,7 +251,12 @@ class LeanMetaReduce : public MetaReducePlugin
   /** CRule constructors actually emitted by the Lean backend. */
   std::set<std::string> d_emittedRules;
   // TEMPORARY
+  /** Programs excluded from partial-definition generation, by name. */
   std::unordered_set<std::string> d_partialExc;
+  /**
+   * Maps program names to a hardcoded termination annotation and proof that
+   * is appended to their generated definition.
+   */
   std::map<std::string, std::string> d_terminatingBy;
 };
 

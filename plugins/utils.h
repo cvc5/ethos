@@ -72,8 +72,8 @@ enum class MetaKind
 std::string metaKindToString(MetaKind k);
 /**
  * Get the symbol-name prefix associated with meta-kind k, e.g. "eo." for
- * EUNOIA or "edt." for DATATYPE. Returns a placeholder string for kinds that
- * have no dedicated prefix.
+ * EUNOIA or "vsm." for SMT_VALUE. Returns a placeholder string for kinds
+ * that have no dedicated prefix.
  */
 std::string metaKindToPrefix(MetaKind k);
 /** Return true if k is one of the SMT-LIB meta-kinds. */
