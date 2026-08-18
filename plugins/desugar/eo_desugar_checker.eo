@@ -3,14 +3,14 @@
 ; placeholders
 (define $eoT_Index () $native_Int)
 
-(declare-const $eo_IndexList Type)
+(define $eo_IndexList () ($native_embed_checker "CIndexList"))
 (declare-const $emb_indl.nil $eo_IndexList)
 (define $eot_iln () $emb_indl.nil)
 (declare-parameterized-const $emb_indl.cons
   ((i $eoT_Index :opaque) (il $eo_IndexList :opaque)) $eo_IndexList)
 (define $eot_ilc ((i $eoT_Index) (il $eo_IndexList)) ($emb_indl.cons i il))
 
-(declare-const $eo_ArgList Type)
+(define $eo_ArgList () ($native_embed_checker "CArgList"))
 (declare-const $emb_al.nil $eo_ArgList)
 (define $eot_aln () $emb_al.nil)
 (declare-parameterized-const $emb_al.cons
@@ -26,12 +26,12 @@
 (declare-const $eo_Cmd Type)
 
 ; The state
-(declare-const $eo_State Type)
+(define $eo_State () ($native_embed_checker "CState"))
 
 ;;; Constructors for state
 
 ; State
-(declare-const $eo_StateObj Type)
+(define $eo_StateObj () ($native_embed_checker "CStateObj"))
 (declare-parameterized-const $emb_so.assume ((F Bool :opaque)) $eo_StateObj)
 (define $so_assume ((F Bool)) ($emb_so.assume F))
 (declare-parameterized-const $emb_so.assume_push ((F Bool :opaque)) $eo_StateObj)
@@ -216,7 +216,7 @@ $EO_INVOKE_POP$
   )
 )
 
-(declare-const $eo_CmdList Type)
+(define $eo_CmdList () ($native_embed_checker "CCmdList"))
 (declare-const $emb_cmdl.nil $eo_CmdList)
 (declare-parameterized-const $emb_cmdl.cons
   ((c $eo_Cmd :opaque) (cl $eo_CmdList :opaque)) $eo_CmdList)

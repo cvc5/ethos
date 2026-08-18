@@ -40,6 +40,17 @@ class MetaReducePlugin : public StdPlugin
                               MetaKind elseKind,
                               bool followFunctionRange) const;
   MetaKind getMetaKindFor(const Expr& e, std::string& cname) const;
+  /**
+   * If typ, or the range of typ if it is a function type, is an application
+   * of a $native_embed_* symbol, return that application, otherwise return
+   * the null expression.
+   */
+  static Expr getEmbedTypeApp(const Expr& typ);
+  /**
+   * Get the name of the embedded datatype carried by a $native_embed_*
+   * application, e.g. "SmtRegLan" for ($native_embed_smt "SmtRegLan").
+   */
+  static std::string getEmbedTypeName(const Expr& app);
   bool buildLambdaDefineProgram(const std::string& name,
                                 const Expr& e,
                                 Expr& symbol,

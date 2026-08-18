@@ -24,13 +24,13 @@ $EO_DESUGAR_AUX$
 (define $native_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($native_apply_2 "Teq" x1 x2))
 
 ; A datatype constructor
-(declare-const $smt_DatatypeCons Type)
+(define $smt_DatatypeCons () ($native_embed_smt "SmtDatatypeCons"))
 
 ; A datatype
-(declare-const $smt_Datatype Type)
+(define $smt_Datatype () ($native_embed_smt "SmtDatatype"))
 
 ; A datatype declaration
-(declare-const $smt_DatatypeDecl Type)
+(define $smt_DatatypeDecl () ($native_embed_smt "SmtDatatypeDecl"))
 
 ; An SMT-LIB value.
 (declare-const $smt_Value Type)
@@ -321,7 +321,7 @@ $SMT_TYPE_CONSTRUCTORS$
 ; elements are $smt_Value, so that the regular expression operators can be
 ; defined over the same (unpacked) sequence representation used by the
 ; sequence operators.
-(declare-const $smt_RegLan Type)
+(define $smt_RegLan () ($native_embed_smt "SmtRegLan"))
 
 ;;; SMT value datatype constructors
 

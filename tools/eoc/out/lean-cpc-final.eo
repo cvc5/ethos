@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra $eo_nil $eo_typeof
-; #trim-defs: 466
+; #trim-defs: 469
 (echo "lean-parser-op Int Int 0 0 none -")
 (echo "lean-parser-op Real Real 0 0 none -")
 (echo "lean-parser-op BitVec BitVec 0 1 none -")
@@ -29,6 +29,15 @@
   Type)
 (declare-parameterized-const $native_datatype
   (($smt_id Type :implicit) (op $smt_id :opaque))
+  Type)
+(declare-parameterized-const $native_embed_eo
+  (($smt_id Type :implicit) (name $smt_id :opaque))
+  Type)
+(declare-parameterized-const $native_embed_smt
+  (($smt_id Type :implicit) (name $smt_id :opaque))
+  Type)
+(declare-parameterized-const $native_embed_checker
+  (($smt_id Type :implicit) (name $smt_id :opaque))
   Type)
 (declare-parameterized-const $native_apply_0
   (($smt_id Type :implicit) (op $smt_id :opaque))
@@ -90,9 +99,9 @@
   ($native_apply_3 "binary_and" w n1 n2))
 (declare-const $eo_Term Type)
 (define $native_teq ((x1 $eo_Term) (x2 $eo_Term)) ($native_apply_2 "teq" x1 x2))
-(declare-const $eo_DatatypeCons Type)
-(declare-const $eo_Datatype Type)
-(declare-const $eo_DatatypeDecl Type)
+(define $eo_DatatypeCons () ($native_embed_eo "DatatypeCons"))
+(define $eo_Datatype () ($native_embed_eo "Datatype"))
+(define $eo_DatatypeDecl () ($native_embed_eo "DatatypeDecl"))
 (declare-parameterized-const $emb_UOp 
   ((u ($native_type_0 "UserOp") :opaque)) $eo_Term)
 (declare-parameterized-const $emb_UOp1 
@@ -517,9 +526,9 @@
 (declare-const $smt_Type Type)
 (define $native_inhabited_type ((T $smt_Type)) ($native_apply_1 "inhabited_type" T))
 (define $native_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($native_apply_2 "Teq" x1 x2))
-(declare-const $smt_DatatypeCons Type)
-(declare-const $smt_Datatype Type)
-(declare-const $smt_DatatypeDecl Type)
+(define $smt_DatatypeCons () ($native_embed_smt "SmtDatatypeCons"))
+(define $smt_Datatype () ($native_embed_smt "SmtDatatype"))
+(define $smt_DatatypeDecl () ($native_embed_smt "SmtDatatypeDecl"))
 (declare-const $smt_Value Type)
 (define $native_veq ((x1 $smt_Value) (x2 $smt_Value)) ($native_apply_2 "veq" x1 x2))
 (declare-const $emb_sm.None $smt_Term)
@@ -656,7 +665,7 @@
 (define $tsm_DtcAppType ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.DtcAppType Ti Te))
 (declare-const $smt_Map Type)
 (declare-const $smt_Seq Type)
-(declare-const $smt_RegLan Type)
+(define $smt_RegLan () ($native_embed_smt "SmtRegLan"))
 (declare-const $emb_vsm.NotValue $smt_Value)
 (define $vsm_not_value () $emb_vsm.NotValue)
 (declare-parameterized-const $emb_vsm.Boolean
@@ -1641,19 +1650,19 @@
   )
 )
 (define $eoT_Index () $native_Int)
-(declare-const $eo_IndexList Type)
+(define $eo_IndexList () ($native_embed_checker "CIndexList"))
 (declare-const $emb_indl.nil $eo_IndexList)
 (define $eot_iln () $emb_indl.nil)
 (declare-parameterized-const $emb_indl.cons
   ((i $eoT_Index :opaque) (il $eo_IndexList :opaque)) $eo_IndexList)
 (define $eot_ilc ((i $eoT_Index) (il $eo_IndexList)) ($emb_indl.cons i il))
-(declare-const $eo_ArgList Type)
+(define $eo_ArgList () ($native_embed_checker "CArgList"))
 (declare-const $emb_al.nil $eo_ArgList)
 (define $eot_aln () $emb_al.nil)
 (declare-const $eo_Rule Type)
 (declare-const $eo_Cmd Type)
-(declare-const $eo_State Type)
-(declare-const $eo_StateObj Type)
+(define $eo_State () ($native_embed_checker "CState"))
+(define $eo_StateObj () ($native_embed_checker "CStateObj"))
 (declare-parameterized-const $emb_so.assume ((F Bool :opaque)) $eo_StateObj)
 (define $so_assume ((F Bool)) ($emb_so.assume F))
 (declare-parameterized-const $emb_so.assume_push ((F Bool :opaque)) $eo_StateObj)
@@ -1805,7 +1814,7 @@
     ($eo_invoke_cmd_step_pop S S r args premises))
   )
 )
-(declare-const $eo_CmdList Type)
+(define $eo_CmdList () ($native_embed_checker "CCmdList"))
 (declare-const $emb_cmdl.nil $eo_CmdList)
 (declare-parameterized-const $emb_cmdl.cons
   ((c $eo_Cmd :opaque) (cl $eo_CmdList :opaque)) $eo_CmdList)

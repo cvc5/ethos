@@ -24,21 +24,10 @@ LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
 {
   d_typeToMetaKind["$eo_Term"] = MetaKind::EUNOIA;
   d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
-  d_typeToMetaKind["$eo_State"] = MetaKind::CHECKER_STATE;
-  d_typeToMetaKind["$eo_StateObj"] = MetaKind::CHECKER_STATE_OBJ;
-  d_typeToMetaKind["$eo_Index"] = MetaKind::CHECKER_INDEX;
-  d_typeToMetaKind["$eo_IndexList"] = MetaKind::CHECKER_INDEX_LIST;
   d_typeToMetaKind["$eo_Rule"] = MetaKind::CHECKER_RULE;
   d_typeToMetaKind["$eo_Cmd"] = MetaKind::CHECKER_CMD;
-  d_typeToMetaKind["$eo_CmdList"] = MetaKind::CHECKER_CMD_LIST;
-  d_typeToMetaKind["$eo_ArgList"] = MetaKind::CHECKER_ARG_LIST;
-  d_prefixToMetaKind["s"] = MetaKind::CHECKER_STATE;
-  d_prefixToMetaKind["so"] = MetaKind::CHECKER_STATE_OBJ;
   d_prefixToMetaKind["r"] = MetaKind::CHECKER_RULE;
   d_prefixToMetaKind["cmd"] = MetaKind::CHECKER_CMD;
-  d_prefixToMetaKind["cmdl"] = MetaKind::CHECKER_CMD_LIST;
-  d_prefixToMetaKind["indl"] = MetaKind::CHECKER_INDEX_LIST;
-  d_prefixToMetaKind["al"] = MetaKind::CHECKER_ARG_LIST;
 #ifdef INFER_TOTAL_DEFS
   d_hasDefs = false;
   d_defsTotal << "mutual" << std::endl << std::endl;
@@ -145,6 +134,11 @@ bool LeanMetaReduce::printMetaType(const Expr& t,
     os << getEmbedName(t, tctx);
     return true;
   }
+  if (isEmbedMetaKind(tk))
+  {
+    os << getEmbedTypeName(getEmbedTypeApp(t));
+    return true;
+  }
   return printMetaTypeKind(tk, os);
 }
 
@@ -153,29 +147,15 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
   switch (k)
   {
     case MetaKind::EUNOIA: os << "Term"; break;
-    case MetaKind::DATATYPE_DECL: os << "DatatypeDecl"; break;
-    case MetaKind::DATATYPE: os << "Datatype"; break;
-    case MetaKind::DATATYPE_CONSTRUCTOR: os << "DatatypeCons"; break;
     case MetaKind::SMT_TYPE: os << "SmtType"; break;
     case MetaKind::SMT_MODEL: os << "SmtModel"; break;
-    case MetaKind::SMT_REFLIST: os << "RefList"; break;
     case MetaKind::SMT: os << "SmtTerm"; break;
     case MetaKind::SMT_VALUE: os << "SmtValue"; break;
     case MetaKind::SMT_MAP: os << "SmtMap"; break;
     case MetaKind::SMT_SEQ: os << "SmtSeq"; break;
-    case MetaKind::SMT_REGLAN: os << "SmtRegLan"; break;
     case MetaKind::PROOF: os << "Proof"; break;
-    case MetaKind::SMT_DATATYPE_DECL: os << "SmtDatatypeDecl"; break;
-    case MetaKind::SMT_DATATYPE: os << "SmtDatatype"; break;
-    case MetaKind::SMT_DATATYPE_CONSTRUCTOR: os << "SmtDatatypeCons"; break;
-    case MetaKind::CHECKER_STATE: os << "CState"; break;
-    case MetaKind::CHECKER_STATE_OBJ: os << "CStateObj"; break;
-    case MetaKind::CHECKER_INDEX: os << "CIndex"; break;
-    case MetaKind::CHECKER_INDEX_LIST: os << "CIndexList"; break;
     case MetaKind::CHECKER_RULE: os << "CRule"; break;
     case MetaKind::CHECKER_CMD: os << "CCmd"; break;
-    case MetaKind::CHECKER_CMD_LIST: os << "CCmdList"; break;
-    case MetaKind::CHECKER_ARG_LIST: os << "CArgList"; break;
     default: return false;
   }
   return true;
@@ -271,6 +251,12 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
         {
           os << "Term.UOp" << uarity << " UserOp" << uarity;
         }
+      }
+      else if (isEmbedMetaKind(k))
+      {
+        // a constructor of a datatype declared via $native_embed_*; its
+        // datatype name is carried by its return type
+        os << getEmbedTypeName(getEmbedTypeApp(c.getType()));
       }
       else if (!printMetaTypeKind(k, os))
       {
@@ -1108,6 +1094,12 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
   // define what eo::list_concat will desugar to. Also note this definition is
   // properly preserved by trim_defs which is agnostic to eo:: vs $eo_.
   if (name.compare(0, 4, "$eo_") != 0)
+  {
+    return;
+  }
+  // definitions of $native_embed_* types only carry the name of the embedded
+  // datatype for classification; they do not induce a definition
+  if (!getEmbedTypeApp(e).isNull())
   {
     return;
   }

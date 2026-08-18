@@ -101,25 +101,28 @@
 ;   considered.
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
+; regular language values are the builtin SMT-LIB sort
+(define-sort SmtRegLan () RegLan)
+
 (declare-datatypes
-  ((eo.Term 0) (edd.DatatypeDecl 0)  (edt.Datatype 0) (edtc.DatatypeCons 0)
+  ((eo.Term 0) (DatatypeDecl 0)  (Datatype 0) (DatatypeCons 0)
    (vsm.Value 0) (msm.Map 0) (ssm.Seq 0) (sm.Term 0) (tsm.Type 0)
-   (dd.DatatypeDecl 0) (dt.Datatype 0) (dtc.DatatypeCons 0))
+   (SmtDatatypeDecl 0) (SmtDatatype 0) (SmtDatatypeCons 0))
   (
   (
 $SM_EO_TERM_DECL$
   )
   (
   (edd.nil)
-  (edd.cons (edd.cons.arg1 String) (edd.cons.arg2 edt.Datatype) (edd.cons.arg3 edd.DatatypeDecl))
+  (edd.cons (edd.cons.arg1 String) (edd.cons.arg2 Datatype) (edd.cons.arg3 DatatypeDecl))
   )
   (
   (edt.null)
-  (edt.sum (edt.sum.arg1 edtc.DatatypeCons) (edt.sum.arg2 edt.Datatype))
+  (edt.sum (edt.sum.arg1 DatatypeCons) (edt.sum.arg2 Datatype))
   )
   (
   (edtc.unit)
-  (edtc.cons (edtc.cons.arg1 eo.Term) (edtc.cons.arg2 edtc.DatatypeCons))
+  (edtc.cons (edtc.cons.arg1 eo.Term) (edtc.cons.arg2 DatatypeCons))
   )
   (
 $SM_VALUE_DECL$
@@ -138,15 +141,15 @@ $SM_TYPE_DECL$
   )
   (
   (dd.nil)
-  (dd.cons (dd.cons.arg1 String) (dd.cons.arg2 dt.Datatype) (dd.cons.arg3 dd.DatatypeDecl))
+  (dd.cons (dd.cons.arg1 String) (dd.cons.arg2 SmtDatatype) (dd.cons.arg3 SmtDatatypeDecl))
   )
   (
   (dt.null)
-  (dt.sum (dt.sum.arg1 dtc.DatatypeCons) (dt.sum.arg2 dt.Datatype))
+  (dt.sum (dt.sum.arg1 SmtDatatypeCons) (dt.sum.arg2 SmtDatatype))
   )
   (
   (dtc.unit)
-  (dtc.cons (dtc.cons.arg1 tsm.Type) (dtc.cons.arg2 dtc.DatatypeCons))
+  (dtc.cons (dtc.cons.arg1 tsm.Type) (dtc.cons.arg2 SmtDatatypeCons))
   )
   )
 )

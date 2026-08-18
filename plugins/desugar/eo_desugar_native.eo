@@ -27,13 +27,13 @@
 (define $native_tcmp ((x1 $eo_Term) (x2 $eo_Term)) ($native_apply_2 "tcmp" x1 x2))
 
 ; A datatype constructor
-(declare-const $eo_DatatypeCons Type)
+(define $eo_DatatypeCons () ($native_embed_eo "DatatypeCons"))
 
 ; A datatype
-(declare-const $eo_Datatype Type)
+(define $eo_Datatype () ($native_embed_eo "Datatype"))
 
 ; A datatype declaration
-(declare-const $eo_DatatypeDecl Type)
+(define $eo_DatatypeDecl () ($native_embed_eo "DatatypeDecl"))
 
 ;;; Eunoia datatype constructors
 

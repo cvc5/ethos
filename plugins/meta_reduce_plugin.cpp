@@ -12,6 +12,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "literal.h"
+
 namespace ethos {
 
 MetaReducePlugin::MetaReducePlugin(State& s) : StdPlugin(s)
@@ -23,34 +25,23 @@ MetaReducePlugin::~MetaReducePlugin() {}
 
 void MetaReducePlugin::initializeCommonMetaKinds()
 {
-  d_typeToMetaKind["$eo_DatatypeDecl"] = MetaKind::DATATYPE_DECL;
-  d_typeToMetaKind["$eo_Datatype"] = MetaKind::DATATYPE;
-  d_typeToMetaKind["$eo_DatatypeCons"] = MetaKind::DATATYPE_CONSTRUCTOR;
+  // Note that the types of the deep embedding whose constructors are static
+  // in the backend templates are not listed here; they are declared via the
+  // $native_embed_* symbols in the Eunoia templates, which carry their
+  // embedded names (see getTypeMetaKindFor and getEmbedTypeName).
   d_typeToMetaKind["$smt_Model"] = MetaKind::SMT_MODEL;
-  d_typeToMetaKind["$smt_RefList"] = MetaKind::SMT_REFLIST;
   d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
   d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
-  d_typeToMetaKind["$smt_RegLan"] = MetaKind::SMT_REGLAN;
-  d_typeToMetaKind["$smt_DatatypeDecl"] = MetaKind::SMT_DATATYPE_DECL;
-  d_typeToMetaKind["$smt_Datatype"] = MetaKind::SMT_DATATYPE;
-  d_typeToMetaKind["$smt_DatatypeCons"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
   d_typeToMetaKind["$native_BuiltinType"] = MetaKind::SMT_BUILTIN;
 
-  d_prefixToMetaKind["edd"] = MetaKind::DATATYPE_DECL;
-  d_prefixToMetaKind["edt"] = MetaKind::DATATYPE;
-  d_prefixToMetaKind["edtc"] = MetaKind::DATATYPE_CONSTRUCTOR;
   d_prefixToMetaKind["sm"] = MetaKind::SMT;
   d_prefixToMetaKind["tsm"] = MetaKind::SMT_TYPE;
   d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
-  d_prefixToMetaKind["rsm"] = MetaKind::SMT_REGLAN;
-  d_prefixToMetaKind["dd"] = MetaKind::SMT_DATATYPE_DECL;
-  d_prefixToMetaKind["dt"] = MetaKind::SMT_DATATYPE;
-  d_prefixToMetaKind["dtc"] = MetaKind::SMT_DATATYPE_CONSTRUCTOR;
 }
 
 void MetaReducePlugin::bind(const std::string&, const Expr& e)
@@ -119,6 +110,18 @@ MetaKind MetaReducePlugin::getTypeMetaKindFor(const Expr& typ,
     {
       return MetaKind::SMT_BUILTIN_DATATYPE;
     }
+    if (sname == "$native_embed_eo")
+    {
+      return MetaKind::EO_EMBED;
+    }
+    if (sname == "$native_embed_smt")
+    {
+      return MetaKind::SMT_EMBED;
+    }
+    if (sname == "$native_embed_checker")
+    {
+      return MetaKind::CHECKER_EMBED;
+    }
   }
   if (followFunctionRange && k == Kind::FUNCTION_TYPE)
   {
@@ -159,10 +162,49 @@ MetaKind MetaReducePlugin::getMetaKindFor(const Expr& e,
     }
     std::string prefix = cname.substr(0, firstDot);
     cname = cname.substr(firstDot + 1);
-    return prefixToMetaKind(prefix);
+    MetaKind mk = prefixToMetaKind(prefix, MetaKind::NONE);
+    if (mk != MetaKind::NONE)
+    {
+      return mk;
+    }
+    // Otherwise the constructor may belong to a datatype declared via a
+    // $native_embed_* type, in which case we classify it by its return type.
+    Expr app = getEmbedTypeApp(e.getType());
+    if (!app.isNull())
+    {
+      return getTypeMetaKindFor(app, MetaKind::EUNOIA, false);
+    }
+    return MetaKind::EUNOIA;
   }
   cname = sname;
   return MetaKind::EUNOIA;
+}
+
+Expr MetaReducePlugin::getEmbedTypeApp(const Expr& typ)
+{
+  Expr t = typ;
+  while (t.getKind() == Kind::FUNCTION_TYPE)
+  {
+    t = t[t.getNumChildren() - 1];
+  }
+  if (t.getKind() == Kind::APPLY_OPAQUE)
+  {
+    std::string sname = getName(t[0]);
+    if (sname.compare(0, 14, "$native_embed_") == 0)
+    {
+      return t;
+    }
+  }
+  return Expr();
+}
+
+std::string MetaReducePlugin::getEmbedTypeName(const Expr& app)
+{
+  Assert(app.getKind() == Kind::APPLY_OPAQUE && app.getNumChildren() == 2
+         && app[1].getKind() == Kind::STRING)
+      << "Bad embed type application " << app;
+  const Literal* l = app[1].getValue()->asLiteral();
+  return l->d_str.toString();
 }
 
 bool MetaReducePlugin::buildLambdaDefineProgram(const std::string& name,

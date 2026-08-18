@@ -32,8 +32,7 @@ SmtMetaReduce::~SmtMetaReduce() {}
 bool SmtMetaReduce::isBuiltinMetaSymbol(const std::string& sname) const
 {
   return sname.compare(0, 5, "$smt_") == 0
-         || sname.compare(0, 8, "$native_") == 0 || sname == "$eo_Term"
-         || sname == "$eo_Datatype" || sname == "$eo_DatatypeCons";
+         || sname.compare(0, 8, "$native_") == 0 || sname == "$eo_Term";
 }
 
 bool SmtMetaReduce::printMetaType(const Expr& t,
@@ -46,11 +45,7 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
   switch (tk)
   {
     case MetaKind::EUNOIA: os << "eo.Term"; break;
-    case MetaKind::DATATYPE_DECL: os << "edd.DatatypeDecl"; break;
-    case MetaKind::DATATYPE: os << "edt.Datatype"; break;
-    case MetaKind::DATATYPE_CONSTRUCTOR: os << "edtc.DatatypeCons"; break;
     case MetaKind::SMT_MODEL: os << "smm.SmtModel"; break;
-    case MetaKind::SMT_REFLIST: os << "srl.RefList"; break;
     case MetaKind::SMT: os << "sm.Term"; break;
     case MetaKind::SMT_TYPE: os << "tsm.Type"; break;
     case MetaKind::SMT_VALUE: os << "vsm.Value"; break;
@@ -58,11 +53,11 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case MetaKind::SMT_BUILTIN_DATATYPE: os << getEmbedName(t); break;
     case MetaKind::SMT_MAP: os << "msm.Map"; break;
     case MetaKind::SMT_SEQ: os << "ssm.Seq"; break;
-    // regular languages are the builtin SMT-LIB sort
-    case MetaKind::SMT_REGLAN: os << "RegLan"; break;
-    case MetaKind::SMT_DATATYPE_DECL: os << "dd.DatatypeDecl"; break;
-    case MetaKind::SMT_DATATYPE: os << "dt.Datatype"; break;
-    case MetaKind::SMT_DATATYPE_CONSTRUCTOR: os << "dtc.DatatypeCons"; break;
+    // the embedded name is carried by the $native_embed_* application
+    case MetaKind::EO_EMBED:
+    case MetaKind::SMT_EMBED: os << getEmbedTypeName(getEmbedTypeApp(t)); break;
+    // proof-checker types are treated as Eunoia terms in this backend
+    case MetaKind::CHECKER_EMBED: os << "eo.Term"; break;
     default: return false;
   }
   return true;
@@ -710,6 +705,12 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
   // define what eo::list_concat will desugar to. Also note this definition is
   // properly preserved by trim_defs which is agnostic to eo:: vs $eo_.
   if (name.compare(0, 4, "$eo_") != 0)
+  {
+    return;
+  }
+  // definitions of $native_embed_* types only carry the name of the embedded
+  // datatype for classification; they do not induce a definition
+  if (!getEmbedTypeApp(e).isNull())
   {
     return;
   }

@@ -19,12 +19,8 @@ std::string metaKindToString(MetaKind k)
   switch (k)
   {
     case MetaKind::EUNOIA: ss << "EUNOIA"; break;
-    case MetaKind::DATATYPE_DECL: ss << "DATATYPE_DECL"; break;
-    case MetaKind::DATATYPE: ss << "DATATYPE"; break;
-    case MetaKind::DATATYPE_CONSTRUCTOR: ss << "DATATYPE_CONSTRUCTOR"; break;
     case MetaKind::PROOF: ss << "PROOF"; break;
-    case MetaKind::SMT_MODEL: return "SMT_MODEL"; break;
-    case MetaKind::SMT_REFLIST: return "SMT_REFLIST"; break;
+    case MetaKind::SMT_MODEL: ss << "SMT_MODEL"; break;
     case MetaKind::SMT: ss << "SMT"; break;
     case MetaKind::SMT_BUILTIN: ss << "SMT_BUILTIN"; break;
     case MetaKind::SMT_BUILTIN_DATATYPE: ss << "SMT_BUILTIN_DATATYPE"; break;
@@ -32,20 +28,11 @@ std::string metaKindToString(MetaKind k)
     case MetaKind::SMT_VALUE: ss << "SMT_VALUE"; break;
     case MetaKind::SMT_MAP: ss << "SMT_MAP"; break;
     case MetaKind::SMT_SEQ: ss << "SMT_SEQ"; break;
-    case MetaKind::SMT_REGLAN: ss << "SMT_REGLAN"; break;
-    case MetaKind::SMT_DATATYPE_DECL: ss << "SMT_DATATYPE_DECL"; break;
-    case MetaKind::SMT_DATATYPE: ss << "SMT_DATATYPE"; break;
-    case MetaKind::SMT_DATATYPE_CONSTRUCTOR:
-      ss << "SMT_DATATYPE_CONSTRUCTOR";
-      break;
-    case MetaKind::CHECKER_RULE: return "CHECKER_RULE"; break;
-    case MetaKind::CHECKER_STATE: ss << "CHECKER_STATE"; break;
-    case MetaKind::CHECKER_STATE_OBJ: ss << "CHECKER_STATE_OBJ"; break;
+    case MetaKind::CHECKER_RULE: ss << "CHECKER_RULE"; break;
     case MetaKind::CHECKER_CMD: ss << "CHECKER_CMD"; break;
-    case MetaKind::CHECKER_CMD_LIST: ss << "CHECKER_CMD_LIST"; break;
-    case MetaKind::CHECKER_INDEX: ss << "CHECKER_INDEX"; break;
-    case MetaKind::CHECKER_INDEX_LIST: ss << "CHECKER_INDEX_LIST"; break;
-    case MetaKind::CHECKER_ARG_LIST: ss << "CHECKER_ARG_LIST"; break;
+    case MetaKind::EO_EMBED: ss << "EO_EMBED"; break;
+    case MetaKind::SMT_EMBED: ss << "SMT_EMBED"; break;
+    case MetaKind::CHECKER_EMBED: ss << "CHECKER_EMBED"; break;
     case MetaKind::NONE: ss << "NONE"; break;
     default: ss << "?MetaKind"; break;
   }
@@ -57,17 +44,10 @@ std::string metaKindToPrefix(MetaKind k)
   switch (k)
   {
     case MetaKind::EUNOIA: ss << "eo."; break;
-    case MetaKind::DATATYPE_DECL: ss << "edd."; break;
-    case MetaKind::DATATYPE: ss << "edt."; break;
-    case MetaKind::DATATYPE_CONSTRUCTOR: ss << "edtc."; break;
     case MetaKind::SMT: ss << "sm."; break;
     case MetaKind::SMT_TYPE: ss << "tsm."; break;
     case MetaKind::SMT_VALUE: ss << "vsm."; break;
-    case MetaKind::SMT_REGLAN: ss << "rsm."; break;
     case MetaKind::SMT_BUILTIN: ss << "?"; break;
-    case MetaKind::SMT_DATATYPE_DECL: ss << "dd."; break;
-    case MetaKind::SMT_DATATYPE: ss << "dt."; break;
-    case MetaKind::SMT_DATATYPE_CONSTRUCTOR: ss << "dtc."; break;
     default: ss << "?MetaKindPrefix_" << metaKindToString(k); break;
   }
   return ss.str();
@@ -78,17 +58,17 @@ bool isSmtMetaKind(MetaKind k)
          || k == MetaKind::SMT_BUILTIN_DATATYPE || k == MetaKind::SMT
          || k == MetaKind::SMT_TYPE || k == MetaKind::SMT_VALUE
          || k == MetaKind::SMT_MAP || k == MetaKind::SMT_SEQ
-         || k == MetaKind::SMT_REGLAN || k == MetaKind::SMT_DATATYPE_DECL
-         || k == MetaKind::SMT_DATATYPE
-         || k == MetaKind::SMT_DATATYPE_CONSTRUCTOR;
+         || k == MetaKind::SMT_EMBED;
 }
 bool isCheckerMetaKind(MetaKind k)
 {
-  return k == MetaKind::CHECKER_RULE || k == MetaKind::CHECKER_STATE
-         || k == MetaKind::CHECKER_STATE_OBJ || k == MetaKind::CHECKER_CMD
-         || k == MetaKind::CHECKER_INDEX || k == MetaKind::CHECKER_CMD_LIST
-         || k == MetaKind::CHECKER_INDEX_LIST
-         || k == MetaKind::CHECKER_ARG_LIST;
+  return k == MetaKind::CHECKER_RULE || k == MetaKind::CHECKER_CMD
+         || k == MetaKind::CHECKER_EMBED;
+}
+bool isEmbedMetaKind(MetaKind k)
+{
+  return k == MetaKind::EO_EMBED || k == MetaKind::SMT_EMBED
+         || k == MetaKind::CHECKER_EMBED;
 }
 
 }  // namespace ethos

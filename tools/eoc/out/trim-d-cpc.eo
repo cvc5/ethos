@@ -140,6 +140,21 @@
 (declare-parameterized-const $native_datatype
   (($smt_id Type :implicit) (op $smt_id :opaque))
   Type)
+; A type of the final deep embedding. The (opaque) name is the name of the
+; datatype this type maps to in the generated backend encodings, i.e. the
+; Lean inductive and the SMT-LIB datatype of that name. The three variants
+; determine the category of the definitions that mention the type: ordinary
+; Eunoia definitions, definitions belonging to the SMT-LIB model semantics,
+; or definitions belonging to the proof checker.
+(declare-parameterized-const $native_embed_eo
+  (($smt_id Type :implicit) (name $smt_id :opaque))
+  Type)
+(declare-parameterized-const $native_embed_smt
+  (($smt_id Type :implicit) (name $smt_id :opaque))
+  Type)
+(declare-parameterized-const $native_embed_checker
+  (($smt_id Type :implicit) (name $smt_id :opaque))
+  Type)
 (declare-parameterized-const $native_apply_0
   (($smt_id Type :implicit) (op $smt_id :opaque))
   $native_BuiltinType)
@@ -374,13 +389,13 @@
 (define $native_tcmp ((x1 $eo_Term) (x2 $eo_Term)) ($native_apply_2 "tcmp" x1 x2))
 
 ; A datatype constructor
-(declare-const $eo_DatatypeCons Type)
+(define $eo_DatatypeCons () ($native_embed_eo "DatatypeCons"))
 
 ; A datatype
-(declare-const $eo_Datatype Type)
+(define $eo_Datatype () ($native_embed_eo "Datatype"))
 
 ; A datatype declaration
-(declare-const $eo_DatatypeDecl Type)
+(define $eo_DatatypeDecl () ($native_embed_eo "DatatypeDecl"))
 
 ;;; Eunoia datatype constructors
 

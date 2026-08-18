@@ -32,16 +32,8 @@ enum class MetaKind
 {
   /** The deep embedding of the term is a Eunoia term. */
   EUNOIA,
-  /** The deep embedding of the term is a Eunoia datatype declaration. */
-  DATATYPE_DECL,
-  /** The deep embedding of the term is a Eunoia datatype. */
-  DATATYPE,
-  /** The deep embedding of the term is a Eunoia datatype constructor. */
-  DATATYPE_CONSTRUCTOR,
   /** The deep embedding of the term is an SMT-LIB model. */
   SMT_MODEL,
-  /** The deep embedding of the term is a list of datatype references. */
-  SMT_REFLIST,
   /** The deep embedding of the term is an SMT-LIB term. */
   SMT,
   /** The deep embedding of the term is an SMT-LIB type. */
@@ -52,36 +44,29 @@ enum class MetaKind
   SMT_MAP,
   /** The deep embedding of the term is an SMT-LIB sequence value. */
   SMT_SEQ,
-  /** The deep embedding of the term is an SMT-LIB regular language value. */
-  SMT_REGLAN,
   /** The deep embedding of the term is a builtin SMT-LIB term. */
   SMT_BUILTIN,
   /** The deep embedding of the term is a builtin SMT-LIB datatype (e.g. Nat). */
   SMT_BUILTIN_DATATYPE,
   /** The deep embedding of the term is a proof. */
   PROOF,
-  /** The deep embedding of the term is an SMT-LIB datatype decl. */
-  SMT_DATATYPE_DECL,
-  /** The deep embedding of the term is an SMT-LIB datatype. */
-  SMT_DATATYPE,
-  /** The deep embedding of the term is an SMT-LIB datatype constructor. */
-  SMT_DATATYPE_CONSTRUCTOR,
   /** The deep embedding of the term is a proof-checker rule. */
   CHECKER_RULE,
-  /** The deep embedding of the term is a proof-checker state. */
-  CHECKER_STATE,
-  /** The deep embedding of the term is a proof-checker state object. */
-  CHECKER_STATE_OBJ,
   /** The deep embedding of the term is a proof-checker command. */
   CHECKER_CMD,
-  /** The deep embedding of the term is a list of proof-checker commands. */
-  CHECKER_CMD_LIST,
-  /** The deep embedding of the term is a proof-checker index. */
-  CHECKER_INDEX,
-  /** The deep embedding of the term is a list of proof-checker indices. */
-  CHECKER_INDEX_LIST,
-  /** The deep embedding of the term is a list of proof-checker arguments. */
-  CHECKER_ARG_LIST,
+  /**
+   * The deep embedding of the term is a datatype declared by a
+   * $native_embed_eo type in the Eunoia templates. Its embedded name is
+   * carried by that application; its constructors are static in the backend
+   * templates. Similarly for the _smt and _checker variants below, which
+   * additionally mark the term as belonging to the SMT-LIB model semantics
+   * (see isSmtMetaKind) resp. the proof checker (see isCheckerMetaKind).
+   */
+  EO_EMBED,
+  /** Datatype declared by a $native_embed_smt type. */
+  SMT_EMBED,
+  /** Datatype declared by a $native_embed_checker type. */
+  CHECKER_EMBED,
   /** No meta-kind context. */
   NONE
 };
@@ -95,8 +80,10 @@ std::string metaKindToString(MetaKind k);
 std::string metaKindToPrefix(MetaKind k);
 /** Return true if k is one of the SMT-LIB meta-kinds. */
 bool isSmtMetaKind(MetaKind k);
-/** Return true if k is one of the proof-checker (CHECKER_*) meta-kinds. */
+/** Return true if k is one of the proof-checker meta-kinds. */
 bool isCheckerMetaKind(MetaKind k);
+/** Return true if k is one of the $native_embed_* meta-kinds. */
+bool isEmbedMetaKind(MetaKind k);
 
 }  // namespace ethos
 

@@ -142,6 +142,21 @@
 (declare-parameterized-const $native_datatype
   (($smt_id Type :implicit) (op $smt_id :opaque))
   Type)
+; A type of the final deep embedding. The (opaque) name is the name of the
+; datatype this type maps to in the generated backend encodings, i.e. the
+; Lean inductive and the SMT-LIB datatype of that name. The three variants
+; determine the category of the definitions that mention the type: ordinary
+; Eunoia definitions, definitions belonging to the SMT-LIB model semantics,
+; or definitions belonging to the proof checker.
+(declare-parameterized-const $native_embed_eo
+  (($smt_id Type :implicit) (name $smt_id :opaque))
+  Type)
+(declare-parameterized-const $native_embed_smt
+  (($smt_id Type :implicit) (name $smt_id :opaque))
+  Type)
+(declare-parameterized-const $native_embed_checker
+  (($smt_id Type :implicit) (name $smt_id :opaque))
+  Type)
 (declare-parameterized-const $native_apply_0
   (($smt_id Type :implicit) (op $smt_id :opaque))
   $native_BuiltinType)
@@ -376,13 +391,13 @@
 (define $native_tcmp ((x1 $eo_Term) (x2 $eo_Term)) ($native_apply_2 "tcmp" x1 x2))
 
 ; A datatype constructor
-(declare-const $eo_DatatypeCons Type)
+(define $eo_DatatypeCons () ($native_embed_eo "DatatypeCons"))
 
 ; A datatype
-(declare-const $eo_Datatype Type)
+(define $eo_Datatype () ($native_embed_eo "Datatype"))
 
 ; A datatype declaration
-(declare-const $eo_DatatypeDecl Type)
+(define $eo_DatatypeDecl () ($native_embed_eo "DatatypeDecl"))
 
 ;;; Eunoia datatype constructors
 
@@ -1987,13 +2002,13 @@
 (define $native_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($native_apply_2 "Teq" x1 x2))
 
 ; A datatype constructor
-(declare-const $smt_DatatypeCons Type)
+(define $smt_DatatypeCons () ($native_embed_smt "SmtDatatypeCons"))
 
 ; A datatype
-(declare-const $smt_Datatype Type)
+(define $smt_Datatype () ($native_embed_smt "SmtDatatype"))
 
 ; A datatype declaration
-(declare-const $smt_DatatypeDecl Type)
+(define $smt_DatatypeDecl () ($native_embed_smt "SmtDatatypeDecl"))
 
 ; An SMT-LIB value.
 (declare-const $smt_Value Type)
@@ -2292,7 +2307,7 @@
 ; elements are $smt_Value, so that the regular expression operators can be
 ; defined over the same (unpacked) sequence representation used by the
 ; sequence operators.
-(declare-const $smt_RegLan Type)
+(define $smt_RegLan () ($native_embed_smt "SmtRegLan"))
 
 ;;; SMT value datatype constructors
 
@@ -4180,14 +4195,14 @@
 ; placeholders
 (define $eoT_Index () $native_Int)
 
-(declare-const $eo_IndexList Type)
+(define $eo_IndexList () ($native_embed_checker "CIndexList"))
 (declare-const $emb_indl.nil $eo_IndexList)
 (define $eot_iln () $emb_indl.nil)
 (declare-parameterized-const $emb_indl.cons
   ((i $eoT_Index :opaque) (il $eo_IndexList :opaque)) $eo_IndexList)
 (define $eot_ilc ((i $eoT_Index) (il $eo_IndexList)) ($emb_indl.cons i il))
 
-(declare-const $eo_ArgList Type)
+(define $eo_ArgList () ($native_embed_checker "CArgList"))
 (declare-const $emb_al.nil $eo_ArgList)
 (define $eot_aln () $emb_al.nil)
 (declare-parameterized-const $emb_al.cons
@@ -4203,12 +4218,12 @@
 (declare-const $eo_Cmd Type)
 
 ; The state
-(declare-const $eo_State Type)
+(define $eo_State () ($native_embed_checker "CState"))
 
 ;;; Constructors for state
 
 ; State
-(declare-const $eo_StateObj Type)
+(define $eo_StateObj () ($native_embed_checker "CStateObj"))
 (declare-parameterized-const $emb_so.assume ((F Bool :opaque)) $eo_StateObj)
 (define $so_assume ((F Bool)) ($emb_so.assume F))
 (declare-parameterized-const $emb_so.assume_push ((F Bool :opaque)) $eo_StateObj)
@@ -4399,7 +4414,7 @@
   )
 )
 
-(declare-const $eo_CmdList Type)
+(define $eo_CmdList () ($native_embed_checker "CCmdList"))
 (declare-const $emb_cmdl.nil $eo_CmdList)
 (declare-parameterized-const $emb_cmdl.cons
   ((c $eo_Cmd :opaque) (cl $eo_CmdList :opaque)) $eo_CmdList)
