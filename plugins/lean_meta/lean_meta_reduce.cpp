@@ -148,7 +148,6 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
   {
     case MetaKind::EUNOIA: os << "Term"; break;
     case MetaKind::SMT_TYPE: os << "SmtType"; break;
-    case MetaKind::SMT_MODEL: os << "SmtModel"; break;
     case MetaKind::SMT: os << "SmtTerm"; break;
     case MetaKind::SMT_VALUE: os << "SmtValue"; break;
     case MetaKind::SMT_MAP: os << "SmtMap"; break;

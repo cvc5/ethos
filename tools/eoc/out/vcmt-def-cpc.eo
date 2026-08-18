@@ -205,7 +205,7 @@
   (($eo_prog_symm ($eo_pf F)) ($mk_symm F))
   )
 )
-(declare-const $smt_Model Type)
+(define $smt_Model () ($native_embed_smt "SmtModel"))
 (program $eo_model_sat () :signature ($smt_Model Bool) Bool)
 (program $eo_model_unsat () :signature ($smt_Model Bool) Bool)
 (declare-const $smt_Term Type)

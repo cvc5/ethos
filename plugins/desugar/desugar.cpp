@@ -744,6 +744,9 @@ void Desugar::finalizeRule(const Expr& e)
   std::stringstream pvcname;
   pvcname << "$eovc_" << e;
   Expr unsound = d_true;
+  // a stand-in symbol used only for printing; the emitted name resolves to
+  // the $smt_Model definition (a $native_embed_smt type) in eo_desugar.eo
+  // when the generated program is parsed by the later stages
   Expr modelVarType =
       d_state.mkSymbol(Kind::CONST, "$smt_Model", d_state.mkType());
   Expr modelVar = d_state.mkSymbol(Kind::PARAM, "$eoM", modelVarType);

@@ -32,8 +32,6 @@ enum class MetaKind
 {
   /** The deep embedding of the term is a Eunoia term. */
   EUNOIA,
-  /** The deep embedding of the term is an SMT-LIB model. */
-  SMT_MODEL,
   /** The deep embedding of the term is an SMT-LIB term. */
   SMT,
   /** The deep embedding of the term is an SMT-LIB type. */

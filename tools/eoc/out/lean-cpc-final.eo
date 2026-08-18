@@ -521,7 +521,7 @@
   (($eo_is_closed t) ($eo_is_closed_rec t $eo_List_nil))
   )
 )
-(declare-const $smt_Model Type)
+(define $smt_Model () ($native_embed_smt "SmtModel"))
 (declare-const $smt_Term Type)
 (declare-const $smt_Type Type)
 (define $native_inhabited_type ((T $smt_Type)) ($native_apply_1 "inhabited_type" T))

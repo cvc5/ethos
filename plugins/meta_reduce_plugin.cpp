@@ -29,7 +29,6 @@ void MetaReducePlugin::initializeCommonMetaKinds()
   // in the backend templates are not listed here; they are declared via the
   // $native_embed_* symbols in the Eunoia templates, which carry their
   // embedded names (see getTypeMetaKindFor and getEmbedTypeName).
-  d_typeToMetaKind["$smt_Model"] = MetaKind::SMT_MODEL;
   d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
   d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;

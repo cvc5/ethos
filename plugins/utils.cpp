@@ -20,7 +20,6 @@ std::string metaKindToString(MetaKind k)
   {
     case MetaKind::EUNOIA: ss << "EUNOIA"; break;
     case MetaKind::PROOF: ss << "PROOF"; break;
-    case MetaKind::SMT_MODEL: ss << "SMT_MODEL"; break;
     case MetaKind::SMT: ss << "SMT"; break;
     case MetaKind::SMT_BUILTIN: ss << "SMT_BUILTIN"; break;
     case MetaKind::SMT_BUILTIN_DATATYPE: ss << "SMT_BUILTIN_DATATYPE"; break;
@@ -54,11 +53,10 @@ std::string metaKindToPrefix(MetaKind k)
 }
 bool isSmtMetaKind(MetaKind k)
 {
-  return k == MetaKind::SMT_MODEL || k == MetaKind::SMT_BUILTIN
-         || k == MetaKind::SMT_BUILTIN_DATATYPE || k == MetaKind::SMT
-         || k == MetaKind::SMT_TYPE || k == MetaKind::SMT_VALUE
-         || k == MetaKind::SMT_MAP || k == MetaKind::SMT_SEQ
-         || k == MetaKind::SMT_EMBED;
+  return k == MetaKind::SMT_BUILTIN || k == MetaKind::SMT_BUILTIN_DATATYPE
+         || k == MetaKind::SMT || k == MetaKind::SMT_TYPE
+         || k == MetaKind::SMT_VALUE || k == MetaKind::SMT_MAP
+         || k == MetaKind::SMT_SEQ || k == MetaKind::SMT_EMBED;
 }
 bool isCheckerMetaKind(MetaKind k)
 {

@@ -137,6 +137,12 @@ Expr SmtMetaSygus::getGrammarTypeApprox(const Expr& e)
     return d_null;
   }
   Kind ck = cur.getKind();
+  if (ck == Kind::APPLY_OPAQUE)
+  {
+    // opaque type applications, e.g. $native_type_* and $native_embed_*
+    // types, are treated as general Eunoia terms
+    return d_null;
+  }
   if (ck == Kind::FUNCTION_TYPE)
   {
     return d_gfun;
@@ -150,7 +156,7 @@ Expr SmtMetaSygus::getGrammarTypeApprox(const Expr& e)
     std::stringstream ssc;
     ssc << cur;
     std::string cname = ssc.str();
-    if (cname == "$eo_Term" || cname == "$smt_Model")
+    if (cname == "$eo_Term")
     {
       // special case: those marked $eo_Term are general Eunoia terms
       return d_null;
@@ -276,7 +282,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
     return;
   }
   else if (tk == MetaKind::SMT_MAP || tk == MetaKind::SMT_SEQ
-           || tk == MetaKind::SMT_EMBED || tk == MetaKind::SMT_MODEL)
+           || tk == MetaKind::SMT_EMBED)
   {
     return;
   }

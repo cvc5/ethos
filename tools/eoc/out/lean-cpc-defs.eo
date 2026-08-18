@@ -1968,7 +1968,7 @@
 ; will write below.
 
 ; An SMT model.
-(declare-const $smt_Model Type)
+(define $smt_Model () ($native_embed_smt "SmtModel"))
 
 ; A placeholder for asking whether a formula evaluates to true in a model.
 (program $eo_model_sat () :signature ($smt_Model Bool) Bool)

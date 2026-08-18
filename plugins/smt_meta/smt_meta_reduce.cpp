@@ -45,7 +45,6 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
   switch (tk)
   {
     case MetaKind::EUNOIA: os << "eo.Term"; break;
-    case MetaKind::SMT_MODEL: os << "smm.SmtModel"; break;
     case MetaKind::SMT: os << "sm.Term"; break;
     case MetaKind::SMT_TYPE: os << "tsm.Type"; break;
     case MetaKind::SMT_VALUE: os << "vsm.Value"; break;
