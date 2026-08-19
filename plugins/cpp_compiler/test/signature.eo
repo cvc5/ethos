@@ -1,0 +1,17 @@
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+
+(declare-const sum (-> Int Int Int) :left-assoc)
+
+(program first ((x Int) (xs Int :list))
+  :signature (Int Int) Int
+  (
+    ((first x xs) x)
+  )
+)
+
+(declare-rule trusted ((F Bool))
+  :args (F)
+  :conclusion F
+  :sorry
+)

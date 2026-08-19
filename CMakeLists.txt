@@ -59,17 +59,68 @@ include_directories(src)
 add_subdirectory(src)
 add_subdirectory(tests)
 
-# Compile-only check for the experimental extensions in plugins/. Those are
-# not part of ethos and produce nothing here; this target exists so that CI
-# can catch them bitrotting against src/. It is EXCLUDE_FROM_ALL, so an
-# ordinary build never sees it. Build it explicitly with:
+# Build and test the experimental extensions in plugins/. Those are not part
+# of ethos, so this target lets CI catch them bitrotting against src/. It is
+# EXCLUDE_FROM_ALL, so an ordinary build never sees it. Build it explicitly
+# with:
 #
 #   make plugins-compile-check
 #
 file(GLOB_RECURSE plugins_SRC CONFIGURE_DEPENDS "plugins/*.cpp")
+list(FILTER plugins_SRC EXCLUDE REGEX "/plugins/cpp_compiler/test/")
 if(plugins_SRC)
   add_library(plugins-compile-check OBJECT EXCLUDE_FROM_ALL ${plugins_SRC})
 else()
   add_custom_target(plugins-compile-check
     COMMAND ${CMAKE_COMMAND} -E echo "No plugin sources to check.")
 endif()
+
+# Exercise the C++ compiler end to end: parse a signature with Compiler,
+# compile the emitted source, then load it with Executor and check that parser
+# state was reconstructed while program evaluation still uses the interpreter.
+set(cpp_compiler_test_dir "${CMAKE_CURRENT_BINARY_DIR}/cpp_compiler_test")
+set(cpp_compiler_test_signature
+    "${CMAKE_CURRENT_SOURCE_DIR}/plugins/cpp_compiler/test/signature.eo")
+file(MAKE_DIRECTORY "${cpp_compiler_test_dir}")
+
+file(GLOB_RECURSE cpp_compiler_core_SRC CONFIGURE_DEPENDS "src/*.cpp")
+list(FILTER cpp_compiler_core_SRC EXCLUDE REGEX "/src/main\\.cpp$")
+add_library(cpp-compiler-test-core STATIC EXCLUDE_FROM_ALL
+            ${cpp_compiler_core_SRC})
+target_link_libraries(cpp-compiler-test-core PUBLIC ${LIBRARIES})
+
+add_executable(cpp-compiler-generate EXCLUDE_FROM_ALL
+  plugins/cpp_compiler/test/generate.cpp
+  plugins/cpp_compiler/compiler.cpp)
+target_include_directories(cpp-compiler-generate PRIVATE
+                           plugins/cpp_compiler)
+target_link_libraries(cpp-compiler-generate PRIVATE cpp-compiler-test-core)
+
+set(cpp_compiler_generated_source
+    "${cpp_compiler_test_dir}/compiled.out.cpp")
+add_custom_command(
+  OUTPUT "${cpp_compiler_generated_source}"
+  COMMAND $<TARGET_FILE:cpp-compiler-generate>
+          "${cpp_compiler_test_signature}"
+  DEPENDS cpp-compiler-generate "${cpp_compiler_test_signature}"
+  WORKING_DIRECTORY "${cpp_compiler_test_dir}"
+  COMMENT "Generating C++ auto-parser test source"
+  VERBATIM)
+set_source_files_properties("${cpp_compiler_generated_source}"
+                            PROPERTIES GENERATED TRUE)
+
+add_executable(cpp-compiler-replay EXCLUDE_FROM_ALL
+  plugins/cpp_compiler/test/replay.cpp
+  plugins/cpp_compiler/executor.cpp
+  "${cpp_compiler_generated_source}")
+target_include_directories(cpp-compiler-replay PRIVATE plugins/cpp_compiler)
+target_compile_definitions(
+  cpp-compiler-replay PRIVATE
+  ETHOS_CPP_COMPILER_TEST_SIGNATURE="${cpp_compiler_test_signature}")
+target_link_libraries(cpp-compiler-replay PRIVATE cpp-compiler-test-core)
+
+add_custom_target(cpp-compiler-roundtrip
+  COMMAND $<TARGET_FILE:cpp-compiler-replay>
+  DEPENDS cpp-compiler-replay
+  COMMENT "Testing generated C++ auto-parser")
+add_dependencies(plugins-compile-check cpp-compiler-roundtrip)

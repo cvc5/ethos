@@ -28,10 +28,43 @@ bool isNamedExpr(Kind kind)
          || kind == Kind::VARIABLE;
 }
 
+const char* attrName(Attr attr)
+{
+  switch (attr)
+  {
+    case Attr::NONE: return "NONE";
+    case Attr::IMPLICIT: return "IMPLICIT";
+    case Attr::TYPE: return "TYPE";
+    case Attr::IS_EQ: return "IS_EQ";
+    case Attr::SORRY: return "SORRY";
+    case Attr::LIST: return "LIST";
+    case Attr::PROGRAM: return "PROGRAM";
+    case Attr::BINDER: return "BINDER";
+    case Attr::LET_BINDER: return "LET_BINDER";
+    case Attr::OPAQUE: return "OPAQUE";
+    case Attr::SYNTAX: return "SYNTAX";
+    case Attr::RESTRICT: return "RESTRICT";
+    case Attr::PROOF_RULE: return "PROOF_RULE";
+    case Attr::RIGHT_ASSOC: return "RIGHT_ASSOC";
+    case Attr::LEFT_ASSOC: return "LEFT_ASSOC";
+    case Attr::RIGHT_ASSOC_NIL: return "RIGHT_ASSOC_NIL";
+    case Attr::LEFT_ASSOC_NIL: return "LEFT_ASSOC_NIL";
+    case Attr::RIGHT_ASSOC_NS_NIL: return "RIGHT_ASSOC_NS_NIL";
+    case Attr::LEFT_ASSOC_NS_NIL: return "LEFT_ASSOC_NS_NIL";
+    case Attr::CHAINABLE: return "CHAINABLE";
+    case Attr::PAIRWISE: return "PAIRWISE";
+    case Attr::ARG_LIST: return "ARG_LIST";
+    case Attr::AMB: return "AMB";
+    case Attr::DATATYPE: return "DATATYPE";
+    case Attr::DATATYPE_CONSTRUCTOR: return "DATATYPE_CONSTRUCTOR";
+    case Attr::AMB_DATATYPE_CONSTRUCTOR: return "AMB_DATATYPE_CONSTRUCTOR";
+  }
+  Unreachable();
+}
+
 }  // namespace
 
-Compiler::Compiler(State& state)
-    : d_state(state), d_nscopes(0), d_nextExprId(1)
+Compiler::Compiler(State& state) : d_state(state), d_nscopes(0), d_nextExprId(1)
 {
 }
 
@@ -101,13 +134,13 @@ void Compiler::finalizeIncludeFile(const Filepath& path,
 
 void Compiler::setLiteralTypeRule(Kind kind, const Expr& type)
 {
-  if (!isRecording() || d_nscopes > 0)
+  if (!isRecording())
   {
     return;
   }
   size_t id = writeExpr(type);
-  d_initialize << "  d_state.setLiteralTypeRule(Kind::" << kind << ", _e"
-               << id << ");\n";
+  d_initialize << "  d_state.setLiteralTypeRule(Kind::" << kind << ", _e" << id
+               << ");\n";
 }
 
 void Compiler::bind(const std::string& name, const Expr& expr)
@@ -117,8 +150,7 @@ void Compiler::bind(const std::string& name, const Expr& expr)
     return;
   }
   size_t id = writeExpr(expr);
-  d_initialize << "  d_state.bind(" << quote(name) << ", _e" << id
-               << ");\n";
+  d_initialize << "  d_state.bind(" << quote(name) << ", _e" << id << ");\n";
   if (expr.getKind() == Kind::PROOF_RULE)
   {
     d_proofRules.push_back(expr);
@@ -129,7 +161,7 @@ void Compiler::markConstructorKind(const Expr& expr,
                                    Attr attr,
                                    const Expr& constructor)
 {
-  if (!isRecording() || d_nscopes > 0)
+  if (!isRecording())
   {
     return;
   }
@@ -140,15 +172,20 @@ void Compiler::markConstructorKind(const Expr& expr,
     return;
   }
   size_t exprId = writeExpr(expr);
-  d_initialize << "  d_state.markConstructorKind(_e" << exprId << ", Attr::"
-               << attr << ", ";
+  size_t constructorId = 0;
+  if (!constructor.isNull())
+  {
+    constructorId = writeExpr(constructor);
+  }
+  d_initialize << "  d_state.markConstructorKind(_e" << exprId
+               << ", Attr::" << attrName(attr) << ", ";
   if (constructor.isNull())
   {
     d_initialize << "Expr()";
   }
   else
   {
-    d_initialize << "_e" << writeExpr(constructor);
+    d_initialize << "_e" << constructorId;
   }
   d_initialize << ");\n";
 }
@@ -160,6 +197,11 @@ void Compiler::defineProgram(const Expr& symbol, const Expr& program)
     return;
   }
   size_t symbolId = writeExpr(symbol);
+  size_t programId = 0;
+  if (!program.isNull())
+  {
+    programId = writeExpr(program);
+  }
   d_initialize << "  d_state.defineProgram(_e" << symbolId << ", ";
   if (program.isNull())
   {
@@ -167,7 +209,7 @@ void Compiler::defineProgram(const Expr& symbol, const Expr& program)
   }
   else
   {
-    d_initialize << "_e" << writeExpr(program);
+    d_initialize << "_e" << programId;
   }
   d_initialize << ");\n";
 }
@@ -210,10 +252,8 @@ size_t Compiler::writeExpr(const Expr& expr)
     {
       pending.emplace_back(current, true);
       if (isNamedExpr(kind) && current != d_state.mkSelf()
-          && current != d_state.mkListType()
-          && current != d_state.mkListCons()
-          && current != d_state.mkListNil()
-          && current != d_state.mkProofType())
+          && current != d_state.mkListType() && current != d_state.mkListCons()
+          && current != d_state.mkListNil() && current != d_state.mkProofType())
       {
         ExprValue* type = d_state.lookupType(value);
         if (type == nullptr)
@@ -234,6 +274,7 @@ size_t Compiler::writeExpr(const Expr& expr)
 
     size_t id = d_nextExprId++;
     d_exprIds[value] = id;
+    d_retainedExprs.push_back(current);
     d_declarations << "  Expr _e" << id << ";\n";
     d_initialize << "  _e" << id << " = ";
 
@@ -283,8 +324,8 @@ size_t Compiler::writeExpr(const Expr& expr)
       ExprValue* type = d_state.lookupType(value);
       Assert(type != nullptr);
       d_initialize << "d_state.mkSymbol(Kind::" << kind << ", "
-                   << quote(literal->toString()) << ", "
-                   << getName(Expr(type)) << ")";
+                   << quote(literal->toString()) << ", " << getName(Expr(type))
+                   << ")";
     }
     else
     {
@@ -335,7 +376,9 @@ std::string Compiler::quote(const std::string& text)
         }
         else
         {
-          quoted << "\\x" << std::hex << std::setw(2) << std::setfill('0')
+          // A three-digit octal escape cannot consume a following digit,
+          // unlike a C++ hexadecimal escape.
+          quoted << '\\' << std::oct << std::setw(3) << std::setfill('0')
                  << static_cast<unsigned>(ch) << std::dec;
         }
         break;

@@ -19,4 +19,5 @@ checker and program evaluator after the signature has been reconstructed.
 The plugins are not linked into the default `ethos` binary. Embedders select a
 `Compiler` or `Executor` by passing it to `State::setPlugin()`. The repository's
 `plugins-compile-check` CMake target compiles all plugin sources with the current
-Ethos headers so API drift is caught by CI.
+Ethos headers. It also generates, compiles, and executes a small auto-parser so
+API drift and broken generated code are caught by CI.

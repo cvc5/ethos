@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   plugins:
-    name: plugins:compile-check
+    name: plugins:compile-and-test
     runs-on: ubuntu-22.04
 
     # The extensions in plugins/ are not part of the ethos build and nothing
@@ -27,7 +27,7 @@ jobs:
     - name: Set up num_proc variable
       run: echo "num_proc=$(( $(nproc) + 1 ))" >> $GITHUB_ENV
 
-    - name: Compile-check plugins
+    - name: Compile and test plugins
       run: |
         ./configure.sh debug --werror
         cd build

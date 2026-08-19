@@ -58,12 +58,14 @@ public:
       }
       et = &itet->second;
     }
+    // Clear the leaf before possibly erasing an ancestor. If we erase first,
+    // et points into the erased subtree and writing d_data is use-after-free.
+    et->d_data = nullptr;
     // delete the subtree for which et->d_data occurs in a single path
     if (etd!=nullptr)
     {
       etd->d_children.erase(itetd);
     }
-    et->d_data = nullptr;
   }
 };
 

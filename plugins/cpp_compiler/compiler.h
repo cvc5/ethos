@@ -80,6 +80,12 @@ class Compiler : public Plugin
   std::stringstream d_config;
   /** Generated identifiers for expressions. */
   std::map<const ExprValue*, size_t> d_exprIds;
+  /**
+   * Keep generated expressions alive for the duration of compilation. Apart
+   * from making d_exprIds safe, this avoids churn in the State expression
+   * trie while parser-owned temporary Expr handles are released.
+   */
+  std::vector<Expr> d_retainedExprs;
   size_t d_nextExprId;
   /** Proof rules are revisited after their trailing attributes are parsed. */
   std::vector<Expr> d_proofRules;
