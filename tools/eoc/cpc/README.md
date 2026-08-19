@@ -9,6 +9,11 @@ Most wrappers default to the external CPC signature:
 ../cvc5-ajr/proofs/eo/cpc/Cpc.eo
 ```
 
+`run_gen_lean_all` also applies `cpc_exclusions.eo`, which explicitly omits
+the CPC lambda symbol, its beta-reduction rule, and their private helper
+methods. The exclusion file is a literal list; no dependency analysis is
+performed.
+
 `run_gen_vc_all_alethe` keeps the old Alethe default:
 
 ```text

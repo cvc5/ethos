@@ -114,6 +114,26 @@ Generate Lean for the whole signature:
 python3 tools/eoc/driver.py lean --build-dir build-eoc --all ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo
 ```
 
+Generate Lean while omitting an explicit list of declarations:
+
+```bash
+python3 tools/eoc/driver.py lean --build-dir build-eoc --all \
+  --exclude-file tools/eoc/cpc/cpc_exclusions.eo \
+  ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo
+```
+
+An exclusion file is an EO file containing directives of the following forms:
+
+```lisp
+(echo "eoc-exclude rule beta-reduce")
+(echo "eoc-exclude method $beta_reduce")
+(echo "eoc-exclude symbol lambda")
+```
+
+The names are matched literally during desugaring. The compiler does not check
+that entries exist or compute their dependency closure; the list must include
+every declaration that needs to be omitted.
+
 List all rules declared by a signature and its includes:
 
 ```bash
@@ -145,6 +165,7 @@ python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE
 Useful options:
 
 - `--sygus`: generate a SyGuS query instead of SMT2
+- `--exclude-file FILE`: apply an explicit declaration exclusion list during desugaring
 - `--skip-cvc5`: skip parse checks with `cvc5`
 - `--solve`: run `cvc5` on the generated VC or SyGuS file after optional parse checks
 - `--solve-args "ARGS"`: shell-style string of extra options passed to `cvc5` during `--solve`

@@ -179,12 +179,14 @@ class Pipeline:
         jobs: int,
         cvc5: Optional[Path],
         solve_args: list[str],
+        exclude_file: Optional[Path],
     ):
         self.build_dir = build_dir.resolve()
         self.final_out_dir = final_out_dir.resolve()
         self.jobs = jobs
         self.cvc5 = cvc5
         self.solve_args = list(solve_args)
+        self.exclude_file = exclude_file
         self.binary = self.build_dir / "ethos-eoc"
         self.stage_out_dir = self.final_out_dir
         self.plugin_out_dir = self.build_dir / "out" / "plugins"
@@ -335,7 +337,11 @@ class Pipeline:
         plugin_label: Optional[str],
     ) -> Path:
         option = "--plugin.desugar-vc" if use_vc_plugin else "--plugin.desugar"
-        self.ethos([option, input_name], quiet=True)
+        args = [option]
+        if self.exclude_file is not None:
+            args.append(f"--include={self.exclude_file}")
+        args.append(input_name)
+        self.ethos(args, quiet=True)
         output_file.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(self.plugin_generated("desugar/eo_desugar_gen.eo"), output_file)
         replacements: list[tuple[str, str]] = []
@@ -595,6 +601,13 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Do not rebuild ethos-eoc before running the pipeline.",
     )
+    parser.add_argument(
+        "--exclude-file",
+        default=None,
+        help=(
+            "EO file of eoc-exclude echo directives to apply during desugaring."
+        ),
+    )
 
 
 def main(argv: list[str]) -> int:
@@ -672,6 +685,10 @@ def main(argv: list[str]) -> int:
         args.input = str(resolve_path_arg(args.input, cwd=invocation_cwd))
     if getattr(args, "rules_file", None) is not None:
         args.rules_file = str(resolve_path_arg(args.rules_file, cwd=invocation_cwd))
+    if getattr(args, "exclude_file", None) is not None:
+        args.exclude_file = str(
+            resolve_path_arg(args.exclude_file, cwd=invocation_cwd)
+        )
 
     if getattr(args, "final_out_dir", None) is not None:
         final_out_dir = resolve_path_arg(args.final_out_dir, cwd=invocation_cwd)
@@ -694,6 +711,7 @@ def main(argv: list[str]) -> int:
         getattr(args, "jobs", 4),
         cvc5,
         solve_args,
+        Path(args.exclude_file) if getattr(args, "exclude_file", None) else None,
     )
     build_first = not getattr(args, "no_build", False)
 

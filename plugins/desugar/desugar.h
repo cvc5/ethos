@@ -127,6 +127,8 @@ class Desugar : public StdPlugin
                     bool neg = false);
   /** Return the recorded parser attribute for e, or Attr::NONE. */
   Attr getAttribute(const Expr& e);
+  /** Return whether a source symbol should be omitted from generated output. */
+  bool isExcluded(const Expr& e, Kind k) const;
 
   /** Declarations and definitions in the order seen by the plugin. */
   std::vector<std::pair<Expr, Kind>> d_declSeen;
@@ -156,6 +158,12 @@ class Desugar : public StdPlugin
   bool d_genVcs;
   /** Whether the executable checker should be emitted. */
   bool d_genChecker;
+  /** Source proof-rule names explicitly omitted from generated output. */
+  std::set<std::string> d_excludedRules;
+  /** Source program names explicitly omitted from generated output. */
+  std::set<std::string> d_excludedMethods;
+  /** Source theory-symbol names explicitly omitted from generated output. */
+  std::set<std::string> d_excludedSymbols;
 
   /** Literal kinds whose type rules have already been emitted. */
   std::unordered_set<Kind> d_ltKindProcessed;

@@ -126,6 +126,10 @@ void Desugar::finalizeProgram(const Expr& prog,
                               const Expr& progDef,
                               std::ostream& os)
 {
+  if (isExcluded(prog, Kind::PROGRAM_CONST))
+  {
+    return;
+  }
   std::map<Expr, Expr> typeMap;
   std::vector<std::pair<Expr, Expr>> allDefs;
   allDefs.emplace_back(prog, progDef);
@@ -180,6 +184,10 @@ void Desugar::finalizeProgram(const Expr& prog,
 
 void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
 {
+  if (isExcluded(e, Kind::CONST))
+  {
+    return;
+  }
   if (d_declProcessed.find(e) != d_declProcessed.end())
   {
     // handles the case where declaration is handled separately e.g. Int
@@ -704,6 +712,10 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
 
 void Desugar::finalizeRule(const Expr& e)
 {
+  if (isExcluded(e, Kind::PROOF_RULE))
+  {
+    return;
+  }
   // if marked sorry, we should never do verification
   if (d_state.isProofRuleSorry(e.getValue()))
   {
@@ -957,7 +969,72 @@ void Desugar::finalize()
   oute << std::endl;
 }
 
-bool Desugar::echo(const std::string& msg) { return true; }
+bool Desugar::echo(const std::string& msg)
+{
+  const std::string prefix = "eoc-exclude ";
+  if (msg.compare(0, prefix.size(), prefix) != 0)
+  {
+    return true;
+  }
+
+  std::istringstream in(msg.substr(prefix.size()));
+  std::string kind;
+  std::string name;
+  std::string trailing;
+  if (!(in >> kind >> name) || (in >> trailing))
+  {
+    EO_FATAL() << "Malformed exclusion directive \"" << msg
+               << "\"; expected \"eoc-exclude <rule|method|symbol> <name>\"";
+  }
+  if (kind == "rule")
+  {
+    d_excludedRules.insert(name);
+  }
+  else if (kind == "method")
+  {
+    d_excludedMethods.insert(name);
+  }
+  else if (kind == "symbol")
+  {
+    d_excludedSymbols.insert(name);
+  }
+  else
+  {
+    EO_FATAL() << "Unknown exclusion kind \"" << kind
+               << "\"; expected rule, method, or symbol";
+  }
+  return false;
+}
+
+bool Desugar::isExcluded(const Expr& e, Kind k) const
+{
+  std::stringstream ss;
+  ss << e;
+  const std::string name = ss.str();
+  if (k == Kind::PROOF_RULE)
+  {
+    return d_excludedRules.find(name) != d_excludedRules.end();
+  }
+  if (k == Kind::PROGRAM_CONST)
+  {
+    if (d_excludedMethods.find(name) != d_excludedMethods.end())
+    {
+      return true;
+    }
+    const std::string ruleProgramPrefix = "$eo_prog_";
+    if (name.compare(0, ruleProgramPrefix.size(), ruleProgramPrefix) == 0)
+    {
+      return d_excludedRules.find(name.substr(ruleProgramPrefix.size()))
+             != d_excludedRules.end();
+    }
+    return false;
+  }
+  if (k == Kind::CONST)
+  {
+    return d_excludedSymbols.find(name) != d_excludedSymbols.end();
+  }
+  return false;
+}
 
 Expr Desugar::mkCanonize(const Expr& t)
 {
