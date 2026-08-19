@@ -93,6 +93,12 @@ Desugar::~Desugar() {}
 
 void Desugar::define(const std::string& name, const Expr& e)
 {
+  // By convention, a definition whose name begins with "$" is a helper of the
+  // signature itself and never occurs in a proof, so it is not preserved.
+  if (!name.empty() && name[0] == '$')
+  {
+    return;
+  }
   // We preserve definitions in this stage, see finalizeDefinition. Note that a
   // definition is a macro (Kind::LAMBDA) if it took arguments, and the
   // definition body itself otherwise. Both are remembered, in the position in

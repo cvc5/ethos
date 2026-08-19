@@ -17,9 +17,10 @@
 ; This file contains templates $EO_*$ which are automatically filled in
 ; by user definitions. This includes:
 ; 1. The literal type definitions (EO_LITERAL_TYPE_DECL).
-; 2. All user declarations, programs and definitions (EO_DEFS). A definition is
-;    emitted under the $parse_ prefix, since it was already inlined and is kept
-;    only so that later stages can compile it for the generated proof parser.
+; 2. All user declarations, programs and definitions (EO_DEFS). A definition
+;    whose name does not itself begin with $ is emitted under the $parse_
+;    prefix, since it was already inlined and is kept only so that later stages
+;    can compile it for the generated proof parser.
 ; 3. Cases of $eo_dt_constructors_main, $eo_dt_selectors_main, $eo_nil,
 ;    $eo_typeof_main.
 ; 4. A verification condition (EO_VC).

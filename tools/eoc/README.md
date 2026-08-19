@@ -217,11 +217,13 @@ The operator tables also cover the identifiers the input introduces with
 `define`. Eunoia inlines a definition, so it has no counterpart in the compiled
 signature, but a proof may still use it. The desugar stage therefore re-emits
 each definition it can under the name `$parse_<name>`, which the later stages
-reparse and otherwise ignore: a definition never contributes to a verification
-condition or to the generated proof checker. A definition that takes arguments
-becomes a macro of the parser, and one that takes none becomes a nullary
-operator, or an alias of the operator it names so that it inherits its indices
-and argument-list attribute.
+reparse and otherwise ignore. By convention a definition whose own name begins
+with `$` is a helper of the signature and is not preserved, since a proof never
+mentions one. A preserved definition contributes to the parser only, never to a
+verification condition or to the generated proof checker. A definition that
+takes arguments becomes a macro of the parser, and one that takes none becomes a
+nullary operator, or an alias of the operator it names so that it inherits its
+indices and argument-list attribute.
 
 ### `desugar`
 

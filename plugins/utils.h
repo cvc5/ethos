@@ -90,7 +90,9 @@ bool isEmbedMetaKind(MetaKind k);
  * the parser, so it has no counterpart in the compiled signature. It may
  * however occur in a proof, which means the generated proof parser still has
  * to be able to resolve it. The desugar stage therefore re-emits every
- * definition it can under this prefix. Each stage after desugaring reparses
+ * definition it can under this prefix, except that by convention a definition
+ * whose name begins with "$" is a helper of the signature itself and is not
+ * preserved, since a proof never mentions one. Each stage after desugaring reparses
  * the definition, which is how its body is compiled along with the rest of the
  * signature, but otherwise ignores it: a parse definition never contributes to
  * a verification condition or to the generated proof checker. The Lean backend
