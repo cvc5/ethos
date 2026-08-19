@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra $eo_nil $eo_typeof
-; #trim-defs: 469
+; #trim-defs: 470
 (echo "lean-parser-op Int Int 0 0 none -")
 (echo "lean-parser-op Real Real 0 0 none -")
 (echo "lean-parser-op BitVec BitVec 0 1 none -")
@@ -322,6 +322,8 @@
   (($eo_prog_contra ($eo_pf F) ($eo_pf (not F))) false)
   )
 )
+(define $parse_String ()
+  (Seq Char))
 (program $mk_symm ((T Type) (t2 T) (t1 T))
   :signature (Bool) Bool
   (

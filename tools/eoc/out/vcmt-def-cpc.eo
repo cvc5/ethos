@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 321
+; #trim-defs: 322
 (echo "lean-parser-op Int Int 0 0 none -")
 (echo "lean-parser-op Real Real 0 0 none -")
 (echo "lean-parser-op BitVec BitVec 0 1 none -")
@@ -192,6 +192,8 @@
 (declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
+(define $parse_String ()
+  (Seq Char))
 (program $mk_symm ((T Type) (t2 T) (t1 T))
   :signature (Bool) Bool
   (
