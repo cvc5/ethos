@@ -172,8 +172,8 @@ std::string StdPlugin::s_plugin_path = StdPlugin::initializePluginPath();
 std::string StdPlugin::s_plugin_output_path =
     StdPlugin::initializePluginOutputPath();
 
-StdPlugin::StdPlugin(State& s, ConjectureType conjType)
-    : d_state(s), d_tc(s.getTypeChecker()), d_conjectureType(conjType)
+StdPlugin::StdPlugin(State& s)
+    : d_state(s), d_tc(s.getTypeChecker())
 {
   d_typeVarCounter = 0;
   if (s_plugin_path.empty())

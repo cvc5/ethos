@@ -23,14 +23,6 @@ namespace ethos {
 class State;
 class TypeChecker;
 
-/** The kind of conjecture emitted by the smt-meta backend. */
-enum class ConjectureType
-{
-  /** A verification condition, checked by an SMT solver. */
-  VC,
-  /** A syntax-guided synthesis conjecture. */
-  SYGUS
-};
 /**
  * The purpose of this plugin is to do things that are common to multiple
  * plugins. For example, tracking the dependencies for literal types.
@@ -38,7 +30,7 @@ enum class ConjectureType
 class StdPlugin : public Plugin
 {
  public:
-  StdPlugin(State& s, ConjectureType conjType = ConjectureType::VC);
+  StdPlugin(State& s);
   ~StdPlugin();
 
  protected:
@@ -66,8 +58,6 @@ class StdPlugin : public Plugin
   TypeChecker& d_tc;
   /** type variable counter */
   size_t d_typeVarCounter;
-  /** The type of the emitted conjecture, set at construction. */
-  ConjectureType d_conjectureType;
   /** The root directory containing the EOC plugin resources. */
   static std::string s_plugin_path;
   /** The root directory where generated EOC artifacts are written. */
