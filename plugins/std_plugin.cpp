@@ -172,38 +172,6 @@ std::string StdPlugin::s_plugin_path = StdPlugin::initializePluginPath();
 std::string StdPlugin::s_plugin_output_path =
     StdPlugin::initializePluginOutputPath();
 
-// strict means we are not debugging completeness
-bool StdPlugin::optionVcUseModelStrict() { return true; }
-// uses trigger in final encoding
-bool StdPlugin::optionSmtMetaUseTriggers() { return true; }
-// makes conjecture easy to debug models
-bool StdPlugin::optionSmtMetaDebugConjecture() { return false; }
-// type of conjecture
-ConjectureType StdPlugin::optionSmtMetaConjectureType() const
-{
-  return d_conjectureType;
-}
-// whether we are optimizing with a sygus grammar
-bool StdPlugin::optionSmtMetaSygusGrammar() { return true; }
-// whether the sygus grammar is designed to enumerate well-typed terms
-bool StdPlugin::optionSmtMetaSygusGrammarWellTyped() { return true; }
-// this ensures that the types of premises and conclusion must be Bool to
-// witness unsoundness
-bool StdPlugin::optionVcUseTypeof() { return true; }
-// whether we emit typing for partial applications
-bool StdPlugin::optionEoTypeofHo() { return false; }
-// whether we combine terms of the same type for defining eo::typeof
-bool StdPlugin::optionEoTypeCanonize() { return true; }
-// whether we use custom definitions of is_list_nil for operators with
-// non-ground nil terminators.
-bool StdPlugin::optionFwdDeclIsListNilNground() { return true; }
-// whether e.g. and : SmtTerm -> SmtTerm -> SmtTerm instead of and : SmtTerm
-bool StdPlugin::optionSmtFoTheorySymbols() { return true; }
-// whether to collapse theory operators to SmtTheoryOp
-bool StdPlugin::optionSmtTheoryOp() { return false; }
-// whether to collapse EO operators to UserOp
-bool StdPlugin::optionEoUserOp() { return true; }
-
 StdPlugin::StdPlugin(State& s, ConjectureType conjType)
     : d_state(s), d_tc(s.getTypeChecker()), d_conjectureType(conjType)
 {
