@@ -75,6 +75,10 @@ proof commands into its term language. The parser itself is the hand-written,
 calculus-independent `Logos/Parser.lean` in the Logos repository, which is where
 that module lives rather than in a generated calculus package.
 
+The tables also cover the identifiers the signature introduces with `define`,
+such as `@var` and `@pair`, since proofs use them even though Eunoia inlines
+them; see the `lean` section of `tools/eoc/README.md`.
+
 An operator's arity comes from its Eunoia argument-list attribute, carried
 through the stages as echo metadata because desugaring strips it from the
 emitted declarations. `:arg-list` becomes `.argList`, so `(distinct a b c)`

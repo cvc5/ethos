@@ -11,6 +11,8 @@
 
 #include <sstream>
 
+#include "base/check.h"
+
 namespace ethos {
 
 std::string metaKindToString(MetaKind k)
@@ -67,6 +69,26 @@ bool isEmbedMetaKind(MetaKind k)
 {
   return k == MetaKind::EO_EMBED || k == MetaKind::SMT_EMBED
          || k == MetaKind::CHECKER_EMBED;
+}
+
+const std::string& getParseDefPrefix()
+{
+  static const std::string prefix = "$parse_";
+  return prefix;
+}
+bool isParseDefName(const std::string& name)
+{
+  const std::string& prefix = getParseDefPrefix();
+  return name.compare(0, prefix.size(), prefix) == 0;
+}
+std::string mkParseDefName(const std::string& name)
+{
+  return getParseDefPrefix() + name;
+}
+std::string getParseDefSurfaceName(const std::string& name)
+{
+  Assert(isParseDefName(name));
+  return name.substr(getParseDefPrefix().size());
 }
 
 }  // namespace ethos

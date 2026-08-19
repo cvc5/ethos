@@ -1086,6 +1086,14 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
 
 void LeanMetaReduce::define(const std::string& name, const Expr& e)
 {
+  if (isParseDefName(name))
+  {
+    // A definition preserved by the desugar stage only so that the identifier
+    // it introduces can be resolved when parsing a proof. It contributes to the
+    // generated parser and to nothing else, see finalizeParseDefs.
+    d_parseDefs.emplace_back(getParseDefSurfaceName(name), e);
+    return;
+  }
   // NOTE: the code here ensures that we preserve definitions for the final vc.
   // This is required since we do not replace e.g. eo::list_concat with
   // $eo_list_concat until the final generation of smt2. This means that this
@@ -1337,136 +1345,166 @@ void LeanMetaReduce::finalizeChecker()
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }
 
+std::string LeanMetaReduce::getParserOpTerm(const std::string& surface) const
+{
+  for (const ParserOp& op : d_parserOps)
+  {
+    std::string generated = cleanSmtId(op.d_generated);
+    if (op.d_surface == surface
+        && d_emittedUserOps.find(std::make_pair(generated, 0))
+               != d_emittedUserOps.end())
+    {
+      return "(Term.UOp UserOp." + generated + ")";
+    }
+  }
+  return std::string();
+}
+
+const LeanMetaReduce::ParserOp* LeanMetaReduce::getParserOpForGenerated(
+    const std::string& generated) const
+{
+  for (const ParserOp& op : d_parserOps)
+  {
+    if (op.d_generated == generated && isEmittedParserOp(op))
+    {
+      return &op;
+    }
+  }
+  return nullptr;
+}
+
+void LeanMetaReduce::printParserOp(const ParserOp& op,
+                                   const std::string& name,
+                                   std::ostream& ops)
+{
+  std::string generated = cleanSmtId(op.d_generated);
+  std::stringstream term;
+  if (op.d_indexArity == 0)
+  {
+    term << "(Term.UOp UserOp." << generated << ")";
+  }
+  else
+  {
+    term << "(Term.UOp" << op.d_indexArity << " UserOp" << op.d_indexArity
+         << "." << generated;
+    for (size_t i = 0; i < op.d_indexArity; ++i)
+    {
+      term << " x" << (i + 1);
+    }
+    term << ")";
+  }
+
+  std::string arity;
+  if (op.d_attr == "left-assoc")
+  {
+    arity = ".leftAssoc";
+  }
+  else if (op.d_attr == "right-assoc")
+  {
+    arity = ".rightAssoc";
+  }
+  else if (op.d_attr == "left-assoc-nil")
+  {
+    arity = ".leftAssocNil (parserNil " + term.str() + ")";
+  }
+  else if (op.d_attr == "right-assoc-nil")
+  {
+    arity = ".rightAssocNil (parserNil " + term.str() + ")";
+  }
+  else if (op.d_attr == "left-assoc-ns-nil")
+  {
+    arity = ".leftAssocNonSingletonNil (parserNil " + term.str() + ")";
+  }
+  else if (op.d_attr == "right-assoc-ns-nil")
+  {
+    arity = ".rightAssocNonSingletonNil (parserNil " + term.str() + ")";
+  }
+  else if (op.d_attr == "arg-list")
+  {
+    // The unary operator gathers all of its explicit arguments into a list,
+    // e.g. `(distinct a b c)` denotes `(distinct (@tlist a b c))`.
+    std::string consTerm = getParserOpTerm(op.d_connector);
+    if (!consTerm.empty())
+    {
+      arity = ".argList (fun ts => Logos.Parser.rightAssocNil Term.Apply "
+              + consTerm + " (parserNil " + consTerm + ") ts)";
+    }
+  }
+  else if (op.d_attr == "chainable" || op.d_attr == "pairwise")
+  {
+    std::string connectorTerm = getParserOpTerm(op.d_connector);
+    if (!connectorTerm.empty())
+    {
+      arity = "." + op.d_attr
+              + " (fun ts => Logos.Parser.rightAssocNil Term.Apply "
+              + connectorTerm + " (parserNil " + connectorTerm + ") ts)";
+    }
+  }
+  if (arity.empty())
+  {
+    std::stringstream exact;
+    exact << ".exact " << op.d_termArity;
+    arity = exact.str();
+  }
+  // `Logos.Parser.Arity` does not model every argument-list attribute. These
+  // do not occur in CPC; warn rather than silently emit Lean that will not
+  // compile.
+  if (arity.rfind(".leftAssocNil", 0) == 0 || arity.rfind(".pairwise", 0) == 0
+      || arity.find("NonSingletonNil") != std::string::npos)
+  {
+    Warning() << "Lean parser: operator " << name
+              << " has argument-list attribute " << op.d_attr
+              << ", which Logos.Parser.Arity does not model" << std::endl;
+  }
+
+  ops << "  { name := " << quoteLeanString(name) << std::endl;
+  ops << "    indexArity := " << op.d_indexArity << std::endl;
+  ops << "    arity := " << arity << std::endl;
+  ops << "    build := fun" << std::endl;
+  ops << "      | [";
+  for (size_t i = 0; i < op.d_indexArity; ++i)
+  {
+    if (i > 0)
+    {
+      ops << ", ";
+    }
+    ops << "x" << (i + 1);
+  }
+  ops << "] => some " << term.str() << std::endl;
+  ops << "      | _ => none }," << std::endl;
+}
+
+bool LeanMetaReduce::isEmittedParserOp(const ParserOp& op) const
+{
+  return d_emittedUserOps.find(
+             std::make_pair(cleanSmtId(op.d_generated), op.d_indexArity))
+         != d_emittedUserOps.end();
+}
+
 void LeanMetaReduce::finalizeParser()
 {
-  // The Lean term for a nullary operator named by its surface syntax, e.g. the
-  // operator that chains a chainable one or that builds a gathered list. Empty
-  // if the Lean backend did not emit that operator.
-  auto userOpTerm = [this](const std::string& surface) {
-    for (const ParserOp& other : d_parserOps)
-    {
-      std::string otherGenerated = cleanSmtId(other.d_generated);
-      if (other.d_surface == surface
-          && d_emittedUserOps.find(std::make_pair(otherGenerated, 0))
-                 != d_emittedUserOps.end())
-      {
-        return "(Term.UOp UserOp." + otherGenerated + ")";
-      }
-    }
-    return std::string();
-  };
+  // The operators that the parser template declares itself, which a definition
+  // of the same name does not override. Keep in sync with the head of
+  // plugins/lean_meta/lean_meta_parser.lean.
+  std::set<std::string> opNames = {"Type", "Bool", "false", "true", "->",
+                                   "@list"};
   std::stringstream ops;
   std::set<std::string> seenOps;
   for (const ParserOp& op : d_parserOps)
   {
-    std::string generated = cleanSmtId(op.d_generated);
-    if (d_emittedUserOps.find(std::make_pair(generated, op.d_indexArity))
-        == d_emittedUserOps.end())
+    if (!isEmittedParserOp(op))
     {
       continue;
     }
     std::stringstream opKey;
-    opKey << op.d_surface << "\n" << generated << "\n" << op.d_indexArity
-          << "\n" << op.d_termArity << "\n" << op.d_attr;
+    opKey << op.d_surface << "\n" << cleanSmtId(op.d_generated) << "\n"
+          << op.d_indexArity << "\n" << op.d_termArity << "\n" << op.d_attr;
     if (!seenOps.insert(opKey.str()).second)
     {
       continue;
     }
-
-    std::stringstream term;
-    if (op.d_indexArity == 0)
-    {
-      term << "(Term.UOp UserOp." << generated << ")";
-    }
-    else
-    {
-      term << "(Term.UOp" << op.d_indexArity << " UserOp"
-           << op.d_indexArity << "." << generated;
-      for (size_t i = 0; i < op.d_indexArity; ++i)
-      {
-        term << " x" << (i + 1);
-      }
-      term << ")";
-    }
-
-    std::string arity;
-    if (op.d_attr == "left-assoc")
-    {
-      arity = ".leftAssoc";
-    }
-    else if (op.d_attr == "right-assoc")
-    {
-      arity = ".rightAssoc";
-    }
-    else if (op.d_attr == "left-assoc-nil")
-    {
-      arity = ".leftAssocNil (parserNil " + term.str() + ")";
-    }
-    else if (op.d_attr == "right-assoc-nil")
-    {
-      arity = ".rightAssocNil (parserNil " + term.str() + ")";
-    }
-    else if (op.d_attr == "left-assoc-ns-nil")
-    {
-      arity = ".leftAssocNonSingletonNil (parserNil " + term.str() + ")";
-    }
-    else if (op.d_attr == "right-assoc-ns-nil")
-    {
-      arity = ".rightAssocNonSingletonNil (parserNil " + term.str() + ")";
-    }
-    else if (op.d_attr == "arg-list")
-    {
-      // The unary operator gathers all of its explicit arguments into a list,
-      // e.g. `(distinct a b c)` denotes `(distinct (@tlist a b c))`.
-      std::string consTerm = userOpTerm(op.d_connector);
-      if (!consTerm.empty())
-      {
-        arity = ".argList (fun ts => Logos.Parser.rightAssocNil Term.Apply "
-                + consTerm + " (parserNil " + consTerm + ") ts)";
-      }
-    }
-    else if (op.d_attr == "chainable" || op.d_attr == "pairwise")
-    {
-      std::string connectorTerm = userOpTerm(op.d_connector);
-      if (!connectorTerm.empty())
-      {
-        arity = "." + op.d_attr
-                + " (fun ts => Logos.Parser.rightAssocNil Term.Apply "
-                + connectorTerm + " (parserNil " + connectorTerm + ") ts)";
-      }
-    }
-    if (arity.empty())
-    {
-      std::stringstream exact;
-      exact << ".exact " << op.d_termArity;
-      arity = exact.str();
-    }
-    // `Logos.Parser.Arity` does not model every argument-list attribute. These
-    // do not occur in CPC; warn rather than silently emit Lean that will not
-    // compile.
-    if (arity.rfind(".leftAssocNil", 0) == 0 || arity.rfind(".pairwise", 0) == 0
-        || arity.find("NonSingletonNil") != std::string::npos)
-    {
-      Warning() << "Lean parser: operator " << op.d_surface
-                << " has argument-list attribute " << op.d_attr
-                << ", which Logos.Parser.Arity does not model" << std::endl;
-    }
-
-    ops << "  { name := " << quoteLeanString(op.d_surface) << std::endl;
-    ops << "    indexArity := " << op.d_indexArity << std::endl;
-    ops << "    arity := " << arity << std::endl;
-    ops << "    build := fun" << std::endl;
-    ops << "      | [";
-    for (size_t i = 0; i < op.d_indexArity; ++i)
-    {
-      if (i > 0)
-      {
-        ops << ", ";
-      }
-      ops << "x" << (i + 1);
-    }
-    ops << "] => some " << term.str() << std::endl;
-    ops << "      | _ => none }," << std::endl;
+    printParserOp(op, op.d_surface, ops);
+    opNames.insert(op.d_surface);
   }
 
   std::stringstream rules;
@@ -1492,12 +1530,156 @@ void LeanMetaReduce::finalizeParser()
     rules << std::endl;
   }
 
+  std::stringstream defMacros;
+  finalizeParseDefs(opNames, ops, defMacros);
+
   const std::string outPath = emitResourceFile(
       "plugins/lean_meta/lean_meta_parser.lean",
       "plugins/lean_meta/lean_meta_parser_gen.lean",
       {{"$LEAN_PARSER_OPS$", ops.str()},
-       {"$LEAN_PARSER_RULES$", rules.str()}});
+       {"$LEAN_PARSER_RULES$", rules.str()},
+       {"$LEAN_PARSER_MACROS$", defMacros.str()}});
   Trace("lean-meta") << "Write lean parser " << outPath << std::endl;
+}
+
+void LeanMetaReduce::finalizeParseDefs(const std::set<std::string>& opNames,
+                                       std::ostream& ops,
+                                       std::ostream& macros)
+{
+  std::set<std::string> seen;
+  for (const std::pair<std::string, Expr>& d : d_parseDefs)
+  {
+    const std::string& surface = d.first;
+    if (!seen.insert(surface).second)
+    {
+      continue;
+    }
+    Expr body = d.second;
+    std::vector<Expr> params;
+    if (body.getKind() == Kind::LAMBDA)
+    {
+      Assert(body[0].getKind() == Kind::TUPLE);
+      for (size_t i = 0, nargs = body[0].getNumChildren(); i < nargs; i++)
+      {
+        params.push_back(body[0][i]);
+      }
+      body = body[1];
+    }
+    // The remaining free variables of the body are the implicit parameters of
+    // the definition, which Eunoia determines by unification where it is
+    // applied. The parser cannot, so such a definition is not preserved.
+    std::vector<Expr> fvs = Expr::getVariables(body);
+    bool isImplicit = false;
+    for (const Expr& v : fvs)
+    {
+      if (std::find(params.begin(), params.end(), v) == params.end())
+      {
+        isImplicit = true;
+        break;
+      }
+    }
+    if (isImplicit)
+    {
+      Trace("lean-meta") << "Lean parser: omit definition " << surface
+                         << ", which has an implicit parameter" << std::endl;
+      continue;
+    }
+    if (params.empty() && opNames.find(surface) != opNames.end())
+    {
+      // The generic parser distinguishes the declarations of a name by their
+      // index and argument counts, so a nullary operator cannot shadow an
+      // operator of the same name the way a definition does in Eunoia. The
+      // declaration of the signature is kept, which agrees with the definition
+      // whenever the latter is an alias for it, as it is in practice.
+      Trace("lean-meta") << "Lean parser: omit definition " << surface
+                         << ", which is also declared as an operator"
+                         << std::endl;
+      continue;
+    }
+    if (params.empty() && body.getNumChildren() == 0)
+    {
+      // A definition that takes no arguments and whose body is a single
+      // operator is an alias for that operator. It is declared as one, rather
+      // than bound to the term the operator denotes, so that it inherits the
+      // operator's indices and the attribute that combines its arguments: for
+      // example the alias of an n-ary operator is itself n-ary.
+      std::stringstream ssb;
+      ssb << body;
+      const ParserOp* op = getParserOpForGenerated(ssb.str());
+      if (op != nullptr)
+      {
+        printParserOp(*op, surface, ops);
+        continue;
+      }
+    }
+    // Note we do not let-bind the body, since it is printed as the argument of
+    // a constructor below.
+    std::stringstream bodyTerm;
+    printEmbTerm(body, bodyTerm, MetaKind::NONE, false);
+    if (params.empty())
+    {
+      // A definition that takes no arguments denotes its body. It is declared
+      // as a nullary operator, which is how the generic parser's tables name a
+      // term; as in Eunoia, it may still be applied to arguments.
+      ops << "  { name := " << quoteLeanString(surface) << std::endl;
+      ops << "    indexArity := 0" << std::endl;
+      ops << "    arity := .exact 0" << std::endl;
+      ops << "    build := fun" << std::endl;
+      ops << "      | [] => some " << bodyTerm.str() << std::endl;
+      ops << "      | _ => none }," << std::endl;
+      continue;
+    }
+    // A definition that takes arguments is a macro, which the parser expands
+    // where the definition is applied. Its body is emitted as an operator
+    // indexed by the arguments, which is how the generic parser's operator
+    // table expresses a term built from given arguments; the macro's body is
+    // then just the application of that operator to the macro's parameters.
+    std::vector<std::string> binders;
+    for (const Expr& v : params)
+    {
+      std::stringstream ssv;
+      ssv << v;
+      binders.push_back(cleanSmtId(ssv.str()));
+    }
+    std::set<std::string> distinct(binders.begin(), binders.end());
+    if (distinct.size() < binders.size())
+    {
+      Warning() << "Lean parser: omit definition " << surface
+                << ", whose parameters do not have distinct generated names"
+                << std::endl;
+      continue;
+    }
+    const std::string opName = mkParseDefName(surface);
+    ops << "  { name := " << quoteLeanString(opName) << std::endl;
+    ops << "    indexArity := " << params.size() << std::endl;
+    ops << "    arity := .exact 0" << std::endl;
+    ops << "    build := fun" << std::endl;
+    ops << "      | [";
+    for (size_t i = 0, nbinders = binders.size(); i < nbinders; i++)
+    {
+      ops << (i == 0 ? "" : ", ") << binders[i];
+    }
+    ops << "] => some " << bodyTerm.str() << std::endl;
+    ops << "      | _ => none }," << std::endl;
+    macros << "  (" << quoteLeanString(surface) << "," << std::endl;
+    macros << "    { params := [";
+    std::vector<std::string> args;
+    for (size_t i = 0, nparams = params.size(); i < nparams; i++)
+    {
+      std::stringstream ssa;
+      ssa << mkParseDefName("arg") << (i + 1);
+      args.push_back(ssa.str());
+      macros << (i == 0 ? "" : ", ") << quoteLeanString(args.back());
+    }
+    macros << "]" << std::endl;
+    macros << "      body := .expr [.atom \"_\", .atom "
+           << quoteLeanString(opName);
+    for (const std::string& a : args)
+    {
+      macros << ", .atom " << quoteLeanString(a);
+    }
+    macros << "] })," << std::endl;
+  }
 }
 
 void LeanMetaReduce::finalizeSmtModel()

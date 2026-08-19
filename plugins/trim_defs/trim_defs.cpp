@@ -175,6 +175,10 @@ void TrimDefs::processCommand(Command& cmd)
   {
     d_toVisit.push_back(id);
   }
+  if (cmd.d_cmdName == "define" && isParseDefName(cmd.d_symbolName))
+  {
+    d_parseDefCmds.push_back(cid);
+  }
   // std::cout << "*** command " << cmd.d_fullText << std::endl;
   d_commands.push_back(cmd.d_fullText);
   std::unordered_set<size_t>& csyms = d_cmdSyms[cid];
@@ -281,6 +285,28 @@ void TrimDefs::finalize()
       }
     }
   } while (!d_toVisit.empty());
+
+  // Retain each parse definition all of whose dependencies are retained.
+  for (size_t cid : d_parseDefCmds)
+  {
+    if (cdeps.find(cid) != cdeps.end())
+    {
+      continue;
+    }
+    bool keep = true;
+    for (size_t sym : d_cmdSyms[cid])
+    {
+      if (visited.find(sym) == visited.end())
+      {
+        keep = false;
+        break;
+      }
+    }
+    if (keep)
+    {
+      cdeps.insert(cid);
+    }
+  }
 
   std::stringstream ss;
   ss << "; trim-defs:";
