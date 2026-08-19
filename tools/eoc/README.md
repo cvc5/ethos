@@ -213,6 +213,16 @@ calculus-specific instantiation of the generic Logos proof parser: it contains
 only the generated operator/rule tables, indexed-operator constructors, and
 surface desugaring configuration.
 
+The operator tables also cover the identifiers the input introduces with
+`define`. Eunoia inlines a definition, so it has no counterpart in the compiled
+signature, but a proof may still use it. The desugar stage therefore re-emits
+each definition it can under the name `$parse_<name>`, which the later stages
+reparse and otherwise ignore: a definition never contributes to a verification
+condition or to the generated proof checker. A definition that takes arguments
+becomes a macro of the parser, and one that takes none becomes a nullary
+operator, or an alias of the operator it names so that it inherits its indices
+and argument-list attribute.
+
 ### `desugar`
 
 Generate the desugared EO form of an input.

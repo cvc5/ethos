@@ -134,6 +134,21 @@ class LeanMetaReduce : public MetaReducePlugin
   void finalizeChecker();
   /** Emit the generated, signature-specific Logos parser configuration. */
   void finalizeParser();
+  /**
+   * Emit the parser tables for the definitions of the input, see d_parseDefs.
+   *
+   * @param opNames The names already declared as operators, either by the
+   * signature or by the parser template.
+   * @param ops The stream of the operators of the signature, to which each
+   * definition that takes no arguments is appended as a nullary operator, and
+   * each definition that takes arguments as an operator indexed by them.
+   * @param macros The stream for the identifiers introduced by a definition
+   * that takes arguments, which are bound to a macro that expands to an
+   * application of the corresponding operator in ops.
+   */
+  void finalizeParseDefs(const std::set<std::string>& opNames,
+                         std::ostream& ops,
+                         std::ostream& macros);
   /** Emit Lean definitions for the SMT model layer. */
   void finalizeSmtModel();
   /** Emit Lean specifications for generated proof-rule targets. */
@@ -246,6 +261,34 @@ class LeanMetaReduce : public MetaReducePlugin
   std::vector<ParserOp> d_parserOps;
   /** Surface/generated proof-rule names received through echo metadata. */
   std::vector<std::pair<std::string, std::string>> d_parserRules;
+  /**
+   * The definitions preserved by the desugar stage, as pairs of the name in
+   * the input and the definition, which is a Kind::LAMBDA if the definition
+   * takes arguments and its body otherwise. See getParseDefPrefix.
+   */
+  std::vector<std::pair<std::string, Expr>> d_parseDefs;
+  /** Return true if the Lean backend emitted the operator of the record op. */
+  bool isEmittedParserOp(const ParserOp& op) const;
+  /**
+   * Emit the operator declaration for the record op under the given name, which
+   * is op.d_surface unless the operator is being declared under an alias
+   * introduced by a definition, see finalizeParseDefs.
+   */
+  void printParserOp(const ParserOp& op,
+                     const std::string& name,
+                     std::ostream& ops);
+  /**
+   * Return the Lean term for the nullary operator whose name in the surface
+   * syntax is surface, e.g. the operator that chains a chainable one or that
+   * builds a gathered list. Empty if the Lean backend did not emit it.
+   */
+  std::string getParserOpTerm(const std::string& surface) const;
+  /**
+   * Return a record in d_parserOps for the operator whose name in the generated
+   * signature is generated and that the Lean backend emitted, or null if there
+   * is none.
+   */
+  const ParserOp* getParserOpForGenerated(const std::string& generated) const;
   /** UserOp constructors actually emitted by the Lean backend. */
   std::set<std::pair<std::string, size_t>> d_emittedUserOps;
   /** CRule constructors actually emitted by the Lean backend. */

@@ -32,6 +32,8 @@ class TypeChecker;
  * `eo_desugar_gen.eo` file during finalize().  The generated file combines the
  * static desugaring template with auto-generated cases for:
  * - user declarations and programs,
+ * - the definitions of the input, preserved under the parse definition prefix
+ *   for the generated proof parser (see getParseDefPrefix),
  * - overloaded symbols and opaque/ambiguous applications,
  * - list nil and list-nil recognition,
  * - datatype constructor and selector reflection,
@@ -95,7 +97,7 @@ class Desugar : public StdPlugin
                          size_t startIndex = 0);
   /** Emit one desugared program definition or forward declaration. */
   void finalizeProgram(const Expr& v, const Expr& prog, std::ostream& os);
-  /** Placeholder for emitting preserved macro definitions. */
+  /** Emit the preserved definition of name as a parse definition. */
   void finalizeDefinition(const std::string& name, const Expr& t);
   /** Emit a constant declaration and all derived helper cases for it. */
   void finalizeDeclaration(const Expr& t, std::ostream& os);
@@ -132,6 +134,8 @@ class Desugar : public StdPlugin
 
   /** Declarations and definitions in the order seen by the plugin. */
   std::vector<std::pair<Expr, Kind>> d_declSeen;
+  /** The last definition given for each defined name. */
+  std::map<std::string, Expr> d_defineLast;
   /** Parser-supplied attributes and their constructor payloads. */
   std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
   /** Declarations already emitted, used to avoid duplicate output. */

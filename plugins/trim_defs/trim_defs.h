@@ -13,6 +13,7 @@
 #include <string>
 
 #include "../std_plugin.h"
+#include "../utils.h"
 namespace ethos {
 
 /**
@@ -82,6 +83,13 @@ class TrimDefs : public StdPlugin
   std::map<size_t, std::unordered_set<size_t>> d_cmdSyms;
   /** Worklist of symbol ids whose defining commands should be retained. */
   std::vector<size_t> d_toVisit;
+  /**
+   * The command ids of the parse definitions, see getParseDefPrefix. Nothing
+   * refers to a parse definition, so it is never reachable from a target;
+   * instead one is retained if everything its body refers to is, which keeps
+   * the definitions of the part of the signature that survives trimming.
+   */
+  std::vector<size_t> d_parseDefCmds;
   /** Parse all top-level commands from an input stream. */
   void parseCommands(std::istream& in);
 };

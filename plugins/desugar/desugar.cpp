@@ -13,6 +13,7 @@
 #include <sstream>
 #include <string>
 
+#include "../utils.h"
 #include "state.h"
 
 namespace ethos {
@@ -92,15 +93,17 @@ Desugar::~Desugar() {}
 
 void Desugar::define(const std::string& name, const Expr& e)
 {
-  Kind k = e.getKind();
-  if (k == Kind::LAMBDA)
-  {
-    // We preserve macros in this stage
-    // remember the name
-    Expr tmp = d_state.mkSymbol(Kind::CONST, name, d_state.mkAny());
-    Expr p = d_state.mkPair(tmp, e);
-    d_declSeen.emplace_back(p, Kind::LAMBDA);
-  }
+  // We preserve definitions in this stage, see finalizeDefinition. Note that a
+  // definition is a macro (Kind::LAMBDA) if it took arguments, and the
+  // definition body itself otherwise. Both are remembered, in the position in
+  // which they were given, since the body may refer to any symbol declared
+  // before it.
+  Expr tmp = d_state.mkSymbol(Kind::CONST, name, d_state.mkAny());
+  Expr p = d_state.mkPair(tmp, e);
+  d_declSeen.emplace_back(p, Kind::LAMBDA);
+  // A name may be defined more than once, in which case only the last
+  // definition is in scope at the end of the input.
+  d_defineLast[name] = e;
 }
 
 void Desugar::bind(const std::string& name, const Expr& e)
@@ -694,19 +697,64 @@ void Desugar::finalizeParamList(std::ostream& os,
 
 void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
 {
-  return;
-  Assert(t.getKind() == Kind::LAMBDA);
-  d_defs << "; define: " << name << std::endl;
-  d_defs << "(define " << name << " (";
-  std::vector<Expr> vars;
-  for (size_t i = 0, nvars = t[0].getNumChildren(); i < nvars; i++)
+  // Only the last definition of a name is in scope at the end of the input.
+  std::map<std::string, Expr>::const_iterator itl = d_defineLast.find(name);
+  if (itl == d_defineLast.end() || itl->second != t)
   {
-    vars.push_back(t[0][i]);
+    return;
   }
-  printParamList(vars, d_defs, true);
+  // The definition was already inlined by the parser, so this command has no
+  // effect on the remainder of the generated output. It is emitted, under the
+  // parse definition prefix, so that the identifier it introduces can still be
+  // resolved when a proof that uses it is parsed. See getParseDefPrefix.
+  bool isMacro = (t.getKind() == Kind::LAMBDA);
+  Expr body = isMacro ? t[1] : t;
+  std::vector<Expr> vars;
+  if (isMacro)
+  {
+    Assert(t[0].getKind() == Kind::TUPLE);
+    for (size_t i = 0, nvars = t[0].getNumChildren(); i < nvars; i++)
+    {
+      vars.push_back(t[0][i]);
+    }
+  }
+  // A definition whose body mentions an omitted declaration cannot be
+  // preserved, since that declaration is not part of the generated output.
+  for (Kind k : {Kind::CONST, Kind::PROGRAM_CONST})
+  {
+    for (const Expr& sub : getSubtermsKind(k, body))
+    {
+      if (isExcluded(sub, k))
+      {
+        Trace("desugar") << "Omit definition " << name << ", which depends on "
+                         << "the omitted declaration " << sub << std::endl;
+        return;
+      }
+    }
+  }
+  d_defs << "; define: " << name << std::endl;
+  d_defs << "(define " << mkParseDefName(name) << " (";
+  // The explicit parameters are printed first, since their order is the order
+  // in which the definition takes its arguments. They are followed by the
+  // implicit ones, which are the parameters of the types of the explicit ones
+  // together with any other free variable of the body.
+  std::vector<Expr> params;
+  std::map<Expr, bool> visited;
+  // one variable at a time, so that their order is preserved
+  for (const Expr& v : vars)
+  {
+    std::vector<Expr> vs{v};
+    getParamList(vs, params, visited);
+  }
+  for (const Expr& v : Expr::getVariables(body))
+  {
+    std::vector<Expr> vs{v};
+    getParamList(vs, params, visited);
+  }
+  finalizeParamList(d_defs, params, true, vars);
   d_defs << ")" << std::endl;
   d_defs << "  ";
-  printTerm(t[1], d_defs);
+  printTerm(body, d_defs);
   d_defs << ")" << std::endl;
 }
 

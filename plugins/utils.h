@@ -83,6 +83,34 @@ bool isCheckerMetaKind(MetaKind k);
 /** Return true if k is one of the $native_embed_* meta-kinds. */
 bool isEmbedMetaKind(MetaKind k);
 
+/**
+ * The prefix of the name of a "parse definition".
+ *
+ * A define command in the input introduces an identifier that is inlined by
+ * the parser, so it has no counterpart in the compiled signature. It may
+ * however occur in a proof, which means the generated proof parser still has
+ * to be able to resolve it. The desugar stage therefore re-emits every
+ * definition it can under this prefix. Each stage after desugaring reparses
+ * the definition, which is how its body is compiled along with the rest of the
+ * signature, but otherwise ignores it: a parse definition never contributes to
+ * a verification condition or to the generated proof checker. The Lean backend
+ * is the only consumer, which turns the definitions back into the tables of
+ * the generated parser (see LeanMetaReduce::finalizeParser).
+ */
+const std::string& getParseDefPrefix();
+/** Return true if name is the name of a parse definition. */
+bool isParseDefName(const std::string& name);
+/**
+ * Return the name of the parse definition for the definition named name, i.e.
+ * name prefixed by getParseDefPrefix().
+ */
+std::string mkParseDefName(const std::string& name);
+/**
+ * Return the name in the input of the parse definition named name, i.e. name
+ * with getParseDefPrefix() removed. Requires isParseDefName(name).
+ */
+std::string getParseDefSurfaceName(const std::string& name);
+
 }  // namespace ethos
 
 #endif
