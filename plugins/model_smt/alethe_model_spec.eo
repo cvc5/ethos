@@ -1,0 +1,28 @@
+; Alethe-specific model semantics. Same format as smt_spec.eo.
+
+;;!op @cl
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@cl x1 x2)) ($eo_to_smt (or x1 x2)))
+;;!endop
+;;!op @empty_cl
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@empty_cl x1 x2)) ($sm_bool $native_false))
+;;!endop
+;;!op choice
+;;!endop
+;;!op @let
+;;!endop
+;;!op @ctx
+;;!endop
+;;!op @var
+;;!endop
+;;!op @Substitute
+;;!endop
+;;!op @substitute
+;;!endop
+;;!op @Substitution
+;;!endop
+;;!op @substitution.nil
+;;!endop
+;;!op @substitution
+;;!endop

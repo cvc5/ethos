@@ -9,6 +9,7 @@
 
 #include "model_smt.h"
 
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -416,6 +417,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // custom definition of is_list_nil recognizer for distinct arg list
   if (optionFwdDeclIsListNilNground())
   {
+    reg("@@TypedList.cons");
     d_auxDesugar["@@TypedList.cons"] = R"(
 (program $eo_is_list_nil_@@TypedList.cons ((T Type)) 
   :signature (T) Bool
@@ -1030,7 +1032,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   //                      "($eo_to_smt_guard_closed (forall x1 x2) "
                         "($eo_to_smt_quantifiers_skolemize x1 ($sm_not ($eo_to_smt x2))"
                         "($eo_to_smt_nat x3))"));
-  d_symIgnore["@quantifiers_skolemize"] = true;
+  addIgnoreSym("@quantifiers_skolemize");
 
   // re pos unfold
   d_auxDef["@re_unfold_pos_component"] = R"(
@@ -1279,28 +1281,43 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       {kString, kRegLan, kString, kInt},
       smtToSmtEmbed(stringsReplaceAllResult(e1, e2, e3, e4, true), true));
   // ignore, not in proof rules (NOTE: could be SMT const?)
-  d_symIgnore["@const"] = true;
-  d_symIgnore["lambda"] = true;
+  addIgnoreSym("@const");
+  addIgnoreSym("lambda");
 
   // for alethe
   addEunoiaReduceSym("@cl", {kT, kT}, "($eo_to_smt (or x1 x2))");
   addEunoiaReduceSym("@empty_cl", {kT, kT}, "($sm_bool $native_false)");
   // alethe unhandled
-  d_symIgnore["choice"] = true;
-  d_symIgnore["@let"] = true;
-  d_symIgnore["@ctx"] = true;
-  d_symIgnore["@var"] = true;
-  d_symIgnore["@Substitute"] = true;
-  d_symIgnore["@substitute"] = true;
-  d_symIgnore["@Substitution"] = true;
-  d_symIgnore["@substitution.nil"] = true;
-  d_symIgnore["@substitution"] = true;
+  addIgnoreSym("choice");
+  addIgnoreSym("@let");
+  addIgnoreSym("@ctx");
+  addIgnoreSym("@var");
+  addIgnoreSym("@Substitute");
+  addIgnoreSym("@substitute");
+  addIgnoreSym("@Substitution");
+  addIgnoreSym("@substitution.nil");
+  addIgnoreSym("@substitution");
 }
 
 ModelSmt::~ModelSmt() {}
 
+void ModelSmt::reg(const std::string& name)
+{
+  if (d_regSeen.insert(name).second)
+  {
+    d_regOrder.push_back(name);
+  }
+}
+
+void ModelSmt::addIgnoreSym(const std::string& sym)
+{
+  reg(sym);
+  d_symIgnore[sym] = true;
+}
+
 void ModelSmt::addTypeSym(const std::string& sym, const std::vector<Kind>& args)
 {
+  reg(sym);
   d_symIgnore[sym] = true;
   d_symTypes[sym] = args;
 }
@@ -1309,6 +1326,7 @@ void ModelSmt::addConstFoldSym(const std::string& sym,
                                const std::vector<Kind>& args,
                                Kind ret)
 {
+  reg(sym);
   d_symConstFold[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
 
@@ -1328,6 +1346,7 @@ void ModelSmt::addLitSym(const std::string& sym,
                          Kind ret,
                          const std::string& retTerm)
 {
+  reg(sym);
   d_symLitReduce[sym] =
       std::tuple<std::vector<Kind>, Kind, std::string>(args, ret, retTerm);
 }
@@ -1351,6 +1370,7 @@ void ModelSmt::addEunoiaReduceSym(const std::string& sym,
 {
   std::cout << "(echo \"trim-defs-cmd (depends " << sym << " " << retTerm
             << ")\")" << std::endl;
+  reg(sym);
   d_eoSymReduce[sym] = std::pair<std::vector<Kind>, std::string>(args, retTerm);
   if (isType)
   {
@@ -1363,6 +1383,7 @@ void ModelSmt::addReduceSym(const std::string& sym,
                             Kind ret,
                             const std::string& retTerm)
 {
+  reg(sym);
   d_symReduce[sym] =
       std::tuple<std::vector<Kind>, Kind, std::string>(args, ret, retTerm);
 }
@@ -1407,7 +1428,8 @@ void ModelSmt::finalizeDecl(const std::string& ename, const Expr& e)
     name = ito->second;
   }
   size_t nopqArgs = 0;
-  Attr attr = d_state.getAttributeKind(e.getValue());
+  // e is null when invoked from harvestSpec, where no declaration exists
+  Attr attr = e.isNull() ? Attr::NONE : d_state.getAttributeKind(e.getValue());
   if (attr == Attr::OPAQUE)
   {
     Expr ct = e.getType();
@@ -2360,9 +2382,55 @@ void ModelSmt::printLitReduce(const std::string& name,
 
 void ModelSmt::finalize()
 {
-  for (std::pair<std::string, Expr>& d : d_declSeen)
+  // One-shot harvest mode: dump the legacy operator tables as spec files.
+  const char* henv = std::getenv("EOC_MODEL_SMT_HARVEST");
+  if (henv != nullptr && henv[0] != '\0')
   {
-    finalizeDecl(d.first, d.second);
+    harvestSpec(henv);
+    return;
+  }
+  const char* senv = std::getenv("EOC_MODEL_SMT_SPEC");
+  if (senv != nullptr && senv[0] != '\0')
+  {
+    // Spec mode: the semantics comes from the fixed spec files; the C++ only
+    // selects blocks by declared name and splices them.
+    std::string paths(senv);
+    if (paths == "default")
+    {
+      loadSpecFile(getResourcePath("plugins/model_smt/smt_spec.eo"));
+      loadSpecFile(getResourcePath("plugins/model_smt/cpc_model_spec.eo"));
+      loadSpecFile(getResourcePath("plugins/model_smt/alethe_model_spec.eo"));
+    }
+    else
+    {
+      size_t pos = 0;
+      while (pos < paths.size())
+      {
+        size_t next = paths.find(',', pos);
+        if (next == std::string::npos)
+        {
+          next = paths.size();
+        }
+        if (next > pos)
+        {
+          loadSpecFile(paths.substr(pos, next - pos));
+        }
+        pos = next + 1;
+      }
+    }
+    d_specIncluded.assign(d_specBlocks.size(), false);
+    for (std::pair<std::string, Expr>& d : d_declSeen)
+    {
+      finalizeSpecDecl(d.first);
+    }
+    computeSpecClosure();
+  }
+  else
+  {
+    for (std::pair<std::string, Expr>& d : d_declSeen)
+    {
+      finalizeDecl(d.first, d.second);
+    }
   }
   auto replace = [](std::string& txt,
                     const std::string& tag,
@@ -2398,6 +2466,342 @@ void ModelSmt::finalize()
   std::string outPath = getOutputPath("plugins/model_smt/model_smt_gen.eo");
   std::ofstream oute(outPath);
   oute << finalSmt;
+}
+
+std::ostream* ModelSmt::specSectionStream(const std::string& sec)
+{
+  if (sec == "SMT_TERM_CONSTRUCTORS")
+  {
+    return &d_smtTerms;
+  }
+  if (sec == "SMT_TYPE_CONSTRUCTORS")
+  {
+    return &d_smtTypes;
+  }
+  if (sec == "SMT_TYPEOF_CASES")
+  {
+    return &d_smtTypeof;
+  }
+  if (sec == "SMT_TYPEOF_AUX")
+  {
+    return &d_smtTypeofAux;
+  }
+  if (sec == "SMT_EVAL_CASES")
+  {
+    return &d_eval;
+  }
+  if (sec == "SMT_EVAL_PROGS_FWD_DECL")
+  {
+    return &d_modelEvalProgsFwd;
+  }
+  if (sec == "SMT_EVAL_PROGS")
+  {
+    return &d_modelEvalProgs;
+  }
+  if (sec == "EO_TO_SMT_CASES")
+  {
+    return &d_eoToSmt;
+  }
+  if (sec == "EO_TO_SMT_TYPE_CASES")
+  {
+    return &d_eoToSmtType;
+  }
+  if (sec == "EO_TO_SMT_AUX")
+  {
+    return &d_eoToSmtAux;
+  }
+  if (sec == "EO_DESUGAR_AUX")
+  {
+    return &d_desugarAux;
+  }
+  EO_FATAL() << "ERROR: unknown model-smt spec section " << sec;
+  return nullptr;
+}
+
+void ModelSmt::loadSpecFile(const std::string& path)
+{
+  std::ifstream in(path);
+  if (!in)
+  {
+    EO_FATAL() << "ERROR: cannot open model-smt spec file " << path;
+  }
+  std::string line;
+  bool inBlock = false;
+  std::string curSec;
+  size_t lineNo = 0;
+  while (std::getline(in, line))
+  {
+    lineNo++;
+    if (line.compare(0, 3, ";;!") != 0)
+    {
+      if (inBlock && !curSec.empty())
+      {
+        SpecBlock& b = d_specBlocks.back();
+        Assert(!b.d_sections.empty());
+        b.d_sections.back().second.append(line);
+        b.d_sections.back().second.push_back('\n');
+      }
+      // text outside blocks (file headers, comments) is ignored
+      continue;
+    }
+    std::stringstream ss(line);
+    std::string directive;
+    ss >> directive;
+    if (directive == ";;!op")
+    {
+      if (inBlock)
+      {
+        EO_FATAL() << "ERROR: " << path << ":" << lineNo
+                   << ": ;;!op inside an open block";
+      }
+      SpecBlock b;
+      ss >> b.d_name;
+      if (b.d_name.empty())
+      {
+        EO_FATAL() << "ERROR: " << path << ":" << lineNo << ": missing name";
+      }
+      std::string clause;
+      while (ss >> clause)
+      {
+        if (clause == ":alias")
+        {
+          ss >> b.d_alias;
+        }
+        else
+        {
+          EO_FATAL() << "ERROR: " << path << ":" << lineNo
+                     << ": unknown clause " << clause;
+        }
+      }
+      if (d_specIndex.find(b.d_name) != d_specIndex.end())
+      {
+        EO_FATAL() << "ERROR: " << path << ":" << lineNo
+                   << ": duplicate spec block for " << b.d_name;
+      }
+      d_specIndex[b.d_name] = d_specBlocks.size();
+      if (!b.d_alias.empty())
+      {
+        d_specAlias[b.d_alias] = d_specBlocks.size();
+      }
+      d_specBlocks.emplace_back(std::move(b));
+      inBlock = true;
+      curSec.clear();
+    }
+    else if (directive == ";;!section")
+    {
+      if (!inBlock)
+      {
+        EO_FATAL() << "ERROR: " << path << ":" << lineNo
+                   << ": ;;!section outside a block";
+      }
+      ss >> curSec;
+      // validates the section name
+      specSectionStream(curSec);
+      d_specBlocks.back().d_sections.emplace_back(curSec, std::string());
+    }
+    else if (directive == ";;!endop")
+    {
+      if (!inBlock)
+      {
+        EO_FATAL() << "ERROR: " << path << ":" << lineNo
+                   << ": ;;!endop outside a block";
+      }
+      inBlock = false;
+      curSec.clear();
+    }
+    else
+    {
+      EO_FATAL() << "ERROR: " << path << ":" << lineNo
+                 << ": unknown directive " << directive;
+    }
+  }
+  if (inBlock)
+  {
+    EO_FATAL() << "ERROR: " << path << ": unterminated ;;!op block";
+  }
+}
+
+void ModelSmt::includeSpecBlock(size_t idx, bool smtOnly)
+{
+  d_specIncluded[idx] = true;
+  for (const std::pair<std::string, std::string>& sec :
+       d_specBlocks[idx].d_sections)
+  {
+    if (smtOnly && sec.first.compare(0, 3, "EO_") == 0)
+    {
+      continue;
+    }
+    std::ostream* os = specSectionStream(sec.first);
+    (*os) << sec.second;
+    d_specScan.push_back(sec.second);
+  }
+}
+
+void ModelSmt::finalizeSpecDecl(const std::string& name)
+{
+  size_t idx;
+  std::map<std::string, size_t>::iterator ita = d_specAlias.find(name);
+  if (ita != d_specAlias.end())
+  {
+    // e.g. in spite of having name $eoo_-.2, we use the "uneg" block
+    idx = ita->second;
+  }
+  else
+  {
+    std::map<std::string, size_t>::iterator it = d_specIndex.find(name);
+    if (it == d_specIndex.end())
+    {
+      // internal declarations can be ignored
+      if (name.compare(0, 1, "$") == 0 || name.compare(0, 2, "@@") == 0)
+      {
+        return;
+      }
+      // This error is critical for soundness: if we do not know how to
+      // interpret the symbol, we cannot claim this verification condition
+      // accurately models SMT-LIB semantics.
+      EO_FATAL() << "ERROR: no model semantics found for " << name;
+      return;
+    }
+    idx = it->second;
+  }
+  if (d_specIncluded[idx])
+  {
+    return;
+  }
+  includeSpecBlock(idx, false);
+}
+
+void ModelSmt::computeSpecClosure()
+{
+  // References from included text to the smt layer of other blocks induce
+  // their inclusion, without any Eunoia-level bridge. This replaces the
+  // EO-level dependencies that were previously enforced via
+  // term_reduce_deps.eo retaining user-signature declarations.
+  static const std::vector<std::string> prefixes = {
+      "$smtx_model_eval_", "$smtx_typeof_", "$tsm_", "$sm_"};
+  while (!d_specScan.empty())
+  {
+    std::string text = std::move(d_specScan.back());
+    d_specScan.pop_back();
+    size_t pos = 0;
+    while ((pos = text.find('$', pos)) != std::string::npos)
+    {
+      std::string opName;
+      for (const std::string& p : prefixes)
+      {
+        if (text.compare(pos, p.size(), p) == 0)
+        {
+          size_t start = pos + p.size();
+          size_t end = start;
+          while (end < text.size() && !isspace(text[end]) && text[end] != '('
+                 && text[end] != ')' && text[end] != '"')
+          {
+            end++;
+          }
+          opName = text.substr(start, end - start);
+          pos = end;
+          break;
+        }
+      }
+      if (opName.empty())
+      {
+        pos++;
+        continue;
+      }
+      std::map<std::string, size_t>::iterator it = d_specIndex.find(opName);
+      if (it != d_specIndex.end() && !d_specIncluded[it->second])
+      {
+        includeSpecBlock(it->second, true);
+      }
+    }
+  }
+}
+
+void ModelSmt::harvestSpec(const std::string& outDir)
+{
+  // Streams and the spec section (equivalently, splice marker of
+  // model_smt.eo) their content belongs to.
+  std::vector<std::pair<std::stringstream*, const char*>> streams = {
+      {&d_smtTerms, "SMT_TERM_CONSTRUCTORS"},
+      {&d_smtTypes, "SMT_TYPE_CONSTRUCTORS"},
+      {&d_smtTypeof, "SMT_TYPEOF_CASES"},
+      {&d_smtTypeofAux, "SMT_TYPEOF_AUX"},
+      {&d_eval, "SMT_EVAL_CASES"},
+      {&d_modelEvalProgsFwd, "SMT_EVAL_PROGS_FWD_DECL"},
+      {&d_modelEvalProgs, "SMT_EVAL_PROGS"},
+      {&d_eoToSmt, "EO_TO_SMT_CASES"},
+      {&d_eoToSmtType, "EO_TO_SMT_TYPE_CASES"},
+      {&d_eoToSmtAux, "EO_TO_SMT_AUX"},
+      {&d_desugarAux, "EO_DESUGAR_AUX"},
+  };
+  const std::set<std::string> aletheSyms = {"@cl",
+                                            "@empty_cl",
+                                            "choice",
+                                            "@let",
+                                            "@ctx",
+                                            "@var",
+                                            "@Substitute",
+                                            "@substitute",
+                                            "@Substitution",
+                                            "@substitution.nil",
+                                            "@substitution"};
+  std::stringstream outSmt;
+  std::stringstream outCpc;
+  std::stringstream outAlethe;
+  for (const std::string& name : d_regOrder)
+  {
+    std::vector<std::string> before;
+    for (std::pair<std::stringstream*, const char*>& s : streams)
+    {
+      before.push_back(s.first->str());
+    }
+    finalizeDecl(name, d_null);
+    // @-prefixed symbols are calculus-specific skolems; @@-prefixed symbols
+    // are desugar-internal containers that belong to the core SMT spec.
+    bool isCpc = name[0] == '@' && name.compare(0, 2, "@@") != 0;
+    std::stringstream& out = aletheSyms.find(name) != aletheSyms.end()
+                                 ? outAlethe
+                                 : (isCpc ? outCpc : outSmt);
+    out << ";;!op " << name;
+    std::map<std::string, std::string>::iterator itrr =
+        d_overloadRevertRev.find(name);
+    if (itrr != d_overloadRevertRev.end())
+    {
+      out << " :alias " << itrr->second;
+    }
+    out << std::endl;
+    for (size_t i = 0, nstreams = streams.size(); i < nstreams; i++)
+    {
+      std::string after = streams[i].first->str();
+      Assert(after.size() >= before[i].size());
+      if (after.size() > before[i].size())
+      {
+        std::string delta = after.substr(before[i].size());
+        out << ";;!section " << streams[i].second << std::endl;
+        out << delta;
+        if (delta.back() != '\n')
+        {
+          out << std::endl;
+        }
+      }
+    }
+    out << ";;!endop" << std::endl;
+  }
+  std::vector<std::pair<std::string, std::stringstream*>> files = {
+      {"smt_spec.eo", &outSmt},
+      {"cpc_model_spec.eo", &outCpc},
+      {"alethe_model_spec.eo", &outAlethe}};
+  for (std::pair<std::string, std::stringstream*>& f : files)
+  {
+    std::string path = outDir + "/" + f.first;
+    std::ofstream fout(path);
+    if (!fout)
+    {
+      EO_FATAL() << "ERROR: cannot write harvested spec file " << path;
+    }
+    fout << f.second->str();
+    std::cout << "Wrote " << path << std::endl;
+  }
 }
 
 }  // namespace ethos

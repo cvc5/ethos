@@ -1,0 +1,214 @@
+; CPC-specific model semantics: the @-prefixed skolems and helpers used by
+; the CPC proof calculus. Same format as smt_spec.eo.
+
+;;!op @purify
+;;!section SMT_TERM_CONSTRUCTORS
+(declare-parameterized-const $emb_sm.@purify ((x1 $smt_Term :opaque)) $smt_Term)
+(define $sm_@purify ((x1 $smt_Term)) ($emb_sm.@purify x1))
+;;!section SMT_TYPEOF_CASES
+  (($smtx_typeof ($sm_@purify x1)) ($smtx_typeof x1))
+;;!section SMT_EVAL_CASES
+  (($smtx_model_eval M ($sm_@purify x1)) ($smtx_model_eval_@purify ($smtx_model_eval M x1)))
+;;!section SMT_EVAL_PROGS_FWD_DECL
+(program $smtx_model_eval_@purify () :signature ($smt_Value) $smt_Value)
+;;!section SMT_EVAL_PROGS
+(program $smtx_model_eval_@purify
+  ((x1 $smt_Value))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_@purify x1) x1)
+  )
+)
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@purify x1)) ($sm_@purify ($eo_to_smt x1)))
+;;!endop
+;;!op @int_div_by_zero
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@int_div_by_zero x1)) ($sm_div ($eo_to_smt x1) $sm_z_zero))
+;;!endop
+;;!op @mod_by_zero
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@mod_by_zero x1)) ($sm_mod ($eo_to_smt x1) $sm_z_zero))
+;;!endop
+;;!op @div_by_zero
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@div_by_zero x1)) ($sm_/ ($eo_to_smt x1) $sm_q_zero))
+;;!endop
+;;!op @array_deq_diff
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@array_deq_diff x1 x2)) ($eo_to_smt_array_deq_diff ($eo_to_smt x1) ($smtx_typeof ($eo_to_smt x1)) ($eo_to_smt x2) ($smtx_typeof ($eo_to_smt x2))))
+;;!section EO_TO_SMT_AUX
+
+(program $eo_to_smt_array_deq_diff 
+  ((a $smt_Term) (aT $smt_Type) (aU $smt_Type) (b $smt_Term) (bT $smt_Type) (bU $smt_Type))
+  :signature ($smt_Term $smt_Type $smt_Term $smt_Type) $smt_Term
+  (
+  (($eo_to_smt_array_deq_diff a ($tsm_Map aT aU) b ($tsm_Map bT bU)) ($sm_map_diff a b))
+  (($eo_to_smt_array_deq_diff a aT b bT) $sm_none)  
+  )
+)
+
+;;!endop
+;;!op @strings_itos_result
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@strings_itos_result x1 x2)) ($sm_ite ($sm_= ($eo_to_smt x2) $sm_z_zero) $sm_z_zero ($sm_str.to_int ($sm_str.substr ($sm_str.from_int ($eo_to_smt x1)) $sm_z_zero ($eo_to_smt x2)))))
+;;!endop
+;;!op @strings_stoi_result
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@strings_stoi_result x1 x2)) ($sm_ite ($sm_= ($eo_to_smt x2) $sm_z_zero) $sm_z_zero ($sm_str.to_int ($sm_str.substr ($eo_to_smt x1) $sm_z_zero ($eo_to_smt x2)))))
+;;!endop
+;;!op @strings_stoi_non_digit
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@strings_stoi_non_digit x1)) ($sm_str.indexof_re ($eo_to_smt x1) ($sm_re.inter $sm_re.allchar ($sm_re.comp ($sm_re.range ($sm_string $native_str_c0) ($sm_string $native_str_c9)))) $sm_z_zero))
+;;!endop
+;;!op @strings_deq_diff
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@strings_deq_diff x1 x2)) ($sm_seq_diff ($eo_to_smt x1) ($eo_to_smt x2)))
+;;!endop
+;;!op @witness_string_length
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@witness_string_length x1 x2 x3)) ($native_ite ($eo_to_smt_nat_is_valid x2) ($native_ite ($eo_to_smt_nat_is_valid x3) (eo::define (($T ($eo_to_smt_type x1))) (eo::define (($i ($sm_Var $native_str_vname $T))) ($sm_choice $native_str_vname $T ($sm_= ($sm_str.len $i) ($eo_to_smt x2))))) $sm_none) $sm_none))
+;;!endop
+;;!op @quantifiers_skolemize
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@quantifiers_skolemize (forall x1 x2) x3)) ($native_ite ($eo_to_smt_nat_is_valid x3) ($eo_to_smt_quantifiers_skolemize x1 ($sm_not ($eo_to_smt x2))($eo_to_smt_nat x3)) $sm_none))
+;;!section EO_TO_SMT_AUX
+
+(program $eo_to_smt_quantifiers_skolemize
+  ((s $native_String) (T $eo_Term) (vs $eo_List) (F $smt_Term) (G $smt_Term) (n $native_Nat) (t $smt_Term))
+  :signature ($eo_List $smt_Term $native_Nat) $smt_Term
+  (
+  (($eo_to_smt_quantifiers_skolemize ($eo_List_cons ($eot_Var ($eot_string s) T) vs) G $native_n_zero)
+    ($sm_choice s ($eo_to_smt_type T) ($eo_to_smt_exists vs G)))
+  (($eo_to_smt_quantifiers_skolemize ($eo_List_cons ($eot_Var ($eot_string s) T) vs) G ($native_n_succ n))
+    ($eo_to_smt_quantifiers_skolemize vs
+      ($sm_bind s ($eo_to_smt_type T) ($sm_choice s ($eo_to_smt_type T) ($eo_to_smt_exists vs G)) G) n))
+  (($eo_to_smt_quantifiers_skolemize vs G t) $sm_none)
+  )
+)
+;;!endop
+;;!op @re_unfold_pos_component
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@re_unfold_pos_component x1 x2 x3)) ($native_ite ($eo_to_smt_nat_is_valid x3) ($eo_to_smt_re_unfold_pos_component ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt_nat x3)) $sm_none))
+;;!section EO_TO_SMT_AUX
+
+(program $eo_to_smt_re_unfold_pos_component
+  ((s $smt_Term) (r1 $smt_Term) (r2 $smt_Term) (n $native_Nat) (t $smt_Term))
+  :signature ($smt_Term $smt_Term $native_Nat) $smt_Term
+  (
+  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) $native_n_zero)
+    ($sm_str.substr s $sm_z_zero ($sm_str.indexof_re_split s r1 r2)))
+  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) ($native_n_succ n))
+    (eo::define ((i ($sm_str.indexof_re_split s r1 r2)))
+      ($eo_to_smt_re_unfold_pos_component
+        ($sm_str.substr s i ($sm_- ($sm_str.len s) i))
+        r2 n)))
+  (($eo_to_smt_re_unfold_pos_component s r1 n) $sm_none)
+  )
+)
+;;!endop
+;;!op @sets_deq_diff
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@sets_deq_diff x1 x2)) ($eo_to_smt_sets_deq_diff ($eo_to_smt x1) ($smtx_typeof ($eo_to_smt x1)) ($eo_to_smt x2) ($smtx_typeof ($eo_to_smt x2))))
+;;!section EO_TO_SMT_AUX
+
+(program $eo_to_smt_sets_deq_diff 
+  ((a $smt_Term) (aT $smt_Type) (b $smt_Term) (bT $smt_Type))
+  :signature ($smt_Term $smt_Type $smt_Term $smt_Type) $smt_Term
+  (
+  (($eo_to_smt_sets_deq_diff a ($tsm_Set aT) b ($tsm_Set bT)) ($sm_map_diff a b))
+  (($eo_to_smt_sets_deq_diff a aT b bT) $sm_none)
+  )
+)
+
+;;!endop
+;;!op @bvsize
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@bvsize x1)) (eo::define ((n ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))))) ($native_ite ($native_z_<= $native_z_zero n) ($sm_@purify ($sm_numeral n)) $sm_none)))
+;;!endop
+;;!op @bit
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@bit x1 x2)) ($sm_= ($sm_extract ($eo_to_smt x1) ($eo_to_smt x1) ($eo_to_smt x2)) $sm_binary_bit_true))
+;;!endop
+;;!op @from_bools
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@from_bools x1 x2)) ($sm_concat ($eo_to_smt x2) ($sm_ite ($eo_to_smt x1) $sm_binary_bit_true $sm_binary_bit_false)))
+;;!endop
+;;!op @strings_num_occur
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@strings_num_occur x1 x2)) ($eo_to_smt_strings_num_occur ($eo_to_smt x1) ($eo_to_smt x2)))
+;;!section EO_TO_SMT_AUX
+(program $eo_to_smt_strings_num_occur ((s $smt_Term) (t $smt_Term))
+  :signature ($smt_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_strings_num_occur s t) ($sm_- ($sm_str.len ($sm_str.replace_all s t ($sm_str.substr s $sm_z_zero $sm_z_one))) ($sm_str.len ($sm_str.replace_all s t ($sm_str.substr s $sm_z_zero $sm_z_zero)))))
+  )
+)
+
+;;!endop
+;;!op @strings_num_occur_re
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@strings_num_occur_re x1 x2)) ($eo_to_smt_strings_num_occur_re ($eo_to_smt x1) ($eo_to_smt x2)))
+;;!section EO_TO_SMT_AUX
+(program $eo_to_smt_strings_num_occur_re ((s $smt_Term) (t $smt_Term))
+  :signature ($smt_Term $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_strings_num_occur_re s t) ($sm_- ($sm_str.len ($sm_str.replace_re_all s t ($sm_str.substr s $sm_z_zero $sm_z_one))) ($sm_str.len ($sm_str.replace_re_all s t ($sm_str.substr s $sm_z_zero $sm_z_zero)))))
+  )
+)
+
+;;!endop
+;;!op @strings_occur_index
+;;!section SMT_TERM_CONSTRUCTORS
+(declare-parameterized-const $emb_sm.@strings_occur_index ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque) (x3 $smt_Term :opaque)) $smt_Term)
+(define $sm_@strings_occur_index ((x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term)) ($emb_sm.@strings_occur_index x1 x2 x3))
+;;!section SMT_TYPEOF_CASES
+  (($smtx_typeof ($sm_@strings_occur_index x1 x2 x3)) ($smtx_typeof_str.indexof ($smtx_typeof x1) ($smtx_typeof x2) ($smtx_typeof x3)))
+;;!section SMT_EVAL_CASES
+  (($smtx_model_eval M ($sm_@strings_occur_index x1 x2 x3)) ($smtx_model_eval_@strings_occur_index ($smtx_model_eval M x1) ($smtx_model_eval M x2) ($smtx_model_eval M x3)))
+;;!section SMT_EVAL_PROGS_FWD_DECL
+(program $smtx_model_eval_@strings_occur_index () :signature ($smt_Value $smt_Value $smt_Value) $smt_Value)
+;;!section SMT_EVAL_PROGS
+(program $smtx_model_eval_@strings_occur_index
+  ((x1 $smt_Seq)(x2 $smt_Seq) (x3 $native_Int) (t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
+  :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_@strings_occur_index ($vsm_seq x1) ($vsm_seq x2) ($vsm_numeral x3)) ($vsm_numeral ($native_apply_3 "seq.occur_index" ($native_apply_1 "unpack_seq" x1) ($native_apply_1 "unpack_seq" x2) x3)))
+  (($smtx_model_eval_@strings_occur_index t1 t2 t3) $vsm_not_value)
+  )
+)
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@strings_occur_index x1 x2 x3)) ($sm_@strings_occur_index ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3)))
+;;!endop
+;;!op @strings_occur_index_re
+;;!section SMT_TERM_CONSTRUCTORS
+(declare-parameterized-const $emb_sm.@strings_occur_index_re ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque) (x3 $smt_Term :opaque)) $smt_Term)
+(define $sm_@strings_occur_index_re ((x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term)) ($emb_sm.@strings_occur_index_re x1 x2 x3))
+;;!section SMT_TYPEOF_CASES
+  (($smtx_typeof ($sm_@strings_occur_index_re x1 x2 x3)) ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_String) ($native_ite ($native_Teq ($smtx_typeof x2) $tsm_RegLan) ($native_ite ($native_Teq ($smtx_typeof x3) $tsm_Int) $tsm_Int $tsm_none) $tsm_none) $tsm_none))
+;;!section SMT_EVAL_CASES
+  (($smtx_model_eval M ($sm_@strings_occur_index_re x1 x2 x3)) ($smtx_model_eval_@strings_occur_index_re ($smtx_model_eval M x1) ($smtx_model_eval M x2) ($smtx_model_eval M x3)))
+;;!section SMT_EVAL_PROGS_FWD_DECL
+(program $smtx_model_eval_@strings_occur_index_re () :signature ($smt_Value $smt_Value $smt_Value) $smt_Value)
+;;!section SMT_EVAL_PROGS
+(program $smtx_model_eval_@strings_occur_index_re
+  ((x1 $smt_Seq)(x2 $smt_RegLan) (x3 $native_Int) (t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
+  :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_@strings_occur_index_re ($vsm_seq x1) ($vsm_re x2) ($vsm_numeral x3)) ($vsm_numeral ($native_apply_3 "str_occur_index_re" ($native_apply_1 "unpack_seq" x1) x2 x3)))
+  (($smtx_model_eval_@strings_occur_index_re t1 t2 t3) $vsm_not_value)
+  )
+)
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@strings_occur_index_re x1 x2 x3)) ($sm_@strings_occur_index_re ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3)))
+;;!endop
+;;!op @strings_replace_all_result
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@strings_replace_all_result x1 x2 x3 x4)) ($sm_str.replace_all ($sm_str.substr ($eo_to_smt x1) ($sm_@strings_occur_index ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x4)) ($sm_str.len ($eo_to_smt x1))) ($eo_to_smt x2) ($eo_to_smt x3)))
+;;!endop
+;;!op @strings_replace_re_all_result
+;;!section EO_TO_SMT_CASES
+  (($eo_to_smt (@strings_replace_re_all_result x1 x2 x3 x4)) ($sm_str.replace_re_all ($sm_str.substr ($eo_to_smt x1) ($sm_@strings_occur_index_re ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x4)) ($sm_str.len ($eo_to_smt x1))) ($eo_to_smt x2) ($eo_to_smt x3)))
+;;!endop
+;;!op @const
+;;!endop

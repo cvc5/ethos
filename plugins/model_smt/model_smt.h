@@ -10,8 +10,10 @@
 #define PLUGIN_MODEL_SMT_H
 
 #include <map>
+#include <set>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "../std_plugin.h"
 
@@ -346,6 +348,65 @@ class ModelSmt : public StdPlugin
   Kind d_kBit;
   /** Pseudo-kind used for quoted Int parameters in generation tables. */
   Kind d_kIntQuote;
+
+  //-------- spec-file-based generation
+  /**
+   * One operator block parsed from a spec file.
+   *
+   * A spec file is plain Eunoia text partitioned into per-operator blocks by
+   * line-level directives:
+   *
+   *   ;;!op <name> [:alias <desugared-name>]
+   *   ;;!section <MARKER-NAME>
+   *   ... Eunoia text spliced at $<MARKER-NAME>$ of model_smt.eo ...
+   *   ;;!endop
+   *
+   * A block is included when the user signature declares <name> (or its
+   * alias). Blocks referenced by the text of included blocks are pulled in
+   * transitively with their smt-layer sections only (section names not
+   * starting with EO_), since they require no Eunoia-level bridge.
+   */
+  struct SpecBlock
+  {
+    /** The operator name, matched against user signature symbols. */
+    std::string d_name;
+    /** Desugared overload name that also selects this block, if any. */
+    std::string d_alias;
+    /** Section texts in file order (splice marker name, Eunoia text). */
+    std::vector<std::pair<std::string, std::string>> d_sections;
+  };
+  /** Parse a spec file into d_specBlocks. */
+  void loadSpecFile(const std::string& path);
+  /** Select the block for a user-declared symbol, or fail if unknown. */
+  void finalizeSpecDecl(const std::string& name);
+  /** Include smt-layer blocks referenced by already-included text. */
+  void computeSpecClosure();
+  /** Append the sections of block idx onto the output streams. */
+  void includeSpecBlock(size_t idx, bool smtOnly);
+  /** Get the output stream that section sec is spliced into. */
+  std::ostream* specSectionStream(const std::string& sec);
+  /** All operator blocks, in spec file order. */
+  std::vector<SpecBlock> d_specBlocks;
+  /** Block index by operator name. */
+  std::map<std::string, size_t> d_specIndex;
+  /** Block index by overload alias. */
+  std::map<std::string, size_t> d_specAlias;
+  /** Whether each block has been included. */
+  std::vector<bool> d_specIncluded;
+  /** Worklist of included section texts pending closure scanning. */
+  std::vector<std::string> d_specScan;
+
+  //-------- harvesting of the legacy tables into spec files (temporary)
+  /** Record name in the operator registration order. */
+  void reg(const std::string& name);
+  /** Register a symbol that needs no definition. */
+  void addIgnoreSym(const std::string& sym);
+  /** Write spec files for all registered operators to outDir. */
+  void harvestSpec(const std::string& outDir);
+  /** Operator names in registration order. */
+  std::vector<std::string> d_regOrder;
+  /** Set of registered operator names. */
+  std::set<std::string> d_regSeen;
 };
 
 }  // namespace ethos
