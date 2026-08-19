@@ -8,29 +8,11 @@
  ******************************************************************************/
 
 #include "executor.h"
-#include "state.h"
 
 namespace ethos {
-  
-Executor::Executor(State& s) : d_state(s), d_tc(s.getTypeChecker()) {}
+
+Executor::Executor(State& state) : d_state(state) {}
 
 Executor::~Executor() {}
-  
-bool Executor::hasEvaluation(ExprValue* e)
-{
-  return e->isCompiled();
-}
 
-Expr Executor::evaluateProgram(ExprValue* prog,
-                               const std::vector<ExprValue*>& args,
-                               Ctx& ctx)
-{
-  ExprValue * ev = evaluateProgramInternal(args, ctx);
-  if (ev==nullptr)
-  {
-    return d_null;
-  }
-  return Expr(ev);
-}
-
-}
+}  // namespace ethos

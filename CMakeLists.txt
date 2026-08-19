@@ -66,10 +66,7 @@ add_subdirectory(tests)
 #
 #   make plugins-compile-check
 #
-# cpp_compiler is skipped: it is a snapshot from an earlier version of ethos
-# and is known not to compile (see plugins/cpp_compiler/README.md).
 file(GLOB_RECURSE plugins_SRC CONFIGURE_DEPENDS "plugins/*.cpp")
-list(FILTER plugins_SRC EXCLUDE REGEX "/plugins/cpp_compiler/")
 if(plugins_SRC)
   add_library(plugins-compile-check OBJECT EXCLUDE_FROM_ALL ${plugins_SRC})
 else()

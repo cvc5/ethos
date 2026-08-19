@@ -78,6 +78,15 @@ class State
   bool includeFile(const std::string& s, bool isSignature);
   /** include file, possibly as a reference */
   bool includeFile(const std::string& s, bool isSignature, bool isReference, const Expr& referenceNf);
+  /**
+   * Mark a file as already included.
+   *
+   * This is public so an auto-parsing plugin can reconstruct a signature and
+   * prevent a later include command from parsing the same file again.
+   *
+   * @return true if the file was newly marked.
+   */
+  bool markIncluded(const Filepath& s);
   /** add assumption */
   bool addAssumption(const Expr& a);
   /** add reference assert */
@@ -298,8 +307,6 @@ class State
   Expr d_listCons;
   /** The proof type */
   Expr d_proofType;
-  /** Mark that file s was included */
-  bool markIncluded(const Filepath& s);
   /** mark deleted */
   void markDeleted(ExprValue* e);
   /**
