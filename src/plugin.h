@@ -50,18 +50,22 @@ public:
    */
   virtual void popScope() {}
   /**
-   * Include file, if not already done so.
+   * Include file, if not already done so. This is called before State parses
+   * the file.
    * @param s Specifies the path and name of the file to include.
    * @param isSignature Whether the given file was marked as a signature file.
    * @param isReference Whether the given file was marked as a reference file.
    * @param referenceNf The method for normalizing the reference file, if one
    * exists.
+   * @return true if the plugin has already reconstructed the file and State
+   * should skip parsing it. Return false to continue with ordinary parsing.
    */
-  virtual void includeFile(const Filepath& s,
+  virtual bool includeFile(const Filepath& s,
                            bool isSignature,
                            bool isReference,
                            const Expr& referenceNf)
   {
+    return false;
   }
   /**
    * Same as above, but called immediately after a file has been parsed.

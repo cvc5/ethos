@@ -16,6 +16,12 @@
 #include "parser.h"
 #include "state.h"
 
+#ifdef ETHOS_CPP_COMPILER_GENERATOR
+#include "compiler.h"
+#elif defined(ETHOS_CPP_COMPILER_EXECUTOR)
+#include "executor.h"
+#endif
+
 using namespace ethos;
 
 int main( int argc, char* argv[] )
@@ -92,6 +98,10 @@ int main( int argc, char* argv[] )
       out << "no";
 #endif
       out << std::endl;
+#ifdef ETHOS_CPP_COMPILER_EXECUTOR
+      out << std::setw(w) << "signatures : " << std::endl;
+      out << Executor::showCompiledFiles();
+#endif
       std::cout << out.str();
       // exit immediately
       exit(0);
@@ -145,7 +155,19 @@ int main( int argc, char* argv[] )
   // options are finalized, now initialize the state and run the includes
   Stats stats;
   State s(opts, stats);
+#ifdef ETHOS_CPP_COMPILER_GENERATOR
+  Compiler pluginInstance(s);
+  Plugin* plugin = &pluginInstance;
+#elif defined(ETHOS_CPP_COMPILER_EXECUTOR)
+  Executor pluginInstance(s);
+  Plugin* plugin = &pluginInstance;
+#else
   Plugin* plugin = nullptr;
+#endif
+  if (plugin != nullptr)
+  {
+    s.setPlugin(plugin);
+  }
   for (size_t i=0, nincludes=includes.size(); i<nincludes; i++)
   {
     std::string file = includes[i].first;
@@ -156,11 +178,6 @@ int main( int argc, char* argv[] )
     {
       EO_FATAL() << "Error: cannot include file " << file;
     }
-  }
-  // NOTE: initialization of plugin goes here
-  if (plugin!=nullptr)
-  {
-    s.setPlugin(plugin);
   }
   if (!readFile)
   {

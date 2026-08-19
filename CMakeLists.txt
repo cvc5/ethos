@@ -13,6 +13,16 @@ project (ethos_checker)
 #    > for options where we don't need to detect if set by user (default: OFF)
 option(BUILD_STATIC          "Build static binary" OFF)
 
+# The default binary has no plugin. These cache settings support the
+# cpp_compiler's two-stage generator/executor build without changing normal
+# Ethos builds.
+set(ETHOS_CPP_COMPILER_MODE "none" CACHE STRING
+    "C++ auto-parser mode for the ethos binary: none, compiler, or executor")
+set_property(CACHE ETHOS_CPP_COMPILER_MODE PROPERTY STRINGS
+             none compiler executor)
+set(ETHOS_CPP_COMPILER_GENERATED_SOURCE "" CACHE FILEPATH
+    "Generated compiled.out.cpp used in cpp_compiler executor mode")
+
 if(BUILD_STATIC)
   set(BUILD_SHARED_LIBS OFF)
   set(CMAKE_FIND_LIBRARY_SUFFIXES .a)

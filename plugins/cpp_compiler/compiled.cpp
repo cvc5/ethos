@@ -13,6 +13,18 @@ namespace ethos {
 
 std::string Executor::showCompiledFiles() { return ""; }
 
+bool Executor::includeFile(const Filepath& path,
+                           bool isSignature,
+                           bool isReference,
+                           const Expr& referenceNf)
+{
+  (void)path;
+  (void)isSignature;
+  (void)isReference;
+  (void)referenceNf;
+  return false;
+}
+
 void Executor::initialize() {}
 
 }  // namespace ethos

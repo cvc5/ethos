@@ -1,23 +1,140 @@
 # Compiling Eunoia signatures to C++
 
-This experimental plugin generates C++ that reconstructs parsed Eunoia
-signatures. Loading the generated code avoids reparsing those signatures: its
-`Executor::initialize()` method rebuilds the declarations and marks the source
-files as already included.
+This experimental plugin generates C++ that reconstructs the parser state of
+one or more Eunoia signatures. A custom Ethos binary links that generated code
+and loads it during startup, avoiding reparsing the same signatures when a
+proof includes them.
 
-The plugin intentionally does **not** generate specialized implementations of
-type rules or side conditions. Those continue to use Ethos's ordinary type
-checker and program evaluator after the signature has been reconstructed.
+Only auto-parsing is generated. Proof-rule type checking and side-condition
+program evaluation still use Ethos's ordinary interpreter. This keeps the
+generated surface small and preserves the behavior of the standard checker.
 
-## Files
+## Prerequisites
+
+The build needs:
+
+- a C++17 compiler;
+- CMake;
+- a CMake-supported build tool, such as Make or Ninja; and
+- GMP development headers and libraries (`libgmp-dev` on Ubuntu or `gmp` via
+  Homebrew on macOS).
+
+Run all commands from the repository root unless noted otherwise.
+
+## One-command build
+
+Pass the root signature to the provided script:
+
+```sh
+plugins/cpp_compiler/build_custom_ethos.sh path/to/signature.eo
+```
+
+The default output directory is `build/cpp_compiler_custom`. The script:
+
+1. builds an `ethos` binary with the `Compiler` plugin;
+2. runs it on the signature to write `compiled.out.cpp`;
+3. rebuilds `ethos` with the `Executor` plugin and that generated source; and
+4. copies the finished binary to `build/cpp_compiler_custom/ethos`.
+
+An output directory and build type may be supplied explicitly:
+
+```sh
+plugins/cpp_compiler/build_custom_ethos.sh \
+  path/to/signature.eo /tmp/my-ethos debug
+```
+
+The build type is `release` by default and may be `release` or `debug`.
+
+Run the resulting checker exactly like the normal checker:
+
+```sh
+build/cpp_compiler_custom/ethos path/to/proof.eo
+```
+
+The proof should contain its normal `(include "path/to/signature.eo")`
+command. `State` normalizes that path, asks the executor whether it already
+handled the file, and skips parsing when it refers to a signature embedded in
+the generated source. The source signature must still exist so normal include
+validation can detect misspelled or missing paths.
+
+To display the canonical signature paths embedded in the binary, run:
+
+```sh
+build/cpp_compiler_custom/ethos --show-config
+```
+
+Includes nested by the root signature are recorded too. Matching accepts the
+same file through relative or absolute paths, but the custom binary remains
+tied to the files' locations at generation time. Regenerate it after moving a
+signature or after changing any signature contents.
+
+## Manual two-stage build
+
+The script is a convenience wrapper around these commands. First configure and
+build generator mode:
+
+```sh
+cmake -S . -B build/cpp-generator \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DETHOS_CPP_COMPILER_MODE=compiler
+cmake --build build/cpp-generator --target ethos --parallel
+```
+
+Run the generator from the directory where `compiled.out.cpp` should be
+written. Supplying an absolute signature path makes the generated location
+unambiguous:
+
+```sh
+mkdir -p build/cpp-generated
+cd build/cpp-generated
+../cpp-generator/src/ethos /absolute/path/to/signature.eo
+cd ../..
+```
+
+Then configure and build executor mode with the generated source:
+
+```sh
+cmake -S . -B build/cpp-executor \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DETHOS_CPP_COMPILER_MODE=executor \
+  -DETHOS_CPP_COMPILER_GENERATED_SOURCE="$PWD/build/cpp-generated/compiled.out.cpp"
+cmake --build build/cpp-executor --target ethos --parallel
+build/cpp-executor/src/ethos path/to/proof.eo
+```
+
+The ordinary build remains unchanged: omitting
+`ETHOS_CPP_COMPILER_MODE` builds `ethos` without either plugin.
+
+## Include handling and `markIncluded`
+
+`State::markIncluded()` is still necessary internally to deduplicate includes,
+but it is a private implementation detail. Generated code does not call it.
+Instead, `Plugin::includeFile()` is a pre-parse callback with a Boolean result:
+
+- `Compiler::includeFile()` returns `false`, so `State` parses the signature
+  and the compiler records the parser callbacks.
+- Generated `Executor::includeFile()` returns `true` for embedded signature
+  paths, telling `State` that initialization already reconstructed them and
+  their source should not be parsed.
+- Other plugins inherit the default `false`, preserving ordinary parsing.
+
+This leaves ownership of the included-file set in `State`, while making the
+executor's skip decision explicit at the plugin boundary.
+
+## Source layout and CI
 
 - `compiler.{h,cpp}` records parser callbacks and writes `compiled.out.cpp`.
-- `executor.{h,cpp}` provides the runtime plugin that loads generated code.
-- `compiled.cpp` is an empty placeholder. Replace it with the generated source
-  (or compile that source in its place) when embedding the executor.
+- `executor.{h,cpp}` provides the runtime plugin API used by generated code.
+- `compiled.cpp` is an empty placeholder used only by the standalone plugin
+  compile check.
+- `build_custom_ethos.sh` performs the complete two-stage custom build.
 
-The plugins are not linked into the default `ethos` binary. Embedders select a
-`Compiler` or `Executor` by passing it to `State::setPlugin()`. The repository's
-`plugins-compile-check` CMake target compiles all plugin sources with the current
-Ethos headers. It also generates, compiles, and executes a small auto-parser so
-API drift and broken generated code are caught by CI.
+The `plugins-compile-check` target compiles every plugin and runs a round-trip
+test that generates C++, compiles it, reconstructs parser state, verifies that
+the executor skips the source include, and confirms that program evaluation
+still falls back to the normal interpreter:
+
+```sh
+./configure.sh debug --werror
+cmake --build build --target plugins-compile-check --parallel
+```

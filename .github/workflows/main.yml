@@ -33,6 +33,14 @@ jobs:
         cd build
         make -j${{ env.num_proc }} plugins-compile-check
 
+    - name: Build and run custom auto-parser binary
+      run: |
+        plugins/cpp_compiler/build_custom_ethos.sh \
+          plugins/cpp_compiler/test/signature.eo \
+          "${RUNNER_TEMP}/ethos-cpp-compiler" debug
+        "${RUNNER_TEMP}/ethos-cpp-compiler/ethos" \
+          plugins/cpp_compiler/test/signature.eo
+
   build:
     strategy:
       matrix:

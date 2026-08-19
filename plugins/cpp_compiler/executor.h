@@ -24,6 +24,11 @@ class Executor : public Plugin
 
   /** List the signature files embedded in the generated source. */
   static std::string showCompiledFiles();
+  /** Return true when generated code already reconstructed this signature. */
+  bool includeFile(const Filepath& path,
+                   bool isSignature,
+                   bool isReference,
+                   const Expr& referenceNf) override;
   /** Reconstruct the embedded signatures in the associated State. */
   void initialize() override;
 

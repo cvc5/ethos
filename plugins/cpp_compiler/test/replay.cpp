@@ -59,8 +59,8 @@ int main()
     std::exit(8);
   }
 
-  // The generated initializer marks the source as included, so this succeeds
-  // without attempting to parse and redeclare it.
+  // State asks the executor whether it handled the include. The generated
+  // callback recognizes the source, so State does not parse and redeclare it.
   if (!state.includeFile(ETHOS_CPP_COMPILER_TEST_SIGNATURE, true)
       || Executor::showCompiledFiles().empty())
   {

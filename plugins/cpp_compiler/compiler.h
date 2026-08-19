@@ -25,8 +25,9 @@ class State;
  * Generates C++ which reconstructs parsed Eunoia signatures.
  *
  * The generated Executor initializes a State as if the recorded signatures
- * had been parsed and marks those files as included. It deliberately does not
- * generate specialized type-checking or side-condition evaluation code.
+ * had been parsed. Its include callback tells State to skip parsing files
+ * embedded in the generated code. It deliberately does not generate
+ * specialized type-checking or side-condition evaluation code.
  */
 class Compiler : public Plugin
 {
@@ -37,7 +38,7 @@ class Compiler : public Plugin
   void reset() override;
   void pushScope() override;
   void popScope() override;
-  void includeFile(const Filepath& path,
+  bool includeFile(const Filepath& path,
                    bool isSignature,
                    bool isReference,
                    const Expr& referenceNf) override;
@@ -78,6 +79,8 @@ class Compiler : public Plugin
   std::stringstream d_initialize;
   /** Statements written into Executor::showCompiledFiles(). */
   std::stringstream d_config;
+  /** Comparisons written into Executor::includeFile(). */
+  std::stringstream d_includes;
   /** Generated identifiers for expressions. */
   std::map<const ExprValue*, size_t> d_exprIds;
   /**

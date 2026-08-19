@@ -96,7 +96,7 @@ void Compiler::popScope()
   --d_nscopes;
 }
 
-void Compiler::includeFile(const Filepath& path,
+bool Compiler::includeFile(const Filepath& path,
                            bool isSignature,
                            bool isReference,
                            const Expr& referenceNf)
@@ -106,13 +106,19 @@ void Compiler::includeFile(const Filepath& path,
   d_recordingStack.push_back(recording);
   if (!recording)
   {
-    return;
+    return false;
   }
   const std::string& rawPath = path.getRawPath();
-  d_initialize << "  d_state.markIncluded(Filepath(" << quote(rawPath)
-               << "));\n";
   d_config << "  ss << std::setw(15) << \" \" << " << quote(rawPath)
            << " << std::endl;\n";
+  d_includes << "  {\n"
+             << "    std::error_code ec;\n"
+             << "    if (path.getRawPath() == " << quote(rawPath) << "\n"
+             << "        || std::filesystem::equivalent(path.getRawPath(), "
+             << quote(rawPath) << ", ec))\n"
+             << "    {\n      return true;\n    }\n  }\n";
+  // Compiler observes and records parsing; it never replaces it.
+  return false;
 }
 
 void Compiler::finalizeIncludeFile(const Filepath& path,
@@ -406,14 +412,29 @@ std::string Compiler::toString() const
   std::stringstream source;
   source << "#include \"executor.h\"\n";
   source << "#include \"state.h\"\n\n";
+  source << "#include <filesystem>\n";
   source << "#include <iomanip>\n";
-  source << "#include <sstream>\n\n";
+  source << "#include <sstream>\n";
+  source << "#include <system_error>\n\n";
   source << "namespace ethos {\n\n";
   source << "std::string Executor::showCompiledFiles()\n";
   source << "{\n";
   source << "  std::stringstream ss;\n";
   source << d_config.str();
   source << "  return ss.str();\n";
+  source << "}\n\n";
+  source << "bool Executor::includeFile(const Filepath& path,\n";
+  source << "                           bool isSignature,\n";
+  source << "                           bool isReference,\n";
+  source << "                           const Expr& referenceNf)\n";
+  source << "{\n";
+  source << "  (void)referenceNf;\n";
+  source << "  if (!isSignature || isReference)\n";
+  source << "  {\n";
+  source << "    return false;\n";
+  source << "  }\n";
+  source << d_includes.str();
+  source << "  return false;\n";
   source << "}\n\n";
   source << "void Executor::initialize()\n";
   source << "{\n";
