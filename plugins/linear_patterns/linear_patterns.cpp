@@ -9,13 +9,13 @@
 
 #include "linear_patterns.h"
 
+#include <algorithm>
+#include <set>
+#include <sstream>
+
 #include "state.h"
 
 namespace ethos {
-
-LinearPattern::LinearPattern(State& s) : StdPlugin(s) {}
-
-LinearPattern::~LinearPattern() {}
 
 std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(State& s,
                                                             const Expr& prog,

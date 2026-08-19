@@ -114,13 +114,13 @@ void ensureDirectoryExists(const std::string& path)
 
 std::string StdPlugin::initializePluginPath()
 {
-  const char* envPath = std::getenv("ETHOS_EOC_ROOT");
+  const char* envPath = std::getenv("ETHOS_PLUGIN_ROOT");
   if (envPath != nullptr && envPath[0] != '\0')
   {
     return normalizeDirectory(envPath);
   }
-#ifdef ETHOS_EOC_SOURCE_DIR
-  return normalizeDirectory(ETHOS_EOC_SOURCE_DIR);
+#ifdef ETHOS_PLUGIN_SOURCE_DIR
+  return normalizeDirectory(ETHOS_PLUGIN_SOURCE_DIR);
 #else
   return std::string();
 #endif
@@ -128,13 +128,13 @@ std::string StdPlugin::initializePluginPath()
 
 std::string StdPlugin::initializePluginOutputPath()
 {
-  const char* envPath = std::getenv("ETHOS_EOC_OUTPUT_DIR");
+  const char* envPath = std::getenv("ETHOS_PLUGIN_OUTPUT_DIR");
   if (envPath != nullptr && envPath[0] != '\0')
   {
     return normalizeDirectory(envPath);
   }
-#ifdef ETHOS_EOC_OUTPUT_DIR
-  return normalizeDirectory(ETHOS_EOC_OUTPUT_DIR);
+#ifdef ETHOS_PLUGIN_OUTPUT_DIR
+  return normalizeDirectory(ETHOS_PLUGIN_OUTPUT_DIR);
 #else
   return std::string();
 #endif
@@ -178,18 +178,10 @@ bool StdPlugin::optionVcUseModelStrict() { return true; }
 bool StdPlugin::optionSmtMetaUseTriggers() { return true; }
 // makes conjecture easy to debug models
 bool StdPlugin::optionSmtMetaDebugConjecture() { return false; }
-// type of conjecture
-ConjectureType StdPlugin::optionSmtMetaConjectureType() const
-{
-  return d_conjectureType;
-}
 // whether we are optimizing with a sygus grammar
 bool StdPlugin::optionSmtMetaSygusGrammar() { return true; }
 // whether the sygus grammar is designed to enumerate well-typed terms
 bool StdPlugin::optionSmtMetaSygusGrammarWellTyped() { return true; }
-// this ensures that the types of premises and conclusion must be Bool to
-// witness unsoundness
-bool StdPlugin::optionVcUseTypeof() { return true; }
 // whether we emit typing for partial applications
 bool StdPlugin::optionEoTypeofHo() { return false; }
 // whether we combine terms of the same type for defining eo::typeof
@@ -204,17 +196,16 @@ bool StdPlugin::optionSmtTheoryOp() { return false; }
 // whether to collapse EO operators to UserOp
 bool StdPlugin::optionEoUserOp() { return true; }
 
-StdPlugin::StdPlugin(State& s, ConjectureType conjType)
-    : d_state(s), d_tc(s.getTypeChecker()), d_conjectureType(conjType)
+StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
   d_typeVarCounter = 0;
   if (s_plugin_path.empty())
   {
-    EO_FATAL() << "StdPlugin: unable to determine EOC resource root";
+    EO_FATAL() << "StdPlugin: unable to determine the plugin resource root";
   }
   if (s_plugin_output_path.empty())
   {
-    EO_FATAL() << "StdPlugin: unable to determine EOC output root";
+    EO_FATAL() << "StdPlugin: unable to determine the plugin output root";
   }
 }
 

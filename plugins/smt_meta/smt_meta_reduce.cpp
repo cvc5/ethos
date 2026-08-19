@@ -914,7 +914,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     Assert(vt.getKind() == Kind::PROGRAM_TYPE);
     Assert(patCall.getNumChildren() == vt.getNumChildren());
     size_t nargs = vt.getNumChildren();
-    ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
+    ConjectureType ctype = MetaReducePlugin::optionSmtMetaConjectureType();
     if (ctype == ConjectureType::VC)
     {
       std::stringstream conjEnd;

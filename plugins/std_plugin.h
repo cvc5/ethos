@@ -23,14 +23,6 @@ namespace ethos {
 class State;
 class TypeChecker;
 
-/** The kind of conjecture emitted by the smt-meta backend. */
-enum class ConjectureType
-{
-  /** A verification condition, checked by an SMT solver. */
-  VC,
-  /** A syntax-guided synthesis conjecture. */
-  SYGUS
-};
 /**
  * The purpose of this plugin is to do things that are common to multiple
  * plugins. For example, tracking the dependencies for literal types.
@@ -38,7 +30,7 @@ enum class ConjectureType
 class StdPlugin : public Plugin
 {
  public:
-  StdPlugin(State& s, ConjectureType conjType = ConjectureType::VC);
+  StdPlugin(State& s);
   ~StdPlugin();
 
  protected:
@@ -66,15 +58,21 @@ class StdPlugin : public Plugin
   TypeChecker& d_tc;
   /** type variable counter */
   size_t d_typeVarCounter;
-  /** The type of the emitted conjecture, set at construction. */
-  ConjectureType d_conjectureType;
-  /** The root directory containing the EOC plugin resources. */
+  /**
+   * The root directory containing the plugin resource files, i.e. the
+   * templates a plugin reads. Taken from ETHOS_PLUGIN_ROOT if set, else from
+   * the compile-time definition ETHOS_PLUGIN_SOURCE_DIR supplied by the build.
+   */
   static std::string s_plugin_path;
-  /** The root directory where generated EOC artifacts are written. */
+  /**
+   * The root directory where generated artifacts are written. Taken from
+   * ETHOS_PLUGIN_OUTPUT_DIR if set, else from the compile-time definition of
+   * the same name supplied by the build.
+   */
   static std::string s_plugin_output_path;
-  /** Determine the root containing the EOC plugin resources */
+  /** Determine the root containing the plugin resources */
   static std::string initializePluginPath();
-  /** Determine the default directory for generated EOC artifacts */
+  /** Determine the default directory for generated artifacts */
   static std::string initializePluginOutputPath();
   /** Get a path relative to the source resource root */
   static std::string getResourcePath(const std::string& relativePath);
@@ -89,17 +87,10 @@ class StdPlugin : public Plugin
   static bool optionSmtMetaUseTriggers();
   /** Whether to emit the conjecture in a form easy to debug via models. */
   static bool optionSmtMetaDebugConjecture();
-  /** The type of the emitted conjecture (VC or SyGuS). */
-  ConjectureType optionSmtMetaConjectureType() const;
   /** Whether to optimize SyGuS conjectures with a grammar. */
   static bool optionSmtMetaSygusGrammar();
   /** Whether the SyGuS grammar is designed to enumerate well-typed terms. */
   static bool optionSmtMetaSygusGrammarWellTyped();
-  /**
-   * Whether the VC requires the types of premises and the conclusion to be
-   * Bool to witness unsoundness.
-   */
-  static bool optionVcUseTypeof();
   /** Whether we emit typing for partial applications. */
   static bool optionEoTypeofHo();
   /** Whether we combine terms of the same type when defining eo::typeof. */

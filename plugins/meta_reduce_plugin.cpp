@@ -17,12 +17,17 @@
 namespace ethos {
 
 MetaReducePlugin::MetaReducePlugin(State& s, ConjectureType conjType)
-    : StdPlugin(s, conjType)
+    : StdPlugin(s), d_conjectureType(conjType)
 {
   initializeCommonMetaKinds();
 }
 
 MetaReducePlugin::~MetaReducePlugin() {}
+
+ConjectureType MetaReducePlugin::optionSmtMetaConjectureType() const
+{
+  return d_conjectureType;
+}
 
 void MetaReducePlugin::initializeCommonMetaKinds()
 {

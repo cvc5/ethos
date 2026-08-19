@@ -77,6 +77,6 @@ add_executable(ethos-eoc
 
 target_link_libraries(ethos-eoc ${LIBRARIES})
 target_compile_definitions(
-  ethos-eoc PRIVATE ETHOS_EOC_SOURCE_DIR="${ETHOS_ROOT}")
+  ethos-eoc PRIVATE ETHOS_PLUGIN_SOURCE_DIR="${ETHOS_ROOT}")
 target_compile_definitions(
-  ethos-eoc PRIVATE ETHOS_EOC_OUTPUT_DIR="${PROJECT_BINARY_DIR}/out")
+  ethos-eoc PRIVATE ETHOS_PLUGIN_OUTPUT_DIR="${PROJECT_BINARY_DIR}/out")

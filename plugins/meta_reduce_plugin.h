@@ -20,6 +20,15 @@
 
 namespace ethos {
 
+/** The kind of conjecture emitted by the meta-reduction backends. */
+enum class ConjectureType
+{
+  /** A verification condition, checked by an SMT solver. */
+  VC,
+  /** A syntax-guided synthesis conjecture. */
+  SYGUS
+};
+
 /**
  * Base class for the meta-reduction backends (SmtMetaReduce, LeanMetaReduce).
  * It implements the classification of the symbols of a (desugared) Eunoia
@@ -40,6 +49,8 @@ class MetaReducePlugin : public StdPlugin
   void bind(const std::string& name, const Expr& e) override;
 
  protected:
+  /** The type of the emitted conjecture (VC or SyGuS), set at construction. */
+  ConjectureType optionSmtMetaConjectureType() const;
   /** Get the name of e, or the empty string if e is not atomic. */
   static std::string getName(const Expr& e);
   /**
@@ -130,6 +141,8 @@ class MetaReducePlugin : public StdPlugin
   std::set<Expr> d_declSeen;
 
  private:
+  /** The type of the emitted conjecture, set at construction. */
+  ConjectureType d_conjectureType;
   /** Initialize the meta-kind maps shared by all backends. */
   void initializeCommonMetaKinds();
 };

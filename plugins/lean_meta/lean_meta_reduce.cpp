@@ -1697,7 +1697,7 @@ bool LeanMetaReduce::echo(const std::string& msg)
                     << eosc;
     }
     std::string progName = cleanId(eosc);
-    ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
+    ConjectureType ctype = MetaReducePlugin::optionSmtMetaConjectureType();
     if (ctype == ConjectureType::VC)
     {
       // ------------------ new

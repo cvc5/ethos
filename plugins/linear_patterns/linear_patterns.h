@@ -10,16 +10,14 @@
 #define LINEAR_PATTERNS_H
 
 #include <map>
-#include <set>
-#include <sstream>
-#include <string>
+#include <utility>
+#include <vector>
 
-#include "../std_plugin.h"
+#include "expr.h"
 
 namespace ethos {
 
 class State;
-class TypeChecker;
 
 /**
  * Utility for rewriting non-linear EO program patterns into linear patterns.
@@ -34,13 +32,9 @@ class TypeChecker;
  * The utility is exposed as static methods because callers typically need a
  * one-shot transformation of an already-built program definition.
  */
-class LinearPattern : public StdPlugin
+class LinearPattern
 {
  public:
-  /** Construct the linear-pattern utility plugin. */
-  LinearPattern(State& s);
-  /** Destroy the linear-pattern utility plugin. */
-  ~LinearPattern();
   /**
    * Linearize patterns in prog whose definition is progDef.
    * This returns a list of programs and their definitions that do
