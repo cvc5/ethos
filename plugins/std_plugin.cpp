@@ -114,13 +114,13 @@ void ensureDirectoryExists(const std::string& path)
 
 std::string StdPlugin::initializePluginPath()
 {
-  const char* envPath = std::getenv("ETHOS_EOC_ROOT");
+  const char* envPath = std::getenv("ETHOS_PLUGIN_ROOT");
   if (envPath != nullptr && envPath[0] != '\0')
   {
     return normalizeDirectory(envPath);
   }
-#ifdef ETHOS_EOC_SOURCE_DIR
-  return normalizeDirectory(ETHOS_EOC_SOURCE_DIR);
+#ifdef ETHOS_PLUGIN_SOURCE_DIR
+  return normalizeDirectory(ETHOS_PLUGIN_SOURCE_DIR);
 #else
   return std::string();
 #endif
@@ -128,13 +128,13 @@ std::string StdPlugin::initializePluginPath()
 
 std::string StdPlugin::initializePluginOutputPath()
 {
-  const char* envPath = std::getenv("ETHOS_EOC_OUTPUT_DIR");
+  const char* envPath = std::getenv("ETHOS_PLUGIN_OUTPUT_DIR");
   if (envPath != nullptr && envPath[0] != '\0')
   {
     return normalizeDirectory(envPath);
   }
-#ifdef ETHOS_EOC_OUTPUT_DIR
-  return normalizeDirectory(ETHOS_EOC_OUTPUT_DIR);
+#ifdef ETHOS_PLUGIN_OUTPUT_DIR
+  return normalizeDirectory(ETHOS_PLUGIN_OUTPUT_DIR);
 #else
   return std::string();
 #endif
@@ -172,17 +172,16 @@ std::string StdPlugin::s_plugin_path = StdPlugin::initializePluginPath();
 std::string StdPlugin::s_plugin_output_path =
     StdPlugin::initializePluginOutputPath();
 
-StdPlugin::StdPlugin(State& s)
-    : d_state(s), d_tc(s.getTypeChecker())
+StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
   d_typeVarCounter = 0;
   if (s_plugin_path.empty())
   {
-    EO_FATAL() << "StdPlugin: unable to determine EOC resource root";
+    EO_FATAL() << "StdPlugin: unable to determine the plugin resource root";
   }
   if (s_plugin_output_path.empty())
   {
-    EO_FATAL() << "StdPlugin: unable to determine EOC output root";
+    EO_FATAL() << "StdPlugin: unable to determine the plugin output root";
   }
 }
 

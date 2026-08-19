@@ -58,13 +58,21 @@ class StdPlugin : public Plugin
   TypeChecker& d_tc;
   /** type variable counter */
   size_t d_typeVarCounter;
-  /** The root directory containing the EOC plugin resources. */
+  /**
+   * The root directory containing the plugin resource files, i.e. the
+   * templates a plugin reads. Taken from ETHOS_PLUGIN_ROOT if set, else from
+   * the compile-time definition ETHOS_PLUGIN_SOURCE_DIR supplied by the build.
+   */
   static std::string s_plugin_path;
-  /** The root directory where generated EOC artifacts are written. */
+  /**
+   * The root directory where generated artifacts are written. Taken from
+   * ETHOS_PLUGIN_OUTPUT_DIR if set, else from the compile-time definition of
+   * the same name supplied by the build.
+   */
   static std::string s_plugin_output_path;
-  /** Determine the root containing the EOC plugin resources */
+  /** Determine the root containing the plugin resources */
   static std::string initializePluginPath();
-  /** Determine the default directory for generated EOC artifacts */
+  /** Determine the default directory for generated artifacts */
   static std::string initializePluginOutputPath();
   /** Get a path relative to the source resource root */
   static std::string getResourcePath(const std::string& relativePath);
