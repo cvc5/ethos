@@ -74,7 +74,7 @@ The script is a convenience wrapper around these commands. First configure and
 build generator mode:
 
 ```sh
-cmake -S . -B build/cpp-generator \
+cmake -S plugins/cpp_compiler -B build/cpp-generator \
   -DCMAKE_BUILD_TYPE=Release \
   -DETHOS_CPP_COMPILER_MODE=compiler
 cmake --build build/cpp-generator --target ethos --parallel
@@ -87,23 +87,24 @@ unambiguous:
 ```sh
 mkdir -p build/cpp-generated
 cd build/cpp-generated
-../cpp-generator/src/ethos /absolute/path/to/signature.eo
+../cpp-generator/bin/ethos /absolute/path/to/signature.eo
 cd ../..
 ```
 
 Then configure and build executor mode with the generated source:
 
 ```sh
-cmake -S . -B build/cpp-executor \
+cmake -S plugins/cpp_compiler -B build/cpp-executor \
   -DCMAKE_BUILD_TYPE=Release \
   -DETHOS_CPP_COMPILER_MODE=executor \
   -DETHOS_CPP_COMPILER_GENERATED_SOURCE="$PWD/build/cpp-generated/compiled.out.cpp"
 cmake --build build/cpp-executor --target ethos --parallel
-build/cpp-executor/src/ethos path/to/proof.eo
+build/cpp-executor/bin/ethos path/to/proof.eo
 ```
 
-The ordinary build remains unchanged: omitting
-`ETHOS_CPP_COMPILER_MODE` builds `ethos` without either plugin.
+The plugin owns this CMake configuration. The repository's root
+`CMakeLists.txt` and `src/CMakeLists.txt` remain unchanged from `main`, and the
+ordinary Ethos build does not see either plugin mode.
 
 ## Include handling and `markIncluded`
 
@@ -125,16 +126,19 @@ executor's skip decision explicit at the plugin boundary.
 
 - `compiler.{h,cpp}` records parser callbacks and writes `compiled.out.cpp`.
 - `executor.{h,cpp}` provides the runtime plugin API used by generated code.
-- `compiled.cpp` is an empty placeholder used only by the standalone plugin
-  compile check.
+- `CMakeLists.txt` provides the standalone generator and executor builds.
+- `compiled.cpp` is an empty generated-code placeholder for embedders that
+  want one.
 - `build_custom_ethos.sh` performs the complete two-stage custom build.
 
-The `plugins-compile-check` target compiles every plugin and runs a round-trip
-test that generates C++, compiles it, reconstructs parser state, verifies that
-the executor skips the source include, and confirms that program evaluation
-still falls back to the normal interpreter:
+The main build's `plugins-compile-check` deliberately excludes this plugin.
+The dedicated CI step invokes `build_custom_ethos.sh`, which generates C++,
+compiles it, reconstructs parser state, and verifies that the executor skips
+the source include. Run that same end-to-end check locally with:
 
 ```sh
-./configure.sh debug --werror
-cmake --build build --target plugins-compile-check --parallel
+plugins/cpp_compiler/build_custom_ethos.sh \
+  plugins/cpp_compiler/test/signature.eo /tmp/ethos-cpp-compiler debug
+/tmp/ethos-cpp-compiler/ethos \
+  plugins/cpp_compiler/test/signature.eo
 ```

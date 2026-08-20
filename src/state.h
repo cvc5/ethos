@@ -284,8 +284,6 @@ class State
   Plugin* getPlugin();
 
  private:
-  /** Mark a file as included. Return true if it was newly marked. */
-  bool markIncluded(const Filepath& s);
   /** Common constants */
   Expr d_null;
   Expr d_type;
@@ -300,6 +298,8 @@ class State
   Expr d_listCons;
   /** The proof type */
   Expr d_proofType;
+  /** Mark that file s was included */
+  bool markIncluded(const Filepath& s);
   /** mark deleted */
   void markDeleted(ExprValue* e);
   /**

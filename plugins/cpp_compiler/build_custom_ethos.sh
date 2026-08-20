@@ -54,7 +54,7 @@ executor_build="$output_dir/executor-build"
 generated_source="$output_dir/compiled.out.cpp"
 
 echo "[1/3] Building the signature compiler"
-cmake -S "$repo_root" -B "$generator_build" \
+cmake -S "$script_dir" -B "$generator_build" \
   -DCMAKE_BUILD_TYPE="$build_type" \
   -DETHOS_CPP_COMPILER_MODE=compiler
 cmake --build "$generator_build" --target ethos --parallel
@@ -62,17 +62,17 @@ cmake --build "$generator_build" --target ethos --parallel
 echo "[2/3] Generating $generated_source"
 (
   cd "$output_dir"
-  "$generator_build/src/ethos" "$signature_path"
+  "$generator_build/bin/ethos" "$signature_path"
 )
 
 echo "[3/3] Building ethos with the executor plugin"
-cmake -S "$repo_root" -B "$executor_build" \
+cmake -S "$script_dir" -B "$executor_build" \
   -DCMAKE_BUILD_TYPE="$build_type" \
   -DETHOS_CPP_COMPILER_MODE=executor \
   -DETHOS_CPP_COMPILER_GENERATED_SOURCE="$generated_source"
 cmake --build "$executor_build" --target ethos --parallel
 
-executor_binary="$executor_build/src/ethos"
+executor_binary="$executor_build/bin/ethos"
 binary_name=ethos
 if [[ ! -f "$executor_binary" && -f "$executor_binary.exe" ]]; then
   executor_binary="$executor_binary.exe"
