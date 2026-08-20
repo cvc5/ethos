@@ -1,0 +1,925 @@
+; This file defines the semantics of Eunoia operators that require calling
+; SMT-LIB like computations.
+
+; Embedding into native operators, which defines $native_*, $native_apply_* etc.
+(include "native_embed.eo")
+
+; In this signature, we heavily use references to the Datatypes corresponding
+; to the final deep embeddings of Eunoia terms (eo.Term).
+; Opaque arguments of a symbol X will be an argument of the constructor eo.X.
+; We introduce datatype constructors for this datatype ($emb_X).
+; It is important that we mark their arguments as :opaque, as this
+; correctly models the pattern matching in the smt-meta later.
+; Note that these datatypes will be renamed and replaced by their definitions
+; which is hardcoded into smt_meta.smt2.
+
+;;; Final deep embedding datatypes
+
+; Now, we introduce placeholders for the final deep embedding.
+
+; A Eunoia term.
+; This will be replaced by the datatype eo.Term in the final encoding.
+(declare-const $eo_Term Type)
+; Assumes that teq is defined to be equality over eo.Term
+(define $native_teq ((x1 $eo_Term) (x2 $eo_Term)) ($native_apply_2 "teq" x1 x2))
+; Assumes that thash is defined to be an arbitary function (-> eo.Term Int)
+(define $native_thash ((x1 $eo_Term)) ($native_apply_1 "thash" x1))
+(define $native_tcmp ((x1 $eo_Term) (x2 $eo_Term)) ($native_apply_2 "tcmp" x1 x2))
+
+; A datatype constructor
+(define $eo_DatatypeCons () ($native_embed_eo "DatatypeCons"))
+
+; A datatype
+(define $eo_Datatype () ($native_embed_eo "Datatype"))
+
+; A datatype declaration
+(define $eo_DatatypeDecl () ($native_embed_eo "DatatypeDecl"))
+
+;;; Eunoia datatype constructors
+
+; User terms
+(declare-parameterized-const $emb_UOp 
+  ((u ($native_type_0 "UserOp") :opaque)) $eo_Term)
+(define $eot_uop ((u ($native_type_0 "UserOp"))) ($emb_UOp u))
+(declare-parameterized-const $emb_UOp1 
+  ((u ($native_type_0 "UserOp1") :opaque) (t1 $eo_Term :opaque)) $eo_Term)
+(define $eot_uop1 ((u ($native_type_0 "UserOp")) (t1 $eo_Term)) 
+  ($emb_UOp1 u t1))
+(declare-parameterized-const $emb_UOp2 
+  ((u ($native_type_0 "UserOp2") :opaque) (t1 $eo_Term :opaque)
+   (t2 $eo_Term :opaque)) $eo_Term)
+(define $eot_uop2 ((u ($native_type_0 "UserOp")) (t1 $eo_Term) (t2 $eo_Term)) 
+  ($emb_UOp2 u t1 t2))
+(declare-parameterized-const $emb_UOp3 
+  ((u ($native_type_0 "UserOp3") :opaque) (t1 $eo_Term :opaque) 
+   (t2 $eo_Term :opaque) (t3 $eo_Term :opaque)) $eo_Term)
+(define $eot_uop3 
+  ((u ($native_type_0 "UserOp")) (t1 $eo_Term) (t2 $eo_Term) (t3 $eo_Term)) 
+  ($emb_UOp3 u t1 t2 t3))
+
+; The builtin Eunoia list.
+(declare-const $eo_List Type)
+(declare-const $eo_List_nil $eo_List)
+(declare-parameterized-const $eo_List_cons ((T Type :implicit))
+  (-> T $eo_List $eo_List))
+  
+; The Boolean type
+(declare-const $emb_Bool $eo_Term)
+(define $eot_Bool () $emb_Bool)
+
+; the literal types
+(declare-parameterized-const $emb_Boolean
+  ((b $native_Bool :opaque)) $eo_Term)
+(define $eot_bool ((x $native_Bool))
+  ($emb_Boolean x))
+
+(declare-parameterized-const $emb_Numeral
+  ((n $native_Int :opaque)) $eo_Term)
+(define $eot_numeral ((x $native_Int))
+  ($emb_Numeral x))
+
+(declare-parameterized-const $emb_Rational
+  ((r $native_Rat :opaque)) $eo_Term)
+(define $eot_rational ((x $native_Rat))
+  ($emb_Rational x))
+
+(declare-parameterized-const $emb_String
+  ((s $native_String :opaque)) $eo_Term)
+(define $eot_string ((x $native_String))
+  ($emb_String x))
+
+(declare-parameterized-const $emb_Binary
+  ((w $native_Int :opaque) (v $native_Int :opaque)) $eo_Term)
+; define: $eot_binary
+; note: >
+;   This should be used in pattern matching only, where it is assume that
+;   it will match "legal" binary values only.
+(define $eot_binary ((w $native_Int) (v $native_Int))
+  ($emb_Binary w v))
+
+; The type of types
+(declare-const $emb_Type $eo_Term)
+(define $eot_Type () $emb_Type)
+
+; The Eunoia representation of "stuckness".
+(declare-const $emb_Stuck $eo_Term)
+(define $eot_stuck () $emb_Stuck)
+
+; An application of a Eunoia term
+(declare-parameterized-const $emb_Apply
+  ((f $eo_Term :opaque) (a $eo_Term :opaque))
+  $eo_Term)
+(define $eot_apply ((x $eo_Term) (y $eo_Term)) ($emb_Apply x y))
+
+; Function type, which Eunoia function type reduces to
+(declare-parameterized-const $emb_FunType () $eo_Term)
+(define $eot_fun_type () $emb_FunType)
+
+; Represents a Eunoia variable in the final deep embedding.
+(declare-parameterized-const $emb_Var
+  ((s $eo_Term :opaque) (T $eo_Term :opaque))
+  $eo_Term)
+(define $eot_Var ((s $eo_Term) (T $eo_Term))
+  ($emb_Var s T))
+
+(declare-parameterized-const $emb_DatatypeType
+  ((s $native_String :opaque) (d $eo_DatatypeDecl :opaque))
+  $eo_Term)
+(define $eot_DatatypeType ((s $native_String) (d $eo_DatatypeDecl))
+  ($emb_DatatypeType s d))
+
+(declare-parameterized-const $emb_DatatypeTypeRef 
+  ((s $native_String :opaque))
+  $eo_Term)
+(define $eot_DatatypeTypeRef ((s $native_String))
+  ($emb_DatatypeTypeRef s))
+
+; The type of partially applied datatype constructors
+(declare-parameterized-const $emb_DtcAppType
+  ((Ti $eo_Term :opaque) (Te $eo_Term :opaque)) $eo_Term)
+(define $eot_DtcAppType ((Ti $eo_Term) (Te $eo_Term)) ($emb_DtcAppType Ti Te))
+
+; the ci^th constructor of datatype T.
+(declare-parameterized-const $emb_DtCons
+  ((s $native_String :opaque) (d $eo_DatatypeDecl :opaque)
+   (ci $native_Nat :opaque))
+  $eo_Term)
+(define $eot_DtCons
+  ((s $native_String) (d $eo_DatatypeDecl) (ci $native_Nat))
+  ($emb_DtCons s d ci))
+
+; the selector of the ai^th argument of the ci^th constructor of datatype T.
+(declare-parameterized-const $emb_DtSel
+  ((s $native_String :opaque) (d $eo_DatatypeDecl :opaque)
+   (ci $native_Nat :opaque) (ai $native_Nat :opaque))
+  $eo_Term)
+(define $eot_DtSel
+  ((s $native_String) (d $eo_DatatypeDecl) (ci $native_Nat)
+   (ai $native_Nat))
+  ($emb_DtSel s d ci ai))
+  
+; uninterpreted sorts
+(declare-parameterized-const $emb_USort ((n $native_Nat :opaque)) $eo_Term)
+(define $eot_USort ((n $native_Nat)) ($emb_USort n))
+  
+; uninterpreted constants
+(declare-parameterized-const $emb_UConst
+  ((n $native_Nat :opaque) (T $eo_Term :opaque))
+  $eo_Term)
+(define $eot_UConst
+  ((n $native_Nat) (T $eo_Term))
+  ($emb_UConst n T))
+
+;;; Constructors for SMT-LIB datatypes and datatype constructors
+
+; A constructor having no arguments
+(declare-const $emb_edtc.unit $eo_DatatypeCons)
+(define $edtc_unit () $emb_edtc.unit)
+
+; A constructor having at least one argument
+; It takes the type of that argument and a constructor specifying the remaining
+; arguments.
+(declare-parameterized-const $emb_edtc.cons
+  ((T $eo_Term :opaque) (c $eo_DatatypeCons :opaque))
+  $eo_DatatypeCons)
+(define $edtc_cons ((T $eo_Term) (c $eo_DatatypeCons))
+  ($emb_edtc.cons T c))
+
+; A datatype having no constructors
+(declare-const $emb_edt.null $eo_Datatype)
+(define $edt_null () $emb_edt.null)
+  
+; A datatype having at least one constructor
+(declare-parameterized-const $emb_edt.sum
+  ((c $eo_DatatypeCons :opaque) (d $eo_Datatype :opaque))
+  $eo_Datatype)
+(define $edt_sum ((c $eo_DatatypeCons) (d $eo_Datatype))
+  ($emb_edt.sum c d))
+
+; An empty datatype declaration
+(declare-const $emb_edd.nil $eo_DatatypeDecl)
+(define $edd_nil () $emb_edd.nil)
+  
+; A datatype declaration having at least one datatype
+(declare-parameterized-const $emb_edd.cons
+  ((s $native_String :opaque) (d $eo_Datatype :opaque) (dd $eo_DatatypeDecl :opaque))
+  $eo_DatatypeDecl)
+(define $edd_cons ((s $native_String) (d $eo_Datatype) (dd $eo_DatatypeDecl))
+  ($emb_edd.cons s d dd))
+  
+;;; Utilities
+
+; return: The embedding of (-> T1 T2).
+; note: Since the Eunoia function type is an atomic term, this becomes a
+;       curried apply.
+(define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term))
+  ($eot_apply ($eot_apply $eot_fun_type T1) T2))
+
+; note: This definition is only used if we are not eagerly flattening evaluation
+; This ensures that stuckness "propagates" through ordinary constant applications.
+(program $eo_mk_apply ((x1 $eo_Term) (x2 $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_mk_apply x1 x2) ($eot_apply x1 x2))
+  )
+)
+
+;;; Defining parametric bitvector operators
+
+; The operators in this section are needed to reason about the parametric
+; operations on the Eunoia binary literal type.
+
+; define: $eo_empty_binary
+(define $eo_empty_binary ()
+  ($eot_binary $native_z_zero $native_z_zero))
+
+; note: Assumes 0 <= w, makes n legal. We cannot handle errors with
+;       w here since we cannot return stuckness.
+(define $eo_binary_mod_w ((w $native_Int) (n $native_Int))
+  ($eot_binary w ($native_mod_total n ($native_z_pow2 w))))
+
+; program: $eo_mk_binary
+; return: >
+;   A "legal" binary value ($eo_mk_binary w n1), where 0 <= n1 < 2^w, n1 is
+;   congruent mod 2^w to n if w is positive, or stuck otherwise.
+; note: >
+;   All binaries considered by Eunoia should run through this method to ensure
+;   they are legal. We alternatively use ($eo_binary_mod_w w n) if
+;   we are sure that w is legal but not n.
+(program $eo_mk_binary ((w $native_Int) (n $native_Int))
+  :signature ($native_Int $native_Int) $eo_Term
+  (
+  (($eo_mk_binary w n)
+    ($native_ite ($native_z_<= $native_z_zero w)
+      ($eo_binary_mod_w w n)  ; ensure that n is legal
+      $eot_stuck))
+  )
+)
+
+;;;;;; Eunoia builtin
+
+(program $eo_typeof () :signature ($eo_Term) $eo_Term)
+
+; We are now ready to define the builtins of Eunoia.
+; We define all the Eunoia builtins here that are best to
+; define in terms of SMT-LIB operators.
+
+;;; Is okay
+
+; Returns SMT-LIB builtin true/false if x is stuck
+(define $native_is_ok ((x $eo_Term))
+  ($native_not ($native_teq x $eot_stuck)))
+
+; program: $eo_is_ok
+; implements: eo::is_ok
+(define $eo_is_ok ((x $eo_Term))
+  ($eot_bool ($native_is_ok x)))
+
+; program: $eo_ite
+; implements: eo::ite
+; note: This definition is only used if we are not eagerly flattening evaluation
+(define $eo_ite ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
+  ($native_ite ($native_teq x1 true)
+    x2
+  ($native_ite ($native_teq x1 false)
+    x3
+    $eot_stuck)))
+
+; program: $eo_requires
+; implements: eo::requires
+; note: This definition is only used if we are not eagerly flattening evaluation
+(define $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
+  ($native_ite ($native_teq x1 x2)
+    ($native_ite ($native_is_ok x1) x3 $eot_stuck)
+    $eot_stuck))
+
+;;; Boolean operators
+
+; program: $eo_not
+; implements: eo::not
+(program $eo_not ((T Type) (b $native_Bool) (w $native_Int) (n $native_Int))
+  :signature (T) T
+  (
+  (($eo_not ($eot_bool b))     ($eot_bool ($native_not b)))
+  (($eo_not ($eot_binary w n)) ($eo_binary_mod_w w ($native_binary_not w n)))
+  )
+)
+
+; program: $eo_and
+; implements: eo::and
+(program $eo_and
+  ((T Type) (b1 $native_Bool) (b2 $native_Bool)
+   (w1 $native_Int) (w2 $native_Int)
+   (n1 $native_Int) (n2 $native_Int))
+  :signature (T T) T
+  (
+  (($eo_and ($eot_bool b1) ($eot_bool b2))
+     ($eot_bool ($native_and b1 b2)))
+  (($eo_and ($eot_binary w1 n1) ($eot_binary w2 n2))
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
+      ($eo_binary_mod_w w1 ($native_binary_and w1 n1 n2))))
+  )
+)
+
+; program: $eo_or
+; implements: eo::or
+(program $eo_or
+  ((T Type) (b1 $native_Bool) (b2 $native_Bool)
+   (w1 $native_Int) (w2 $native_Int)
+   (n1 $native_Int) (n2 $native_Int))
+  :signature (T T) T
+  (
+  (($eo_or ($eot_bool b1) ($eot_bool b2))
+     ($eot_bool ($native_or b1 b2)))
+  (($eo_or ($eot_binary w1 n1) ($eot_binary w2 n2))
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
+     ($eo_binary_mod_w w1 ($native_binary_or w1 n1 n2))))
+  )
+)
+
+; program: $eo_xor
+; implements: eo::xor
+(program $eo_xor
+  ((T Type) (b1 $native_Bool) (b2 $native_Bool)
+   (w1 $native_Int) (w2 $native_Int)
+   (n1 $native_Int) (n2 $native_Int))
+  :signature (T T) T
+  (
+  (($eo_xor ($eot_bool b1) ($eot_bool b2))
+     ($eot_bool ($native_apply_2 "xor" b1 b2)))
+  (($eo_xor ($eot_binary w1 n1) ($eot_binary w2 n2))
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
+     ($eo_binary_mod_w w1 ($native_binary_xor w1 n1 n2))))
+  )
+)
+
+;;; Arithmetic operators
+
+; program: $eo_add
+; implements: eo::add
+(program $eo_add
+  ((T Type) (w1 $native_Int) (w2 $native_Int)
+   (n1 $native_Int) (n2 $native_Int) (r1 $native_Rat) (r2 $native_Rat))
+  :signature (T T) T
+  (
+  (($eo_add ($eot_numeral n1) ($eot_numeral n2))
+    ($eot_numeral ($native_z_+ n1 n2)))
+  (($eo_add ($eot_rational r1) ($eot_rational r2))
+    ($eot_rational ($native_q_+ r1 r2)))
+  (($eo_add ($eot_binary w1 n1) ($eot_binary w2 n2))
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
+      ($eo_binary_mod_w w1 ($native_z_+ n1 n2))))  ; don't need to recheck bitwidth
+  )
+)
+
+; program: $eo_mul
+; implements: eo::mul
+(program $eo_mul
+  ((T Type) (w1 $native_Int) (w2 $native_Int)
+   (n1 $native_Int) (n2 $native_Int) (r1 $native_Rat) (r2 $native_Rat))
+  :signature (T T) T
+  (
+  (($eo_mul ($eot_numeral n1) ($eot_numeral n2))
+    ($eot_numeral ($native_z_* n1 n2)))
+  (($eo_mul ($eot_rational r1) ($eot_rational r2))
+    ($eot_rational ($native_q_* r1 r2)))
+  (($eo_mul ($eot_binary w1 n1) ($eot_binary w2 n2))
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
+      ($eo_binary_mod_w w1 ($native_z_* n1 n2))))
+  )
+)
+
+; program: $eo_pow
+; implements: eo::pow
+(program $eo_pow
+  ((T Type) (n1 $native_Int) (n2 $native_Int) (r1 $native_Rat) (r2 $native_Rat))
+  :signature (T Int) T
+  (
+  (($eo_pow ($eot_numeral n1) ($eot_numeral n2))
+    ($eot_numeral ($native_z_**_total n1 n2)))
+  (($eo_pow ($eot_rational r1) ($eot_numeral n2))
+    ($eot_rational ($native_q_**_total r1 n2)))
+  )
+)
+
+; program: $eo_log
+; implements: eo::log
+; note: >
+;   The base (first argument) must be a numeral; a rational base is stuck. The
+;   value (second argument) is floored to an integer, so a rational value is
+;   first converted via to_int. The result is computed by $native_z_log, which
+;   is the (rounded-down) integer inverse of $eo_pow and is never negative.
+(program $eo_log
+  ((n1 $native_Int) (n2 $native_Int) (r2 $native_Rat))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_log ($eot_numeral n1) ($eot_numeral n2))
+    ($eot_numeral ($native_z_log n1 n2)))
+  (($eo_log ($eot_numeral n1) ($eot_rational r2))
+    ($eot_numeral ($native_z_log n1 ($native_apply_1 "to_int" r2))))
+  )
+)
+
+(program $eo_qdiv
+  ((T Type) (n1 $native_Int) (n2 $native_Int)
+   (r1 $native_Rat) (r2 $native_Rat))
+  :signature (T T) $eo_Term
+  (
+  (($eo_qdiv ($eot_numeral n1) ($eot_numeral n2))
+    ($native_ite ($native_z_= $native_z_zero n2)
+      $eot_stuck
+      ($eot_rational ($native_z_/_total n1 n2))))
+  (($eo_qdiv ($eot_rational r1) ($eot_rational r2))
+    ($native_ite ($native_q_= $native_q_zero r2)
+      $eot_stuck
+      ($eot_rational ($native_q_/_total r1 r2))))
+  )
+)
+
+
+(program $eo_zdiv
+  ((T Type) (w1 $native_Int) (w2 $native_Int)
+   (n1 $native_Int) (n2 $native_Int))
+  :signature (T T) T
+  (
+  (($eo_zdiv ($eot_numeral n1) ($eot_numeral n2))
+    ($native_ite ($native_z_= $native_z_zero n2)
+      $eot_stuck
+      ($eot_numeral ($native_div_total n1 n2))))
+  (($eo_zdiv ($eot_binary w1 n1) ($eot_binary w2 n2))
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
+      ($native_ite ($native_z_= $native_z_zero n2)
+        ($eot_binary w1 ($native_binary_max w1))
+        ($eo_binary_mod_w w1 ($native_div_total n1 n2)))))
+  )
+)
+
+(program $eo_zmod
+  ((T Type) (w1 $native_Int) (w2 $native_Int)
+   (n1 $native_Int) (n2 $native_Int))
+  :signature (T T) T
+  (
+  (($eo_zmod ($eot_numeral n1) ($eot_numeral n2))
+    ($native_ite ($native_z_= $native_z_zero n2)
+      $eot_stuck
+      ($eot_numeral ($native_mod_total n1 n2))))
+  (($eo_zmod ($eot_binary w1 n1) ($eot_binary w2 n2))
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
+      ($native_ite ($native_z_= $native_z_zero n2)
+        ($eot_binary w1 n1)
+        ($eo_binary_mod_w w1 ($native_mod_total n1 n2)))))
+  )
+)
+
+(program $eo_is_neg ((T Type) (n1 $native_Int) (r1 $native_Rat))
+  :signature (T) Bool
+  (
+  (($eo_is_neg ($eot_numeral n1))   ($eot_bool ($native_z_< n1 $native_z_zero)))
+  (($eo_is_neg ($eot_rational r1))  ($eot_bool ($native_q_< r1 $native_q_zero)))
+  )
+)
+
+; program: $eo_neg
+; implements: eo::neg
+(program $eo_neg ((T Type) (w $native_Int) (n1 $native_Int) (r1 $native_Rat))
+  :signature (T) T
+  (
+  (($eo_neg ($eot_numeral n1))  ($eot_numeral ($native_z_uneg n1)))
+  (($eo_neg ($eot_rational r1)) ($eot_rational ($native_q_uneg r1)))
+  (($eo_neg ($eot_binary w n1)) ($eo_binary_mod_w w ($native_z_uneg n1)))
+  )
+)
+
+
+;;; String operators
+
+; program: $eo_len
+; implements: eo::len
+(program $eo_len ((T Type) (s1 $native_String) (w $native_Int) (n1 $native_Int))
+  :signature (T) $eo_Term
+  (
+  (($eo_len ($eot_string s1))   ($eot_numeral ($native_apply_1 "str.len" s1)))
+  (($eo_len ($eot_binary w n1)) ($eot_numeral w))
+  )
+)
+
+; program: $eo_concat
+; implements: eo::concat
+(program $eo_concat
+  ((w1 $native_Int) (n1 $native_Int) (w2 $native_Int) (n2 $native_Int)
+   (s1 $native_String) (s2 $native_String))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_concat ($eot_string s1) ($eot_string s2))
+     ($eot_string ($native_apply_2 "str.++" s1 s2)))
+  (($eo_concat ($eot_binary w1 n1) ($eot_binary w2 n2))
+     ($eo_mk_binary ($native_z_+ w1 w2) ($native_binary_concat w1 n1 w2 n2)))
+  )
+)
+
+; program: $eo_extract
+; implements: eo::extract
+(program $eo_extract
+  ((s1 $native_String) (w $native_Int) (n1 $native_Int) (n2 $native_Int) (n3 $native_Int))
+  :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_extract ($eot_string s1) ($eot_numeral n2) ($eot_numeral n3))
+     ($eot_string ($native_apply_3 "str.substr" s1 n2 ($native_z_inc ($native_z_- n3 n2)))))
+  (($eo_extract ($eot_binary w n1) ($eot_numeral n2) ($eot_numeral n3))
+    (eo::define ((nw ($native_z_- n3 n2)))
+    ($native_ite ($native_or ($native_z_< n2 $native_z_zero) ($native_z_< nw $native_z_zero))
+      $eo_empty_binary
+      ($eo_mk_binary
+        ($native_z_inc nw)
+        ($native_binary_extract w n1 n3 n2)))))
+  )
+)
+
+; program: $eo_find
+; implements: eo::find
+(program $eo_find ((s1 $native_String) (s2 $native_String))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_find ($eot_string s1) ($eot_string s2))
+     ($eot_numeral ($native_apply_3 "str.indexof" s1 s2 $native_z_zero)))
+  )
+)
+
+;;; Conversion operators
+
+; program: $eo_to_z
+; implements: eo::to_z
+(program $eo_to_z ((n1 $native_Int) (r1 $native_Rat) (s1 $native_String) (w $native_Int))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_to_z ($eot_numeral n1))   ($eot_numeral n1))
+  (($eo_to_z ($eot_rational r1))  ($eot_numeral ($native_apply_1 "to_int" r1)))
+  (($eo_to_z ($eot_string s1))
+    ($native_ite
+      ($native_z_= $native_z_one ($native_apply_1 "str.len" s1))
+      ($eot_numeral ($native_apply_1 "str.to_code" s1))
+      $eot_stuck))
+  (($eo_to_z ($eot_binary w n1))     ($eot_numeral n1))
+  )
+)
+
+; program: $eo_to_q
+; implements: eo::to_q
+(program $eo_to_q ((n1 $native_Int) (r1 $native_Rat) (s1 $native_String) (w $native_Int))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_to_q ($eot_numeral n1))   ($eot_rational ($native_apply_1 "to_real" n1)))
+  (($eo_to_q ($eot_rational r1))  ($eot_rational r1))
+  )
+)
+
+; program: $eo_to_bin
+; implements: eo::to_bin
+(program $eo_to_bin ((w $native_Int) (w1 $native_Int) (n1 $native_Int))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_to_bin ($eot_numeral w) ($eot_numeral n1))
+    ; the upper bound is enforced here
+    ($native_ite ($native_z_<= w $native_z_max_width)
+      ($eo_mk_binary w n1)
+      $eot_stuck))
+  (($eo_to_bin ($eot_numeral w) ($eot_binary w1 n1))
+    ; the upper bound is enforced here
+    ($native_ite ($native_z_<= w $native_z_max_width)
+      ($eo_mk_binary w n1)
+      $eot_stuck))
+  )
+)
+
+; program: $eo_to_str
+; implements: eo::to_str
+(program $eo_to_str ((n1 $native_Int) (s1 $native_String))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_to_str ($eot_numeral n1))
+    ($native_ite
+      ($native_and ($native_z_<= $native_z_zero n1) ($native_z_< n1 $native_z_max_code))
+      ($eot_string ($native_apply_1 "str.from_code" n1))
+      $eot_stuck))
+  (($eo_to_str ($eot_string s1)) ($eot_string s1))
+  ; TODO: technically others here
+  )
+)
+
+;;; Testers
+
+;;; $eo_is_eq
+
+;;; $eo_eq
+
+; program: $eo_eq
+; implements: eo::eq
+(program $eo_eq ((t $eo_Term) (s $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_eq t s) ($eot_bool ($native_teq s t)))
+  )
+)
+
+; Returns true if t and s are equivalent values (ground and fully evaluated).
+; define: $eo_is_eq
+; implements: eo::is_eq
+(define $eo_is_eq ((t $eo_Term) (s $eo_Term))
+  ($eot_bool ($native_apply_nary_3 "and"
+    ($native_is_ok t)
+    ($native_is_ok s)
+    ($native_teq s t))))
+
+;;; $eo_is_bool
+
+; Returns true if x is a Boolean literal.
+(program $eo_is_bool_internal ((x $eo_Term) (b $native_Bool))
+  :signature ($eo_Term) Bool
+  (
+  (($eo_is_bool_internal ($eot_bool b))  true)
+  (($eo_is_bool_internal x)                false)
+  )
+)
+
+; Returns true if x is a Boolean literal.
+; define: $eo_is_bool
+; implements: eo::is_bool
+(define $eo_is_bool ((t $eo_Term))
+  ($eot_bool ($native_and ($native_is_ok t)
+    ($native_teq ($eo_is_bool_internal t) true))))
+
+;;; $eo_is_z
+
+; Returns true if x is a numeral literal.
+(program $eo_is_z_internal ((x $eo_Term) (n $native_Int))
+  :signature ($eo_Term) Bool
+  (
+  (($eo_is_z_internal ($eot_numeral n))  true)
+  (($eo_is_z_internal x)                false)
+  )
+)
+
+; Returns true if x is a numeral literal.
+; define: $eo_is_z
+; implements: eo::is_z
+(define $eo_is_z ((t $eo_Term))
+  ($eot_bool ($native_and ($native_is_ok t)
+    ($native_teq ($eo_is_z_internal t) true))))
+
+;;; $eo_is_q
+
+; Returns true if x is a rational literal.
+(program $eo_is_q_internal ((x $eo_Term) (r $native_Rat))
+  :signature ($eo_Term) Bool
+  (
+  (($eo_is_q_internal ($eot_rational r))  true)
+  (($eo_is_q_internal x)                 false)
+  )
+)
+
+; Returns true if x is a rational literal.
+; define: $eo_is_q
+; implements: eo::is_q
+(define $eo_is_q ((t $eo_Term))
+  ($eot_bool ($native_and ($native_is_ok t)
+    ($native_teq ($eo_is_q_internal t) true))))
+
+
+;;; $eo_is_bin
+
+; Returns true if x is a binary literal.
+(program $eo_is_bin_internal ((x $eo_Term) (w $native_Int) (n $native_Int))
+  :signature ($eo_Term) Bool
+  (
+  (($eo_is_bin_internal ($eot_binary w n))  true)
+  (($eo_is_bin_internal x)                 false)
+  )
+)
+
+; Returns true if x is a binary literal.
+; define: $eo_is_bin
+; implements: eo::is_bin
+(define $eo_is_bin ((t $eo_Term))
+  ($eot_bool ($native_and ($native_is_ok t)
+    ($native_teq ($eo_is_bin_internal t) true))))
+
+;;; $eo_is_str
+
+; Returns true if x is a string literal.
+(program $eo_is_str_internal ((x $eo_Term) (s $native_String))
+  :signature ($eo_Term) Bool
+  (
+  (($eo_is_str_internal ($eot_string s)) true)
+  (($eo_is_str_internal x)                 false)
+  )
+)
+
+; Returns true if x is a string literal.
+; define: $eo_is_str
+; implements: eo::is_str
+(define $eo_is_str ((t $eo_Term))
+  ($eot_bool ($native_and ($native_is_ok t)
+    ($native_teq ($eo_is_str_internal t) true))))
+
+;;; Derived arithmetic
+
+; final-decl: $smtx_hash
+; note: this is defined axiomatically in the final smt2 encoding.
+(program $smtx_hash ((T Type)) :signature (T) $native_Int)
+
+; program: $eo_hash
+; implements: eo::hash
+; note: this invokes the underconstrained function above as an oracle.
+(program $eo_hash ((T Type) (t T))
+  :signature (T) $eo_Term
+  (
+  (($eo_hash t) ($eot_numeral ($native_thash t)))
+  )
+)
+
+; final-decl: $eo_reverse_hash
+; note: this is the inverse of $smtx_hash, which will be defined axiomatically.
+(program $eo_reverse_hash () :signature ($native_Int) $eo_Term)
+
+; The SMT-LIB comparison of two Eunoia or SMT-LIB terms.
+(define $smtx_cmp ((T Type :implicit) (a T) (b T))
+  ($native_z_<= ($smtx_hash a) ($smtx_hash b)))
+
+
+;;; $eo_gt
+
+; Compare arithmetic greater than. Assumes x and y are values.
+; Returns true if x > y.
+; define: $eo_gt
+; implements: eo::gt
+(program $eo_gt
+  ((T Type) (w1 $native_Int) (w2 $native_Int)
+   (n1 $native_Int) (n2 $native_Int) (r1 $native_Rat) (r2 $native_Rat))
+  :signature (T T) Bool
+  (
+  (($eo_gt ($eot_numeral n1) ($eot_numeral n2)) ($eot_bool ($native_z_< n2 n1)))
+  (($eo_gt ($eot_rational r1) ($eot_rational r2)) ($eot_bool ($native_q_< r2 r1)))
+  (($eo_gt ($eot_binary w1 n1) ($eot_binary w2 n2))
+    (eo::requires ($eot_numeral w1) ($eot_numeral w2)
+      ($eot_bool ($native_z_< n2 n1))))
+  )
+)
+
+;;; $eo_cmp
+
+; An arbitrary deterministic comparison of terms. Returns true if a > b based
+; on this ordering.
+; define: $eo_cmp
+; implements: eo::cmp
+(program $eo_cmp ((a $eo_Term) (b $eo_Term))
+  :signature ($eo_Term $eo_Term) Bool
+  (
+  (($eo_cmp a b) ($eot_bool ($native_tcmp a b)))
+  )
+)
+
+;;; since eo_typeof depends on literal predicates, typeof is only now ready.
+
+; program: $eo_var
+; implements: eo::var
+(define $eo_var ((s $eo_Term) (T $eo_Term)) 
+  ($eot_Var s T))
+
+; program: $eo_nameof
+; implements: eo::nameof
+(program $eo_nameof ((s $native_String) (T $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_nameof ($eot_Var s T)) s)
+  )
+)
+
+; Returns true if x is a variable.
+; define: $eo_is_var
+; implements: eo::is_var
+(define $eo_is_var ((x $eo_Term))
+  ($eo_is_eq ($eo_var ($eo_nameof x) ($eo_typeof x)) x))
+
+; forward declarations for literal type rules
+(program $eo_lit_type_Numeral ((T Type)) :signature (T) Type)
+(program $eo_lit_type_Rational ((T Type)) :signature (T) Type)
+(program $eo_lit_type_Binary ((T Type)) :signature (T) Type)
+(program $eo_lit_type_String ((T Type)) :signature (T) Type)
+
+
+; forward declaration
+
+(program $eo_dtc_resolve
+  ((s $native_String) (T $eo_Term) (c $eo_DatatypeCons) (dd $eo_DatatypeDecl))
+  :signature ($eo_DatatypeCons $eo_DatatypeDecl) $eo_DatatypeCons
+  (
+  (($eo_dtc_resolve ($edtc_cons ($eot_DatatypeTypeRef s) c) dd)
+    ($edtc_cons ($eot_DatatypeType s dd) ($eo_dtc_resolve c dd)))
+  (($eo_dtc_resolve ($edtc_cons T c) dd)
+    ($edtc_cons T ($eo_dtc_resolve c dd)))
+  (($eo_dtc_resolve $edtc_unit dd) $edtc_unit)
+  )
+)
+
+(program $eo_dt_resolve
+  ((d $eo_Datatype) (c $eo_DatatypeCons) (dd $eo_DatatypeDecl))
+  :signature ($eo_Datatype $eo_DatatypeDecl) $eo_Datatype
+  (
+  (($eo_dt_resolve ($edt_sum c d) dd)
+    ($edt_sum ($eo_dtc_resolve c dd) ($eo_dt_resolve d dd)))
+  (($eo_dt_resolve $edt_null dd) $edt_null)
+  )
+)
+
+(program $eo_dd_lookup
+  ((s $native_String) (s2 $native_String) (d $eo_Datatype) (c $eo_DatatypeCons) 
+   (dd $eo_DatatypeDecl))
+  :signature ($native_String $eo_DatatypeDecl) $eo_Datatype
+  (
+  (($eo_dd_lookup s ($edd_cons s2 d dd))
+    ($native_ite ($native_str_= s s2) d ($eo_dd_lookup s dd)))
+  (($eo_dd_lookup s $edd_nil) $edt_null)
+  )
+)
+  
+(program $eo_dd_resolve
+  ((s $native_String) (dd $eo_DatatypeDecl))
+  :signature ($native_String $eo_DatatypeDecl) $eo_Datatype
+  (
+  (($eo_dd_resolve s dd) ($eo_dt_resolve ($eo_dd_lookup s dd) dd))
+  )
+)
+
+; fwd-decl: $eo_dt_constructors_main
+; note: This method returns the constructors for all user defined terms.
+(program $eo_dt_constructors_main () :signature (Type) $eo_List)
+
+(program $eo_datatype_constructors_rec
+  ((s $native_String) (dd $eo_DatatypeDecl) (c $eo_DatatypeCons)
+   (d2 $eo_Datatype) (i $native_Nat))
+  :signature ($native_String $eo_DatatypeDecl $eo_Datatype $native_Nat) $eo_List
+  (
+  (($eo_datatype_constructors_rec s dd ($edt_sum c d2) i)
+    ($eo_List_cons ($eot_DtCons s dd i)
+      ($eo_datatype_constructors_rec s dd d2 ($native_n_succ i))))
+  ; assumes d2 is $edt_null
+  (($eo_datatype_constructors_rec s dd d2 i) $eo_List_nil)
+  )
+)
+
+; program: $eo_dt_constructors
+; implements: eo::dt_constructors
+(program $eo_dt_constructors
+  ((s $native_String) (dd $eo_DatatypeDecl) (T $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  ; a user-defined datatype
+  (($eo_dt_constructors ($eot_DatatypeType s dd))
+    ($eo_datatype_constructors_rec s dd ($eo_dd_lookup s dd) $native_n_zero))
+  ; otherwise, a datatype declared in the signature
+  (($eo_dt_constructors T) ($eo_dt_constructors_main T))
+  )
+)
+
+; fwd-decl: $eo_dt_selectors_main
+; note: This method returns the constructors for all user defined terms.
+(program $eo_dt_selectors_main ((T Type)) :signature (T) $eo_List)
+
+(program $eo_datatype_cons_selectors_rec
+  ((s $native_String) (dd $eo_DatatypeDecl) (n $native_Nat)
+   (U $eo_Term) (c $eo_DatatypeCons) (d2 $eo_Datatype)
+   (ci $native_Nat) (ai $native_Nat))
+  :signature ($native_String $eo_DatatypeDecl $native_Nat $eo_Datatype $native_Nat $native_Nat) $eo_List
+  (
+  (($eo_datatype_cons_selectors_rec s dd n ($edt_sum $edtc_unit d2) $native_n_zero ai)
+     $eo_List_nil)
+  (($eo_datatype_cons_selectors_rec s dd n ($edt_sum ($edtc_cons U c) d2) $native_n_zero ai)
+    ($eo_List_cons ($eot_DtSel s dd n ai)
+      ($eo_datatype_cons_selectors_rec s dd n ($edt_sum c d2) $native_n_zero ($native_n_succ ai))))
+  (($eo_datatype_cons_selectors_rec s dd n ($edt_sum c d2) ($native_n_succ ci) ai)
+    ($eo_datatype_cons_selectors_rec s dd n d2 ci ai))
+  )
+)
+
+; program: $eo_dt_selectors
+; implements: eo::dt_selectors
+(program $eo_dt_selectors 
+  ((s $native_String) (dd $eo_DatatypeDecl) (n $native_Nat) (t $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  ; a constructor of a user-defined datatype
+  (($eo_dt_selectors ($eot_DtCons s dd n))
+    ($eo_datatype_cons_selectors_rec s dd n ($eo_dd_resolve s dd) n $native_n_zero))
+  ; otherwise, a datatype constructor declared in the signature
+  (($eo_dt_selectors t) ($eo_dt_selectors_main t))
+  )
+)
+
+;;; further helpers
+
+(program $eo_is_bool_type ((T Type) (x T))
+  :signature (T) Bool
+  (
+  (($eo_is_bool_type x) ($eo_eq ($eo_typeof x) Bool))
+  )
+)

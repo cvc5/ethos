@@ -1,0 +1,660 @@
+; This file is used for bootstrapping the semantics of Eunoia.
+; We use a naming convention where eo:: operators are defined as ordinary
+; programs with prefix $eo_. We additionally setup further desugaring
+; to be done in later stages. Overall, this includes:
+; 1. Definition of the builtin Eunoia list.
+; 2. A definition of $eo_eq.
+; 3. Definition of derived list operators.
+; 4. Definition of $eo_cons and (a template for) $eo_nil.
+; 5. Definition of a template of $eo_typeof_main, which is used in
+;    part to define $eo_typeof.
+; 6. Templates for $eo_dt_constructors_main and $eo_dt_selectors_main, which are
+;    used to define $eo_dt_constructors and $eo_dt_selectors.
+; 7. A placeholder command echo "include eo_desugar_native" to specify
+;    where further eo:: builtins should be defined.
+; 8. Placeholders for defining a test environment for analyzing properties
+;    of proof rules ($eo_model_eval/$eo_model_typeof/$eo_model_is_input).
+; This file contains templates $EO_*$ which are automatically filled in
+; by user definitions. This includes:
+; 1. The literal type definitions (EO_LITERAL_TYPE_DECL).
+; 2. All user declarations, programs and definitions (EO_DEFS). A definition
+;    whose name does not itself begin with $ is emitted under the $parse_
+;    prefix, since it was already inlined and is kept only so that later stages
+;    can compile it for the generated proof parser.
+; 3. Cases of $eo_dt_constructors_main, $eo_dt_selectors_main, $eo_nil,
+;    $eo_typeof_main.
+; 4. A verification condition (EO_VC).
+
+; Parser metadata is carried as echo commands because the declarations emitted
+; by this stage intentionally omit their original desugaring attributes.
+$EO_LEAN_PARSER_METADATA$
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; proofs
+
+; The return type of proof rules.
+(declare-const $eo_Proof Type)
+; Constructor of proofs, takes a formula that is proven.
+(declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; literal types
+
+$EO_LITERAL_TYPE_DECL$
+
+;;; $eo_List
+
+;;; forward declarations
+
+; forward declaration
+(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
+  :signature ((-> T U V) (eo::quote W)) W)
+
+; forward declaration
+(program $eo_is_list_nil ((T Type) (V Type))
+  :signature ((-> T V V) V) Bool)
+
+;;; core utilities
+
+; The methods in this section are temporary definitions to eliminate
+; dependencies on other builtin constructs.
+
+; note: This is used to ensure signature does not depend on ite.
+(program $eo_prepend_if ((T Type) (V Type) (x T) (f (-> T V V)) (res V))
+  :signature (Bool (-> T V V) V V) V
+  (
+  (($eo_prepend_if true f x res)  (f x res))
+  (($eo_prepend_if false f x res) res)
+  )
+)
+
+;;; Core SMT-like builtins
+
+; We use a "lazy" include style that allows this file to
+; be parsable without including the file.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; eo_desugar_native
+
+; This will contain the definitions of eo::add, etc.
+; It is (for now) specific to a deep embedding into SMT.
+(include "eo_desugar_native.eo")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; desugar core
+
+;;;;;; List operators
+
+;;; $eo_is_list
+
+; Note: a helper for $eo_is_list.
+(program $eo_get_nil_rec
+  ((T Type) (U Type) (V Type)
+   (f (-> T V V)) (g (-> T V V)) (x T) (y V) (nil V))
+  :signature ((-> T V V) V) Bool
+  (
+  (($eo_get_nil_rec f (g x y)) (eo::requires f g ($eo_get_nil_rec f y)))
+  (($eo_get_nil_rec f nil)     (eo::requires ($eo_is_list_nil f nil) true nil))
+  )
+)
+
+; Note: >
+;   This does not correspond to a builtin operator. It is used as a helper
+;   to define the preconditions for most of the operators below.
+(program $eo_is_list
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x V))
+  :signature ((-> T U V) V) Bool
+  (
+  (($eo_is_list f x) (eo::is_ok ($eo_get_nil_rec f x)))
+  )
+)
+
+;;; $eo_cons
+
+; define: $eo_cons
+; implements: eo::cons
+(define $eo_cons
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (W1 Type :implicit) (W2 Type :implicit)
+   (f (-> T U V)) (e W1) (a W2))
+  (eo::requires ($eo_is_list f a) true (f e a)))
+
+;;; $eo_get_elements
+
+; Note: a helper for $eo_get_elements.
+(program $eo_get_elements_rec
+  ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
+   (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
+  :signature (X) $eo_List
+  (
+  (($eo_get_elements_rec (f x y)) ($eo_List_cons x ($eo_get_elements_rec y)))
+  (($eo_get_elements_rec nil)     $eo_List_nil)
+  )
+)
+
+; Note: >
+;   This does not correspond to a builtin operator. It is used as a helper
+;   to define eo_list_minclude below.
+(define $eo_get_elements
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_get_elements_rec a)))
+
+;;; $eo_list_len
+
+; Note: a helper for $eo_list_len.
+(program $eo_list_len_rec
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x T) (y U) (nil W))
+  :signature (W) $eo_Numeral
+  (
+  (($eo_list_len_rec (f x y))  (eo::add 1 ($eo_list_len_rec y)))
+  (($eo_list_len_rec nil)      0)
+  )
+)
+
+; define: $eo_list_len
+; implements: eo::list_len
+(define $eo_list_len
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_len_rec a)))
+
+;;; $eo_list_concat
+
+; Note: a helper for $eo_list_concat.
+(program $eo_list_concat_rec
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T V V)) (x W) (y U) (z U) (nil U))
+  :signature (U U) U
+  (
+  (($eo_list_concat_rec (f x y) z)  (f x ($eo_list_concat_rec y z)))
+  (($eo_list_concat_rec nil z)      z)
+  )
+)
+
+; define: $eo_list_concat
+; implements: eo::list_concat
+(define $eo_list_concat
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a U) (b U))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_concat_rec a b))))
+
+;;; $eo_list_nth
+
+; Note: a helper for $eo_list_nth.
+(program $eo_list_nth_rec
+  ((T Type) (U Type) (f (-> T T T)) (x U) (y U) (n $eo_Numeral))
+  :signature (U $eo_Numeral) U
+  (
+  (($eo_list_nth_rec (f x y) 0)  x)
+  (($eo_list_nth_rec (f x y) n)  ($eo_list_nth_rec y (eo::add n -1)))
+  )
+)
+
+; define: $eo_list_nth
+; implements: eo::list_nth
+(define $eo_list_nth
+  ((T Type :implicit) (U Type :implicit)
+   (f (-> T T T)) (a U) (n $eo_Numeral))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_nth_rec a n)))
+
+;;; $eo_list_find
+
+; Note: a helper for $eo_list_find.
+(program $eo_list_find_rec
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n $eo_Numeral))
+  :signature (W X $eo_Numeral) $eo_Numeral
+  (
+  (($eo_list_find_rec (f x y) z n)  (eo::ite (eo::eq x z) n
+                                      ($eo_list_find_rec y z (eo::add n 1))))
+  (($eo_list_find_rec nil z n)      -1)
+  )
+)
+
+; define: $eo_list_find
+; implements: eo::list_find
+(define $eo_list_find
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (W1 Type :implicit) (W2 Type :implicit)
+   (f (-> T U V)) (a W1) (e W2))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_find_rec a e 0)))
+
+;;; $eo_list_rev
+
+; Note: a helper for $eo_list_rev.
+(program $eo_list_rev_rec
+  ((T Type) (U Type) (V Type) (W Type)
+   (f (-> T V V)) (x W) (y U) (nil U) (acc U))
+  :signature (U U) U
+  (
+    (($eo_list_rev_rec (f x y) acc) ($eo_list_rev_rec y (f x acc)))
+    (($eo_list_rev_rec nil acc)      acc)
+  )
+)
+
+; define: $eo_list_rev
+; implements: eo::list_rev
+(define $eo_list_rev
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a U))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_rev_rec a ($eo_get_nil_rec f a))))
+
+;;; $eo_list_erase
+
+; Note: a helper for $eo_list_erase.
+(program $eo_list_erase_rec
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T V V)) (x W) (y U) (z X) (nil U))
+  :signature (U X) U
+  (
+  (($eo_list_erase_rec (f x y) z)   (eo::ite (eo::eq x z) y
+                                      (f x ($eo_list_erase_rec y z))))
+  (($eo_list_erase_rec nil z)       nil)
+  )
+)
+
+; define: $eo_list_erase
+; implements: eo::list_erase
+(define $eo_list_erase
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T V V)) (a U) (e W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_erase_rec a e)))
+
+;;; $eo_list_erase_all
+
+; Note: a helper for $eo_list_erase_all.
+(program $eo_list_erase_all_rec
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T V V)) (x W) (y U) (z X) (nil W))
+  :signature (U X) U
+  (
+  (($eo_list_erase_all_rec (f x y) z)  ($eo_prepend_if (eo::not (eo::eq z x))
+                                            f x ($eo_list_erase_all_rec y z)))
+  (($eo_list_erase_all_rec nil z)       nil)
+  )
+)
+
+; define: $eo_list_erase_all
+; implements: eo::list_erase_all
+(define $eo_list_erase_all
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T V V)) (a U) (e W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_erase_all_rec a e)))
+
+;;; $eo_list_setof
+
+; Note: a helper for $eo_list_setof.
+(program $eo_list_setof_rec
+  ((T Type) (U Type) (V Type) (W Type)
+   (f (-> T V V)) (x W) (y U) (nil U))
+  :signature (U) U
+  (
+  (($eo_list_setof_rec (f x y))  (f x ($eo_list_erase_all_rec ($eo_list_setof_rec y) x)))
+  (($eo_list_setof_rec nil)      nil)
+  )
+)
+
+; define: $eo_list_setof
+; implements: eo::list_setof
+(define $eo_list_setof
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (f (-> T V V)) (a U))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_setof_rec a)))
+
+;;; $eo_list_minclude
+
+; program: $eo_list_minclude_rec
+; - y $eo_List: The first list.
+; - z $eo_List: The second list.
+; - rmLast Bool: false if we failed to remove the last element of z from y.
+; return: true iff we successfully remove all elements of z from y.
+; note: a helper for $eo_list_minclude.
+(program $eo_list_minclude_rec
+  ((T Type) (x T) (y $eo_List :list) (z $eo_List))
+  :signature ($eo_List $eo_List Bool) Bool
+  (
+  (($eo_list_minclude_rec y z false)            false)
+  (($eo_list_minclude_rec y ($eo_List_cons x z) true)
+    (eo::define ((res ($eo_list_erase_rec y x)))
+      ; pass true iff we successfully removed x from y.
+      ($eo_list_minclude_rec res z (eo::not (eo::eq res y)))))
+  (($eo_list_minclude_rec y $eo_List_nil true)  true)
+  )
+)
+
+; define: $eo_list_minclude
+; implements: eo::list_minclude
+; Note: >
+;   Since $eo_list_erase is a key submethod for defining $eo_list_minclude,
+;   and $eo_list_erase requires functions (-> T V V), we convert the elements
+;   of both lists to builtin lists $eo_List using the auxiliary method
+;   $eo_get_elements in this definition.
+(define $eo_list_minclude
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (W1 Type :implicit) (W2 Type :implicit)
+   (f (-> T U V)) (a W1) (b W2))
+  (eo::define ((ea ($eo_get_elements f a)))
+  (eo::define ((eb ($eo_get_elements f b)))
+    ($eo_list_minclude_rec ea eb true))))
+
+;;; $eo_list_meq
+
+; define: $eo_list_meq
+; implements: eo::list_meq
+(define $eo_list_meq
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (W1 Type :implicit) (W2 Type :implicit)
+   (f (-> T U V)) (a W1) (b W2))
+  (eo::define ((ea ($eo_get_elements f a)))
+  (eo::define ((eb ($eo_get_elements f b)))
+    (eo::and ($eo_list_minclude_rec ea eb true) ($eo_list_minclude_rec eb ea true)))))
+
+;;; $eo_list_diff
+
+; Note: a helper for $eo_list_diff.
+(program $eo_list_diff_rec
+  ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
+  :signature (V V) V
+  (
+  (($eo_list_diff_rec (f x y) z)  (eo::define ((res ($eo_list_erase_rec z x)))
+                                    ($eo_prepend_if (eo::eq res z)
+                                      f x ($eo_list_diff_rec y res))))
+  (($eo_list_diff_rec nil z)      nil)
+  )
+)
+
+; define: $eo_list_diff
+; implements: eo::list_diff
+(define $eo_list_diff
+  ((T Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a V) (b V))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_diff_rec a b))))
+
+;;; $eo_list_inter
+
+; Note: a helper for $eo_list_inter
+(program $eo_list_inter_rec
+  ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
+  :signature (V V) V
+  (
+  (($eo_list_inter_rec (f x y) z) (eo::define ((res ($eo_list_erase_rec z x)))
+                                    ($eo_prepend_if (eo::not (eo::eq res z))
+                                      f x ($eo_list_inter_rec y res))))
+  (($eo_list_inter_rec nil z)     nil)
+  )
+)
+
+; define: $eo_list_inter
+; implements: eo::list_inter
+(define $eo_list_inter
+  ((T Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a V) (b V))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_inter_rec a b))))
+
+;;; $eo_list_singleton_elim
+
+; Note: a helper for $eo_list_singleton_elim.
+(program $eo_list_singleton_elim_2
+  ((T Type) (f (-> T T T)) (x T) (y T))
+  :signature (T) T
+  (
+  (($eo_list_singleton_elim_2 (f x y))  (eo::ite ($eo_is_list_nil f y) x (f x y)))
+  (($eo_list_singleton_elim_2 y)        y)
+  )
+)
+
+; define: $eo_list_singleton_elim
+; implements: eo::list_singleton_elim
+(define $eo_list_singleton_elim
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_singleton_elim_2 a)))
+
+;;; $eo_list_singleton_intro
+
+; define: $eo_list_singleton_intro
+; implements: eo::list_singleton_intro
+; note: >
+;   The counterpart to $eo_list_singleton_elim. If a is already a list, it is
+;   returned unchanged; otherwise it is wrapped as the singleton list (f a nil),
+;   where nil is the nil terminator for the type of a.
+(define $eo_list_singleton_intro
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::ite ($eo_is_list f a) a ($eo_cons f a ($eo_nil f ($eo_typeof a)))))
+
+;;; $eo_list_repeat
+
+(program $eo_list_repeat_rec ((T Type) (U Type) (f (-> T T T)) (a T) (n $native_Nat))
+  :signature ((-> T U U) T $native_Nat) U
+  (
+  (($eo_list_repeat_rec f a ($native_n_succ n)) (f a ($eo_list_repeat_rec f a n)))
+  (($eo_list_repeat_rec f a n) ($eo_nil f ($eo_typeof a)))
+  )
+)
+
+; define: $eo_list_repeat
+; implements: eo::list_repeat
+(program $eo_list_repeat ((T Type) (U Type) (V Type) (f (-> T U V)) (a T) (i Int))
+  :signature ((-> T U V) T $eo_Numeral) V
+  (
+  (($eo_list_repeat f a ($eot_numeral i))
+    ($native_ite ($native_z_< i $native_z_zero)
+      $eot_stuck
+      ($eo_list_repeat_rec f a ($native_z_to_n i))))
+  )
+)
+
+; all further definitions
+
+$EO_DEFS$
+
+;;; datatype constructors
+
+; TODO: meta semantics for arbitrary unknown datatypes?
+
+; program: $eo_dt_constructors_main
+(program $eo_dt_constructors_main
+  ((T Type)$EO_DT_CONSTRUCTORS_PARAM$)
+  :signature (Type) $eo_List
+  (
+$EO_DT_CONSTRUCTORS_CASES$
+  )
+)
+
+; program: $eo_dt_selectors_main
+(program $eo_dt_selectors_main ((T Type) (t T))
+  :signature (T) $eo_List
+  (
+$EO_DT_SELECTORS_CASES$
+  )
+)
+
+;;; eo::nil definitions
+
+$EO_NIL_NGROUND_DEFS$
+
+; program: $eo_nil
+; implements: eo::nil
+(program $eo_nil
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)))
+  :signature ((-> T U V) (eo::quote W)) W
+  (
+$EO_NIL_CASES$
+  ; builtin case of $eo_List
+  (($eo_nil $eo_List_cons $eo_List) $eo_List_nil)
+  )
+)
+
+$EO_IS_LIST_NIL_DEFS$
+
+;;; $eo_is_list_nil
+; Note: a helper for $eo_is_list_rec.
+; We have that ($eo_is_list_nil f x) is equivalent to
+; (eo::eq (eo::nil f (eo::typeof x)) x). We custom define
+; it for the common case when the nil terminator does not depend
+; on the type, which avoids the use of eo::typeof.
+(program $eo_is_list_nil
+  ((T Type) (V Type) (f (-> T V V)) (nil V))
+  :signature ((-> T V V) V) Bool
+  (
+$EO_IS_LIST_NIL_CASES$
+  ; builtin case of $eo_List
+  (($eo_is_list_nil $eo_List_cons $eo_List_nil) true)
+  (($eo_is_list_nil f nil)                      false)
+  )
+)
+
+;;; types
+
+(program $eo_typeof_dt_cons_rec
+  ((T $eo_Term) (U $eo_Term) (d $eo_Datatype) (c $eo_DatatypeCons) (n $native_Nat))
+  :signature ($eo_Term $eo_Datatype $native_Nat) $eo_Term
+  (
+  (($eo_typeof_dt_cons_rec T ($edt_sum $edtc_unit d) $native_n_zero) T)
+  (($eo_typeof_dt_cons_rec T ($edt_sum ($edtc_cons U c) d) $native_n_zero)
+    ($eot_DtcAppType U ($eo_typeof_dt_cons_rec T ($edt_sum c d) $native_n_zero)))
+  (($eo_typeof_dt_cons_rec T ($edt_sum c d) ($native_n_succ n))
+    ($eo_typeof_dt_cons_rec T d n))
+  )
+)
+
+(program $eo_typeof_dt_sel_return
+  ((d $eo_Datatype) (c $eo_DatatypeCons) (T $eo_Term) (n $native_Nat) (m $native_Nat))
+  :signature ($eo_Datatype $native_Nat $native_Nat) $eo_Term
+  (
+  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $native_n_zero $native_n_zero)
+    T)
+  (($eo_typeof_dt_sel_return ($edt_sum ($edtc_cons T c) d) $native_n_zero ($native_n_succ m))
+    ($eo_typeof_dt_sel_return ($edt_sum c d) $native_n_zero m))
+  (($eo_typeof_dt_sel_return ($edt_sum c d) ($native_n_succ n) m)
+    ($eo_typeof_dt_sel_return d n m))
+  )
+)
+
+; program: $eo_typeof_apply
+(program $eo_typeof_apply ((T Type) (U Type) (V Type))
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_apply (-> T U) V) (eo::requires T V U))
+  (($eo_typeof_apply ($eot_DtcAppType T U) V) (eo::requires T V U))
+  )
+)
+
+; non-ground type defintions
+
+; program: $eo_typeof_fun_type
+; Calling ($eo_typeof_fun_type Ut Tt) returns the type of (-> U T),
+; given that U has type Ut and T has type Tt.
+(program $eo_typeof_fun_type ()
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_fun_type Type Type) Type)
+  )
+)
+
+$EO_LIT_TYPEOF_DEFS$
+
+$EO_TYPEOF_NGROUND_DEFS$
+
+; program: $eo_typeof
+; implements: eo::typeof
+(program $eo_typeof
+  ((t $eo_Term) (T $eo_Term) (b $native_Bool) (n $native_Int)
+   (i $native_Nat) (j $native_Nat) (w $native_Int) (r $native_Rat)
+   (s $native_String) (dd $eo_DatatypeDecl)
+   ($eo_T Type) ($eo_U Type) ($eo_V Type) ($eo_W Type)
+   ($eo_f (-> $eo_U $eo_V $eo_T)) ($eo_x $eo_U) ($eo_t $eo_T)
+   ($eo_W1 Type) ($eo_x1 $eo_W1)
+   ($eo_W2 Type) ($eo_x2 $eo_W2)
+   ($eo_W3 Type) ($eo_x3 $eo_W3)
+   ($eo_W4 Type) ($eo_x4 $eo_W4)) ; assumes functions can be monomorphized with at most 4 arguments
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_typeof ($eot_bool b))                 Bool)
+  (($eo_typeof ($eot_numeral n))              ($eo_lit_type_Numeral ($eot_numeral n)))
+  (($eo_typeof ($eot_rational r))             ($eo_lit_type_Rational ($eot_rational r)))
+  (($eo_typeof ($eot_string s))               ($eo_lit_type_String ($eot_string s)))
+  (($eo_typeof ($eot_binary w n))             ($eo_lit_type_Binary ($eot_binary w n)))
+  ; to sync with eo_to_smt, we require the name is indeed a concrete string
+  (($eo_typeof ($eot_Var ($eot_string s) T))  T)
+  (($eo_typeof ($eot_DatatypeType s dd))      Type)
+  (($eo_typeof ($eot_DtCons s dd i))
+    ($eo_typeof_dt_cons_rec ($eot_DatatypeType s dd) ($eo_dd_resolve s dd) i))
+  (($eo_typeof ($eot_DtSel s dd i j))
+    (-> ($eot_DatatypeType s dd) ($eo_typeof_dt_sel_return ($eo_dd_resolve s dd) i j)))
+  (($eo_typeof ($eot_USort i))                Type)
+  (($eo_typeof ($eot_UConst i T))             T)
+  ; otherwise, invoke the routine for user types from the signature.
+  (($eo_typeof Type)                          Type)
+  (($eo_typeof (-> $eo_T $eo_U))
+    ; requires both children are types
+    ($eo_typeof_fun_type ($eo_typeof $eo_T) ($eo_typeof $eo_U)))
+  (($eo_typeof Bool)                          Type)
+  (($eo_typeof $eo_List)                      Type)
+  (($eo_typeof $eo_List_nil)                  $eo_List)
+  (($eo_typeof ($eo_List_cons $eo_x1))        (-> $eo_List $eo_List))
+$EO_TYPEOF_CASES$
+  (($eo_typeof ($eo_f $eo_x))
+    ($eo_typeof_apply ($eo_typeof $eo_f) ($eo_typeof $eo_x)))
+  )
+)
+
+(program $eo_is_closed_rec
+  ((T Type) (U Type) (V Type) (s $eo_Term) (env $eo_List) 
+   (f (-> U V T)) (x U) (vs $eo_List) (X Type) (u X) (x2 U) (x3 U))
+  :signature ($eo_Term $eo_List) $eo_Term
+  (
+  (($eo_is_closed_rec ($eot_Var s T) $eo_List_nil) false)
+  (($eo_is_closed_rec ($eot_Var s T) ($eo_List_cons x vs))
+    (eo::ite (eo::eq ($eot_Var s T) x) true ($eo_is_closed_rec ($eot_Var s T) vs)))
+$EO_IS_CLOSED_CASES$
+  (($eo_is_closed_rec (f x) env)
+    (eo::and ($eo_is_closed_rec f env) ($eo_is_closed_rec x env)))
+  (($eo_is_closed_rec ($eot_uop1 u x) env) ($eo_is_closed_rec x env))
+  (($eo_is_closed_rec ($eot_uop2 u x x2) env) 
+    (eo::and ($eo_is_closed_rec x env) ($eo_is_closed_rec x2 env)))
+  (($eo_is_closed_rec ($eot_uop3 u x x2 x3) env) 
+    (eo::and (eo::and ($eo_is_closed_rec x env) ($eo_is_closed_rec x2 env)) ($eo_is_closed_rec x3 env)))
+  (($eo_is_closed_rec x env) true)
+  )
+)
+(program $eo_is_closed ((t $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_is_closed t) ($eo_is_closed_rec t $eo_List_nil))
+  )
+)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_smt
+
+; The following functions may be used to define the verification condition we
+; will write below.
+
+; An SMT model.
+(define $smt_Model () ($native_embed_smt "SmtModel"))
+
+; A placeholder for asking whether a formula evaluates to true in a model.
+(program $eo_model_sat () :signature ($smt_Model Bool) Bool)
+; A placeholder for asking whether a formula evaluates to false in a model.
+(program $eo_model_unsat () :signature ($smt_Model Bool) Bool)
+
+; We will include the definition of the above functions here.
+(echo "include eo_model_sat :deps $eo_is_ok $eo_dt_constructors_main $eo_dt_selectors_main $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; checker
+
+$EO_CHECKER$
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
+
+$EO_VC$
