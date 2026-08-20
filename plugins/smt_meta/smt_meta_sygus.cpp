@@ -17,6 +17,13 @@
 
 namespace ethos {
 
+namespace {
+
+/** Whether the SyGuS grammar is designed to enumerate well-typed terms. */
+bool optionSmtMetaSygusGrammarWellTyped() { return true; }
+
+}  // namespace
+
 SmtMetaSygus::SmtMetaSygus(State& s) : StdPlugin(s) {}
 SmtMetaSygus::~SmtMetaSygus() {}
 void SmtMetaSygus::initializeGrammars()
@@ -240,7 +247,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
     {
       return;
     }
-    if (StdPlugin::optionSmtMetaSygusGrammarWellTyped())
+    if (optionSmtMetaSygusGrammarWellTyped())
     {
       if (cname == "Apply" || cname == "Const")
       {

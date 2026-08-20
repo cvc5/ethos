@@ -80,35 +80,12 @@ class StdPlugin : public Plugin
   static std::string getOutputPath(const std::string& relativePath);
   /** Copy a static resource into the generated output tree */
   static void copyResourceToOutput(const std::string& relativePath);
-  //--------- standard configurations for the reduction
-  /** Strict VC mode, i.e. we are not debugging completeness. */
-  static bool optionVcUseModelStrict();
-  /** Whether to use triggers (:pattern) in the final encoding. */
-  static bool optionSmtMetaUseTriggers();
-  /** Whether to emit the conjecture in a form easy to debug via models. */
-  static bool optionSmtMetaDebugConjecture();
-  /** Whether to optimize SyGuS conjectures with a grammar. */
-  static bool optionSmtMetaSygusGrammar();
-  /** Whether the SyGuS grammar is designed to enumerate well-typed terms. */
-  static bool optionSmtMetaSygusGrammarWellTyped();
-  /** Whether we emit typing for partial applications. */
-  static bool optionEoTypeofHo();
-  /** Whether we combine terms of the same type when defining eo::typeof. */
-  static bool optionEoTypeCanonize();
   /**
    * Whether we use custom definitions of is_list_nil for operators with
-   * non-ground nil terminators.
+   * non-ground nil terminators. Desugar and ModelSmt must use the same setting
+   * because they emit complementary parts of these definitions.
    */
   static bool optionFwdDeclIsListNilNground();
-  /**
-   * Whether theory symbols are first-order in the final embedding, e.g.
-   * (and : SmtTerm -> SmtTerm -> SmtTerm) instead of (and : SmtTerm).
-   */
-  static bool optionSmtFoTheorySymbols();
-  /** Whether to collapse atomic theory operators into SmtTheoryOp. */
-  static bool optionSmtTheoryOp();
-  /** Whether to collapse atomic user operators into UserOp. */
-  static bool optionEoUserOp();
 };
 
 }  // namespace ethos

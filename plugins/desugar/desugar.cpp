@@ -20,6 +20,15 @@ namespace ethos {
 
 namespace {
 
+/** Strict VC mode, i.e. we are not debugging completeness. */
+bool optionVcUseModelStrict() { return true; }
+
+/** Whether to emit typing for partial applications. */
+bool optionEoTypeofHo() { return false; }
+
+/** Whether to combine terms of the same type when defining eo::typeof. */
+bool optionEoTypeCanonize() { return true; }
+
 const char* leanParserAttrName(Attr a)
 {
   switch (a)
@@ -1177,7 +1186,7 @@ Expr Desugar::mkRequiresModelSat(const Expr& m,
                                  const Expr& test,
                                  const Expr& ret)
 {
-  if (StdPlugin::optionVcUseModelStrict())
+  if (optionVcUseModelStrict())
   {
     std::vector<Expr> modelSatArgs;
     modelSatArgs.push_back(tgt ? d_peoModelSat : d_peoModelUnsat);

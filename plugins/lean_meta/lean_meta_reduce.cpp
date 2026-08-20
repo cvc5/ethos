@@ -20,6 +20,16 @@
 
 namespace ethos {
 
+namespace {
+
+/** Whether to collapse atomic theory operators into SmtTheoryOp. */
+bool optionSmtTheoryOp() { return false; }
+
+/** Whether to collapse atomic user operators into UserOp. */
+bool optionEoUserOp() { return true; }
+
+}  // namespace
+
 LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
 {
   d_typeToMetaKind["$eo_Term"] = MetaKind::EUNOIA;

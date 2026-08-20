@@ -17,6 +17,16 @@
 
 namespace ethos {
 
+namespace {
+
+/**
+ * Whether theory symbols are first-order in the final embedding, e.g.
+ * (and : SmtTerm -> SmtTerm -> SmtTerm) instead of (and : SmtTerm).
+ */
+bool optionSmtFoTheorySymbols() { return true; }
+
+}  // namespace
+
 std::string sApply(const std::string& op, const std::string& args)
 {
   std::stringstream ss;

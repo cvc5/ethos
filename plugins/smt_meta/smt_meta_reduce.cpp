@@ -17,6 +17,19 @@
 
 namespace ethos {
 
+namespace {
+
+/** Whether to use triggers (:pattern) in the final encoding. */
+bool optionSmtMetaUseTriggers() { return true; }
+
+/** Whether to emit the conjecture in a form easy to debug via models. */
+bool optionSmtMetaDebugConjecture() { return false; }
+
+/** Whether to optimize SyGuS conjectures with a grammar. */
+bool optionSmtMetaSygusGrammar() { return true; }
+
+}  // namespace
+
 SmtMetaReduce::SmtMetaReduce(State& s, bool sygus)
     : MetaReducePlugin(s,
                        sygus ? ConjectureType::SYGUS : ConjectureType::VC),
@@ -24,7 +37,7 @@ SmtMetaReduce::SmtMetaReduce(State& s, bool sygus)
 {
   d_prefixToMetaKind["eo"] = MetaKind::EUNOIA;
 
-  if (StdPlugin::optionSmtMetaSygusGrammar())
+  if (optionSmtMetaSygusGrammar())
   {
     d_smSygus.initializeGrammars();
   }
@@ -668,7 +681,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v,
     }
     d_defs << "(assert (! (forall (" << varList.str() << ")" << std::endl
            << "  ";
-    if (StdPlugin::optionSmtMetaUseTriggers())
+    if (optionSmtMetaUseTriggers())
     {
       d_defs << "(! ";
     }
@@ -688,7 +701,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v,
   d_defs << casesEnd.str();
   if (reqAxiom)
   {
-    if (StdPlugin::optionSmtMetaUseTriggers())
+    if (optionSmtMetaUseTriggers())
     {
       d_defs << " :pattern (" << appTerm.str() << "))";
     }
@@ -918,7 +931,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     if (ctype == ConjectureType::VC)
     {
       std::stringstream conjEnd;
-      if (!StdPlugin::optionSmtMetaDebugConjecture())
+      if (!optionSmtMetaDebugConjecture())
       {
         d_smtVc << "(assert (! (exists (";
         conjEnd << ")";
@@ -930,7 +943,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
         {
           metaType << "eo.Term";
         }
-        if (StdPlugin::optionSmtMetaDebugConjecture())
+        if (optionSmtMetaDebugConjecture())
         {
           d_smtVc << "(declare-const x" << i << " " << metaType.str() << ")"
                   << std::endl;
@@ -945,7 +958,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
         }
         call << " x" << i;
       }
-      if (StdPlugin::optionSmtMetaDebugConjecture())
+      if (optionSmtMetaDebugConjecture())
       {
         d_smtVc << "(assert (! ";
       }
@@ -958,7 +971,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
       d_smtVc << " :named sm.conjecture." << vv << ")";
       d_smtVc << ")" << std::endl;
       d_smtVc << "(check-sat)" << std::endl;
-      if (StdPlugin::optionSmtMetaDebugConjecture())
+      if (optionSmtMetaDebugConjecture())
       {
         d_smtVc << "(get-model)" << std::endl;
         d_smtVc << "(get-value (" << call.str() << "))" << std::endl;
@@ -981,7 +994,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
         std::stringstream varName;
         varName << "arg_" << patCall[i];
         d_smtVc << "(synth-fun " << varName.str() << " () eo.Term";
-        if (StdPlugin::optionSmtMetaSygusGrammar())
+        if (optionSmtMetaSygusGrammar())
         {
           d_smSygus.printGrammar(varName.str(), vt[i - 1], d_smtVc);
         }
