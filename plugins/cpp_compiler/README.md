@@ -89,9 +89,14 @@ unambiguous:
 ```sh
 mkdir -p build/cpp-generated
 cd build/cpp-generated
-../cpp-generator/bin/ethos /absolute/path/to/signature.eo
+../cpp-generator/bin/ethos \
+  --no-require-proof-of-false /absolute/path/to/signature.eo
 cd ../..
 ```
+
+Compiler mode opts out of the final proof-of-false requirement because its
+input is a signature, not a completed proof. The generated checker retains the
+normal default when it is subsequently run on proofs.
 
 Then configure and build executor mode with the generated source:
 
@@ -156,5 +161,6 @@ workflow. Run that same check locally with:
 plugins/cpp_compiler/build_custom_ethos.sh \
   plugins/cpp_compiler/test/signature.eo /tmp/ethos-cpp-compiler debug
 /tmp/ethos-cpp-compiler/ethos \
+  --no-require-proof-of-false \
   plugins/cpp_compiler/test/signature.eo
 ```
