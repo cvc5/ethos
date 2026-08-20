@@ -9,6 +9,7 @@ get_filename_component(ETHOS_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../.."
 set(CMAKE_MODULE_PATH "${ETHOS_SOURCE_DIR}/cmake")
 
 find_package(GMP REQUIRED)
+include(EthosPlugin)
 
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Defaulting to release build.")
@@ -51,15 +52,17 @@ endfunction()
 file(GLOB_RECURSE ethos_core_SRC CONFIGURE_DEPENDS
      "${ETHOS_SOURCE_DIR}/src/*.cpp")
 list(FILTER ethos_core_SRC EXCLUDE REGEX "/src/main\\.cpp$")
+list(FILTER ethos_core_SRC EXCLUDE REGEX "/src/plugin\\.cpp$")
 add_library(ethos-cpp-core STATIC ${ethos_core_SRC})
 configure_ethos_target(ethos-cpp-core)
 target_link_libraries(ethos-cpp-core PUBLIC ${GMP_LIBRARIES})
 
 if(ETHOS_CPP_COMPILER_MODE STREQUAL "compiler")
-  add_executable(ethos
-                 "${ETHOS_SOURCE_DIR}/src/main.cpp"
-                 compiler.cpp)
-  target_compile_definitions(ethos PRIVATE ETHOS_CPP_COMPILER_GENERATOR)
+  add_ethos_plugin_executable(
+    ethos
+    PLUGIN_HEADER compiler.h
+    PLUGIN_CLASS ethos::Compiler
+    SOURCES compiler.cpp)
 elseif(ETHOS_CPP_COMPILER_MODE STREQUAL "executor")
   if(NOT ETHOS_CPP_COMPILER_GENERATED_SOURCE)
     message(FATAL_ERROR
@@ -69,11 +72,11 @@ elseif(ETHOS_CPP_COMPILER_MODE STREQUAL "executor")
     message(FATAL_ERROR
       "Generated source does not exist: ${ETHOS_CPP_COMPILER_GENERATED_SOURCE}")
   endif()
-  add_executable(ethos
-                 "${ETHOS_SOURCE_DIR}/src/main.cpp"
-                 executor.cpp
-                 "${ETHOS_CPP_COMPILER_GENERATED_SOURCE}")
-  target_compile_definitions(ethos PRIVATE ETHOS_CPP_COMPILER_EXECUTOR)
+  add_ethos_plugin_executable(
+    ethos
+    PLUGIN_HEADER executor.h
+    PLUGIN_CLASS ethos::Executor
+    SOURCES executor.cpp "${ETHOS_CPP_COMPILER_GENERATED_SOURCE}")
 elseif(NOT ETHOS_CPP_COMPILER_MODE STREQUAL "test")
   message(FATAL_ERROR
     "ETHOS_CPP_COMPILER_MODE must be compiler, executor, or test")

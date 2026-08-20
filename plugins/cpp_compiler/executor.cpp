@@ -9,10 +9,19 @@
 
 #include "executor.h"
 
+#include <iomanip>
+#include <ostream>
+
 namespace ethos {
 
 Executor::Executor(State& state) : d_state(state) {}
 
 Executor::~Executor() {}
+
+void Executor::printConfig(std::ostream& out) const
+{
+  out << std::setw(15) << "signatures : " << std::endl;
+  out << showCompiledFiles();
+}
 
 }  // namespace ethos

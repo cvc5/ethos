@@ -104,9 +104,12 @@ cmake --build build/cpp-executor --target ethos --parallel
 build/cpp-executor/bin/ethos path/to/proof.eo
 ```
 
-The plugin owns this CMake configuration. The repository's root
-`CMakeLists.txt` and `src/CMakeLists.txt` remain unchanged from `main`, and the
-ordinary Ethos build does not see either plugin mode.
+The plugin owns this CMake configuration. Ethos's main entry point uses a
+generic link-time plugin factory, and `cmake/EthosPlugin.cmake` lets a plugin
+select its implementation by header, class, and source files. This directory
+selects `Compiler` or `Executor` without providing a custom entry point or
+factory. The repository's root `CMakeLists.txt` and `src/CMakeLists.txt` do not
+need plugin-specific build logic.
 
 ## Include handling and `markIncluded`
 

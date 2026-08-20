@@ -29,6 +29,8 @@ class Executor : public Plugin
                    bool isSignature,
                    bool isReference,
                    const Expr& referenceNf) override;
+  /** Append embedded signature paths to the build configuration. */
+  void printConfig(std::ostream& out) const override;
   /** Reconstruct the embedded signatures in the associated State. */
   void initialize() override;
 

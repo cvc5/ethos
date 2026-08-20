@@ -16,12 +16,6 @@
 #include "parser.h"
 #include "state.h"
 
-#ifdef ETHOS_CPP_COMPILER_GENERATOR
-#include "compiler.h"
-#elif defined(ETHOS_CPP_COMPILER_EXECUTOR)
-#include "executor.h"
-#endif
-
 using namespace ethos;
 
 int main( int argc, char* argv[] )
@@ -31,6 +25,7 @@ int main( int argc, char* argv[] )
   size_t i = 1;
   std::string file;
   bool readFile = false;
+  bool showConfig = false;
   size_t nargs = static_cast<size_t>(argc);
   // the list of includes and whether they were an include or reference
   std::vector<std::pair<std::string, bool>> includes;
@@ -87,25 +82,8 @@ int main( int argc, char* argv[] )
     }
     else if (arg=="--show-config")
     {
-      std::stringstream out;
-      out << "This is ethos version 0.2.3." << std::endl;
-      out << std::endl;
-      size_t w = 15;
-      out << std::setw(w) << "tracing : ";
-#ifdef EO_TRACING
-      out << "yes";
-#else
-      out << "no";
-#endif
-      out << std::endl;
-#ifdef ETHOS_CPP_COMPILER_EXECUTOR
-      out << std::setw(w) << "signatures : " << std::endl;
-      out << Executor::showCompiledFiles();
-#endif
-      std::cout << out.str();
-      // exit immediately
-      exit(0);
-      return 0;
+      showConfig = true;
+      break;
     }
     else if (arg=="-t")
     {
@@ -155,18 +133,32 @@ int main( int argc, char* argv[] )
   // options are finalized, now initialize the state and run the includes
   Stats stats;
   State s(opts, stats);
-#ifdef ETHOS_CPP_COMPILER_GENERATOR
-  Compiler pluginInstance(s);
-  Plugin* plugin = &pluginInstance;
-#elif defined(ETHOS_CPP_COMPILER_EXECUTOR)
-  Executor pluginInstance(s);
-  Plugin* plugin = &pluginInstance;
+  std::unique_ptr<Plugin> plugin = createPlugin(s);
+  if (showConfig)
+  {
+    std::stringstream out;
+    out << "This is ethos version 0.2.3." << std::endl;
+    out << std::endl;
+    size_t w = 15;
+    out << std::setw(w) << "tracing : ";
+#ifdef EO_TRACING
+    out << "yes";
 #else
-  Plugin* plugin = nullptr;
+    out << "no";
 #endif
+    out << std::endl;
+    if (plugin != nullptr)
+    {
+      plugin->printConfig(out);
+    }
+    std::cout << out.str();
+    // exit immediately
+    exit(0);
+    return 0;
+  }
   if (plugin != nullptr)
   {
-    s.setPlugin(plugin);
+    s.setPlugin(plugin.get());
   }
   for (size_t i=0, nincludes=includes.size(); i<nincludes; i++)
   {
