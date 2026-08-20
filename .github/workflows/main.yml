@@ -3,6 +3,36 @@ name: CI
 on: [push, pull_request]
 
 jobs:
+  plugins:
+    name: plugins:compile-check
+    runs-on: ubuntu-22.04
+
+    # The experimental extensions in plugins/ are not part of the ethos build
+    # and nothing else compiles them, so without this they would silently rot
+    # against src/. A debug build so that assertions are compiled too.
+    concurrency:
+      group: plugins-${{ github.ref }}-${{ github.ref != 'refs/heads/main' || github.run_id }}
+      cancel-in-progress: ${{ github.repository != 'cvc5/ethos' || startsWith(github.ref, 'refs/pull/') }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Install Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libgmp-dev
+
+    - name: Set up num_proc variable
+      run: echo "num_proc=$(( $(nproc) + 1 ))" >> $GITHUB_ENV
+
+    - name: Compile-check plugins
+      run: |
+        ./configure.sh debug --werror
+        cd build
+        make -j${{ env.num_proc }} plugins-compile-check
+
   build:
     strategy:
       matrix:
