@@ -119,5 +119,13 @@ int main()
   {
     std::exit(9);
   }
+
+  // An unrelated signature with the same basename must fall through to the
+  // parser instead of being mistaken for a stale copy of the compiled file.
+  if (!state.includeFile(ETHOS_CPP_COMPILER_TEST_OTHER_SIGNATURE, true)
+      || state.getVar("Unrelated").isNull())
+  {
+    std::exit(13);
+  }
   std::exit(0);
 }

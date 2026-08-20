@@ -93,6 +93,8 @@ set(cpp_compiler_test_signature
     "${CMAKE_CURRENT_LIST_DIR}/test/signature.eo")
 set(cpp_compiler_test_reference
     "${CMAKE_CURRENT_LIST_DIR}/test/reference.smt2")
+set(cpp_compiler_unrelated_signature
+    "${CMAKE_CURRENT_LIST_DIR}/test/unrelated/signature.eo")
 set(cpp_compiler_relocated_signature
     "${cpp_compiler_test_dir}/relocated/signature.eo")
 file(MAKE_DIRECTORY "${cpp_compiler_test_dir}")
@@ -132,12 +134,13 @@ add_executable(cpp-compiler-replay EXCLUDE_FROM_ALL
 configure_ethos_target(cpp-compiler-replay)
 target_compile_definitions(
   cpp-compiler-replay PRIVATE
-  ETHOS_CPP_COMPILER_TEST_SIGNATURE="${cpp_compiler_relocated_signature}")
+  ETHOS_CPP_COMPILER_TEST_SIGNATURE="${cpp_compiler_relocated_signature}"
+  ETHOS_CPP_COMPILER_TEST_OTHER_SIGNATURE="${cpp_compiler_unrelated_signature}")
 target_link_libraries(cpp-compiler-replay PRIVATE ethos-cpp-core)
 
 add_custom_target(cpp-compiler-roundtrip
   COMMAND $<TARGET_FILE:cpp-compiler-replay>
-  DEPENDS cpp-compiler-replay
+  DEPENDS cpp-compiler-replay "${cpp_compiler_unrelated_signature}"
   COMMENT "Testing generated C++ auto-parser")
 
 enable_testing()

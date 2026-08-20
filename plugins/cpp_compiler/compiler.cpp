@@ -153,8 +153,7 @@ bool Compiler::includeFile(const Filepath& path,
       << "    const std::filesystem::path compiled(" << quote(rawPath)
       << ");\n"
       << "    if (path.getRawPath() == " << quote(rawPath) << "\n"
-      << "        || std::filesystem::equivalent(requested, compiled, ec)\n"
-      << "        || requested.filename() == compiled.filename())\n"
+      << "        || std::filesystem::equivalent(requested, compiled, ec))\n"
       << "    {\n"
       << "      EO_FATAL() << \"Executor: signature \" << path.getRawPath()\n"
       << "                 << \" does not match the compiled signature \"\n"
