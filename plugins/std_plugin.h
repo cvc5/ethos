@@ -42,7 +42,7 @@ class StdPlugin : public Plugin
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** Get the subterms of a kind */
   std::vector<Expr> getSubtermsKind(Kind k, const Expr& t);
-  /** Get the name of the literal kind k, e.g. "Numeral" for NUMERAL. */
+  /** Get the name of the literal kind k, e.g. "<numeral>" for NUMERAL. */
   static std::string literalKindToString(Kind k);
   /** Replace the first occurrence of tag in txt by replacement. */
   static void replace(std::string& txt,
