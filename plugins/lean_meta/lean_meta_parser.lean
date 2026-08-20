@@ -85,6 +85,9 @@ def parserConfig : Logos.Parser.Config Term CRule CCmd CCmdList where
   ops := parserOps
   parseLiteral := parserLiteral
   isType := (· == .Type)
+  -- Tells apart the declarations of an overloaded name: a term the calculus
+  -- gives no type to is not the reading meant.
+  wellTyped := fun t => match __eo_typeof t with | .Stuck => false | _ => true
   mkUSort := .USort
   mkUConst := .UConst
   apply := .Apply
