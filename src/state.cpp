@@ -1432,18 +1432,8 @@ bool State::notifyStep(const std::string& name,
                        Expr& result,
                        std::ostream* err)
 {
-  // A step-pop conclusion is bound after one assumption scope is removed.
-  // Thus, it proves at level zero exactly when the current level is one.
-  auto finishStep = [&]() {
-    bool success = !result.isNull() && !result.isEvaluatable();
-    if (success)
-    {
-      size_t requiredLevel = isPop ? 1 : 0;
-      d_lastStepProvesFalseAtLevelZero =
-          getAssumptionLevel() == requiredLevel && result == d_false;
-    }
-    return success;
-  };
+  // A step-pop conclusion is bound after one assumption scope is removed,
+  // so it is at level zero when the current level is one.
   if (d_plugin != nullptr)
   {
     // if the plugin handles it, then take its result
@@ -1451,7 +1441,13 @@ bool State::notifyStep(const std::string& name,
             name, rule, proven, premises, args, isPop, result, err))
     {
       // successful if the result is non-null and fully evaluated
-      return finishStep();
+      bool success = !result.isNull() && !result.isEvaluatable();
+      if (success)
+      {
+        d_lastStepProvesFalseAtLevelZero =
+            getAssumptionLevel() == (isPop ? 1 : 0) && result == d_false;
+      }
+      return success;
     }
   }
   AppInfo* ainfo = getAppInfo(rule.getValue());
@@ -1613,7 +1609,9 @@ bool State::notifyStep(const std::string& name,
       result = children[0];
     }
     Assert(!result.isNull() && !result.isEvaluatable());
-    return finishStep();
+    d_lastStepProvesFalseAtLevelZero =
+        getAssumptionLevel() == (isPop ? 1 : 0) && result == d_false;
+    return true;
   }
   if (err)
   {
