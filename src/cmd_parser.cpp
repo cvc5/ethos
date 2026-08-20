@@ -608,7 +608,10 @@ bool CmdParser::parseNextCommand()
       {
         d_eparser.typeCheck(expr, ret);
       }
-      if (tok == Token::DEFINE_FUN)
+      bool defineFunAsReferenceAssert =
+          tok == Token::DEFINE_FUN && d_isReference
+          && !d_state.getOptions().d_referenceDefineFun;
+      if (defineFunAsReferenceAssert)
       {
         // This is for reference checking only. Note that = and lambda are
         // not builtin symbols, thus we must assume they are defined by the user.

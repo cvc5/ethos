@@ -45,6 +45,11 @@ class Options
   bool d_normalizeHexadecimal;
   /** Treat numerals as rational literals */
   bool d_normalizeNumeral;
+  /**
+   * In reference files, parse SMT-LIB define-fun commands as Eunoia-style
+   * definitions instead of translating them to reference assertions.
+   */
+  bool d_referenceDefineFun;
 };
 
 /**

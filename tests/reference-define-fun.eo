@@ -1,0 +1,6 @@
+(declare-const Int Type)
+(declare-const > (-> Int Int Bool))
+(declare-consts <numeral> Int)
+(set-option :reference-define-fun true)
+(reference "reference-define-fun.smt2")
+(assume @p0 (> x 0))
