@@ -44,12 +44,23 @@ std::string metaKindToPrefix(MetaKind k)
   std::stringstream ss;
   switch (k)
   {
+    // Note the cases below must cover every prefix registered in the
+    // d_prefixToMetaKind maps of the backends, see
+    // MetaReducePlugin::prefixToMetaKind, of which this method is the inverse.
     case MetaKind::EUNOIA: ss << "eo."; break;
     case MetaKind::SMT: ss << "sm."; break;
     case MetaKind::SMT_TYPE: ss << "tsm."; break;
     case MetaKind::SMT_VALUE: ss << "vsm."; break;
+    case MetaKind::SMT_MAP: ss << "msm."; break;
+    case MetaKind::SMT_SEQ: ss << "ssm."; break;
+    case MetaKind::CHECKER_RULE: ss << "r."; break;
+    case MetaKind::CHECKER_CMD: ss << "cmd."; break;
+    // builtin symbols have no prefix of their own; they are marked so that
+    // they are recognizable if they ever reach the generated output
     case MetaKind::SMT_BUILTIN: ss << "?"; break;
-    default: ss << "?MetaKindPrefix_" << metaKindToString(k); break;
+    default:
+      EO_FATAL() << "No prefix for meta-kind " << metaKindToString(k);
+      break;
   }
   return ss.str();
 }
