@@ -7,24 +7,26 @@
  * directory for licensing information.
  ******************************************************************************/
 
-#include "executor.h"
+#include "plugin.h"
+
+#if defined(ETHOS_PLUGIN_HEADER) != defined(ETHOS_PLUGIN_CLASS)
+#error "ETHOS_PLUGIN_HEADER and ETHOS_PLUGIN_CLASS must be defined together"
+#endif
+
+#ifdef ETHOS_PLUGIN_HEADER
+#include ETHOS_PLUGIN_HEADER
+#endif
 
 namespace ethos {
 
-std::string Executor::showCompiledFiles() { return ""; }
-
-bool Executor::includeFile(const Filepath& path,
-                           bool isSignature,
-                           bool isReference,
-                           const Expr& referenceNf)
+std::unique_ptr<Plugin> createPlugin(State& state)
 {
-  (void)path;
-  (void)isSignature;
-  (void)isReference;
-  (void)referenceNf;
-  return false;
+#ifdef ETHOS_PLUGIN_CLASS
+  return std::make_unique<ETHOS_PLUGIN_CLASS>(state);
+#else
+  (void)state;
+  return nullptr;
+#endif
 }
-
-void Executor::initialize() {}
 
 }  // namespace ethos
