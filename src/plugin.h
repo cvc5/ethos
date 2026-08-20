@@ -9,6 +9,8 @@
 #ifndef PLUGIN_H
 #define PLUGIN_H
 
+#include <iosfwd>
+#include <memory>
 #include <string>
 
 #include "attr.h"
@@ -17,6 +19,8 @@
 #include "util/filesystem.h"
 
 namespace ethos {
+
+class State;
 
 /**
  * A plugin class. This is a virtual base class that receives callbacks from
@@ -50,18 +54,22 @@ public:
    */
   virtual void popScope() {}
   /**
-   * Include file, if not already done so.
+   * Include file, if not already done so. This is called before State parses
+   * the file.
    * @param s Specifies the path and name of the file to include.
    * @param isSignature Whether the given file was marked as a signature file.
    * @param isReference Whether the given file was marked as a reference file.
    * @param referenceNf The method for normalizing the reference file, if one
    * exists.
+   * @return true if the plugin has already reconstructed the file and State
+   * should skip parsing it. Return false to continue with ordinary parsing.
    */
-  virtual void includeFile(const Filepath& s,
+  virtual bool includeFile(const Filepath& s,
                            bool isSignature,
                            bool isReference,
                            const Expr& referenceNf)
   {
+    return false;
   }
   /**
    * Same as above, but called immediately after a file has been parsed.
@@ -178,6 +186,8 @@ public:
    * @return true if the caller should print the message.
    */
   virtual bool echo(const std::string& msg) { return true; }
+  /** Append plugin-specific entries to the build configuration. */
+  virtual void printConfig(std::ostream& out) const { (void)out; }
   //--------- finalize
   /**
    * Finalize. Called once when the proof checker has finished parsing all input.
@@ -185,6 +195,9 @@ public:
   virtual void finalize() {}
 };
 
+/** Construct the plugin linked into this executable, if any. */
+std::unique_ptr<Plugin> createPlugin(State& state);
+
 }  // namespace ethos
 
-#endif /* STATE_H */
+#endif /* PLUGIN_H */
