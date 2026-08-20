@@ -25,6 +25,7 @@ int main( int argc, char* argv[] )
   size_t i = 1;
   std::string file;
   bool readFile = false;
+  bool showConfig = false;
   size_t nargs = static_cast<size_t>(argc);
   // the list of includes and whether they were an include or reference
   std::vector<std::pair<std::string, bool>> includes;
@@ -82,21 +83,8 @@ int main( int argc, char* argv[] )
     }
     else if (arg=="--show-config")
     {
-      std::stringstream out;
-      out << "This is ethos version 0.2.3." << std::endl;
-      out << std::endl;
-      size_t w = 15;
-      out << std::setw(w) << "tracing : ";
-#ifdef EO_TRACING
-      out << "yes";
-#else
-      out << "no";
-#endif
-      out << std::endl;
-      std::cout << out.str();
-      // exit immediately
-      exit(0);
-      return 0;
+      showConfig = true;
+      break;
     }
     else if (arg=="-t")
     {
@@ -149,7 +137,33 @@ int main( int argc, char* argv[] )
   // options are finalized, now initialize the state and run the includes
   Stats stats;
   State s(opts, stats);
-  Plugin* plugin = nullptr;
+  std::unique_ptr<Plugin> plugin = createPlugin(s);
+  if (showConfig)
+  {
+    std::stringstream out;
+    out << "This is ethos version 0.2.3." << std::endl;
+    out << std::endl;
+    size_t w = 15;
+    out << std::setw(w) << "tracing : ";
+#ifdef EO_TRACING
+    out << "yes";
+#else
+    out << "no";
+#endif
+    out << std::endl;
+    if (plugin != nullptr)
+    {
+      plugin->printConfig(out);
+    }
+    std::cout << out.str();
+    // exit immediately
+    exit(0);
+    return 0;
+  }
+  if (plugin != nullptr)
+  {
+    s.setPlugin(plugin.get());
+  }
   for (size_t i=0, nincludes=includes.size(); i<nincludes; i++)
   {
     std::string file = includes[i].first;
@@ -160,11 +174,6 @@ int main( int argc, char* argv[] )
     {
       EO_FATAL() << "Error: cannot include file " << file;
     }
-  }
-  // NOTE: initialization of plugin goes here
-  if (plugin!=nullptr)
-  {
-    s.setPlugin(plugin);
   }
   if (!readFile)
   {

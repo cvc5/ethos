@@ -327,10 +327,16 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   d_referenceNf = referenceNf;
   Filepath currentPath = d_inputFile;
   d_inputFile = inputPath;
-  if (d_plugin!=nullptr)
+  if (d_plugin != nullptr)
   {
-    Assert (!isReference);
-    d_plugin->includeFile(inputPath, isSignature, isReference, referenceNf);
+    if (d_plugin->includeFile(
+            inputPath, isSignature, isReference, referenceNf))
+    {
+      d_inputFile = currentPath;
+      Trace("state") << "Include " << inputPath
+                     << " handled by plugin" << std::endl;
+      return true;
+    }
   }
   Trace("state") << "Include " << inputPath << std::endl;
   Assert (getAssumptionLevel()==0);
@@ -354,7 +360,6 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   }
   if (d_plugin != nullptr)
   {
-    Assert(!isReference);
     d_plugin->finalizeIncludeFile(
         inputPath, isSignature, isReference, referenceNf);
   }

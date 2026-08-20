@@ -4,12 +4,12 @@ on: [push, pull_request]
 
 jobs:
   plugins:
-    name: plugins:compile-check
+    name: plugins:compile-and-test
     runs-on: ubuntu-22.04
 
     # The experimental extensions in plugins/ are not part of the ethos build
     # and nothing else compiles them, so without this they would silently rot
-    # against src/. A debug build so that assertions are compiled too.
+    # against src/. A debug build ensures assertions are compiled too.
     concurrency:
       group: plugins-${{ github.ref }}-${{ github.ref != 'refs/heads/main' || github.run_id }}
       cancel-in-progress: ${{ github.repository != 'cvc5/ethos' || startsWith(github.ref, 'refs/pull/') }}
@@ -27,11 +27,25 @@ jobs:
     - name: Set up num_proc variable
       run: echo "num_proc=$(( $(nproc) + 1 ))" >> $GITHUB_ENV
 
-    - name: Compile-check plugins
+    - name: Compile and test plugins
       run: |
         ./configure.sh debug --werror
         cd build
         make -j${{ env.num_proc }} plugins-compile-check
+        cmake -S ../plugins/cpp_compiler -B cpp-compiler-test \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS=-Werror \
+          -DETHOS_CPP_COMPILER_MODE=test
+        cmake --build cpp-compiler-test --parallel ${{ env.num_proc }} \
+          --target cpp-compiler-roundtrip
+
+    - name: Build and run custom auto-parser binary
+      run: |
+        plugins/cpp_compiler/build_custom_ethos.sh \
+          plugins/cpp_compiler/test/signature.eo \
+          "${RUNNER_TEMP}/ethos-cpp-compiler" debug
+        "${RUNNER_TEMP}/ethos-cpp-compiler/ethos" \
+          plugins/cpp_compiler/test/signature.eo
 
   build:
     strategy:

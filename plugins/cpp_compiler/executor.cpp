@@ -8,29 +8,20 @@
  ******************************************************************************/
 
 #include "executor.h"
-#include "state.h"
+
+#include <iomanip>
+#include <ostream>
 
 namespace ethos {
-  
-Executor::Executor(State& s) : d_state(s), d_tc(s.getTypeChecker()) {}
+
+Executor::Executor(State& state) : d_state(state) {}
 
 Executor::~Executor() {}
-  
-bool Executor::hasEvaluation(ExprValue* e)
+
+void Executor::printConfig(std::ostream& out) const
 {
-  return e->isCompiled();
+  out << std::setw(15) << "signatures : " << std::endl;
+  out << showCompiledFiles();
 }
 
-Expr Executor::evaluateProgram(ExprValue* prog,
-                               const std::vector<ExprValue*>& args,
-                               Ctx& ctx)
-{
-  ExprValue * ev = evaluateProgramInternal(args, ctx);
-  if (ev==nullptr)
-  {
-    return d_null;
-  }
-  return Expr(ev);
-}
-
-}
+}  // namespace ethos
