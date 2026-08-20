@@ -10,7 +10,6 @@
 #include "linear_patterns.h"
 
 #include <algorithm>
-#include <set>
 #include <sstream>
 
 #include "state.h"
@@ -35,16 +34,18 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(State& s,
     std::pair<Expr, Expr> lpat = linearizePattern(s, pat);
     if (lpat.second.isNull())
     {
-      currCases.push_back(progDef[i]);
+      currCases.push_back(
+          s.mkPair(mkCasePattern(s, currProg, pat), progDef[i][1]));
       continue;
     }
     if (i + 1 == ncases)
     {
       // as an optimization, just do a requires if we are the last case
       Expr ctrue = s.mkTrue();
-      Expr ret =
+      Expr guardedRet =
           s.mkExpr(Kind::EVAL_REQUIRES, {lpat.second, ctrue, progDef[i][1]});
-      currCases.push_back(s.mkPair(lpat.first, ret));
+      currCases.push_back(
+          s.mkPair(mkCasePattern(s, currProg, lpat.first), guardedRet));
       continue;
     }
     // make a new copy of the program
@@ -69,7 +70,7 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(State& s,
     Expr newApp = s.mkExpr(Kind::APPLY, newappc);
     Expr retLin =
         s.mkExpr(Kind::EVAL_IF_THEN_ELSE, {lpat.second, progDef[i][1], newApp});
-    Expr linCase = s.mkPair(lpat.first, retLin);
+    Expr linCase = s.mkPair(mkCasePattern(s, currProg, lpat.first), retLin);
     currCases.push_back(linCase);
     // only needs a default if the linearized case was not already fully general
     if (!wasDefault)
@@ -90,6 +91,23 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(State& s,
   ret.emplace_back(currProg, currProgDef);
   std::reverse(ret.begin(), ret.end());
   return ret;
+}
+
+Expr LinearPattern::mkCasePattern(State& s, const Expr& prog, const Expr& pat)
+{
+  Assert(pat.getKind() == Kind::APPLY && pat.getNumChildren() > 0);
+  if (pat[0] == prog)
+  {
+    return pat;
+  }
+  std::vector<Expr> children;
+  children.push_back(prog);
+  for (size_t i = 1, nchild = pat.getNumChildren(); i < nchild; i++)
+  {
+    children.push_back(pat[i]);
+  }
+  // note we do not desugar here, see linearizeRec below
+  return s.mkRawExpr(Kind::APPLY, children);
 }
 
 std::pair<Expr, Expr> LinearPattern::linearizePattern(State& s, const Expr& pat)
@@ -147,7 +165,13 @@ Expr LinearPattern::linearizeRec(State& s,
     }
     if (childChanged)
     {
-      return s.mkExpr(pat.getKind(), nchildren);
+      // Note we construct the term without desugaring, since pat has already
+      // been desugared by the parser. In particular, using mkExpr here would
+      // reapply the constructor attributes of the head of an application, e.g.
+      // it would append a second nil terminator to a :right-assoc-nil
+      // application. This mirrors how TypeChecker::evaluate reconstructs
+      // terms.
+      return s.mkRawExpr(pat.getKind(), nchildren);
     }
   }
   return pat;
