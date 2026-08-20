@@ -33,8 +33,9 @@ Pass `-DCMAKE_BUILD_TYPE=Debug` to the configure step for a debug build with
 assertions and tracing. The driver configures the build directory
 automatically if it does not exist yet.
 
-If you use a different build directory, pass it explicitly everywhere with
-`--build-dir`.
+`--build-dir` defaults to the current working directory, so pass it explicitly
+whenever you invoke the driver from somewhere other than the build tree. The
+examples below all use `build-eoc`.
 
 ## One important path rule
 
@@ -86,6 +87,19 @@ tools/eoc/out/
     SmtModel.lean
     Spec.lean
     RuleLemmas.lean
+    Rules/
+      <Rule>.lean
+```
+
+Plugin-private files:
+
+```text
+<build-dir>/out/plugins/
+  desugar/
+  lean_meta/
+  model_smt/
+  smt_meta/
+  trim_defs/
 ```
 
 ## Quick start
@@ -247,6 +261,12 @@ Run only the trim stage.
 python3 tools/eoc/driver.py trim-defs --build-dir build-eoc INPUT TARGET1 TARGET2
 ```
 
+Output:
+
+```text
+tools/eoc/out/trim_defs/trim_gen.eo
+```
+
 ### `list-rules`
 
 Print discovered rules without running the pipeline.
@@ -316,8 +336,11 @@ build-eoc/ethos-eoc --plugin.smt-meta-sygus tools/eoc/out/vcmt-def-booleans-rule
 | `run_sygus_cex FILE.sy` | Invoke your preferred solver directly on `tools/eoc/out/sygus/final-*.sy` |
 | `install_logos` / `install_logos_mini` | `tools/eoc/cpc/install_logos` / `tools/eoc/cpc/install_logos_mini` |
 
-The old wrapper scripts have been removed so the repository only exposes one
-supported EOC interface.
+The `build-debug` copies of these scripts have been removed, so `driver.py` is
+the only EOC interface the repository implements. CPC-specific front-ends for
+most of the rows above are still available under `tools/eoc/cpc/`, but they are
+thin wrappers that just fill in the default CPC signature and invoke
+`driver.py`; see [`cpc/README.md`](cpc/README.md).
 
 ## Solver configuration
 
@@ -349,11 +372,3 @@ Either:
 Look in `tools/eoc/out/` for both the staged EO artifacts and the final
 published outputs. The plugin-private scratch files remain under
 `<build-dir>/out/plugins/`.
-```
-
-Plugin-private outputs:
-
-```text
-<build-dir>/out/plugins/
-  ...
-```

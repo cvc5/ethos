@@ -1,13 +1,16 @@
 Run:
 
-./build-debug/run_gen_vc <proof-rule>
+python3 tools/eoc/driver.py vc --build-dir build-eoc <input.eo> <proof-rule>
+
+See tools/eoc/README.md for the full driver interface, and tools/eoc/cpc for
+CPC-specific wrappers such as run_gen_vc.
 
 At a high-level, the correctness of a Eunoia proof rule can be compiled to
 a *.smt2 file, which if unsat, is evidence that the proof rule is sound.
 Alternatively, we can compile to Lean, where a Lean theorem gives
 the correctness property to prove for the rule.
 In both cases, the final encoding uses a deep embedding where:
-- A datatype "eo.Term" is declared, which several builtin constructors, e.g.
+- A datatype "eo.Term" is declared, with several builtin constructors, e.g.
   eo.Stuck and eo.Apply.
 - All constants in the Eunoia signature are constructors of this datatype.
 
@@ -20,11 +23,18 @@ a free uninterpreted function in the final encoding.
 In the Lean encoding:
 - Eunoia programs are Lean definitions.
 
+LOC counts below are `wc -l` of the current sources; C++ counts are the
+implementation plus its header.
+
 The entire pipeline relies on:
-- Bash scripting,
-- Ethos (~10k LOC C++), and depends on GMP
+- tools/eoc/driver.py, 792 LOC Python (plus thin bash wrappers in tools/eoc/cpc),
+- Ethos (~14k LOC C++), and depends on GMP
   - The majority of its parser is used in the compilation.
-- A standard Ethos plugin infrastructure, 133 LOC C++
+- A standard Ethos plugin infrastructure
+  - src/plugin.h, 190 LOC C++ (the callback interface)
+  - plugins/std_plugin.h/cpp, 449 LOC C++ (shared base class)
+  - plugins/meta_reduce_plugin.h/cpp, 454 LOC C++ (shared base of the
+    smt-meta and lean-meta backends)
 
 Below summarizes where certain corner cases are handled when using
 cvc5 -> Cpc.eo -> desugared *.eo -> model-smt *.eo -> smt2|lean.
@@ -69,7 +79,9 @@ Things handled at this stage:
 
 Things handled at this stage:
 - Operator properties.
-  - :right-assoc-nil, :right-assoc, :left-assoc-nil, :left-assoc, :chainable, :binder, :let-binder
+  - :right-assoc-nil, :right-assoc, :left-assoc-nil, :left-assoc,
+    :right-assoc-non-singleton-nil, :left-assoc-non-singleton-nil,
+    :chainable, :pairwise, :arg-list, :binder, :let-binder
 - Desugar n-ary literal ops to binary (e.g. (eo::add a b c) -> (eo::add (eo::add a b) c)).
 
 === Desugar
@@ -77,34 +89,36 @@ Things handled at this stage:
 Compiles *.eo to *.eo.
 The resulting *.eo is desugared to define non-essential Eunoia features as Eunoia programs.
 Includes a forward declaration of a side condtion $eo_model_sat.
-Optionally, a proof rule can be compiled to a Eunoia program $eor_X which
+Optionally, a proof rule can be compiled to a Eunoia program $eo_prog_X which
 operates over *formulas* not proofs. Additionally, we may generate a 
 Eunoia program $eovc_X which:
-- Calls $eo_model_sat and $eor_X.
+- Calls $eo_model_sat and $eo_prog_X.
 - Evaluates successfully iff the proof rule is unsound.
 This side condition is the target for verification in the Smt_Meta step below.
 
 Relies on:
-- eo_desugar.eo template, 304 LOC EO
-- native_embed.eo, 192 LOC EO
+- eo_desugar.eo template, 660 LOC EO
+- native_embed.eo, 254 LOC EO
   - Defines infrastructure for references to native SMT types.
   - Defines operations on pairs of integers to mimic parameteric bitvector operations.
   - Defines SMT datatypes and datatype constructors.
-- eo_desugar_native.eo, 487 LOC EO
+- eo_desugar_native.eo, 925 LOC EO
   - Defines the SMT-like builtins of Eunoia
   - Declares all terms in the SMT-LIB deep embedding
-- desugar.cpp (ethos plugin), 1078 LOC C++
-- (Optional) trim_defs.cpp (ethos plugin), 305 LOC C++
+- desugar.h/cpp (ethos plugin), 1552 LOC C++
+- (Optional) trim_defs.h/cpp (ethos plugin), 442 LOC C++
   - Slices the signature, preserves S-expressions.
   - Needed to make the VCs more manageable.
 - (Optional) desugaring of an executable checker
-  - eo_desugar_checker.eo, 134 LOC EO
-  - desugar_checker.h/cpp, 206 LOC C++
-- (Optional) desugaring of proof scripts
-  - desugar_proof.h/cpp, 152 LOC C++
+  - eo_desugar_checker.eo, 266 LOC EO
+  - desugar_checker.h/cpp, 202 LOC C++
 
 Things handled at this stage:
 - define commands inlined
+  - Each definition is additionally re-emitted as $parse_<name>, which only the
+    Lean_Meta stage consumes, to build the tables of the generated proof parser.
+    Definitions whose own name begins with "$" are signature helpers and are not
+    preserved.
 - (Optional) flattening of evaluation
   - All evaluation nested inside of ordinary applications are lifted. This effectively
     ensures that stuckness propagates eagerly through ordinary constant applications.
@@ -112,7 +126,8 @@ Things handled at this stage:
 - declare-rule
   - Proof type handled as part of the VC generation function ($eovc_X).
 - declare-consts
-  - $eo_Numeral, $eo_Rational, $eo_String, $eo_Binary as references to builtin types.
+  - $eo_lit_type_Numeral, $eo_lit_type_Rational, $eo_lit_type_String,
+    $eo_lit_type_Binary as references to builtin types.
 - Operator overloading.
   - Introduces "$eoo_X.N" as a convention for overloaded symbols.
 - Ambiguously typed functions are converted to unambiguous functions having
@@ -141,10 +156,10 @@ Compiles *.eo to *.eo.
 Includes a definition of $eo_model_sat, which defines SMT-LIB model semantics.
 
 Relies on:
-- model_smt.eo, 961 LOC EO
+- model_smt.eo, 2149 LOC EO
   - Model semantics $eo_model_sat
-- model_smt.cpp (ethos plugin), 1994 LOC C++
-- (Optional) trim_defs.cpp (ethos plugin), also used above
+- model_smt.h/cpp (ethos plugin), 2756 LOC C++
+- (Optional) trim_defs.h/cpp (ethos plugin), also used above
 
 Things handled at this stage:
 - Reduces many Eunoia builtins to SMT-LIB literal semantics
@@ -154,13 +169,13 @@ Things handled at this stage:
   - eo::len, eo::concat, eo::extract, eo::find
   - eo::to_z, eo::to_q, eo::to_bin, eo::to_str
   - eo::var, eo::nameof
-    - Represents variables as constant $eo_Var.
+    - Represents variables as the constant $eot_Var.
 - Macros that could be defined in terms of those above, we do them here to not
   introduce forward references (i.e. desugaring that calls eo::):
   - eo::is_eq, eo::is_z, eo::is_q, eo::is_bin, eo::is_str, eo::is_bool, eo::is_var
   - eo::gt, eo::cmp
 - eo::typeof completed
-  - Includes definitions of literal types, and type of variables ($eo_Var).
+  - Includes definitions of literal types, and type of variables ($eot_Var).
   - Reference to previously defined $eo_typeof_main.
 - Core Eunoia builtins defined.
   - eo::is_ok which reasons about the *deep embedding* of the SMT-LIB datatype we are defining.
@@ -172,18 +187,19 @@ Things handled at this stage:
     - Specialized for sets. Utilities for basic operations on sets.
   - Sequence utility.
     - Used for sequence values.
-  - Defines a core evaluation semantics ($smt_model_eval), having cases:
+  - Defines a core evaluation semantics ($smtx_model_eval), having cases:
     - Function application.
     - Auto-generated in various forms
       - Term reductions "this operator evaluates based on the evaluation of this term"
         - e.g. (bvsle x1 x2) is (bvsge x2 x1).
       - Constant folding auxiliary functions "this operator evaluates the arguments then calls the SMT-LIB operator on the result"
-        - e.g. (+ x1 x2) is ($smt_apply_2 "+" ($evaluate x1) ($evaluate x2))
+        - e.g. (+ x1 x2) is ($native_apply_2 "+" ($evaluate x1) ($evaluate x2))
       - Hard-coded cases "this operator uses the custom function defined in this signature".
         - e.g. (select x1 x2) is ($smtx_map_select ($evaluate x1) ($evaluate x2)).
     - Overloading arithmetic uses multi-case programs.
     - Reverts operator overload, recognizes "$eoo_-.2" as SMT-LIB "-".
-  - Forward declaration of type enumeration ($smt_model_type_enum)
+  - Enumeration of the default value of a type ($smtx_type_default), which
+    returns the first term of a finite type.
 
 
 === Smt_Meta
@@ -202,9 +218,10 @@ This means we are searching over the *syntactic space* of Eunoia terms
 to find terms that witness the semantic unsoundness of the rule.
 
 Relies on:
-- smt_meta.smt2 template, 152 LOC SMT2
-- smt_meta_reduce.cpp (ethos plugin), 1096 LOC C++
-- (Optional) smt_meta_sygus.cpp, 414 LOC C++
+- smt_meta.smt2 template, 370 LOC SMT2
+- smt_meta_reduce.h/cpp (ethos plugin), 1165 LOC C++
+- smt_meta/utils.h/cpp, 116 LOC C++
+- (Optional) smt_meta_sygus.h/cpp, 644 LOC C++
   - Constructs an alternative *.sy file for SyGuS.
 
 Things handled at this stage:
@@ -215,18 +232,18 @@ Things handled at this stage:
     - Note that values are disjoint from terms.
 - Function types become ordinary applications e.g. (-> T1 T2) ---> (_ (_ -> T1) T2).
 - Eunoia semantics of pattern matching based on datatype selectors/testers.
-- Symbols introduced for deep embedding in Model_Smt $smt_apply_N, $smt_type_N.
+- Symbols introduced for deep embedding in Model_Smt $native_apply_N, $smt_type_N.
 - Remaining eo::define and define commands inlined.
 - Axiom for eo::hash
 - :opaque on user symbols becomes part of the deep embedding.
   - For example a constructor like:
-      (declare-parameterized-const const ((id Int :opaque) (T Type :opaque)) T)
+      (declare-parameterized-const @const ((id Int :opaque) (T Type :opaque)) T)
     becomes the datatype constructor with arity 2:
       (eo.@const (eo.@const.arg1 Int) (eo.@const.arg2 eo.Term))
     whereas:
-      (declare-parameterized-const and (-> Bool Bool Bool))
+      (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
     becomes the nullary constructor:
-      (eo.And)
+      (eo.and)
 
 Not handled:
 - Well foundedness of all Eunoia programs. This can lead to spurious unsoundess in the Smt_Meta step.
@@ -241,9 +258,19 @@ Note that Lean will complain about Eunoia programs that it cannot show are
 terminating at this stage.
 
 Relies on:
-- lean_meta.lean template, 270 LOC Lean
-- lean_meta_reduce.cpp (ethos plugin), 1200 LOC C++
-- linear_patterns.cpp (ethos plugin), 162 LOC C++
+- Lean templates, 1479 LOC Lean total:
+  - lean_meta_smt_eval.lean, 184 LOC
+  - lean_meta_smt_model_defs.lean, 100 LOC
+  - lean_meta_smt_value_order.lean, 115 LOC
+  - lean_meta_smt_model.lean, 593 LOC
+  - lean_meta_checker.lean, 149 LOC
+  - lean_meta_checker_term.lean, 76 LOC
+  - lean_meta_parser.lean, 116 LOC
+  - lean_meta_rule.lean, 22 LOC
+  - lean_meta_rule_lemmas.lean, 82 LOC
+  - lean_meta_spec.lean, 42 LOC
+- lean_meta_reduce.h/cpp (ethos plugin), 2288 LOC C++
+- linear_patterns.h/cpp (ethos plugin), 218 LOC C++
   - Linearizes patterns in Eunoia programs
 
 Things handled at this stage:
@@ -263,47 +290,59 @@ Future research:
 
 Executive summary:
 
-Eunoia -> Lean compiler is:
+Eunoia -> Lean compiler is (C++ counts are implementation plus header):
 - C++:
-  - 1078 Desugar plugin
-  - 206 Desugar checker
-  - 1995 SMT model plugin
-  - 270 linearize patterns plugin
-  - 1200 Lean reduce plugin
+  - 1552 Desugar plugin (desugar.h/cpp)
+  - 202 Desugar checker (desugar_checker.h/cpp)
+  - 2756 SMT model plugin (model_smt.h/cpp)
+  - 218 linearize patterns plugin (linear_patterns.h/cpp)
+  - 2288 Lean reduce plugin (lean_meta_reduce.h/cpp)
+  - 1115 shared plugin infrastructure (utils, std_plugin, meta_reduce_plugin)
   ----
-  4729 LOC C++
+  8131 LOC C++
 - Eunoia:
-  - 121 Embedding Utilities
-  - 318 Desugar list Eo
-  - 573 Desugar builtin Eo
-  - 200 Checker definition
-  - 961 SMT model template
+  - 254 Embedding utilities (native_embed.eo)
+  - 660 Desugar template (eo_desugar.eo)
+  - 925 Desugar builtins (eo_desugar_native.eo)
+  - 266 Checker definition (eo_desugar_checker.eo)
+  - 2149 SMT model template (model_smt.eo)
   ----
-  2173 LOC Eunoia
+  4254 LOC Eunoia
 - Lean:
-  - 136 Evaluation utilities
-  - 307 SMT model template
-  - 129 Checker template
-  - 23 Specification template
+  - 184 Evaluation utilities (lean_meta_smt_eval.lean)
+  - 808 SMT model templates (lean_meta_smt_model{,_defs}.lean,
+    lean_meta_smt_value_order.lean)
+  - 225 Checker templates (lean_meta_checker{,_term}.lean)
+  - 116 Parser template (lean_meta_parser.lean)
+  - 104 Rule templates (lean_meta_rule.lean, lean_meta_rule_lemmas.lean)
+  - 42 Specification template (lean_meta_spec.lean)
   ---
-  595 LOC Lean
+  1479 LOC Lean
 
 
-Logos compiled is:
+Logos compiled from Cpc.eo (with tools/eoc/cpc/cpc_exclusions.eo applied) is:
 - Lean:
-  - 136 Evaluation utilities
-  - 8453 Checker
-  - 1429 SMT model semantics
-  - 301 Specification of Eunoia <-> SMT correspondence and final theorem statement
+  - 184 Evaluation utilities (SmtEval.lean)
+  - 291 Term datatype (LogosTerm.lean)
+  - 10487 Checker (Logos.lean)
+  - 2570 SMT model semantics (SmtModel.lean, SmtModelDefs.lean,
+    SmtValueOrder.lean)
+  - 462 Specification of Eunoia <-> SMT correspondence (Spec.lean)
+  - 2045 Proof parser configuration (Parser.lean)
+  - 3627 Rule lemma statements (RuleLemmas.lean), plus 13002 over the 591
+    per-rule files in Rules/
 
 There is a central theorem to prove in the specification:
 ```
 theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
+  TranslatableAssumptionList F ->
+  CmdListTranslationOk pf ->
   (eo_is_refutation F pf) ->
-  (eo_interprets F false) :=
-by
-  ...
+  eo_satisfiability F false
 ```
-where `eo_is_refutation` invokes the checker and `eo_interprets` is defined by Eunoia <-> SMT and the SMT model semantics.
+where `eo_is_refutation` invokes the checker and `eo_satisfiability` is defined
+by Eunoia <-> SMT and the SMT model semantics.
 
-The trusted computing base is 136 + 1429 + 301 = 1866 LOC Lean.
+The trusted computing base is the import closure of the specification module,
+i.e. everything except the checker, the parser and the rule lemmas:
+184 + 291 + 2570 + 462 = 3507 LOC Lean.
