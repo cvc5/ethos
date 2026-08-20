@@ -50,7 +50,7 @@ class State;
  *   (program $eo.l.1.$collapse ((x Bool) (y Bool))
  *     :signature (Bool) Bool
  *     (
- *       (($collapse (and x y)) (and x y))
+ *       (($eo.l.1.$collapse (and x y)) (and x y))
  *     )
  *   )
  *   (program $collapse ((x Bool) ($eo.lv.x.2 Bool) ($eo.dv.1 Bool))
@@ -86,15 +86,15 @@ class State;
  * argument of a catch-all case, and `$eo.l.<n>.<prog>` for the n-th
  * continuation program split off from `<prog>`.
  *
- * Two details of the result are worth noting.  First, `linearize` returns only
- * program symbols paired with their case lists; the `program` declarations
- * shown above are how a consumer renders those pairs, and the parameter lists
- * and signatures are supplied by the consumer rather than by this utility.
- * Second, the case patterns carried into a continuation program keep the
- * application head of the *original* program, as `($collapse (and x y))` does
- * above, rather than being renamed to the continuation.  Consumers of this
- * utility read a case pattern only for its arguments, so the head is ignored;
- * the output is not intended to be re-parsed as Eunoia as-is.
+ * Note that `linearize` returns only program symbols paired with their case
+ * lists; the `program` declarations shown above are how a consumer renders
+ * those pairs, and the parameter lists and signatures are supplied by the
+ * consumer rather than by this utility.  Each case pattern is headed by the
+ * program that owns it, as `($eo.l.1.$collapse (and x y))` above shows for a
+ * case that was carried over from `$collapse`.  Note that the head of a case
+ * pattern is ignored when a program is evaluated, so this renaming is
+ * immaterial to the semantics; it matters only for consumers that read the
+ * head, e.g. to determine which programs a program calls.
  *
  * The utility is exposed as static methods because callers typically need a
  * one-shot transformation of an already-built program definition.
@@ -110,14 +110,23 @@ class LinearPattern
    * The first component of each pair is the program symbol and the second is
    * its list of cases.  The original program is always present; splitting a
    * guarded case appends further continuation programs.  The list is ordered
-   * so that a program appears after every continuation it calls, which lets a
-   * consumer emit them in order without forward declarations.
+   * so that a program appears after the continuations it calls, although note
+   * this is not a topological order in general: if a case of the original
+   * program is recursive, then it is called by the continuation that carries
+   * that case, and the group is mutually recursive.  A consumer that requires
+   * forward declarations must handle this case.
    */
   static std::vector<std::pair<Expr, Expr>> linearize(State& s,
                                                       const Expr& prog,
                                                       const Expr& progDef);
 
  private:
+  /**
+   * Returns the case pattern pat with prog as its head, which is pat itself if
+   * it is already headed by prog. This ensures each case of a program is
+   * headed by that program, see above.
+   */
+  static Expr mkCasePattern(State& s, const Expr& prog, const Expr& pat);
   /**
    * Returns a pair (new pattern, condition) where new pattern is linear.
    * If condition is null, then no linearization was necessary.
