@@ -80,10 +80,6 @@ Desugar::Desugar(State& s, bool genVcs) : StdPlugin(s), d_dchecker(s)
   Expr eoRequireEqType = d_state.mkProgramType({anyT, anyT, anyT2}, anyT2);
   d_peoRequiresEq =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_eq", eoRequireEqType);
-  Expr eoProvenType =
-      d_state.mkProgramType({d_state.mkProofType()}, d_state.mkBoolType());
-  d_peoProven =
-      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_proven", eoProvenType);
   Expr eoPfType =
       d_state.mkFunctionType({d_state.mkBoolType()}, d_state.mkProofType());
   d_peoPf = d_state.mkSymbol(Kind::CONST, "$eo_pf", eoPfType);

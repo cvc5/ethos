@@ -13,6 +13,8 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <unordered_set>
+#include <vector>
 
 #include "../std_plugin.h"
 #include "desugar_checker.h"
@@ -111,8 +113,6 @@ class Desugar : public StdPlugin
    * Emit is_closed cases for the binder e.
    */
   void finalizeBinder(const Expr& e, const Expr& attrCons);
-  /** Reserved hook for well-foundedness artifacts. */
-  void finalizeWellFounded();
   /** Sanitize an expression using the default overload-renaming map. */
   Expr mkSanitize(const Expr& t);
   /** Sanitize an expression while reusing or extending a caller map. */
@@ -207,14 +207,6 @@ class Desugar : public StdPlugin
   std::stringstream d_eoDtSel;
   /** Generated verification-condition programs and markers. */
   std::stringstream d_eoVc;
-  /** Generated well-foundedness verification-condition artifacts. */
-  std::stringstream d_eoVcWf;
-  /** Generated model-evaluation helper definitions. */
-  std::stringstream d_eoModelEval;
-  /** Generated model constant predicate helper definitions. */
-  std::stringstream d_eoModelConstPred;
-  /** Generated proof-step helper definitions. */
-  std::stringstream d_eoPfSteps;
 
   /** `$eo_model_sat` helper symbol used in generated VCs. */
   Expr d_peoModelSat;
@@ -224,8 +216,6 @@ class Desugar : public StdPlugin
   Expr d_peoRequiresEq;
   /** Number of datatype-constructor type parameters already declared. */
   size_t d_eoDtConsParamCount;
-  /** `$eo_proven` helper symbol used by checker generation. */
-  Expr d_peoProven;
   /** `$eo_pf` helper symbol used to turn proof nodes into applications. */
   Expr d_peoPf;
   /** Helper responsible for desugaring the executable checker. */

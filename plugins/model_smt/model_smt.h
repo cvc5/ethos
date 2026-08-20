@@ -12,6 +12,9 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <tuple>
+#include <unordered_set>
+#include <vector>
 
 #include "../std_plugin.h"
 
@@ -60,7 +63,7 @@ class ModelSmt : public StdPlugin
                     Kind ret,
                     const std::string& retTerm);
   /**
-   * Add function whose evaluation is ($smt_model_eval <retTerm>).
+   * Add function whose evaluation is ($smtx_model_eval <retTerm>).
    */
   void addTermReduceSym(const std::string& sym,
                         const std::vector<Kind>& args,
@@ -76,8 +79,8 @@ class ModelSmt : public StdPlugin
                           bool isType = false);
   /**
    * Add function whose evaluation is
-   * (eo::define ((e1 ($smt_model_eval x1)))
-   * (eo::define ((e2 ($smt_model_eval x2)))
+   * (eo::define ((e1 ($smtx_model_eval x1)))
+   * (eo::define ((e2 ($smtx_model_eval x2)))
    *  <retTerm>)).
    */
   void addRecReduceSym(const std::string& sym,
@@ -86,22 +89,26 @@ class ModelSmt : public StdPlugin
                        const std::string& retTerm);
   /**
    * Add function whose evaluation is
-   * ($smt_model_eval_<sym> ($smt_model_eval x1) ($smt_model_eval x2)),
-   * where $smt_model_eval_<sym> is manually defined program.
+   * ($smtx_model_eval_<sym> ($smtx_model_eval x1) ($smtx_model_eval x2)),
+   * where $smtx_model_eval_<sym> is a manually defined program.
    */
   void addHardCodeSym(const std::string& sym, const std::vector<Kind>& args);
   /**
    * Add function whose evaluation is given by
-   * ($smt_model_eval_<sym> ($smt_model_eval x1) ($smt_model_eval x2)),
-   * where $smt_model_eval_<sym> is an auto-generated auxiliary
+   * ($smtx_model_eval_<sym> ($smtx_model_eval x1) ($smtx_model_eval x2)),
+   * where $smtx_model_eval_<sym> is an auto-generated auxiliary
    * program whose case is determined by args, and has <retTerm> as its
    * return, e.g.:
-   * (program $smt_model_eval_<sym> ()
+   * (program $smtx_model_eval_<sym>
+   *   ((x1 $native_<arg1>) (x2 $native_<arg2>) (t1 $smt_Value) (t2 $smt_Value))
    *   :signature ($smt_Value $smt_Value) $smt_Value
    *   (
-   *   (($smt_model_eval_<sym> ($eo_<arg1> x1) ($eo_<arg2> x2)) <retTerm>)
+   *   (($smtx_model_eval_<sym> ($vsm_<arg1> x1) ($vsm_<arg2> x2)) <retTerm>)
+   *   (($smtx_model_eval_<sym> t1 t2) $vsm_not_value)
    *   )
    * )
+   * where $vsm_<argi> is the value constructor for the i^th argument kind (see
+   * d_kindToEoPrefix) and the trailing default case makes the program total.
    * Note that x1, ..., xn in this context are SMT-LIB literal values.
    */
   void addLitSym(const std::string& sym,
@@ -110,7 +117,10 @@ class ModelSmt : public StdPlugin
                  const std::string& retTerm);
   /**
    * Similar to addLitSym, but where <retTerm> is
-   * ($vsm_term ($sm_mk_binary <retWidth> <retNum>)).
+   * ($vsm_binary_mod_w <retWidth> <retNum>), i.e. the bit-vector value of
+   * <retNum> truncated to width <retWidth>.
+   *
+   * Note reqSameWidth is currently ignored.
    */
   void addLitBinSym(const std::string& sym,
                     const std::vector<Kind>& args,
@@ -122,8 +132,8 @@ class ModelSmt : public StdPlugin
    * automatically generated for sym, args, ret to invoke the
    * SMT-LIB operator. For example, if sym is "and", args is {Kind::BOOL,
    * Kind::BOOL}, and ret is Kind::BOOL, then <retTerm> is
-   * ($vsm_term ($sm_mk_bool ($native_apply_2 "and" x1 x2))).
-   * The return kind determines which $sm_mk_* is used in the return,
+   * ($vsm_bool ($native_apply_2 "and" x1 x2)).
+   * The return kind determines which $vsm_* constructor wraps the return,
    * and the argument kinds determine which literal destructors are used.
    */
   void addConstFoldSym(const std::string& sym,
@@ -223,8 +233,6 @@ class ModelSmt : public StdPlugin
   void finalizeDecl(const std::string& name, const Expr& e);
   /** Map from literal kind to `$vsm_*` value constructor prefix. */
   std::map<Kind, std::string> d_kindToEoPrefix;
-  /** Map from literal kind to EO constructor suffix. */
-  std::map<Kind, std::string> d_kindToEoCons;
   /** Map from literal kind to native SMT type name. */
   std::map<Kind, std::string> d_kindToType;
   /** Map from desugared overload names back to SMT-LIB operator names. */

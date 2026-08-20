@@ -11,6 +11,8 @@
 
 #include <map>
 #include <string>
+#include <unordered_set>
+#include <vector>
 
 #include "../std_plugin.h"
 #include "../utils.h"

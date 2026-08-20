@@ -25,8 +25,9 @@ class State;
  * disabled.  It inspects each proof-rule declaration, emits an embedded rule
  * constant for it, and generates checker invocation cases that translate
  * checker commands into calls to the corresponding desugared proof-rule
- * program.  The accumulated fragments are finally spliced into
- * `eo_desugar_checker.eo` by output().
+ * program.  output() substitutes the accumulated fragments into the
+ * `eo_desugar_checker.eo` template and writes the result to its stream, which
+ * the desugar plugin in turn splices into its own generated file.
  */
 class DesugarChecker : public StdPlugin
 {

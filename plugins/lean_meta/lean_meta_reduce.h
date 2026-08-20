@@ -13,6 +13,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "../meta_reduce_plugin.h"
@@ -89,14 +90,14 @@ class LeanMetaReduce : public MetaReducePlugin
    */
   MetaKind getTypeMetaKind(const Expr& typ) const;
   /**
-   * Get the meta kind of the type of expression e, or else kind otherwise.
+   * Get the meta kind of the type of expression e.
    * In other words, we return the datatype that e is a constructor of in the
    * final embedding, SMT_BUILTIN if e is a builtin SMT-LIB application, or
-   * elseKind otherwise.
-   * @param s Reference to the state
+   * EUNOIA otherwise.
+   * @param s Unused, retained so callers read as state-directed.
    * @param e The given expression.
    * @param cname Updated to the root name of the constructor.
-   * @return The meta-kind of the type of e, or elseKind otherwise.
+   * @return The meta-kind of the type of e, or EUNOIA otherwise.
    */
   MetaKind getMetaKind(State& s, const Expr& e, std::string& cname) const;
 
@@ -248,7 +249,7 @@ class LeanMetaReduce : public MetaReducePlugin
     size_t d_indexArity;
     /** Its number of ordinary term arguments. */
     size_t d_termArity;
-    /** Its syntactic attribute, e.g. ":right-assoc-nil", or "-" if none. */
+    /** Its syntactic attribute, e.g. "right-assoc-nil", or "none" if none. */
     std::string d_attr;
     /**
      * The constructor operand of `d_attr`: the operator that chains a chainable
