@@ -30,7 +30,8 @@ bool optionEoUserOp() { return true; }
 
 }  // namespace
 
-LeanMetaReduce::LeanMetaReduce(State& s) : MetaReducePlugin(s)
+LeanMetaReduce::LeanMetaReduce(State& s, bool generateParser)
+    : MetaReducePlugin(s), d_generateParser(generateParser)
 {
   d_typeToMetaKind["$eo_Term"] = MetaKind::EUNOIA;
   d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
@@ -1773,7 +1774,10 @@ void LeanMetaReduce::finalize()
     }
   }
   finalizeChecker();
-  finalizeParser();
+  if (d_generateParser)
+  {
+    finalizeParser();
+  }
   finalizeSmtModel();
   finalizeSpec();
   finalizeLemmas();

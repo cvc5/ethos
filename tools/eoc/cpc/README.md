@@ -71,13 +71,17 @@ Compatibility scripts restored from the old workflow:
 - `install_logos`
 - `install_logos_mini`
 
-Both installers also publish the generated proof parser as
-`$LOGOS_DIR/Cpc/Parser.lean` (or the corresponding mini-calculus module). The
-generated module is only a `Logos.Parser.Config`: the operator and proof-rule
-tables of the calculus, plus the mapping of literals, datatype declarations and
-proof commands into its term language. The parser itself is the hand-written,
-calculus-independent `Logos/Parser.lean` in the Logos repository, which is where
-that module lives rather than in a generated calculus package.
+`install_logos` publishes the generated proof parser as
+`$LOGOS_DIR/Cpc/Parser.lean`. The generated module is only a
+`Logos.Parser.Config`: the operator and proof-rule tables of the calculus, plus
+the mapping of literals, datatype declarations and proof commands into its term
+language. The parser itself is the hand-written, calculus-independent
+`Logos/Parser.lean` in the Logos repository, which is where that module lives
+rather than in a generated calculus package.
+
+`install_logos_mini` passes `--no-parser` to the compiler, skips Parser.lean
+when installing the generated modules, and removes any stale
+`$LOGOS_DIR/CpcMini/Parser.lean` from an earlier installation.
 
 The tables also cover the identifiers the signature introduces with `define`,
 such as `@var` and `@pair`, since proofs use them even though Eunoia inlines

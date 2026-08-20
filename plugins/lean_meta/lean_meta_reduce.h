@@ -41,8 +41,13 @@ class TypeChecker;
 class LeanMetaReduce : public MetaReducePlugin
 {
  public:
-  /** Construct the Lean meta reducer and its meta-kind tables. */
-  LeanMetaReduce(State& s);
+  /**
+   * Construct the Lean meta reducer and its meta-kind tables.
+   *
+   * If generateParser is false, omit the signature-specific Logos parser
+   * configuration while still emitting every other Lean artifact.
+   */
+  LeanMetaReduce(State& s, bool generateParser = true);
   /** Destroy the Lean meta reducer. */
   ~LeanMetaReduce() override;
   /** Remember a program definition for later Lean emission. */
@@ -102,6 +107,8 @@ class LeanMetaReduce : public MetaReducePlugin
   MetaKind getMetaKind(State& s, const Expr& e, std::string& cname) const;
 
  private:
+  /** Whether to emit the signature-specific Logos parser configuration. */
+  bool d_generateParser;
   /** Return true if sname denotes a Lean meta symbol supplied by templates. */
   bool isBuiltinMetaSymbol(const std::string& sname) const override;
   /** Print an atomic EO expression in the Lean embedding. */

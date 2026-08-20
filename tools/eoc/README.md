@@ -221,6 +221,10 @@ Whole signature:
 python3 tools/eoc/driver.py lean --build-dir build-eoc --all INPUT
 ```
 
+Pass `--no-parser` to omit the signature-specific `Parser.lean` artifact while
+still generating the remaining Lean modules and per-rule files. This also
+removes a stale `Parser.lean` from the selected final output directory.
+
 Generated files are written to `tools/eoc/out/lean/` by default, including
 per-rule files in `tools/eoc/out/lean/Rules/`. `Parser.lean` is the minimal
 calculus-specific instantiation of the generic Logos proof parser: it contains

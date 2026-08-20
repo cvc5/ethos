@@ -195,6 +195,7 @@ eoc_copy_lean_outputs() {
   local dest_dir="$1"
   local final_out_dir="$2"
   local preserve_existing_rules="${3:-0}"
+  local include_parser="${4:-1}"
   local lean_dir="$final_out_dir/lean"
   local rules_dir="$lean_dir/Rules"
   local entry
@@ -209,6 +210,10 @@ eoc_copy_lean_outputs() {
   echo "Installing generated Lean files from $lean_dir into $dest_dir"
   for entry in "${EOC_LEAN_OUTPUTS[@]}"; do
     read -r src dest <<< "$entry"
+    if [[ "$include_parser" == "0" && "$src" == "Parser.lean" ]]; then
+      rm -f "$dest_dir/$dest"
+      continue
+    fi
     if [[ ! -f "$lean_dir/$src" ]]; then
       echo "error: $lean_dir/$src was not generated" >&2
       return 1

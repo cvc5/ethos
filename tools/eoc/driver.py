@@ -401,12 +401,32 @@ class Pipeline:
             self.solve_smt(output_file, sygus=sygus)
         return output_file
 
-    def lean(self, input_file: Path, *, calc_name: str) -> Path:
+    def lean(
+        self,
+        input_file: Path,
+        *,
+        calc_name: str,
+        generate_parser: bool,
+    ) -> Path:
         out_lean = self.final_out_dir / "lean"
         out_lean.mkdir(parents=True, exist_ok=True)
         self.clean_generated_lean_rule_outputs()
-        self.ethos(["--plugin.lean-meta", self.binary_path_arg(input_file)], quiet=True)
+        parser_outputs = (
+            self.plugin_generated("lean_meta/lean_meta_parser_gen.lean"),
+            out_lean / "Parser.lean",
+        )
+        if not generate_parser:
+            for parser_output in parser_outputs:
+                if parser_output.exists():
+                    parser_output.unlink()
+        args = ["--plugin.lean-meta"]
+        if not generate_parser:
+            args.append("--no-parser")
+        args.append(self.binary_path_arg(input_file))
+        self.ethos(args, quiet=True)
         for source, name, generated in LEAN_OUTPUTS:
+            if not generate_parser and name == "Parser.lean":
+                continue
             source_path = (
                 self.plugin_generated(source)
                 if generated
@@ -479,6 +499,7 @@ class Pipeline:
         *,
         all_targets: bool,
         build_first: bool,
+        generate_parser: bool,
     ) -> Path:
         if build_first:
             self.build()
@@ -503,7 +524,11 @@ class Pipeline:
             print(f"**** lean_meta: Verify ethos parses {final_defs}")
             self.parse_file(final_defs)
             print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
-            return self.lean(final_defs, calc_name=calc_name)
+            return self.lean(
+                final_defs,
+                calc_name=calc_name,
+                generate_parser=generate_parser,
+            )
 
         init_trim = self.stage_out_dir / f"lean-{stem}-trim.eo"
         init_desugar = self.stage_out_dir / f"lean-{stem}-desugar.eo"
@@ -534,7 +559,11 @@ class Pipeline:
         print(f"**** lean_meta: Verify ethos parses {final_defs}")
         self.parse_file(final_defs)
         print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
-        return self.lean(final_defs, calc_name=calc_name)
+        return self.lean(
+            final_defs,
+            calc_name=calc_name,
+            generate_parser=generate_parser,
+        )
 
     def run_desugar(self, input_name: str, *, build_first: bool) -> Path:
         if build_first:
@@ -635,6 +664,11 @@ def main(argv: list[str]) -> int:
     lean.add_argument("input")
     lean.add_argument("targets", nargs="*")
     lean.add_argument("--all", action="store_true", help="Compile the entire signature.")
+    lean.add_argument(
+        "--no-parser",
+        action="store_true",
+        help="Do not generate or publish the signature-specific Logos parser.",
+    )
 
     desugar = subparsers.add_parser("desugar", help="Generate a desugared EO file.")
     add_common_args(desugar)
@@ -733,6 +767,7 @@ def main(argv: list[str]) -> int:
                 list(args.targets),
                 all_targets=args.all,
                 build_first=build_first,
+                generate_parser=not args.no_parser,
             )
         elif args.command == "desugar":
             pipeline.run_desugar(args.input, build_first=build_first)

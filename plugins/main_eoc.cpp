@@ -40,7 +40,9 @@ using namespace ethos;
 
 namespace {
 
-std::unique_ptr<Plugin> createPlugin(const std::string& name, State& s)
+std::unique_ptr<Plugin> createPlugin(const std::string& name,
+                                     State& s,
+                                     bool generateParser)
 {
   if (name == "desugar")
   {
@@ -60,7 +62,7 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name, State& s)
   }
   if (name == "lean-meta")
   {
-    return std::make_unique<LeanMetaReduce>(s);
+    return std::make_unique<LeanMetaReduce>(s, generateParser);
   }
   if (name == "trim-defs")
   {
@@ -84,6 +86,7 @@ int main(int argc, char* argv[])
   std::string file;
   bool readFile = false;
   std::string pluginName;
+  bool generateParser = true;
   // the list of includes and whether they were an include or reference
   std::vector<std::pair<std::string, bool>> includes;
   size_t i = 1;
@@ -100,6 +103,11 @@ int main(int argc, char* argv[])
                    << "\" and \"" << arg.substr(9) << "\"";
       }
       pluginName = arg.substr(9);
+      continue;
+    }
+    if (arg == "--no-parser")
+    {
+      generateParser = false;
       continue;
     }
     if (arg.compare(0, 5, "--no-") == 0)
@@ -163,13 +171,17 @@ int main(int argc, char* argv[])
   {
     EO_FATAL() << "Error: no input specified.";
   }
+  if (!generateParser && pluginName != "lean-meta")
+  {
+    EO_FATAL() << "Error: --no-parser requires --plugin.lean-meta";
+  }
   // options are finalized, now initialize the state and the plugin
   Stats stats;
   State s(opts, stats);
   std::unique_ptr<Plugin> plugin;
   if (!pluginName.empty())
   {
-    plugin = createPlugin(pluginName, s);
+    plugin = createPlugin(pluginName, s, generateParser);
     // note the plugin must be set before any file is included, so that it
     // receives callbacks during parsing
     s.setPlugin(plugin.get());

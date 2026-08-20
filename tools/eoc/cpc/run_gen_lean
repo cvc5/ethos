@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Generate Lean output for one or more RULE arguments on the default CPC input.
-# Usage: run_gen_lean RULE [RULE ...]
+# Usage: run_gen_lean [LEAN_OPTION ...] RULE [RULE ...]
 # Output: writes stage EO files and final Lean files under tools/eoc/out/.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
-eoc_require_args "$0 RULE [RULE ...]" 1 "$#"
+eoc_require_args "$0 [LEAN_OPTION ...] RULE [RULE ...]" 1 "$#"
 
 BUILD_DIR="$(eoc_build_dir)"
 INPUT="$(eoc_cpc_input)"
