@@ -63,10 +63,12 @@ To display the canonical signature paths embedded in the binary, run:
 build/cpp_compiler_custom/ethos --show-config
 ```
 
-Includes nested by the root signature are recorded too. Matching accepts the
-same file through relative or absolute paths, but the custom binary remains
-tied to the files' locations at generation time. Regenerate it after moving a
-signature or after changing any signature contents.
+Includes nested by the root signature are recorded too. The generated executor
+records a content hash for each one, so the same unchanged signature is
+recognized through relative, absolute, or relocated paths. If a recognized
+path contains different content, the executor reports that the custom binary
+must be regenerated instead of reparsing into an already initialized state.
+Regenerate the binary after changing any signature contents.
 
 ## Manual two-stage build
 
@@ -132,9 +134,20 @@ executor's skip decision explicit at the plugin boundary.
 - `build_custom_ethos.sh` performs the complete two-stage custom build.
 
 The main build's `plugins-compile-check` deliberately excludes this plugin.
-The dedicated CI step invokes `build_custom_ethos.sh`, which generates C++,
-compiles it, reconstructs parser state, and verifies that the executor skips
-the source include. Run that same end-to-end check locally with:
+The plugin-local `cpp-compiler-roundtrip` target compiles and runs
+`test/generate.cpp` and `test/replay.cpp`, including regressions for variables,
+scoped program definitions, hexadecimal widths, and relocated signatures:
+
+```sh
+cmake -S plugins/cpp_compiler -B build/cpp-compiler-test \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DETHOS_CPP_COMPILER_MODE=test
+cmake --build build/cpp-compiler-test \
+  --target cpp-compiler-roundtrip --parallel
+```
+
+CI also invokes `build_custom_ethos.sh` to test the complete custom-binary
+workflow. Run that same check locally with:
 
 ```sh
 plugins/cpp_compiler/build_custom_ethos.sh \

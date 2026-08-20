@@ -81,6 +81,8 @@ class Compiler : public Plugin
   std::stringstream d_config;
   /** Comparisons written into Executor::includeFile(). */
   std::stringstream d_includes;
+  /** Diagnostics for a stale compiled signature at a recognized path. */
+  std::stringstream d_includeMismatches;
   /** Generated identifiers for expressions. */
   std::map<const ExprValue*, size_t> d_exprIds;
   /**

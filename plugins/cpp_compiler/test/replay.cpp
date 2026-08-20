@@ -10,9 +10,31 @@
 #include <cstdlib>
 
 #include "executor.h"
+#include "literal.h"
 #include "state.h"
 
 using namespace ethos;
+
+namespace {
+
+Expr findKind(const Expr& expr, Kind kind)
+{
+  if (expr.getKind() == kind)
+  {
+    return expr;
+  }
+  for (size_t i = 0, size = expr.getNumChildren(); i < size; ++i)
+  {
+    Expr result = findKind(expr[i], kind);
+    if (!result.isNull())
+    {
+      return result;
+    }
+  }
+  return Expr();
+}
+
+}  // namespace
 
 int main()
 {
@@ -25,8 +47,12 @@ int main()
   Expr intType = state.getVar("Int");
   Expr sum = state.getVar("sum");
   Expr first = state.getVar("first");
+  Expr makeVar = state.getVar("make-var");
+  Expr hexZero = state.getVar("hex-zero");
+  Expr nil = state.getVar("nil");
   Expr trusted = state.getProofRule("trusted");
-  if (intType.isNull() || sum.isNull() || first.isNull() || trusted.isNull())
+  if (intType.isNull() || sum.isNull() || first.isNull() || makeVar.isNull()
+      || hexZero.isNull() || nil.isNull() || trusted.isNull())
   {
     std::exit(4);
   }
@@ -41,6 +67,33 @@ int main()
       || state.getAttributeKind(program[0][0][2].getValue()) != Attr::LIST)
   {
     std::exit(6);
+  }
+
+  Expr variableProgram = state.getProgram(makeVar.getValue());
+  Expr variable = findKind(variableProgram, Kind::VARIABLE);
+  if (variable.isNull() || variable.getNumChildren() != 2)
+  {
+    std::exit(10);
+  }
+
+  Expr hexProgram = state.getProgram(hexZero.getValue());
+  Expr hex = findKind(hexProgram, Kind::HEXADECIMAL);
+  const Literal* hexLiteral =
+      hex.isNull() ? nullptr : hex.getValue()->asLiteral();
+  if (hexLiteral == nullptr || hexLiteral->d_bv.getSize() != 8)
+  {
+    std::exit(11);
+  }
+
+  ExprValue* nilTypeValue = state.lookupType(nil.getValue());
+  Expr disambiguationProgram =
+      nilTypeValue == nullptr
+          ? Expr()
+          : findKind(Expr(nilTypeValue), Kind::PROGRAM_CONST);
+  if (disambiguationProgram.isNull()
+      || state.getProgram(disambiguationProgram.getValue()).isNull())
+  {
+    std::exit(12);
   }
 
   Expr one = state.mkLiteral(Kind::NUMERAL, "1");

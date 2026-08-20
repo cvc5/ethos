@@ -16,11 +16,12 @@ using namespace ethos;
 
 int main(int argc, char** argv)
 {
-  if (argc != 2)
+  if (argc != 3)
   {
     return 2;
   }
   Options options;
+  options.setOption("normalize-hex", false);
   Stats stats;
   State state(options, stats);
   Compiler compiler(state);
@@ -28,6 +29,10 @@ int main(int argc, char** argv)
   if (!state.includeFile(argv[1], true))
   {
     std::exit(3);
+  }
+  if (!state.includeFile(argv[2], false, true, Expr()))
+  {
+    std::exit(4);
   }
   compiler.finalize();
 

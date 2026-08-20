@@ -322,7 +322,6 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   d_inputFile = inputPath;
   if (d_plugin != nullptr)
   {
-    Assert(!isReference);
     if (d_plugin->includeFile(
             inputPath, isSignature, isReference, referenceNf))
     {
@@ -354,7 +353,6 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   }
   if (d_plugin != nullptr)
   {
-    Assert(!isReference);
     d_plugin->finalizeIncludeFile(
         inputPath, isSignature, isReference, referenceNf);
   }

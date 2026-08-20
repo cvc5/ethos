@@ -32,6 +32,12 @@ jobs:
         ./configure.sh debug --werror
         cd build
         make -j${{ env.num_proc }} plugins-compile-check
+        cmake -S ../plugins/cpp_compiler -B cpp-compiler-test \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS=-Werror \
+          -DETHOS_CPP_COMPILER_MODE=test
+        cmake --build cpp-compiler-test --parallel ${{ env.num_proc }} \
+          --target cpp-compiler-roundtrip
 
     - name: Build and run custom auto-parser binary
       run: |

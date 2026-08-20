@@ -9,6 +9,7 @@
 
 #include "compiler.h"
 
+#include <cstdint>
 #include <fstream>
 #include <iomanip>
 #include <utility>
@@ -24,8 +25,39 @@ namespace {
 
 bool isNamedExpr(Kind kind)
 {
-  return isSymbol(kind) || kind == Kind::BUILTIN_CONST
-         || kind == Kind::VARIABLE;
+  return isSymbol(kind) || kind == Kind::BUILTIN_CONST;
+}
+
+std::uint64_t hashFile(const std::string& path)
+{
+  std::ifstream input(path, std::ios::binary);
+  if (!input.is_open())
+  {
+    EO_FATAL() << "Compiler: cannot hash signature " << path;
+    return 0;
+  }
+  std::uint64_t hash = 14695981039346656037ULL;
+  char ch;
+  while (input.get(ch))
+  {
+    hash ^= static_cast<unsigned char>(ch);
+    hash *= 1099511628211ULL;
+  }
+  return hash;
+}
+
+std::string literalText(const Literal& literal)
+{
+  std::string text = literal.toString();
+  if (literal.getKind() == Kind::HEXADECIMAL)
+  {
+    size_t digits = (literal.d_bv.getSize() + 3) / 4;
+    if (text.size() < digits)
+    {
+      text.insert(0, digits - text.size(), '0');
+    }
+  }
+  return text;
 }
 
 const char* attrName(Attr attr)
@@ -109,14 +141,27 @@ bool Compiler::includeFile(const Filepath& path,
     return false;
   }
   const std::string& rawPath = path.getRawPath();
+  std::uint64_t contentHash = hashFile(rawPath);
   d_config << "  ss << std::setw(15) << \" \" << " << quote(rawPath)
            << " << std::endl;\n";
-  d_includes << "  {\n"
-             << "    std::error_code ec;\n"
-             << "    if (path.getRawPath() == " << quote(rawPath) << "\n"
-             << "        || std::filesystem::equivalent(path.getRawPath(), "
-             << quote(rawPath) << ", ec))\n"
-             << "    {\n      return true;\n    }\n  }\n";
+  d_includes << "  if (contentHash == " << contentHash << "ULL)\n"
+             << "  {\n    return true;\n  }\n";
+  d_includeMismatches
+      << "  {\n"
+      << "    std::error_code ec;\n"
+      << "    const std::filesystem::path requested(path.getRawPath());\n"
+      << "    const std::filesystem::path compiled(" << quote(rawPath)
+      << ");\n"
+      << "    if (path.getRawPath() == " << quote(rawPath) << "\n"
+      << "        || std::filesystem::equivalent(requested, compiled, ec)\n"
+      << "        || requested.filename() == compiled.filename())\n"
+      << "    {\n"
+      << "      EO_FATAL() << \"Executor: signature \" << path.getRawPath()\n"
+      << "                 << \" does not match the compiled signature \"\n"
+      << "                 << compiled.string()\n"
+      << "                 << \"; regenerate the custom ethos binary\";\n"
+      << "    }\n"
+      << "  }\n";
   // Compiler observes and records parsing; it never replaces it.
   return false;
 }
@@ -198,7 +243,7 @@ void Compiler::markConstructorKind(const Expr& expr,
 
 void Compiler::defineProgram(const Expr& symbol, const Expr& program)
 {
-  if (!isRecording() || d_nscopes > 0)
+  if (!isRecording())
   {
     return;
   }
@@ -321,7 +366,7 @@ size_t Compiler::writeExpr(const Expr& expr)
       const Literal* literal = value->asLiteral();
       Assert(literal != nullptr);
       d_initialize << "d_state.mkLiteral(Kind::" << kind << ", "
-                   << quote(literal->toString()) << ")";
+                   << quote(literalText(*literal)) << ")";
     }
     else if (isNamedExpr(kind))
     {
@@ -412,11 +457,33 @@ std::string Compiler::toString() const
   std::stringstream source;
   source << "#include \"executor.h\"\n";
   source << "#include \"state.h\"\n\n";
+  source << "#include \"base/output.h\"\n\n";
+  source << "#include <cstdint>\n";
   source << "#include <filesystem>\n";
+  source << "#include <fstream>\n";
   source << "#include <iomanip>\n";
   source << "#include <sstream>\n";
   source << "#include <system_error>\n\n";
   source << "namespace ethos {\n\n";
+  source << "namespace {\n\n";
+  source << "std::uint64_t hashFile(const std::string& path)\n";
+  source << "{\n";
+  source << "  std::ifstream input(path, std::ios::binary);\n";
+  source << "  if (!input.is_open())\n";
+  source << "  {\n";
+  source << "    EO_FATAL() << \"Executor: cannot hash signature \" << path;\n";
+  source << "    return 0;\n";
+  source << "  }\n";
+  source << "  std::uint64_t hash = 14695981039346656037ULL;\n";
+  source << "  char ch;\n";
+  source << "  while (input.get(ch))\n";
+  source << "  {\n";
+  source << "    hash ^= static_cast<unsigned char>(ch);\n";
+  source << "    hash *= 1099511628211ULL;\n";
+  source << "  }\n";
+  source << "  return hash;\n";
+  source << "}\n\n";
+  source << "}  // namespace\n\n";
   source << "std::string Executor::showCompiledFiles()\n";
   source << "{\n";
   source << "  std::stringstream ss;\n";
@@ -433,7 +500,9 @@ std::string Compiler::toString() const
   source << "  {\n";
   source << "    return false;\n";
   source << "  }\n";
+  source << "  std::uint64_t contentHash = hashFile(path.getRawPath());\n";
   source << d_includes.str();
+  source << d_includeMismatches.str();
   source << "  return false;\n";
   source << "}\n\n";
   source << "void Executor::initialize()\n";
