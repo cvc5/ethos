@@ -176,6 +176,7 @@ set(ethos_test_file_list
     homogeneous-list-ops.eo
     quant-sk-type.eo
     fwd-decl-nground.eo
+    require-proof-of-false.eo
 )
 
 macro(ethos_test file)
@@ -195,6 +196,7 @@ macro(ethos_fail_test file regex)
       "-DTEST_BINARY=$<TARGET_FILE:ethos>"
       "-DTEST_FILE=${CMAKE_CURRENT_LIST_DIR}/${file}"
       "-DTEST_WORKDIR=${CMAKE_SOURCE_DIR}"
+      "-DTEST_MODE=${ARGN}"
       "-DEXPECT_REGEX=${regex}"
       -P ${CMAKE_CURRENT_LIST_DIR}/expect_error.cmake
   )
@@ -207,3 +209,13 @@ endforeach()
 
 ethos_fail_test(parser-overflow-declare-sort.eo
                 "Numerals must fit into 32-bit unsigned integers")
+ethos_fail_test(require-proof-of-false-last-step.eo
+                "last proof step did not prove false at assumption level zero")
+ethos_fail_test(require-proof-of-false-no-step.eo
+                "last proof step did not prove false at assumption level zero")
+ethos_fail_test(require-proof-of-false-nested.eo
+                "last proof step did not prove false at assumption level zero"
+                STDIN)
+ethos_fail_test(require-proof-of-false-disabled.eo
+                "last proof step did not prove false at assumption level zero"
+                --require-proof-of-false)

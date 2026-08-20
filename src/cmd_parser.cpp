@@ -964,6 +964,9 @@ bool CmdParser::parseNextCommand()
       {
         d_state.popAssumptionScope();
       }
+      // Record this only after all checks have succeeded and any assumption
+      // scope discharged by step-pop has been removed.
+      d_state.notifyCheckedStep(concTerm);
       // Now wrap the conclusion in the proof constructor.
       Expr pfTerm = d_state.mkProof(concTerm);
       // bind to variable, note that the definition term is not kept

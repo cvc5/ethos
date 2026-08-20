@@ -1,0 +1,9 @@
+(set-option :require-proof-of-false true)
+
+(declare-rule prove-false ()
+  :premises ()
+  :args ()
+  :conclusion false)
+
+(assume-push assumption true)
+(step final false :rule prove-false :premises () :args ())

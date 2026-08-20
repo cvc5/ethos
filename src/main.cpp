@@ -68,6 +68,7 @@ int main( int argc, char* argv[] )
       out << "--no-rule-sym-table: do not use a separate symbol table for proof rules and declared terms." << std::endl;
       out << "      --reference=X: includes the file specified by X as a reference file." << std::endl;
       out << "--reference-define-fun: in reference files, treat define-fun as a definition instead of a reference assertion." << std::endl;
+      out << "--require-proof-of-false: require the last proof step at level zero to prove false." << std::endl;
       out << "      --show-config: displays the build information for this binary." << std::endl;
       out << "            --stats: enables detailed statistics." << std::endl;
       out << "        --stats-all: enables all available statistics." << std::endl;
@@ -142,6 +143,9 @@ int main( int argc, char* argv[] )
       EO_FATAL() << "Error: mulitple files specified, \"" << file << "\" and \"" << arg << "\"";
     }
   }
+  // Preserve command-line enforcement even if an input later changes the
+  // corresponding set-option value.
+  const bool requireProofOfFalse = opts.d_requireProofOfFalse;
   // options are finalized, now initialize the state and run the includes
   Stats stats;
   State s(opts, stats);
@@ -187,6 +191,12 @@ int main( int argc, char* argv[] )
     {
       EO_FATAL() << "Error: cannot include file " << file;
     }
+  }
+  if ((requireProofOfFalse || opts.d_requireProofOfFalse)
+      && !s.lastStepProvesFalseAtLevelZero())
+  {
+    EO_FATAL() << "Error: the last proof step did not prove false at "
+                  "assumption level zero.";
   }
   bool wasIncomplete = false;
   std::map<const ExprValue*, RuleStat>& rs = stats.d_rstats;

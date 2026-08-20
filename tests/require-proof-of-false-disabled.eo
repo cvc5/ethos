@@ -1,0 +1,2 @@
+; A proof cannot disable a requirement enabled on the command line.
+(set-option :require-proof-of-false false)

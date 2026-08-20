@@ -25,6 +25,7 @@ Options::Options()
   d_statsAll = false;
   d_statsCompact = false;
   d_ruleSymTable = true;
+  d_requireProofOfFalse = false;
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
@@ -61,6 +62,10 @@ bool Options::setOption(const std::string& key, bool val)
   {
     d_ruleSymTable = val;
   }
+  else if (key == "require-proof-of-false")
+  {
+    d_requireProofOfFalse = val;
+  }
   else if (key == "normalize-dec")
   {
     d_normalizeDecimal = val;
@@ -90,6 +95,7 @@ State::State(Options& opts, Stats& stats)
     : d_hashCounter(0),
       d_hasReference(false),
       d_inGarbageCollection(false),
+      d_lastStepProvesFalseAtLevelZero(false),
       d_opts(opts),
       d_stats(stats),
       d_tc(*this, opts),
@@ -212,6 +218,7 @@ void State::reset()
   d_assumptionsSizeCtx.clear();
   d_decls.clear();
   d_declsSizeCtx.clear();
+  d_lastStepProvesFalseAtLevelZero = false;
   if (d_plugin!=nullptr)
   {
     d_plugin->reset();
@@ -1596,6 +1603,17 @@ bool State::notifyStep(const std::string& name,
     (*err) << "Provided :rule is not recognized as a proof rule" << std::endl;
   }
   return false;
+}
+
+void State::notifyCheckedStep(const Expr& proven)
+{
+  d_lastStepProvesFalseAtLevelZero =
+      getAssumptionLevel() == 0 && proven == d_false;
+}
+
+bool State::lastStepProvesFalseAtLevelZero() const
+{
+  return d_lastStepProvesFalseAtLevelZero;
 }
 
 Expr State::getProgram(const ExprValue* ev)

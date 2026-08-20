@@ -41,6 +41,8 @@ class Options
   bool d_statsAll;
   bool d_statsCompact;
   bool d_ruleSymTable;
+  /** Require the last proof step at level zero to prove false. */
+  bool d_requireProofOfFalse;
   bool d_normalizeDecimal;
   bool d_normalizeHexadecimal;
   /** Treat numerals as rational literals */
@@ -249,6 +251,10 @@ class State
                   bool isPop,
                   Expr& result,
                   std::ostream* err = nullptr);
+  /** Record the conclusion and assumption level of a successfully checked step. */
+  void notifyCheckedStep(const Expr& proven);
+  /** Did the last checked step prove false at assumption level zero? */
+  bool lastStepProvesFalseAtLevelZero() const;
   /** Get the program */
   Expr getProgram(const ExprValue* ev);
   /** */
@@ -428,6 +434,8 @@ class State
   std::vector<ExprValue*> d_toDelete;
   /** Are we in garbage collection? */
   bool d_inGarbageCollection;
+  /** Whether the last checked step proved false at assumption level zero. */
+  bool d_lastStepProvesFalseAtLevelZero;
   //--------------------- utilities
   /** Options */
   Options& d_opts;
