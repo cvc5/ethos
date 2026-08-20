@@ -80,12 +80,6 @@ class StdPlugin : public Plugin
   static std::string getOutputPath(const std::string& relativePath);
   /** Copy a static resource into the generated output tree */
   static void copyResourceToOutput(const std::string& relativePath);
-  /**
-   * Whether we use custom definitions of is_list_nil for operators with
-   * non-ground nil terminators. Desugar and ModelSmt must use the same setting
-   * because they emit complementary parts of these definitions.
-   */
-  static bool optionFwdDeclIsListNilNground();
 };
 
 }  // namespace ethos

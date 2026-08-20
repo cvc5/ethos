@@ -172,10 +172,6 @@ std::string StdPlugin::s_plugin_path = StdPlugin::initializePluginPath();
 std::string StdPlugin::s_plugin_output_path =
     StdPlugin::initializePluginOutputPath();
 
-// whether we use custom definitions of is_list_nil for operators with
-// non-ground nil terminators.
-bool StdPlugin::optionFwdDeclIsListNilNground() { return true; }
-
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
   d_typeVarCounter = 0;

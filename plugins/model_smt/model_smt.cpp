@@ -25,6 +25,9 @@ namespace {
  */
 bool optionSmtFoTheorySymbols() { return true; }
 
+/** Use custom list-nil definitions for non-ground nil terminators. */
+bool optionFwdDeclIsListNilNground() { return true; }
+
 }  // namespace
 
 std::string sApply(const std::string& op, const std::string& args)

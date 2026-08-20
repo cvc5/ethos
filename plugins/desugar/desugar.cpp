@@ -29,6 +29,9 @@ bool optionEoTypeofHo() { return false; }
 /** Whether to combine terms of the same type when defining eo::typeof. */
 bool optionEoTypeCanonize() { return true; }
 
+/** Use custom list-nil definitions for non-ground nil terminators. */
+bool optionFwdDeclIsListNilNground() { return true; }
+
 const char* leanParserAttrName(Attr a)
 {
   switch (a)
