@@ -5,3 +5,6 @@ tools/eoc/out
 tools/eoc/__pycache__
 .vscode
 .DS_Store
+archive-eoc
+build-cpp-compiler-test
+scratch/

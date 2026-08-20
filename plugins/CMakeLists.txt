@@ -10,73 +10,37 @@
 # automatically.
 cmake_minimum_required (VERSION 3.12)
 
+project (ethos_eoc LANGUAGES CXX)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-macro(add_cxx_flag flag)
-  message(STATUS "Configure with flag '${flag}'")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
-endmacro()
-
-project (ethos_eoc)
-
-# the root of the ethos source tree
-get_filename_component(ETHOS_ROOT "${PROJECT_SOURCE_DIR}/.." ABSOLUTE)
-
-set (CMAKE_MODULE_PATH ${ETHOS_ROOT}/cmake)
+get_filename_component(ETHOS_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+set(CMAKE_MODULE_PATH "${ETHOS_SOURCE_DIR}/cmake")
 
 find_package(GMP REQUIRED)
-set(LIBRARIES ${LIBRARIES} ${GMP_LIBRARIES})
-include_directories(${GMP_INCLUDE_DIR})
+include(EthosPlugin)
 
-if(NOT CMAKE_BUILD_TYPE)
-  message(STATUS "Defaulting to release build.")
-  set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
-endif()
+ethos_set_default_build_type()
 
-add_cxx_flag("-Wall")
-add_cxx_flag("-Wno-deprecated")
-add_cxx_flag("-std=gnu++17")
+ethos_add_core_library(ethos-eoc-core)
 
-if(WIN32)
-  add_definitions(-DUSE_CPP_FILESYSTEM)
-endif()
+# Every plugin source in this directory, matching the plugins-compile-check
+# target in the top-level CMakeLists.txt so that the two cannot drift: a new
+# plugin source is picked up by both. cpp_compiler is its own project (see
+# cpp_compiler/CMakeLists.txt) and scratch directories hold code fragments
+# that are not meant to compile.
+file(GLOB_RECURSE ethos_eoc_SRC CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
+list(FILTER ethos_eoc_SRC EXCLUDE REGEX "/cpp_compiler/")
+list(FILTER ethos_eoc_SRC EXCLUDE REGEX "/scratch/")
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_cxx_flag("-g")
-  add_definitions(-DEO_ASSERTIONS)
-  add_definitions(-DEO_TRACING)
-  message(STATUS "Configured debug build.")
-elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-  message(STATUS "Configured release build.")
-else()
-  message(FATAL_ERROR "Invalid build type '${CMAKE_BUILD_TYPE}'")
-endif()
+add_executable(ethos-eoc ${ethos_eoc_SRC})
+ethos_configure_target(ethos-eoc)
+target_link_libraries(ethos-eoc PRIVATE ethos-eoc-core)
 
-# the ethos core, minus its main
-file(GLOB_RECURSE ethos_core_SRC CONFIGURE_DEPENDS
-  "${ETHOS_ROOT}/src/*.h" "${ETHOS_ROOT}/src/*.cpp")
-list(REMOVE_ITEM ethos_core_SRC "${ETHOS_ROOT}/src/main.cpp")
-
-include_directories(${ETHOS_ROOT}/src)
-
-add_executable(ethos-eoc
-  ${ethos_core_SRC}
-  main_eoc.cpp
-  utils.cpp
-  std_plugin.cpp
-  meta_reduce_plugin.cpp
-  desugar/desugar.cpp
-  desugar/desugar_checker.cpp
-  lean_meta/lean_meta_reduce.cpp
-  linear_patterns/linear_patterns.cpp
-  model_smt/model_smt.cpp
-  smt_meta/smt_meta_reduce.cpp
-  smt_meta/smt_meta_sygus.cpp
-  smt_meta/utils.cpp
-  trim_defs/trim_defs.cpp)
-
-target_link_libraries(ethos-eoc ${LIBRARIES})
+# Where the plugins read their .eo/.lean inputs from and write their outputs
+# to, see StdPlugin::getSourceDirectory and StdPlugin::getOutputDirectory.
 target_compile_definitions(
-  ethos-eoc PRIVATE ETHOS_PLUGIN_SOURCE_DIR="${ETHOS_ROOT}")
-target_compile_definitions(
-  ethos-eoc PRIVATE ETHOS_PLUGIN_OUTPUT_DIR="${PROJECT_BINARY_DIR}/out")
+  ethos-eoc PRIVATE
+  ETHOS_PLUGIN_SOURCE_DIR="${ETHOS_SOURCE_DIR}"
+  ETHOS_PLUGIN_OUTPUT_DIR="${PROJECT_BINARY_DIR}/out")
