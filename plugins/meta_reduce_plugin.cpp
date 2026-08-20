@@ -12,9 +12,28 @@
 #include <fstream>
 #include <sstream>
 
+#include "base/output.h"
 #include "literal.h"
 
 namespace ethos {
+
+namespace {
+
+/**
+ * Strip the eo::requires guards from t. The range of a function type may be
+ * wrapped in such guards, see State::mkRequires.
+ */
+Expr stripRequires(const Expr& t)
+{
+  Expr ret = t;
+  while (ret.getKind() == Kind::EVAL_REQUIRES)
+  {
+    ret = ret[2];
+  }
+  return ret;
+}
+
+}  // namespace
 
 MetaReducePlugin::MetaReducePlugin(State& s, ConjectureType conjType)
     : StdPlugin(s), d_conjectureType(conjType)
@@ -24,7 +43,7 @@ MetaReducePlugin::MetaReducePlugin(State& s, ConjectureType conjType)
 
 MetaReducePlugin::~MetaReducePlugin() {}
 
-ConjectureType MetaReducePlugin::optionSmtMetaConjectureType() const
+ConjectureType MetaReducePlugin::optionMetaConjectureType() const
 {
   return d_conjectureType;
 }
@@ -60,11 +79,23 @@ void MetaReducePlugin::bind(const std::string&, const Expr& e)
 
 std::string MetaReducePlugin::getName(const Expr& e)
 {
-  std::stringstream ss;
-  if (e.getNumChildren() == 0)
+  if (e.getNumChildren() != 0)
   {
-    ss << e;
+    return "";
   }
+  // Note we take the name of the literal here and not the printed form of e,
+  // which would add SMT-LIB quoting for symbols that are not simple symbols.
+  // For example, a symbol declared as |foo bar| is bound to the name "foo bar"
+  // and must be handed to the backends as such.
+  const Literal* l = e.getValue()->asLiteral();
+  if (l != nullptr)
+  {
+    return l->toString();
+  }
+  // Atomic terms that are not literals, e.g. Type, are printed by their
+  // builtin name.
+  std::stringstream ss;
+  ss << e;
   return ss.str();
 }
 
@@ -103,10 +134,12 @@ MetaKind MetaReducePlugin::getTypeMetaKindFor(const Expr& typ,
                                               MetaKind elseKind,
                                               bool followFunctionRange) const
 {
-  Kind k = typ.getKind();
+  // the type may be guarded, in which case we classify the type it guards
+  Expr t = stripRequires(typ);
+  Kind k = t.getKind();
   if (k == Kind::APPLY_OPAQUE)
   {
-    std::string sname = getName(typ[0]);
+    std::string sname = getName(t[0]);
     if (sname.compare(0, 13, "$native_type_") == 0)
     {
       return MetaKind::SMT_BUILTIN;
@@ -131,9 +164,9 @@ MetaKind MetaReducePlugin::getTypeMetaKindFor(const Expr& typ,
   if (followFunctionRange && k == Kind::FUNCTION_TYPE)
   {
     return getTypeMetaKindFor(
-        typ[typ.getNumChildren() - 1], elseKind, followFunctionRange);
+        t[t.getNumChildren() - 1], elseKind, followFunctionRange);
   }
-  std::string sname = getName(typ);
+  std::string sname = getName(t);
   std::map<std::string, MetaKind>::const_iterator it =
       d_typeToMetaKind.find(sname);
   if (it != d_typeToMetaKind.end())
@@ -187,12 +220,16 @@ MetaKind MetaReducePlugin::getMetaKindFor(const Expr& e,
 
 Expr MetaReducePlugin::getEmbedTypeApp(const Expr& typ)
 {
-  Expr t = typ;
+  // note the range of a function type may be guarded
+  Expr t = stripRequires(typ);
   while (t.getKind() == Kind::FUNCTION_TYPE)
   {
-    t = t[t.getNumChildren() - 1];
+    t = stripRequires(t[t.getNumChildren() - 1]);
   }
-  if (t.getKind() == Kind::APPLY_OPAQUE)
+  // we require the shape expected by getEmbedTypeName below, i.e. an
+  // application to a single SMT-LIB identifier
+  if (t.getKind() == Kind::APPLY_OPAQUE && t.getNumChildren() == 2
+      && t[1].getKind() == Kind::STRING)
   {
     std::string sname = getName(t[0]);
     if (sname.compare(0, 14, "$native_embed_") == 0)
@@ -205,11 +242,12 @@ Expr MetaReducePlugin::getEmbedTypeApp(const Expr& typ)
 
 std::string MetaReducePlugin::getEmbedTypeName(const Expr& app)
 {
-  Assert(app.getKind() == Kind::APPLY_OPAQUE && app.getNumChildren() == 2
-         && app[1].getKind() == Kind::STRING)
-      << "Bad embed type application " << app;
-  const Literal* l = app[1].getValue()->asLiteral();
-  return l->d_str.toString();
+  if (app.getKind() != Kind::APPLY_OPAQUE || app.getNumChildren() != 2
+      || app[1].getKind() != Kind::STRING)
+  {
+    EO_FATAL() << "MetaReducePlugin: bad embed type application " << app;
+  }
+  return getName(app[1]);
 }
 
 bool MetaReducePlugin::buildLambdaDefineProgram(const std::string& name,
@@ -279,6 +317,14 @@ std::string MetaReducePlugin::emitResourceFile(
   std::string rendered = ss.str();
   for (const Replacement& repl : replacements)
   {
+    // a tag that does not occur in the template is silently ignored by the
+    // methods below, which is always a mistake on the part of the caller
+    if (rendered.find(repl.first) == std::string::npos)
+    {
+      Warning() << "MetaReducePlugin: tag " << repl.first
+                << " does not occur in resource " << resourcePath << std::endl;
+      continue;
+    }
     if (replAll)
     {
       rendered = replace_all(rendered, repl.first, repl.second);
@@ -296,6 +342,11 @@ std::string MetaReducePlugin::emitResourceFile(
     EO_FATAL() << "MetaReducePlugin: failed to open output " << outPath;
   }
   out << rendered;
+  out.close();
+  if (!out)
+  {
+    EO_FATAL() << "MetaReducePlugin: failed to write output " << outPath;
+  }
   return outPath;
 }
 

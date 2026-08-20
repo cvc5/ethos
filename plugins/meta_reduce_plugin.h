@@ -50,8 +50,12 @@ class MetaReducePlugin : public StdPlugin
 
  protected:
   /** The type of the emitted conjecture (VC or SyGuS), set at construction. */
-  ConjectureType optionSmtMetaConjectureType() const;
-  /** Get the name of e, or the empty string if e is not atomic. */
+  ConjectureType optionMetaConjectureType() const;
+  /**
+   * Get the name of e, or the empty string if e is not atomic. Note this is
+   * the name e was bound to, which is not necessarily how e is printed, e.g.
+   * a symbol declared as |foo bar| has name "foo bar".
+   */
   static std::string getName(const Expr& e);
   /**
    * Is e a constructor of one of the deep embedding datatypes? These are
@@ -68,12 +72,12 @@ class MetaReducePlugin : public StdPlugin
    * Get the meta-kind associated with the given constructor prefix, e.g.
    * SMT_VALUE for "vsm", or elseKind if the prefix is not registered.
    */
-  MetaKind prefixToMetaKind(const std::string& str,
-                            MetaKind elseKind = MetaKind::EUNOIA) const;
+  MetaKind prefixToMetaKind(const std::string& str, MetaKind elseKind) const;
   /**
    * Get the meta-kind of the type typ, or elseKind if typ is not one of the
    * types of the deep embedding. If followFunctionRange is true and typ is
-   * a function type, we classify its range instead.
+   * a function type, we classify its range instead. Note that eo::requires
+   * guards, which may wrap typ or the range of a function type, are ignored.
    */
   MetaKind getTypeMetaKindFor(const Expr& typ,
                               MetaKind elseKind,
@@ -87,13 +91,15 @@ class MetaReducePlugin : public StdPlugin
   MetaKind getMetaKindFor(const Expr& e, std::string& cname) const;
   /**
    * If typ, or the range of typ if it is a function type, is an application
-   * of a $native_embed_* symbol, return that application, otherwise return
-   * the null expression.
+   * of a $native_embed_* symbol to an SMT-LIB identifier, return that
+   * application, otherwise return the null expression. As above, eo::requires
+   * guards are ignored.
    */
   static Expr getEmbedTypeApp(const Expr& typ);
   /**
    * Get the name of the embedded datatype carried by a $native_embed_*
-   * application, e.g. "SmtRegLan" for ($native_embed_smt "SmtRegLan").
+   * application, e.g. "SmtRegLan" for ($native_embed_smt "SmtRegLan"). This
+   * aborts if app does not have that shape, see getEmbedTypeApp.
    */
   static std::string getEmbedTypeName(const Expr& app);
   /**
@@ -115,8 +121,9 @@ class MetaReducePlugin : public StdPlugin
   /**
    * Render the template resource file resourcePath by applying the given
    * replacements and write the result to outputPath. If replAll is true,
-   * every occurrence of each tag is replaced, otherwise only the first.
-   * Returns the full path of the written file.
+   * every occurrence of each tag is replaced, otherwise only the first. A tag
+   * that does not occur in the template is a no-op, which we warn about since
+   * it is always a mistake. Returns the full path of the written file.
    */
   std::string emitResourceFile(const std::string& resourcePath,
                                const std::string& outputPath,
