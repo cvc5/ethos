@@ -25,7 +25,7 @@ Options::Options()
   d_statsAll = false;
   d_statsCompact = false;
   d_ruleSymTable = true;
-  d_requireProofOfFalse = false;
+  d_requireProofOfFalse = true;
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
@@ -1432,6 +1432,18 @@ bool State::notifyStep(const std::string& name,
                        Expr& result,
                        std::ostream* err)
 {
+  // A step-pop conclusion is bound after one assumption scope is removed.
+  // Thus, it proves at level zero exactly when the current level is one.
+  auto finishStep = [&]() {
+    bool success = !result.isNull() && !result.isEvaluatable();
+    if (success)
+    {
+      size_t requiredLevel = isPop ? 1 : 0;
+      d_lastStepProvesFalseAtLevelZero =
+          getAssumptionLevel() == requiredLevel && result == d_false;
+    }
+    return success;
+  };
   if (d_plugin != nullptr)
   {
     // if the plugin handles it, then take its result
@@ -1439,7 +1451,7 @@ bool State::notifyStep(const std::string& name,
             name, rule, proven, premises, args, isPop, result, err))
     {
       // successful if the result is non-null and fully evaluated
-      return !result.isNull() && !result.isEvaluatable();
+      return finishStep();
     }
   }
   AppInfo* ainfo = getAppInfo(rule.getValue());
@@ -1601,19 +1613,13 @@ bool State::notifyStep(const std::string& name,
       result = children[0];
     }
     Assert(!result.isNull() && !result.isEvaluatable());
-    return true;
+    return finishStep();
   }
   if (err)
   {
     (*err) << "Provided :rule is not recognized as a proof rule" << std::endl;
   }
   return false;
-}
-
-void State::notifyCheckedStep(const Expr& proven)
-{
-  d_lastStepProvesFalseAtLevelZero =
-      getAssumptionLevel() == 0 && proven == d_false;
 }
 
 bool State::lastStepProvesFalseAtLevelZero() const

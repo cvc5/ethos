@@ -182,7 +182,7 @@ set(ethos_test_file_list
 macro(ethos_test file)
   add_test(
     NAME ${file}
-    COMMAND $<TARGET_FILE:ethos> ${CMAKE_CURRENT_LIST_DIR}/${file}
+    COMMAND $<TARGET_FILE:ethos> --no-require-proof-of-false ${CMAKE_CURRENT_LIST_DIR}/${file}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   )
   set_tests_properties(${file} PROPERTIES TIMEOUT 40)
@@ -216,6 +216,19 @@ ethos_fail_test(require-proof-of-false-no-step.eo
 ethos_fail_test(require-proof-of-false-nested.eo
                 "last proof step did not prove false at assumption level zero"
                 STDIN)
-ethos_fail_test(require-proof-of-false-disabled.eo
-                "last proof step did not prove false at assumption level zero"
-                --require-proof-of-false)
+add_test(
+  NAME require-proof-of-false-opt-out.eo
+  COMMAND $<TARGET_FILE:ethos>
+          --no-require-proof-of-false
+          ${CMAKE_CURRENT_LIST_DIR}/require-proof-of-false-no-step.eo
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+set_tests_properties(require-proof-of-false-opt-out.eo PROPERTIES TIMEOUT 40)
+
+add_test(
+  NAME require-proof-of-false-set-option.eo
+  COMMAND $<TARGET_FILE:ethos>
+          ${CMAKE_CURRENT_LIST_DIR}/require-proof-of-false-disabled.eo
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+set_tests_properties(require-proof-of-false-set-option.eo PROPERTIES TIMEOUT 40)

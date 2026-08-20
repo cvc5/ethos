@@ -251,8 +251,6 @@ class State
                   bool isPop,
                   Expr& result,
                   std::ostream* err = nullptr);
-  /** Record the conclusion and assumption level of a successfully checked step. */
-  void notifyCheckedStep(const Expr& proven);
   /** Did the last checked step prove false at assumption level zero? */
   bool lastStepProvesFalseAtLevelZero() const;
   /** Get the program */
