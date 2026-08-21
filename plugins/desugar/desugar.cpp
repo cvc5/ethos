@@ -55,7 +55,6 @@ const char* leanParserAttrName(Attr a)
 Desugar::Desugar(State& s, bool genVcs) : StdPlugin(s), d_dchecker(s)
 {
   // we require santization of the eo::List at this stage
-  // TODO: maybe just use text replace??
   d_listNil = s.mkListNil();
   Expr lnt = d_tc.getType(d_listNil);
   d_overloadSanVisited[d_listNil] =
@@ -221,6 +220,11 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     cattr = it->second.first;
     cattrCons = it->second.second;
   }
+  // Assign the emitted name before generating any attribute-specific cases so
+  // every reference below uses the same overload suffix as the declaration.
+  std::stringstream cnss;
+  printName(c, cnss);
+  std::string cname = cnss.str();
   if (cattr == Attr::DATATYPE || cattr == Attr::DATATYPE_CONSTRUCTOR
       || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR)
   {
@@ -234,9 +238,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   bool isAmb = (cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR);
   bool hasOpaqueArg = (cattr == Attr::OPAQUE || isAmb);
   // check for eo::List
-  std::stringstream cnss;
-  printName(c, cnss);
-  std::string cname = cnss.str();
   if (cname.compare(0, 4, "eo::") == 0)
   {
     return;
@@ -378,8 +379,8 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   // handle eo_nil
   if (isListNilAttr(cattr))
   {
-    d_eoNil << "  (($eo_nil " << e << " T) ";
-    d_eoIsListNil << "  (($eo_is_list_nil " << e << " ";
+    d_eoNil << "  (($eo_nil " << cname << " T) ";
+    d_eoIsListNil << "  (($eo_is_list_nil " << cname << " ";
     std::vector<Expr> nvars = Expr::getVariables(cattrCons);
     // print the type
     if (!nvars.empty())
@@ -415,7 +416,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       }
       else
       {
-        d_eoIsListNil << "nil) (eo::eq nil ($eo_nil " << e
+        d_eoIsListNil << "nil) (eo::eq nil ($eo_nil " << cname
                       << " ($eo_typeof nil))))" << std::endl;
       }
     }
@@ -424,25 +425,22 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       // Note that cattrCons may print out as evaluatable, e.g. if it
       // is the empty bitvector (eo::to_bin 0 0). This is ok because it is
       // ground and hence will be evaluated upon parsing.
-      d_eoIsListNil << cattrCons << ") true)" << std::endl;
-      d_eoNil << cattrCons;
+      printTerm(cattrCons, d_eoIsListNil);
+      d_eoIsListNil << ") true)" << std::endl;
+      printTerm(cattrCons, d_eoNil);
     }
     d_eoNil << ")" << std::endl;
   }
   // handle eo_typeof
   ct = cto;
   d_eoTypeof << "  ; type-rule: " << e << std::endl;
-  // good for debugging
-  // d_eoTypeof << "  ; type is " << ct << std::endl;
   bool isHoType = optionEoTypeofHo();
   if (!ct.isGround() || (!isHoType && ct.getKind() == Kind::FUNCTION_TYPE))
   {
     Assert(ct.getKind() == Kind::FUNCTION_TYPE)
         << "Not function type " << ct << " for " << e;
-    // std::cout << "Non-ground function type: " << e << " : " << ct <<
-    // std::endl; std::cout << "Attribute is " << attr << std::endl;
-    //  We traverse to a position where the type of a partial application
-    //  of this operator has ground type.
+    // We traverse to a position where the type of a partial application
+    // of this operator has ground type.
     Expr pattern = e;
     std::vector<Expr> argTypes;
     std::vector<Expr> allVars = Expr::getVariables(ct);
@@ -504,8 +502,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       Kind ak =
           (hasOpaqueArg && pattern == e) ? Kind::APPLY_OPAQUE : Kind::APPLY;
       pattern = d_state.mkRawExpr(ak, args);
-      // std::cout << "...pattern is now " << pattern << " from " << args <<
-      // std::endl;
       ct = ct[nargs - 1];
       // maybe we are now fully bound?
       std::vector<Expr> vars = Expr::getVariables(argTypes);
@@ -514,10 +510,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         break;
       }
     }
-    // should be implied
-    // ngscope.push_back(ct);
-    // std::cout << "Partial app that has ground type: " << pattern <<
-    // std::endl;
     // we now write the pattern matching for the derived pattern.
     d_eoTypeof << "  (($eo_typeof ";
     printTerm(pattern, d_eoTypeof);
@@ -568,7 +560,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   }
   else
   {
-    d_eoTypeof << "  (($eo_typeof " << e << ") ";
+    d_eoTypeof << "  (($eo_typeof " << cname << ") ";
     printTerm(ct, d_eoTypeof);
     d_eoTypeof << ")" << std::endl;
   }
@@ -592,7 +584,7 @@ void Desugar::printName(const Expr& e, std::ostream& os)
       ss << "$eoo_" << e << "." << (oid + 1);
       Expr c = e;
       Expr ct = d_tc.getType(c);
-      Expr ctov = d_state.mkSymbol(e.getKind(), ss.str(), e);
+      Expr ctov = d_state.mkSymbol(e.getKind(), ss.str(), ct);
       d_overloadSanVisited[e] = ctov;
     }
   }
@@ -871,7 +863,7 @@ void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
   {
     os << "(";
     // parametric datatypes
-    os << e;
+    printName(e, os);
     size_t i = 1;
     std::stringstream argList;
     while (td.getKind() == Kind::FUNCTION_TYPE)
@@ -901,24 +893,28 @@ void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
       Attr cca = getAttribute(cc);
       if (cca == Attr::AMB_DATATYPE_CONSTRUCTOR)
       {
-        os << "(" << cc << argList.str() << ")";
+        os << "(";
+        printName(cc, os);
+        os << argList.str() << ")";
       }
       else
       {
         Assert(cca == Attr::DATATYPE_CONSTRUCTOR);
-        os << cc;
+        printName(cc, os);
       }
       os << ")";
       osEnd << ")";
       ac = ac[1];
     }
+    os << " ";
+    printTerm(ac, os);
     os << osEnd.str() << ")" << std::endl;
     return;
   }
   else
   {
     // note that AMB_DATATYPE_CONSTRUCTOR does not impact this.
-    os << e;
+    printName(e, os);
   }
   os << ") ";
   printTerm(attrCons, os);
@@ -927,7 +923,12 @@ void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
 
 void Desugar::finalizeBinder(const Expr& e, const Expr& attrCons)
 {
-  d_eoIsClosed << "  (($eo_is_closed_rec (" << e << " vs x) env) ($eo_is_closed_rec x (eo::list_concat $eo_List_cons vs env)))" << std::endl;
+  d_eoIsClosed << "  (($eo_is_closed_rec (";
+  printName(e, d_eoIsClosed);
+  d_eoIsClosed
+      << " vs x) env) ($eo_is_closed_rec x (eo::list_concat $eo_List_cons vs "
+         "env)))"
+      << std::endl;
 }
 
 void Desugar::finalize()
@@ -981,18 +982,15 @@ void Desugar::finalize()
   }
 
   // now, go back and compile *.eo for the proof rules
-  std::ifstream ine(getResourcePath("plugins/desugar/eo_desugar.eo"));
+  const std::string templatePath = "plugins/desugar/eo_desugar.eo";
+  std::ifstream ine(getResourcePath(templatePath));
+  if (!ine.is_open())
+  {
+    EO_FATAL() << "Desugar: failed to open resource " << templatePath;
+  }
   std::ostringstream sse;
   sse << ine.rdbuf();
   std::string finalEo = sse.str();
-
-  /*
-  std::stringstream ssies;
-  ssies << s_plugin_path << "plugins/desugar/eo_desugar_native.eo";
-  std::ifstream ines(ssies.str());
-  std::ostringstream sses;
-  sses << ines.rdbuf();
-  */
 
   replace(finalEo, "$EO_LITERAL_TYPE_DECL$", d_litTypeDecl.str());
   replace(finalEo, "$EO_LIT_TYPEOF_DEFS$", d_litTypeProg.str());
@@ -1019,7 +1017,6 @@ void Desugar::finalize()
     replace(finalEo, "$EO_CHECKER$", "");
   }
   // Verification conditions for *all* proof rules are ready now
-  // TODO: make this manual?
   replace(finalEo, "$EO_VC$", d_eoVc.str());
   // Make generated desugar files self-contained within the output tree.
   copyResourceToOutput("plugins/desugar/eo_desugar_native.eo");
@@ -1027,8 +1024,17 @@ void Desugar::finalize()
   std::string outPath = getOutputPath("plugins/desugar/eo_desugar_gen.eo");
   std::cout << "Write core-defs    " << outPath << std::endl;
   std::ofstream oute(outPath);
+  if (!oute.is_open())
+  {
+    EO_FATAL() << "Desugar: failed to open output " << outPath;
+  }
   oute << finalEo;
   oute << std::endl;
+  oute.close();
+  if (!oute)
+  {
+    EO_FATAL() << "Desugar: failed to write output " << outPath;
+  }
 }
 
 bool Desugar::echo(const std::string& msg)
@@ -1272,8 +1278,9 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
       finalizeDeclaration(s, d_litTypeDecl);
     }
     d_litTypeDecl << "; type-rules: " << k << std::endl;
-    d_litTypeDecl << "(declare-consts " << literalKindToString(k) << " " << t
-                  << ")" << std::endl;
+    d_litTypeDecl << "(declare-consts " << literalKindToString(k) << " ";
+    printTerm(t, d_litTypeDecl);
+    d_litTypeDecl << ")" << std::endl;
     // A literal type may be non-ground if it uses eo::self.
     // For consistency, we always define the program $eo_lit_type_X, even
     // if the type is ground. We additionally always define the nullary type
@@ -1293,14 +1300,16 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
       ltinst = d_tc.getLiteralTypeRuleMaybeInit(k, ty.getValue());
       d_litTypeDecl << "; (approx) type-rules: " << k << std::endl;
     }
-    d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << ltg << ")"
-                  << std::endl;
+    d_litTypeDecl << "(define $eo_" << eoss.str() << " () ";
+    printTerm(ltg, d_litTypeDecl);
+    d_litTypeDecl << ")" << std::endl;
     d_litTypeProg << "(program $eo_lit_type_" << eoss.str()
                   << " ((T Type) (t T))" << std::endl;
     d_litTypeProg << "  :signature (T) Type" << std::endl;
     d_litTypeProg << "  (" << std::endl;
-    d_litTypeProg << "  (($eo_lit_type_" << eoss.str() << " t) " << ltinst
-                  << ")" << std::endl;
+    d_litTypeProg << "  (($eo_lit_type_" << eoss.str() << " t) ";
+    printTerm(ltinst, d_litTypeProg);
+    d_litTypeProg << ")" << std::endl;
     d_litTypeProg << "  )" << std::endl;
     d_litTypeProg << ")" << std::endl;
     // since $eo_Numeral is used to define the type rules for builtin

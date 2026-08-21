@@ -25,12 +25,16 @@ struct Command
 {
   /** Top-level command name, such as `program` or `declare-consts`. */
   std::string d_cmdName;
-  /** Primary symbol introduced by the command. */
-  std::string d_symbolName;
+  /** Symbols introduced by the command. */
+  std::vector<std::string> d_symbolNames;
   /** Symbols referenced by the command body. */
   std::unordered_set<std::string> d_bodySyms;
   /** Original command text, preserved for output. */
   std::string d_fullText;
+  /** Whether this command must be retained independently of the targets. */
+  bool d_alwaysKeep = false;
+  /** Whether this is a trim-defs control command rather than output. */
+  bool d_isTrimDirective = false;
 };
 
 /**
@@ -70,26 +74,33 @@ class TrimDefs : public StdPlugin
 
  private:
   /** Add a parsed command to the dependency graph. */
-  void processCommand(Command& cmd);
+  void processCommand(Command&& cmd);
+  /** Resolve command references after every symbol has been indexed. */
+  void resolveDependencies();
+  /** Return retained commands with dependencies before their users. */
+  std::vector<size_t> getCommandOrder(
+      const std::unordered_set<size_t>& retained) const;
   /** Target symbols requested by trim-defs echo commands. */
   std::vector<std::string> d_defTargets;
   /** Next numeric id to assign to a symbol. */
   size_t d_idCounter;
   /** Map from symbol name to dependency-graph id. */
   std::map<std::string, size_t> d_symToId;
-  /** Original command text indexed by command id. */
-  std::vector<std::string> d_commands;
+  /** Parsed commands indexed by command id. */
+  std::vector<Command> d_commands;
   /** Commands that introduce each symbol id. */
   std::map<size_t, std::unordered_set<size_t>> d_symCommands;
+  /** Symbol ids introduced by each command id. */
+  std::vector<std::unordered_set<size_t>> d_cmdDefinedSyms;
   /** Symbol ids referenced by each command id. */
-  std::map<size_t, std::unordered_set<size_t>> d_cmdSyms;
-  /** Worklist of symbol ids whose defining commands should be retained. */
-  std::vector<size_t> d_toVisit;
+  std::vector<std::unordered_set<size_t>> d_cmdSyms;
+  /** Commands retained independently of the requested target symbols. */
+  std::vector<size_t> d_alwaysKeepCmds;
   /**
-   * The command ids of the parse definitions, see getParseDefPrefix. Nothing
-   * refers to a parse definition, so it is never reachable from a target;
-   * instead one is retained if everything its body refers to is, which keeps
-   * the definitions of the part of the signature that survives trimming.
+   * The command ids of the parse definitions, see getParseDefPrefix. Parse
+   * definitions are retained to a fixpoint when everything their bodies refer
+   * to is already retained, which keeps the definitions for the part of the
+   * signature that survives trimming.
    */
   std::vector<size_t> d_parseDefCmds;
   /** Parse all top-level commands from an input stream. */

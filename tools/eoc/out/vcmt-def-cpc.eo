@@ -189,6 +189,13 @@
   ($native_ite ($native_teq x1 x2)
     ($native_ite ($native_is_ok x1) x3 $eot_stuck)
     $eot_stuck))
+(program $eo_len ((T Type) (s1 $native_String) (w $native_Int) (n1 $native_Int))
+  :signature (T) $eo_Term
+  (
+  (($eo_len ($eot_string s1))   ($eot_numeral ($native_apply_1 "str.len" s1)))
+  (($eo_len ($eot_binary w n1)) ($eot_numeral w))
+  )
+)
 (declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
