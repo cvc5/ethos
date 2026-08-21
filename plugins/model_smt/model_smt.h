@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "../std_plugin.h"
+#include "eo_reduce_spec.h"
 
 namespace ethos {
 
@@ -34,6 +35,11 @@ namespace ethos {
  * semantic bridge from Eunoia syntax to SMT-LIB behavior.  Unknown user
  * symbols are rejected during finalization rather than silently modeled as
  * uninterpreted symbols.
+ *
+ * The symbols that have no SMT-LIB semantics of their own, because they are
+ * eliminated on the way to the SMT-LIB term layer, are not part of those
+ * tables: they are read from a Eunoia reduction file that gives their case of
+ * `$eo_to_smt` resp. `$eo_to_smt_type` directly, see loadReduceSpec.
  */
 class ModelSmt : public StdPlugin
 {
@@ -70,13 +76,13 @@ class ModelSmt : public StdPlugin
                         Kind ret,
                         const std::string& retTerm);
   /**
-   * Add function that should be eliminated in the Eunoia to SMT-LIB term
-   * layer.
+   * Read the Eunoia-to-SMT reduction file at resourcePath, which specifies the
+   * symbols that are eliminated in the Eunoia to SMT-LIB term layer, i.e. that
+   * get a case of $eo_to_smt or $eo_to_smt_type of their own instead of a
+   * constructor and an SMT-LIB semantics. See EoReduceSpec and, for the
+   * format, the header comment of plugins/model_smt/eo_to_smt_cpc.eo.
    */
-  void addEunoiaReduceSym(const std::string& sym,
-                          const std::vector<Kind>& args,
-                          const std::string& retTerm,
-                          bool isType = false);
+  void loadReduceSpec(const std::string& resourcePath);
   /**
    * Add function whose evaluation is
    * (eo::define ((e1 ($smtx_model_eval x1)))
@@ -145,11 +151,16 @@ class ModelSmt : public StdPlugin
   void addSymCase(const std::string& sym,
                   const std::string& pat,
                   const std::string& ret);
-  /** Print a generic generated case to the selected program stream. */
+  /**
+   * Print a generic generated case to the selected program stream, i.e.
+   * ((<mname> (<name> x1 ... xn)) <ret>), where n is nargs. If nargs is zero,
+   * name is used as the pattern as-is, which is how a case for a nullary
+   * symbol, or one with a pattern of its own, is printed.
+   */
   void printEvalCallBase(std::ostream& out,
                          const std::string& mname,
                          const std::string& name,
-                         const std::vector<Kind>& args,
+                         size_t nargs,
                          const std::string& ret);
   /**
    * Helper method for printing the final program case to $smtx_model_eval, i.e.
@@ -159,12 +170,11 @@ class ModelSmt : public StdPlugin
                               const std::vector<Kind>& args,
                               const std::string& ret);
   /**
-   * Helper method for printing the final program case to $smtx_model_eval, i.e.
-   * (($eo_to_smt (<name> x1 ... xn)) <retTerm>).
+   * Helper method for printing a case of the Eunoia to SMT-LIB term layer,
+   * i.e. (($eo_to_smt <pat>) <ret>), where pat is a pattern taken verbatim
+   * from the reduction file.
    */
-  void printEunoiaReduce(const std::string& name,
-                         const std::vector<Kind>& args,
-                         const std::string& ret);
+  void printEunoiaReduce(const std::string& pat, const std::string& ret);
   /**
    * Same as printModelEvalCallBase, but where <retTerm> is
    * ($smtx_model_eval_<name> ($smtx_model_eval x1) ... ($smtx_model_eval xn)).
@@ -267,11 +277,22 @@ class ModelSmt : public StdPlugin
   std::stringstream d_desugarAux;
   /** Constant declarations in parser order. */
   std::vector<std::pair<std::string, Expr>> d_declSeen;
-  /** Special EO-to-SMT cases printed before the matching symbol. */
+  /**
+   * The cases of the reduction file whose pattern is not just an application
+   * of the symbol to x1 ... xn, mapped from that symbol to the (pattern,
+   * return) pairs. They are printed, in the order of the file, before the
+   * case of the symbol itself.
+   */
   std::map<std::string, std::vector<std::pair<std::string, std::string>>>
       d_specialCases;
-  /** Auxiliary definitions substituted at `$EO_TO_SMT_AUX$`. */
-  std::map<std::string, std::string> d_auxDef;
+  /**
+   * Maps a symbol to the auxiliary definitions of the reduction file its
+   * reduction requires, by name and in the order of that file. They are
+   * emitted at `$EO_TO_SMT_AUX$` when the symbol is declared.
+   */
+  std::map<std::string, std::vector<std::string>> d_auxDef;
+  /** The auxiliary definitions emitted so far, see d_auxDef. */
+  std::unordered_set<std::string> d_auxDefEmitted;
   /** Auxiliary definitions substituted at `$SMT_EVAL_PROGS$`. */
   std::map<std::string, std::string> d_auxSmtEval;
   /** Auxiliary definitions of nil terminator recognizers */
@@ -279,7 +300,12 @@ class ModelSmt : public StdPlugin
   /** SMT-LIB types. */
   std::map<std::string, std::vector<Kind>> d_symTypes;
   //--------
-  /** Full custom `$eo_to_smt` returns for selected SMT-LIB symbols. */
+  /**
+   * Full custom `$eo_to_smt` returns, from the reduction file. A symbol that
+   * also has an SMT-LIB semantics of its own, and hence a declaration in the
+   * deep embedding, takes its return from here rather than being eliminated,
+   * see d_eoSymReduce and finalizeDecl.
+   */
   std::map<std::string, std::string> d_eoToSmtFullCase;
   //-------- for defining SMT term type rules
   /** Auxiliary type programs called from `$smtx_typeof`. */
@@ -307,10 +333,10 @@ class ModelSmt : public StdPlugin
   /** Symbols whose reductions evaluate arguments before applying retTerm. */
   std::unordered_set<std::string> d_recReduce;
   /**
-   * Eunoia terms that have special reductions to SMT-LIB terms
+   * Eunoia terms that have special reductions to SMT-LIB terms, mapped to the
+   * number of arguments of their case and its return.
    */
-  std::map<std::string, std::pair<std::vector<Kind>, std::string>>
-      d_eoSymReduce;
+  std::map<std::string, std::pair<size_t, std::string>> d_eoSymReduce;
   /** Subset of d_eoSymReduce that produce SMT types. */
   std::unordered_set<std::string> d_eoSymReduceTypes;
   /** Symbols that we need no definition for */
@@ -354,6 +380,8 @@ class ModelSmt : public StdPlugin
   Kind d_kBit;
   /** Pseudo-kind used for quoted Int parameters in generation tables. */
   Kind d_kIntQuote;
+  /** The Eunoia-to-SMT reduction file, see loadReduceSpec. */
+  EoReduceSpec d_reduceSpec;
 };
 
 }  // namespace ethos

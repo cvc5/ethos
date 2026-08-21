@@ -18,6 +18,15 @@ non-standard EOC plugins:
 The default `ethos` build does not include these plugins. Use `ethos-eoc`
 only when you want the Eunoia-to-SMT2 or Eunoia-to-Lean pipeline.
 
+`model-smt` gives every symbol of the signature its SMT-LIB semantics. The
+symbols that instead have no semantics of their own, because they are
+eliminated on the way to the SMT-LIB term layer, are listed separately in a
+Eunoia reduction file, which gives each of them its case of `$eo_to_smt` or
+`$eo_to_smt_type` together with any auxiliary programs those cases need. The
+file for CPC is `plugins/model_smt/eo_to_smt_cpc.eo`; its header comment
+documents the format. Adding, changing or removing one of these reductions is
+a change to that file alone and does not require rebuilding `ethos-eoc`.
+
 ## Building `ethos-eoc`
 
 `ethos-eoc` is built by the standalone CMake project in `plugins/`, which
