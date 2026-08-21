@@ -196,7 +196,6 @@ macro(ethos_fail_test file regex)
       "-DTEST_BINARY=$<TARGET_FILE:ethos>"
       "-DTEST_FILE=${CMAKE_CURRENT_LIST_DIR}/${file}"
       "-DTEST_WORKDIR=${CMAKE_SOURCE_DIR}"
-      "-DTEST_MODE=${ARGN}"
       "-DEXPECT_REGEX=${regex}"
       -P ${CMAKE_CURRENT_LIST_DIR}/expect_error.cmake
   )
@@ -214,5 +213,4 @@ ethos_fail_test(require-proof-of-false-last-step.eo
 ethos_fail_test(require-proof-of-false-no-step.eo
                 "last proof step did not prove false at assumption level zero")
 ethos_fail_test(require-proof-of-false-nested.eo
-                "last proof step did not prove false at assumption level zero"
-                STDIN)
+                "last proof step did not prove false at assumption level zero")

@@ -1,16 +1,5 @@
-set(test_command "${TEST_BINARY}")
-if(TEST_MODE STREQUAL "STDIN")
-  set(test_input_args INPUT_FILE "${TEST_FILE}")
-else()
-  if(TEST_MODE)
-    list(APPEND test_command "${TEST_MODE}")
-  endif()
-  list(APPEND test_command "${TEST_FILE}")
-endif()
-
 execute_process(
-  COMMAND ${test_command}
-  ${test_input_args}
+  COMMAND "${TEST_BINARY}" "${TEST_FILE}"
   WORKING_DIRECTORY "${TEST_WORKDIR}"
   RESULT_VARIABLE test_result
   OUTPUT_VARIABLE test_stdout

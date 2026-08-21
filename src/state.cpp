@@ -1432,27 +1432,33 @@ bool State::notifyStep(const std::string& name,
                        Expr& result,
                        std::ostream* err)
 {
-  // A step-pop conclusion is bound after one assumption scope is removed,
-  // so it is at level zero when the current level is one.
+  bool handledByPlugin = false;
   if (d_plugin != nullptr)
   {
     // if the plugin handles it, then take its result
-    if (d_plugin->notifyStep(
-            name, rule, proven, premises, args, isPop, result, err))
+    handledByPlugin = d_plugin->notifyStep(
+        name, rule, proven, premises, args, isPop, result, err);
+    if (handledByPlugin)
     {
       // successful if the result is non-null and fully evaluated
-      bool success = !result.isNull() && !result.isEvaluatable();
-      if (success)
+      if (result.isNull() || result.isEvaluatable())
       {
-        d_lastStepProvesFalseAtLevelZero =
-            getAssumptionLevel() == (isPop ? 1 : 0) && result == d_false;
+        return false;
       }
-      return success;
     }
   }
-  AppInfo* ainfo = getAppInfo(rule.getValue());
-  if (ainfo != nullptr)
+  if (!handledByPlugin)
   {
+    AppInfo* ainfo = getAppInfo(rule.getValue());
+    if (ainfo == nullptr)
+    {
+      if (err)
+      {
+        (*err) << "Provided :rule is not recognized as a proof rule"
+               << std::endl;
+      }
+      return false;
+    }
     std::vector<Expr> children;
     Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
     Expr tupleVal = ainfo->d_attrConsTerm;
@@ -1609,15 +1615,12 @@ bool State::notifyStep(const std::string& name,
       result = children[0];
     }
     Assert(!result.isNull() && !result.isEvaluatable());
-    d_lastStepProvesFalseAtLevelZero =
-        getAssumptionLevel() == (isPop ? 1 : 0) && result == d_false;
-    return true;
   }
-  if (err)
-  {
-    (*err) << "Provided :rule is not recognized as a proof rule" << std::endl;
-  }
-  return false;
+  // A step-pop conclusion is bound after one assumption scope is removed,
+  // so it is at level zero when the current level is one.
+  d_lastStepProvesFalseAtLevelZero =
+      getAssumptionLevel() == (isPop ? 1 : 0) && result == d_false;
+  return true;
 }
 
 bool State::lastStepProvesFalseAtLevelZero() const
