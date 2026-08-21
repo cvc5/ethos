@@ -109,6 +109,8 @@ def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
 def native_oob_seq_nth_id : native_String := (native_string_lit "@oob_seq_nth")
 def native_uconst_id : native_Nat -> native_String
   | i => (native_string_lit "@u.") ++ (native_string_lit (toString i))
+def native_const_id : native_Nat -> native_String
+  | i => (native_string_lit "@c.") ++ (native_string_lit (toString i))
 
 -- Regular expressions
 

@@ -1291,8 +1291,20 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "@strings_replace_re_all_result",
       {kString, kRegLan, kString, kInt},
       smtToSmtEmbed(stringsReplaceAllResult(e1, e2, e3, e4, true), true));
-  // ignore, not in proof rules (NOTE: could be SMT const?)
-  d_symIgnore["@const"] = true;
+  // (@const i T) denotes a generic abstract constant, i.e. an internally
+  // introduced term that has no definition in the signature. It is modelled as
+  // the SMT-LIB uninterpreted constant with the same identifiers, that is, the
+  // constant whose name is determined by i and whose type is the SMT-LIB type
+  // denoted by T. Note that $native_to_const_id uses a namespace that is
+  // distinct from the one used for the uninterpreted constants of the input
+  // problem, hence an abstract constant is never identified with a constant
+  // that was declared by the user. Negative (or non-numeral) identifiers have
+  // no SMT-LIB counterpart and are mapped to $sm_none.
+  addEunoiaReduceSym("@const",
+                     {kInt, kType},
+                     smtGuard("($eo_to_smt_nat_is_valid x1)",
+                              "($sm_UConst ($native_to_const_id "
+                              "($eo_to_smt_nat x1)) ($eo_to_smt_type x2))"));
   d_symIgnore["lambda"] = true;
 
   // for alethe
