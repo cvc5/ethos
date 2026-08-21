@@ -36,7 +36,7 @@ class ExprValue
  public:
   ExprValue();
   ExprValue(Kind k, const std::vector<ExprValue*>& children);
-  ~ExprValue();
+  virtual ~ExprValue();
   /** as literal */
   virtual const Literal* asLiteral() const { return nullptr; }
   /** is null? */
