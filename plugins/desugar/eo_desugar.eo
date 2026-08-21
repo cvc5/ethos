@@ -461,8 +461,6 @@ $EO_DEFS$
 
 ;;; datatype constructors
 
-; TODO: meta semantics for arbitrary unknown datatypes?
-
 ; program: $eo_dt_constructors_main
 (program $eo_dt_constructors_main
   ((T Type)$EO_DT_CONSTRUCTORS_PARAM$)

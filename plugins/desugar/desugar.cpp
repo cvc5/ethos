@@ -55,7 +55,6 @@ const char* leanParserAttrName(Attr a)
 Desugar::Desugar(State& s, bool genVcs) : StdPlugin(s), d_dchecker(s)
 {
   // we require santization of the eo::List at this stage
-  // TODO: maybe just use text replace??
   d_listNil = s.mkListNil();
   Expr lnt = d_tc.getType(d_listNil);
   d_overloadSanVisited[d_listNil] =
@@ -432,17 +431,13 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   // handle eo_typeof
   ct = cto;
   d_eoTypeof << "  ; type-rule: " << e << std::endl;
-  // good for debugging
-  // d_eoTypeof << "  ; type is " << ct << std::endl;
   bool isHoType = optionEoTypeofHo();
   if (!ct.isGround() || (!isHoType && ct.getKind() == Kind::FUNCTION_TYPE))
   {
     Assert(ct.getKind() == Kind::FUNCTION_TYPE)
         << "Not function type " << ct << " for " << e;
-    // std::cout << "Non-ground function type: " << e << " : " << ct <<
-    // std::endl; std::cout << "Attribute is " << attr << std::endl;
-    //  We traverse to a position where the type of a partial application
-    //  of this operator has ground type.
+    // We traverse to a position where the type of a partial application
+    // of this operator has ground type.
     Expr pattern = e;
     std::vector<Expr> argTypes;
     std::vector<Expr> allVars = Expr::getVariables(ct);
@@ -504,8 +499,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       Kind ak =
           (hasOpaqueArg && pattern == e) ? Kind::APPLY_OPAQUE : Kind::APPLY;
       pattern = d_state.mkRawExpr(ak, args);
-      // std::cout << "...pattern is now " << pattern << " from " << args <<
-      // std::endl;
       ct = ct[nargs - 1];
       // maybe we are now fully bound?
       std::vector<Expr> vars = Expr::getVariables(argTypes);
@@ -514,10 +507,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         break;
       }
     }
-    // should be implied
-    // ngscope.push_back(ct);
-    // std::cout << "Partial app that has ground type: " << pattern <<
-    // std::endl;
     // we now write the pattern matching for the derived pattern.
     d_eoTypeof << "  (($eo_typeof ";
     printTerm(pattern, d_eoTypeof);
@@ -986,14 +975,6 @@ void Desugar::finalize()
   sse << ine.rdbuf();
   std::string finalEo = sse.str();
 
-  /*
-  std::stringstream ssies;
-  ssies << s_plugin_path << "plugins/desugar/eo_desugar_native.eo";
-  std::ifstream ines(ssies.str());
-  std::ostringstream sses;
-  sses << ines.rdbuf();
-  */
-
   replace(finalEo, "$EO_LITERAL_TYPE_DECL$", d_litTypeDecl.str());
   replace(finalEo, "$EO_LIT_TYPEOF_DEFS$", d_litTypeProg.str());
   replace(finalEo, "$EO_DEFS$", d_defs.str());
@@ -1019,7 +1000,6 @@ void Desugar::finalize()
     replace(finalEo, "$EO_CHECKER$", "");
   }
   // Verification conditions for *all* proof rules are ready now
-  // TODO: make this manual?
   replace(finalEo, "$EO_VC$", d_eoVc.str());
   // Make generated desugar files self-contained within the output tree.
   copyResourceToOutput("plugins/desugar/eo_desugar_native.eo");

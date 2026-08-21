@@ -602,7 +602,6 @@
       ($eot_string ($native_apply_1 "str.from_code" n1))
       $eot_stuck))
   (($eo_to_str ($eot_string s1)) ($eot_string s1))
-  ; TODO: technically others here
   )
 )
 

@@ -38,7 +38,6 @@ void DesugarChecker::finalizeRule(const Expr& v)
   }
   bool isAssume = tupleVal[1] == d_true;
   // conclusion explicit is compiled away when desugaring proof
-  // bool isConcExplicit = tupleVal[2] == d_true;
   Expr rprog = tupleVal[3];
   Expr rprogType = rprog.getType();
   size_t nargs = 0;
