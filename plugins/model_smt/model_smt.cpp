@@ -859,8 +859,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             kInt,
             "($native_apply_3 \"str_occur_index_re\" "
             "($native_apply_1 \"unpack_seq\" x1) x2 x3)");
-  // ignore, not in proof rules (NOTE: could be SMT const?)
-  d_symIgnore["@const"] = true;
+  // (@const i T) denotes a generic abstract constant; it is eliminated to an
+  // SMT-LIB uninterpreted constant by the reduction file.
   d_symIgnore["lambda"] = true;
   // alethe unhandled
   d_symIgnore["choice"] = true;

@@ -51,6 +51,7 @@
   (str.++ "@wrong_apply_sel_" (str.from_int (nat.to_int x)) "_" (str.from_int (nat.to_int y))))
 (define-fun oob_seq_nth_id () String "@oob_seq_nth")
 (define-fun uconst_id ((x Nat)) String (str.++ "@u." (str.from_int (nat.to_int x))))
+(define-fun const_id ((x Nat)) String (str.++ "@c." (str.from_int (nat.to_int x))))
 
 (define-fun char_valid ((x Int)) Bool (< x 196608))
 (define-fun string_valid ((x String)) Bool true)
