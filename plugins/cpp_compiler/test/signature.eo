@@ -1,0 +1,40 @@
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-const < (-> Int Int Bool))
+(declare-const > (-> Int Int Bool))
+
+(declare-const Bits Type)
+(declare-consts <binary> Bits)
+(declare-consts <hexadecimal> Bits)
+
+(declare-const sum (-> Int Int Int) :left-assoc)
+
+(program first ((x Int) (xs Int :list))
+  :signature (Int Int) Int
+  (
+    ((first x xs) x)
+  )
+)
+
+(program make-var ((x Int))
+  :signature (Int) Int
+  (
+    ((make-var x) (eo::var "v" Int))
+  )
+)
+
+(program hex-zero ((x Bits))
+  :signature (Bits) Bits
+  (
+    ((hex-zero x) #x00)
+  )
+)
+
+(declare-datatypes ((List 1))
+  ((par (T) ((nil) (cons (head T) (tail (List T)))))))
+
+(declare-rule trusted ((F Bool))
+  :args (F)
+  :conclusion F
+  :sorry
+)
