@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <cctype>
 #include <fstream>
-#include <functional>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -35,8 +34,20 @@ struct SExpr
   std::vector<SExpr> d_children;
 };
 
+[[noreturn]] void parseError(const std::string& message,
+                             const std::string* commandText = nullptr)
+{
+  if (commandText != nullptr)
+  {
+    EO_FATAL() << "TrimDefs: malformed command `" << *commandText
+               << "`: " << message;
+  }
+  EO_FATAL() << "TrimDefs: malformed input: " << message;
+}
+
 /** Read one token, skipping whitespace and comments. */
-std::string nextToken(std::istream& in)
+std::string nextToken(std::istream& in,
+                      const std::string* commandText = nullptr)
 {
   std::string tok;
   char c;
@@ -86,21 +97,29 @@ std::string nextToken(std::istream& in)
           }
         }
       }
-      Assert(closed);
+      if (!closed)
+      {
+        parseError("unterminated string literal", commandText);
+      }
       break;
     }
     else if (c == '|' && tok.empty())
     {
       tok += c;
+      bool closed = false;
       while (in.get(c))
       {
         tok += c;
         if (c == '|')
         {
+          closed = true;
           break;
         }
       }
-      Assert(!tok.empty() && tok.back() == '|');
+      if (!closed)
+      {
+        parseError("unterminated quoted symbol", commandText);
+      }
       break;
     }
     else
@@ -175,33 +194,83 @@ std::string readFullCommand(std::istream& in)
     }
   }
 
-  Assert(depth == 0 && started && !inString && !inQuotedSymbol);
+  if (depth != 0 || !started || inString || inQuotedSymbol)
+  {
+    parseError("unterminated top-level command");
+  }
   return result;
 }
 
-SExpr parseSExpr(std::istream& in, const std::string& firstToken)
+SExpr parseSExpr(const std::string& commandText)
 {
-  SExpr expr;
-  if (firstToken != "(")
-  {
-    Assert(firstToken != ")");
-    expr.d_isString = !firstToken.empty() && firstToken[0] == '"';
-    expr.d_value = firstToken;
-    return expr;
-  }
-
-  expr.d_isList = true;
+  std::istringstream in(commandText);
+  SExpr root;
+  std::vector<SExpr*> stack;
+  bool started = false;
   while (true)
   {
-    std::string tok = nextToken(in);
-    Assert(!tok.empty());
+    std::string tok = nextToken(in, &commandText);
+    if (tok.empty())
+    {
+      parseError("unexpected end of command", &commandText);
+    }
+    if (tok == "(")
+    {
+      if (!started)
+      {
+        started = true;
+        root.d_isList = true;
+        stack.push_back(&root);
+      }
+      else
+      {
+        if (stack.empty())
+        {
+          parseError("unexpected `(` after the command", &commandText);
+        }
+        stack.back()->d_children.emplace_back();
+        SExpr& child = stack.back()->d_children.back();
+        child.d_isList = true;
+        stack.push_back(&child);
+      }
+      continue;
+    }
     if (tok == ")")
     {
-      break;
+      if (stack.empty())
+      {
+        parseError("unexpected `)`", &commandText);
+      }
+      stack.pop_back();
+      if (stack.empty())
+      {
+        std::string trailing = nextToken(in, &commandText);
+        if (!trailing.empty())
+        {
+          parseError("trailing text after the command", &commandText);
+        }
+        return root;
+      }
+      continue;
     }
-    expr.d_children.push_back(parseSExpr(in, tok));
+    if (!started || stack.empty())
+    {
+      parseError("expected `(` at the start", &commandText);
+    }
+    stack.back()->d_children.emplace_back();
+    SExpr& child = stack.back()->d_children.back();
+    child.d_isString = tok[0] == '"';
+    child.d_value = std::move(tok);
   }
-  return expr;
+}
+
+std::string stripQuotedSymbol(const std::string& symbol)
+{
+  if (symbol.size() >= 2 && symbol.front() == '|' && symbol.back() == '|')
+  {
+    return symbol.substr(1, symbol.size() - 2);
+  }
+  return symbol;
 }
 
 bool getSymbol(const SExpr& expr, std::string& symbol)
@@ -210,17 +279,16 @@ bool getSymbol(const SExpr& expr, std::string& symbol)
   {
     return false;
   }
-  symbol = expr.d_value;
-  if (symbol.size() >= 2 && symbol.front() == '|' && symbol.back() == '|')
-  {
-    symbol = symbol.substr(1, symbol.size() - 2);
-  }
+  symbol = stripQuotedSymbol(expr.d_value);
   return true;
 }
 
 std::string unescapeString(const SExpr& expr)
 {
-  Assert(expr.d_isString && expr.d_value.size() >= 2);
+  if (!expr.d_isString || expr.d_value.size() < 2)
+  {
+    EO_FATAL() << "TrimDefs: invalid internal string token";
+  }
   std::string value;
   for (size_t i = 1, n = expr.d_value.size() - 1; i < n; ++i)
   {
@@ -349,12 +417,16 @@ Command parseCommand(const std::string& s_expr_text)
   Command cmd;
   cmd.d_fullText = s_expr_text;
 
-  std::istringstream in(s_expr_text);
-  std::string first = nextToken(in);
-  Assert(first == "(");
-  SExpr root = parseSExpr(in, first);
-  Assert(root.d_isList && !root.d_children.empty());
-  Assert(getSymbol(root.d_children[0], cmd.d_cmdName));
+  SExpr root = parseSExpr(s_expr_text);
+  if (!root.d_isList || root.d_children.empty())
+  {
+    parseError("expected a non-empty S-expression", &s_expr_text);
+  }
+  bool gotName = getSymbol(root.d_children[0], cmd.d_cmdName);
+  if (!gotName)
+  {
+    parseError("expected a command name", &s_expr_text);
+  }
 
   std::unordered_set<std::string> defined;
   std::unordered_set<std::string> bound;
@@ -496,8 +568,11 @@ void TrimDefs::processCommand(Command&& cmd)
 
 void TrimDefs::resolveDependencies()
 {
-  Assert(d_commands.size() == d_cmdDefinedSyms.size());
-  Assert(d_commands.size() == d_cmdSyms.size());
+  if (d_commands.size() != d_cmdDefinedSyms.size()
+      || d_commands.size() != d_cmdSyms.size())
+  {
+    EO_FATAL() << "TrimDefs: inconsistent command dependency graph";
+  }
   for (size_t cid = 0, ncommands = d_commands.size(); cid < ncommands; ++cid)
   {
     std::unordered_set<size_t>& dependencies = d_cmdSyms[cid];
@@ -519,23 +594,10 @@ void TrimDefs::resolveDependencies()
 std::vector<size_t> TrimDefs::getCommandOrder(
     const std::unordered_set<size_t>& retained) const
 {
-  // A DFS postorder puts each command after the retained definitions of the
-  // symbols it references. Cycles have no topological order; encountering a
-  // command already on the current path breaks the cycle deterministically.
-  std::vector<unsigned char> state(d_commands.size(), 0);
-  std::vector<size_t> order;
-  std::function<void(size_t)> visit = [&](size_t cid) {
-    if (state[cid] == 2)
-    {
-      return;
-    }
-    if (state[cid] == 1)
-    {
-      return;
-    }
-    state[cid] = 1;
-
-    std::vector<size_t> dependencies;
+  std::vector<std::vector<size_t>> dependencies(d_commands.size());
+  for (size_t cid : retained)
+  {
+    std::vector<size_t>& commandDependencies = dependencies[cid];
     for (size_t symbol : d_cmdSyms[cid])
     {
       std::map<size_t, std::unordered_set<size_t>>::const_iterator it =
@@ -548,27 +610,53 @@ std::vector<size_t> TrimDefs::getCommandOrder(
       {
         if (dependency != cid && retained.find(dependency) != retained.end())
         {
-          dependencies.push_back(dependency);
+          commandDependencies.push_back(dependency);
         }
       }
     }
-    std::sort(dependencies.begin(), dependencies.end());
-    dependencies.erase(std::unique(dependencies.begin(), dependencies.end()),
-                       dependencies.end());
-    for (size_t dependency : dependencies)
-    {
-      visit(dependency);
-    }
+    std::sort(commandDependencies.begin(), commandDependencies.end());
+    commandDependencies.erase(
+        std::unique(commandDependencies.begin(), commandDependencies.end()),
+        commandDependencies.end());
+  }
 
-    state[cid] = 2;
-    order.push_back(cid);
-  };
-
+  // An iterative DFS postorder puts each command after the retained
+  // definitions of the symbols it references. Cycles have no topological
+  // order; encountering a command on the current path breaks the cycle
+  // deterministically.
+  std::vector<unsigned char> state(d_commands.size(), 0);
+  std::vector<size_t> order;
   std::vector<size_t> roots(retained.begin(), retained.end());
   std::sort(roots.begin(), roots.end());
-  for (size_t cid : roots)
+  for (size_t root : roots)
   {
-    visit(cid);
+    if (state[root] != 0)
+    {
+      continue;
+    }
+
+    state[root] = 1;
+    std::vector<std::pair<size_t, size_t>> stack;
+    stack.emplace_back(root, 0);
+    while (!stack.empty())
+    {
+      std::pair<size_t, size_t>& frame = stack.back();
+      const size_t cid = frame.first;
+      if (frame.second < dependencies[cid].size())
+      {
+        const size_t dependency = dependencies[cid][frame.second++];
+        if (state[dependency] == 0)
+        {
+          state[dependency] = 1;
+          stack.emplace_back(dependency, 0);
+        }
+        continue;
+      }
+
+      state[cid] = 2;
+      order.push_back(cid);
+      stack.pop_back();
+    }
   }
   return order;
 }
@@ -622,7 +710,8 @@ void TrimDefs::finalize()
   std::vector<size_t> toVisit;
   for (const std::string& dt : d_defTargets)
   {
-    std::map<std::string, size_t>::const_iterator it = d_symToId.find(dt);
+    const std::string target = normalizeSymbol(stripQuotedSymbol(dt));
+    std::map<std::string, size_t>::const_iterator it = d_symToId.find(target);
     if (it == d_symToId.end())
     {
       EO_FATAL() << "Could not find target definition \"" << dt << "\"";
@@ -654,7 +743,10 @@ void TrimDefs::finalize()
     }
     std::map<size_t, std::unordered_set<size_t>>::const_iterator it =
         d_symCommands.find(cur);
-    Assert(it != d_symCommands.end() && !it->second.empty());
+    if (it == d_symCommands.end() || it->second.empty())
+    {
+      EO_FATAL() << "TrimDefs: target symbol has no defining command";
+    }
     for (size_t cid : it->second)
     {
       retainCommand(cid);
