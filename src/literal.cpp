@@ -47,6 +47,29 @@ Literal::Literal(const Literal& other)
   }
 }
 
+Literal::~Literal()
+{
+  // Destroy the active member of the union, mirroring the copy constructor.
+  switch (d_kind)
+  {
+    case Kind::BOOLEAN: break;
+    case Kind::DECIMAL:
+    case Kind::RATIONAL: d_rat.~Rational(); break;
+    case Kind::NUMERAL: d_int.~Integer(); break;
+    case Kind::HEXADECIMAL:
+    case Kind::BINARY: d_bv.~BitVector(); break;
+    case Kind::STRING: d_str.~String(); break;
+    case Kind::NONE: break;
+    default:
+      if (isSymbol(d_kind))
+      {
+        using StdString = std::string;
+        d_sym.~StdString();
+      }
+      break;
+  }
+}
+
 Literal& Literal::operator=(const Literal& other)
 {
   if (this != &other)

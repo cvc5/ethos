@@ -448,8 +448,11 @@ void State::markDeleted(ExprValue* e)
     Assert(et != nullptr);
     const std::vector<ExprValue*>& children = e->d_children;
     et->remove(children);
-    // now, free the expression
-    free(e);
+    // now, free the expression. Note this invokes ~ExprValue, which
+    // decrements the reference counts of the children of e. Those calls
+    // re-enter markDeleted, which appends to d_toDelete since we are already
+    // in garbage collection, and are processed by the loop below.
+    delete e;
     if (!d_toDelete.empty())
     {
       e = d_toDelete.back();

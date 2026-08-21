@@ -45,7 +45,7 @@ public:
 
   Literal& operator=(const Literal& other);
 
-  ~Literal() {}
+  ~Literal();
   /** as literal */
   const Literal* asLiteral() const override { return this; }
   std::string toString() const;
