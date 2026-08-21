@@ -118,9 +118,9 @@
   ((f (-> Bool Bool Bool)) (n $eoT_Index) (pl $eo_IndexList :list) (S $eo_State))
   :signature ((-> Bool Bool Bool) $eo_IndexList $eo_State) Bool
   (
-  (($eo_mk_premise_list f $emb_indl.nil S)          (eo::nil f Bool))
+  (($eo_mk_premise_list f $emb_indl.nil S)          ($eo_nil f Bool))
   (($eo_mk_premise_list f ($emb_indl.cons n pl) S)  
-     (eo::cons f ($eo_state_proven_nth S n) ($eo_mk_premise_list f pl S)))
+     ($eo_cons f ($eo_state_proven_nth S n) ($eo_mk_premise_list f pl S)))
   )
 )
 

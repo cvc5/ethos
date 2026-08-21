@@ -203,7 +203,7 @@ $EO_LITERAL_TYPE_DECL$
 ; Note: a helper for $eo_list_find.
 (program $eo_list_find_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
-   (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n $eo_Numeral))
+   (f (-> T U V)) (x W) (y U) (z X) (nil W) (n $eo_Numeral))
   :signature (W X $eo_Numeral) $eo_Numeral
   (
   (($eo_list_find_rec (f x y) z n)  (eo::ite (eo::eq x z) n
@@ -445,7 +445,8 @@ $EO_LITERAL_TYPE_DECL$
 
 ; define: $eo_list_repeat
 ; implements: eo::list_repeat
-(program $eo_list_repeat ((T Type) (U Type) (V Type) (f (-> T U V)) (a T) (i Int))
+(program $eo_list_repeat
+  ((T Type) (U Type) (V Type) (f (-> T U V)) (a T) (i $native_Int))
   :signature ((-> T U V) T $eo_Numeral) V
   (
   (($eo_list_repeat f a ($eot_numeral i))
