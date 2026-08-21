@@ -34,8 +34,8 @@ struct SExpr
   std::vector<SExpr> d_children;
 };
 
-[[noreturn]] void parseError(const std::string& message,
-                             const std::string* commandText = nullptr)
+void parseError(const std::string& message,
+                const std::string* commandText = nullptr)
 {
   if (commandText != nullptr)
   {
