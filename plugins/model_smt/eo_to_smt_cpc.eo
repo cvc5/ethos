@@ -1,295 +1,104 @@
-; The Eunoia-to-SMT reduction entries for the CPC signature.
+; The Eunoia-to-SMT reductions for the CPC signature.
 ;
 ; The model_smt plugin turns a desugared Eunoia signature into the SMT-LIB
 ; model semantics of its symbols. Most symbols are given that semantics by the
 ; plugin itself, which knows how to evaluate an SMT-LIB operator of a given
-; name and argument kinds. The symbols listed here are the exception: they are
-; *eliminated* on the way from Eunoia to the SMT-LIB term layer, by the case
-; of $eo_to_smt (resp. $eo_to_smt_type) given below, instead of becoming an
-; SMT-LIB operator of their own.
+; name and argument kinds. The symbols below are the exception: they are
+; *eliminated* on the way from Eunoia to the SMT-LIB term layer, i.e. they are
+; defined in terms of the other symbols of this signature.
 ;
-; The plugin reads this file generically, so adding, changing or removing a
-; reduction is a change to this file alone. It reads:
+; A reduction is a `define` whose name is $eo_reduce_ followed by the symbol it
+; reduces, and whose parameters are that symbol's explicit arguments. Its body
+; is an ordinary term of this signature: nothing here mentions $eo_to_smt, the
+; $sm_ constructors of the deep embedding, or anything else of the generated
+; model semantics. So, for example,
 ;
-; 1. The cases of the $eo_to_smt and $eo_to_smt_type programs below. A case
-;    whose pattern is (<sym> x1 ... xn), or the atom <sym>, is the reduction of
-;    <sym>; a case with any other pattern is an extra case emitted before it,
-;    for a special shape of an argument. The right-hand side is copied
-;    verbatim into the generated $eo_to_smt / $eo_to_smt_type, so it may use
-;    anything those programs may use, including the auxiliary programs of this
-;    file, the $sm_/$tsm_/$vsm_ constructors of the deep embedding, and the
-;    $smtx_ and $native_ utilities of model_smt.eo.
-; 2. The auxiliary programs preceding them. An auxiliary program is emitted
-;    into the generated file when the first symbol whose reduction reaches it,
-;    directly or through another auxiliary program, is declared.
+;   (define $eo_reduce_@mod_by_zero ((x Int)) (mod x 0))
 ;
-; A case is emitted only if its symbol is declared by the input signature, so
-; a symbol listed here that CPC does not declare simply costs nothing. Note
-; that the reduction of a symbol that the plugin also gives an SMT-LIB
-; semantics to (seq.empty and set.empty below) only replaces what $eo_to_smt
-; returns for it; the symbol still has a constructor in the deep embedding.
+; says that (@mod_by_zero x) denotes whatever (mod x 0) denotes. The plugin
+; casts that term into the SMT-LIB term layer and generates the case
 ;
-; This file is Eunoia syntax but is a fragment: the two programs below are
-; spliced into the ones of model_smt.eo rather than declared on their own, and
-; the symbols they mention are declared by the input signature and by the
-; generated model semantics. It is therefore not parsed on its own; the file
-; it contributes to, model_smt_gen.eo, is.
-
+;   (($eo_to_smt (@mod_by_zero x1))
+;     ($sm_mod ($eo_to_smt x1) ($sm_numeral ($native_apply_0 "0"))))
+;
+; of $eo_to_smt from it: an application of a symbol becomes an application of
+; the constructor of the same name, a literal becomes the constructor of its
+; kind applied to its native value, and a parameter, being a Eunoia term at the
+; time the case runs, is cast by $eo_to_smt itself.
+;
+; This file is ordinary Eunoia, which the plugin includes into the very state
+; it read the signature from once that signature has been parsed. So a
+; reduction that names a symbol this signature does not declare, or whose body
+; is ill-typed, is an error here rather than something that surfaces later in
+; the generated file. For the same reason a reduction file belongs to one
+; signature. Note a signature that was trimmed, e.g. to what one proof rule
+; needs, declares only some of the symbols below; the reductions of the others
+; are simply dropped, see ModelSmt::loadReduceSpec.
+;
+; The symbols whose reduction this file cannot express are registered by the
+; plugin instead, see ModelSmt::addEunoiaReduceSym. Those are the ones whose
+; right hand side has to bind a variable, inspect an SMT-LIB type, or name an
+; operator of the deep embedding that has no counterpart in the signature, and
+; for now also the ones whose reduction needs a bit-vector literal.
 
 ; -----------------------------------------------------------------------------
-; Auxiliary programs used by the reductions below.
+; Arithmetic
 ; -----------------------------------------------------------------------------
 
-; (distinct xs) holds when the elements of the list xs are pairwise disequal.
-; $eo_to_smt_typed_list_elem_type additionally checks that the list is
-; well-typed, which is what makes the reduction total.
+; The value of division, modulus and real division by zero. Note these denote
+; the same thing as the corresponding operator applied to zero, which is what
+; makes them underspecified rather than undefined.
 
-(program $eo_to_smt_distinct_pairs
-  ((T Type) (s $smt_Term) (x T) (xs (@@TypedList T)))
-  :signature ($smt_Term (@@TypedList T)) $smt_Term
-  (
-  (($eo_to_smt_distinct_pairs s (@@TypedList.cons x xs))
-     ($sm_and ($sm_not ($sm_= s ($eo_to_smt x))) ($eo_to_smt_distinct_pairs s xs)))
-  (($eo_to_smt_distinct_pairs s (@@TypedList.nil T)) $sm_true)
-  (($eo_to_smt_distinct_pairs s xs) $sm_none)
-  )
-)
-(program $eo_to_smt_distinct
-  ((T Type) (s $smt_Term) (x T) (xs (@@TypedList T)))
-  :signature ((@@TypedList T)) $smt_Term
-  (
-  (($eo_to_smt_distinct (@@TypedList.cons x xs))
-     ($sm_and ($eo_to_smt_distinct_pairs ($eo_to_smt x) xs) ($eo_to_smt_distinct xs)))
-  (($eo_to_smt_distinct (@@TypedList.nil T)) $sm_true)
-  (($eo_to_smt_distinct xs) $sm_none)
-  )
-)
-(program $eo_to_smt_typed_list_elem_type ((T Type) (t T) (ts (@@TypedList T)))
-  :signature (T) $smt_Type
-  (
-  (($eo_to_smt_typed_list_elem_type (@@TypedList.nil T))
-    (eo::define ((eT ($eo_to_smt_type T)))
-      ($native_ite ($smtx_type_wf eT) eT $tsm_none)))
-  (($eo_to_smt_typed_list_elem_type (@@TypedList.cons t ts))
-    (eo::define ((eT ($smtx_typeof ($eo_to_smt t))))
-      ($native_ite ($native_Teq eT ($eo_to_smt_typed_list_elem_type ts))
-        eT
-        $tsm_none)))    
-  (($eo_to_smt_typed_list_elem_type t) $tsm_none)
-  )
-)
+(define $eo_reduce_@int_div_by_zero ((x Int)) (div x 0))
+(define $eo_reduce_@mod_by_zero ((x Int)) (mod x 0))
+(define $eo_reduce_@div_by_zero ((x Real)) (/ x 0/1))
 
-; The difference of two arrays is an index at which they differ, which is what
-; the $sm_map_diff operator of the deep embedding denotes.
+; x is a power of two if it is non-negative and is recovered by taking the
+; power of two of its base-two logarithm.
 
-(program $eo_to_smt_array_deq_diff 
-  ((a $smt_Term) (aT $smt_Type) (aU $smt_Type) (b $smt_Term) (bT $smt_Type) (bU $smt_Type))
-  :signature ($smt_Term $smt_Type $smt_Term $smt_Type) $smt_Term
-  (
-  (($eo_to_smt_array_deq_diff a ($tsm_Map aT aU) b ($tsm_Map bT bU)) ($sm_map_diff a b))
-  (($eo_to_smt_array_deq_diff a aT b bT) $sm_none)  
-  )
-)
+(define $eo_reduce_int.ispow2 ((x Int))
+  (and (>= x 0) (= x (int.pow2 (int.log2 x)))))
 
-; Skolemization of the n^th variable in a chain of existentials, expressed as a
-; nested combination of bind and choice. For index 0, this is simply the choice
-; for the outermost existential. For a successor index, we bind the outer
-; variable to its choice and recurse into the body for the remaining variables.
+; -----------------------------------------------------------------------------
+; Strings and sequences
+; -----------------------------------------------------------------------------
 
-(program $eo_to_smt_quantifiers_skolemize
-  ((s $native_String) (T $eo_Term) (vs $eo_List) (F $smt_Term) (G $smt_Term) (n $native_Nat) (t $smt_Term))
-  :signature ($eo_List $smt_Term $native_Nat) $smt_Term
-  (
-  (($eo_to_smt_quantifiers_skolemize ($eo_List_cons ($eot_Var ($eot_string s) T) vs) G $native_n_zero)
-    ($sm_choice s ($eo_to_smt_type T) ($eo_to_smt_exists vs G)))
-  (($eo_to_smt_quantifiers_skolemize ($eo_List_cons ($eot_Var ($eot_string s) T) vs) G ($native_n_succ n))
-    ($eo_to_smt_quantifiers_skolemize vs
-      ($sm_bind s ($eo_to_smt_type T) ($sm_choice s ($eo_to_smt_type T) ($eo_to_smt_exists vs G)) G) n))
-  (($eo_to_smt_quantifiers_skolemize vs G t) $sm_none)
-  )
-)
+; The result of converting an integer to a string, resp. a string to an
+; integer, when the conversion fails at position n: the conversion of the
+; prefix of length n, and zero when that prefix is empty.
 
-; The n^th component of a positive regular expression membership unfolding.
+(define $eo_reduce_@strings_itos_result ((x Int) (n Int))
+  (ite (= n 0) 0 (str.to_int (str.substr (str.from_int x) 0 n))))
+(define $eo_reduce_@strings_stoi_result ((s (Seq Char)) (n Int))
+  (ite (= n 0) 0 (str.to_int (str.substr s 0 n))))
 
-(program $eo_to_smt_re_unfold_pos_component
-  ((s $smt_Term) (r1 $smt_Term) (r2 $smt_Term) (n $native_Nat) (t $smt_Term))
-  :signature ($smt_Term $smt_Term $native_Nat) $smt_Term
-  (
-  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) $native_n_zero)
-    ($sm_str.substr s $sm_z_zero ($sm_str.indexof_re_split s r1 r2)))
-  (($eo_to_smt_re_unfold_pos_component s ($sm_re.++ r1 r2) ($native_n_succ n))
-    (eo::define ((i ($sm_str.indexof_re_split s r1 r2)))
-      ($eo_to_smt_re_unfold_pos_component
-        ($sm_str.substr s i ($sm_- ($sm_str.len s) i))
-        r2 n)))
-  (($eo_to_smt_re_unfold_pos_component s r1 n) $sm_none)
-  )
-)
+; The position of the first character of s that is not a digit.
+
+(define $eo_reduce_@strings_stoi_non_digit ((s (Seq Char)))
+  (str.indexof_re s (re.inter re.allchar (re.comp (re.range "0" "9"))) 0))
 
 ; The number of non-overlapping occurrences of t in s, resp. of nonempty,
-; leftmost-shortest matches of the regular expression t in s. Both are the
+; leftmost-shortest matches of the regular expression r in s. Both are the
 ; difference in length between replacing every occurrence by a sequence of
-; length one and replacing it by the empty sequence.
+; length one and replacing it by the empty sequence. Note (str.substr s 0 1)
+; and (str.substr s 0 0) are used for those two sequences, which avoids having
+; to name the element type of s.
 
-(program $eo_to_smt_strings_num_occur ((s $smt_Term) (t $smt_Term))
-  :signature ($smt_Term $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_strings_num_occur s t) ($sm_- ($sm_str.len ($sm_str.replace_all s t ($sm_str.substr s $sm_z_zero $sm_z_one))) ($sm_str.len ($sm_str.replace_all s t ($sm_str.substr s $sm_z_zero $sm_z_zero)))))
-  )
-)
+(define $eo_reduce_@strings_num_occur ((T Type :implicit) (s (Seq T)) (t (Seq T)))
+  (- (str.len (str.replace_all s t (str.substr s 0 1)))
+     (str.len (str.replace_all s t (str.substr s 0 0)))))
+(define $eo_reduce_@strings_num_occur_re ((s (Seq Char)) (r RegLan))
+  (- (str.len (str.replace_re_all s r (str.substr s 0 1)))
+     (str.len (str.replace_re_all s r (str.substr s 0 0)))))
 
-(program $eo_to_smt_strings_num_occur_re ((s $smt_Term) (t $smt_Term))
-  :signature ($smt_Term $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_strings_num_occur_re s t) ($sm_- ($sm_str.len ($sm_str.replace_re_all s t ($sm_str.substr s $sm_z_zero $sm_z_one))) ($sm_str.len ($sm_str.replace_re_all s t ($sm_str.substr s $sm_z_zero $sm_z_zero)))))
-  )
-)
+; The part of a replace-all that is left to do after the n^th occurrence, i.e.
+; the replacement carried out on the suffix of s that follows that occurrence.
 
-; The empty sequence resp. set of a given element type. Eunoia indexes these by
-; the sequence/set type whereas SMT-LIB indexes them by the element type.
-
-(program $eo_to_smt_seq.empty ((T $smt_Type))
-  :signature ($smt_Type) $smt_Term
-  (
-  (($eo_to_smt_seq.empty ($tsm_Seq T)) ($sm_seq.empty T))
-  (($eo_to_smt_seq.empty T) $sm_none)
-  )
-)
-
-(program $eo_to_smt_set.empty ((T $smt_Type))
-  :signature ($smt_Type) $smt_Term
-  (
-  (($eo_to_smt_set.empty ($tsm_Set T)) ($sm_set.empty T))
-  (($eo_to_smt_set.empty T) $sm_none)
-  )
-)
-
-; The difference of two sets, as for arrays above.
-
-(program $eo_to_smt_sets_deq_diff 
-  ((a $smt_Term) (aT $smt_Type) (b $smt_Term) (bT $smt_Type))
-  :signature ($smt_Term $smt_Type $smt_Term $smt_Type) $smt_Term
-  (
-  (($eo_to_smt_sets_deq_diff a ($tsm_Set aT) b ($tsm_Set bT)) ($sm_map_diff a b))
-  (($eo_to_smt_sets_deq_diff a aT b bT) $sm_none)
-  )
-)
-
-; (set.insert x1 ... xn s) is the union of s with the singletons of x1 ... xn.
-
-(program $eo_to_smt_set.insert ((T Type) (t1 T) (t2 $eo_List) (t3 $smt_Term))
-  :signature ($eo_List $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_set.insert (@@TypedList.cons t1 t2) t3)
-    ($sm_set.union ($sm_set.singleton ($eo_to_smt t1)) ($eo_to_smt_set.insert t2 t3)))
-  (($eo_to_smt_set.insert (@@TypedList.nil T) t3) ($native_ite ($native_Teq ($smtx_typeof t3) ($tsm_Set ($eo_to_smt_type T))) t3 $sm_none))
-  (($eo_to_smt_set.insert t2 t3) $sm_none)
-  )
-)
-
-; -----------------------------------------------------------------------------
-; Term-level reductions, i.e. the generated cases of $eo_to_smt.
-; -----------------------------------------------------------------------------
-
-(program $eo_to_smt
-  ((T Type) (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
-   (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
-  :signature (T) $smt_Term
-  (
-
-  ; builtin: $sm_= and $sm_ite are part of the embedding, so these are
-  ; reduced to it directly here rather than declared as operators.
-  (($eo_to_smt (= x1 x2)) ($sm_= ($eo_to_smt x1) ($eo_to_smt x2)))
-  (($eo_to_smt (ite x1 x2 x3)) ($sm_ite ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3)))
-  (($eo_to_smt (distinct x1)) ($native_ite ($native_Teq ($eo_to_smt_typed_list_elem_type x1) $tsm_none) $sm_none ($eo_to_smt_distinct x1)))
-  ; (@const i T) denotes a generic abstract constant, i.e. an internally
-  ; introduced term that has no definition in the signature. It is modelled as
-  ; the SMT-LIB uninterpreted constant with the same identifiers, that is, the
-  ; constant whose name is determined by i and whose type is the SMT-LIB type
-  ; denoted by T. Note that $native_to_const_id uses a namespace that is
-  ; distinct from the one used for the uninterpreted constants of the input
-  ; problem, hence an abstract constant is never identified with a constant
-  ; that was declared by the user. Negative (or non-numeral) identifiers have
-  ; no SMT-LIB counterpart and are mapped to $sm_none.
-  (($eo_to_smt (@const x1 x2)) ($native_ite ($eo_to_smt_nat_is_valid x1) ($sm_UConst ($native_to_const_id ($eo_to_smt_nat x1)) ($eo_to_smt_type x2)) $sm_none))
-
-  ; quantifiers: one variable at a time, $sm_exists is part of the embedding
-  (($eo_to_smt (exists $eo_List_nil x1)) $sm_none)
-  (($eo_to_smt (exists x1 x2)) ($eo_to_smt_exists x1 ($eo_to_smt x2)))
-  (($eo_to_smt (forall $eo_List_nil x1)) $sm_none)
-  (($eo_to_smt (forall x1 x2)) ($sm_not ($eo_to_smt_exists x1 ($sm_not ($eo_to_smt x2)))))
-  ; note that negative indices are silently treated as 0 here
-  (($eo_to_smt (@quantifiers_skolemize (forall x1 x2) x3)) ($native_ite ($eo_to_smt_nat_is_valid x3) ($eo_to_smt_quantifiers_skolemize x1 ($sm_not ($eo_to_smt x2))($eo_to_smt_nat x3)) $sm_none))
-
-  ; arithmetic
-  (($eo_to_smt (@int_div_by_zero x1)) ($sm_div ($eo_to_smt x1) $sm_z_zero))
-  (($eo_to_smt (@mod_by_zero x1)) ($sm_mod ($eo_to_smt x1) $sm_z_zero))
-  (($eo_to_smt (@div_by_zero x1)) ($sm_/ ($eo_to_smt x1) $sm_q_zero))
-  (($eo_to_smt (int.ispow2 x1)) (eo::define (($e1 ($eo_to_smt x1))) ($sm_and ($sm_>= $e1 $sm_z_zero) ($sm_= $e1 ($sm_int.pow2 ($sm_int.log2 $e1))))))
-
-  ; arrays
-  (($eo_to_smt (@array_deq_diff x1 x2)) ($eo_to_smt_array_deq_diff ($eo_to_smt x1) ($smtx_typeof ($eo_to_smt x1)) ($eo_to_smt x2) ($smtx_typeof ($eo_to_smt x2))))
-
-  ; strings and sequences
-  (($eo_to_smt (@strings_itos_result x1 x2)) ($sm_ite ($sm_= ($eo_to_smt x2) $sm_z_zero) $sm_z_zero ($sm_str.to_int ($sm_str.substr ($sm_str.from_int ($eo_to_smt x1)) $sm_z_zero ($eo_to_smt x2)))))
-  (($eo_to_smt (@strings_stoi_result x1 x2)) ($sm_ite ($sm_= ($eo_to_smt x2) $sm_z_zero) $sm_z_zero ($sm_str.to_int ($sm_str.substr ($eo_to_smt x1) $sm_z_zero ($eo_to_smt x2)))))
-  (($eo_to_smt (@strings_stoi_non_digit x1)) ($sm_str.indexof_re ($eo_to_smt x1) ($sm_re.inter $sm_re.allchar ($sm_re.comp ($sm_re.range ($sm_string $native_str_c0) ($sm_string $native_str_c9)))) $sm_z_zero))
-  (($eo_to_smt (@strings_deq_diff x1 x2)) ($sm_seq_diff ($eo_to_smt x1) ($eo_to_smt x2)))
-  (($eo_to_smt (@witness_string_length x1 x2 x3)) ($native_ite ($eo_to_smt_nat_is_valid x2) ($native_ite ($eo_to_smt_nat_is_valid x3) (eo::define (($T ($eo_to_smt_type x1))) (eo::define (($i ($sm_Var $native_str_vname $T))) ($sm_choice $native_str_vname $T ($sm_= ($sm_str.len $i) ($eo_to_smt x2))))) $sm_none) $sm_none))
-  ; note that negative indices are silently treated as 0 here
-  (($eo_to_smt (@re_unfold_pos_component x1 x2 x3)) ($native_ite ($eo_to_smt_nat_is_valid x3) ($eo_to_smt_re_unfold_pos_component ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt_nat x3)) $sm_none))
-  (($eo_to_smt (@strings_num_occur x1 x2)) ($eo_to_smt_strings_num_occur ($eo_to_smt x1) ($eo_to_smt x2)))
-  (($eo_to_smt (@strings_num_occur_re x1 x2)) ($eo_to_smt_strings_num_occur_re ($eo_to_smt x1) ($eo_to_smt x2)))
-  ; the result helpers are eliminated to the replacement term over the
-  ; suffix following the requested occurrence
-  (($eo_to_smt (@strings_replace_all_result x1 x2 x3 x4)) ($sm_str.replace_all ($sm_str.substr ($eo_to_smt x1) ($sm_@strings_occur_index ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x4)) ($sm_str.len ($eo_to_smt x1))) ($eo_to_smt x2) ($eo_to_smt x3)))
-  (($eo_to_smt (@strings_replace_re_all_result x1 x2 x3 x4)) ($sm_str.replace_re_all ($sm_str.substr ($eo_to_smt x1) ($sm_@strings_occur_index_re ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x4)) ($sm_str.len ($eo_to_smt x1))) ($eo_to_smt x2) ($eo_to_smt x3)))
-  (($eo_to_smt (seq.empty x1)) ($eo_to_smt_seq.empty ($eo_to_smt_type x1)))
-
-  ; sets, where (Set T) is modelled as (Array T Bool)
-  (($eo_to_smt (set.empty x1)) ($eo_to_smt_set.empty ($eo_to_smt_type x1)))
-  (($eo_to_smt (set.choose x1)) (eo::define ((T ($eo_to_smt_set_elem_type ($smtx_typeof ($eo_to_smt x1))))) ($sm_map_diff ($eo_to_smt x1) ($sm_set.empty T))))
-  (($eo_to_smt (set.is_singleton x1)) ($sm_= ($eo_to_smt x1) ($sm_set.singleton (eo::define ((T ($eo_to_smt_set_elem_type ($smtx_typeof ($eo_to_smt x1))))) ($sm_map_diff ($eo_to_smt x1) ($sm_set.empty T))))))
-  (($eo_to_smt (set.is_empty x1)) ($sm_= ($eo_to_smt x1) ($sm_set.empty ($eo_to_smt_set_elem_type ($smtx_typeof ($eo_to_smt x1))))))
-  (($eo_to_smt (set.insert x1 x2)) ($eo_to_smt_set.insert x1 ($eo_to_smt x2)))
-  (($eo_to_smt (@sets_deq_diff x1 x2)) ($eo_to_smt_sets_deq_diff ($eo_to_smt x1) ($smtx_typeof ($eo_to_smt x1)) ($eo_to_smt x2) ($smtx_typeof ($eo_to_smt x2))))
-
-  ; bit-vectors
-  (($eo_to_smt (bvite x1 x2 x3)) ($sm_ite ($sm_= ($eo_to_smt x1) $sm_binary_bit_true) ($eo_to_smt x2) ($eo_to_smt x3)))
-  (($eo_to_smt (bvultbv x1 x2)) ($sm_ite ($sm_bvult ($eo_to_smt x1) ($eo_to_smt x2)) $sm_binary_bit_true $sm_binary_bit_false))
-  (($eo_to_smt (bvsltbv x1 x2)) ($sm_ite ($sm_bvslt ($eo_to_smt x1) ($eo_to_smt x2)) $sm_binary_bit_true $sm_binary_bit_false))
-  ; note @bvsize converts to (@purify n) instead of n to avoid aliasing
-  ; (numerals should be bijective in the spec)
-  (($eo_to_smt (@bvsize x1)) (eo::define ((n ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))))) ($native_ite ($native_z_<= $native_z_zero n) ($sm_@purify ($sm_numeral n)) $sm_none)))
-  (($eo_to_smt (bvredor x1)) ($sm_bvnot ($sm_bvcomp ($eo_to_smt x1) ($sm_binary ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))) $native_z_zero))))
-  (($eo_to_smt (bvredand x1)) ($sm_bvcomp ($eo_to_smt x1) ($sm_bvnot ($sm_binary ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))) $native_z_zero))))
-  (($eo_to_smt (@bit x1 x2)) ($sm_= ($sm_extract ($eo_to_smt x1) ($eo_to_smt x1) ($eo_to_smt x2)) $sm_binary_bit_true))
-  (($eo_to_smt (@from_bools x1 x2)) ($sm_concat ($eo_to_smt x2) ($sm_ite ($eo_to_smt x1) $sm_binary_bit_true $sm_binary_bit_false)))
-
-  ; datatypes and tuples
-  (($eo_to_smt (tuple x1 x2)) ($eo_to_smt_tuple_prepend ($eo_to_smt x1) ($smtx_typeof ($eo_to_smt x1)) ($eo_to_smt x2)))
-  (($eo_to_smt tuple.unit) ($sm_DtCons $native_str_tuple_name ($smtx_tuple_datatype_decl ($dt_sum $dtc_unit $dt_null)) $native_n_zero))
-  (($eo_to_smt (tuple.select x1 x2)) ($eo_to_smt_tuple_select ($smtx_typeof ($eo_to_smt x2)) ($eo_to_smt x1) ($eo_to_smt x2)))
-  (($eo_to_smt (tuple.update x1 x2 x3)) ($eo_to_smt_tuple_update ($smtx_typeof ($eo_to_smt x2)) ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3)))
-  (($eo_to_smt (is x1 x2)) ($sm_apply ($eo_to_smt_tester ($eo_to_smt x1)) ($eo_to_smt x2)))
-  (($eo_to_smt (update x1 x2 x3)) ($eo_to_smt_updater ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3)))
-
-  ; Alethe; these move to an Alethe reduction file once it exists
-  (($eo_to_smt (@cl x1 x2)) ($eo_to_smt (or x1 x2)))
-  (($eo_to_smt (@empty_cl x1 x2)) ($sm_bool $native_false))
-  )
-)
-
-
-; -----------------------------------------------------------------------------
-; Type-level reductions, i.e. the generated cases of $eo_to_smt_type.
-; -----------------------------------------------------------------------------
-
-(program $eo_to_smt_type
-  ((T Type) (T1 Type) (T2 Type) (x1 T1) (x2 T2))
-  :signature (Type) $smt_Type
-  (
-  (($eo_to_smt_type (Tuple x1 x2)) (eo::define ((T ($eo_to_smt_type_tuple ($eo_to_smt_type x1) ($eo_to_smt_type x2)))) ($native_ite ($smtx_type_wf T) T $tsm_none)))
-  (($eo_to_smt_type UnitTuple) ($tsm_Datatype $native_str_tuple_name ($smtx_tuple_datatype_decl ($dt_sum $dtc_unit $dt_null))))
-  )
-)
+(define $eo_reduce_@strings_replace_all_result
+    ((T Type :implicit) (s (Seq T)) (t (Seq T)) (r (Seq T)) (n Int))
+  (str.replace_all
+    (str.substr s (@strings_occur_index s t n) (str.len s)) t r))
+(define $eo_reduce_@strings_replace_re_all_result
+    ((s (Seq Char)) (r RegLan) (t (Seq Char)) (n Int))
+  (str.replace_re_all
+    (str.substr s (@strings_occur_index_re s r n) (str.len s)) r t))

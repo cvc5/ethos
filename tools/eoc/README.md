@@ -18,14 +18,20 @@ non-standard EOC plugins:
 The default `ethos` build does not include these plugins. Use `ethos-eoc`
 only when you want the Eunoia-to-SMT2 or Eunoia-to-Lean pipeline.
 
-`model-smt` gives every symbol of the signature its SMT-LIB semantics. The
-symbols that instead have no semantics of their own, because they are
-eliminated on the way to the SMT-LIB term layer, are listed separately in a
-Eunoia reduction file, which gives each of them its case of `$eo_to_smt` or
-`$eo_to_smt_type` together with any auxiliary programs those cases need. The
-file for CPC is `plugins/model_smt/eo_to_smt_cpc.eo`; its header comment
-documents the format. Adding, changing or removing one of these reductions is
-a change to that file alone and does not require rebuilding `ethos-eoc`.
+`model-smt` gives every symbol of the signature its SMT-LIB semantics. A symbol
+that instead has no semantics of its own is *eliminated* on the way to the
+SMT-LIB term layer, i.e. it is defined in terms of the other symbols of the
+signature. Such a reduction is written in the syntax of the signature itself,
+in a Eunoia reduction file that `model-smt` includes once the signature has
+been parsed. The file for CPC is `plugins/model_smt/eo_to_smt_cpc.eo`; its
+header comment documents the format. Adding, changing or removing one of these
+reductions is a change to that file alone and does not require rebuilding
+`ethos-eoc`.
+
+The reductions the signature cannot express -- those that bind a variable,
+inspect an SMT-LIB type, or name an operator of the deep embedding that has no
+counterpart in the signature -- are registered by the plugin itself, see
+`ModelSmt::addEunoiaReduceSym`.
 
 ## Building `ethos-eoc`
 
