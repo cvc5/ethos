@@ -1695,13 +1695,23 @@ void LeanMetaReduce::finalizeParseDefs(const std::set<std::string>& opNames,
 
 void LeanMetaReduce::finalizeSmtModel()
 {
+  std::vector<Replacement> defsRepl{{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
+                                    {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()},
+                                    {"$LEAN_SMT_VALUE_DEF$",
+                                     d_smtValueDt.str()}};
+  if (optionSmtTheoryOp())
+  {
+    // NOTE: enabling this option additionally requires adding an
+    // `inductive SmtTheoryOp` block carrying $LEAN_SMT_THEORY_OP_DEF$ to
+    // lean_meta_smt_model_defs.lean, ahead of the mutual block that defines
+    // SmtTerm. The template has no such block today, so the tag is only
+    // supplied when the option is on, where its absence is reported.
+    defsRepl.emplace_back("$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str());
+  }
   const std::string outPathDefs =
       emitResourceFile("plugins/lean_meta/lean_meta_smt_model_defs.lean",
                        "plugins/lean_meta/lean_meta_smt_model_defs_gen.lean",
-                       {{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
-                        {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()},
-                        {"$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str()},
-                        {"$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str()}});
+                       defsRepl);
   Trace("lean-meta") << "Write lean-defs " << outPathDefs << std::endl;
   const std::string outPathOrder =
       emitResourceFile("plugins/lean_meta/lean_meta_smt_value_order.lean",
