@@ -154,8 +154,6 @@ void TrimDefs::processCommand(Command& cmd)
   }
   std::map<std::string, size_t>::iterator its =
       d_symToId.find(cmd.d_symbolName);
-  // std::cout << "Command: " << cmd.d_cmdName << " " << cmd.d_symbolName
-  //           << std::endl;
   size_t id;
   if (its == d_symToId.end())
   {
@@ -179,7 +177,6 @@ void TrimDefs::processCommand(Command& cmd)
   {
     d_parseDefCmds.push_back(cid);
   }
-  // std::cout << "*** command " << cmd.d_fullText << std::endl;
   d_commands.push_back(cmd.d_fullText);
   std::unordered_set<size_t>& csyms = d_cmdSyms[cid];
   for (const std::string& s : cmd.d_bodySyms)
@@ -195,12 +192,7 @@ void TrimDefs::processCommand(Command& cmd)
     its = d_symToId.find(su);
     if (its != d_symToId.end() && its->second != id)  // no self
     {
-      // std::cout << "...*** sym " << s << std::endl;
       csyms.insert(its->second);
-    }
-    else
-    {
-      // std::cout << "...non-sym " << s << std::endl;
     }
   }
 }
@@ -218,7 +210,6 @@ void TrimDefs::finalizeIncludeFile(const Filepath& s,
   {
     return;
   }
-  // std::cout << "Trim defs: " << s.getRawPath() << std::endl;
   std::unique_ptr<Input> i = Input::mkFileInput(s.getRawPath());
   std::istream* is = i->getStream();
   parseCommands(*is);
@@ -226,12 +217,9 @@ void TrimDefs::finalizeIncludeFile(const Filepath& s,
 
 bool TrimDefs::echo(const std::string& msg)
 {
-  // std::cout << "Echos " << msg << " \"" << msg.substr(10) << "\"" <<
-  // std::endl;
   if (msg.compare(0, 10, "trim-defs ") == 0)
   {
     d_defTargets.push_back(msg.substr(10));
-    // std::cout << "...set target" << std::endl;
     return false;
   }
   if (msg.compare(0, 14, "trim-defs-cmd ") == 0)
