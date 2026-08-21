@@ -46,6 +46,11 @@ public:
   Literal& operator=(const Literal& other);
 
   ~Literal();
+  /**
+   * Destroy the active member of the union, if any. After this call the union
+   * holds raw storage and d_kind no longer describes a live member.
+   */
+  void destroyPayload();
   /** as literal */
   const Literal* asLiteral() const override { return this; }
   std::string toString() const;

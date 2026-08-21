@@ -47,7 +47,9 @@ Literal::Literal(const Literal& other)
   }
 }
 
-Literal::~Literal()
+Literal::~Literal() { destroyPayload(); }
+
+void Literal::destroyPayload()
 {
   // Destroy the active member of the union, mirroring the copy constructor.
   switch (d_kind)
@@ -74,6 +76,11 @@ Literal& Literal::operator=(const Literal& other)
 {
   if (this != &other)
   {
+    // The members of the union below are constructed in place, so whichever
+    // one is currently active has to be destroyed first. Note destroyPayload
+    // selects that member using d_kind, so it must run before d_kind is
+    // overwritten.
+    destroyPayload();
     d_kind = other.d_kind;
     switch (d_kind)
     {
