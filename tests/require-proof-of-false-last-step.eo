@@ -1,0 +1,9 @@
+(set-option :require-proof-of-false true)
+
+(declare-rule prove ((F Bool))
+  :premises ()
+  :args (F)
+  :conclusion F)
+
+(step contradiction false :rule prove :premises () :args (false))
+(step final true :rule prove :premises () :args (true))
