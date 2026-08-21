@@ -1,2 +1,0 @@
-; The default requirement can also be disabled from the input.
-(set-option :require-proof-of-false false)

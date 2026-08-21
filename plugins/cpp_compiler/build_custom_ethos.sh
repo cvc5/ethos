@@ -62,8 +62,7 @@ cmake --build "$generator_build" --target ethos --parallel
 echo "[2/3] Generating $generated_source"
 (
   cd "$output_dir"
-  # Compiler input is a signature, not a completed proof.
-  "$generator_build/bin/ethos" --no-require-proof-of-false "$signature_path"
+  "$generator_build/bin/ethos" "$signature_path"
 )
 
 echo "[3/3] Building ethos with the executor plugin"

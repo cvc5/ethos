@@ -25,7 +25,7 @@ Options::Options()
   d_statsAll = false;
   d_statsCompact = false;
   d_ruleSymTable = true;
-  d_requireProofOfFalse = true;
+  d_requireProofOfFalse = false;
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;

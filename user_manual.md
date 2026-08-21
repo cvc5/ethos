@@ -2101,8 +2101,8 @@ After successfully parsing an input file with no errors, Ethos will respond with
 - `incomplete` if it parsed any `step` or `step-pop` application that referenced a proof rule that was marked with the attribute `:sorry`, or
 - `correct` otherwise.
 
-By default, Ethos requires that the last proof step proves `false` at assumption level zero.
-This requirement can be disabled with `--no-require-proof-of-false`.
+By default, Ethos does not impose any requirements on _what_ was proven in the proof.
+With `--require-proof-of-false`, Ethos additionally requires that the last proof step proves `false` at assumption level zero.
 
 ## Appendix
 
@@ -2115,7 +2115,7 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 - `--no-print-dag`: do not dagify the output of terms in error messages and trace messages.
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
 - `--reference=X`: includes the file specified by `X` as a reference file.
-- `--no-require-proof-of-false`: do not require the last proof step to prove `false` at assumption level zero.
+- `--require-proof-of-false`: require the last proof step to prove `false` at assumption level zero.
 - `--show-config`: displays the build information for the given binary.
 - `--stats`: enables detailed statistics. All reported times are in microseconds.
 - `--stats-all`: enables all available statistics, including program invocations.

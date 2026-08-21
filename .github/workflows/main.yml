@@ -45,7 +45,6 @@ jobs:
           plugins/cpp_compiler/test/signature.eo \
           "${RUNNER_TEMP}/ethos-cpp-compiler" debug
         "${RUNNER_TEMP}/ethos-cpp-compiler/ethos" \
-          --no-require-proof-of-false \
           plugins/cpp_compiler/test/signature.eo
 
   build:
