@@ -1,5 +1,5 @@
 ; trim-defs: $eo_prog_symm $eo_prog_contra $eo_nil $eo_typeof
-; #trim-defs: 470
+; #trim-defs: 466
 (echo "lean-parser-op Int Int 0 0 none -")
 (echo "lean-parser-op Real Real 0 0 none -")
 (echo "lean-parser-op BitVec BitVec 0 1 none -")
@@ -106,18 +106,18 @@
   ((u ($native_type_0 "UserOp") :opaque)) $eo_Term)
 (declare-parameterized-const $emb_UOp1 
   ((u ($native_type_0 "UserOp1") :opaque) (t1 $eo_Term :opaque)) $eo_Term)
-(define $eot_uop1 ((u ($native_type_0 "UserOp")) (t1 $eo_Term)) 
+(define $eot_uop1 ((u ($native_type_0 "UserOp1")) (t1 $eo_Term))
   ($emb_UOp1 u t1))
 (declare-parameterized-const $emb_UOp2 
   ((u ($native_type_0 "UserOp2") :opaque) (t1 $eo_Term :opaque)
    (t2 $eo_Term :opaque)) $eo_Term)
-(define $eot_uop2 ((u ($native_type_0 "UserOp")) (t1 $eo_Term) (t2 $eo_Term)) 
+(define $eot_uop2 ((u ($native_type_0 "UserOp2")) (t1 $eo_Term) (t2 $eo_Term))
   ($emb_UOp2 u t1 t2))
 (declare-parameterized-const $emb_UOp3 
   ((u ($native_type_0 "UserOp3") :opaque) (t1 $eo_Term :opaque) 
    (t2 $eo_Term :opaque) (t3 $eo_Term :opaque)) $eo_Term)
 (define $eot_uop3 
-  ((u ($native_type_0 "UserOp")) (t1 $eo_Term) (t2 $eo_Term) (t3 $eo_Term)) 
+  ((u ($native_type_0 "UserOp3")) (t1 $eo_Term) (t2 $eo_Term) (t3 $eo_Term))
   ($emb_UOp3 u t1 t2 t3))
 (declare-const $eo_List Type)
 (declare-const $eo_List_nil $eo_List)
@@ -1826,7 +1826,6 @@
   (($eo_invoke_cmd_list S $emb_cmdl.nil) S)
   (($eo_invoke_cmd_list S ($emb_cmdl.cons c cmds))
      ($eo_invoke_cmd_list ($eo_invoke_cmd S c) cmds))
-  
   )
 )
 (program $eo_state_is_refutation ((s $eo_State))

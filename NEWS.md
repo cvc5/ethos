@@ -3,6 +3,7 @@ This file contains a summary of important user-visible changes.
 ethos 0.2.4 prerelease
 ======================
 
+- Adds the optional `--require-proof-of-false` check, which requires the last proof step to prove `false` at assumption level zero.
 - Adds builtin operators `eo::pow` (exponentiation), `eo::log` (integer logarithm), `eo::list_repeat` (repeat a list element a given number of times), and `eo::list_singleton_intro` (turn a term into a singleton list).
 
 ethos 0.2.3

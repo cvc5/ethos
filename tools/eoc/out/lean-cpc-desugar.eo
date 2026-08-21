@@ -414,18 +414,18 @@
 (define $eot_uop ((u ($native_type_0 "UserOp"))) ($emb_UOp u))
 (declare-parameterized-const $emb_UOp1 
   ((u ($native_type_0 "UserOp1") :opaque) (t1 $eo_Term :opaque)) $eo_Term)
-(define $eot_uop1 ((u ($native_type_0 "UserOp")) (t1 $eo_Term)) 
+(define $eot_uop1 ((u ($native_type_0 "UserOp1")) (t1 $eo_Term))
   ($emb_UOp1 u t1))
 (declare-parameterized-const $emb_UOp2 
   ((u ($native_type_0 "UserOp2") :opaque) (t1 $eo_Term :opaque)
    (t2 $eo_Term :opaque)) $eo_Term)
-(define $eot_uop2 ((u ($native_type_0 "UserOp")) (t1 $eo_Term) (t2 $eo_Term)) 
+(define $eot_uop2 ((u ($native_type_0 "UserOp2")) (t1 $eo_Term) (t2 $eo_Term))
   ($emb_UOp2 u t1 t2))
 (declare-parameterized-const $emb_UOp3 
   ((u ($native_type_0 "UserOp3") :opaque) (t1 $eo_Term :opaque) 
    (t2 $eo_Term :opaque) (t3 $eo_Term :opaque)) $eo_Term)
 (define $eot_uop3 
-  ((u ($native_type_0 "UserOp")) (t1 $eo_Term) (t2 $eo_Term) (t3 $eo_Term)) 
+  ((u ($native_type_0 "UserOp3")) (t1 $eo_Term) (t2 $eo_Term) (t3 $eo_Term))
   ($emb_UOp3 u t1 t2 t3))
 
 ; The builtin Eunoia list.
@@ -764,7 +764,7 @@
 ; implements: eo::pow
 (program $eo_pow
   ((T Type) (n1 $native_Int) (n2 $native_Int) (r1 $native_Rat) (r2 $native_Rat))
-  :signature (T Int) T
+  :signature (T $eo_Numeral) T
   (
   (($eo_pow ($eot_numeral n1) ($eot_numeral n2))
     ($eot_numeral ($native_z_**_total n1 n2)))
@@ -973,7 +973,6 @@
       ($eot_string ($native_apply_1 "str.from_code" n1))
       $eot_stuck))
   (($eo_to_str ($eot_string s1)) ($eot_string s1))
-  ; TODO: technically others here
   )
 )
 
@@ -1422,7 +1421,7 @@
 ; Note: a helper for $eo_list_find.
 (program $eo_list_find_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
-   (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n $eo_Numeral))
+   (f (-> T U V)) (x W) (y U) (z X) (nil W) (n $eo_Numeral))
   :signature (W X $eo_Numeral) $eo_Numeral
   (
   (($eo_list_find_rec (f x y) z n)  (eo::ite (eo::eq x z) n
@@ -1664,7 +1663,8 @@
 
 ; define: $eo_list_repeat
 ; implements: eo::list_repeat
-(program $eo_list_repeat ((T Type) (U Type) (V Type) (f (-> T U V)) (a T) (i Int))
+(program $eo_list_repeat
+  ((T Type) (U Type) (V Type) (f (-> T U V)) (a T) (i $native_Int))
   :signature ((-> T U V) T $eo_Numeral) V
   (
   (($eo_list_repeat f a ($eot_numeral i))
@@ -1714,8 +1714,6 @@
 
 
 ;;; datatype constructors
-
-; TODO: meta semantics for arbitrary unknown datatypes?
 
 ; program: $eo_dt_constructors_main
 (program $eo_dt_constructors_main
@@ -2227,7 +2225,6 @@
   (($eo_invoke_cmd_list S $emb_cmdl.nil) S)
   (($eo_invoke_cmd_list S ($emb_cmdl.cons c cmds))
      ($eo_invoke_cmd_list ($eo_invoke_cmd S c) cmds))
-  ;(($eo_invoke_cmd_list S cmds) $s_stuck)
   )
 )
 

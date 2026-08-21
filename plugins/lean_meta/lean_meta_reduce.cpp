@@ -1691,19 +1691,17 @@ void LeanMetaReduce::finalizeParseDefs(const std::set<std::string>& opNames,
 
 void LeanMetaReduce::finalizeSmtModel()
 {
-  std::vector<Replacement> defsRepl{
-      {"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
-      {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()},
-      {"$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str()}};
+  std::vector<Replacement> defsRepl{{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
+                                    {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()},
+                                    {"$LEAN_SMT_VALUE_DEF$",
+                                     d_smtValueDt.str()}};
   if (optionSmtTheoryOp())
   {
-    // The SmtTheoryOp datatype is only relevant when atomic theory operators
-    // are collapsed; the template declares $LEAN_SMT_THEORY_OP_DEF$ only in
-    // that case. Ensure the datatype is non-empty if no operator was atomic.
-    if (d_smtTOpDt.str().empty())
-    {
-      d_smtTOpDt << "  | None : SmtTheoryOp" << std::endl;
-    }
+    // NOTE: enabling this option additionally requires adding an
+    // `inductive SmtTheoryOp` block carrying $LEAN_SMT_THEORY_OP_DEF$ to
+    // lean_meta_smt_model_defs.lean, ahead of the mutual block that defines
+    // SmtTerm. The template has no such block today, so the tag is only
+    // supplied when the option is on, where its absence is reported.
     defsRepl.emplace_back("$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str());
   }
   const std::string outPathDefs =

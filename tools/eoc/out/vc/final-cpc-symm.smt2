@@ -462,6 +462,16 @@
     (ite (teq x1 x2) (ite (not (teq x1 eo.Stuck)) x3 eo.Stuck) eo.Stuck)
 )
 
+; program: $eo_len
+(define-fun $eo_len ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite ((_ is eo.String) x1)
+    (eo.Numeral (str.len (eo.String.arg1 x1)))
+  (ite ((_ is eo.Binary) x1)
+    (eo.Numeral (eo.Binary.arg1 x1))
+    eo.Stuck))))
+
 ; program: $mk_symm
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)

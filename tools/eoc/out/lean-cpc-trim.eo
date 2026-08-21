@@ -1,5 +1,5 @@
 ; trim-defs: symm contra and =>
-; #trim-defs: 23
+; #trim-defs: 19
 (declare-const not (-> Bool Bool))
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)

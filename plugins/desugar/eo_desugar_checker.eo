@@ -228,7 +228,6 @@ $EO_INVOKE_POP$
   (($eo_invoke_cmd_list S $emb_cmdl.nil) S)
   (($eo_invoke_cmd_list S ($emb_cmdl.cons c cmds))
      ($eo_invoke_cmd_list ($eo_invoke_cmd S c) cmds))
-  ;(($eo_invoke_cmd_list S cmds) $s_stuck)
   )
 )
 

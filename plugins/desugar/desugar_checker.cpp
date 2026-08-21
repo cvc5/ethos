@@ -38,7 +38,6 @@ void DesugarChecker::finalizeRule(const Expr& v)
   }
   bool isAssume = tupleVal[1] == d_true;
   // conclusion explicit is compiled away when desugaring proof
-  // bool isConcExplicit = tupleVal[2] == d_true;
   Expr rprog = tupleVal[3];
   Expr rprogType = rprog.getType();
   size_t nargs = 0;
@@ -66,7 +65,11 @@ void DesugarChecker::finalizeRule(const Expr& v)
     nargs--;
   }
   // first, pass the ordinary arguments
-  Assert(nargs <= 10) << "Compiler supports at most 10 arguments to proof rule";
+  if (nargs > 10)
+  {
+    EO_FATAL() << "DesugarChecker: proof rule " << v << " has " << nargs
+               << " arguments; at most 10 are supported";
+  }
   std::string invPatArgs = "$eot_aln";
   for (size_t i = 1; i <= nargs; i++)
   {
@@ -92,8 +95,11 @@ void DesugarChecker::finalizeRule(const Expr& v)
   }
   else
   {
-    Assert(npremises <= 8)
-        << "Compiler supports at most 8 premises to proof rule";
+    if (npremises > 8)
+    {
+      EO_FATAL() << "DesugarChecker: proof rule " << v << " has " << npremises
+                 << " premises; at most 8 are supported";
+    }
     std::string invPatPremises = "$eot_iln";
     for (size_t i = 1; i <= npremises; i++)
     {
@@ -131,7 +137,12 @@ void DesugarChecker::output(std::ostream& out)
 {
   out << ";; ------------ checker" << std::endl;
   // auto-generate the checker as well
-  std::ifstream inec(getResourcePath("plugins/desugar/eo_desugar_checker.eo"));
+  const std::string templatePath = "plugins/desugar/eo_desugar_checker.eo";
+  std::ifstream inec(getResourcePath(templatePath));
+  if (!inec.is_open())
+  {
+    EO_FATAL() << "DesugarChecker: failed to open resource " << templatePath;
+  }
   std::ostringstream ssec;
   ssec << inec.rdbuf();
   std::string finalCheckEo = ssec.str();

@@ -176,6 +176,7 @@ set(ethos_test_file_list
     homogeneous-list-ops.eo
     quant-sk-type.eo
     fwd-decl-nground.eo
+    require-proof-of-false.eo
 )
 
 macro(ethos_test file)
@@ -207,3 +208,9 @@ endforeach()
 
 ethos_fail_test(parser-overflow-declare-sort.eo
                 "Numerals must fit into 32-bit unsigned integers")
+ethos_fail_test(require-proof-of-false-last-step.eo
+                "last proof step did not prove false at assumption level zero")
+ethos_fail_test(require-proof-of-false-no-step.eo
+                "last proof step did not prove false at assumption level zero")
+ethos_fail_test(require-proof-of-false-nested.eo
+                "last proof step did not prove false at assumption level zero")
