@@ -35,15 +35,16 @@ class SmtSigReader : public Plugin
   {
     if (e.getKind() == Kind::CONST)
     {
-      d_decl.insert(name);
+      Expr t = e;
+      d_decl[name] = t.getType();
     }
   }
   void define(const std::string& name, const Expr& e) override
   {
     if (!isSmtReduceDefName(name))
     {
-      // an ordinary definition of the signature, e.g. String or a helper
-      d_decl.insert(name);
+      // an ordinary definition of the signature, e.g. String or a helper,
+      // which the parser inlines and which therefore declares nothing
       return;
     }
     // a define with arguments is a lambda whose first child is its parameters
@@ -61,8 +62,8 @@ class SmtSigReader : public Plugin
     }
     d_reduce[getSmtReduceDefSurfaceName(name)] = r;
   }
-  /** The symbols the signature declares. */
-  std::set<std::string> d_decl;
+  /** The symbols the signature declares, and the type it gives each. */
+  std::map<std::string, Expr> d_decl;
   /** Its reductions, by the symbol they reduce. */
   std::map<std::string, SmtSigReduce> d_reduce;
 };
@@ -1350,6 +1351,10 @@ void ModelSmt::loadSmtSignature(const std::string& resourcePath)
   Trace("model-smt") << "SMT-LIB signature: " << d_smtSigDecl.size()
                      << " symbols, " << d_smtSigReduce.size() << " reductions"
                      << std::endl;
+  for (const std::pair<const std::string, Expr>& d : d_smtSigDecl)
+  {
+    Trace("model-smt") << "  " << d.first << " : " << d.second << std::endl;
+  }
   for (const std::pair<const std::string, SmtSigReduce>& r : d_smtSigReduce)
   {
     Trace("model-smt") << "  (" << r.first;
@@ -1359,6 +1364,128 @@ void ModelSmt::loadSmtSignature(const std::string& resourcePath)
     }
     Trace("model-smt") << ") is " << r.second.d_body << std::endl;
   }
+}
+
+bool ModelSmt::isArithGuard(const Expr& g)
+{
+  // The signature says a type is arithmetic by requiring it to be Int or Real,
+  // see $is_arith_type in smt.eo. That definition is a macro, so what is left
+  // here is the comparison against the two of them.
+  bool hasInt = false;
+  bool hasReal = false;
+  for (const Expr& s : getSubtermsKind(Kind::CONST, g))
+  {
+    const std::string name = s.getSymbol();
+    hasInt = hasInt || name == "Int";
+    hasReal = hasReal || name == "Real";
+  }
+  return hasInt && hasReal;
+}
+
+Kind ModelSmt::getSmtSigKind(const Expr& t)
+{
+  // An argument the symbol is indexed by rather than applied to. A type index
+  // is an argument of the embedding's constructor, whereas a numeral index is
+  // carried natively, which is what tells the two apart here.
+  if (t.getKind() == Kind::QUOTE_TYPE)
+  {
+    Assert(t.getNumChildren() == 1);
+    Expr q = t[0];
+    return q.getType() == d_state.mkType() ? Kind::TYPE : d_kIntQuote;
+  }
+  // a type parameter, which is arithmetic exactly when the signature says so
+  if (t.getKind() == Kind::PARAM)
+  {
+    return Kind::ANY;
+  }
+  // flatten the (curried) type application
+  std::vector<Expr> targs;
+  Expr op = t;
+  while (op.getKind() == Kind::APPLY)
+  {
+    Assert(op.getNumChildren() == 2);
+    targs.push_back(op[1]);
+    op = op[0];
+  }
+  std::reverse(targs.begin(), targs.end());
+  if (op.getKind() != Kind::CONST)
+  {
+    return op == d_state.mkBoolType() ? Kind::BOOLEAN : Kind::NONE;
+  }
+  const std::string name = op.getSymbol();
+  if (targs.empty())
+  {
+    if (name == "Int") return Kind::NUMERAL;
+    if (name == "Real") return Kind::RATIONAL;
+    if (name == "RegLan") return d_kRegLan;
+    return Kind::NONE;
+  }
+  if (name == "Seq")
+  {
+    // a string is the sequence of characters it is, see smt.eo
+    Expr e = targs[0];
+    if (e.getKind() == Kind::CONST && e.getSymbol() == "Char")
+    {
+      return Kind::STRING;
+    }
+    return d_kSeq;
+  }
+  if (name == "Set") return d_kSet;
+  if (name == "Array") return d_kArray;
+  if (name == "BitVec") return Kind::BINARY;
+  return Kind::NONE;
+}
+
+bool ModelSmt::getSmtSigKinds(const std::string& name,
+                              std::vector<Kind>& args,
+                              Kind& ret)
+{
+  std::map<std::string, Expr>::const_iterator it = d_smtSigDecl.find(name);
+  if (it == d_smtSigDecl.end())
+  {
+    return false;
+  }
+  args.clear();
+  // Peel the arguments. A function type is curried, except that the indices of
+  // a symbol are applied all at once, so a node may carry more than one.
+  Expr cur = it->second;
+  while (cur.getKind() == Kind::FUNCTION_TYPE)
+  {
+    size_t nchild = cur.getNumChildren();
+    Assert(nchild >= 2);
+    for (size_t i = 0; i + 1 < nchild; i++)
+    {
+      args.push_back(getSmtSigKind(cur[i]));
+    }
+    cur = cur[nchild - 1];
+  }
+  // the result may be guarded by what the signature requires of the arguments
+  bool isArith = false;
+  while (cur.getKind() == Kind::EVAL_REQUIRES)
+  {
+    Assert(cur.getNumChildren() == 3);
+    isArith = isArith || isArithGuard(cur[0]);
+    cur = cur[2];
+  }
+  ret = getSmtSigKind(cur);
+  if (isArith)
+  {
+    // The signature requires the type the symbol ranges over to be one of the
+    // arithmetic types, which the embedding gives a type rule of its own, see
+    // printTypeof. A type parameter is otherwise unconstrained.
+    for (Kind& k : args)
+    {
+      if (k == Kind::ANY)
+      {
+        k = Kind::PARAM;
+      }
+    }
+    if (ret == Kind::ANY)
+    {
+      ret = Kind::PARAM;
+    }
+  }
+  return true;
 }
 
 void ModelSmt::defineReduce(const std::string& sym,
@@ -1578,13 +1705,30 @@ void ModelSmt::finalizeDecl(const std::string& ename, const Expr& e)
     // append to definitions
     d_eoToSmtAux << itax->second << std::endl;
   }
+  // The type rule and the declaration of the embedding's constructor follow
+  // from the type the SMT-LIB signature gives the symbol, which is what the
+  // kinds below are read off. They say the same thing, but the signature says
+  // it once and says it more precisely, see getSmtSigKinds. The kinds a
+  // registration states are what the *value* the symbol denotes is computed
+  // from, which is not a matter of its type: two symbols of the same type may
+  // reach their native implementation differently.
+  std::vector<Kind> sigArgs;
+  Kind sigRet = Kind::NONE;
+  bool hasSig = getSmtSigKinds(name, sigArgs, sigRet);
+  // The one thing the signature cannot state is a bit-vector width that is a
+  // literal, since it does not fix the type of one, see smt.eo. The result of
+  // bvcomp is one bit wide, which its registration is therefore still what
+  // says.
+  auto typeRet = [&](Kind reg) { return hasSig && reg != d_kBit ? sigRet : reg; };
   // maybe a constant fold symbol
   std::map<std::string, std::pair<std::vector<Kind>, Kind>>::iterator it =
       d_symConstFold.find(name);
   if (it != d_symConstFold.end())
   {
-    printDecl(name, it->second.first, Kind::PARAM, nopqArgs);
-    printTypeof(name, it->second.first, it->second.second);
+    const std::vector<Kind>& targs = hasSig ? sigArgs : it->second.first;
+    Kind tret = typeRet(it->second.second);
+    printDecl(name, targs, Kind::PARAM, nopqArgs);
+    printTypeof(name, targs, tret);
     printModelEvalCall(name, it->second.first);
     printConstFold(name, it->second.first, it->second.second);
     return;
@@ -1596,8 +1740,10 @@ void ModelSmt::finalizeDecl(const std::string& ename, const Expr& e)
   {
     std::vector<Kind>& args = std::get<0>(its->second);
     Kind ret = std::get<1>(its->second);
-    printTypeof(name, args, ret);
-    printDecl(name, args, Kind::PARAM, nopqArgs);
+    const std::vector<Kind>& targs = hasSig ? sigArgs : args;
+    Kind tret = typeRet(ret);
+    printTypeof(name, targs, tret);
+    printDecl(name, targs, Kind::PARAM, nopqArgs);
     printModelEvalCall(name, args);
     printLitReduce(name, args, ret, std::get<2>(its->second));
     return;
@@ -1609,9 +1755,11 @@ void ModelSmt::finalizeDecl(const std::string& ename, const Expr& e)
   {
     std::vector<Kind>& args = std::get<0>(itst->second);
     Kind ret = std::get<1>(itst->second);
-    printTypeof(name, args, ret);
+    const std::vector<Kind>& targs = hasSig ? sigArgs : args;
+    Kind tret = typeRet(ret);
+    printTypeof(name, targs, tret);
     std::string sret = std::get<2>(itst->second);
-    printDecl(name, args, Kind::PARAM, nopqArgs);
+    printDecl(name, targs, Kind::PARAM, nopqArgs);
     if (d_recReduce.find(name) != d_recReduce.end() || args.empty())
     {
       printModelEvalCallBase(name, args, sret);

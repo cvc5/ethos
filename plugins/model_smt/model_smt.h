@@ -100,8 +100,37 @@ class ModelSmt : public StdPlugin
    * the same state as the rest.
    */
   void loadSmtSignature(const std::string& resourcePath);
-  /** The symbols the SMT-LIB signature declares. */
-  std::set<std::string> d_smtSigDecl;
+  /**
+   * Return the kind that classifies the type t of the SMT-LIB signature, e.g.
+   * Kind::BOOLEAN for Bool and d_kSeq for (Seq T), or Kind::NONE if it does
+   * not classify one. This is the inverse of printTypeInternal: it recovers
+   * from a declared type the classification that the generated type rule and
+   * the generated constructor are built from, which the registrations below
+   * currently state by hand.
+   */
+  Kind getSmtSigKind(const Expr& t);
+  /**
+   * Return true if g is the guard by which the SMT-LIB signature says that the
+   * type a symbol ranges over is one of the arithmetic types.
+   */
+  bool isArithGuard(const Expr& g);
+  /**
+   * Set args and ret to the kinds of the arguments and the result of the
+   * symbol named name, as the SMT-LIB signature declares it. Returns false if
+   * that signature does not declare it.
+   */
+  bool getSmtSigKinds(const std::string& name,
+                      std::vector<Kind>& args,
+                      Kind& ret);
+  /** The types the SMT-LIB signature gives its type constructors. */
+  std::map<std::string, Expr> d_smtSigTypeCons;
+  /**
+   * The symbols the SMT-LIB signature declares, mapped to the type it gives
+   * them. A type is what says both what the embedding's constructor for the
+   * symbol takes and what its case of `$smtx_typeof` computes, so it is what a
+   * generated type rule would be derived from.
+   */
+  std::map<std::string, Expr> d_smtSigDecl;
   /** The reductions the SMT-LIB signature gives, by the symbol they reduce. */
   std::map<std::string, SmtSigReduce> d_smtSigReduce;
 
