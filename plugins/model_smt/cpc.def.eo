@@ -42,11 +42,17 @@
 ; re-emits it in the desugared syntax. See getReduceDefPrefix in
 ; plugins/utils.h.
 ;
+; A reduction is elaborated like any other term of this signature, so an
+; application of an n-ary symbol carries its nil terminator: (and x y) below
+; denotes (and x (and y true)), and its embedding has the same shape.
+;
 ; The symbols whose reduction this file cannot express are registered by the
 ; plugin instead, see ModelSmt::addEunoiaReduceSym. Those are the ones whose
-; right hand side has to bind a variable, inspect an SMT-LIB type, or name an
-; operator of the deep embedding that has no counterpart in the signature, and
-; for now also the ones whose reduction needs a bit-vector literal.
+; right hand side has to bind a variable, inspect an SMT-LIB type, name an
+; operator of the deep embedding that has no counterpart in this signature, or
+; name a symbol that is itself eliminated. Two more are registered there for
+; reasons of their own, see the comment above @bit: one whose right hand side
+; this signature cannot type, and one an n-ary nil terminator would burden.
 
 (include "../../../cvc5-ajr/proofs/eo/cpc/Cpc.eo")
 
@@ -67,6 +73,24 @@
 
 (define $eo_reduce_int.ispow2 ((x Int))
   (and (>= x 0) (= x (int.pow2 (int.log2 x)))))
+
+; -----------------------------------------------------------------------------
+; Bit-vectors
+; -----------------------------------------------------------------------------
+
+; The bit-vector conditional, whose condition is a one-bit vector rather than a
+; Boolean.
+
+(define $eo_reduce_bvite ((T Type :implicit) (c (BitVec 1)) (x T) (y T))
+  (ite (= c #b1) x y))
+
+; The bit-vector-valued comparisons, which denote the one-bit vector that the
+; corresponding Boolean comparison sets.
+
+(define $eo_reduce_bvultbv ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (ite (bvult x y) #b1 #b0))
+(define $eo_reduce_bvsltbv ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (ite (bvslt x y) #b1 #b0))
 
 ; -----------------------------------------------------------------------------
 ; Strings and sequences

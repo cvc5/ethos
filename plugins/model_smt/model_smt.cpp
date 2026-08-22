@@ -14,6 +14,7 @@
 #include <string>
 
 #include "../utils.h"
+#include "literal.h"
 #include "state.h"
 
 namespace ethos {
@@ -1034,24 +1035,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym(
       "set.insert", {kT, kT}, "($eo_to_smt_set.insert x1 ($eo_to_smt x2))");
   //   bitvectors
-  addEunoiaReduceSym(
-      "bvite",
-      {kBitVec, kBitVec, kBitVec},
-      smtToSmtEmbed(
-          "(ite (= ($eo_to_smt x1) #b1) ($eo_to_smt x2) ($eo_to_smt x3))",
-          true));
   addTermReduceSym(
       "bvcomp", {kBitVec, kBitVec}, d_kBit, "(ite (= x1 x2) #b1 #b0)");
-  addEunoiaReduceSym(
-      "bvultbv",
-      {kBitVec, kBitVec},
-      smtToSmtEmbed("(ite (bvult ($eo_to_smt x1) ($eo_to_smt x2)) #b1 #b0)",
-                    true));
-  addEunoiaReduceSym(
-      "bvsltbv",
-      {kBitVec, kBitVec},
-      smtToSmtEmbed("(ite (bvslt ($eo_to_smt x1) ($eo_to_smt x2)) #b1 #b0)",
-                    true));
   // note bvsize converts to (@purify n) instead of n to avoid aliasing (numerals
   // should be bijective in the spec).
   addEunoiaReduceSym("@bvsize",
@@ -1073,6 +1058,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
           "(bvcomp ($eo_to_smt x1) (bvnot ($sm_binary ($smtx_bv_sizeof_type "
           "($smtx_typeof ($eo_to_smt x1))) $native_z_zero)))",
           true));
+  // Note neither of the two below can be a surface reduction. The width of
+  // (extract i i x) is (eo::add i (eo::neg i) 1), which the type checker does
+  // not reduce to 1 for a symbolic i, so @bit's equality would be ill-typed in
+  // the signature. And concat is :right-assoc-nil, so a surface (concat x b)
+  // denotes (concat x (concat b @bv_empty)), which would leave @from_bools
+  // with a concatenation of the empty bit-vector it does not need.
   addEunoiaReduceSym(
       "@bit",
       {kInt, kBitVec},
@@ -1420,13 +1411,24 @@ bool ModelSmt::printSmtEmbedLiteral(std::ostream& out, const Expr& t)
           << " " << nativeConst(lit.substr(div + 1)) << "))";
     }
     break;
-    case Kind::DECIMAL:
     case Kind::BINARY:
     case Kind::HEXADECIMAL:
+    {
+      // the native value of a bit-vector is its width together with the
+      // integer it denotes, e.g. #b01 denotes
+      // ($sm_binary ($native_apply_0 "2") ($native_apply_0 "1"))
+      const Literal* l = t.getValue()->asLiteral();
+      Assert(l != nullptr);
+      std::stringstream ssw;
+      ssw << l->d_bv.getSize();
+      out << "($sm_binary " << nativeConst(ssw.str()) << " "
+          << nativeConst(l->d_bv.getValue().toString()) << ")";
+    }
+    break;
+    case Kind::DECIMAL:
       EO_FATAL() << "ModelSmt: the literal " << lit
                  << " of a surface reduction has no embedding yet; write a "
-                    "rational instead of a decimal, and register a reduction "
-                    "using a bit-vector literal with addEunoiaReduceSym";
+                    "rational instead of a decimal";
       break;
     default: return false;
   }
