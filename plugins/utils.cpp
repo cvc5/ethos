@@ -102,4 +102,24 @@ std::string getParseDefSurfaceName(const std::string& name)
   return name.substr(getParseDefPrefix().size());
 }
 
+const std::string& getReduceDefPrefix()
+{
+  static const std::string prefix = "$eo_reduce_";
+  return prefix;
+}
+bool isReduceDefName(const std::string& name)
+{
+  const std::string& prefix = getReduceDefPrefix();
+  return name.compare(0, prefix.size(), prefix) == 0;
+}
+std::string getReduceDefSurfaceName(const std::string& name)
+{
+  Assert(isReduceDefName(name));
+  return name.substr(getReduceDefPrefix().size());
+}
+std::string mkReduceDefName(const std::string& name)
+{
+  return getReduceDefPrefix() + name;
+}
+
 }  // namespace ethos

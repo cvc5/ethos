@@ -1101,6 +1101,13 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
     d_parseDefs.emplace_back(getParseDefSurfaceName(name), e);
     return;
   }
+  if (isReduceDefName(name))
+  {
+    // A surface reduction, which gave the symbol it reduces its SMT-LIB
+    // semantics in the model_smt stage and has no meaning of its own after
+    // it, see getReduceDefPrefix.
+    return;
+  }
   // NOTE: the code here ensures that we preserve definitions for the final vc.
   // This is required since we do not replace e.g. eo::list_concat with
   // $eo_list_concat until the final generation of smt2. This means that this

@@ -9,16 +9,14 @@
 
 #include "model_smt.h"
 
-#include <cctype>
 #include <fstream>
 #include <sstream>
 #include <string>
 
+#include "../utils.h"
 #include "state.h"
 
 namespace ethos {
-
-const std::string ModelSmt::s_reducePrefix = "$eo_reduce_";
 
 namespace {
 
@@ -1261,150 +1259,13 @@ void ModelSmt::addRecReduceSym(const std::string& sym,
   addReduceSym(sym, args, ret, ss.str());
 }
 
-namespace {
-
-/**
- * Return the position just past the top-level form beginning at or after i,
- * setting start to the position of its first character, i.e. the position of
- * the '(' that opens it. Returns start if the remainder of s holds no further
- * form. Note parentheses in comments, strings and quoted symbols do not open
- * or close a form, which is all that has to be known about a form here: what
- * it says is left to ethos, which parses it.
- */
-size_t readTopLevelForm(const std::string& s, size_t i, size_t& start)
-{
-  size_t depth = 0;
-  start = std::string::npos;
-  while (i < s.size())
-  {
-    char c = s[i];
-    if (c == ';')
-    {
-      while (i < s.size() && s[i] != '\n')
-      {
-        i++;
-      }
-      continue;
-    }
-    if (c == '"' || c == '|')
-    {
-      i++;
-      while (i < s.size() && s[i] != c)
-      {
-        i++;
-      }
-      i++;
-      continue;
-    }
-    i++;
-    if (c == '(')
-    {
-      if (depth == 0)
-      {
-        start = i - 1;
-      }
-      depth++;
-    }
-    else if (c == ')' && depth > 0)
-    {
-      depth--;
-      if (depth == 0)
-      {
-        return i;
-      }
-    }
-  }
-  start = std::string::npos;
-  return i;
-}
-
-/** Return the symbol following prefix in the form s, or "" if it has none. */
-std::string getFormName(const std::string& s, const std::string& prefix)
-{
-  size_t i = s.find(prefix);
-  if (i == std::string::npos)
-  {
-    return "";
-  }
-  i += prefix.size();
-  size_t j = i;
-  while (j < s.size() && !std::isspace(static_cast<unsigned char>(s[j]))
-         && s[j] != '(' && s[j] != ')')
-  {
-    j++;
-  }
-  return s.substr(i, j - i);
-}
-
-}  // namespace
-
-void ModelSmt::loadReduceSpec(const std::string& resourcePath,
-                              const std::string& outputPath)
-{
-  std::ifstream in(getResourcePath(resourcePath));
-  if (!in.is_open())
-  {
-    EO_FATAL() << "ModelSmt: failed to open reduction file " << resourcePath;
-  }
-  std::ostringstream ssin;
-  ssin << in.rdbuf();
-  const std::string spec = ssin.str();
-  // A signature that was trimmed, e.g. to the symbols a single proof rule
-  // needs, declares only some of the symbols this file reduces. The reduction
-  // of a symbol it does not declare is dead, and would moreover name symbols
-  // that are not declared either, so it is dropped here rather than handed to
-  // ethos below. Note this only decides *which* forms to parse; each one that
-  // is kept is parsed and type checked as it stands.
-  std::ostringstream out;
-  out << "; Generated from " << resourcePath << ", see ModelSmt::loadReduceSpec."
-      << std::endl
-      << "; It holds the reductions of this file whose symbol is declared by "
-         "the input signature."
-      << std::endl;
-  size_t i = 0;
-  size_t start;
-  size_t end = readTopLevelForm(spec, i, start);
-  while (start != std::string::npos)
-  {
-    const std::string form = spec.substr(start, end - start);
-    const std::string sym = getFormName(form, "(define " + s_reducePrefix);
-    if (sym.empty() || !d_state.getVar(sym).isNull())
-    {
-      out << form << std::endl;
-    }
-    else
-    {
-      Trace("model-smt") << "Omit the reduction of " << sym
-                         << ", which the input signature does not declare"
-                         << std::endl;
-    }
-    end = readTopLevelForm(spec, end, start);
-  }
-  std::string path = getOutputPath(outputPath);
-  std::ofstream outf(path);
-  if (!outf.is_open())
-  {
-    EO_FATAL() << "ModelSmt: failed to open output " << outputPath;
-  }
-  outf << out.str();
-  outf.close();
-  // Note this is parsed by the state this plugin is attached to, so that the
-  // file may be written in the syntax of the input signature. In particular
-  // every symbol it reduces to must be declared by that signature, which is
-  // why a reduction file belongs to a signature.
-  if (!d_state.includeFile(path, true))
-  {
-    EO_FATAL() << "ModelSmt: failed to include reduction file " << path;
-  }
-}
-
 void ModelSmt::define(const std::string& name, const Expr& e)
 {
-  if (name.compare(0, s_reducePrefix.size(), s_reducePrefix) != 0)
+  if (!isReduceDefName(name))
   {
     return;
   }
-  std::string sym = name.substr(s_reducePrefix.size());
+  std::string sym = getReduceDefSurfaceName(name);
   // a define with arguments is a lambda whose first child is its parameters
   std::vector<Expr> args;
   Expr body = e;
@@ -1425,7 +1286,7 @@ void ModelSmt::defineProgram(const Expr& v, const Expr& prog)
 {
   std::stringstream ss;
   ss << v;
-  if (ss.str().compare(0, s_reducePrefix.size(), s_reducePrefix) == 0)
+  if (isReduceDefName(ss.str()))
   {
     // A program would give a symbol a reduction that matches on the shape of
     // its arguments, which the generated case cannot express yet: it takes
@@ -2550,10 +2411,10 @@ void ModelSmt::printLitReduce(const std::string& name,
 
 void ModelSmt::finalize()
 {
-  // The surface reductions are read first, so that a symbol they reduce is
-  // known to have a semantics by the time its declaration is processed below.
-  loadReduceSpec("plugins/model_smt/eo_to_smt_cpc.eo",
-                 "plugins/model_smt/eo_to_smt_cpc_gen.eo");
+  // Note the surface reductions of the input have already been registered, by
+  // the define callback that its own commands made, so that a symbol one of
+  // them reduces is known to have a semantics by the time its declaration is
+  // processed below.
   for (std::pair<std::string, Expr>& d : d_declSeen)
   {
     finalizeDecl(d.first, d.second);

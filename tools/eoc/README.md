@@ -22,16 +22,44 @@ only when you want the Eunoia-to-SMT2 or Eunoia-to-Lean pipeline.
 that instead has no semantics of its own is *eliminated* on the way to the
 SMT-LIB term layer, i.e. it is defined in terms of the other symbols of the
 signature. Such a reduction is written in the syntax of the signature itself,
-in a Eunoia reduction file that `model-smt` includes once the signature has
-been parsed. The file for CPC is `plugins/model_smt/eo_to_smt_cpc.eo`; its
-header comment documents the format. Adding, changing or removing one of these
-reductions is a change to that file alone and does not require rebuilding
-`ethos-eoc`.
+as an ordinary `define` whose name is `$eo_reduce_` followed by the symbol it
+reduces.
+
+## The signature entry point
+
+A signature's reductions live in a Eunoia file that includes the signature
+itself, which makes that file the entry point of the signature for this
+compiler: point the driver at it rather than at the signature. The entry point
+of CPC is `plugins/model_smt/cpc.def.eo`, which includes `Cpc.eo`; its header
+comment documents the format of a reduction. Adding, changing or removing one
+is a change to that file alone and does not require rebuilding `ethos-eoc`.
+
+An entry point is named `<calculus>.def.eo`. Everything the driver names after
+the input -- the stage EO files and the generated Lean module -- takes the file
+name up to its first dot, so compiling `cpc.def.eo` writes the same
+`trim-cpc.eo`, `lean-cpc-*.eo` and `Cpc` Lean modules that compiling `Cpc.eo`
+directly would.
+
+Being commands of the signature, the reductions are parsed along with it and
+carried through every stage: `trim-defs` treats one as a defining command of
+the symbol it reduces, so trimming the signature to what a single proof rule
+needs keeps the reductions of the symbols that survive together with everything
+their bodies name, and drops the rest; `desugar` re-emits one in the desugared
+syntax; `model-smt` reads them back off its input and turns each into a case of
+`$eo_to_smt`. Note this means a reduction is elaborated like any other term of
+the signature, so an application of an n-ary symbol carries its nil terminator,
+e.g. `(and x y)` in a reduction denotes `(and x (and y true))`.
+
+Running a signature that has no such entry point, e.g. by pointing the driver
+straight at `Cpc.eo`, is supported and simply leaves every symbol without a
+surface reduction.
 
 The reductions the signature cannot express -- those that bind a variable,
 inspect an SMT-LIB type, or name an operator of the deep embedding that has no
 counterpart in the signature -- are registered by the plugin itself, see
-`ModelSmt::addEunoiaReduceSym`.
+`ModelSmt::addEunoiaReduceSym`. Since their right hand side is not a term of
+the signature, what they depend on is listed by hand in
+`plugins/model_smt/term_reduce_deps.eo` so that `trim-defs` keeps it.
 
 ## Building `ethos-eoc`
 

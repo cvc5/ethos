@@ -38,9 +38,12 @@ namespace ethos {
  * A symbol that has no SMT-LIB semantics of its own is instead *eliminated* on
  * the way to the SMT-LIB term layer, by a case of `$eo_to_smt` resp.
  * `$eo_to_smt_type`. Such a reduction comes from one of two places:
- * - A *surface* reduction, written in the syntax of the input signature itself
- *   in the reduction file this plugin includes, see loadReduceSpec. This is
- *   the user-facing way of giving a symbol its semantics.
+ * - A *surface* reduction, i.e. a `define` of the input written in the syntax
+ *   of the signature itself, see getReduceDefPrefix and defineReduce. This is
+ *   the user-facing way of giving a symbol its semantics. The reductions of a
+ *   signature are what makes its reduction file its entry point, so that they
+ *   are parsed along with it and carried through the stages before this one;
+ *   this plugin only reads them back off its input, in define below.
  * - A reduction registered by addEunoiaReduceSym below, whose right hand side
  *   is a term of the deep embedding. This is for the symbols the input
  *   signature cannot express, e.g. those whose reduction binds a variable,
@@ -56,7 +59,7 @@ class ModelSmt : public StdPlugin
   ~ModelSmt();
   /** Remember constant declarations for model-semantics generation. */
   void bind(const std::string& name, const Expr& e) override;
-  /** Capture the surface reductions of the reduction file, see defineReduce. */
+  /** Capture a surface reduction of the input, see defineReduce. */
   void define(const std::string& name, const Expr& e) override;
   /** Reject a program that is named as though it were a surface reduction. */
   void defineProgram(const Expr& v, const Expr& prog) override;
@@ -91,29 +94,15 @@ class ModelSmt : public StdPlugin
    * in the SMT-LIB term layer. It may refer to the arguments of the symbol as
    * x1 ... xn, which are Eunoia terms, so it casts them itself, ordinarily by
    * ($eo_to_smt xi). A reduction that the input signature can express should
-   * be a surface reduction instead, see loadReduceSpec.
+   * be a surface reduction instead, see getReduceDefPrefix.
    */
   void addEunoiaReduceSym(const std::string& sym,
                           const std::vector<Kind>& args,
                           const std::string& retTerm,
                           bool isType = false);
   /**
-   * Parse the reduction file at resourcePath, i.e. include it into the state
-   * this plugin is attached to. This is called at the beginning of finalize,
-   * when every symbol of the input signature is bound, so that the file can be
-   * written in the syntax of that signature. Its reductions are its `define`
-   * commands whose name is s_reducePrefix followed by the symbol they reduce,
-   * see defineReduce and the header comment of the file itself.
-   *
-   * What is included is outputPath, which holds the forms of the file whose
-   * symbol the input signature declares, since a signature that was trimmed
-   * declares only some of them.
-   */
-  void loadReduceSpec(const std::string& resourcePath,
-                      const std::string& outputPath);
-  /**
-   * Register the surface reduction of sym given by the body of a `define` of
-   * the reduction file, where args are the parameters of that define. Since
+   * Register the surface reduction of sym given by the body of the `define`
+   * that carries it, where args are the parameters of that define. Since
    * body is a term of the input signature, its cast into the SMT-LIB term
    * layer is what printSmtEmbed prints, so that e.g. the reduction
    *   (define $eo_reduce_@mod_by_zero ((x Int)) (mod x 0))
@@ -423,8 +412,6 @@ class ModelSmt : public StdPlugin
   Kind d_kBit;
   /** Pseudo-kind used for quoted Int parameters in generation tables. */
   Kind d_kIntQuote;
-  /** The name prefix that marks a surface reduction, see loadReduceSpec. */
-  static const std::string s_reducePrefix;
   /**
    * The symbols that are eliminated in the Eunoia to SMT-LIB term layer but
    * that nevertheless name a constructor of the deep embedding, since their

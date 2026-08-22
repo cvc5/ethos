@@ -1,4 +1,9 @@
-; The Eunoia-to-SMT reductions for the CPC signature.
+; The CPC signature, together with its Eunoia-to-SMT reductions.
+;
+; This file is the entry point of CPC for the ethos-eoc compiler: it includes
+; the signature itself and then gives the reductions below, so that they are
+; parsed along with it and carried through every stage. Point the compiler at
+; this file rather than at Cpc.eo, see tools/eoc/README.md.
 ;
 ; The model_smt plugin turns a desugared Eunoia signature into the SMT-LIB
 ; model semantics of its symbols. Most symbols are given that semantics by the
@@ -26,20 +31,24 @@
 ; kind applied to its native value, and a parameter, being a Eunoia term at the
 ; time the case runs, is cast by $eo_to_smt itself.
 ;
-; This file is ordinary Eunoia, which the plugin includes into the very state
-; it read the signature from once that signature has been parsed. So a
-; reduction that names a symbol this signature does not declare, or whose body
-; is ill-typed, is an error here rather than something that surfaces later in
-; the generated file. For the same reason a reduction file belongs to one
-; signature. Note a signature that was trimmed, e.g. to what one proof rule
-; needs, declares only some of the symbols below; the reductions of the others
-; are simply dropped, see ModelSmt::loadReduceSpec.
+; Since a reduction is an ordinary command of the signature, one that names a
+; symbol this signature does not declare, or whose body is ill-typed, is an
+; error here rather than something that surfaces later in a generated file. For
+; the same reason a reduction file belongs to one signature. Every stage before
+; model_smt carries a reduction through: trim-defs treats it as a defining
+; command of the symbol it reduces, so that trimming the signature to what one
+; proof rule needs keeps the reductions of the symbols that survive together
+; with everything their bodies name, and drops the rest; the desugar stage
+; re-emits it in the desugared syntax. See getReduceDefPrefix in
+; plugins/utils.h.
 ;
 ; The symbols whose reduction this file cannot express are registered by the
 ; plugin instead, see ModelSmt::addEunoiaReduceSym. Those are the ones whose
 ; right hand side has to bind a variable, inspect an SMT-LIB type, or name an
 ; operator of the deep embedding that has no counterpart in the signature, and
 ; for now also the ones whose reduction needs a bit-vector literal.
+
+(include "../../../cvc5-ajr/proofs/eo/cpc/Cpc.eo")
 
 ; -----------------------------------------------------------------------------
 ; Arithmetic

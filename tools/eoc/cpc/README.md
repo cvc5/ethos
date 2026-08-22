@@ -3,11 +3,16 @@
 These bash scripts preserve the old `build-debug/run_gen_*` workflow on top of
 `tools/eoc/driver.py`.
 
-Most wrappers default to the external CPC signature:
+Most wrappers default to the CPC entry point, which is the reduction file that
+includes the external CPC signature:
 
 ```text
-../cvc5-ajr/proofs/eo/cpc/Cpc.eo
+plugins/model_smt/cpc.def.eo   ->   ../cvc5-ajr/proofs/eo/cpc/Cpc.eo
 ```
+
+The path to `Cpc.eo` is the `include` at the top of that file, so a checkout of
+cvc5 in another location needs an entry file of its own; see the `signature
+entry point` section of `tools/eoc/README.md`.
 
 `run_gen_lean_all` also applies `cpc_exclusions.eo`, which explicitly omits
 the CPC lambda symbol, its beta-reduction rule, and their private helper
@@ -29,7 +34,9 @@ Useful environment variables:
   namely `run_gen_vc_all`, `run_gen_vc_all_alethe`, `run_gen_sygus_all`,
   `run_gen_lean_all`, `run_trim_defs`, and `run_count_deps`.
 - `EOC_SKIP_CVC5=1` to skip solver parse checks.
-- `EOC_CPC_INPUT=/path/to/Cpc.eo` to override the default CPC signature.
+- `EOC_CPC_INPUT=/path/to/entry.eo` to override the default CPC entry point.
+  Pointing this at a bare signature rather than at an entry file is supported;
+  that signature then has no surface reductions.
 - `EOC_ALETHE_INPUT=/path/to/Alethe.eo` to override the default Alethe
   signature.
 - `EOC_FINAL_OUT_DIR=/path/to/out` to override the published output tree.
@@ -39,9 +46,12 @@ Useful environment variables:
   `symm contra refl scope trans`) to override the destination package and the
   compiled rule set of `install_logos_mini`.
 
-The install wrappers keep their legacy destination module layout. If you point
-`EOC_CPC_INPUT` at a non-`Cpc.eo` signature, they detect the generated Lean
-module name and rewrite imports back to `Cpc` or `CpcMini` during installation.
+The install wrappers keep their legacy destination module layout. The generated
+Lean module name comes from the input file name up to its first dot, so the
+`cpc.def.eo` entry point generates `Cpc` just as `Cpc.eo` does. If you point
+`EOC_CPC_INPUT` at an input that names another calculus, the wrappers detect the
+generated module name and rewrite imports back to `Cpc` or `CpcMini` during
+installation.
 
 Examples:
 

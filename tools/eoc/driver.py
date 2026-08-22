@@ -91,8 +91,21 @@ def dedupe_preserve_order(items: Iterable[str]) -> list[str]:
     return ordered
 
 
+def input_base_name(input_file: Path) -> str:
+    """The name of the calculus an input file compiles.
+
+    This is the file name up to its first dot, so that a qualifier may be
+    appended to the name of a calculus without renaming what it produces. In
+    particular the entry point of a signature, which is the file holding its
+    reductions, is named `<calculus>.def.eo` and so compiles the same
+    `<calculus>` its bare signature would. Keep this in sync with
+    eoc_lean_calc_name in tools/eoc/cpc/common.sh.
+    """
+    return input_file.name.split(".", 1)[0]
+
+
 def lean_calc_name(input_file: Path) -> str:
-    parts = re.findall(r"[A-Za-z0-9]+", input_file.stem)
+    parts = re.findall(r"[A-Za-z0-9]+", input_base_name(input_file))
     if not parts:
         return "EoCalc"
     calc = "".join(part[:1].upper() + part[1:] for part in parts)
@@ -306,7 +319,7 @@ class Pipeline:
             replace_all(lean_file, [(LEAN_CALC_PLACEHOLDER, calc_name)])
 
     def stage_name(self, input_name: str) -> str:
-        return Path(input_name).stem.lower()
+        return input_base_name(Path(input_name)).lower()
 
     def trim_defs(self, input_name: str, targets: list[str], output_file: Path) -> Path:
         temp_trim = self.stage_out_dir / "temp_trim.eo"
