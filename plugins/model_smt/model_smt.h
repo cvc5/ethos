@@ -10,6 +10,7 @@
 #define PLUGIN_MODEL_SMT_H
 
 #include <map>
+#include <set>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -19,6 +20,22 @@
 #include "../std_plugin.h"
 
 namespace ethos {
+
+/**
+ * What the SMT-LIB signature of the deep embedding says about the semantics of
+ * one of its symbols, i.e. the content of one of its `$smt_reduce_` defines,
+ * see getSmtReduceDefPrefix and ModelSmt::loadSmtSignature.
+ */
+struct SmtSigReduce
+{
+  /**
+   * The explicit parameters of the define, which are the arguments of the
+   * symbol it reduces, in order.
+   */
+  std::vector<Expr> d_args;
+  /** Its body, a term of the SMT-LIB signature. */
+  Expr d_body;
+};
 
 /**
  * Plugin that generates the EO layer for SMT-LIB model semantics.
@@ -67,6 +84,27 @@ class ModelSmt : public StdPlugin
   void finalize() override;
 
  private:
+  /**
+   * Parse the SMT-LIB signature of the deep embedding at resourcePath, which
+   * declares every symbol that can appear in it under its SMT-LIB name and
+   * gives the semantics of some of them as `$smt_reduce_` defines, see
+   * getSmtReduceDefPrefix.
+   *
+   * It declares the SMT-LIB names that the input signature declares as well,
+   * so it is parsed in a scope of its own: a name it binds is unbound again
+   * before the input is read, and so is never an overload of one of the
+   * input's. The symbols arrive through a plugin of its own rather than
+   * through the ordinary callbacks of this one, since the signature is not
+   * part of the input. What it says is read off into d_smtSigDecl and
+   * d_smtSigReduce, whose expressions outlive the scope since they belong to
+   * the same state as the rest.
+   */
+  void loadSmtSignature(const std::string& resourcePath);
+  /** The symbols the SMT-LIB signature declares. */
+  std::set<std::string> d_smtSigDecl;
+  /** The reductions the SMT-LIB signature gives, by the symbol they reduce. */
+  std::map<std::string, SmtSigReduce> d_smtSigReduce;
+
   /**
    * Registration helpers for auto-generated `$smtx_model_eval` cases.
    *

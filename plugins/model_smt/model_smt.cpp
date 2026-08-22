@@ -15,11 +15,57 @@
 
 #include "../utils.h"
 #include "literal.h"
+#include "parser.h"
 #include "state.h"
 
 namespace ethos {
 
 namespace {
+
+/**
+ * Reads the SMT-LIB signature of the deep embedding as it is parsed, see
+ * ModelSmt::loadSmtSignature. It takes the place of the plugin that reads the
+ * input for as long as the signature is read, since the signature is not part
+ * of the input and nothing of it should reach that plugin's callbacks.
+ */
+class SmtSigReader : public Plugin
+{
+ public:
+  void bind(const std::string& name, const Expr& e) override
+  {
+    if (e.getKind() == Kind::CONST)
+    {
+      d_decl.insert(name);
+    }
+  }
+  void define(const std::string& name, const Expr& e) override
+  {
+    if (!isSmtReduceDefName(name))
+    {
+      // an ordinary definition of the signature, e.g. String or a helper
+      d_decl.insert(name);
+      return;
+    }
+    // a define with arguments is a lambda whose first child is its parameters
+    SmtSigReduce r;
+    r.d_body = e;
+    if (r.d_body.getKind() == Kind::LAMBDA)
+    {
+      Assert(r.d_body.getNumChildren() == 2);
+      Expr vl = r.d_body[0];
+      for (size_t i = 0, nargs = vl.getNumChildren(); i < nargs; i++)
+      {
+        r.d_args.push_back(vl[i]);
+      }
+      r.d_body = r.d_body[1];
+    }
+    d_reduce[getSmtReduceDefSurfaceName(name)] = r;
+  }
+  /** The symbols the signature declares. */
+  std::set<std::string> d_decl;
+  /** Its reductions, by the symbol they reduce. */
+  std::map<std::string, SmtSigReduce> d_reduce;
+};
 
 /**
  * Whether theory symbols are first-order in the final embedding, e.g.
@@ -1274,6 +1320,47 @@ void ModelSmt::defineProgram(const Expr& v, const Expr& prog)
   }
 }
 
+void ModelSmt::loadSmtSignature(const std::string& resourcePath)
+{
+  // The scope is what keeps the names this signature binds out of the way of
+  // the ones the input binds: a name it binds shadows the input's while it is
+  // read and is unbound again afterwards, and the expressions it builds belong
+  // to the state and outlive it. Note the signature has no declare-consts,
+  // which a scope would not undo: a state has one type rule for each kind of
+  // literal, and the input is what fixes them.
+  //
+  // The symbols arrive through a plugin of their own, since this one is what
+  // the state calls back into and the signature is not part of the input.
+  Plugin* prev = d_state.getPlugin();
+  Assert(prev == this);
+  SmtSigReader reader;
+  d_state.setPlugin(&reader);
+  d_state.pushScope();
+  {
+    Parser p(d_state, /*isSignature=*/true);
+    p.setFileInput(getResourcePath(resourcePath));
+    while (p.parseNextCommand())
+    {
+    }
+  }
+  d_state.popScope();
+  d_state.setPlugin(prev);
+  d_smtSigDecl = std::move(reader.d_decl);
+  d_smtSigReduce = std::move(reader.d_reduce);
+  Trace("model-smt") << "SMT-LIB signature: " << d_smtSigDecl.size()
+                     << " symbols, " << d_smtSigReduce.size() << " reductions"
+                     << std::endl;
+  for (const std::pair<const std::string, SmtSigReduce>& r : d_smtSigReduce)
+  {
+    Trace("model-smt") << "  (" << r.first;
+    for (const Expr& a : r.second.d_args)
+    {
+      Trace("model-smt") << " " << a;
+    }
+    Trace("model-smt") << ") is " << r.second.d_body << std::endl;
+  }
+}
+
 void ModelSmt::defineReduce(const std::string& sym,
                             const std::vector<Expr>& args,
                             const Expr& body)
@@ -2409,6 +2496,7 @@ void ModelSmt::printLitReduce(const std::string& name,
 
 void ModelSmt::finalize()
 {
+  loadSmtSignature("plugins/model_smt/smt.eo");
   // Note the surface reductions of the input have already been registered, by
   // the define callback that its own commands made, so that a symbol one of
   // them reduces is known to have a semantics by the time its declaration is

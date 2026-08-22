@@ -25,6 +25,34 @@ signature. Such a reduction is written in the syntax of the signature itself,
 as an ordinary `define` whose name is `$eo_reduce_` followed by the symbol it
 reduces.
 
+## The signature of the embedding
+
+`plugins/model_smt/smt.eo` is the SMT-LIB signature of the deep embedding: a
+standalone Eunoia signature, independent of any input, that declares every
+symbol that can appear in the final embedding under its SMT-LIB name and with
+its SMT-LIB type. It is the vocabulary of the target language, whereas a
+reduction file such as the one below says how one particular source language
+reaches it. `model-smt` parses it in a scope of its own, so that the names it
+binds, which an input signature binds as well, are unbound again before the
+input is compiled.
+
+The embedding is first order and unambiguous, so nothing in it is n-ary,
+chainable or overloaded, and unary minus is named `uneg` rather than sharing a
+name with binary subtraction. A symbol whose SMT-LIB semantics is that of
+another term of the signature carries it as a `define` named `$smt_reduce_`
+followed by the symbol, e.g.
+
+```lisp
+(define $smt_reduce_xor ((x Bool) (y Bool)) (not (= x y)))
+```
+
+Note this says what an application of `xor` *denotes*; `xor` itself remains a
+constructor of the embedding. An application in such a body is written
+`(_ f x y)` so that it means the symbol of this signature rather than the one
+the input signature gives the same name. That is what distinguishes it from a
+`$eo_reduce_` reduction below, which eliminates its symbol before the embedding
+is reached.
+
 ## The signature entry point
 
 A signature's reductions live in a Eunoia file that includes the signature

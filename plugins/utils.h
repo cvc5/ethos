@@ -149,6 +149,29 @@ std::string getReduceDefSurfaceName(const std::string& name);
  */
 std::string mkReduceDefName(const std::string& name);
 
+/**
+ * The prefix of the name of a reduction of the SMT-LIB signature.
+ *
+ * The signature of the deep embedding, plugins/model_smt/smt.eo, declares
+ * every symbol that can appear in it under its SMT-LIB name. A symbol whose
+ * SMT-LIB semantics is that of another term of that signature carries that
+ * term as a `define` whose name is this prefix followed by the symbol and
+ * whose parameters are its arguments, e.g.
+ *   (define $smt_reduce_xor ((x Bool) (y Bool)) (not (= x y)))
+ * Note this says what an application of the symbol *denotes*, and so is
+ * unrelated to getReduceDefPrefix, which says what one *is*: a symbol reduced
+ * here remains a constructor of the embedding, whereas one reduced there is
+ * eliminated before reaching it. See ModelSmt::loadSmtSignature.
+ */
+const std::string& getSmtReduceDefPrefix();
+/** Return true if name is the name of a reduction of the SMT-LIB signature. */
+bool isSmtReduceDefName(const std::string& name);
+/**
+ * Return the symbol that the reduction named name reduces, i.e. name with
+ * getSmtReduceDefPrefix() removed. Requires isSmtReduceDefName(name).
+ */
+std::string getSmtReduceDefSurfaceName(const std::string& name);
+
 }  // namespace ethos
 
 #endif

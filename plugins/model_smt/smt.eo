@@ -1,0 +1,417 @@
+; The SMT-LIB signature of the deep embedding.
+;
+; This is a standalone Eunoia signature, independent of any input signature the
+; compiler is pointed at. It declares every symbol that can appear in the final
+; embedding of SMT-LIB terms, i.e. every symbol the model_smt plugin gives an
+; SMT-LIB semantics to, under its SMT-LIB name and with its SMT-LIB type. The
+; generated embedding names the constructor for a symbol below `$sm_<symbol>`
+; and the one for a type `$tsm_<type>`; nothing here mentions those names.
+;
+; An input signature is compiled against this one: a symbol it declares that is
+; named here is embedded as the corresponding constructor, and one that is not
+; has to be eliminated by a reduction of its own, see getReduceDefPrefix in
+; plugins/utils.h. So this file is the vocabulary of the target language, while
+; a reduction file such as plugins/model_smt/cpc.def.eo says how one particular
+; source language reaches it.
+;
+; The embedding is first order and unambiguous: every operator below is a plain
+; function of fixed arity, so nothing here is n-ary, chainable or overloaded.
+; This is what distinguishes it from an ordinary SMT-LIB signature, in which
+; e.g. (and x y z) abbreviates a nesting and unary minus shares a name with
+; binary subtraction. Unary minus is named `uneg` here for the same reason.
+;
+; A symbol whose SMT-LIB semantics is that of another term of this signature
+; carries that term as a `define` named $smt_reduce_ followed by the symbol,
+; whose parameters are the symbol's arguments, e.g.
+;
+;   (define $smt_reduce_xor ((x Bool) (y Bool)) (_ not (_ = x y)))
+;
+; says that (xor x y) denotes whatever (not (= x y)) denotes. Note this is a
+; statement about the *value* of a term, not about its syntax: xor remains a
+; constructor of the embedding, unlike a symbol that a reduction eliminates.
+;
+; This signature is parsed alongside an input signature that declares the same
+; names, in a scope of its own, so that a name it binds shadows the input's
+; while it is read and is unbound again afterwards. Two things follow.
+;
+; It has no declare-consts, which a scope would not undo, since a state has one
+; type rule for each kind of literal and the input is what fixes them. So this
+; signature does not fix the type of a literal, and a width that is a literal
+; is written as an expression that evaluates to it, see bvcomp.
+;
+; And an application in the body of a reduction is written (_ f x y), which is
+; the application of f itself. This is what makes a body mean the symbols of
+; this signature and never the input's, which share their names with them: an
+; ordinary application resolves the name against both, and would carry over the
+; arity or the nil terminator the input gives it.
+;
+; A symbol has no such define when its semantics is not a term of this
+; signature: when it is evaluated directly on literal values, such as bvadd, or
+; when it needs a datum the embedding carries but this signature does not, such
+; as the width of a bit-vector, which the signature has only as an implicit
+; parameter and Eunoia does not admit in the body of a define. Those semantics
+; are given by the plugin.
+
+; -----------------------------------------------------------------------------
+; Core
+; -----------------------------------------------------------------------------
+
+; Bool is builtin. Equality and the conditional are the two symbols that every
+; theory shares.
+
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))
+(declare-parameterized-const ite ((A Type :implicit)) (-> Bool A A A))
+
+(declare-const not (-> Bool Bool))
+(declare-const and (-> Bool Bool Bool))
+(declare-const or (-> Bool Bool Bool))
+(declare-const xor (-> Bool Bool Bool))
+(declare-const => (-> Bool Bool Bool))
+
+(define $smt_reduce_xor ((x Bool) (y Bool)) (_ not (_ = x y)))
+(define $smt_reduce_=> ((x Bool) (y Bool)) (_ or (_ not x) y))
+
+; -----------------------------------------------------------------------------
+; Arithmetic
+; -----------------------------------------------------------------------------
+
+(declare-const Int Type)
+(declare-const Real Type)
+
+; The two arithmetic types, which the polymorphic operators below range over.
+(define $is_arith_type ((T Type)) (eo::or (eo::is_eq T Int) (eo::is_eq T Real)))
+
+(declare-parameterized-const + ((T Type :implicit))
+  (-> T T (eo::requires ($is_arith_type T) true T)))
+(declare-parameterized-const - ((T Type :implicit))
+  (-> T T (eo::requires ($is_arith_type T) true T)))
+(declare-parameterized-const * ((T Type :implicit))
+  (-> T T (eo::requires ($is_arith_type T) true T)))
+(declare-parameterized-const uneg ((T Type :implicit))
+  (-> T (eo::requires ($is_arith_type T) true T)))
+(declare-parameterized-const abs ((T Type :implicit))
+  (-> T (eo::requires ($is_arith_type T) true T)))
+
+(declare-parameterized-const < ((T Type :implicit))
+  (-> T T (eo::requires ($is_arith_type T) true Bool)))
+(declare-parameterized-const <= ((T Type :implicit))
+  (-> T T (eo::requires ($is_arith_type T) true Bool)))
+(declare-parameterized-const > ((T Type :implicit))
+  (-> T T (eo::requires ($is_arith_type T) true Bool)))
+(declare-parameterized-const >= ((T Type :implicit))
+  (-> T T (eo::requires ($is_arith_type T) true Bool)))
+
+(define $smt_reduce_> ((T Type :implicit) (x T) (y T)) (_ < y x))
+(define $smt_reduce_>= ((T Type :implicit) (x T) (y T)) (_ <= y x))
+
+(declare-const to_real (-> Int Real))
+(declare-const to_int (-> Real Int))
+(declare-const is_int (-> Real Bool))
+
+(define $smt_reduce_is_int ((x Real)) (_ = (_ to_real (_ to_int x)) x))
+
+; Division, modulus and exponentiation are underspecified where they are not
+; defined, so each is given both as the SMT-LIB operator and as the total
+; function it agrees with elsewhere. The plugin defines the former in terms of
+; the latter, since what it denotes on the undefined argument is a datum of the
+; model rather than a term of this signature.
+
+(declare-parameterized-const / ((T Type :implicit))
+  (-> T T (eo::requires ($is_arith_type T) true Real)))
+(declare-parameterized-const /_total ((T Type :implicit))
+  (-> T T (eo::requires ($is_arith_type T) true Real)))
+(declare-const div (-> Int Int Int))
+(declare-const div_total (-> Int Int Int))
+(declare-const mod (-> Int Int Int))
+(declare-const mod_total (-> Int Int Int))
+(declare-const ** (-> Int Int Int))
+(declare-const **_total (-> Int Int Int))
+
+(declare-const divisible (-> Int Int Bool))
+(define $smt_reduce_divisible ((n Int) (x Int)) (_ = (_ mod_total x n) 0))
+
+; Integer powers and logarithms of two, which are not in SMT-LIB.
+(declare-const int.pow2 (-> Int Int))
+(declare-const int.log2 (-> Int Int))
+
+; -----------------------------------------------------------------------------
+; Arrays
+; -----------------------------------------------------------------------------
+
+(declare-const Array (-> Type Type Type))
+(declare-parameterized-const select ((U Type :implicit) (T Type :implicit))
+  (-> (Array U T) U T))
+(declare-parameterized-const store ((U Type :implicit) (T Type :implicit))
+  (-> (Array U T) U T (Array U T)))
+
+; -----------------------------------------------------------------------------
+; Strings and sequences
+; -----------------------------------------------------------------------------
+
+; A string is a sequence of characters, which is how the operators that are
+; polymorphic over sequences below cover the string operators of SMT-LIB.
+
+(declare-const Seq (-> Type Type))
+(declare-const Char Type)
+(define String () (Seq Char))
+
+(declare-parameterized-const seq.empty ((T Type :implicit)) (Seq T))
+(declare-parameterized-const seq.unit ((T Type :implicit)) (-> T (Seq T)))
+(declare-parameterized-const seq.nth ((T Type :implicit)) (-> (Seq T) Int T))
+
+(declare-parameterized-const str.++ ((T Type :implicit))
+  (-> (Seq T) (Seq T) (Seq T)))
+(declare-parameterized-const str.len ((T Type :implicit)) (-> (Seq T) Int))
+(declare-parameterized-const str.substr ((T Type :implicit))
+  (-> (Seq T) Int Int (Seq T)))
+(declare-parameterized-const str.at ((T Type :implicit))
+  (-> (Seq T) Int (Seq T)))
+(declare-parameterized-const str.contains ((T Type :implicit))
+  (-> (Seq T) (Seq T) Bool))
+(declare-parameterized-const str.indexof ((T Type :implicit))
+  (-> (Seq T) (Seq T) Int Int))
+(declare-parameterized-const str.replace ((T Type :implicit))
+  (-> (Seq T) (Seq T) (Seq T) (Seq T)))
+(declare-parameterized-const str.replace_all ((T Type :implicit))
+  (-> (Seq T) (Seq T) (Seq T) (Seq T)))
+(declare-parameterized-const str.prefixof ((T Type :implicit))
+  (-> (Seq T) (Seq T) Bool))
+(declare-parameterized-const str.suffixof ((T Type :implicit))
+  (-> (Seq T) (Seq T) Bool))
+(declare-parameterized-const str.rev ((T Type :implicit)) (-> (Seq T) (Seq T)))
+(declare-parameterized-const str.update ((T Type :implicit))
+  (-> (Seq T) Int (Seq T) (Seq T)))
+
+(define $smt_reduce_str.at ((T Type :implicit) (s (Seq T)) (n Int))
+  (_ str.substr s n 1))
+(define $smt_reduce_str.prefixof ((T Type :implicit) (s (Seq T)) (t (Seq T)))
+  (_ = s (_ str.substr t 0 (_ str.len s))))
+(define $smt_reduce_str.suffixof ((T Type :implicit) (s (Seq T)) (t (Seq T)))
+  (_ = s (_ str.substr t (_ - (_ str.len t) (_ str.len s)) (_ str.len s))))
+
+; The operators below are on strings alone, since they read or produce the
+; characters of one.
+
+(declare-const str.to_code (-> String Int))
+(declare-const str.from_code (-> Int String))
+(declare-const str.to_int (-> String Int))
+(declare-const str.from_int (-> Int String))
+(declare-const str.is_digit (-> String Bool))
+(declare-const str.< (-> String String Bool))
+(declare-const str.<= (-> String String Bool))
+(declare-const str.to_lower (-> String String))
+(declare-const str.to_upper (-> String String))
+
+(define $smt_reduce_str.is_digit ((s String))
+  (_ and (_ <= 48 (_ str.to_code s)) (_ <= (_ str.to_code s) 57)))
+(define $smt_reduce_str.<= ((s String) (t String))
+  (_ or (_ = s t) (_ str.< s t)))
+
+; -----------------------------------------------------------------------------
+; Regular expressions
+; -----------------------------------------------------------------------------
+
+(declare-const RegLan Type)
+
+(declare-const re.none RegLan)
+(declare-const re.all RegLan)
+(declare-const re.allchar RegLan)
+(declare-const str.to_re (-> String RegLan))
+(declare-const re.range (-> String String RegLan))
+(declare-const re.* (-> RegLan RegLan))
+(declare-const re.+ (-> RegLan RegLan))
+(declare-const re.opt (-> RegLan RegLan))
+(declare-const re.comp (-> RegLan RegLan))
+(declare-const re.++ (-> RegLan RegLan RegLan))
+(declare-const re.inter (-> RegLan RegLan RegLan))
+(declare-const re.union (-> RegLan RegLan RegLan))
+(declare-const re.diff (-> RegLan RegLan RegLan))
+(declare-parameterized-const re.^ ((i Int :opaque))
+  (-> RegLan (eo::requires (eo::gt i -1) true RegLan)))
+(declare-parameterized-const re.loop ((l Int :opaque) (h Int :opaque))
+  (-> RegLan
+      (eo::requires (eo::gt l -1) true
+      (eo::requires (eo::gt h -1) true RegLan))))
+
+(define $smt_reduce_re.+ ((r RegLan)) (_ re.++ r (_ re.* r)))
+(define $smt_reduce_re.opt ((r RegLan)) (_ re.union r (_ str.to_re "")))
+
+(declare-const str.in_re (-> String RegLan Bool))
+(declare-const str.indexof_re (-> String RegLan Int Int))
+(declare-const str.replace_re (-> String RegLan String String))
+(declare-const str.replace_re_all (-> String RegLan String String))
+
+; The index at which the split of a string along a concatenation of two regular
+; languages falls. This is not in SMT-LIB; it is what gives the components of a
+; positive regular expression unfolding their meaning.
+(declare-const str.indexof_re_split (-> String RegLan RegLan Int))
+
+; The index of the n^th occurrence of one sequence in another, resp. of the
+; n^th match of a regular expression in a string. Neither is in SMT-LIB; they
+; are what give the occurrences a replacement iterates over their meaning.
+(declare-parameterized-const @strings_occur_index ((T Type :implicit))
+  (-> (Seq T) (Seq T) Int Int))
+(declare-const @strings_occur_index_re (-> String RegLan Int Int))
+
+; -----------------------------------------------------------------------------
+; Bit-vectors
+; -----------------------------------------------------------------------------
+
+(declare-const BitVec (-> Int Type))
+
+(declare-parameterized-const concat ((n Int :implicit) (m Int :implicit))
+  (-> (BitVec n) (BitVec m) (BitVec (eo::add n m))))
+(declare-parameterized-const extract ((n Int :implicit) (h Int :opaque) (l Int :opaque))
+  (-> (BitVec n)
+      (BitVec (eo::define ((r (eo::add h (eo::neg l) 1)))
+              (eo::requires (eo::gt l -1) true
+              (eo::requires (eo::gt n h) true
+              (eo::requires (eo::gt r 0) true
+                r)))))))
+(declare-parameterized-const repeat ((n Int :implicit) (i Int :opaque))
+  (-> (BitVec n) (eo::requires (eo::gt i 0) true (BitVec (eo::mul i n)))))
+(declare-parameterized-const zero_extend ((m Int :implicit) (i Int :opaque))
+  (-> (BitVec m) (eo::requires (eo::gt i -1) true (BitVec (eo::add m i)))))
+(declare-parameterized-const sign_extend ((m Int :implicit) (i Int :opaque))
+  (-> (BitVec m) (eo::requires (eo::gt i -1) true (BitVec (eo::add m i)))))
+(declare-parameterized-const rotate_left ((m Int :implicit) (i Int :opaque))
+  (-> (BitVec m) (eo::requires (eo::gt i -1) true (BitVec m))))
+(declare-parameterized-const rotate_right ((m Int :implicit) (i Int :opaque))
+  (-> (BitVec m) (eo::requires (eo::gt i -1) true (BitVec m))))
+
+(declare-parameterized-const bvnot ((m Int :implicit)) (-> (BitVec m) (BitVec m)))
+(declare-parameterized-const bvneg ((m Int :implicit)) (-> (BitVec m) (BitVec m)))
+(declare-parameterized-const bvand ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvor ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvxor ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvnand ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvnor ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvxnor ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvadd ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvsub ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvmul ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvudiv ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvurem ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvsdiv ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvsrem ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvsmod ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvshl ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvlshr ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+(declare-parameterized-const bvashr ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)))
+
+(declare-parameterized-const bvult ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvule ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvugt ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvuge ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvslt ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvsle ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvsgt ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvsge ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+; The result of the comparison below is one bit wide. Note the width is
+; written as an expression that evaluates to one rather than as the literal,
+; for the reason given in the header.
+(declare-parameterized-const bvcomp ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec (eo::add m (eo::neg m) 1))))
+
+(define $smt_reduce_bvsub ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (_ bvadd x (_ bvneg y)))
+(define $smt_reduce_bvnand ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (_ bvnot (_ bvand x y)))
+(define $smt_reduce_bvnor ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (_ bvnot (_ bvor x y)))
+(define $smt_reduce_bvxnor ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (_ bvnot (_ bvxor x y)))
+(define $smt_reduce_bvult ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (_ bvugt y x))
+(define $smt_reduce_bvule ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (_ bvuge y x))
+(define $smt_reduce_bvuge ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (_ or (_ bvugt x y) (_ = x y)))
+(define $smt_reduce_bvslt ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (_ bvsgt y x))
+(define $smt_reduce_bvsle ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (_ bvsge y x))
+(define $smt_reduce_bvsge ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (_ or (_ bvsgt x y) (_ = x y)))
+
+; The overflow predicates, which are not in SMT-LIB.
+(declare-parameterized-const bvnego ((m Int :implicit)) (-> (BitVec m) Bool))
+(declare-parameterized-const bvuaddo ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvsaddo ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvumulo ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvsmulo ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvusubo ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvssubo ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+(declare-parameterized-const bvsdivo ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) Bool))
+
+(define $smt_reduce_bvusubo ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
+  (_ bvult x y))
+
+; Conversions between bit-vectors and integers, which are not in SMT-LIB.
+(declare-parameterized-const ubv_to_int ((m Int :implicit)) (-> (BitVec m) Int))
+(declare-parameterized-const sbv_to_int ((m Int :implicit)) (-> (BitVec m) Int))
+(declare-parameterized-const int_to_bv ((m Int :opaque))
+  (-> Int (eo::requires (eo::gt m -1) true (BitVec m))))
+
+; -----------------------------------------------------------------------------
+; Sets
+; -----------------------------------------------------------------------------
+
+(declare-const Set (-> Type Type))
+(declare-parameterized-const set.empty ((T Type :implicit)) (Set T))
+(declare-parameterized-const set.singleton ((T Type :implicit)) (-> T (Set T)))
+(declare-parameterized-const set.union ((T Type :implicit))
+  (-> (Set T) (Set T) (Set T)))
+(declare-parameterized-const set.inter ((T Type :implicit))
+  (-> (Set T) (Set T) (Set T)))
+(declare-parameterized-const set.minus ((T Type :implicit))
+  (-> (Set T) (Set T) (Set T)))
+(declare-parameterized-const set.member ((T Type :implicit))
+  (-> T (Set T) Bool))
+(declare-parameterized-const set.subset ((T Type :implicit))
+  (-> (Set T) (Set T) Bool))
+
+(define $smt_reduce_set.subset ((T Type :implicit) (s (Set T)) (t (Set T)))
+  (_ = (_ set.inter s t) s))
+
+; -----------------------------------------------------------------------------
+; Other
+; -----------------------------------------------------------------------------
+
+; A term that denotes its argument, and that a model may not identify with any
+; other term of the same value. It is what keeps a term the embedding builds
+; from aliasing one the input signature wrote.
+(declare-parameterized-const @purify ((A Type :implicit)) (-> A A))
+(define $smt_reduce_@purify ((A Type :implicit) (x A)) x)

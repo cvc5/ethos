@@ -122,4 +122,20 @@ std::string mkReduceDefName(const std::string& name)
   return getReduceDefPrefix() + name;
 }
 
+const std::string& getSmtReduceDefPrefix()
+{
+  static const std::string prefix = "$smt_reduce_";
+  return prefix;
+}
+bool isSmtReduceDefName(const std::string& name)
+{
+  const std::string& prefix = getSmtReduceDefPrefix();
+  return name.compare(0, prefix.size(), prefix) == 0;
+}
+std::string getSmtReduceDefSurfaceName(const std::string& name)
+{
+  Assert(isSmtReduceDefName(name));
+  return name.substr(getSmtReduceDefPrefix().size());
+}
+
 }  // namespace ethos
