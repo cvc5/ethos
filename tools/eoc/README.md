@@ -48,7 +48,10 @@ their bodies name, and drops the rest; `desugar` re-emits one in the desugared
 syntax; `model-smt` reads them back off its input and turns each into a case of
 `$eo_to_smt`. Note this means a reduction is elaborated like any other term of
 the signature, so an application of an n-ary symbol carries its nil terminator,
-e.g. `(and x y)` in a reduction denotes `(and x (and y true))`.
+e.g. `(and x y)` in a reduction denotes `(and x (and y true))`; write
+`(_ and x y)` where the reduction means the binary application itself. A
+reduction is not type checked, since the embedding generated from it is
+structural.
 
 Running a signature that has no such entry point, e.g. by pointing the driver
 straight at `Cpc.eo`, is supported and simply leaves every symbol without a

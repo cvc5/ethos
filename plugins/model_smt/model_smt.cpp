@@ -1000,6 +1000,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       << "(eo::define ((T ($eo_to_smt_set_elem_type ($smtx_typeof ($eo_to_smt x1))))) ";
   ssSetsChoose << "($sm_map_diff ($eo_to_smt x1) ($sm_set.empty T)))";
   addEunoiaReduceSym("set.choose", {kAny}, ssSetsChoose.str());
+  // Note this cannot be a surface reduction: its right hand side,
+  //   (= s (set.singleton (set.choose s)))
+  // names set.choose, which is itself eliminated, so the composition below is
+  // one only this layer can make.
   std::stringstream ssSetsIsSingleton;
   ssSetsIsSingleton
       << "($sm_= ($eo_to_smt x1) ($sm_set.singleton " << ssSetsChoose.str() << "))";
@@ -1058,23 +1062,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
           "(bvcomp ($eo_to_smt x1) (bvnot ($sm_binary ($smtx_bv_sizeof_type "
           "($smtx_typeof ($eo_to_smt x1))) $native_z_zero)))",
           true));
-  // Note neither of the two below can be a surface reduction. The width of
-  // (extract i i x) is (eo::add i (eo::neg i) 1), which the type checker does
-  // not reduce to 1 for a symbolic i, so @bit's equality would be ill-typed in
-  // the signature. And concat is :right-assoc-nil, so a surface (concat x b)
-  // denotes (concat x (concat b @bv_empty)), which would leave @from_bools
-  // with a concatenation of the empty bit-vector it does not need.
-  addEunoiaReduceSym(
-      "@bit",
-      {kInt, kBitVec},
-      smtToSmtEmbed(
-          "(= (extract ($eo_to_smt x1) ($eo_to_smt x1) ($eo_to_smt x2)) #b1)",
-          true));
-  addEunoiaReduceSym(
-      "@from_bools",
-      {kBool, kBitVec},
-      smtToSmtEmbed("(concat ($eo_to_smt x2) (ite ($eo_to_smt x1) #b1 #b0))",
-                    true));
   // datatypes
   addEunoiaReduceSym(
       "Tuple",
@@ -1308,16 +1295,13 @@ void ModelSmt::defineReduce(const std::string& sym,
                << " has a surface reduction and one registered by this plugin;"
                   " it should have exactly one of the two";
   }
-  // Note a define is a macro, whose body ethos does not type check until it is
-  // applied, so this is where an ill-typed reduction is caught.
-  Expr rbody = body;
-  std::stringstream sstc;
-  Expr bt = d_tc.getType(rbody, &sstc);
-  if (bt.isNull())
-  {
-    EO_FATAL() << "ModelSmt: the reduction of " << sym
-               << " is ill-typed: " << sstc.str();
-  }
+  // Note the body is not type checked. The embedding printSmtEmbed builds is
+  // purely structural, and it validates the head of every application itself,
+  // whereas the type checker rejects bodies that are perfectly well formed,
+  // e.g. @bit's
+  //   (= (extract i i x) #b1)
+  // whose left hand side has width (eo::add i (eo::neg i) 1), which it does
+  // not reduce to 1 for a symbolic i.
   std::stringstream ss;
   printSmtEmbed(ss, sym, body, amap);
   addEunoiaReduceSym(sym, std::vector<Kind>(args.size(), Kind::PARAM), ss.str());
@@ -1339,16 +1323,22 @@ void ModelSmt::printSmtEmbed(std::ostream& out,
   {
     return;
   }
-  // flatten the (curried) application, whose head must be a symbol of the
-  // signature that has an SMT-LIB semantics, i.e. a constructor of the deep
-  // embedding of the same name
+  // Flatten the application, whose head must be a symbol of the signature that
+  // has an SMT-LIB semantics, i.e. a constructor of the deep embedding of the
+  // same name. Note an ordinary application is curried, whereas the opaque
+  // arguments of a symbol are applied all at once, so a node may carry more
+  // than one argument. Its arguments are collected back to front, which is the
+  // order the reversal below expects.
   std::vector<Expr> targs;
   Expr op = t;
   Kind k = op.getKind();
   while (k == Kind::APPLY || k == Kind::APPLY_OPAQUE)
   {
-    Assert(op.getNumChildren() == 2);
-    targs.push_back(op[1]);
+    Assert(op.getNumChildren() >= 2);
+    for (size_t i = op.getNumChildren(); i > 1; i--)
+    {
+      targs.push_back(op[i - 1]);
+    }
     op = op[0];
     k = op.getKind();
   }
@@ -1368,11 +1358,17 @@ void ModelSmt::printSmtEmbed(std::ostream& out,
   if (d_eoSymReduce.find(name) != d_eoSymReduce.end()
       && d_smtEmbedBuiltin.find(name) == d_smtEmbedBuiltin.end())
   {
-    // The reduction of such a symbol is not an operator of the embedding, so
-    // there is nothing to name here. Inlining it is what this would require.
+    // The reduction of such a symbol is a term of the deep embedding, so there
+    // is no constructor to name here. Nor can this be ($eo_to_smt (name ...)):
+    // $eo_to_smt is what the generated case belongs to, and the argument of
+    // that call is a term it builds rather than a subterm of the one it
+    // matched, which the backends do not accept as a recursive call. Inlining
+    // the reduction is what this would take, and since that reduction is a
+    // string of the embedding rather than a term of the signature, it would
+    // have to be a textual substitution.
     EO_FATAL() << "ModelSmt: the reduction of " << sym << " uses " << name
                << ", which is itself eliminated in the Eunoia to SMT-LIB term "
-                  "layer and so cannot be used in a reduction yet";
+                  "layer and so cannot be used in a reduction";
   }
   out << (targs.empty() ? "" : "(") << "$sm_" << name;
   for (const Expr& a : targs)

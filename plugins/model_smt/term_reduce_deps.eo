@@ -69,8 +69,6 @@
 (echo "trim-defs-cmd (depends set.subset (= (set.inter x1 x2) x1))")
 (echo "trim-defs-cmd (depends set.insert ($eo_List_cons x1 x2) $eo_List_nil (set.insert x2 (set.union (set.singleton x1) x3)))")
 (echo "trim-defs-cmd (depends bvcomp (ite (= x1 x2) (@bv 1 1) (@bv 0 1)))")
-(echo "trim-defs-cmd (depends @bit (extract x1 x1 x2))")
-(echo "trim-defs-cmd (depends @from_bools ($eo_to_smt (concat (ite x1 #b1 #b0) x2)))")
 (echo "trim-defs-cmd (depends forall (not (exists x1 (not x2))))")
 (echo "trim-defs-cmd (depends lambda ($eo_List_cons x1 x2) $eo_List_nil (lambda x2 x3))")
 (echo "trim-defs-cmd (depends @quantifiers_skolemize (forall x1 x2) (exists x1 (not x2)))")

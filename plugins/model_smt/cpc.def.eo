@@ -32,27 +32,29 @@
 ; time the case runs, is cast by $eo_to_smt itself.
 ;
 ; Since a reduction is an ordinary command of the signature, one that names a
-; symbol this signature does not declare, or whose body is ill-typed, is an
-; error here rather than something that surfaces later in a generated file. For
-; the same reason a reduction file belongs to one signature. Every stage before
-; model_smt carries a reduction through: trim-defs treats it as a defining
-; command of the symbol it reduces, so that trimming the signature to what one
-; proof rule needs keeps the reductions of the symbols that survive together
-; with everything their bodies name, and drops the rest; the desugar stage
-; re-emits it in the desugared syntax. See getReduceDefPrefix in
-; plugins/utils.h.
+; symbol this signature does not declare is an error here rather than something
+; that surfaces later in a generated file. For the same reason a reduction file
+; belongs to one signature. Every stage before model_smt carries a reduction
+; through: trim-defs treats it as a defining command of the symbol it reduces,
+; so that trimming the signature to what one proof rule needs keeps the
+; reductions of the symbols that survive together with everything their bodies
+; name, and drops the rest; the desugar stage re-emits it in the desugared
+; syntax. See getReduceDefPrefix in plugins/utils.h.
 ;
 ; A reduction is elaborated like any other term of this signature, so an
-; application of an n-ary symbol carries its nil terminator: (and x y) below
-; denotes (and x (and y true)), and its embedding has the same shape.
+; application of an n-ary symbol carries its nil terminator: (and x y) denotes
+; (and x (and y true)), and its embedding has the same shape. Write (_ and x y)
+; where the reduction means the binary application itself, as int.ispow2 below
+; does.
+;
+; A reduction is not type checked, since its embedding is structural. So one
+; this signature cannot type, such as @bit's below, is used as it stands.
 ;
 ; The symbols whose reduction this file cannot express are registered by the
 ; plugin instead, see ModelSmt::addEunoiaReduceSym. Those are the ones whose
-; right hand side has to bind a variable, inspect an SMT-LIB type, name an
-; operator of the deep embedding that has no counterpart in this signature, or
-; name a symbol that is itself eliminated. Two more are registered there for
-; reasons of their own, see the comment above @bit: one whose right hand side
-; this signature cannot type, and one an n-ary nil terminator would burden.
+; right hand side has to bind a variable, recurse, inspect an SMT-LIB type,
+; name an operator of the deep embedding that has no counterpart in this
+; signature, or name a symbol that is itself eliminated.
 
 (include "../../../cvc5-ajr/proofs/eo/cpc/Cpc.eo")
 
@@ -72,7 +74,7 @@
 ; power of two of its base-two logarithm.
 
 (define $eo_reduce_int.ispow2 ((x Int))
-  (and (>= x 0) (= x (int.pow2 (int.log2 x)))))
+  (_ and (>= x 0) (= x (int.pow2 (int.log2 x)))))
 
 ; -----------------------------------------------------------------------------
 ; Bit-vectors
@@ -92,6 +94,18 @@
 (define $eo_reduce_bvsltbv ((m Int :implicit) (x (BitVec m)) (y (BitVec m)))
   (ite (bvslt x y) #b1 #b0))
 
+; The i^th bit of x, which is set exactly when the one-bit extraction at i is
+; one. Note this signature does not type the equality below, since it does not
+; reduce the width of that extraction, (eo::add i (eo::neg i) 1), to 1.
+
+(define $eo_reduce_@bit ((m Int :implicit) (i Int) (x (BitVec m)))
+  (= (extract i i x) #b1))
+
+; Prepending a Boolean to a bit-vector, as the bit it denotes.
+
+(define $eo_reduce_@from_bools ((n Int :implicit) (b Bool) (x (BitVec n)))
+  (_ concat x (ite b #b1 #b0)))
+
 ; -----------------------------------------------------------------------------
 ; Strings and sequences
 ; -----------------------------------------------------------------------------
@@ -108,7 +122,7 @@
 ; The position of the first character of s that is not a digit.
 
 (define $eo_reduce_@strings_stoi_non_digit ((s (Seq Char)))
-  (str.indexof_re s (re.inter re.allchar (re.comp (re.range "0" "9"))) 0))
+  (str.indexof_re s (_ re.inter re.allchar (re.comp (re.range "0" "9"))) 0))
 
 ; The number of non-overlapping occurrences of t in s, resp. of nonempty,
 ; leftmost-shortest matches of the regular expression r in s. Both are the
