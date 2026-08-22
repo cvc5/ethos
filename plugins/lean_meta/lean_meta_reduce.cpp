@@ -47,10 +47,6 @@ LeanMetaReduce::LeanMetaReduce(State& s, bool generateParser)
   {
     d_smtDt << "  | TheoryOp : SmtTheoryOp -> SmtTerm" << std::endl;
   }
-  else
-  {
-    d_smtTOpDt << "  | None : SmtTheoryOp" << std::endl;
-  }
   // NOTE: any partial def can be forced by adding the method names to
   // d_partialExc, e.g. d_partialExc.insert("$str_re_consume_rec");
 
@@ -1103,6 +1099,13 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
     // it introduces can be resolved when parsing a proof. It contributes to the
     // generated parser and to nothing else, see finalizeParseDefs.
     d_parseDefs.emplace_back(getParseDefSurfaceName(name), e);
+    return;
+  }
+  if (isReduceDefName(name))
+  {
+    // A surface reduction, which gave the symbol it reduces its SMT-LIB
+    // semantics in the model_smt stage and has no meaning of its own after
+    // it, see getReduceDefPrefix.
     return;
   }
   // NOTE: the code here ensures that we preserve definitions for the final vc.

@@ -1,3 +1,17 @@
+; The dependencies of the reductions that the model_smt plugin registers
+; itself, i.e. the ones whose right hand side is a term of the deep embedding
+; rather than of the input signature, see ModelSmt::addEunoiaReduceSym.
+;
+; A `(depends <sym> <term>*)` directive tells trim-defs that <sym> is defined
+; in terms of the symbols the given terms name, so that trimming a signature to
+; what one proof rule needs keeps them. The terms are read for their symbols
+; alone; they are never parsed as Eunoia.
+;
+; A *surface* reduction needs no entry here: it is a command of the signature
+; itself, which trim-defs already treats as a defining command of the symbol it
+; reduces, so its dependencies are exactly the ones its body names. See
+; plugins/model_smt/cpc.def.eo.
+
 (echo "trim-defs-cmd (depends divisible (= (mod x2 x1) 0))")
 (echo "trim-defs-cmd (depends / (ite (= x2 0/1) z (/_total x1 x2)))")
 (echo "trim-defs-cmd (depends div (ite (= x2 0) z (div_total x1 x2)))")
@@ -33,12 +47,10 @@
 (echo "trim-defs-cmd (depends bvredor (bvnot (bvcomp x1 (@bv 0 (@bvsize x1)))))")
 (echo "trim-defs-cmd (depends bvredand (bvcomp x1 (bvnot (@bv 0 (@bvsize x1)))))")
 (echo "trim-defs-cmd (depends @purify x1)")
-(echo "trim-defs-cmd (depends @int_div_by_zero (div x1 0))")
-(echo "trim-defs-cmd (depends @mod_by_zero (mod x1 0))")
-(echo "trim-defs-cmd (depends @div_by_zero (/ x1 0/1))")
+; @bvsize reduces to (@purify <size>), see ModelSmt::addEunoiaReduceSym.
+(echo "trim-defs-cmd (depends @bvsize (@purify x1))")
 (echo "trim-defs-cmd (depends @array_deq_diff (not (= (select x1 i) (select x2 i))))")
 (echo "trim-defs-cmd (depends int.log2 (ite (< x1 0) 0 (div x1 (int.pow2 x1))))")
-(echo "trim-defs-cmd (depends int.ispow2 (and (>= x1 0) (= x1 (int.pow2 (int.log2 x1)))))")
 (echo "trim-defs-cmd (depends str.at (str.substr x1 x2 1))")
 (echo "trim-defs-cmd (depends str.prefixof (= x1 (str.substr x2 0 (str.len x1))))")
 (echo "trim-defs-cmd (depends str.suffixof (= x1 (str.substr x2 (- (str.len x2) (str.len x1)) (str.len x1))))")
@@ -48,31 +60,19 @@
 (echo "trim-defs-cmd (depends re.loop (and (>= n1 0) (>= n2 0)) (ite (> n1 n2) re.none (re.union (re.loop n1 (- n2 1) (re.^ n2 x3)))))")
 (echo "trim-defs-cmd (depends re.opt (re.union x1 (str.to_re """")))")
 (echo "trim-defs-cmd (depends re.+ (re.++ x1 (re.* x1)))")
-(echo "trim-defs-cmd (depends @strings_itos_result (str.from_int (mod x1 (** 10 x2))))")
-(echo "trim-defs-cmd (depends @strings_stoi_result (str.to_int (str.substr x1 0 x2)))")
-(echo "trim-defs-cmd (depends @strings_stoi_non_digit (str.indexof_re x1 (re.comp (re.range ""0"" ""9"")) 0))")
-(echo "trim-defs-cmd (depends @strings_num_occur (- (str.len (str.replace_all x1 x2 (str.substr x1 0 1))) (str.len (str.replace_all x1 x2 (str.substr x1 0 0)))))")
-(echo "trim-defs-cmd (depends @strings_num_occur_re (- (str.len (str.replace_re_all x1 x2 (str.substr x1 0 1))) (str.len (str.replace_re_all x1 x2 (str.substr x1 0 0)))))")
 (echo "trim-defs-cmd (depends @strings_occur_index (str.indexof x1 x2 x3))")
 (echo "trim-defs-cmd (depends @strings_occur_index_re (str.indexof_re x1 x2 x3))")
-(echo "trim-defs-cmd (depends @strings_replace_all_result (str.replace_all (str.substr x1 (@strings_occur_index x1 x2 x4) (str.len x1)) x2 x3))")
-(echo "trim-defs-cmd (depends @strings_replace_re_all_result (str.replace_re_all (str.substr x1 (@strings_occur_index_re x1 x2 x4) (str.len x1)) x2 x3))")
 (echo "trim-defs-cmd (depends @witness_string_length (= (str.len i) ($eo_to_smt x2)))")
 (echo "trim-defs-cmd (depends @sets_deq_diff (not (= (set.member i x1) (set.member i x2))))")
 (echo "trim-defs-cmd (depends set.choose (set.member i x1))")
 (echo "trim-defs-cmd (depends set.is_singleton (= x1 (set.singleton (set.choose x1))))")
 (echo "trim-defs-cmd (depends set.subset (= (set.inter x1 x2) x1))")
 (echo "trim-defs-cmd (depends set.insert ($eo_List_cons x1 x2) $eo_List_nil (set.insert x2 (set.union (set.singleton x1) x3)))")
-(echo "trim-defs-cmd (depends bvite (ite (= x1 (@bv 1 1)) x2 x3))")
 (echo "trim-defs-cmd (depends bvcomp (ite (= x1 x2) (@bv 1 1) (@bv 0 1)))")
-(echo "trim-defs-cmd (depends bvultbv (ite (bvult x1 x2) (@bv 1 1) (@bv 0 1)))")
-(echo "trim-defs-cmd (depends bvsltbv (ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1)))")
-(echo "trim-defs-cmd (depends @bit (extract x1 x1 x2))")
-(echo "trim-defs-cmd (depends @from_bools ($eo_to_smt (concat (ite x1 #b1 #b0) x2)))")
 (echo "trim-defs-cmd (depends forall (not (exists x1 (not x2))))")
 (echo "trim-defs-cmd (depends lambda ($eo_List_cons x1 x2) $eo_List_nil (lambda x2 x3))")
 (echo "trim-defs-cmd (depends @quantifiers_skolemize (forall x1 x2) (exists x1 (not x2)))")
-(echo "trim-defs-cmd (depends @re_unfold_pos_component (ite (<= 0 x1) x2 x3) (str.substr s (str.len x) (- (str.len s) (str.len x))) (and (= s (str.++ x xrem)) (and (str.in_re x r1) (str.in_re xrem r2))) (re.++ r1 r2))")
+(echo "trim-defs-cmd (depends @re_unfold_pos_component (ite (<= 0 x1) x2 x3) (str.substr s (str.len x) (- (str.len s) (str.len x))) (and (= s (str.++ x xrem)) (and (str.in_re x r1) (str.in_re xrem r2))) (re.++ r1 r2) (str.indexof_re_split s r1 r2))")
 (echo "trim-defs-cmd (depends update (ite (is c x3) u x3))")
 
 ; for alethe

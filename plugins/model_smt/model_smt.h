@@ -34,6 +34,21 @@ namespace ethos {
  * semantic bridge from Eunoia syntax to SMT-LIB behavior.  Unknown user
  * symbols are rejected during finalization rather than silently modeled as
  * uninterpreted symbols.
+ *
+ * A symbol that has no SMT-LIB semantics of its own is instead *eliminated* on
+ * the way to the SMT-LIB term layer, by a case of `$eo_to_smt` resp.
+ * `$eo_to_smt_type`. Such a reduction comes from one of two places:
+ * - A *surface* reduction, i.e. a `define` of the input written in the syntax
+ *   of the signature itself, see getReduceDefPrefix and defineReduce. This is
+ *   the user-facing way of giving a symbol its semantics. The reductions of a
+ *   signature are what makes its reduction file its entry point, so that they
+ *   are parsed along with it and carried through the stages before this one;
+ *   this plugin only reads them back off its input, in define below.
+ * - A reduction registered by addEunoiaReduceSym below, whose right hand side
+ *   is a term of the deep embedding. This is for the symbols the input
+ *   signature cannot express, e.g. those whose reduction binds a variable,
+ *   inspects an SMT-LIB type, or names an operator of the embedding that has
+ *   no counterpart in the signature.
  */
 class ModelSmt : public StdPlugin
 {
@@ -44,6 +59,10 @@ class ModelSmt : public StdPlugin
   ~ModelSmt();
   /** Remember constant declarations for model-semantics generation. */
   void bind(const std::string& name, const Expr& e) override;
+  /** Capture a surface reduction of the input, see defineReduce. */
+  void define(const std::string& name, const Expr& e) override;
+  /** Reject a program that is named as though it were a surface reduction. */
+  void defineProgram(const Expr& v, const Expr& prog) override;
   /** Emit the generated EO file containing SMT-LIB model semantics. */
   void finalize() override;
 
@@ -71,12 +90,51 @@ class ModelSmt : public StdPlugin
                         const std::string& retTerm);
   /**
    * Add function that should be eliminated in the Eunoia to SMT-LIB term
-   * layer.
+   * layer, where retTerm is a term of the deep embedding, i.e. it is already
+   * in the SMT-LIB term layer. It may refer to the arguments of the symbol as
+   * x1 ... xn, which are Eunoia terms, so it casts them itself, ordinarily by
+   * ($eo_to_smt xi). A reduction that the input signature can express should
+   * be a surface reduction instead, see getReduceDefPrefix.
    */
   void addEunoiaReduceSym(const std::string& sym,
                           const std::vector<Kind>& args,
                           const std::string& retTerm,
                           bool isType = false);
+  /**
+   * Register the surface reduction of sym given by the body of the `define`
+   * that carries it, where args are the parameters of that define. Since
+   * body is a term of the input signature, its cast into the SMT-LIB term
+   * layer is what printSmtEmbed prints, so that e.g. the reduction
+   *   (define $eo_reduce_@mod_by_zero ((x Int)) (mod x 0))
+   * generates the case
+   *   (($eo_to_smt (@mod_by_zero x1))
+   *      ($sm_mod ($eo_to_smt x1) ($sm_numeral ($native_apply_0 "0"))))
+   * of $eo_to_smt.
+   */
+  void defineReduce(const std::string& sym,
+                    const std::vector<Expr>& args,
+                    const Expr& body);
+  /**
+   * Print the term t of the input signature as the term of the deep embedding
+   * it denotes, where args maps each parameter of the reduction of sym to the
+   * parameter of the generated case that takes its place. In other words this
+   * casts a Eunoia term into the SMT-LIB term layer: an application of a
+   * symbol becomes an application of the constructor of the same name, a
+   * literal becomes the constructor of its kind applied to its native value,
+   * and a parameter, being a Eunoia term at the time the case runs, is cast by
+   * $eo_to_smt itself.
+   */
+  void printSmtEmbed(std::ostream& out,
+                     const std::string& sym,
+                     const Expr& t,
+                     const std::map<Expr, std::string>& args);
+  /**
+   * If t is a literal, print it as above and return true. Otherwise return
+   * false, having printed nothing.
+   */
+  bool printSmtEmbedLiteral(std::ostream& out, const Expr& t);
+  /** Return the native constant whose value is written val. */
+  static std::string nativeConst(const std::string& val);
   /**
    * Add function whose evaluation is
    * (eo::define ((e1 ($smtx_model_eval x1)))
@@ -354,6 +412,13 @@ class ModelSmt : public StdPlugin
   Kind d_kBit;
   /** Pseudo-kind used for quoted Int parameters in generation tables. */
   Kind d_kIntQuote;
+  /**
+   * The symbols that are eliminated in the Eunoia to SMT-LIB term layer but
+   * that nevertheless name a constructor of the deep embedding, since their
+   * reduction is the cast itself. A surface reduction may use these like any
+   * symbol with an SMT-LIB semantics, see printSmtEmbed.
+   */
+  std::unordered_set<std::string> d_smtEmbedBuiltin;
 };
 
 }  // namespace ethos

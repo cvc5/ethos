@@ -13,6 +13,8 @@
 #include <sstream>
 #include <string>
 
+#include "../utils.h"
+#include "literal.h"
 #include "state.h"
 
 namespace ethos {
@@ -227,108 +229,6 @@ std::string eoDefine(const std::string& x,
   return ss.str();
 }
 
-namespace {
-
-constexpr const char* s_numOccurProgram = "$eo_to_smt_strings_num_occur";
-constexpr const char* s_numOccurReProgram =
-    "$eo_to_smt_strings_num_occur_re";
-
-/**
- * Return an SMT term for the empty sequence having the same element type as
- * s. Using substr instead of seq.empty avoids having to extract the element
- * type from s.
- */
-std::string stringsEmptyLike(const std::string& s)
-{
-  return "(str.substr " + s + " 0 0)";
-}
-
-/** Return a sequence of length one when s is nonempty, and empty otherwise. */
-std::string stringsUnitLike(const std::string& s)
-{
-  return "(str.substr " + s + " 0 1)";
-}
-
-/** Return the number of non-overlapping occurrences of t in s. */
-std::string stringsNumOccur(const std::string& s, const std::string& t)
-{
-  std::stringstream ss;
-  ss << "(- (str.len (str.replace_all " << s << " " << t << " "
-     << stringsUnitLike(s) << ")) "
-     << "(str.len (str.replace_all " << s << " " << t << " "
-     << stringsEmptyLike(s) << ")))";
-  return ss.str();
-}
-
-/** Return the number of nonempty, leftmost-shortest matches of r in s. */
-std::string stringsNumOccurRe(const std::string& s, const std::string& r)
-{
-  std::stringstream ss;
-  ss << "(- (str.len (str.replace_re_all " << s << " " << r
-     << " " << stringsUnitLike(s) << ")) "
-     << "(str.len (str.replace_re_all " << s << " " << r << " "
-     << stringsEmptyLike(s) << ")))";
-  return ss.str();
-}
-
-/** Return a call to the auxiliary occurrence-count program. */
-std::string stringsNumOccurCall(const std::string& s,
-                                const std::string& t,
-                                bool isRegex)
-{
-  std::stringstream ss;
-  ss << "(" << (isRegex ? s_numOccurReProgram : s_numOccurProgram) << " " << s
-     << " " << t << ")";
-  return ss.str();
-}
-
-/** Return an auxiliary Eunoia program with an occurrence-count body. */
-std::string stringsNumOccurProgram(const std::string& name,
-                                   const std::string& body)
-{
-  std::stringstream ss;
-  ss << "(program " << name << " ((s $smt_Term) (t $smt_Term))\n"
-     << "  :signature ($smt_Term $smt_Term) $smt_Term\n"
-     << "  (\n"
-     << "  ((" << name << " s t) " << body << ")\n"
-     << "  )\n"
-     << ")\n";
-  return ss.str();
-}
-
-/**
- * Return the occurrence-index skolem applied to s, t, n. This is later
- * embedded to the model leaf @strings_occur_index[_re].
- */
-std::string stringsOccurIndexCall(const std::string& s,
-                                  const std::string& t,
-                                  const std::string& n,
-                                  bool isRegex)
-{
-  std::stringstream ss;
-  ss << "(" << (isRegex ? "@strings_occur_index_re" : "@strings_occur_index")
-     << " " << s << " " << t << " " << n << ")";
-  return ss.str();
-}
-
-/** Return the unprocessed replacement suffix following occurrence n. */
-std::string stringsReplaceAllResult(const std::string& s,
-                                    const std::string& pattern,
-                                    const std::string& replacement,
-                                    const std::string& n,
-                                    bool isRegex)
-{
-  const std::string index =
-      stringsOccurIndexCall(s, pattern, n, isRegex);
-  std::stringstream ss;
-  ss << "(" << (isRegex ? "str.replace_re_all" : "str.replace_all")
-     << " (str.substr " << s << " " << index << " (str.len " << s << ")) "
-     << pattern << " " << replacement << ")";
-  return ss.str();
-}
-
-}  // namespace
-
 ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 {
   // This constructor is the main source of the specification of the semantics
@@ -379,13 +279,18 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // builtin
   // immediately include Bool, as it will not be defined
   // printDecl("Bool", {}, Kind::TYPE);
-  // $sm_= and $sm_ite are builtin, reduce them in eo_to_smt
+  // $sm_= and $sm_ite are builtin, reduce them in eo_to_smt. Note their
+  // reduction is the cast itself, so unlike an ordinary reduction they still
+  // denote a constructor of the embedding, which is what d_smtEmbedBuiltin
+  // records, see printSmtEmbed.
   addEunoiaReduceSym(
       "=", {kAny, kAny}, "($sm_= ($eo_to_smt x1) ($eo_to_smt x2))");
   addEunoiaReduceSym(
       "ite",
       {kBool, kAny, kAny},
       "($sm_ite ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
+  d_smtEmbedBuiltin.insert("=");
+  d_smtEmbedBuiltin.insert("ite");
   d_auxDef["distinct"] = R"(
 (program $eo_to_smt_distinct_pairs
   ((T Type) (s $smt_Term) (x T) (xs (@@TypedList T)))
@@ -949,19 +854,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // arithmetic
   addConstFoldSym("int.pow2", {kInt}, kInt);
   addConstFoldSym("int.log2", {kInt}, kInt);
-  addEunoiaReduceSym("@int_div_by_zero",
-                     {kInt},
-                     smtToSmtEmbed("(div ($eo_to_smt x1) 0)", true));
-  addEunoiaReduceSym(
-      "@mod_by_zero", {kInt}, smtToSmtEmbed("(mod ($eo_to_smt x1) 0)", true));
-  addEunoiaReduceSym(
-      "@div_by_zero", {kReal}, smtToSmtEmbed("(/ ($eo_to_smt x1) 0/1)", true));
-  addEunoiaReduceSym(
-      "int.ispow2",
-      {kInt},
-      smtToSmtEmbed("(eo::define (($e1 ($eo_to_smt x1))) (and (>= $e1 0) (= "
-                    "$e1 (int.pow2 (int.log2 $e1)))))",
-                    true));
   // arrays
   d_auxDef["@array_deq_diff"] = R"(
 (program $eo_to_smt_array_deq_diff 
@@ -983,24 +875,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.rev", {d_kSeq}, d_kSeq);
   addConstFoldSym("str.to_lower", {kString}, kString);
   addConstFoldSym("str.to_upper", {kString}, kString);
-  std::stringstream ssItosRes;
-  ssItosRes << "(ite (= ($eo_to_smt x2) 0) 0 ";
-  ssItosRes << "(str.to_int (str.substr (str.from_int ($eo_to_smt x1)) 0 ($eo_to_smt x2))))";
-  addEunoiaReduceSym("@strings_itos_result",
-                     {kInt, kInt},
-                     smtToSmtEmbed(ssItosRes.str(), true));
-  addEunoiaReduceSym(
-      "@strings_stoi_result",
-      {kString, kInt},
-      smtToSmtEmbed(
-        "(ite (= ($eo_to_smt x2) 0) 0 (str.to_int (str.substr ($eo_to_smt x1) 0 ($eo_to_smt x2))))", true));
-  addEunoiaReduceSym(
-      "@strings_stoi_non_digit",
-      {kString},
-      smtToSmtEmbed("(str.indexof_re ($eo_to_smt x1) (re.inter $sm_re.allchar (re.comp (re.range "
-                    "($sm_string $native_str_c0) ($sm_string "
-                    "$native_str_c9)))) 0)",
-                    true));
   // The difference of two sequences is an index at which they differ, given
   // by the dedicated $sm_seq_diff operator. This avoids introducing a choice
   // (witness) term, as was previously done here.
@@ -1126,6 +1000,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       << "(eo::define ((T ($eo_to_smt_set_elem_type ($smtx_typeof ($eo_to_smt x1))))) ";
   ssSetsChoose << "($sm_map_diff ($eo_to_smt x1) ($sm_set.empty T)))";
   addEunoiaReduceSym("set.choose", {kAny}, ssSetsChoose.str());
+  // Note this cannot be a surface reduction: its right hand side,
+  //   (= s (set.singleton (set.choose s)))
+  // names set.choose, which is itself eliminated, so the composition below is
+  // one only this layer can make.
   std::stringstream ssSetsIsSingleton;
   ssSetsIsSingleton
       << "($sm_= ($eo_to_smt x1) ($sm_set.singleton " << ssSetsChoose.str() << "))";
@@ -1161,24 +1039,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addEunoiaReduceSym(
       "set.insert", {kT, kT}, "($eo_to_smt_set.insert x1 ($eo_to_smt x2))");
   //   bitvectors
-  addEunoiaReduceSym(
-      "bvite",
-      {kBitVec, kBitVec, kBitVec},
-      smtToSmtEmbed(
-          "(ite (= ($eo_to_smt x1) #b1) ($eo_to_smt x2) ($eo_to_smt x3))",
-          true));
   addTermReduceSym(
       "bvcomp", {kBitVec, kBitVec}, d_kBit, "(ite (= x1 x2) #b1 #b0)");
-  addEunoiaReduceSym(
-      "bvultbv",
-      {kBitVec, kBitVec},
-      smtToSmtEmbed("(ite (bvult ($eo_to_smt x1) ($eo_to_smt x2)) #b1 #b0)",
-                    true));
-  addEunoiaReduceSym(
-      "bvsltbv",
-      {kBitVec, kBitVec},
-      smtToSmtEmbed("(ite (bvslt ($eo_to_smt x1) ($eo_to_smt x2)) #b1 #b0)",
-                    true));
   // note bvsize converts to (@purify n) instead of n to avoid aliasing (numerals
   // should be bijective in the spec).
   addEunoiaReduceSym("@bvsize",
@@ -1200,17 +1062,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
           "(bvcomp ($eo_to_smt x1) (bvnot ($sm_binary ($smtx_bv_sizeof_type "
           "($smtx_typeof ($eo_to_smt x1))) $native_z_zero)))",
           true));
-  addEunoiaReduceSym(
-      "@bit",
-      {kInt, kBitVec},
-      smtToSmtEmbed(
-          "(= (extract ($eo_to_smt x1) ($eo_to_smt x1) ($eo_to_smt x2)) #b1)",
-          true));
-  addEunoiaReduceSym(
-      "@from_bools",
-      {kBool, kBitVec},
-      smtToSmtEmbed("(concat ($eo_to_smt x2) (ite ($eo_to_smt x1) #b1 #b0))",
-                    true));
   // datatypes
   addEunoiaReduceSym(
       "Tuple",
@@ -1246,22 +1097,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "update",
       {kT, kT, kT},
       "($eo_to_smt_updater ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))");
-  const std::string e1 = "($eo_to_smt x1)";
-  const std::string e2 = "($eo_to_smt x2)";
-  const std::string e3 = "($eo_to_smt x3)";
-  const std::string e4 = "($eo_to_smt x4)";
-  d_auxDef["@strings_num_occur"] = stringsNumOccurProgram(
-      s_numOccurProgram,
-      smtToSmtEmbed(stringsNumOccur("s", "t"), true));
-  d_auxDef["@strings_num_occur_re"] = stringsNumOccurProgram(
-      s_numOccurReProgram,
-      smtToSmtEmbed(stringsNumOccurRe("s", "t"), true));
-  addEunoiaReduceSym("@strings_num_occur",
-                     {kT, kT},
-                     stringsNumOccurCall(e1, e2, false));
-  addEunoiaReduceSym("@strings_num_occur_re",
-                     {kString, kRegLan},
-                     stringsNumOccurCall(e1, e2, true));
   // The occurrence-index skolems are model leaves evaluated directly by the
   // native model runtime (native_seq_occur_index / native_str_occur_index_re).
   // @strings_occur_index shares the type checking of str.indexof: its first two
@@ -1281,16 +1116,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             kInt,
             "($native_apply_3 \"str_occur_index_re\" "
             "($native_apply_1 \"unpack_seq\" x1) x2 x3)");
-  // The result helpers are eliminated directly to the replacement term over
-  // the suffix following the requested occurrence.
-  addEunoiaReduceSym(
-      "@strings_replace_all_result",
-      {kT, kT, kT, kInt},
-      smtToSmtEmbed(stringsReplaceAllResult(e1, e2, e3, e4, false), true));
-  addEunoiaReduceSym(
-      "@strings_replace_re_all_result",
-      {kString, kRegLan, kString, kInt},
-      smtToSmtEmbed(stringsReplaceAllResult(e1, e2, e3, e4, true), true));
   // (@const i T) denotes a generic abstract constant, i.e. an internally
   // introduced term that has no definition in the signature. It is modelled as
   // the SMT-LIB uninterpreted constant with the same identifiers, that is, the
@@ -1410,6 +1235,205 @@ void ModelSmt::addRecReduceSym(const std::string& sym,
   }
   ss << retTerm << ssend.str();
   addReduceSym(sym, args, ret, ss.str());
+}
+
+void ModelSmt::define(const std::string& name, const Expr& e)
+{
+  if (!isReduceDefName(name))
+  {
+    return;
+  }
+  std::string sym = getReduceDefSurfaceName(name);
+  // a define with arguments is a lambda whose first child is its parameters
+  std::vector<Expr> args;
+  Expr body = e;
+  if (body.getKind() == Kind::LAMBDA)
+  {
+    Assert(body.getNumChildren() == 2);
+    Expr vl = body[0];
+    for (size_t i = 0, nargs = vl.getNumChildren(); i < nargs; i++)
+    {
+      args.push_back(vl[i]);
+    }
+    body = body[1];
+  }
+  defineReduce(sym, args, body);
+}
+
+void ModelSmt::defineProgram(const Expr& v, const Expr& prog)
+{
+  std::stringstream ss;
+  ss << v;
+  if (isReduceDefName(ss.str()))
+  {
+    // A program would give a symbol a reduction that matches on the shape of
+    // its arguments, which the generated case cannot express yet: it takes
+    // its pattern from the arity of the symbol alone, see printEvalCallBase.
+    EO_FATAL() << "ModelSmt: " << v
+               << " is a program, but a surface reduction has to be a define";
+  }
+}
+
+void ModelSmt::defineReduce(const std::string& sym,
+                            const std::vector<Expr>& args,
+                            const Expr& body)
+{
+  std::map<Expr, std::string> amap;
+  for (size_t i = 0, nargs = args.size(); i < nargs; i++)
+  {
+    std::stringstream ssa;
+    ssa << "x" << (i + 1);
+    if (!amap.emplace(args[i], ssa.str()).second)
+    {
+      EO_FATAL() << "ModelSmt: the reduction of " << sym
+                 << " has two parameters with the same name";
+    }
+  }
+  if (d_eoSymReduce.find(sym) != d_eoSymReduce.end())
+  {
+    EO_FATAL() << "ModelSmt: " << sym
+               << " has a surface reduction and one registered by this plugin;"
+                  " it should have exactly one of the two";
+  }
+  // Note the body is not type checked. The embedding printSmtEmbed builds is
+  // purely structural, and it validates the head of every application itself,
+  // whereas the type checker rejects bodies that are perfectly well formed,
+  // e.g. @bit's
+  //   (= (extract i i x) #b1)
+  // whose left hand side has width (eo::add i (eo::neg i) 1), which it does
+  // not reduce to 1 for a symbolic i.
+  std::stringstream ss;
+  printSmtEmbed(ss, sym, body, amap);
+  addEunoiaReduceSym(sym, std::vector<Kind>(args.size(), Kind::PARAM), ss.str());
+}
+
+void ModelSmt::printSmtEmbed(std::ostream& out,
+                             const std::string& sym,
+                             const Expr& t,
+                             const std::map<Expr, std::string>& args)
+{
+  // a parameter denotes a Eunoia term, which is cast where it occurs
+  std::map<Expr, std::string>::const_iterator ita = args.find(t);
+  if (ita != args.end())
+  {
+    out << "($eo_to_smt " << ita->second << ")";
+    return;
+  }
+  if (printSmtEmbedLiteral(out, t))
+  {
+    return;
+  }
+  // Flatten the application, whose head must be a symbol of the signature that
+  // has an SMT-LIB semantics, i.e. a constructor of the deep embedding of the
+  // same name. Note an ordinary application is curried, whereas the opaque
+  // arguments of a symbol are applied all at once, so a node may carry more
+  // than one argument. Its arguments are collected back to front, which is the
+  // order the reversal below expects.
+  std::vector<Expr> targs;
+  Expr op = t;
+  Kind k = op.getKind();
+  while (k == Kind::APPLY || k == Kind::APPLY_OPAQUE)
+  {
+    Assert(op.getNumChildren() >= 2);
+    for (size_t i = op.getNumChildren(); i > 1; i--)
+    {
+      targs.push_back(op[i - 1]);
+    }
+    op = op[0];
+    k = op.getKind();
+  }
+  std::reverse(targs.begin(), targs.end());
+  if (k != Kind::CONST)
+  {
+    EO_FATAL() << "ModelSmt: the reduction of " << sym
+               << " contains the subterm " << t
+               << ", whose head is not a symbol of the signature";
+  }
+  std::string name = op.getSymbol();
+  std::map<std::string, std::string>::iterator ito = d_overloadRevert.find(name);
+  if (ito != d_overloadRevert.end())
+  {
+    name = ito->second;
+  }
+  if (d_eoSymReduce.find(name) != d_eoSymReduce.end()
+      && d_smtEmbedBuiltin.find(name) == d_smtEmbedBuiltin.end())
+  {
+    // The reduction of such a symbol is a term of the deep embedding, so there
+    // is no constructor to name here. Nor can this be ($eo_to_smt (name ...)):
+    // $eo_to_smt is what the generated case belongs to, and the argument of
+    // that call is a term it builds rather than a subterm of the one it
+    // matched, which the backends do not accept as a recursive call. Inlining
+    // the reduction is what this would take, and since that reduction is a
+    // string of the embedding rather than a term of the signature, it would
+    // have to be a textual substitution.
+    EO_FATAL() << "ModelSmt: the reduction of " << sym << " uses " << name
+               << ", which is itself eliminated in the Eunoia to SMT-LIB term "
+                  "layer and so cannot be used in a reduction";
+  }
+  out << (targs.empty() ? "" : "(") << "$sm_" << name;
+  for (const Expr& a : targs)
+  {
+    out << " ";
+    printSmtEmbed(out, sym, a, args);
+  }
+  out << (targs.empty() ? "" : ")");
+}
+
+bool ModelSmt::printSmtEmbedLiteral(std::ostream& out, const Expr& t)
+{
+  // A literal denotes the constructor of the embedding applied to the native
+  // value it carries, e.g. 5 denotes ($sm_numeral ($native_apply_0 "5")).
+  std::stringstream sst;
+  sst << t;
+  std::string lit = sst.str();
+  switch (t.getKind())
+  {
+    case Kind::BOOLEAN: out << "($sm_bool " << nativeConst(lit) << ")"; break;
+    case Kind::NUMERAL:
+      out << "($sm_numeral " << nativeConst(lit) << ")";
+      break;
+    case Kind::STRING:
+      // the native value of a string is its SMT-LIB text, i.e. it includes
+      // its quotes, as in ($native_apply_0 """0""")
+      out << "($sm_string " << nativeConst(replace_all(lit, "\"", "\"\""))
+          << ")";
+      break;
+    case Kind::RATIONAL:
+    {
+      // a native rational is the division of its numerator and denominator
+      size_t div = lit.find('/');
+      Assert(div != std::string::npos);
+      out << "($sm_rational ($native_z_/_total " << nativeConst(lit.substr(0, div))
+          << " " << nativeConst(lit.substr(div + 1)) << "))";
+    }
+    break;
+    case Kind::BINARY:
+    case Kind::HEXADECIMAL:
+    {
+      // the native value of a bit-vector is its width together with the
+      // integer it denotes, e.g. #b01 denotes
+      // ($sm_binary ($native_apply_0 "2") ($native_apply_0 "1"))
+      const Literal* l = t.getValue()->asLiteral();
+      Assert(l != nullptr);
+      std::stringstream ssw;
+      ssw << l->d_bv.getSize();
+      out << "($sm_binary " << nativeConst(ssw.str()) << " "
+          << nativeConst(l->d_bv.getValue().toString()) << ")";
+    }
+    break;
+    case Kind::DECIMAL:
+      EO_FATAL() << "ModelSmt: the literal " << lit
+                 << " of a surface reduction has no embedding yet; write a "
+                    "rational instead of a decimal";
+      break;
+    default: return false;
+  }
+  return true;
+}
+
+std::string ModelSmt::nativeConst(const std::string& val)
+{
+  return "($native_apply_0 \"" + val + "\")";
 }
 
 void ModelSmt::bind(const std::string& name, const Expr& e)
@@ -2385,6 +2409,10 @@ void ModelSmt::printLitReduce(const std::string& name,
 
 void ModelSmt::finalize()
 {
+  // Note the surface reductions of the input have already been registered, by
+  // the define callback that its own commands made, so that a symbol one of
+  // them reduces is known to have a semantics by the time its declaration is
+  // processed below.
   for (std::pair<std::string, Expr>& d : d_declSeen)
   {
     finalizeDecl(d.first, d.second);

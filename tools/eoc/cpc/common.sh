@@ -8,7 +8,9 @@ EOC_COMPAT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EOC_TOOLS_DIR="$(cd "$EOC_COMPAT_DIR/.." && pwd)"
 EOC_REPO_ROOT="$(cd "$EOC_COMPAT_DIR/../../.." && pwd)"
 EOC_DRIVER="$EOC_TOOLS_DIR/driver.py"
-EOC_DEFAULT_CPC_INPUT="$EOC_REPO_ROOT/../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
+# The entry point of CPC is its reduction file, which includes Cpc.eo itself,
+# see plugins/model_smt/cpc.def.eo.
+EOC_DEFAULT_CPC_INPUT="$EOC_REPO_ROOT/plugins/model_smt/cpc.def.eo"
 EOC_DEFAULT_ALETHE_INPUT="$EOC_REPO_ROOT/../AletheInEunoia/signature/Alethe.eo"
 EOC_DEFAULT_FINAL_OUT_DIR="$EOC_TOOLS_DIR/out"
 
@@ -115,8 +117,11 @@ eoc_lean_calc_name() {
   local calc=""
   local part
 
+  # The name of the calculus is the file name up to its first dot, so that
+  # e.g. the entry point cpc.def.eo compiles the same Cpc that Cpc.eo would.
+  # Keep this in sync with input_base_name in tools/eoc/driver.py.
   stem="$(basename "$input_path")"
-  stem="${stem%.*}"
+  stem="${stem%%.*}"
   normalized="$(printf '%s' "$stem" | tr -cs '[:alnum:]' ' ')"
   for part in $normalized; do
     calc+="${part^}"
