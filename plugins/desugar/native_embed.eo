@@ -143,6 +143,10 @@
 (define $native_n_to_char ((n $native_Nat)) n)
 ; uconst utility
 (define $native_to_uconst_id ((x1 $native_Nat)) ($native_apply_1 "uconst_id" x1))
+; abstract constant utility, note this namespace is distinct from the one used
+; by $native_to_uconst_id, so that an abstract constant is never identified
+; with an uninterpreted constant of the input problem.
+(define $native_to_const_id ((x1 $native_Nat)) ($native_apply_1 "const_id" x1))
 
 ; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
 (define $native_apply_nary_3
