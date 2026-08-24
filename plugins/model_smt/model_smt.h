@@ -33,13 +33,14 @@ namespace ethos {
  * What every symbol *means* to the model is not stated here. It is stated by
  * two signatures written directly in the deep embedding: the SMT-LIB one,
  * plugins/model_smt/smt_defs.eo, which is the target and so is fixed, and the
- * one of the input, which --defs names, e.g. plugins/model_smt/cpc_defs.eo for
- * CPC. Each is a sequence of blocks, one per symbol, giving the constructor of
- * the embedding for it, the cases it contributes to `$smtx_typeof`,
- * `$smtx_model_eval`, `$eo_to_smt` and `$eo_to_smt_type`, and the programs
- * those cases call. This plugin names no symbol of any theory: it takes the
- * blocks the input needs, puts what each says where it belongs in the template,
- * and checks that nothing was left without a meaning.
+ * one of the input, which is supplied at construction (the bundled CPC
+ * signature by default). Each is a sequence of blocks, one per symbol, giving
+ * the constructor of the embedding for it, the cases it contributes to
+ * `$smtx_typeof`, `$smtx_model_eval`, `$eo_to_smt` and `$eo_to_smt_type`, and
+ * the programs those cases call. The plugin algorithms contain no per-symbol
+ * model semantics: they take the blocks the input needs, put what each says
+ * where it belongs in the template, and check that nothing was left without a
+ * meaning.
  *
  * So the work is:
  * - bind records what the input declares, in the order it declares it;

@@ -193,7 +193,7 @@ void ModelSmt::finalize()
     {
       EO_FATAL() << "ModelSmt: template is missing placeholder " << tag;
     }
-    StdPlugin::replace(txt, guarded, replacement);
+    txt.replace(pos, guarded.length(), replacement);
   };
 
   // note that the deep embedding is *not* re-incorporated into
