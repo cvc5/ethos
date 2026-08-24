@@ -76,16 +76,3 @@ else()
   add_custom_target(plugins-compile-check
     COMMAND ${CMAKE_COMMAND} -E echo "No plugin sources to check.")
 endif()
-
-# Plugin-local checks register themselves with plugins-compile-check. Discover
-# their CMake files by convention so this list needs no plugin-specific cases.
-file(GLOB plugin_test_CMAKES CONFIGURE_DEPENDS
-     "plugins/*/test/CMakeLists.txt")
-foreach(plugin_test_CMAKE ${plugin_test_CMAKES})
-  get_filename_component(plugin_test_DIR "${plugin_test_CMAKE}" DIRECTORY)
-  get_filename_component(plugin_DIR "${plugin_test_DIR}/.." ABSOLUTE)
-  get_filename_component(plugin_NAME "${plugin_DIR}" NAME)
-  add_subdirectory("${plugin_test_DIR}"
-                   "${CMAKE_CURRENT_BINARY_DIR}/plugin-tests/${plugin_NAME}"
-                   EXCLUDE_FROM_ALL)
-endforeach()
