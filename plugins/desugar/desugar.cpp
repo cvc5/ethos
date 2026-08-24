@@ -709,11 +709,10 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
   {
     return;
   }
-  // A surface reduction keeps its own name, since the model_smt stage matches
-  // on it. The name it keeps is that of the *emitted* symbol it reduces, so
-  // that a reduction of an overloaded symbol names the same symbol here that
-  // its declaration does. See getReduceDefPrefix.
-  std::string emitName = mkParseDefName(name);
+  // The definition was already inlined by the parser, so this command has no
+  // effect on the remainder of the generated output. It is emitted, under the
+  // parse definition prefix, so that the identifier it introduces can still be
+  // resolved when a proof that uses it is parsed. See mkParseDefName.
   bool isMacro = (t.getKind() == Kind::LAMBDA);
   Expr body = isMacro ? t[1] : t;
   std::vector<Expr> vars;
@@ -740,7 +739,7 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
     }
   }
   d_defs << "; define: " << name << std::endl;
-  d_defs << "(define " << emitName << " (";
+  d_defs << "(define " << mkParseDefName(name) << " (";
   // The explicit parameters are printed first, since their order is the order
   // in which the definition takes its arguments. They are followed by the
   // implicit ones, which are the parameters of the types of the explicit ones
