@@ -54,7 +54,14 @@ DEFS_EXCLUDE = re.compile(r'\(echo\s+"eoc-exclude\s+(\S+)\s+(\S+)"\s*\)')
 DESUGAR_VC_DEPS = (
     "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply "
     "$smtx_typeof_value $smtx_model_update $smtx_model_eval_apply "
-    "$smtx_msm_lookup"
+    "$smtx_msm_lookup "
+    # What a verification condition asks of the model is said by the SMT-LIB
+    # template rather than by the EO layer, see plugins/smt_meta/smt_meta.smt2.
+    # The two it says it of have to survive whether or not the rule at hand
+    # asks both -- a rule with no premises asks only one -- and so do the three
+    # the question is phrased with, which nothing in the trimmed EO reaches.
+    "$eo_model_sat $eo_model_unsat "
+    "$eo_to_smt $smtx_typeof $smtx_model_eval"
 )
 
 LEAN_ALL_DEPS = (
@@ -482,7 +489,7 @@ class Pipeline:
         shutil.copyfile(input_file, output_file)
         splice_matching_line(
             output_file,
-            'include eo_model_sat',
+            'include model_smt',
             self.plugin_generated("model_smt/model_smt_gen.eo"),
         )
         return output_file

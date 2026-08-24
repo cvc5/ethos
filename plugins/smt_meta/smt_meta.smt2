@@ -366,6 +366,27 @@ $SM_DEFS$
 ;  :pattern ((veq_ext v1 v2))))
 ;  :named smtx.veq_ext.def))
 
+;;; What a verification condition asks of the model
+
+; The formula a term denotes evaluates, under the model M, to the value v.
+; A term the model gives no type of Bool to answers no. This is the only place
+; that says what the two below mean: the EO layer declares them and never
+; defines them, so that the model itself has nothing to say about how a proof
+; rule is verified.
+(define-fun $eo_model_interprets ((M SmtModel) (F eo.Term) (v vsm.Value)) eo.Term
+  (eo.Boolean (and (Teq ($smtx_typeof ($eo_to_smt F)) tsm.Bool)
+                   (veq ($smtx_model_eval M ($eo_to_smt F)) v))))
+
+(assert (! (forall ((M SmtModel) (F eo.Term))
+  (! (= ($eo_model_sat M F) ($eo_model_interprets M F (vsm.Boolean true)))
+  :pattern (($eo_model_sat M F))))
+  :named eo.model_sat.def))
+
+(assert (! (forall ((M SmtModel) (F eo.Term))
+  (! (= ($eo_model_unsat M F) ($eo_model_interprets M F (vsm.Boolean false)))
+  :pattern (($eo_model_unsat M F))))
+  :named eo.model_unsat.def))
+
 ;;; The verification condition
 
 $SMT_VC$

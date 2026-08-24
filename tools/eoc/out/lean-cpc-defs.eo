@@ -1971,12 +1971,14 @@
 ; An SMT model.
 (define $smt_Model () ($native_embed_smt "SmtModel"))
 
-; A placeholder for asking whether a formula evaluates to true in a model.
+; What a verification condition asks of the model. Neither is defined in EO:
+; what each means is given as an SMT-LIB definition by the template the final
+; query is written from, plugins/smt_meta/smt_meta.smt2, which is the only
+; place that has to say it.
 (program $eo_model_sat () :signature ($smt_Model Bool) Bool)
-; A placeholder for asking whether a formula evaluates to false in a model.
 (program $eo_model_unsat () :signature ($smt_Model Bool) Bool)
 
-; We will include the definition of the above functions here.
+; The model itself is included at this point.
 ; This file defines SMT-LIB model semantics in Eunoia.
 ;
 ; It is a template: the model_smt plugin substitutes the content it generates
@@ -3252,36 +3254,6 @@
 
   (($eo_to_smt (f y))               ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
   (($eo_to_smt y)                   $sm_none)
-  )
-)
-
-(program $eo_model_interprets ((M $smt_Model) (F Bool) (v $smt_Value))
-  :signature ($smt_Model Bool $smt_Value) Bool
-  (
-  (($eo_model_interprets M F v)
-    (eo::define ((G ($eo_to_smt F)))
-    ($native_ite ($native_Teq ($smtx_typeof G) $tsm_Bool)
-      ($native_ite ($native_veq ($smtx_model_eval M G) v)
-        true
-        false)
-      false)))
-  )
-)
-
-; program: $eo_model_sat
-; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
-; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
-; (term of Boolean type).
-(program $eo_model_sat ((M $smt_Model) (F Bool))
-  :signature ($smt_Model Bool) Bool
-  (
-  (($eo_model_sat M F) ($eo_model_interprets M F $vsm_true))
-  )
-)
-(program $eo_model_unsat ((M $smt_Model) (F Bool))
-  :signature ($smt_Model Bool) Bool
-  (
-  (($eo_model_unsat M F) ($eo_model_interprets M F $vsm_false))
   )
 )
 

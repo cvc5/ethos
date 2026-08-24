@@ -1216,36 +1216,6 @@
   )
 )
 
-(program $eo_model_interprets ((M $smt_Model) (F Bool) (v $smt_Value))
-  :signature ($smt_Model Bool $smt_Value) Bool
-  (
-  (($eo_model_interprets M F v)
-    (eo::define ((G ($eo_to_smt F)))
-    ($native_ite ($native_Teq ($smtx_typeof G) $tsm_Bool)
-      ($native_ite ($native_veq ($smtx_model_eval M G) v)
-        true
-        false)
-      false)))
-  )
-)
-
-; program: $eo_model_sat
-; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
-; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
-; (term of Boolean type).
-(program $eo_model_sat ((M $smt_Model) (F Bool))
-  :signature ($smt_Model Bool) Bool
-  (
-  (($eo_model_sat M F) ($eo_model_interprets M F $vsm_true))
-  )
-)
-(program $eo_model_unsat ((M $smt_Model) (F Bool))
-  :signature ($smt_Model Bool) Bool
-  (
-  (($eo_model_unsat M F) ($eo_model_interprets M F $vsm_false))
-  )
-)
-
 
 ;;; Finiteness
 

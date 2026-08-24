@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 324
+; #trim-defs: 321
 (echo "lean-parser-op Int Int 0 0 none -")
 (echo "lean-parser-op Real Real 0 0 none -")
 (echo "lean-parser-op BitVec BitVec 0 1 none -")
@@ -1033,34 +1033,10 @@
   (($eo_to_smt y)                   $sm_none)
   )
 )
-(program $eo_model_interprets ((M $smt_Model) (F Bool) (v $smt_Value))
-  :signature ($smt_Model Bool $smt_Value) Bool
-  (
-  (($eo_model_interprets M F v)
-    (eo::define ((G ($eo_to_smt F)))
-    ($native_ite ($native_Teq ($smtx_typeof G) $tsm_Bool)
-      ($native_ite ($native_veq ($smtx_model_eval M G) v)
-        true
-        false)
-      false)))
-  )
-)
-(program $eo_model_sat ((M $smt_Model) (F Bool))
-  :signature ($smt_Model Bool) Bool
-  (
-  (($eo_model_sat M F) ($eo_model_interprets M F $vsm_true))
-  )
-)
-(program $eo_model_unsat ((M $smt_Model) (F Bool))
-  :signature ($smt_Model Bool) Bool
-  (
-  (($eo_model_unsat M F) ($eo_model_interprets M F $vsm_false))
-  )
-)
 (program $eovc_symm (($eoM $smt_Model) (F Bool))
   :signature (Bool $smt_Model) Bool
   (
   (($eovc_symm F $eoM) (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_model_unsat $eoM ($eo_prog_symm ($eo_pf F))) true true)))
   )
 )
-(echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply $smtx_msm_lookup ")
+(echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply $smtx_msm_lookup $eo_model_sat $eo_model_unsat $eo_to_smt $smtx_typeof $smtx_model_eval ")

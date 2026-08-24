@@ -28,8 +28,9 @@ namespace ethos {
  * Plugin that generates the EO layer for SMT-LIB model semantics.
  *
  * It consumes the desugared EO signature and emits `model_smt_gen.eo`, which
- * defines `$eo_model_sat` and the model-evaluation machinery the SMT and Lean
- * meta encoders use.
+ * defines the model-evaluation machinery the SMT and Lean meta encoders use:
+ * the type language, the value language, and what each symbol of the input
+ * denotes in them.
  *
  * What every symbol *means* to the model is not stated here. It is stated by
  * two signatures written directly in the deep embedding: the SMT-LIB one,
