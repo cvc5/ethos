@@ -1,7 +1,7 @@
 ; The SMT-LIB signature written *directly* in the deep embedding.
 ;
 ; This is what the model-smt stage compiles the SMT-LIB half of a model from.
-; For each of the 128 symbols it covers it gives:
+; For each of the 130 symbols it covers it gives:
 ;
 ;   1. $emb_sm.X       the constructor of the embedding for X, together with
 ;                      the macro $sm_X that applies it;

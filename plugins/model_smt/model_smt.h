@@ -22,8 +22,6 @@
 
 namespace ethos {
 
-
-
 /**
  * Plugin that generates the EO layer for SMT-LIB model semantics.
  *
@@ -36,13 +34,12 @@ namespace ethos {
  * two signatures written directly in the deep embedding: the SMT-LIB one,
  * plugins/model_smt/smt_defs.eo, which is the target and so is fixed, and the
  * one of the input, which --defs names, e.g. plugins/model_smt/cpc_defs.eo for
- * CPC. Each is a
- * sequence of blocks, one per symbol, giving the constructor of the embedding
- * for it, the cases it contributes to `$smtx_typeof`, `$smtx_model_eval`,
- * `$eo_to_smt` and `$eo_to_smt_type`, and the programs those cases call. This
- * plugin names no symbol of any theory: it takes the blocks the input needs,
- * puts what each says where it belongs in the template, and checks that
- * nothing was left without a meaning.
+ * CPC. Each is a sequence of blocks, one per symbol, giving the constructor of
+ * the embedding for it, the cases it contributes to `$smtx_typeof`,
+ * `$smtx_model_eval`, `$eo_to_smt` and `$eo_to_smt_type`, and the programs
+ * those cases call. This plugin names no symbol of any theory: it takes the
+ * blocks the input needs, puts what each says where it belongs in the template,
+ * and checks that nothing was left without a meaning.
  *
  * So the work is:
  * - bind records what the input declares, in the order it declares it;
@@ -62,11 +59,14 @@ namespace ethos {
 class ModelSmt : public StdPlugin
 {
  public:
+  /** Construct the plugin with the bundled CPC input signature. */
+  ModelSmt(State& s);
   /**
-   * Construct the plugin. defsFile names the signature of the *input* written
-   * in the deep embedding, which says what each of its symbols means to the
-   * model; the SMT-LIB signature it is written against is fixed, being the
-   * target rather than a matter of the input. See loadDefs.
+   * Construct the plugin. defsFile is an absolute or working-directory-relative
+   * path to the signature of the *input* written in the deep embedding, which
+   * says what each of its symbols means to the model; the SMT-LIB signature it
+   * is written against is fixed, being the target rather than a matter of the
+   * input. See loadDefs.
    */
   ModelSmt(State& s, const std::string& defsFile);
   /** Destroy the model_smt plugin. */
@@ -77,7 +77,6 @@ class ModelSmt : public StdPlugin
   void finalize() override;
 
  private:
-
   /**
    * Read the signatures written directly in the deep embedding, take the
    * blocks the input needs, and put what each says where it belongs. A symbol
@@ -96,7 +95,7 @@ class ModelSmt : public StdPlugin
    * signatures cover or one no model needs; a symbol that is neither is an
    * error rather than a term the model would say nothing about.
    */
-  void finalizeDecl(const std::string& name, const Expr& e);
+  void finalizeDecl(const std::string& name);
   /** Forward declarations for SMT-LIB model-evaluation helper programs. */
   std::stringstream d_modelEvalProgsFwd;
   /** Auxiliary programs for SMT-LIB model evaluation. */
