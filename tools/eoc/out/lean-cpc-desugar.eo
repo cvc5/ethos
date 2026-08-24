@@ -33,7 +33,6 @@
 (echo "lean-parser-op Char Char 0 0 none -")
 (echo "lean-parser-op Seq Seq 0 1 none -")
 (echo "lean-parser-op not not 0 1 none -")
-(echo "lean-parser-op or or 0 2 right-assoc-nil -")
 (echo "lean-parser-op and and 0 2 right-assoc-nil -")
 (echo "lean-parser-op => => 0 2 right-assoc -")
 (echo "lean-parser-op = = 0 2 chainable and")
@@ -1678,8 +1677,6 @@
 
 ; declare: not
 (declare-const not (-> Bool Bool))
-; declare: or
-(declare-const or (-> Bool (-> Bool Bool)))
 ; declare: and
 (declare-const and (-> Bool (-> Bool Bool)))
 ; declare: =>
@@ -1742,7 +1739,6 @@
   ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)))
   :signature ((-> T U V) (eo::quote W)) W
   (
-  (($eo_nil or T) false)
   (($eo_nil and T) true)
 
   ; builtin case of $eo_List
@@ -1762,7 +1758,6 @@
   ((T Type) (V Type) (f (-> T V V)) (nil V))
   :signature ((-> T V V) V) Bool
   (
-  (($eo_is_list_nil or false) true)
   (($eo_is_list_nil and true) true)
 
   ; builtin case of $eo_List
@@ -1866,11 +1861,11 @@
   (($eo_typeof_not Bool) Bool)
   )
 )
-; program: $eo_typeof_or
-(program $eo_typeof_or ()
+; program: $eo_typeof_and
+(program $eo_typeof_and ()
   :signature (Type Type) Type
   (
-  (($eo_typeof_or Bool Bool) Bool)
+  (($eo_typeof_and Bool Bool) Bool)
   )
 )
 ; program: $eo_typeof_=
@@ -1931,12 +1926,10 @@
   (($eo_typeof (Seq $eo_x1)) ($eo_typeof_Seq ($eo_typeof $eo_x1)))
   ; type-rule: not
   (($eo_typeof (not $eo_x1)) ($eo_typeof_not ($eo_typeof $eo_x1)))
-  ; type-rule: or
-  (($eo_typeof (_ (or $eo_x1) $eo_x2)) ($eo_typeof_or ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
   ; type-rule: and
-  (($eo_typeof (_ (and $eo_x1) $eo_x2)) ($eo_typeof_or ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
+  (($eo_typeof (_ (and $eo_x1) $eo_x2)) ($eo_typeof_and ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
   ; type-rule: =>
-  (($eo_typeof (_ (=> $eo_x1) $eo_x2)) ($eo_typeof_or ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
+  (($eo_typeof (_ (=> $eo_x1) $eo_x2)) ($eo_typeof_and ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
   ; type-rule: =
   (($eo_typeof (_ (= $eo_x1) $eo_x2)) ($eo_typeof_= ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
 

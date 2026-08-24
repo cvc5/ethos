@@ -101,11 +101,8 @@ Desugar::~Desugar() {}
 void Desugar::define(const std::string& name, const Expr& e)
 {
   // By convention, a definition whose name begins with "$" is a helper of the
-  // signature itself and never occurs in a proof, so it is not preserved. The
-  // exception is a surface reduction, which is not a helper of the signature
-  // but part of what the input says about one of its symbols, and which the
-  // model_smt stage reads off this stage's output, see getReduceDefPrefix.
-  if (!name.empty() && name[0] == '$' && !isReduceDefName(name))
+  // signature itself and never occurs in a proof, so it is not preserved.
+  if (!name.empty() && name[0] == '$')
   {
     return;
   }
@@ -716,31 +713,7 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
   // on it. The name it keeps is that of the *emitted* symbol it reduces, so
   // that a reduction of an overloaded symbol names the same symbol here that
   // its declaration does. See getReduceDefPrefix.
-  std::string emitName;
-  if (isReduceDefName(name))
-  {
-    Expr sym = d_state.getVar(getReduceDefSurfaceName(name));
-    if (sym.isNull() || isExcluded(sym, Kind::CONST))
-    {
-      // The reduction of a symbol that is not part of the generated output is
-      // dead, and would moreover be a reduction of nothing at all.
-      Trace("desugar") << "Omit the reduction " << name
-                       << ", whose symbol is not declared" << std::endl;
-      return;
-    }
-    std::stringstream ssn;
-    ssn << getReduceDefPrefix();
-    printName(sym, ssn);
-    emitName = ssn.str();
-  }
-  else
-  {
-    // The definition was already inlined by the parser, so this command has no
-    // effect on the remainder of the generated output. It is emitted, under the
-    // parse definition prefix, so that the identifier it introduces can still
-    // be resolved when a proof that uses it is parsed. See getParseDefPrefix.
-    emitName = mkParseDefName(name);
-  }
+  std::string emitName = mkParseDefName(name);
   bool isMacro = (t.getKind() == Kind::LAMBDA);
   Expr body = isMacro ? t[1] : t;
   std::vector<Expr> vars;

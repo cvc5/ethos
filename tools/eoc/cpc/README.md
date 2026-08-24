@@ -3,21 +3,20 @@
 These bash scripts preserve the old `build-debug/run_gen_*` workflow on top of
 `tools/eoc/driver.py`.
 
-Most wrappers default to the CPC entry point, which is the reduction file that
-includes the external CPC signature:
+Most wrappers default to the external CPC signature:
 
 ```text
-plugins/model_smt/cpc.def.eo   ->   ../cvc5-ajr/proofs/eo/cpc/Cpc.eo
+input: ../cvc5-ajr/proofs/eo/cpc/Cpc.eo
 ```
 
-The path to `Cpc.eo` is the `include` at the top of that file, so a checkout of
-cvc5 in another location needs an entry file of its own; see the `signature
-entry point` section of `tools/eoc/README.md`.
+What its symbols mean to the model is said by `plugins/model_smt/cpc_defs.eo`,
+which the wrappers give the model-smt stage with `--defs`. Override it with
+`EOC_CPC_DEFS`.
 
-`run_gen_lean_all` also applies `cpc_exclusions.eo`, which explicitly omits
-the CPC lambda symbol, its beta-reduction rule, and their private helper
-methods. The exclusion file is a literal list; no dependency analysis is
-performed.
+That file is also where CPC says what the compilation has no place for at all,
+namely the lambda symbol, its beta-reduction rule, and their private helper
+methods; every wrapper leaves those out, not just the ones that compile the
+whole signature. The list is literal; no dependency analysis is performed.
 
 `run_gen_vc_all_alethe` keeps the old Alethe default:
 
@@ -34,9 +33,16 @@ Useful environment variables:
   namely `run_gen_vc_all`, `run_gen_vc_all_alethe`, `run_gen_sygus_all`,
   `run_gen_lean_all`, `run_trim_defs`, and `run_count_deps`.
 - `EOC_SKIP_CVC5=1` to skip solver parse checks.
-- `EOC_CPC_INPUT=/path/to/entry.eo` to override the default CPC entry point.
-  Pointing this at a bare signature rather than at an entry file is supported;
-  that signature then has no surface reductions.
+- `EOC_CPC_INPUT=/path/to/signature.eo` to override the default CPC input. A
+  signature given this way has no model definitions unless `EOC_CPC_DEFS`
+  names them.
+- `EOC_CPC_DEFS=/path/to/defs.eo` to override the signature of the input
+  written in the deep embedding.
+- `EOC_CPC_LEAN_CONFIG=/path/to/termination.lean` to override the termination
+  clauses of the input's programs, which `run_gen_lean` and `run_gen_lean_all`
+  give the lean-meta stage with `--lean-config`. A signature given with
+  `EOC_CPC_INPUT` gets none unless this names them, on the same terms as
+  `EOC_CPC_DEFS`.
 - `EOC_ALETHE_INPUT=/path/to/Alethe.eo` to override the default Alethe
   signature.
 - `EOC_FINAL_OUT_DIR=/path/to/out` to override the published output tree.
@@ -48,7 +54,7 @@ Useful environment variables:
 
 The install wrappers keep their legacy destination module layout. The generated
 Lean module name comes from the input file name up to its first dot, so the
-`cpc.def.eo` entry point generates `Cpc` just as `Cpc.eo` does. If you point
+default input `Cpc.eo` generates `Cpc`. If you point
 `EOC_CPC_INPUT` at an input that names another calculus, the wrappers detect the
 generated module name and rewrite imports back to `Cpc` or `CpcMini` during
 installation.

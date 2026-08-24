@@ -113,42 +113,6 @@ std::string mkParseDefName(const std::string& name);
  */
 std::string getParseDefSurfaceName(const std::string& name);
 
-/**
- * The prefix of the name of a "surface reduction".
- *
- * A symbol of the input signature that has no SMT-LIB semantics of its own is
- * instead *eliminated* on the way to the SMT-LIB term layer, i.e. it is
- * defined in terms of the other symbols of the signature. Such a reduction is
- * an ordinary `define` in the syntax of the signature itself, whose name is
- * this prefix followed by the symbol it reduces and whose parameters are that
- * symbol's explicit arguments, e.g.
- *   (define $eo_reduce_@mod_by_zero ((x Int)) (mod x 0))
- * The reductions of a signature live in a file that is parsed along with it,
- * which is what makes that file the entry point of the signature for this
- * compiler, see plugins/model_smt/cpc.def.eo for CPC.
- *
- * Every stage before model_smt carries a reduction through: the desugar stage
- * re-emits it in the desugared syntax (see Desugar::finalizeDefinition), and
- * trim-defs treats it as a defining command of the symbol it reduces (see
- * parseCommand), so that trimming a signature to one proof rule keeps the
- * reductions of the symbols that survive together with everything their
- * bodies name. ModelSmt::defineReduce is what finally turns one into a case
- * of $eo_to_smt; the backends after model_smt ignore them.
- */
-const std::string& getReduceDefPrefix();
-/** Return true if name is the name of a surface reduction. */
-bool isReduceDefName(const std::string& name);
-/**
- * Return the symbol that the surface reduction named name reduces, i.e. name
- * with getReduceDefPrefix() removed. Requires isReduceDefName(name).
- */
-std::string getReduceDefSurfaceName(const std::string& name);
-/**
- * Return the name of the surface reduction of the symbol named name, i.e.
- * name prefixed by getReduceDefPrefix().
- */
-std::string mkReduceDefName(const std::string& name);
-
 }  // namespace ethos
 
 #endif

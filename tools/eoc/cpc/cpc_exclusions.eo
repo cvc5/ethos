@@ -1,8 +1,0 @@
-; Declarations intentionally omitted from the CPC Lean compilation.
-; This list is explicit: the compiler does not compute dependency closure.
-
-(echo "eoc-exclude symbol lambda")
-(echo "eoc-exclude method $get_lambda_type")
-(echo "eoc-exclude method $beta_reduce_type")
-(echo "eoc-exclude method $beta_reduce")
-(echo "eoc-exclude rule beta-reduce")

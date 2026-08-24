@@ -30,7 +30,9 @@ bool optionEoUserOp() { return true; }
 
 }  // namespace
 
-LeanMetaReduce::LeanMetaReduce(State& s, bool generateParser)
+LeanMetaReduce::LeanMetaReduce(State& s,
+                               bool generateParser,
+                               const std::string& configFile)
     : MetaReducePlugin(s), d_generateParser(generateParser)
 {
   d_typeToMetaKind["$eo_Term"] = MetaKind::EUNOIA;
@@ -50,76 +52,71 @@ LeanMetaReduce::LeanMetaReduce(State& s, bool generateParser)
   // NOTE: any partial def can be forced by adding the method names to
   // d_partialExc, e.g. d_partialExc.insert("$str_re_consume_rec");
 
-  // CPC-specific termination clauses
-  std::string terminate1 = "termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2";
-  d_terminatingBy["$set_is_not_subset"] = terminate1;
-  d_terminatingBy["$seq_distinct_terms"] = terminate1;
-  d_terminatingBy["$dt_distinct_terms"] =
-  "termination_by x1 x2 => sizeOf x1 + sizeOf x2";
-  d_terminatingBy["$are_distinct_terms_type"] = R"(termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2 + 1
-decreasing_by
-  all_goals simp_wf
-  all_goals omega)";
-  d_terminatingBy["$re_flatten"] = R"(termination_by flag tree => 2 * sizeOf tree + (if flag = Term.Boolean true then 1 else 0)
-decreasing_by
-  all_goals simp_wf
-  all_goals omega)";
-  std::string terminate2 = R"(termination_by a b => 4 * (sizeOf a + sizeOf b)
-decreasing_by
-  all_goals simp_wf
-  all_goals omega)";
-  d_terminatingBy["$str_re_includes_lhs_union"] = terminate2;
-  d_terminatingBy["$str_re_includes_lhs_star"] = terminate2;
-  d_terminatingBy["$str_re_includes_rhs_inter"] = terminate2;
-  d_terminatingBy["$str_re_includes_rec"] = terminate2;
-  d_terminatingBy["$str_re_includes_base_rec"] = R"(termination_by a b => 4 * (sizeOf a + sizeOf b) + 1
-decreasing_by
-  all_goals simp_wf
-  all_goals omega)";
-  // Datatype defaults recurse through a mutually inductive type/declaration
-  // tree. The declaration suffix is the datatype recursion budget; the small
-  // offsets orient calls through datatype, constructor, and field helpers.
-  d_terminatingBy["$smtx_type_default"] =
-      "termination_by T => 2 * sizeOf T";
-  d_terminatingBy["$smtx_datatype_decl_default"] =
-      "termination_by ddF => 2 * sizeOf ddF";
-  d_terminatingBy["$smtx_datatype_default"] =
-      "termination_by dF ddF => 2 * (sizeOf dF + sizeOf ddF) + 1";
-  d_terminatingBy["$smtx_datatype_cons_default"] =
-      "termination_by c ddF => 2 * (sizeOf c + sizeOf ddF) + 2";
-  d_terminatingBy["$smtx_field_type_default"] = R"(termination_by T ddF => 2 * (sizeOf T + sizeOf ddF) + 3
-decreasing_by
-  all_goals simp_wf
-  all_goals omega)";
-  // Type boundedness (unit/finite) computes a fixpoint over datatype
-  // declarations. The lexicographic measures decrease on the structural
-  // component for descents into subterms, on the pass countdown for the
-  // fixpoint iteration, and on the final component for the tie between
-  // field types and their recheck as ordinary types.
-  d_terminatingBy["$smtx_type_bounded"] =
-      "termination_by T => (sizeOf T, 0)";
-  d_terminatingBy["$smtx_datatype_decl_bounded"] =
-      "termination_by ddC dd ddB => (sizeOf dd, sizeOf ddC)";
-  d_terminatingBy["$smtx_datatype_decl_bounded_step"] =
-      "termination_by ddR ddB => (sizeOf ddR, 0)";
-  d_terminatingBy["$smtx_datatype_bounded"] =
-      "termination_by dF ddB => (sizeOf dF, 0)";
-  d_terminatingBy["$smtx_datatype_cons_bounded"] =
-      "termination_by c ddB => (sizeOf c, 0)";
-  d_terminatingBy["$smtx_field_type_bounded"] =
-      "termination_by T ddB => (sizeOf T, 1)";
-  std::string terminate3 = R"(termination_by t => sizeOf t
-decreasing_by
-  all_goals simp_wf
-  all_goals omega)";
-    d_terminatingBy["$str_re_includes_lhs_union"] = terminate2;
-  std::string terminateM = R"(termination_by structural t => t
+  // Why a generated definition terminates is Lean text rather than anything
+  // this plugin derives, so it is stated in a file of its own. The one of the
+  // deep embedding holds for every input; the one of the input signature is
+  // named on the command line, and an input whose programs all recurse
+  // structurally needs none.
+  readTerminationClauses(getResourcePath("plugins/lean_meta/termination.lean"));
+  if (!configFile.empty())
+  {
+    readTerminationClauses(configFile);
+  }
+}
 
-private theorem __smtx_model_eval_eqns_cache (M : SmtModel) (b : native_Bool) :
-    __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
-  unfold __smtx_model_eval
-  rfl)";
-  d_terminatingBy["$smtx_model_eval"] = terminateM;
+void LeanMetaReduce::readTerminationClauses(const std::string& path)
+{
+  std::ifstream in(path);
+  if (!in.is_open())
+  {
+    EO_FATAL() << "LeanMetaReduce: could not read the termination clauses at "
+               << path;
+  }
+  // the programs the block being read is of, and the text of the clause
+  std::vector<std::string> names;
+  std::stringstream body;
+  // A block ends where the next one begins, so what has been read is taken
+  // once the whole of it is known, here and again at the end of the file.
+  auto take = [&]() {
+    std::string text = body.str();
+    size_t e = text.find_last_not_of(" \t\n");
+    text = (e == std::string::npos ? "" : text.substr(0, e + 1));
+    if (!text.empty())
+    {
+      for (const std::string& n : names)
+      {
+        d_terminatingBy[n] = text;
+      }
+    }
+    names.clear();
+    body.str("");
+  };
+  std::string line;
+  while (std::getline(in, line))
+  {
+    // A clause is Lean text and holds no comment of its own, so a comment
+    // line ends the block being read, whether it opens the next one by naming
+    // what its clause is of or is prose written between the two.
+    if (line.compare(0, 2, "--") == 0)
+    {
+      take();
+      if (line.compare(0, 4, "-- $") == 0)
+      {
+        std::stringstream ls(line.substr(3));
+        std::string name;
+        while (ls >> name)
+        {
+          names.push_back(name);
+        }
+      }
+      continue;
+    }
+    if (!names.empty())
+    {
+      body << line << std::endl;
+    }
+  }
+  take();
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}
@@ -1101,13 +1098,6 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
     d_parseDefs.emplace_back(getParseDefSurfaceName(name), e);
     return;
   }
-  if (isReduceDefName(name))
-  {
-    // A surface reduction, which gave the symbol it reduces its SMT-LIB
-    // semantics in the model_smt stage and has no meaning of its own after
-    // it, see getReduceDefPrefix.
-    return;
-  }
   // NOTE: the code here ensures that we preserve definitions for the final vc.
   // This is required since we do not replace e.g. eo::list_concat with
   // $eo_list_concat until the final generation of smt2. This means that this
@@ -1460,9 +1450,9 @@ void LeanMetaReduce::printParserOp(const ParserOp& op,
     exact << ".exact " << op.d_termArity;
     arity = exact.str();
   }
-  // `Logos.Parser.Arity` does not model every argument-list attribute. These
-  // do not occur in CPC; warn rather than silently emit Lean that will not
-  // compile.
+  // `Logos.Parser.Arity` does not model every argument-list attribute. No
+  // signature compiled so far uses one of these; warn rather than silently
+  // emit Lean that will not compile.
   if (arity.rfind(".leftAssocNil", 0) == 0 || arity.rfind(".pairwise", 0) == 0
       || arity.find("NonSingletonNil") != std::string::npos)
   {

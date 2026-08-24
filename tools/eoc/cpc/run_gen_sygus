@@ -18,6 +18,7 @@ if (( ${#EOC_FILTERED_ARGS[@]} != 1 )); then
   echo "usage: $0 [--solve] [--solve-args=\"ARGS\"] RULE" >&2
   exit 2
 fi
+eoc_add_defs
 ARGS+=("$INPUT" "${EOC_FILTERED_ARGS[0]}")
 
 eoc_exec_driver "${ARGS[@]}"

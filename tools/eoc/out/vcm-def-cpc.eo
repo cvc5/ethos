@@ -1966,6 +1966,13 @@
 
 ; We will include the definition of the above functions here.
 ; This file defines SMT-LIB model semantics in Eunoia.
+;
+; It is a template: the model_smt plugin substitutes the content it generates
+; for each of the `;$...$` placeholders below. Every placeholder is commented
+; out so that this file parses as it stands, which is what lets the SMT-LIB
+; signature be written in the vocabulary it declares, see
+; plugins/model_smt/smt.eo. A substitution replaces the comment character along
+; with the placeholder, so the generated content takes the whole line.
 ; The programs in this file operate on datatypes that correspond to
 ; a deep embedding of SMT-LIB values.
 ; In particular, we use the following types:
@@ -2103,21 +2110,6 @@
 (define $sm_bind ((s $native_String) (T $smt_Type) (t1 $smt_Term) (t2 $smt_Term))
   ($emb_sm.bind s T t1 t2))
   
-; map difference
-(declare-parameterized-const $emb_sm.map_diff
-  ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque))
-  $smt_Term)
-(define $sm_map_diff ((x1 $smt_Term) (x2 $smt_Term)) ($emb_sm.map_diff x1 x2))
-
-; sequence difference
-; Given two sequences x1 and x2 of the same type, returns an index (of type
-; Int) at which they differ, if any. This is the sequence analogue of map
-; difference above, where the witness is an index instead of a key.
-(declare-parameterized-const $emb_sm.seq_diff
-  ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque))
-  $smt_Term)
-(define $sm_seq_diff ((x1 $smt_Term) (x2 $smt_Term)) ($emb_sm.seq_diff x1 x2))
-
 ; the ci^th constructor of datatype ($tsm_Datatype s dd).
 (declare-parameterized-const $emb_sm.DtCons
   ((s $native_String :opaque) (d $smt_DatatypeDecl :opaque)
@@ -2276,8 +2268,6 @@
 (declare-parameterized-const $emb_tsm.DtcAppType
   ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
 (define $tsm_DtcAppType ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.DtcAppType Ti Te))
-
-; all other ordinary type definitions
 
 
 ;;;;;; SMT values
@@ -2589,21 +2579,6 @@
   )
 )
 
-; for n-ary functions (not strictly necessary in theory)
-;(program $smtx_fun_type_wf ((T $smt_Type) (U $smt_Type))
-;  :signature ($smt_Type $smt_Type) $native_Bool
-;  (
-;  (($smtx_fun_type_wf T ($tsm_FunType U V))
-;    ($native_and
-;      ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T T $native_reflist_nil))
-;      ($smtx_fun_type_wf U V)))
-;  (($smtx_fun_type_wf T U)
-;    ($native_and
-;      ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T T $native_reflist_nil))
-;      ($native_and ($native_inhabited_type U) ($smtx_type_wf_rec U U $native_reflist_nil))))
-;  )
-;)
-
 (program $smtx_type_wf_component ((T $smt_Type))
   :signature ($smt_Type) $native_Bool
   (
@@ -2717,14 +2692,6 @@
   )
 )
 
-;(program $smtx_elem_typeof_map ((T $smt_Type) (U $smt_Type))
-;  :signature ($smt_Type) $smt_Type
-;  (
-;  (($smtx_elem_typeof_map ($tsm_Map T U)) U)
-;  (($smtx_elem_typeof_map T) $tsm_none)
-;  )
-;)
-
 ;;; Map as sets
 
 ; A set is a mapping to Bool.
@@ -2768,34 +2735,7 @@
 
 ;;; Utilities for Function values
 
-;(program $smtx_map_to_fun_type ((T $smt_Type) (U $smt_Type))
-;  :signature ($smt_Type) $smt_Type
-;  (
-;  (($smtx_map_to_fun_type ($tsm_Map T U)) ($tsm_FunType T U))
-;  (($smtx_map_to_fun_type T) $tsm_none)
-;  )
-;)
-
-;(program $smtx_map_to_fun_value ((m $smt_Map) (v $smt_Value))
-;  :signature ($smt_Value) $smt_Value
-;  (
-;  (($smtx_map_to_fun_value ($vsm_map m)) ($vsm_fun m))
-;  (($smtx_map_to_fun_value v) $vsm_not_value)
-;  )
-;)
-
 ;;; Utilities for Sequence values
-
-(program $smtx_ssm_seq_nth
-  ((v $smt_Value) (vs $smt_Seq) (n $native_Int) (T $smt_Type) (d $smt_Value))
-  :signature ($smt_Seq $native_Int $smt_Value) $smt_Value
-  (
-  (($smtx_ssm_seq_nth ($ssm_empty T) n d)                     d)
-  (($smtx_ssm_seq_nth ($ssm_cons v vs) $native_z_zero d) v)
-  (($smtx_ssm_seq_nth ($ssm_cons v vs) n d)
-    ($smtx_ssm_seq_nth vs ($native_z_dec n) d))
-  )
-)
 
 ; Returns the type of the map value or tsm_none
 (program $smtx_typeof_seq_value
@@ -2978,15 +2918,6 @@
 
 ;;; Arithmetic
 
-(program $smtx_model_eval_to_real_coerce ((x1 $native_Int) (x2 $native_Rat) (v $smt_Value))
-  :signature ($smt_Value) $smt_Value
-  (
-  (($smtx_model_eval_to_real_coerce ($vsm_numeral x1)) ($vsm_rational ($native_apply_1 "to_real" x1)))
-  (($smtx_model_eval_to_real_coerce ($vsm_rational x2)) ($vsm_rational x2))
-  (($smtx_model_eval_to_real_coerce v) $vsm_not_value)
-  )
-)
-
 ;;; Functions, arrays
 
 ; Array select
@@ -3000,36 +2931,6 @@
   )
 )
 
-; Array store
-(program $smtx_map_store
-  ((v $smt_Value) (i $smt_Value) (e $smt_Value) (m $smt_Map))
-  :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_map_store ($vsm_map m) i e) ($vsm_map ($smtx_msm_update m i e)))
-  (($smtx_map_store ($vsm_set m) i e) ($vsm_set ($smtx_msm_update m i e)))
-  (($smtx_map_store v i e)            $vsm_not_value)
-  )
-)
-
-(program $smtx_model_eval_map_diff
-  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_model_eval_map_diff ($vsm_map m1) ($vsm_map m2)) ($native_apply_2 "eval_map_diff_msm" m1 m2))
-  (($smtx_model_eval_map_diff ($vsm_set m1) ($vsm_set m2)) ($native_apply_2 "eval_map_diff_msm" m1 m2))
-  (($smtx_model_eval_map_diff v1 v2) $vsm_not_value)
-  )
-)
-
-(program $smtx_model_eval_seq_diff
-  ((s1 $smt_Seq) (s2 $smt_Seq) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_model_eval_seq_diff ($vsm_seq s1) ($vsm_seq s2)) ($native_apply_2 "eval_seq_diff_ssm" s1 s2))
-  (($smtx_model_eval_seq_diff v1 v2) $vsm_not_value)
-  )
-)
-
 ;;; Sets
 
 ; Empty set
@@ -3040,45 +2941,6 @@
 (define $smtx_set_singleton ((e $smt_Value))
   ($vsm_set ($smtx_mss_insert e ($msm_empty_set ($smtx_typeof_value e)))))
 
-; Set intersection
-; return the intersection of two set values.
-(program $smtx_set_inter
-  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_set_inter ($vsm_set m1) ($vsm_set m2))
-    ; m1 intersected m2 starting with empty set.
-    ($vsm_set ($smtx_mss_op_internal $native_true m1 m2 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))))))
-  (($smtx_set_inter v1 v2)  $vsm_not_value)
-  )
-)
-
-; Set minus
-; return the set minus of two set values.
-(program $smtx_set_minus
-  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_set_minus ($vsm_set m1) ($vsm_set m2))
-    ; m1 minus m2 starting with empty set.
-    ($vsm_set ($smtx_mss_op_internal $native_false m1 m2 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))))))
-  (($smtx_set_minus v1 v2)  $vsm_not_value)
-  )
-)
-
-; Set union
-; return the union of two set values.
-(program $smtx_set_union
-  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_set_union ($vsm_set m1) ($vsm_set m2))
-    ; m1 minus the empty set starting with m2.
-    ($vsm_set ($smtx_mss_op_internal $native_false m1 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))) m2)))
-  (($smtx_set_union v1 v2)  $vsm_not_value)
-  )
-)
-
 ;;; Sequences
 
 ; Empty sequence
@@ -3087,32 +2949,6 @@
 ; Sequence unit
 (define $smtx_seq_unit ((e $smt_Value))
   ($vsm_seq ($ssm_cons e ($ssm_empty ($smtx_typeof_value e)))))
-
-(program $smtx_seq_nth_wrong
-  ((M $smt_Model) (s $smt_Seq) (n $native_Int) (T $smt_Type))
-  :signature ($smt_Model $smt_Seq $native_Int $smt_Type) $smt_Value
-  (
-  (($smtx_seq_nth_wrong M s n ($tsm_Seq T))
-    ($smtx_map_select
-      ($smtx_map_select
-        ($native_apply_3 "model_lookup" M ($native_apply_0 "oob_seq_nth_id")
-          ($tsm_Map ($tsm_Seq T) ($tsm_Map $tsm_Int T)))
-        ($vsm_seq s))
-      ($vsm_numeral n)))
-  (($smtx_seq_nth_wrong M s n T)  $vsm_not_value)
-  )
-)
-
-; Sequence nth
-(program $smtx_seq_nth
-  ((M $smt_Model) (s $smt_Seq) (n $native_Int) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Model $smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_seq_nth M ($vsm_seq s) ($vsm_numeral n))
-    ($smtx_ssm_seq_nth s n ($smtx_seq_nth_wrong M s n ($smtx_typeof_seq_value s))))
-  (($smtx_seq_nth M v1 v2) $vsm_not_value)
-  )
-)
 
 ;;; Bit-vectors
 
@@ -3256,10 +3092,6 @@
   ; the first term.
   (($smtx_model_eval M ($sm_bind s T x1 x2))
     ($smtx_model_eval ($native_apply_4 "model_push" M s T ($smtx_model_eval M x1)) x2))
-  (($smtx_model_eval M ($sm_map_diff x1 x2))
-    ($smtx_model_eval_map_diff ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
-  (($smtx_model_eval M ($sm_seq_diff x1 x2))
-    ($smtx_model_eval_seq_diff ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
   ; datatypes
   (($smtx_model_eval M ($sm_DtCons s dd i)) ($vsm_DtCons s dd i))
   (($smtx_model_eval M ($sm_apply ($sm_DtSel s dd i j) x1))
@@ -3304,28 +3136,6 @@
   (($smtx_typeof_apply ($tsm_DtcAppType T U) V)
     ($smtx_typeof_guard T ($native_ite ($native_Teq T V) U $tsm_none)))
   (($smtx_typeof_apply T U)               $tsm_none)
-  )
-)
-
-(program $smtx_typeof_map_diff
-  ((T1 $smt_Type) (U1 $smt_Type) (T2 $smt_Type) (U2 $smt_Type))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_map_diff ($tsm_Map T1 U1) ($tsm_Map T2 U2))
-    ($native_ite ($native_and ($native_Teq T1 T2) ($native_Teq U1 U2)) T1 $tsm_none))
-  (($smtx_typeof_map_diff ($tsm_Set T1) ($tsm_Set T2))
-    ($native_ite ($native_Teq T1 T2) T1 $tsm_none))
-  (($smtx_typeof_map_diff T1 T2) $tsm_none)
-  )
-)
-
-(program $smtx_typeof_seq_diff
-  ((T1 $smt_Type) (T2 $smt_Type))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_seq_diff ($tsm_Seq T1) ($tsm_Seq T2))
-    ($native_ite ($native_Teq T1 T2) $tsm_Int $tsm_none))
-  (($smtx_typeof_seq_diff T1 T2) $tsm_none)
   )
 )
 
@@ -3497,10 +3307,6 @@
   ; the binding is well-typed) and T is well-formed/inhabited.
   (($smtx_typeof ($sm_bind s T x1 x2))
     ($native_ite ($native_Teq ($smtx_typeof x1) T) ($smtx_typeof_guard_wf T ($smtx_typeof x2)) $tsm_none))
-  (($smtx_typeof ($sm_map_diff x1 x2))
-    ($smtx_typeof_map_diff ($smtx_typeof x1) ($smtx_typeof x2)))
-  (($smtx_typeof ($sm_seq_diff x1 x2))
-    ($smtx_typeof_seq_diff ($smtx_typeof x1) ($smtx_typeof x2)))
   ; datatypes
   (($smtx_typeof ($sm_DtCons s dd i))
     ($smtx_typeof_guard_wf ($tsm_Datatype s dd)
@@ -3536,17 +3342,6 @@
 (program $eo_to_smt_type () :signature (Type) $smt_Type)
 (program $eo_to_smt_exists () :signature ($eo_List $smt_Term) $smt_Term)
 
-; utilities
-;(program $eo_to_smt_guard_closed ((t $eo_Term) (s $smt_Term))
-;  :signature ($eo_Term $smt_Term) $smt_Term
-;  (
-;  (($eo_to_smt_guard_closed t s) ($native_ite ($native_apply_1 "eo_to_smt_closed" t) s $sm_none))
-;  )
-;)
-
-; auxiliary definitions for defining $eo_to_smt / $eo_to_smt_type
-
-
 ; helper for CPC Tuple
 ; In $eo_to_smt_type, (Tuple x1 x2) returns
 ;   ($eo_to_smt_type_tuple ($eo_to_smt_type x1) ($eo_to_smt_type x2))
@@ -3560,40 +3355,9 @@
   )
 )
 
-(program $eo_to_smt_type_tuple
-  ((U $smt_Type) (T $smt_Type) (s $native_String) (s2 $native_String)
-   (c $smt_DatatypeCons))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($eo_to_smt_type_tuple U ($tsm_Datatype s ($dd_cons s2 ($dt_sum c $dt_null) $dd_nil)))
-    (eo::define ((d ($dt_sum ($dtc_cons U c) $dt_null)))
-      ($native_ite
-        ($native_and
-          ($native_and
-            ($native_str_= s $native_str_tuple_name)
-            ($native_str_= s2 $native_str_tuple_name))
-          ($smtx_type_wf_component U))
-        ($tsm_Datatype $native_str_tuple_name ($smtx_tuple_datatype_decl d))
-        $tsm_none)))
-  (($eo_to_smt_type_tuple U T) $tsm_none)
-  )
-)
+; auxiliary definitions for defining $eo_to_smt / $eo_to_smt_type
 
-(program $eo_to_smt_nat ((n $native_Int) (t $eo_Term))
-  :signature ($eo_Term) $native_Nat
-  (
-  (($eo_to_smt_nat ($eot_numeral n)) ($native_z_to_n n))
-  (($eo_to_smt_nat t) $native_n_zero)
-  )
-)
 
-(program $eo_to_smt_nat_is_valid ((n $native_Int) (t $eo_Term))
-  :signature ($eo_Term) $native_Bool
-  (
-  (($eo_to_smt_nat_is_valid ($eot_numeral n)) ($native_z_<= $native_z_zero n))
-  (($eo_to_smt_nat_is_valid t) $native_false)
-  )
-)
 
 (program $eo_to_smt_datatype_cons ((U $eo_Term) (c $eo_DatatypeCons))
   :signature ($eo_DatatypeCons) $smt_DatatypeCons
@@ -3619,14 +3383,6 @@
   (($eo_to_smt_datatype_decl ($edd_cons s d dd))
     ($dd_cons s ($eo_to_smt_datatype d) ($eo_to_smt_datatype_decl dd)))
   (($eo_to_smt_datatype_decl $edd_nil) $dd_nil)
-  )
-)
-
-(program $eo_to_smt_set_elem_type ((T $smt_Type))
-  :signature ($smt_Type) $smt_Type
-  (
-  (($eo_to_smt_set_elem_type ($tsm_Set T)) T)
-  (($eo_to_smt_set_elem_type T) $tsm_none)
   )
 )
 
@@ -3659,159 +3415,6 @@
   (($eo_to_smt_type (Seq x1)) ($smtx_typeof_guard ($eo_to_smt_type x1) ($tsm_Seq ($eo_to_smt_type x1))))
 
   (($eo_to_smt_type T)                      $tsm_none)
-  )
-)
-
-; helper for CPC tuple constructor
-; Given an application of (tuple a1 a2), returns the same application
-; but where now tuple is the instance of the tuple constructor that expects
-; another argument of type T.
-(program $eo_to_smt_tuple_prepend_rec
-  ((dd $smt_DatatypeDecl) (d $smt_Datatype) (tail $smt_Term) (n $native_Nat)
-   (acc $smt_Term))
-  :signature ($smt_DatatypeDecl $smt_Datatype $smt_Term $native_Nat $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_tuple_prepend_rec dd d tail $native_n_zero acc) acc)
-  (($eo_to_smt_tuple_prepend_rec dd d tail ($native_n_succ n) acc)
-    ($sm_apply
-      ($eo_to_smt_tuple_prepend_rec dd d tail n acc)
-      ($sm_apply
-        ($sm_DtSel $native_str_tuple_name dd $native_n_zero n) tail)))
-  )
-)
-
-(program $eo_to_smt_tuple_prepend_of_type
-  ((T $smt_Type) (h $smt_Term) (hT $smt_Type) (tail $smt_Term) 
-   (c $smt_DatatypeCons) (s $native_String) (s2 $native_String))
-  :signature ($smt_Type $smt_Term $smt_Type $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_tuple_prepend_of_type 
-    ($tsm_Datatype s ($dd_cons s2 ($dt_sum c $dt_null) $dd_nil)) h hT tail)
-      (eo::define ((d ($dt_sum c $dt_null)))
-      (eo::define ((d2 ($dt_sum ($dtc_cons hT c) $dt_null)))
-      (eo::define ((dd ($smtx_tuple_datatype_decl d)))
-      (eo::define ((dd2 ($smtx_tuple_datatype_decl d2)))
-      ($native_ite
-        ($native_and
-          ($native_and
-            ($native_str_= s $native_str_tuple_name)
-            ($native_str_= s2 $native_str_tuple_name))
-          ($smtx_type_wf ($tsm_Datatype $native_str_tuple_name dd2)))
-        ($eo_to_smt_tuple_prepend_rec dd d tail ($smtx_dt_num_sels d $native_n_zero)
-          ($sm_apply ($sm_DtCons $native_str_tuple_name dd2 $native_n_zero) h))
-        $sm_none))))))
-  (($eo_to_smt_tuple_prepend_of_type T h hT tail) $sm_none)
-  )
-)
-
-(program $eo_to_smt_tuple_prepend
-  ((h $smt_Term) (hT $smt_Type) (tail $smt_Term) (c $smt_DatatypeCons))
-  :signature ($smt_Term $smt_Type $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_tuple_prepend h hT tail)
-    ($eo_to_smt_tuple_prepend_of_type ($smtx_typeof tail) h hT tail))
-  )
-)
-
-; In eo_to_smt, (tuple.select x1 x2) returns
-;   ($eo_to_smt_tuple_select ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2))
-(program $eo_to_smt_tuple_select
-  ((T $smt_Type) (s $native_String) (s2 $native_String) (d $smt_Datatype)
-   (n $native_Int) (t $smt_Term))
-  :signature ($smt_Type $smt_Term $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_tuple_select ($tsm_Datatype s ($dd_cons s2 d $dd_nil)) ($sm_numeral n) t)
-    ($native_ite 
-      ($native_and
-        ($native_and
-          ($native_str_= s $native_str_tuple_name)
-          ($native_str_= s2 $native_str_tuple_name))
-        ($native_z_<= $native_z_zero n))
-      ($sm_apply
-        ($sm_DtSel $native_str_tuple_name ($smtx_tuple_datatype_decl d) $native_n_zero ($native_z_to_n n))
-        t)
-      $sm_none))
-  (($eo_to_smt_tuple_select T n t)                    $sm_none)
-  )
-)
-
-; In eo_to_smt, (is x1) returns ($eo_to_smt_tester ($eo_to_smt x1)).
-(program $eo_to_smt_tester
-  ((s $native_String) (dd $smt_DatatypeDecl) (n $native_Nat) (t $smt_Term))
-  :signature ($smt_Term) $smt_Term
-  (
-  (($eo_to_smt_tester ($sm_DtCons s dd n))  ($sm_DtTester s dd n))
-  (($eo_to_smt_tester t)                   $sm_none)
-  )
-)
-
-; ($eo_to_smt_updater_rec s mn k t u acc)
-; returns the constructor app that is equivalent to u
-; but where the selector s field is updated to t.
-(program $eo_to_smt_updater_rec
-  ((s $native_String) (dd $smt_DatatypeDecl) (n $native_Nat) (m $native_Nat)
-   (k $native_Nat) (t $smt_Term) (u $smt_Term) (acc $smt_Term) (v $smt_Term))
-  :signature ($smt_Term $native_Nat $smt_Term $smt_Term $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_updater_rec ($sm_DtSel s dd n m) $native_n_zero t u acc) acc)
-  (($eo_to_smt_updater_rec ($sm_DtSel s dd n m) ($native_n_succ k) t u acc)
-    (eo::define ((arg ($native_ite ($native_n_= m k) u ($sm_apply ($sm_DtSel s dd n k) t))))
-      ($sm_apply ($eo_to_smt_updater_rec ($sm_DtSel s dd n m) k t u acc) arg)))
-  (($eo_to_smt_updater_rec v k t u acc) $sm_none)
-  )
-)
-
-; (update x1 x2 x3) returns
-;   ($eo_to_smt_updater ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt_x3))
-(program $eo_to_smt_updater
-  ((s $native_String) (dd $smt_DatatypeDecl)
-   (n $native_Nat) (m $native_Nat) (sel $smt_Term) (t $smt_Term) (u $smt_Term))
-  :signature ($smt_Term $smt_Term $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_updater ($sm_DtSel s dd n m) t u)
-    (eo::define ((nargs ($smtx_dt_num_sels ($smtx_dd_lookup s dd) n)))
-    ($native_ite ($native_z_< ($native_n_to_z m) ($native_n_to_z nargs))
-      ($sm_ite ($sm_apply ($sm_DtTester s dd n) t)
-        ($eo_to_smt_updater_rec ($sm_DtSel s dd n m) nargs t u ($sm_DtCons s dd n))
-        t)
-      $sm_none)))
-  (($eo_to_smt_updater sel t u)                     $sm_none)
-  )
-)
-
-
-; In eo_to_smt, (tuple.update x1 x2) returns
-;   ($eo_to_smt_tuple_update
-;     ($eo_to_smt_type ($eo_typeof x2)) ($eo_to_smt x1) ($eo_to_smt x2) ($eo_to_smt x3))
-(program $eo_to_smt_tuple_update
-  ((T $smt_Type) (d $smt_Datatype) (n $native_Int) (t $smt_Term) (u $smt_Term)
-   (s $native_String) (s2 $native_String))
-  :signature ($smt_Type $smt_Term $smt_Term $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_tuple_update ($tsm_Datatype s ($dd_cons s2 d $dd_nil)) ($sm_numeral n) t u)
-    ($native_ite 
-      ($native_and
-        ($native_and
-          ($native_str_= s $native_str_tuple_name)
-          ($native_str_= s2 $native_str_tuple_name))
-        ($native_z_<= $native_z_zero n))
-      ($eo_to_smt_updater
-        ($sm_DtSel $native_str_tuple_name ($smtx_tuple_datatype_decl d) $native_n_zero ($native_z_to_n n))
-        t
-        u)
-      $sm_none))
-  (($eo_to_smt_tuple_update T n t u)                    $sm_none)
-  )
-)
-
-(program $eo_to_smt_exists
-  ((s $native_String) (T $eo_Term) (vs $eo_List) (F $eo_Term))
-  :signature ($eo_List $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_exists $eo_List_nil F) F)
-  (($eo_to_smt_exists ($eo_List_cons ($eot_Var ($eot_string s) T) vs) F)
-    ($sm_exists s ($eo_to_smt_type T) ($eo_to_smt_exists vs F)))
-  (($eo_to_smt_exists vs F) $sm_none)
   )
 )
 

@@ -1,5 +1,5 @@
 ; trim-defs: symm
-; #trim-defs: 15
+; #trim-defs: 24
 (declare-const not (-> Bool Bool))
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-parameterized-const = ((A Type :implicit)) (-> A A Bool) :chainable and)

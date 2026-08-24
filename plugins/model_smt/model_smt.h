@@ -10,6 +10,7 @@
 #define PLUGIN_MODEL_SMT_H
 
 #include <map>
+#include <set>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -17,290 +18,84 @@
 #include <vector>
 
 #include "../std_plugin.h"
+#include "defs_reader.h"
 
 namespace ethos {
+
+
 
 /**
  * Plugin that generates the EO layer for SMT-LIB model semantics.
  *
- * model_smt consumes the desugared EO signature and emits
- * `model_smt_gen.eo`, which defines `$eo_model_sat` and the supporting
- * model-evaluation machinery used by later SMT/Lean meta encoders.  It maps
- * Eunoia constants to SMT-LIB terms, types, and values, generates datatype
- * constructors for the deep embedding, and adds evaluation/typeof cases for
- * supported SMT-LIB operators.
+ * It consumes the desugared EO signature and emits `model_smt_gen.eo`, which
+ * defines `$eo_model_sat` and the model-evaluation machinery the SMT and Lean
+ * meta encoders use.
  *
- * The operator tables initialized by this class are part of the trusted
- * semantic bridge from Eunoia syntax to SMT-LIB behavior.  Unknown user
- * symbols are rejected during finalization rather than silently modeled as
- * uninterpreted symbols.
+ * What every symbol *means* to the model is not stated here. It is stated by
+ * two signatures written directly in the deep embedding: the SMT-LIB one,
+ * plugins/model_smt/smt_defs.eo, which is the target and so is fixed, and the
+ * one of the input, which --defs names, e.g. plugins/model_smt/cpc_defs.eo for
+ * CPC. Each is a
+ * sequence of blocks, one per symbol, giving the constructor of the embedding
+ * for it, the cases it contributes to `$smtx_typeof`, `$smtx_model_eval`,
+ * `$eo_to_smt` and `$eo_to_smt_type`, and the programs those cases call. This
+ * plugin names no symbol of any theory: it takes the blocks the input needs,
+ * puts what each says where it belongs in the template, and checks that
+ * nothing was left without a meaning.
  *
- * A symbol that has no SMT-LIB semantics of its own is instead *eliminated* on
- * the way to the SMT-LIB term layer, by a case of `$eo_to_smt` resp.
- * `$eo_to_smt_type`. Such a reduction comes from one of two places:
- * - A *surface* reduction, i.e. a `define` of the input written in the syntax
- *   of the signature itself, see getReduceDefPrefix and defineReduce. This is
- *   the user-facing way of giving a symbol its semantics. The reductions of a
- *   signature are what makes its reduction file its entry point, so that they
- *   are parsed along with it and carried through the stages before this one;
- *   this plugin only reads them back off its input, in define below.
- * - A reduction registered by addEunoiaReduceSym below, whose right hand side
- *   is a term of the deep embedding. This is for the symbols the input
- *   signature cannot express, e.g. those whose reduction binds a variable,
- *   inspects an SMT-LIB type, or names an operator of the embedding that has
- *   no counterpart in the signature.
+ * So the work is:
+ * - bind records what the input declares, in the order it declares it;
+ * - loadDefs reads the two signatures, selects the blocks of the symbols the
+ *   input declares together with every block those name, and fills the streams
+ *   below from them;
+ * - finalizeDecl checks each declared symbol is covered, is internal, or is an
+ *   error, which is what keeps a verification condition from claiming to model
+ *   a symbol it says nothing about;
+ * - finalize substitutes the streams into plugins/model_smt/model_smt.eo.
+ *
+ * A constructor and a case are emitted in the order the input declares its
+ * symbols, since a case matches a head of its own and a constructor names
+ * nothing of another symbol. A program is emitted in that order as well, which
+ * it may because each evaluator is forward declared.
  */
 class ModelSmt : public StdPlugin
 {
  public:
-  /** Construct the model_smt plugin and register supported SMT operators. */
-  ModelSmt(State& s);
+  /**
+   * Construct the plugin. defsFile names the signature of the *input* written
+   * in the deep embedding, which says what each of its symbols means to the
+   * model; the SMT-LIB signature it is written against is fixed, being the
+   * target rather than a matter of the input. See loadDefs.
+   */
+  ModelSmt(State& s, const std::string& defsFile);
   /** Destroy the model_smt plugin. */
   ~ModelSmt();
   /** Remember constant declarations for model-semantics generation. */
   void bind(const std::string& name, const Expr& e) override;
-  /** Capture a surface reduction of the input, see defineReduce. */
-  void define(const std::string& name, const Expr& e) override;
-  /** Reject a program that is named as though it were a surface reduction. */
-  void defineProgram(const Expr& v, const Expr& prog) override;
   /** Emit the generated EO file containing SMT-LIB model semantics. */
   void finalize() override;
 
  private:
-  /**
-   * Registration helpers for auto-generated `$smtx_model_eval` cases.
-   *
-   * Each helper records an operator name together with argument/return kinds.
-   * The kind vector determines both the generated EO pattern and the expected
-   * SMT-LIB literal/value shape used by the corresponding printer.
-   */
-  /**
-   * Add function whose evaluation is <retTerm>.
-   */
-  void addReduceSym(const std::string& sym,
-                    const std::vector<Kind>& args,
-                    Kind ret,
-                    const std::string& retTerm);
-  /**
-   * Add function whose evaluation is ($smtx_model_eval <retTerm>).
-   */
-  void addTermReduceSym(const std::string& sym,
-                        const std::vector<Kind>& args,
-                        Kind ret,
-                        const std::string& retTerm);
-  /**
-   * Add function that should be eliminated in the Eunoia to SMT-LIB term
-   * layer, where retTerm is a term of the deep embedding, i.e. it is already
-   * in the SMT-LIB term layer. It may refer to the arguments of the symbol as
-   * x1 ... xn, which are Eunoia terms, so it casts them itself, ordinarily by
-   * ($eo_to_smt xi). A reduction that the input signature can express should
-   * be a surface reduction instead, see getReduceDefPrefix.
-   */
-  void addEunoiaReduceSym(const std::string& sym,
-                          const std::vector<Kind>& args,
-                          const std::string& retTerm,
-                          bool isType = false);
-  /**
-   * Register the surface reduction of sym given by the body of the `define`
-   * that carries it, where args are the parameters of that define. Since
-   * body is a term of the input signature, its cast into the SMT-LIB term
-   * layer is what printSmtEmbed prints, so that e.g. the reduction
-   *   (define $eo_reduce_@mod_by_zero ((x Int)) (mod x 0))
-   * generates the case
-   *   (($eo_to_smt (@mod_by_zero x1))
-   *      ($sm_mod ($eo_to_smt x1) ($sm_numeral ($native_apply_0 "0"))))
-   * of $eo_to_smt.
-   */
-  void defineReduce(const std::string& sym,
-                    const std::vector<Expr>& args,
-                    const Expr& body);
-  /**
-   * Print the term t of the input signature as the term of the deep embedding
-   * it denotes, where args maps each parameter of the reduction of sym to the
-   * parameter of the generated case that takes its place. In other words this
-   * casts a Eunoia term into the SMT-LIB term layer: an application of a
-   * symbol becomes an application of the constructor of the same name, a
-   * literal becomes the constructor of its kind applied to its native value,
-   * and a parameter, being a Eunoia term at the time the case runs, is cast by
-   * $eo_to_smt itself.
-   */
-  void printSmtEmbed(std::ostream& out,
-                     const std::string& sym,
-                     const Expr& t,
-                     const std::map<Expr, std::string>& args);
-  /**
-   * If t is a literal, print it as above and return true. Otherwise return
-   * false, having printed nothing.
-   */
-  bool printSmtEmbedLiteral(std::ostream& out, const Expr& t);
-  /** Return the native constant whose value is written val. */
-  static std::string nativeConst(const std::string& val);
-  /**
-   * Add function whose evaluation is
-   * (eo::define ((e1 ($smtx_model_eval x1)))
-   * (eo::define ((e2 ($smtx_model_eval x2)))
-   *  <retTerm>)).
-   */
-  void addRecReduceSym(const std::string& sym,
-                       const std::vector<Kind>& args,
-                       Kind ret,
-                       const std::string& retTerm);
-  /**
-   * Add function whose evaluation is
-   * ($smtx_model_eval_<sym> ($smtx_model_eval x1) ($smtx_model_eval x2)),
-   * where $smtx_model_eval_<sym> is a manually defined program.
-   */
-  void addHardCodeSym(const std::string& sym, const std::vector<Kind>& args);
-  /**
-   * Add function whose evaluation is given by
-   * ($smtx_model_eval_<sym> ($smtx_model_eval x1) ($smtx_model_eval x2)),
-   * where $smtx_model_eval_<sym> is an auto-generated auxiliary
-   * program whose case is determined by args, and has <retTerm> as its
-   * return, e.g.:
-   * (program $smtx_model_eval_<sym>
-   *   ((x1 $native_<arg1>) (x2 $native_<arg2>) (t1 $smt_Value) (t2 $smt_Value))
-   *   :signature ($smt_Value $smt_Value) $smt_Value
-   *   (
-   *   (($smtx_model_eval_<sym> ($vsm_<arg1> x1) ($vsm_<arg2> x2)) <retTerm>)
-   *   (($smtx_model_eval_<sym> t1 t2) $vsm_not_value)
-   *   )
-   * )
-   * where $vsm_<argi> is the value constructor for the i^th argument kind (see
-   * d_kindToEoPrefix) and the trailing default case makes the program total.
-   * Note that x1, ..., xn in this context are SMT-LIB literal values.
-   */
-  void addLitSym(const std::string& sym,
-                 const std::vector<Kind>& args,
-                 Kind ret,
-                 const std::string& retTerm);
-  /**
-   * Similar to addLitSym, but where <retTerm> is
-   * ($vsm_binary_mod_w <retWidth> <retNum>), i.e. the bit-vector value of
-   * <retNum> truncated to width <retWidth>.
-   *
-   * Note reqSameWidth is currently ignored.
-   */
-  void addLitBinSym(const std::string& sym,
-                    const std::vector<Kind>& args,
-                    const std::string& retWidth,
-                    const std::string& retNum,
-                    bool reqSameWidth = true);
-  /**
-   * Similar to addLitSym, but where <retTerm> is
-   * automatically generated for sym, args, ret to invoke the
-   * SMT-LIB operator. For example, if sym is "and", args is {Kind::BOOL,
-   * Kind::BOOL}, and ret is Kind::BOOL, then <retTerm> is
-   * ($vsm_bool ($native_apply_2 "and" x1 x2)).
-   * The return kind determines which $vsm_* constructor wraps the return,
-   * and the argument kinds determine which literal destructors are used.
-   */
-  void addConstFoldSym(const std::string& sym,
-                       const std::vector<Kind>& args,
-                       Kind ret);
-  /** Register an SMT-LIB type constructor. */
-  void addTypeSym(const std::string& sym, const std::vector<Kind>& args);
-  /** Add a hand-written special case for an EO-to-SMT conversion symbol. */
-  void addSymCase(const std::string& sym,
-                  const std::string& pat,
-                  const std::string& ret);
-  /** Print a generic generated case to the selected program stream. */
-  void printEvalCallBase(std::ostream& out,
-                         const std::string& mname,
-                         const std::string& name,
-                         const std::vector<Kind>& args,
-                         const std::string& ret);
-  /**
-   * Helper method for printing the final program case to $smtx_model_eval, i.e.
-   * (($smtx_model_eval (<name> x1 ... xn)) <retTerm>).
-   */
-  void printModelEvalCallBase(const std::string& name,
-                              const std::vector<Kind>& args,
-                              const std::string& ret);
-  /**
-   * Helper method for printing the final program case to $smtx_model_eval, i.e.
-   * (($eo_to_smt (<name> x1 ... xn)) <retTerm>).
-   */
-  void printEunoiaReduce(const std::string& name,
-                         const std::vector<Kind>& args,
-                         const std::string& ret);
-  /**
-   * Same as printModelEvalCallBase, but where <retTerm> is
-   * ($smtx_model_eval_<name> ($smtx_model_eval x1) ... ($smtx_model_eval xn)).
-   */
-  void printModelEvalCall(const std::string& name,
-                          const std::vector<Kind>& args);
-  /** Print necessary information for a symbol added via addConstFoldSym */
-  void printConstFold(const std::string& name,
-                      const std::vector<Kind>& args,
-                      Kind ret);
-  /** Print necessary information for a symbol added via addTermReduceSym */
-  void printTermReduce(const std::string& name,
-                       const std::vector<Kind>& args,
-                       const std::string& ret);
-  /** Print necessary information for a symbol added via addLitSym */
-  void printLitReduce(const std::string& name,
-                      const std::vector<Kind>& args,
-                      Kind ret,
-                      const std::string& reduce);
-  /** Print embedding declarations and EO-to-SMT conversion cases. */
-  void printDecl(const std::string& name,
-                 const std::vector<Kind>& args,
-                 Kind ret = Kind::PARAM,
-                 size_t nopqArgs = 0);
-  /** Print one case of an auxiliary evaluator/type program. */
-  void printAuxProgramCase(const std::string& name,
-                           const std::vector<Kind>& args,
-                           const std::string& ret,
-                           size_t& paramCount,
-                           std::ostream& progCases,
-                           std::ostream& progParams,
-                           bool isTypeProg = false);
-  /** Print an auxiliary evaluator program for literal/value reduction. */
-  void printAuxProgram(const std::string& name,
-                       const std::vector<Kind>& args,
-                       std::stringstream& progCases,
-                       std::stringstream& progParams);
-  /** Print an auxiliary program that returns an SMT type. */
-  void printAuxTypeProgram(const std::string& name,
-                           const std::vector<Kind>& args,
-                           const std::string& retType,
-                           std::stringstream& out);
-  /** Register an auxiliary type program for later emission. */
-  void addAuxTypeProgram(const std::string& name,
-                         const std::vector<Kind>& args,
-                         const std::string& retType);
-  /** Add eo_is_list_nil aux definition */
-  void addAuxIsListNil(const std::string& name, const std::string& ret);
-  /**
-   * Print program where zeroRet and succRet should use parameters
-   * n, v1 .... vm, where n is the predecessor Nat (only used in succRet)
-   * and v1 ... vm are smt values.
-   */
-  void printAuxNatRecProgram(const std::string& name,
-                             const std::vector<Kind>& args,
-                             const std::string& zeroRet,
-                             const std::string& succRet);
-  /** Print a `$smtx_typeof` case for an SMT-LIB symbol. */
-  void printTypeof(const std::string& name,
-                   const std::vector<Kind>& args,
-                   Kind ret);
 
-  /** Print a literal/value term of kind k. */
-  void printTermInternal(Kind k, const std::string& term, std::ostream& os);
-  /** Finalize declaration, main entry point for calling methods above */
+  /**
+   * Read the signatures written directly in the deep embedding, take the
+   * blocks the input needs, and put what each says where it belongs. A symbol
+   * a block is of is one this plugin then says nothing about itself.
+   */
+  void loadDefs();
+  /** The signature of the input written in the deep embedding. */
+  std::string d_defsFile;
+  /** The blocks of each file, and the symbols they cover. */
+  DefsFile d_smtDefs;
+  DefsFile d_inputDefs;
+  std::set<std::string> d_defsCovered;
+
+  /**
+   * Check that the symbol named name, which the input declares, is one the
+   * signatures cover or one no model needs; a symbol that is neither is an
+   * error rather than a term the model would say nothing about.
+   */
   void finalizeDecl(const std::string& name, const Expr& e);
-  /** Map from literal kind to `$vsm_*` value constructor prefix. */
-  std::map<Kind, std::string> d_kindToEoPrefix;
-  /** Map from literal kind to native SMT type name. */
-  std::map<Kind, std::string> d_kindToType;
-  /** Map from desugared overload names back to SMT-LIB operator names. */
-  std::map<std::string, std::string> d_overloadRevert;
-  /** Reverse overload map used when matching already-reverted symbols. */
-  std::map<std::string, std::string> d_overloadRevertRev;
-  /** Number of opaque arguments for selected symbols. */
-  std::map<std::string, size_t> d_opqArgs;
-  /** Null expression placeholder used by generated expression rewrites. */
-  Expr d_null;
   /** Forward declarations for SMT-LIB model-evaluation helper programs. */
   std::stringstream d_modelEvalProgsFwd;
   /** Auxiliary programs for SMT-LIB model evaluation. */
@@ -315,8 +110,6 @@ class ModelSmt : public StdPlugin
   std::stringstream d_eoToSmtAux;
   /** Generated SMT term constructor declarations. */
   std::stringstream d_smtTerms;
-  /** Generated SMT type constructor declarations. */
-  std::stringstream d_smtTypes;
   /** Generated SMT type rules for terms. */
   std::stringstream d_smtTypeof;
   /** Auxiliary definitions used by SMT type rules. */
@@ -325,100 +118,6 @@ class ModelSmt : public StdPlugin
   std::stringstream d_desugarAux;
   /** Constant declarations in parser order. */
   std::vector<std::pair<std::string, Expr>> d_declSeen;
-  /** Special EO-to-SMT cases printed before the matching symbol. */
-  std::map<std::string, std::vector<std::pair<std::string, std::string>>>
-      d_specialCases;
-  /** Auxiliary definitions substituted at `$EO_TO_SMT_AUX$`. */
-  std::map<std::string, std::string> d_auxDef;
-  /** Auxiliary definitions substituted at `$SMT_EVAL_PROGS$`. */
-  std::map<std::string, std::string> d_auxSmtEval;
-  /** Auxiliary definitions of nil terminator recognizers */
-  std::map<std::string, std::string> d_auxDesugar;
-  /** SMT-LIB types. */
-  std::map<std::string, std::vector<Kind>> d_symTypes;
-  //--------
-  /** Full custom `$eo_to_smt` returns for selected SMT-LIB symbols. */
-  std::map<std::string, std::string> d_eoToSmtFullCase;
-  //-------- for defining SMT term type rules
-  /** Auxiliary type programs called from `$smtx_typeof`. */
-  std::map<std::string, std::string> d_typeCase;
-  /** Custom SMT type result for `$smtx_typeof` cases. */
-  std::map<std::string, std::string> d_typeRetCase;
-  /** Full custom return from `$smtx_typeof`. */
-  std::map<std::string, std::string> d_typeFullCase;
-  /**
-   * SMT-LIB symbols with "normal" evaluation, we give their argument kinds
-   * and their return kind.
-   */
-  std::map<std::string, std::pair<std::vector<Kind>, Kind>> d_symConstFold;
-  /**
-   * SMT-LIB symbols that have simple reductions based on atomic arguments.
-   */
-  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>>
-      d_symLitReduce;
-  /**
-   * SMT-LIB symbols that have simple term-level reductions, we use x1 ... xn as
-   * references to the arguments.
-   */
-  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>>
-      d_symReduce;
-  /** Symbols whose reductions evaluate arguments before applying retTerm. */
-  std::unordered_set<std::string> d_recReduce;
-  /**
-   * Eunoia terms that have special reductions to SMT-LIB terms
-   */
-  std::map<std::string, std::pair<std::vector<Kind>, std::string>>
-      d_eoSymReduce;
-  /** Subset of d_eoSymReduce that produce SMT types. */
-  std::unordered_set<std::string> d_eoSymReduceTypes;
-  /** Symbols that we need no definition for */
-  std::map<std::string, bool> d_symIgnore;
-  /** SMT-LIB syntax to embedding helper */
-  static std::string smtToSmtEmbed(const std::string& str, bool isTerm = false);
-  /** Build the embedded return term for a binary bit-vector result. */
-  static std::string smtBinaryBinReturn(const std::string& term);
-  /** Build an SMT model-evaluation call around s. */
-  static std::string smtEval(const std::string& s);
-  /** Build an EO let-style define around t before returning ret. */
-  static std::string eoDefine(const std::string& x,
-                              const std::string& t,
-                              const std::string& ret);
-  /** Print type internal */
-  bool printTypeInternal(const std::string& name, Kind k, std::ostream& out);
-  /** Pseudo-kind used for set arguments in generation tables. */
-  Kind d_kSet;
-  /** Pseudo-kind used for array arguments in generation tables. */
-  Kind d_kArray;
-  /** Pseudo-kind used for sequence arguments in generation tables. */
-  Kind d_kSeq;
-  /**
-   * Pseudo-kind used for string arguments that are passed to the native
-   * layer as unpacked value sequences (List of SmtValue) rather than as
-   * native strings. This is used by the regular expression operators, whose
-   * native implementations operate directly on value sequences since
-   * regular languages carry SmtValue as base elements. Arguments and
-   * returns of this kind are typed as String (Seq Char) by the type
-   * checker, but are unpacked/packed with unpack_seq/pack_seq.
-   */
-  Kind d_kStrVSeq;
-  /**
-   * Pseudo-kind used for regular language arguments in generation tables.
-   * Arguments of this kind are typed $smt_RegLan, which is the deep embedding
-   * of regular languages (SmtRegLan in both backends; in the SMT2 backend
-   * this is an alias of the builtin RegLan sort).
-   */
-  Kind d_kRegLan;
-  /** Pseudo-kind used for bit-vector size arguments in generation tables. */
-  Kind d_kBit;
-  /** Pseudo-kind used for quoted Int parameters in generation tables. */
-  Kind d_kIntQuote;
-  /**
-   * The symbols that are eliminated in the Eunoia to SMT-LIB term layer but
-   * that nevertheless name a constructor of the deep embedding, since their
-   * reduction is the cast itself. A surface reduction may use these like any
-   * symbol with an SMT-LIB semantics, see printSmtEmbed.
-   */
-  std::unordered_set<std::string> d_smtEmbedBuiltin;
 };
 
 }  // namespace ethos

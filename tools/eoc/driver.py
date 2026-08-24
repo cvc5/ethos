@@ -45,6 +45,11 @@ LEAN_OUTPUTS: tuple[tuple[str, str, bool], ...] = (
 
 DECLARE_RULE_RE = re.compile(r"^\(declare-rule\s+([^\s(]+)")
 INCLUDE_RE = re.compile(r'^\(include\s+"([^"]+)"\s*\)')
+# Any directive a block of a signature written in the deep embedding gives to a
+# stage of the compiler, rather than something it says about the model.
+DEFS_DIRECTIVE = re.compile(r'\(echo\s+"[^"]*"\)')
+# The one of those that leaves what it names out of the compilation altogether.
+DEFS_EXCLUDE = re.compile(r'\(echo\s+"eoc-exclude\s+(\S+)\s+(\S+)"\s*\)')
 
 DESUGAR_VC_DEPS = (
     "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply "
@@ -95,11 +100,8 @@ def input_base_name(input_file: Path) -> str:
     """The name of the calculus an input file compiles.
 
     This is the file name up to its first dot, so that a qualifier may be
-    appended to the name of a calculus without renaming what it produces. In
-    particular the entry point of a signature, which is the file holding its
-    reductions, is named `<calculus>.def.eo` and so compiles the same
-    `<calculus>` its bare signature would. Keep this in sync with
-    eoc_lean_calc_name in tools/eoc/cpc/common.sh.
+    appended to the name of a calculus without renaming what it produces. Keep
+    this in sync with eoc_lean_calc_name in tools/eoc/cpc/common.sh.
     """
     return input_file.name.split(".", 1)[0]
 
@@ -192,14 +194,16 @@ class Pipeline:
         jobs: int,
         cvc5: Optional[Path],
         solve_args: list[str],
-        exclude_file: Optional[Path],
+        defs_file: Optional[Path],
+        lean_config: Optional[Path],
     ):
         self.build_dir = build_dir.resolve()
         self.final_out_dir = final_out_dir.resolve()
         self.jobs = jobs
         self.cvc5 = cvc5
         self.solve_args = list(solve_args)
-        self.exclude_file = exclude_file
+        self.defs_file = defs_file.resolve() if defs_file else None
+        self.lean_config = lean_config.resolve() if lean_config else None
         self.binary = self.build_dir / "ethos-eoc"
         self.stage_out_dir = self.final_out_dir
         self.plugin_out_dir = self.build_dir / "out" / "plugins"
@@ -325,9 +329,7 @@ class Pipeline:
         temp_trim = self.stage_out_dir / "temp_trim.eo"
         temp_trim.parent.mkdir(parents=True, exist_ok=True)
         pieces = [f'(include "{self.relative_input_from_out(input_name)}")\n']
-        pieces.append((REPO_ROOT / "plugins" / "model_smt" / "term_reduce_deps.eo").read_text())
-        if pieces[-1] and not pieces[-1].endswith("\n"):
-            pieces.append("\n")
+        pieces.extend(self.defs_depends())
         for target in targets:
             pieces.append(f'(echo "trim-defs {target}")\n')
         temp_trim.write_text("".join(pieces))
@@ -340,6 +342,79 @@ class Pipeline:
             if temp_trim.exists():
                 temp_trim.unlink()
 
+    def defs_blocks(self) -> list[tuple[str, str]]:
+        """The blocks of the signature of the input, as (symbol, body) pairs.
+
+        A block runs from the `; -- X` line naming the symbol it is of to the
+        next such line, which is the same split the model-smt stage makes, see
+        DefsFile::read in plugins/model_smt/defs_reader.cpp.
+        """
+        if self.defs_file is None or not self.defs_file.exists():
+            return []
+        out: list[tuple[str, str]] = []
+        for block in re.split(r"\n; -- ", self.defs_file.read_text())[1:]:
+            sym, _, body = block.partition("\n")
+            out.append((sym.strip(), body))
+        return out
+
+    def defs_excludes(self) -> list[tuple[str, str]]:
+        """What the signature of the input leaves out of the compilation.
+
+        A block may say that the compilation has no place for the symbol it is
+        of, as the one for lambda does: SMT-LIB gives a proof-level binder no
+        meaning, so rather than a model the block gives eoc-exclude directives.
+        The desugar stage is what reads those and drops what they name, see
+        Desugar::echo, so they are collected here and given to it. Saying it in
+        the signature is what keeps a symbol left out of the compilation from
+        also having to be listed apart from it.
+
+        Each is returned as the kind it excludes, one of rule, method or
+        symbol, and the name of what it excludes.
+        """
+        out: list[tuple[str, str]] = []
+        for _sym, body in self.defs_blocks():
+            out.extend((m.group(1), m.group(2)) for m in DEFS_EXCLUDE.finditer(body))
+        return out
+
+    def defs_excluded_rules(self) -> set[str]:
+        """Those of the exclusions that are proof rules.
+
+        The compilation has nothing to say about such a rule: no verification
+        condition to generate and no Lean file to write. So a run over every
+        rule of the input leaves it out, and a run that names it says why
+        rather than failing further down.
+        """
+        return {name for kind, name in self.defs_excludes() if kind == "rule"}
+
+    def defs_depends(self) -> list[str]:
+        """What trim-defs must keep for the model of each symbol to make sense.
+
+        A block of the signature of the input may name a symbol of that input,
+        as the transformation of @quantifiers_skolemize names forall in the
+        pattern it matches. Trimming the input to one proof rule has to keep
+        such a symbol, or the case the model-smt stage emits for the block
+        would name something the trimmed signature no longer declares. The
+        dependency is read off the block itself, so nothing states it twice.
+
+        A symbol of the input is a name in head position that no program of the
+        block binds and that is neither of the embedding, which is written with
+        a leading dollar, nor of Eunoia, which is written eo::.
+        """
+        out: list[str] = []
+        for sym, body in self.defs_blocks():
+            body = DEFS_DIRECTIVE.sub("", body)
+            body = re.sub(r";[^\n]*", "", body)
+            bound = {sym, "program", "define", "declare-const",
+                     "declare-parameterized-const"}
+            for params in re.findall(r"\(\((?:[^()]|\([^()]*\))*\)\)", body):
+                bound.update(re.findall(r"\(([^\s()]+)", params))
+            heads = set(re.findall(r"\(([A-Za-z@_][^\s()]*)", body))
+            names = {h for h in heads - bound if not h.startswith("eo::")}
+            if names:
+                out.append('(echo "trim-defs-cmd (depends %s %s)")\n'
+                           % (sym, " ".join(sorted(names))))
+        return out
+
     def desugar(
         self,
         input_name: str,
@@ -351,10 +426,22 @@ class Pipeline:
     ) -> Path:
         option = "--plugin.desugar-vc" if use_vc_plugin else "--plugin.desugar"
         args = [option]
-        if self.exclude_file is not None:
-            args.append(f"--include={self.exclude_file}")
+        # What the signature of the input leaves out of the compilation, which
+        # this stage is what applies, see defs_excludes.
+        excludes = self.defs_excludes()
+        temp_excludes = self.stage_out_dir / "temp_excludes.eo"
+        if excludes:
+            temp_excludes.parent.mkdir(parents=True, exist_ok=True)
+            temp_excludes.write_text(
+                "".join('(echo "eoc-exclude %s %s")\n' % e for e in excludes)
+            )
+            args.append(f"--include={self.binary_path_arg(temp_excludes)}")
         args.append(input_name)
-        self.ethos(args, quiet=True)
+        try:
+            self.ethos(args, quiet=True)
+        finally:
+            if excludes and temp_excludes.exists():
+                temp_excludes.unlink()
         output_file.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(self.plugin_generated("desugar/eo_desugar_gen.eo"), output_file)
         replacements: list[tuple[str, str]] = []
@@ -381,7 +468,16 @@ class Pipeline:
         return output_file
 
     def model_smt(self, input_file: Path, output_file: Path) -> Path:
-        self.ethos(["--plugin.model-smt", self.binary_path_arg(input_file)], quiet=True)
+        # The signature of the input written in the deep embedding, which says
+        # what its symbols mean to the model. This stage alone reads it, so it
+        # is named here rather than being part of the input; see the
+        # "signatures written in the deep embedding" section of
+        # tools/eoc/README.md.
+        args = ["--plugin.model-smt"]
+        if self.defs_file is not None:
+            args.append(f"--defs={self.binary_path_arg(self.defs_file)}")
+        args.append(self.binary_path_arg(input_file))
+        self.ethos(args, quiet=True)
         output_file.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(input_file, output_file)
         splice_matching_line(
@@ -435,6 +531,11 @@ class Pipeline:
         args = ["--plugin.lean-meta"]
         if not generate_parser:
             args.append("--no-parser")
+        # What the input signature needs said about its generated Lean that the
+        # compiler cannot derive, namely why each of its recursive programs
+        # terminates; see plugins/lean_meta/termination.lean.
+        if self.lean_config is not None:
+            args.append(f"--lean-config={self.binary_path_arg(self.lean_config)}")
         args.append(self.binary_path_arg(input_file))
         self.ethos(args, quiet=True)
         for source, name, generated in LEAN_OUTPUTS:
@@ -465,6 +566,11 @@ class Pipeline:
     ) -> Path:
         if build_first:
             self.build()
+        if target in self.defs_excluded_rules():
+            raise RuntimeError(
+                f"{target} is left out of the compilation by {self.defs_file}, "
+                "so there is nothing to verify about it"
+            )
         stem = self.stage_name(input_name)
         init_trim = self.stage_out_dir / f"trim-{stem}.eo"
         init_desugar = self.stage_out_dir / f"trim-d-{stem}.eo"
@@ -516,6 +622,12 @@ class Pipeline:
     ) -> Path:
         if build_first:
             self.build()
+        left_out = sorted(set(targets) & self.defs_excluded_rules())
+        if left_out:
+            raise RuntimeError(
+                f"{' '.join(left_out)} is left out of the compilation by "
+                f"{self.defs_file}, so there is no Lean to generate for it"
+            )
         calc_name = lean_calc_name(Path(input_name))
         stem = self.stage_name(input_name)
         print(
@@ -644,10 +756,19 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         help="Do not rebuild ethos-eoc before running the pipeline.",
     )
     parser.add_argument(
-        "--exclude-file",
+        "--defs",
         default=None,
         help=(
-            "EO file of eoc-exclude echo directives to apply during desugaring."
+            "EO file of the signature of the input written in the deep "
+            "embedding, read by the model-smt stage."
+        ),
+    )
+    parser.add_argument(
+        "--lean-config",
+        default=None,
+        help=(
+            "Lean file of the termination clauses of the input's programs, "
+            "read by the lean-meta stage."
         ),
     )
 
@@ -732,10 +853,6 @@ def main(argv: list[str]) -> int:
         args.input = str(resolve_path_arg(args.input, cwd=invocation_cwd))
     if getattr(args, "rules_file", None) is not None:
         args.rules_file = str(resolve_path_arg(args.rules_file, cwd=invocation_cwd))
-    if getattr(args, "exclude_file", None) is not None:
-        args.exclude_file = str(
-            resolve_path_arg(args.exclude_file, cwd=invocation_cwd)
-        )
 
     if getattr(args, "final_out_dir", None) is not None:
         final_out_dir = resolve_path_arg(args.final_out_dir, cwd=invocation_cwd)
@@ -758,7 +875,8 @@ def main(argv: list[str]) -> int:
         getattr(args, "jobs", 4),
         cvc5,
         solve_args,
-        Path(args.exclude_file) if getattr(args, "exclude_file", None) else None,
+        Path(args.defs) if getattr(args, "defs", None) else None,
+        Path(args.lean_config) if getattr(args, "lean_config", None) else None,
     )
     build_first = not getattr(args, "no_build", False)
 
@@ -796,7 +914,10 @@ def main(argv: list[str]) -> int:
         else:
             rules: list[str] = []
             if args.all_rules:
-                rules.extend(discover_rules(Path(args.input)))
+                excluded = pipeline.defs_excluded_rules()
+                rules.extend(
+                    r for r in discover_rules(Path(args.input)) if r not in excluded
+                )
             if args.rules_file is not None:
                 rules.extend(read_rules(Path(args.rules_file)))
             rules.extend(args.rules)

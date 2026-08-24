@@ -25,44 +25,92 @@ signature. Such a reduction is written in the syntax of the signature itself,
 as an ordinary `define` whose name is `$eo_reduce_` followed by the symbol it
 reduces.
 
-## The signature entry point
+## The signatures written in the deep embedding
 
-A signature's reductions live in a Eunoia file that includes the signature
-itself, which makes that file the entry point of the signature for this
-compiler: point the driver at it rather than at the signature. The entry point
-of CPC is `plugins/model_smt/cpc.def.eo`, which includes `Cpc.eo`; its header
-comment documents the format of a reduction. Adding, changing or removing one
-is a change to that file alone and does not require rebuilding `ethos-eoc`.
+What a symbol means to the model is said by two files. The SMT-LIB one is the
+target and so is fixed; the one of the input is named with `--defs`:
 
-An entry point is named `<calculus>.def.eo`. Everything the driver names after
-the input -- the stage EO files and the generated Lean module -- takes the file
-name up to its first dot, so compiling `cpc.def.eo` writes the same
-`trim-cpc.eo`, `lean-cpc-*.eo` and `Cpc` Lean modules that compiling `Cpc.eo`
-directly would.
+```text
+plugins/model_smt/smt_defs.eo   the SMT-LIB signature, written in the embedding
+--defs <file>                   how the input's symbols transform into it,
+                                e.g. plugins/model_smt/cpc_defs.eo for CPC
+```
 
-Being commands of the signature, the reductions are parsed along with it and
-carried through every stage: `trim-defs` treats one as a defining command of
-the symbol it reduces, so trimming the signature to what a single proof rule
-needs keeps the reductions of the symbols that survive together with everything
-their bodies name, and drops the rest; `desugar` re-emits one in the desugared
-syntax; `model-smt` reads them back off its input and turns each into a case of
-`$eo_to_smt`. Note this means a reduction is elaborated like any other term of
-the signature, so an application of an n-ary symbol carries its nil terminator,
-e.g. `(and x y)` in a reduction denotes `(and x (and y true))`; write
-`(_ and x y)` where the reduction means the binary application itself. A
-reduction is not type checked, since the embedding generated from it is
-structural.
+```text
+python3 tools/eoc/driver.py lean \
+  --defs plugins/model_smt/cpc_defs.eo <cvc5>/proofs/eo/cpc/Cpc.eo
+```
 
-Running a signature that has no such entry point, e.g. by pointing the driver
-straight at `Cpc.eo`, is supported and simply leaves every symbol without a
-surface reduction.
+Only the `model-smt` stage reads them; no stage before it sees either. A symbol
+the input declares that the file says nothing about is an error rather than a
+term the model would silently say nothing about.
 
-The reductions the signature cannot express -- those that bind a variable,
-inspect an SMT-LIB type, or name an operator of the deep embedding that has no
-counterpart in the signature -- are registered by the plugin itself, see
-`ModelSmt::addEunoiaReduceSym`. Since their right hand side is not a term of
-the signature, what they depend on is listed by hand in
-`plugins/model_smt/term_reduce_deps.eo` so that `trim-defs` keeps it.
+Each is a sequence of blocks, one per symbol, opened by a `; -- X` line. For a
+symbol X, `smt_defs.eo` gives the constructor `$emb_sm.X` and the macro
+`$sm_X`, the cases X contributes to `$smtx_typeof` and to `$smtx_model_eval`
+(as `$eoc_typeof_X` and `$eoc_eval_X`), and the auxiliary programs those cases
+call. `cpc_defs.eo` gives `$eoc_transform_X`, the cases X contributes to
+`$eo_to_smt`, and `$eoc_transform_type_X` for a type constructor.
+
+What a block says to the compiler is named `$eoc_`, which is what tells it
+apart from what the compiler emits: the case of an `$eoc_` program is spliced
+into the aggregate its family names, so the name itself never reaches the
+generated file. The exception is `$eoc_is_list_nil_X`, which the desugar stage
+calls by name and which is therefore emitted as `$eo_is_list_nil_X`.
+
+The stage takes the blocks of the symbols the input declares, together with
+every block those name, and puts what each says where it belongs; it knows
+nothing about any symbol itself. A block is copied as *text*, which is what
+keeps the definitions of the embedding it names, e.g. `$vsm_bool`, from being
+expanded on the way. See `plugins/model_smt/defs_reader.h`.
+
+Both files are ordered so that a symbol follows the ones its cases name, which
+is why neither needs a forward declaration. Adding, changing or removing a
+symbol is a change to one block and does not require rebuilding `ethos-eoc`.
+
+A block may name a symbol of the *input* rather than of the embedding, as the
+transformation of `@quantifiers_skolemize` names `forall` in the pattern it
+matches. Trimming a signature to one proof rule has to keep such a symbol, so
+the driver reads those dependencies off the blocks and tells `trim-defs`; see
+`Pipeline.defs_depends` in `tools/eoc/driver.py`.
+
+A block may also say that the compilation has no place for its symbol at all:
+SMT-LIB gives a proof-level binder no meaning, so `lambda` and everything that
+reduces an application of one are left out rather than modelled. A block says
+so with directives of the following forms:
+
+```lisp
+(echo "eoc-exclude symbol lambda")
+(echo "eoc-exclude method $beta_reduce")
+(echo "eoc-exclude rule beta-reduce")
+```
+
+`Pipeline.defs_excludes` collects them and gives them to the desugar stage,
+which is what drops what they name; a rule among them is also left out of
+`--all-rules`, since there is nothing to verify about it. The names are matched
+literally: the compiler neither checks that a name exists nor computes a
+dependency closure, so the block has to name every declaration that goes with
+the one it omits.
+
+## Why the generated Lean terminates
+
+Lean has to be told why a recursive definition terminates whenever it cannot
+see this for itself, and no measure the compiler could guess would do for the
+programs that need one. So the clause is stated as the Lean text it is, and the
+`lean-meta` stage appends it to the definition of the program it names:
+
+```text
+plugins/lean_meta/termination.lean   the programs of the deep embedding, which
+                                     every input is compiled through
+--lean-config <file>                 the programs of the input signature, e.g.
+                                     plugins/lean_meta/cpc_termination.lean
+```
+
+A block runs from a line naming one or more programs, written `-- $name ...`,
+to the next comment line, and what lies between is the clause. An input whose
+programs all recurse structurally needs no file of its own, so `--lean-config`
+is optional; without it the generated Lean simply carries no clause for them,
+which Lean will reject if one was needed.
 
 ## Building `ethos-eoc`
 
@@ -174,25 +222,9 @@ Generate Lean for the whole signature:
 python3 tools/eoc/driver.py lean --build-dir build-eoc --all ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo
 ```
 
-Generate Lean while omitting an explicit list of declarations:
-
-```bash
-python3 tools/eoc/driver.py lean --build-dir build-eoc --all \
-  --exclude-file tools/eoc/cpc/cpc_exclusions.eo \
-  ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo
-```
-
-An exclusion file is an EO file containing directives of the following forms:
-
-```lisp
-(echo "eoc-exclude rule beta-reduce")
-(echo "eoc-exclude method $beta_reduce")
-(echo "eoc-exclude symbol lambda")
-```
-
-The names are matched literally during desugaring. The compiler does not check
-that entries exist or compute their dependency closure; the list must include
-every declaration that needs to be omitted.
+A declaration the signature of the input leaves out of the compilation is
+dropped by this run without anything being said on the command line; see "The
+signatures written in the deep embedding" above.
 
 List all rules declared by a signature and its includes:
 
@@ -225,7 +257,6 @@ python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE
 Useful options:
 
 - `--sygus`: generate a SyGuS query instead of SMT2
-- `--exclude-file FILE`: apply an explicit declaration exclusion list during desugaring
 - `--skip-cvc5`: skip parse checks with `cvc5`
 - `--solve`: run `cvc5` on the generated VC or SyGuS file after optional parse checks
 - `--solve-args "ARGS"`: shell-style string of extra options passed to `cvc5` during `--solve`
@@ -270,6 +301,9 @@ python3 tools/eoc/driver.py lean --build-dir build-eoc --all INPUT
 Pass `--no-parser` to omit the signature-specific `Parser.lean` artifact while
 still generating the remaining Lean modules and per-rule files. This also
 removes a stale `Parser.lean` from the selected final output directory.
+
+Pass `--lean-config FILE` to name the termination clauses of the input's own
+programs; see "Why the generated Lean terminates" above.
 
 Generated files are written to `tools/eoc/out/lean/` by default, including
 per-rule files in `tools/eoc/out/lean/Rules/`. `Parser.lean` is the minimal

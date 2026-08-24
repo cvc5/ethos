@@ -9,10 +9,11 @@ source "$SCRIPT_DIR/common.sh"
 
 BUILD_DIR="$(eoc_build_dir)"
 INPUT="${1:-$(eoc_cpc_input)}"
-ARGS=(lean --build-dir "$BUILD_DIR" --all
-  --exclude-file "$SCRIPT_DIR/cpc_exclusions.eo")
+ARGS=(lean --build-dir "$BUILD_DIR" --all)
 
 eoc_add_no_build
 
+eoc_add_defs
+eoc_add_lean_config
 ARGS+=("$INPUT")
 eoc_exec_driver "${ARGS[@]}"

@@ -47,7 +47,9 @@ class LeanMetaReduce : public MetaReducePlugin
    * If generateParser is false, omit the signature-specific Logos parser
    * configuration while still emitting every other Lean artifact.
    */
-  LeanMetaReduce(State& s, bool generateParser = true);
+  LeanMetaReduce(State& s,
+                 bool generateParser = true,
+                 const std::string& configFile = "");
   /** Destroy the Lean meta reducer. */
   ~LeanMetaReduce() override;
   /** Remember a program definition for later Lean emission. */
@@ -178,6 +180,17 @@ class LeanMetaReduce : public MetaReducePlugin
   bool isAtomicEo(const Expr& c, const std::string& cname, size_t& uarity);
   /** Return true if c can be printed as an atomic SMT term. */
   bool isAtomicSmt(const Expr& c, const std::string& cname);
+  /**
+   * Read the termination clauses of a file into d_terminatingBy. Lean cannot
+   * see for itself why some generated definitions terminate, and no measure
+   * this plugin could derive would do, so the clause is stated as the Lean
+   * text it is and appended to the definition of the program named.
+   *
+   * A block runs from a line naming one or more programs, written
+   * `-- $name ...`, to the next such line; what lies between is the clause.
+   * See plugins/lean_meta/termination.lean.
+   */
+  void readTerminationClauses(const std::string& path);
   /** Generated Lean definitions for programs. */
   std::stringstream d_defs;
   /** Generated mutually recursive total Lean definitions. */
@@ -305,8 +318,9 @@ class LeanMetaReduce : public MetaReducePlugin
   /** Programs excluded from partial-definition generation, by name. */
   std::unordered_set<std::string> d_partialExc;
   /**
-   * Maps program names to a hardcoded termination annotation and proof that
-   * is appended to their generated definition.
+   * Maps program names to the termination annotation and proof that is
+   * appended to their generated definition, as read by
+   * readTerminationClauses.
    */
   std::map<std::string, std::string> d_terminatingBy;
 };

@@ -14,6 +14,8 @@
  * e.g.:
  *
  *   ethos-eoc --plugin.desugar <file>
+ *   ethos-eoc --plugin.model-smt --defs=<file> <file>
+ *   ethos-eoc --plugin.lean-meta --lean-config=<file> <file>
  *
  * With no --plugin.* argument, it parses the given file like plain ethos.
  * Unlike the plain ethos binary, it requires a file argument (no stdin mode)
@@ -42,7 +44,9 @@ namespace {
 
 std::unique_ptr<Plugin> createPlugin(const std::string& name,
                                      State& s,
-                                     bool generateParser)
+                                     bool generateParser,
+                                     const std::string& defsFile,
+                                     const std::string& leanConfigFile)
 {
   if (name == "desugar")
   {
@@ -62,7 +66,7 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
   }
   if (name == "lean-meta")
   {
-    return std::make_unique<LeanMetaReduce>(s, generateParser);
+    return std::make_unique<LeanMetaReduce>(s, generateParser, leanConfigFile);
   }
   if (name == "trim-defs")
   {
@@ -70,7 +74,7 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
   }
   if (name == "model-smt")
   {
-    return std::make_unique<ModelSmt>(s);
+    return std::make_unique<ModelSmt>(s, defsFile);
   }
   EO_FATAL() << "Error: unknown plugin \"" << name
              << "\" (available: desugar, desugar-vc, smt-meta, "
@@ -87,6 +91,8 @@ int main(int argc, char* argv[])
   bool readFile = false;
   std::string pluginName;
   bool generateParser = true;
+  std::string defsFile;
+  std::string leanConfigFile;
   // the list of includes and whether they were an include or reference
   std::vector<std::pair<std::string, bool>> includes;
   size_t i = 1;
@@ -108,6 +114,22 @@ int main(int argc, char* argv[])
     if (arg == "--no-parser")
     {
       generateParser = false;
+      continue;
+    }
+    if (arg.compare(0, 7, "--defs=") == 0)
+    {
+      // The signature of the input written in the deep embedding, which says
+      // what each of its symbols means to the model. It is read by the
+      // model-smt plugin alone; no stage before that one sees it.
+      defsFile = arg.substr(7);
+      continue;
+    }
+    if (arg.compare(0, 14, "--lean-config=") == 0)
+    {
+      // What the input signature needs said about its generated Lean that the
+      // compiler cannot derive, namely why each of its recursive programs
+      // terminates. It is read by the lean-meta plugin alone.
+      leanConfigFile = arg.substr(14);
       continue;
     }
     if (arg.compare(0, 5, "--no-") == 0)
@@ -175,13 +197,22 @@ int main(int argc, char* argv[])
   {
     EO_FATAL() << "Error: --no-parser requires --plugin.lean-meta";
   }
+  if (!defsFile.empty() && pluginName != "model-smt")
+  {
+    EO_FATAL() << "Error: --defs requires --plugin.model-smt";
+  }
+  if (!leanConfigFile.empty() && pluginName != "lean-meta")
+  {
+    EO_FATAL() << "Error: --lean-config requires --plugin.lean-meta";
+  }
   // options are finalized, now initialize the state and the plugin
   Stats stats;
   State s(opts, stats);
   std::unique_ptr<Plugin> plugin;
   if (!pluginName.empty())
   {
-    plugin = createPlugin(pluginName, s, generateParser);
+    plugin =
+        createPlugin(pluginName, s, generateParser, defsFile, leanConfigFile);
     // note the plugin must be set before any file is included, so that it
     // receives callbacks during parsing
     s.setPlugin(plugin.get());

@@ -463,16 +463,6 @@ Command parseCommand(const std::string& s_expr_text)
     if (getSymbol(root.d_children[1], symbol))
     {
       defined.insert(symbol);
-      if (cmd.d_cmdName == "define" && isReduceDefName(symbol))
-      {
-        // A surface reduction is what gives the symbol it reduces its
-        // SMT-LIB semantics, so it is a defining command of that symbol as
-        // much as its declaration is. Saying so here is what keeps a
-        // reduction, and everything its body names, in a signature that was
-        // trimmed to the symbols one proof rule needs. See
-        // getReduceDefPrefix.
-        defined.insert(getReduceDefSurfaceName(symbol));
-      }
     }
   }
 
