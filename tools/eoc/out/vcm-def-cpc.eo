@@ -2048,8 +2048,6 @@
 ; helpers
 (define $sm_binary_bit_false () ($sm_binary $native_z_one $native_z_zero))
 (define $sm_binary_bit_true () ($sm_binary $native_z_one $native_z_one))
-(define $sm_binary_mod_w ((w $native_Int) (v $native_Int))
-  ($sm_binary w ($native_mod_total v ($native_z_pow2 w))))
 
 ; An application of a Eunoia term
 (declare-parameterized-const $emb_sm.Apply
@@ -2319,12 +2317,6 @@
 (define $vsm_binary_empty () ($vsm_binary $native_z_zero $native_z_zero))
 (define $vsm_binary_bit_false () ($vsm_binary $native_z_one $native_z_zero))
 (define $vsm_binary_bit_true () ($vsm_binary $native_z_one $native_z_one))
-(define $vsm_binary_mod_w ((w $native_Int) (v $native_Int))
-  ($emb_vsm.Binary w ($native_mod_total v ($native_z_pow2 w))))
-(define $vsm_mk_binary ((w $native_Int) (v $native_Int))
-  ($native_ite ($native_z_<= $native_z_zero w)
-    ($vsm_binary_mod_w w v)
-    $vsm_not_value))
 
 ; A value denoting a map.
 (declare-parameterized-const $emb_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
@@ -2684,46 +2676,10 @@
   )
 )
 
-(program $smtx_index_typeof_map ((T $smt_Type) (U $smt_Type))
-  :signature ($smt_Type) $smt_Type
-  (
-  (($smtx_index_typeof_map ($tsm_Map T U)) T)
-  (($smtx_index_typeof_map T) $tsm_none)
-  )
-)
-
 ;;; Map as sets
 
-; A set is a mapping to Bool.
-; The empty set maps all to false.
-(define $smtx_elem_typeof_set ((T $smt_Type)) ($smtx_index_typeof_map T))
-
+; A set is a mapping to Bool, and the empty set maps all to false.
 (define $msm_empty_set ((T $smt_Type)) ($msm_default T $vsm_false))
-; Inserting sets e to true.
-(define $smtx_mss_mk_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e $vsm_true))
-(define $smtx_mss_insert ((e $smt_Value) (m $smt_Map)) ($msm_cons e $vsm_true m))
-(define $smtx_mss_member ((e $smt_Value) (m $smt_Map))
-  ($native_veq ($smtx_msm_lookup m e) $vsm_true))
-
-; Helper for computing binary set operators.
-; Takes a flag isInter and maps m1, m2, macc.
-; If isInter is true, then we add to macc elements that are in both m1 and m2.
-; If isInter is false, then we add to macc elements that are in the difference of m1 and m2.
-(program $smtx_mss_op_internal
-  ((T $smt_Type) (m1 $smt_Map) (m2 $smt_Map) (acc $smt_Map) (e $smt_Value)
-   (efalse $smt_Value) (etrue $smt_Value) (isInter $native_Bool))
-  :signature ($native_Bool $smt_Map $smt_Map $smt_Map) $smt_Map
-  (
-  ; note we don't insist on true/false here, to ensure the function is total
-  (($smtx_mss_op_internal isInter ($msm_default T efalse) m2 acc) acc)
-  (($smtx_mss_op_internal isInter ($msm_cons e etrue m1) m2 acc)
-    ($smtx_mss_op_internal isInter m1 m2
-      ($native_ite
-        ($native_iff ($smtx_mss_member e m2) isInter)
-        ($smtx_mss_mk_insert e acc)
-        acc)))
-  )
-)
 
 (program $smtx_map_to_set_type ((T $smt_Type))
   :signature ($smt_Type) $smt_Type
@@ -2748,15 +2704,6 @@
       sT
       $tsm_none)))
   (($smtx_typeof_seq_value ($ssm_empty T)) ($tsm_Seq T))
-  )
-)
-
-(program $smtx_elem_typeof_seq_value
-  ((v $smt_Value) (vs $smt_Seq) (T $smt_Type))
-  :signature ($smt_Seq) $smt_Type
-  (
-  (($smtx_elem_typeof_seq_value ($ssm_cons v vs)) ($smtx_elem_typeof_seq_value vs))
-  (($smtx_elem_typeof_seq_value ($ssm_empty T)) T)
   )
 )
 
@@ -2920,54 +2867,15 @@
 
 ;;; Functions, arrays
 
-; Array select
-(program $smtx_map_select
-  ((v $smt_Value) (i $smt_Value) (m $smt_Map))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_map_select ($vsm_map m) i) ($smtx_msm_lookup m i))
-  (($smtx_map_select ($vsm_set m) i) ($smtx_msm_lookup m i))
-  (($smtx_map_select v i)            $vsm_not_value)
-  )
-)
-
 ;;; Sets
 
 ; Empty set
 (define $smtx_empty_set ((T $smt_Type)) ($vsm_set ($msm_empty_set T)))
 
-; Set singleton
-; return the singleton set whose type is T and contains e.
-(define $smtx_set_singleton ((e $smt_Value))
-  ($vsm_set ($smtx_mss_insert e ($msm_empty_set ($smtx_typeof_value e)))))
-
 ;;; Sequences
 
 ; Empty sequence
 (define $smtx_empty_seq ((T $smt_Type)) ($vsm_seq ($ssm_empty T)))
-
-; Sequence unit
-(define $smtx_seq_unit ((e $smt_Value))
-  ($vsm_seq ($ssm_cons e ($ssm_empty ($smtx_typeof_value e)))))
-
-;;; Bit-vectors
-
-(program $smtx_bv_sizeof_type ((x1 $native_Nat) (t1 $smt_Value))
-  :signature ($smt_Type) $native_Int
-  (
-  (($smtx_bv_sizeof_type ($tsm_BitVec x1)) ($native_n_to_z x1))
-  (($smtx_bv_sizeof_type t1) $native_z_neg_one)
-  )
-)
-
-(program $smtx_bv_sizeof_value
-  ((x1 $native_Int) (x2 $native_Int) (t1 $smt_Value))
-  :signature ($smt_Value) $native_Int
-  (
-  (($smtx_bv_sizeof_value ($vsm_binary x1 x2)) x1)
-  (($smtx_bv_sizeof_value t1) $native_z_neg_one)
-  )
-)
 
 ;;; Apply
 
@@ -3136,131 +3044,6 @@
   (($smtx_typeof_apply ($tsm_DtcAppType T U) V)
     ($smtx_typeof_guard T ($native_ite ($native_Teq T V) U $tsm_none)))
   (($smtx_typeof_apply T U)               $tsm_none)
-  )
-)
-
-(program $smtx_typeof_bv_op_2
-  ((T $smt_Type) (U $smt_Type) (n1 $native_Nat) (n2 $native_Nat))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_bv_op_2 ($tsm_BitVec n1) ($tsm_BitVec n2))
-    ($native_ite ($native_n_= n1 n2) ($tsm_BitVec n1) $tsm_none))
-  (($smtx_typeof_bv_op_2 T U) $tsm_none)
-  )
-)
-
-(program $smtx_typeof_bv_op_2_ret
-  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (n1 $native_Nat) (n2 $native_Nat))
-  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_bv_op_2_ret ($tsm_BitVec n1) ($tsm_BitVec n2) U)
-    ($native_ite ($native_n_= n1 n2) U $tsm_none))
-  (($smtx_typeof_bv_op_2_ret T U V) $tsm_none)
-  )
-)
-
-(program $smtx_typeof_sets_op_2 ((x1 $smt_Type) (x2 $smt_Type))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_sets_op_2 ($tsm_Set x1) ($tsm_Set x2))
-    ($native_ite ($native_Teq x1 x2) ($tsm_Set x1) $tsm_none))
-  (($smtx_typeof_sets_op_2 x1 x2) $tsm_none)
-  )
-)
-
-(program $smtx_typeof_sets_op_2_ret
-  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (x1 $smt_Type) (x2 $smt_Type))
-  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_sets_op_2_ret ($tsm_Set x1) ($tsm_Set x2) T)
-    ($native_ite ($native_Teq x1 x2) T $tsm_none))
-  (($smtx_typeof_sets_op_2_ret T U V) $tsm_none)
-  )
-)
-
-(program $smtx_typeof_seq_op_1 ((x1 $smt_Type))
-  :signature ($smt_Type) $smt_Type
-  (
-  (($smtx_typeof_seq_op_1 ($tsm_Seq x1)) ($tsm_Seq x1) )
-  (($smtx_typeof_seq_op_1 x1) $tsm_none)
-  )
-)
-(program $smtx_typeof_seq_op_1_ret ((x1 $smt_Type) (x2 $smt_Type))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_seq_op_1_ret ($tsm_Seq x1) x2) x2)
-  (($smtx_typeof_seq_op_1_ret x1 x2) $tsm_none)
-  )
-)
-(program $smtx_typeof_seq_op_2 ((x1 $smt_Type) (x2 $smt_Type))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_seq_op_2 ($tsm_Seq x1) ($tsm_Seq x2))
-    ($native_ite ($native_Teq x1 x2) ($tsm_Seq x1) $tsm_none))
-  (($smtx_typeof_seq_op_2 x1 x2) $tsm_none)
-  )
-)
-(program $smtx_typeof_seq_op_2_ret
-  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (x1 $smt_Type) (x2 $smt_Type))
-  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_seq_op_2_ret ($tsm_Seq x1) ($tsm_Seq x2) T)
-    ($native_ite ($native_Teq x1 x2) T $tsm_none))
-  (($smtx_typeof_seq_op_2_ret T U V) $tsm_none)
-  )
-)
-(program $smtx_typeof_seq_op_3 ((x1 $smt_Type) (x2 $smt_Type) (x3 $smt_Type))
-  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_seq_op_3 ($tsm_Seq x1) ($tsm_Seq x2) ($tsm_Seq x3))
-    ($native_ite ($native_Teq x1 x2)
-    ($native_ite ($native_Teq x2 x3) ($tsm_Seq x1) $tsm_none) $tsm_none))
-  (($smtx_typeof_seq_op_3 x1 x2 x3) $tsm_none)
-  )
-)
-
-(program $smtx_typeof_bv_op_1 ((T $smt_Type) (n $native_Int))
-  :signature ($smt_Type) $smt_Type
-  (
-  (($smtx_typeof_bv_op_1 ($tsm_BitVec n)) ($tsm_BitVec n))
-  (($smtx_typeof_bv_op_1 T)               $tsm_none)
-  )
-)
-
-(program $smtx_typeof_bv_op_1_ret ((T $smt_Type) (U $smt_Type) (n $native_Int))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_bv_op_1_ret ($tsm_BitVec n) T) T)
-  (($smtx_typeof_bv_op_1_ret T U)               $tsm_none)
-  )
-)
-
-(program $smtx_typeof_arith_overload_op_1 ((T $smt_Type))
-  :signature ($smt_Type) $smt_Type
-  (
-  (($smtx_typeof_arith_overload_op_1 $tsm_Int) $tsm_Int)
-  (($smtx_typeof_arith_overload_op_1 $tsm_Real) $tsm_Real)
-  (($smtx_typeof_arith_overload_op_1 T) $tsm_none)
-  )
-)
-(program $smtx_typeof_arith_overload_op_2
-  ((T $smt_Type) (U $smt_Type))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_arith_overload_op_2 $tsm_Int $tsm_Int) $tsm_Int)
-  (($smtx_typeof_arith_overload_op_2 $tsm_Real $tsm_Real) $tsm_Real)
-  (($smtx_typeof_arith_overload_op_2 T U) $tsm_none)
-  )
-)
-
-
-(program $smtx_typeof_arith_overload_op_2_ret
-  ((T $smt_Type) (U $smt_Type) (V $smt_Type))
-  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_arith_overload_op_2_ret $tsm_Int $tsm_Int T) T)
-  (($smtx_typeof_arith_overload_op_2_ret $tsm_Real $tsm_Real T) T)
-  (($smtx_typeof_arith_overload_op_2_ret T U V) $tsm_none)
   )
 )
 
@@ -3494,13 +3277,6 @@
 ; references are resolved regardless of their order in the declaration.
 (program $smtx_type_bounded () :signature ($native_Bool $smt_Type) $native_Bool)
 
-
-(program $smtx_is_unit_type ((T $smt_Type))
-  :signature ($smt_Type) $native_Bool
-  (
-  (($smtx_is_unit_type T) ($smtx_type_bounded $native_true T))
-  )
-)
 
 (program $smtx_is_finite_type ((T $smt_Type))
   :signature ($smt_Type) $native_Bool

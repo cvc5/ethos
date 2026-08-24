@@ -58,6 +58,15 @@ into the aggregate its family names, so the name itself never reaches the
 generated file. The exception is `$eoc_is_list_nil_X`, which the desugar stage
 calls by name and which is therefore emitted as `$eo_is_list_nil_X`.
 
+A block may also be of a helper rather than of a symbol, in which case the
+`; -- X` line names the helper itself, e.g. `; -- $smtx_typeof_bv_op_2` for the
+typing of a bit-vector operator whose two arguments must be of one width. Such
+a block is taken only when a block that is kept names it, so a signature with
+no bit-vectors in it compiles to a model that has never heard of them. A helper
+belongs in the signature when only theory operators call it; what remains in
+`plugins/model_smt/model_smt.eo` is the type language, the value language and
+the terms that file declares itself, together with their methods.
+
 The stage takes the blocks of the symbols the input declares, together with
 every block those name, and puts what each says where it belongs; it knows
 nothing about any symbol itself. A block is copied as *text*, which is what

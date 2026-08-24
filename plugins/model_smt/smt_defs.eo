@@ -192,6 +192,18 @@
   )
 )
 
+; -- $smtx_typeof_arith_overload_op_2
+; The same, for two arguments, which must be of one of those types.
+(program $smtx_typeof_arith_overload_op_2
+  ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_arith_overload_op_2 $tsm_Int $tsm_Int) $tsm_Int)
+  (($smtx_typeof_arith_overload_op_2 $tsm_Real $tsm_Real) $tsm_Real)
+  (($smtx_typeof_arith_overload_op_2 T U) $tsm_none)
+  )
+)
+
 ; -- +
 (declare-parameterized-const $emb_sm.+ ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque)) $smt_Term)
 (define $sm_+ ((x1 $smt_Term) (x2 $smt_Term)) ($emb_sm.+ x1 x2))
@@ -270,6 +282,18 @@
   :signature ($smt_Model $smt_Term) $smt_Value
   (
   (($eoc_eval_* M ($sm_* x1 x2)) ($smtx_model_eval_* ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+  )
+)
+
+; -- $smtx_typeof_arith_overload_op_2_ret
+; The same, for one that returns a type given rather than its arguments'.
+(program $smtx_typeof_arith_overload_op_2_ret
+  ((T $smt_Type) (U $smt_Type) (V $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_arith_overload_op_2_ret $tsm_Int $tsm_Int T) T)
+  (($smtx_typeof_arith_overload_op_2_ret $tsm_Real $tsm_Real T) T)
+  (($smtx_typeof_arith_overload_op_2_ret T U V) $tsm_none)
   )
 )
 
@@ -451,6 +475,17 @@
   :signature ($smt_Model $smt_Term) $smt_Value
   (
   (($eoc_eval_is_int M ($sm_is_int x1)) ($smtx_model_eval_is_int ($smtx_model_eval M x1)))
+  )
+)
+
+; -- $smtx_typeof_arith_overload_op_1
+; The type of an arithmetic operator that returns what its argument is, which is Int or Real.
+(program $smtx_typeof_arith_overload_op_1 ((T $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_typeof_arith_overload_op_1 $tsm_Int) $tsm_Int)
+  (($smtx_typeof_arith_overload_op_1 $tsm_Real) $tsm_Real)
+  (($smtx_typeof_arith_overload_op_1 T) $tsm_none)
   )
 )
 
@@ -673,6 +708,18 @@
   )
 )
 
+; -- $smtx_map_select
+; Reading a map, a set or a sequence at an index, which are all maps.
+(program $smtx_map_select
+  ((v $smt_Value) (i $smt_Value) (m $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_map_select ($vsm_map m) i) ($smtx_msm_lookup m i))
+  (($smtx_map_select ($vsm_set m) i) ($smtx_msm_lookup m i))
+  (($smtx_map_select v i)            $vsm_not_value)
+  )
+)
+
 ; -- select
 (declare-parameterized-const $emb_sm.select ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque)) $smt_Term)
 (define $sm_select ((x1 $smt_Term) (x2 $smt_Term)) ($emb_sm.select x1 x2))
@@ -854,6 +901,16 @@
   )
 )
 
+; -- $smtx_typeof_bv_op_1
+; The type of a bit-vector operator that returns what its argument is.
+(program $smtx_typeof_bv_op_1 ((T $smt_Type) (n $native_Int))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_typeof_bv_op_1 ($tsm_BitVec n)) ($tsm_BitVec n))
+  (($smtx_typeof_bv_op_1 T)               $tsm_none)
+  )
+)
+
 ; -- bvnot
 (declare-parameterized-const $emb_sm.bvnot ((x1 $smt_Term :opaque)) $smt_Term)
 (define $sm_bvnot ((x1 $smt_Term)) ($emb_sm.bvnot x1))
@@ -877,6 +934,18 @@
   :signature ($smt_Model $smt_Term) $smt_Value
   (
   (($eoc_eval_bvnot M ($sm_bvnot x1)) ($smtx_model_eval_bvnot ($smtx_model_eval M x1)))
+  )
+)
+
+; -- $smtx_typeof_bv_op_2
+; The type of a bit-vector operator whose two arguments must be of one width.
+(program $smtx_typeof_bv_op_2
+  ((T $smt_Type) (U $smt_Type) (n1 $native_Nat) (n2 $native_Nat))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_bv_op_2 ($tsm_BitVec n1) ($tsm_BitVec n2))
+    ($native_ite ($native_n_= n1 n2) ($tsm_BitVec n1) $tsm_none))
+  (($smtx_typeof_bv_op_2 T U) $tsm_none)
   )
 )
 
@@ -1030,6 +1099,18 @@
   :signature ($smt_Model $smt_Term) $smt_Value
   (
   (($eoc_eval_bvxnor M ($sm_bvxnor x1 x2)) ($smtx_model_eval_bvxnor ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+  )
+)
+
+; -- $smtx_typeof_bv_op_2_ret
+; The same, for one that returns a type given rather than its arguments'.
+(program $smtx_typeof_bv_op_2_ret
+  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (n1 $native_Nat) (n2 $native_Nat))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_bv_op_2_ret ($tsm_BitVec n1) ($tsm_BitVec n2) U)
+    ($native_ite ($native_n_= n1 n2) U $tsm_none))
+  (($smtx_typeof_bv_op_2_ret T U V) $tsm_none)
   )
 )
 
@@ -1210,6 +1291,27 @@
   :signature ($smt_Model $smt_Term) $smt_Value
   (
   (($eoc_eval_bvsub M ($sm_bvsub x1 x2)) ($smtx_model_eval_bvsub ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+  )
+)
+
+; -- $smtx_bv_sizeof_type
+; The width a bit-vector type is of, or minus one if the type is not one.
+(program $smtx_bv_sizeof_type ((x1 $native_Nat) (t1 $smt_Value))
+  :signature ($smt_Type) $native_Int
+  (
+  (($smtx_bv_sizeof_type ($tsm_BitVec x1)) ($native_n_to_z x1))
+  (($smtx_bv_sizeof_type t1) $native_z_neg_one)
+  )
+)
+
+; -- $smtx_bv_sizeof_value
+; The width a bit-vector value is of, or minus one if the value is not one.
+(program $smtx_bv_sizeof_value
+  ((x1 $native_Int) (x2 $native_Int) (t1 $smt_Value))
+  :signature ($smt_Value) $native_Int
+  (
+  (($smtx_bv_sizeof_value ($vsm_binary x1 x2)) x1)
+  (($smtx_bv_sizeof_value t1) $native_z_neg_one)
   )
 )
 
@@ -1740,6 +1842,16 @@
   )
 )
 
+; -- $smtx_typeof_bv_op_1_ret
+; The same, for one that returns a type given rather than its argument's.
+(program $smtx_typeof_bv_op_1_ret ((T $smt_Type) (U $smt_Type) (n $native_Int))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_bv_op_1_ret ($tsm_BitVec n) T) T)
+  (($smtx_typeof_bv_op_1_ret T U)               $tsm_none)
+  )
+)
+
 ; -- bvnego
 (declare-parameterized-const $emb_sm.bvnego ((x1 $smt_Term :opaque)) $smt_Term)
 (define $sm_bvnego ((x1 $smt_Term)) ($emb_sm.bvnego x1))
@@ -1937,6 +2049,16 @@
   )
 )
 
+; -- $smtx_typeof_seq_op_1_ret
+; The same, for one that returns a type given rather than its argument's.
+(program $smtx_typeof_seq_op_1_ret ((x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_1_ret ($tsm_Seq x1) x2) x2)
+  (($smtx_typeof_seq_op_1_ret x1 x2) $tsm_none)
+  )
+)
+
 ; -- str.len
 (declare-parameterized-const $emb_sm.str.len ((x1 $smt_Term :opaque)) $smt_Term)
 (define $sm_str.len ((x1 $smt_Term)) ($emb_sm.str.len x1))
@@ -1960,6 +2082,28 @@
   :signature ($smt_Model $smt_Term) $smt_Value
   (
   (($eoc_eval_str.len M ($sm_str.len x1)) ($smtx_model_eval_str.len ($smtx_model_eval M x1)))
+  )
+)
+
+; -- $smtx_typeof_seq_op_2
+; The type of a sequence operator whose two arguments must be of one type.
+(program $smtx_typeof_seq_op_2 ((x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_2 ($tsm_Seq x1) ($tsm_Seq x2))
+    ($native_ite ($native_Teq x1 x2) ($tsm_Seq x1) $tsm_none))
+  (($smtx_typeof_seq_op_2 x1 x2) $tsm_none)
+  )
+)
+
+; -- $smtx_elem_typeof_seq_value
+; The type of the elements of a sequence value, or nothing if they disagree.
+(program $smtx_elem_typeof_seq_value
+  ((v $smt_Value) (vs $smt_Seq) (T $smt_Type))
+  :signature ($smt_Seq) $smt_Type
+  (
+  (($smtx_elem_typeof_seq_value ($ssm_cons v vs)) ($smtx_elem_typeof_seq_value vs))
+  (($smtx_elem_typeof_seq_value ($ssm_empty T)) T)
   )
 )
 
@@ -2022,6 +2166,18 @@
   )
 )
 
+; -- $smtx_typeof_seq_op_2_ret
+; The same, for one that returns a type given rather than its arguments'.
+(program $smtx_typeof_seq_op_2_ret
+  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_2_ret ($tsm_Seq x1) ($tsm_Seq x2) T)
+    ($native_ite ($native_Teq x1 x2) T $tsm_none))
+  (($smtx_typeof_seq_op_2_ret T U V) $tsm_none)
+  )
+)
+
 ; -- str.contains
 (declare-parameterized-const $emb_sm.str.contains ((x1 $smt_Term :opaque) (x2 $smt_Term :opaque)) $smt_Term)
 (define $sm_str.contains ((x1 $smt_Term) (x2 $smt_Term)) ($emb_sm.str.contains x1 x2))
@@ -2045,6 +2201,18 @@
   :signature ($smt_Model $smt_Term) $smt_Value
   (
   (($eoc_eval_str.contains M ($sm_str.contains x1 x2)) ($smtx_model_eval_str.contains ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+  )
+)
+
+; -- $smtx_typeof_seq_op_3
+; The type of a sequence operator whose three arguments must be of one type.
+(program $smtx_typeof_seq_op_3 ((x1 $smt_Type) (x2 $smt_Type) (x3 $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_3 ($tsm_Seq x1) ($tsm_Seq x2) ($tsm_Seq x3))
+    ($native_ite ($native_Teq x1 x2)
+    ($native_ite ($native_Teq x2 x3) ($tsm_Seq x1) $tsm_none) $tsm_none))
+  (($smtx_typeof_seq_op_3 x1 x2 x3) $tsm_none)
   )
 )
 
@@ -2186,6 +2354,16 @@
   :signature ($smt_Model $smt_Term) $smt_Value
   (
   (($eoc_eval_str.suffixof M ($sm_str.suffixof x1 x2)) ($smtx_model_eval_str.suffixof ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+  )
+)
+
+; -- $smtx_typeof_seq_op_1
+; The type of a sequence operator that returns what its argument is.
+(program $smtx_typeof_seq_op_1 ((x1 $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_typeof_seq_op_1 ($tsm_Seq x1)) ($tsm_Seq x1) )
+  (($smtx_typeof_seq_op_1 x1) $tsm_none)
   )
 )
 
@@ -3204,6 +3382,47 @@
   )
 )
 
+; -- $smtx_index_typeof_map
+; The type a map is indexed by, which for a set is the type of its elements.
+(program $smtx_index_typeof_map ((T $smt_Type) (U $smt_Type))
+  :signature ($smt_Type) $smt_Type
+  (
+  (($smtx_index_typeof_map ($tsm_Map T U)) T)
+  (($smtx_index_typeof_map T) $tsm_none)
+  )
+)
+
+; -- $smtx_typeof_sets_op_2
+; The type of a set operator whose two arguments must be sets of one type.
+(program $smtx_typeof_sets_op_2 ((x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_sets_op_2 ($tsm_Set x1) ($tsm_Set x2))
+    ($native_ite ($native_Teq x1 x2) ($tsm_Set x1) $tsm_none))
+  (($smtx_typeof_sets_op_2 x1 x2) $tsm_none)
+  )
+)
+
+; -- $smtx_mss_op_internal
+; Binary set operators, computed over the map a set is. It takes a flag and
+; the two maps, and accumulates into the third: with the flag it keeps what
+; lies in both, and without it what lies in the first alone.
+(program $smtx_mss_op_internal
+  ((T $smt_Type) (m1 $smt_Map) (m2 $smt_Map) (acc $smt_Map) (e $smt_Value)
+   (efalse $smt_Value) (etrue $smt_Value) (isInter $native_Bool))
+  :signature ($native_Bool $smt_Map $smt_Map $smt_Map) $smt_Map
+  (
+  ; note we don't insist on true/false here, to ensure the function is total
+  (($smtx_mss_op_internal isInter ($msm_default T efalse) m2 acc) acc)
+  (($smtx_mss_op_internal isInter ($msm_cons e etrue m1) m2 acc)
+    ($smtx_mss_op_internal isInter m1 m2
+      ($native_ite
+        ($native_iff ($native_veq ($smtx_msm_lookup m2 e) $vsm_true) isInter)
+        ($smtx_msm_update acc e $vsm_true)
+        acc)))
+  )
+)
+
 ; -- set.union
 ; Set union
 ; return the union of two set values.
@@ -3347,6 +3566,18 @@
   :signature ($smt_Model $smt_Term) $smt_Value
   (
   (($eoc_eval_set.member M ($sm_set.member x1 x2)) ($smtx_model_eval_set.member ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
+  )
+)
+
+; -- $smtx_typeof_sets_op_2_ret
+; The same, for one that returns a type given rather than its arguments'.
+(program $smtx_typeof_sets_op_2_ret
+  ((T $smt_Type) (U $smt_Type) (V $smt_Type) (x1 $smt_Type) (x2 $smt_Type))
+  :signature ($smt_Type $smt_Type $smt_Type) $smt_Type
+  (
+  (($smtx_typeof_sets_op_2_ret ($tsm_Set x1) ($tsm_Set x2) T)
+    ($native_ite ($native_Teq x1 x2) T $tsm_none))
+  (($smtx_typeof_sets_op_2_ret T U V) $tsm_none)
   )
 )
 
