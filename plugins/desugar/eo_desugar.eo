@@ -642,13 +642,15 @@ $EO_IS_CLOSED_CASES$
 ; An SMT model.
 (define $smt_Model () ($native_embed_smt "SmtModel"))
 
-; A placeholder for asking whether a formula evaluates to true in a model.
+; What a verification condition asks of the model. Neither is defined in EO:
+; what each means is given as an SMT-LIB definition by the template the final
+; query is written from, plugins/smt_meta/smt_meta.smt2, which is the only
+; place that has to say it.
 (program $eo_model_sat () :signature ($smt_Model Bool) Bool)
-; A placeholder for asking whether a formula evaluates to false in a model.
 (program $eo_model_unsat () :signature ($smt_Model Bool) Bool)
 
-; We will include the definition of the above functions here.
-(echo "include eo_model_sat :deps $eo_is_ok $eo_dt_constructors_main $eo_dt_selectors_main $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
+; The model itself is included at this point.
+(echo "include model_smt :deps $eo_is_ok $eo_dt_constructors_main $eo_dt_selectors_main $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; checker
 
