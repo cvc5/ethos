@@ -1,0 +1,256 @@
+/******************************************************************************
+ * This file is part of the ethos project.
+ *
+ * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ ******************************************************************************/
+
+#include "model_smt.h"
+
+#include <fstream>
+#include <sstream>
+#include <string>
+
+#include "../utils.h"
+#include "state.h"
+
+namespace ethos {
+
+ModelSmt::ModelSmt(State& s, const std::string& defsFile)
+    : StdPlugin(s), d_defsFile(defsFile)
+{
+  // What each symbol of a signature means to the model is said by the
+  // signatures written in the deep embedding rather than here, see loadDefs
+  // and plugins/model_smt/smt_defs.eo.
+}
+
+ModelSmt::~ModelSmt() {}
+
+void ModelSmt::bind(const std::string& name, const Expr& e)
+{
+  if (e.getKind() != Kind::CONST)
+  {
+    return;
+  }
+  d_declSeen.emplace_back(name, e);
+}
+
+void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
+{
+  if (d_defsCovered.count(name) != 0)
+  {
+    // a symbol one of the signatures written in the deep embedding is of,
+    // whose block is what says its meaning, see loadDefs
+    return;
+  }
+  // A name of the desugar stage or of a signature helper rather than a symbol
+  // a proof may write, so no model has to say anything about it.
+  if (name.compare(0, 1, "$") == 0 || name.compare(0, 2, "@@") == 0)
+  {
+    return;
+  }
+  // This assertion is critical for soundness: if we do not know how to
+  // interpret the symbol, we cannot claim this verification condition
+  // accurately models SMT-LIB semantics.
+  EO_FATAL() << "ERROR: no model semantics found for " << name;
+  Assert(false) << "No model semantics found for " << name;
+}
+
+void ModelSmt::loadDefs()
+{
+  if (!d_smtDefs.read(getResourcePath("plugins/model_smt/smt_defs.eo")))
+  {
+    EO_FATAL() << "ModelSmt: could not read the SMT-LIB signature written in"
+                  " the deep embedding";
+  }
+  if (d_defsFile.empty())
+  {
+    EO_FATAL() << "ModelSmt: no signature was given for the input; name the"
+                  " one written in the deep embedding with --defs, e.g."
+                  " plugins/model_smt/cpc_defs.eo for CPC";
+  }
+  if (!d_inputDefs.read(d_defsFile))
+  {
+    EO_FATAL() << "ModelSmt: could not read the signature of the input at "
+               << d_defsFile;
+  }
+  // The blocks the input needs are the ones of a symbol it declares, together
+  // with the ones those name, see DefsFile::select.
+  std::set<std::string> syms;
+  for (const std::pair<std::string, Expr>& d : d_declSeen)
+  {
+    syms.insert(d.first);
+  }
+  // The transformation of a symbol names the constructor of what it denotes,
+  // which is a block of the other file, so what the one needs of the other is
+  // taken as well.
+  std::vector<const DefsBlock*> in = d_inputDefs.select(syms);
+  std::vector<const DefsBlock*> blocks =
+      d_smtDefs.select(syms, d_inputDefs.externalUses(in));
+  blocks.insert(blocks.end(), in.begin(), in.end());
+  // A program has to be defined before it is called, which the order of the
+  // files is what gives; a constructor and a case have no such order, since a
+  // case matches a head of its own and a constructor names nothing of another
+  // symbol. So the two are emitted in the order the *input* declares its
+  // symbols, which is the order the generated file has had them in, and a
+  // block of a symbol the input does not declare goes just before the one that
+  // needs it, e.g. the constructor of uneg before the case for the overloaded
+  // minus that names it.
+  std::map<std::string, const DefsBlock*> owner;
+  for (const DefsBlock* b : blocks)
+  {
+    for (const std::string& d : b->d_defs)
+    {
+      owner[d] = b;
+    }
+  }
+  std::vector<const DefsBlock*> byDecl;
+  std::set<const DefsBlock*> placed;
+  std::set<std::string> declared;
+  for (const std::pair<std::string, Expr>& d : d_declSeen)
+  {
+    declared.insert(d.first);
+  }
+  for (const std::pair<std::string, Expr>& d : d_declSeen)
+  {
+    for (const DefsBlock* b : blocks)
+    {
+      if (b->d_sym != d.first || placed.count(b) != 0)
+      {
+        continue;
+      }
+      // what it needs that the input does not declare, which has no place of
+      // its own to go to
+      for (const std::string& u : b->d_uses)
+      {
+        std::map<std::string, const DefsBlock*>::const_iterator it =
+            owner.find(u);
+        if (it != owner.end() && declared.count(it->second->d_sym) == 0
+            && placed.insert(it->second).second)
+        {
+          byDecl.push_back(it->second);
+        }
+      }
+      placed.insert(b);
+      byDecl.push_back(b);
+    }
+  }
+  for (const DefsBlock* b : blocks)
+  {
+    if (placed.insert(b).second)
+    {
+      byDecl.push_back(b);
+    }
+  }
+  for (const DefsBlock* b : byDecl)
+  {
+    // A block that says nothing about the model, e.g. one that only gives the
+    // nil of an n-ary symbol, leaves that symbol to be compiled as any other.
+    if (!b->d_cons.empty() || !b->d_typeofCases.empty()
+        || !b->d_evalCases.empty() || !b->d_transCases.empty()
+        || !b->d_transTypeCases.empty())
+    {
+      d_defsCovered.insert(b->d_sym);
+    }
+    for (const std::string& f : b->d_cons)
+    {
+      d_smtTerms << f << std::endl;
+    }
+    for (const std::string& c : b->d_typeofCases)
+    {
+      d_smtTypeof << "  " << c << std::endl;
+    }
+    for (const std::string& c : b->d_evalCases)
+    {
+      d_eval << "  " << c << std::endl;
+    }
+    for (const std::string& c : b->d_transCases)
+    {
+      d_eoToSmt << "  " << c << std::endl;
+    }
+    for (const std::string& c : b->d_transTypeCases)
+    {
+      d_eoToSmtType << "  " << c << std::endl;
+    }
+  }
+  // The programs follow the same order, which they may because each evaluator
+  // is forward declared above; a method that is not, having been written
+  // beside the symbol it belongs to, is ordered by the file it comes from,
+  // which is what puts it before whatever calls it.
+  for (const DefsBlock* b : byDecl)
+  {
+    for (const std::string& f : b->d_typeofAux)
+    {
+      d_smtTypeofAux << f << std::endl;
+    }
+    for (const std::string& f : b->d_evalFwd)
+    {
+      d_modelEvalProgsFwd << f << std::endl;
+    }
+    for (const std::string& f : b->d_evalProgs)
+    {
+      d_modelEvalProgs << f << std::endl;
+    }
+    for (const std::string& f : b->d_eoAux)
+    {
+      d_eoToSmtAux << f << std::endl;
+    }
+    for (const std::string& f : b->d_desugarAux)
+    {
+      d_desugarAux << f << std::endl;
+    }
+  }
+}
+
+void ModelSmt::finalize()
+{
+  // What each symbol of the signatures written in the deep embedding says,
+  // which this plugin copies rather than deriving, see loadDefs.
+  loadDefs();
+  for (std::pair<std::string, Expr>& d : d_declSeen)
+  {
+    finalizeDecl(d.first, d.second);
+  }
+  // Each placeholder is commented out in the template, which is what lets that
+  // template be parsed on its own, see plugins/model_smt/model_smt.eo. The
+  // comment is part of what a substitution replaces, so that the generated
+  // content takes the whole line.
+  auto replace = [](std::string& txt,
+                    const std::string& tag,
+                    const std::string& replacement) {
+    const std::string guarded = ";" + tag;
+    auto pos = txt.find(guarded);
+    if (pos != std::string::npos)
+    {
+      txt.replace(pos, guarded.length(), replacement);
+    }
+  };
+
+  // note that the deep embedding is *not* re-incorporated into
+  // the final input to smt-meta.
+
+  // now, go back and compile *.eo for the proof rules
+  std::ifstream ins(getResourcePath("plugins/model_smt/model_smt.eo"));
+  std::ostringstream sss;
+  sss << ins.rdbuf();
+  std::string finalSmt = sss.str();
+  // plug in the evaluation cases handled by this plugin
+  replace(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
+  replace(finalSmt, "$SMT_EVAL_PROGS_FWD_DECL$", d_modelEvalProgsFwd.str());
+  replace(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());
+  replace(finalSmt, "$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
+  replace(finalSmt, "$EO_DESUGAR_AUX$", d_desugarAux.str());
+  replace(finalSmt, "$EO_TO_SMT_CASES$", d_eoToSmt.str());
+  replace(finalSmt, "$EO_TO_SMT_TYPE_CASES$", d_eoToSmtType.str());
+  replace(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
+  replace(finalSmt, "$SMT_TYPEOF_CASES$", d_smtTypeof.str());
+  replace(finalSmt, "$SMT_TYPEOF_AUX$", d_smtTypeofAux.str());
+
+  std::string outPath = getOutputPath("plugins/model_smt/model_smt_gen.eo");
+  std::ofstream oute(outPath);
+  oute << finalSmt;
+}
+
+}  // namespace ethos
