@@ -396,9 +396,9 @@ class State
   /** Map from expressions to constructor info */
   std::map<const ExprValue*, AppInfo> d_appData;
   /** Map from expressions to hash */
-  std::map<const ExprValue*, size_t> d_hashMap;
+  std::unordered_map<const ExprValue*, size_t> d_hashMap;
   /** Mapping expressions to types */
-  std::map<const ExprValue*, Expr> d_typeCache;
+  std::unordered_map<const ExprValue*, Expr> d_typeCache;
   /** Hash counter */
   size_t d_hashCounter;
   /** The database of created expressions */

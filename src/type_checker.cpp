@@ -90,13 +90,13 @@ Expr TypeChecker::getLiteralTypeRuleMaybeInit(Kind k, ExprValue* self)
 
 Expr TypeChecker::getType(Expr& e, std::ostream* out)
 {
-  std::map<const ExprValue*, Expr>::iterator itt;
+  std::unordered_map<const ExprValue*, Expr>::iterator itt;
   std::unordered_set<ExprValue*> visited;
   std::vector<ExprValue*> toVisit;
   toVisit.push_back(e.getValue());
   ExprValue* cur;
   Expr ret;
-  std::map<const ExprValue*, Expr>& tc = d_state.d_typeCache;
+  std::unordered_map<const ExprValue*, Expr>& tc = d_state.d_typeCache;
   do
   {
     cur = toVisit.back();

@@ -440,12 +440,14 @@ void State::markDeleted(ExprValue* e)
       }
       break;
     }
-    std::map<const ExprValue*, size_t>::const_iterator ith = d_hashMap.find(e);
+    std::unordered_map<const ExprValue*, size_t>::const_iterator ith =
+        d_hashMap.find(e);
     if (ith != d_hashMap.end())
     {
       d_hashMap.erase(ith);
     }
-    std::map<const ExprValue*, Expr>::const_iterator itt = d_typeCache.find(e);
+    std::unordered_map<const ExprValue*, Expr>::const_iterator itt =
+        d_typeCache.find(e);
     if (itt != d_typeCache.end())
     {
       d_typeCache.erase(itt);
@@ -455,8 +457,11 @@ void State::markDeleted(ExprValue* e)
     Assert(et != nullptr);
     const std::vector<ExprValue*>& children = e->d_children;
     et->remove(children);
-    // now, free the expression
-    free(e);
+    // now, free the expression. Note this invokes ~ExprValue, which
+    // decrements the reference counts of the children of e. Those calls
+    // re-enter markDeleted, which appends to d_toDelete since we are already
+    // in garbage collection, and are processed by the loop below.
+    delete e;
     if (!d_toDelete.empty())
     {
       e = d_toDelete.back();
@@ -1652,7 +1657,8 @@ std::vector<Expr> State::getCurrentAssumptions() const
 
 size_t State::getHash(const ExprValue* e)
 {
-  std::map<const ExprValue*, size_t>::const_iterator it = d_hashMap.find(e);
+  std::unordered_map<const ExprValue*, size_t>::const_iterator it =
+      d_hashMap.find(e);
   if (it!=d_hashMap.end())
   {
     return it->second;
@@ -1700,7 +1706,8 @@ const AppInfo* State::getAppInfo(const ExprValue* e) const
 
 ExprValue* State::lookupType(const ExprValue* e) const
 {
-  std::map<const ExprValue*, Expr>::const_iterator itt = d_typeCache.find(e);
+  std::unordered_map<const ExprValue*, Expr>::const_iterator itt =
+      d_typeCache.find(e);
   if (itt != d_typeCache.end())
   {
     return itt->second.getValue();
