@@ -1294,16 +1294,6 @@
   )
 )
 
-; -- $smtx_bv_sizeof_type
-; The width a bit-vector type is of, or minus one if the type is not one.
-(program $smtx_bv_sizeof_type ((x1 $native_Nat) (t1 $smt_Value))
-  :signature ($smt_Type) $native_Int
-  (
-  (($smtx_bv_sizeof_type ($tsm_BitVec x1)) ($native_n_to_z x1))
-  (($smtx_bv_sizeof_type t1) $native_z_neg_one)
-  )
-)
-
 ; -- $smtx_bv_sizeof_value
 ; The width a bit-vector value is of, or minus one if the value is not one.
 (program $smtx_bv_sizeof_value

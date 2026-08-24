@@ -1125,25 +1125,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;
 
 
-;;; Quantifiers
-
-; forward declarations
+; The two aggregates are forward declared, since what a signature says about a
+; symbol may name either, and both are defined below.
 (program $eo_to_smt ((T Type)) :signature (T) $smt_Term)
 (program $eo_to_smt_type () :signature (Type) $smt_Type)
-(program $eo_to_smt_exists () :signature ($eo_List $smt_Term) $smt_Term)
-
-; helper for CPC Tuple
-; In $eo_to_smt_type, (Tuple x1 x2) returns
-;   ($eo_to_smt_type_tuple ($eo_to_smt_type x1) ($eo_to_smt_type x2))
-; and TupleUnit returns
-;   ($tsm_Datatype $native_str_tuple_name ($smtx_tuple_datatype_decl ($dt_sum $dtc_unit $dt_null))).
-(program $smtx_tuple_datatype_decl
-  ((d $smt_Datatype))
-  :signature ($smt_Datatype) $smt_DatatypeDecl
-  (
-  (($smtx_tuple_datatype_decl d) ($dd_cons $native_str_tuple_name d $dd_nil))
-  )
-)
 
 ; auxiliary definitions for defining $eo_to_smt / $eo_to_smt_type
 ;$EO_TO_SMT_AUX$
@@ -1276,6 +1261,13 @@
 ; references are resolved regardless of their order in the declaration.
 (program $smtx_type_bounded () :signature ($native_Bool $smt_Type) $native_Bool)
 
+
+(program $smtx_is_unit_type ((T $smt_Type))
+  :signature ($smt_Type) $native_Bool
+  (
+  (($smtx_is_unit_type T) ($smtx_type_bounded $native_true T))
+  )
+)
 
 (program $smtx_is_finite_type ((T $smt_Type))
   :signature ($smt_Type) $native_Bool

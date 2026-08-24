@@ -420,12 +420,22 @@
   )
 )
 
+; -- $eo_to_smt_bv_size
+; The width a bit-vector type is of, or minus one if the type is not one.
+(program $eo_to_smt_bv_size ((x1 $native_Nat) (t1 $smt_Value))
+  :signature ($smt_Type) $native_Int
+  (
+  (($eo_to_smt_bv_size ($tsm_BitVec x1)) ($native_n_to_z x1))
+  (($eo_to_smt_bv_size t1) $native_z_neg_one)
+  )
+)
+
 ; -- @bvsize
 (program $eoc_transform_@bvsize
   ((n $native_Int) (T Type) (T1 Type) (x1 T1))
   :signature (T) $smt_Term
   (
-  (($eoc_transform_@bvsize (@bvsize x1)) (eo::define ((n ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))))) ($native_ite ($native_z_<= $native_z_zero n) ($sm_@purify ($sm_numeral n)) $sm_none)))
+  (($eoc_transform_@bvsize (@bvsize x1)) (eo::define ((n ($eo_to_smt_bv_size ($smtx_typeof ($eo_to_smt x1))))) ($native_ite ($native_z_<= $native_z_zero n) ($sm_@purify ($sm_numeral n)) $sm_none)))
   )
 )
 
@@ -878,7 +888,7 @@
   ((T Type) (T1 Type) (x1 T1))
   :signature (T) $smt_Term
   (
-  (($eoc_transform_bvredand (bvredand x1)) ($sm_bvcomp ($eo_to_smt x1) ($sm_bvnot ($emb_sm.Binary ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))) ($native_apply_0 "0")))))
+  (($eoc_transform_bvredand (bvredand x1)) ($sm_bvcomp ($eo_to_smt x1) ($sm_bvnot ($emb_sm.Binary ($eo_to_smt_bv_size ($smtx_typeof ($eo_to_smt x1))) ($native_apply_0 "0")))))
   )
 )
 
@@ -887,7 +897,7 @@
   ((T Type) (T1 Type) (x1 T1))
   :signature (T) $smt_Term
   (
-  (($eoc_transform_bvredor (bvredor x1)) ($sm_bvnot ($sm_bvcomp ($eo_to_smt x1) ($emb_sm.Binary ($smtx_bv_sizeof_type ($smtx_typeof ($eo_to_smt x1))) ($native_apply_0 "0")))))
+  (($eoc_transform_bvredor (bvredor x1)) ($sm_bvnot ($sm_bvcomp ($eo_to_smt x1) ($emb_sm.Binary ($eo_to_smt_bv_size ($smtx_typeof ($eo_to_smt x1))) ($native_apply_0 "0")))))
   )
 )
 
@@ -1523,6 +1533,20 @@
   )
 )
 
+; -- $eo_to_smt_tuple_decl
+; The declaration a tuple type is of. SMT-LIB has no tuples, so there is no
+; symbol of the target for this: the type is modelled as a datatype whose
+; declaration holds one datatype under the conventional name, which is what
+; this builds from the datatype the fields give. See the blocks for tuple and
+; for Tuple, whose $eo_to_smt_type_tuple reads a declaration back apart.
+(program $eo_to_smt_tuple_decl
+  ((d $smt_Datatype))
+  :signature ($smt_Datatype) $smt_DatatypeDecl
+  (
+  (($eo_to_smt_tuple_decl d) ($dd_cons $native_str_tuple_name d $dd_nil))
+  )
+)
+
 ; -- tuple
 ; helper for CPC tuple constructor
 ; Given an application of (tuple a1 a2), returns the same application
@@ -1551,8 +1575,8 @@
     ($tsm_Datatype s ($dd_cons s2 ($dt_sum c $dt_null) $dd_nil)) h hT tail)
       (eo::define ((d ($dt_sum c $dt_null)))
       (eo::define ((d2 ($dt_sum ($dtc_cons hT c) $dt_null)))
-      (eo::define ((dd ($smtx_tuple_datatype_decl d)))
-      (eo::define ((dd2 ($smtx_tuple_datatype_decl d2)))
+      (eo::define ((dd ($eo_to_smt_tuple_decl d)))
+      (eo::define ((dd2 ($eo_to_smt_tuple_decl d2)))
       ($native_ite
         ($native_and
           ($native_and
@@ -1599,7 +1623,7 @@
           ($native_str_= s2 $native_str_tuple_name))
         ($native_z_<= $native_z_zero n))
       ($sm_apply
-        ($sm_DtSel $native_str_tuple_name ($smtx_tuple_datatype_decl d) $native_n_zero ($native_z_to_n n))
+        ($sm_DtSel $native_str_tuple_name ($eo_to_smt_tuple_decl d) $native_n_zero ($native_z_to_n n))
         t)
       $sm_none))
   (($eo_to_smt_tuple_select T n t)                    $sm_none)
@@ -1631,7 +1655,7 @@
           ($native_str_= s2 $native_str_tuple_name))
         ($native_z_<= $native_z_zero n))
       ($eo_to_smt_updater
-        ($sm_DtSel $native_str_tuple_name ($smtx_tuple_datatype_decl d) $native_n_zero ($native_z_to_n n))
+        ($sm_DtSel $native_str_tuple_name ($eo_to_smt_tuple_decl d) $native_n_zero ($native_z_to_n n))
         t
         u)
       $sm_none))
@@ -2010,7 +2034,7 @@
             ($native_str_= s $native_str_tuple_name)
             ($native_str_= s2 $native_str_tuple_name))
           ($smtx_type_wf_component U))
-        ($tsm_Datatype $native_str_tuple_name ($smtx_tuple_datatype_decl d))
+        ($tsm_Datatype $native_str_tuple_name ($eo_to_smt_tuple_decl d))
         $tsm_none)))
   (($eo_to_smt_type_tuple U T) $tsm_none)
   )
