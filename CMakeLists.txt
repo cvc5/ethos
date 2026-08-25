@@ -71,12 +71,9 @@ add_subdirectory(tests)
 # which additionally links them; see plugins/CMakeLists.txt.
 #
 # cpp_compiler is skipped: it is a snapshot from an earlier version of ethos
-# and is known not to compile (see plugins/cpp_compiler/README.md). scratch
-# directories are skipped as well: they hold code fragments kept for reference,
-# which are not standalone translation units.
+# and is known not to compile (see plugins/cpp_compiler/README.md).
 file(GLOB_RECURSE plugins_SRC CONFIGURE_DEPENDS "plugins/*.cpp")
 list(FILTER plugins_SRC EXCLUDE REGEX "/plugins/cpp_compiler/")
-list(FILTER plugins_SRC EXCLUDE REGEX "/scratch/")
 if(plugins_SRC)
   add_library(plugins-compile-check OBJECT EXCLUDE_FROM_ALL ${plugins_SRC})
 else()
