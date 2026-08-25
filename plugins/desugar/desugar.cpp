@@ -712,7 +712,7 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
   // The definition was already inlined by the parser, so this command has no
   // effect on the remainder of the generated output. It is emitted, under the
   // parse definition prefix, so that the identifier it introduces can still be
-  // resolved when a proof that uses it is parsed. See getParseDefPrefix.
+  // resolved when a proof that uses it is parsed. See mkParseDefName.
   bool isMacro = (t.getKind() == Kind::LAMBDA);
   Expr body = isMacro ? t[1] : t;
   std::vector<Expr> vars;
@@ -926,7 +926,7 @@ void Desugar::finalizeBinder(const Expr& e, const Expr& attrCons)
   d_eoIsClosed << "  (($eo_is_closed_rec (";
   printName(e, d_eoIsClosed);
   d_eoIsClosed
-      << " vs x) env) ($eo_is_closed_rec x ($eo_list_concat $eo_List_cons vs "
+      << " vs x) env) ($eo_is_closed_rec x (eo::list_concat $eo_List_cons vs "
          "env)))"
       << std::endl;
 }

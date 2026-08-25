@@ -492,6 +492,23 @@ Command parseCommand(const std::string& s_expr_text)
     const std::string msg = unescapeString(root.d_children[1]);
     cmd.d_isTrimDirective =
         hasPrefix(msg, "trim-defs ") || hasPrefix(msg, "trim-defs-cmd ");
+    if (!hasPrefix(msg, "trim-defs-cmd "))
+    {
+      // Echo payloads are a metadata side channel rather than opaque text: the
+      // `lean-meta <rule> :deps ...` and `lean-parser-*` echoes name the
+      // symbols their consumer will need, and those names are the only thing
+      // keeping the corresponding definitions alive here. Harvest every
+      // whitespace-separated word as a candidate reference; words that do not
+      // name a known symbol are discarded in resolveDependencies. The
+      // `trim-defs-cmd` payloads are excluded because they carry a whole
+      // synthetic command that is processed separately by echo().
+      std::istringstream words(msg);
+      std::string word;
+      while (words >> word)
+      {
+        cmd.d_bodySyms.insert(word);
+      }
+    }
   }
   return cmd;
 }
@@ -594,70 +611,15 @@ void TrimDefs::resolveDependencies()
 std::vector<size_t> TrimDefs::getCommandOrder(
     const std::unordered_set<size_t>& retained) const
 {
-  std::vector<std::vector<size_t>> dependencies(d_commands.size());
-  for (size_t cid : retained)
-  {
-    std::vector<size_t>& commandDependencies = dependencies[cid];
-    for (size_t symbol : d_cmdSyms[cid])
-    {
-      std::map<size_t, std::unordered_set<size_t>>::const_iterator it =
-          d_symCommands.find(symbol);
-      if (it == d_symCommands.end())
-      {
-        continue;
-      }
-      for (size_t dependency : it->second)
-      {
-        if (dependency != cid && retained.find(dependency) != retained.end())
-        {
-          commandDependencies.push_back(dependency);
-        }
-      }
-    }
-    std::sort(commandDependencies.begin(), commandDependencies.end());
-    commandDependencies.erase(
-        std::unique(commandDependencies.begin(), commandDependencies.end()),
-        commandDependencies.end());
-  }
-
-  // An iterative DFS postorder puts each command after the retained
-  // definitions of the symbols it references. Cycles have no topological
-  // order; encountering a command on the current path breaks the cycle
-  // deterministically.
-  std::vector<unsigned char> state(d_commands.size(), 0);
-  std::vector<size_t> order;
-  std::vector<size_t> roots(retained.begin(), retained.end());
-  std::sort(roots.begin(), roots.end());
-  for (size_t root : roots)
-  {
-    if (state[root] != 0)
-    {
-      continue;
-    }
-
-    state[root] = 1;
-    std::vector<std::pair<size_t, size_t>> stack;
-    stack.emplace_back(root, 0);
-    while (!stack.empty())
-    {
-      std::pair<size_t, size_t>& frame = stack.back();
-      const size_t cid = frame.first;
-      if (frame.second < dependencies[cid].size())
-      {
-        const size_t dependency = dependencies[cid][frame.second++];
-        if (state[dependency] == 0)
-        {
-          state[dependency] = 1;
-          stack.emplace_back(dependency, 0);
-        }
-        continue;
-      }
-
-      state[cid] = 2;
-      order.push_back(cid);
-      stack.pop_back();
-    }
-  }
+  // Emit in source order. The input already orders commands so that each one
+  // is well-formed where it is read, and any subset of it in the same relative
+  // order still is. Ordering by symbol dependencies instead is not sound,
+  // because commands can depend on one another without naming each other's
+  // symbols: `(declare-consts <string> (Seq Char))` must precede every command
+  // containing a string literal, since the literal type rule is fixed to the
+  // builtin type the first time such a literal is parsed.
+  std::vector<size_t> order(retained.begin(), retained.end());
+  std::sort(order.begin(), order.end());
   return order;
 }
 
