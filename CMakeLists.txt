@@ -60,16 +60,23 @@ add_subdirectory(src)
 add_subdirectory(tests)
 
 # Compile-only check for the experimental extensions in plugins/. Those are
-# not part of ethos and produce nothing here; this target exists so that CI
-# can catch them bitrotting against src/. It is EXCLUDE_FROM_ALL, so an
-# ordinary build never sees it. Build it explicitly with:
+# not part of ethos and produce nothing here; this target exists so that they
+# can be checked for bitrot against src/ from an ordinary build tree. It is
+# EXCLUDE_FROM_ALL, so an ordinary build never sees it. Build it explicitly
+# with:
 #
 #   make plugins-compile-check
 #
+# The standalone project in plugins/ builds the same sources into ethos-eoc,
+# which additionally links them; see plugins/CMakeLists.txt.
+#
 # cpp_compiler is skipped: it is a snapshot from an earlier version of ethos
-# and is known not to compile (see plugins/cpp_compiler/README.md).
+# and is known not to compile (see plugins/cpp_compiler/README.md). scratch
+# directories are skipped as well: they hold code fragments kept for reference,
+# which are not standalone translation units.
 file(GLOB_RECURSE plugins_SRC CONFIGURE_DEPENDS "plugins/*.cpp")
 list(FILTER plugins_SRC EXCLUDE REGEX "/plugins/cpp_compiler/")
+list(FILTER plugins_SRC EXCLUDE REGEX "/scratch/")
 if(plugins_SRC)
   add_library(plugins-compile-check OBJECT EXCLUDE_FROM_ALL ${plugins_SRC})
 else()
