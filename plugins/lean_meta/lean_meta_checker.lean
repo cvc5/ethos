@@ -1,0 +1,151 @@
+module
+
+public import $EO_CALC$.LogosTerm
+import all $EO_CALC$.LogosTerm
+public import $EO_CALC$.SmtEval
+import all $EO_CALC$.SmtEval
+
+public section
+
+set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
+
+namespace Eo
+
+open SmtEval
+
+/- Eunoia literal evaluation defined -/
+
+def native_str_len : native_String -> native_Int
+  | x => Int.ofNat x.length
+def native_str_concat : native_String -> native_String -> native_String
+  | x, y => x ++ y
+def native_str_substr (s : native_String) (i n : native_Int) : native_String :=
+  let len : Int := (native_str_len s)
+  if i < 0 || n <= 0 || i >= len then
+    []
+  else
+    let start : Nat := Int.toNat i
+    let take  : Nat := Int.toNat (min n (len - i))
+    (s.drop start).take take
+def native_str_indexof_rec (s t : native_String) (i fuel : Nat) : native_Int :=
+  match fuel with
+  | 0 => -1
+  | fuel + 1 =>
+      if native_string_prefix_eq t (s.drop i) then
+        Int.ofNat i
+      else
+        native_str_indexof_rec s t (i + 1) fuel
+def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
+  if i < 0 then
+    -1
+  else
+    let sLen := Int.toNat (native_str_len s)
+    let start := Int.toNat i
+    let tLen := Int.toNat (native_str_len t)
+    if h : start + tLen <= sLen then
+      native_str_indexof_rec s t start (sLen - (start + tLen) + 1)
+    else
+      -1
+
+/- Term equality -/
+def native_teq : Term -> Term -> native_Bool
+  | x, y => decide (x = y)
+
+/- Term ITE -/
+abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
+  (native_ite (native_teq x1 (Term.Boolean true))
+    x2
+    (native_ite (native_teq x1 (Term.Boolean false))
+      x3
+      Term.Stuck))
+
+/- Term less than, based on arbitrary ordering -/
+def native_tcmp (a b : Term) : native_Bool :=
+  match compare a b with
+  | Ordering.lt => true
+  | _ => false
+
+/- Used for defining hash. This is intentionally a stub: EO treats hash as an
+   underconstrained oracle, so signatures must not rely on distinct terms
+   receiving distinct values in the executable Lean checker. -/
+def native_thash : Term -> native_Int
+  | _ => 0
+
+/- Proofs -/
+inductive Proof : Type where
+  | pf : Term -> Proof
+  | Stuck : Proof
+
+/- Definition of Eunoia signature -/
+
+$LEAN_DEFS_TOTAL$
+
+$LEAN_DEFS$
+
+/- Definition of the checker -/
+
+abbrev CIndex := native_Int
+
+/-
+-/
+inductive CIndexList : Type where
+  | nil : CIndexList
+  | cons : CIndex -> CIndexList -> CIndexList
+deriving Repr, Inhabited
+
+/-
+-/
+inductive CArgList : Type where
+  | nil : CArgList
+  | cons : Term -> CArgList -> CArgList
+deriving Repr, Inhabited
+
+/-
+-/
+inductive CStateObj : Type where
+  | assume : Term -> CStateObj
+  | assume_push : Term -> CStateObj
+  | proven : Term -> CStateObj
+deriving Repr, Inhabited
+
+/-
+-/
+inductive CState : Type where
+  | nil : CState
+  | cons : CStateObj -> CState -> CState
+  | Stuck : CState
+deriving Repr, Inhabited
+
+/-
+-/
+inductive CRule : Type where
+$LEAN_CHECKER_RULE_DEF$
+deriving Repr, Inhabited
+
+/-
+-/
+inductive CCmd : Type where
+$LEAN_CHECKER_CMD_DEF$
+deriving Repr, Inhabited
+
+/-
+-/
+inductive CCmdList : Type where
+  | nil : CCmdList
+  | cons : CCmd -> CCmdList -> CCmdList
+deriving Repr, Inhabited
+
+$LEAN_CHECKER_DEFS$
+
+/- Definition of refutation -/
+inductive eo_is_refutation : Term -> CCmdList -> Prop
+$LEAN_EO_IS_REFUTATION_DEF$
+
+/-- API for logos -/
+def logos_init_state : CState := CState.nil
+def logos_invoke_assume (s : CState) (A : Term) : CState := (CState.cons (CStateObj.assume A) s)
+def logos_invoke_cmd (s : CState) (c :CCmd) : CState := (__eo_invoke_cmd s c)
+def logos_state_is_refutation (s : CState) : native_Bool := (__eo_state_is_refutation s)
+
+end Eo

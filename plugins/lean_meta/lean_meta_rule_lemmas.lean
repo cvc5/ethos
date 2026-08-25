@@ -1,0 +1,84 @@
+module
+
+public import $EO_CALC$.Proofs.CheckerCore
+public import $EO_CALC$.Proofs.RuleSupport.Support
+import all $EO_CALC$.Logos
+$EO_RULE_LEMMA_INCLUDE$
+
+public section
+
+open Eo
+open SmtEval
+open Smtm
+
+set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
+
+/- Central expansion point for plain `step` rules.
+
+   To add a new rule handled by `__eo_cmd_step_proven`, add its matching
+   pattern here and dispatch to the arity helper matching the rule shape.
+   The preservation theorems below then pick the new rule up automatically. -/
+theorem cmd_step_proven_facts_of_invariants
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (_hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerLocalTruthInvariant M s ->
+  checkerAssumptionStabilityInvariant M s ->
+  checkerTypeInvariant s ->
+  checkerTranslationInvariant s ->
+  cmdTranslationOk (CCmd.step r args premises) ->
+  __eo_typeof (__eo_cmd_step_proven s r args premises) = Term.Bool ->
+  CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
+:=
+by
+  intro hs hsStable hsTy hsTrans hCmdTrans hResultTy
+  have hProg : __eo_cmd_step_proven s r args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  have hPremisesBool : AllHaveBoolType (premiseTermList s premises) :=
+    premiseTermList_has_bool_type s premises hsTy hsTrans
+  cases r with
+$EO_RULE_LEMMA_STEP_CASES$
+  -- Every rule unsupported by plain `step` reduces definitionally to `Stuck`.
+  | _ =>
+      exact False.elim (hProg rfl)
+
+/-
+Central expansion point for `step_pop` rules.
+
+If `__eo_cmd_step_pop_proven` grows more supported rules, add a matching
+branch below and route it to the rule-specific helper.
+-/
+theorem cmd_step_pop_proven_facts_of_invariants
+    (M : SmtModel) (hM : model_total_typed M)
+    (root tail : CState) (A : Term)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerLocalTruthInvariant M root ->
+  checkerAssumptionStabilityInvariant M root ->
+  checkerTypeInvariant root ->
+  checkerTranslationInvariant root ->
+  stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
+  __eo_typeof (__eo_cmd_step_pop_proven root r args A premises) = Term.Bool ->
+  CmdStepFacts M tail (__eo_cmd_step_pop_proven root r args A premises)
+:=
+by
+  intro hsRoot hsRootStable hsRootTy hsRootTrans hSuffix hResultTy
+  have hProg : __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  have hsCurTy : checkerTypeInvariant (CState.cons (CStateObj.assume_push A) tail) :=
+    checkerTypeInvariant_of_stateStepPopSuffix hSuffix hsRootTy
+  have hsCurTrans : checkerTranslationInvariant (CState.cons (CStateObj.assume_push A) tail) :=
+    checkerTranslationInvariant_of_stateStepPopSuffix hSuffix hsRootTrans
+  have hATy : __eo_typeof A = Term.Bool :=
+    (checkerTypeInvariant_head_assume_push A tail hsCurTy).2
+  have hATrans : RuleProofs.eo_has_smt_translation A :=
+    checkerTranslationInvariant_head_assume_push A tail hsCurTrans
+  have hPremisesTrans : AllHaveSmtTranslation (premiseTermList root premises) :=
+    premiseTermList_has_smt_translation root premises hsRootTrans
+  have hPremisesTy : AllTypeofBool (premiseTermList root premises) :=
+    premiseTermList_has_typeof_bool root premises hsRootTy
+  cases r with
+$EO_RULE_LEMMA_STEP_POP_CASES$
+  -- Every rule unsupported by `step_pop` reduces definitionally to `Stuck`.
+  | _ =>
+      exact False.elim (hProg rfl)
