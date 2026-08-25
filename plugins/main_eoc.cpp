@@ -43,6 +43,18 @@ using namespace ethos;
 
 namespace {
 
+// Whether key names an option of ethos that ethos-eoc does not take, however
+// it was written: --key and --no-key are the same option to setOption, so they
+// are the same option here.
+bool isUnsupportedOption(const std::string& key)
+{
+  // This binary compiles a signature rather than checking a proof, so an
+  // option about what a proof has to look like has nothing here to act on.
+  // Setting it would quietly do nothing, which is worse than saying it is not
+  // an option this binary takes.
+  return key == "require-proof-of-false";
+}
+
 std::unique_ptr<Plugin> createPlugin(const std::string& name,
                                      State& s,
                                      bool generateParser,
@@ -139,20 +151,6 @@ int main(int argc, char* argv[])
       leanConfigFile = arg.substr(14);
       continue;
     }
-    if (arg.compare(0, 5, "--no-") == 0)
-    {
-      if (opts.setOption(arg.substr(5), false))
-      {
-        continue;
-      }
-    }
-    else if (arg.compare(0, 2, "--") == 0)
-    {
-      if (opts.setOption(arg.substr(2), true))
-      {
-        continue;
-      }
-    }
     bool isInclude = (arg.compare(0, 10, "--include=") == 0);
     if (isInclude || arg.compare(0, 12, "--reference=") == 0)
     {
@@ -160,6 +158,25 @@ int main(int argc, char* argv[])
       size_t first = arg.find_first_of("=");
       std::string ifile = arg.substr(first + 1);
       includes.emplace_back(ifile, isInclude);
+      continue;
+    }
+    // The options of ethos itself, which are what is left that begins with a
+    // dash: every option of this binary alone is handled above. One ethos does
+    // not have, or has and this binary does not take, is an error here rather
+    // than an argument to fall through to, so that it cannot be read as the
+    // name of the input file further down.
+    if (arg.compare(0, 5, "--no-") == 0 || arg.compare(0, 2, "--") == 0)
+    {
+      bool val = (arg.compare(0, 5, "--no-") != 0);
+      std::string key = arg.substr(val ? 2 : 5);
+      if (isUnsupportedOption(key))
+      {
+        EO_FATAL() << "Error: " << arg << " is not supported by ethos-eoc";
+      }
+      if (!opts.setOption(key, val))
+      {
+        EO_FATAL() << "Error: unrecognized option " << arg;
+      }
       continue;
     }
     if (arg == "-t")
@@ -176,6 +193,10 @@ int main(int argc, char* argv[])
       EO_FATAL() << "Error: tracing not enabled in this build";
 #endif
     }
+    else if (arg.compare(0, 1, "-") == 0)
+    {
+      EO_FATAL() << "Error: unrecognized option " << arg;
+    }
     else if (!readFile)
     {
       file = arg;
@@ -183,15 +204,6 @@ int main(int argc, char* argv[])
     }
     else
     {
-      // maybe one of these is a wrong option
-      for (size_t j = 0; j < 2; j++)
-      {
-        std::string oarg(j == 0 ? file : arg);
-        if (oarg.compare(0, 2, "--") == 0)
-        {
-          EO_FATAL() << "Error: unrecognized option " << oarg;
-        }
-      }
       EO_FATAL() << "Error: multiple files specified, \"" << file << "\" and \""
                  << arg << "\"";
     }
@@ -211,13 +223,6 @@ int main(int argc, char* argv[])
   if (!leanConfigFile.empty() && pluginName != "lean-meta")
   {
     EO_FATAL() << "Error: --lean-config requires --plugin.lean-meta";
-  }
-  if (opts.d_requireProofOfFalse)
-  {
-    // This binary compiles a signature; what a proof ends in is no business
-    // of its own, so the option of ethos that says so is not one it takes.
-    EO_FATAL() << "Error: --require-proof-of-false is not supported by "
-                  "ethos-eoc";
   }
   // options are finalized, now initialize the state and the plugin
   Stats stats;
