@@ -35,13 +35,15 @@ plugins/model_smt/smt_defs.eo   the SMT-LIB signature, written in the embedding
 ```
 
 ```text
-python3 tools/eoc/driver.py lean \
+python3 tools/eoc/driver.py lean --all \
   --defs plugins/model_smt/cpc_defs.eo <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
 Only the `model-smt` stage reads them; no stage before it sees either. A symbol
 the input declares that the file says nothing about is an error rather than a
-term the model would silently say nothing about.
+term the model would silently say nothing about. A run that names no `--defs`
+reads `plugins/model_smt/cpc_defs.eo`, which is what the examples below that
+compile a signature of CPC symbols rely on.
 
 Each is a sequence of blocks, one per symbol, opened by a `; -- X` line. For a
 symbol X, `smt_defs.eo` gives the constructor `$emb_sm.X` and the macro
@@ -185,6 +187,17 @@ tools/eoc/out/
     Rules/
       <Rule>.lean
 ```
+
+`out/lean/` is what a run publishes, not a Lean package that builds on its own:
+the generated modules import `<Calc>.Proofs.CheckerCore` and
+`<Calc>.Proofs.RuleSupport.Support`, which the compiler never writes and which
+belong to the package the files are installed into. That package holds the
+proof-side modules under `Proofs/`, and the published tree is it with that one
+component dropped, uniformly: `RuleLemmas.lean` is installed as
+`Proofs/RuleLemmas.lean` and `Rules/<Rule>.lean` as `Proofs/Rules/<Rule>.lean`,
+which is what the `import <Calc>.Proofs.Rules.<Rule>` lines that the former
+carries name. Every other file is installed at the root of the package, where
+its name already is its import.
 
 Plugin-private files:
 
