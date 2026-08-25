@@ -7,4 +7,3 @@ tools/eoc/__pycache__
 .DS_Store
 archive-eoc
 build-cpp-compiler-test
-scratch/

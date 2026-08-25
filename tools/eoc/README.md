@@ -463,5 +463,5 @@ Either:
 ### I want to inspect the generated artifacts directly
 
 Look in `tools/eoc/out/` for both the staged EO artifacts and the final
-published outputs. The plugin-private scratch files remain under
+published outputs. The plugin-private generated files remain under
 `<build-dir>/out/plugins/`.
