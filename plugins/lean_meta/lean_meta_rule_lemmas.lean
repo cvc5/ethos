@@ -39,6 +39,7 @@ by
     premiseTermList_has_bool_type s premises hsTy hsTrans
   cases r with
 $EO_RULE_LEMMA_STEP_CASES$
+  -- Every rule unsupported by plain `step` reduces definitionally to `Stuck`.
   | _ =>
       exact False.elim (hProg rfl)
 
@@ -78,5 +79,6 @@ by
     premiseTermList_has_typeof_bool root premises hsRootTy
   cases r with
 $EO_RULE_LEMMA_STEP_POP_CASES$
+  -- Every rule unsupported by `step_pop` reduces definitionally to `Stuck`.
   | _ =>
       exact False.elim (hProg rfl)

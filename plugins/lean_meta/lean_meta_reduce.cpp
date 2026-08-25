@@ -328,6 +328,10 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
     {     
       os << "(Term.String ";
       std::string css = l->toString();
+      AlwaysAssert(css.find_first_of("\"\\") == std::string::npos)
+          << "Lean meta only supports printable ASCII string literals without "
+             "quotes or backslashes, got "
+          << l->d_str;
       if (css.empty())
       {
         // empty string
@@ -374,6 +378,12 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   }
   if (!smtStr.empty() && smtStr.compare(0, 1, "\"") == 0)
   {
+    AlwaysAssert(smtStr.size() >= 2 && smtStr.back() == '"'
+                 && smtStr.find('\\') == std::string::npos
+                 && smtStr.find('"', 1) == smtStr.size() - 1)
+        << "Lean meta only supports quoted native strings with printable ASCII "
+           "bodies that contain no quotes or backslashes, got "
+        << l->d_str;
     if (smtStr.length()==2)
     {
       // empty string
