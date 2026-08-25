@@ -172,10 +172,6 @@ class LeanMetaReduce : public MetaReducePlugin
                                   MetaKind ctx = MetaKind::EUNOIA);
   /** Print one checker step include case. */
   void printStepCase(std::ostream& out, const std::string& str, bool isPop);
-  /** Print the empty checker step include case. */
-  void printStepEmptyCase(std::ostream& out,
-                          const std::string& str,
-                          bool isPop);
   /** Return true if c can be printed as an atomic Eunoia term. */
   bool isAtomicEo(const Expr& c, const std::string& cname, size_t& uarity);
   /** Return true if c can be printed as an atomic SMT term. */
@@ -249,7 +245,7 @@ class LeanMetaReduce : public MetaReducePlugin
   std::set<Expr> d_totalDefProgs;
   /** Programs inferred to require partial (stuck-extended) definitions. */
   std::set<Expr> d_partialDefProgs;
-  /** Programs with simple definitions, i.e. trivially not recursive. */
+  /** Programs whose definitions depend only on themselves and simple programs. */
   std::set<Expr> d_simpleDefProgs;
   /** Return a Lean-safe version of an SMT-LIB identifier. */
   static std::string cleanSmtId(const std::string& id);

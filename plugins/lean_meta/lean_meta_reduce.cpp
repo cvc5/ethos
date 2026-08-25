@@ -9,6 +9,7 @@
 
 #include "lean_meta_reduce.h"
 
+#include <cctype>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -358,15 +359,13 @@ bool is_integer(const std::string& s)
 
 std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
 {
-  Assert(oApp.getKind() == Kind::APPLY_OPAQUE)
+  AlwaysAssert(oApp.getKind() == Kind::APPLY_OPAQUE)
       << "Bad kind for opaque " << oApp.getKind() << " " << oApp;
-  std::string aname = getName(oApp[0]);
-  if (!isSmtApplyApp(oApp))
-  {
-    Assert(false) << "Expected smt apply app when asking for embed name "
-                  << oApp;
-  }
+  AlwaysAssert(isSmtApplyApp(oApp))
+      << "Expected smt apply app when asking for embed name " << oApp;
   const Literal* l = oApp[1].getValue()->asLiteral();
+  AlwaysAssert(l != nullptr)
+      << "Expected string literal in smt apply app " << oApp;
   std::string smtStr = l->d_str.toString();
   // literals don't need native_
   if (is_integer(smtStr) || smtStr == "true" || smtStr == "false")
@@ -789,7 +788,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     out = &d_defsTotal;
   }
-  bool isSimple = false;
+  bool isSimple = true;
   bool needsPartial = false;
   // check if trivially not recursive?
   std::vector<Expr> prets;
@@ -810,15 +809,18 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       isSimple = false;
       break;
     }
-    if (e!=prog && d_simpleDefProgs.find(e)==d_simpleDefProgs.end())
+    if (e != v && d_simpleDefProgs.find(e) == d_simpleDefProgs.end())
     {
       isSimple = false;
     }
   }
   std::string rawName = vname;
-  if (vname.compare(0,6,"$eo.l.")==0)
+  if (vname.compare(0, 6, "$eo.l.") == 0)
   {
-    rawName = vname.substr(8);
+    const size_t namePos = vname.find('.', 6);
+    AlwaysAssert(namePos != std::string::npos && namePos + 1 < vname.size())
+        << "Malformed linear-pattern program name " << vname;
+    rawName = vname.substr(namePos + 1);
   }
   if (d_partialExc.find(rawName)!=d_partialExc.end())
   {
@@ -836,7 +838,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
 #endif
   if (isSimple)
   {
-    d_simpleDefProgs.insert(prog);
+    d_simpleDefProgs.insert(v);
   }
   if (needsPartial)
   {
@@ -1153,6 +1155,8 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   // get the meta-kind based on its name
   std::string cnamek;
   MetaKind tk = getMetaKind(d_state, e, cnamek);
+  // `$eoo_` names carry the overload identity. Keep them mangled so distinct
+  // operators such as unary and binary `-` remain distinct Lean constructors.
   std::string cname = cleanSmtId(cnamek);
   if (tk == MetaKind::EUNOIA)
   {
@@ -1210,7 +1214,9 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   }
   else if (tk == MetaKind::EUNOIA && isAtomicEo(c, cnamek, uarity))
   {
-    Assert (uarity<4);
+    AlwaysAssert(uarity < 4)
+        << "Lean meta supports at most three opaque operator indices, got "
+        << uarity << " for " << e;
     d_emittedUserOps.insert(std::make_pair(cname, uarity));
     std::stringstream& etd = d_embedTOpDt[uarity];
     etd << "  | " << cname << " : UserOp";
@@ -1223,13 +1229,6 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   }
   (*out) << "  | " << cname << " : ";
   AlwaysAssert(attr != Attr::AMB && attr != Attr::AMB_DATATYPE_CONSTRUCTOR);
-  // revert overloads
-  if (cnamek.compare(0, 5, "$eoo_") == 0)
-  {
-    size_t firstDot = cnamek.find('.');
-    Assert(firstDot != std::string::npos && firstDot > 5);
-    cnamek = cnamek.substr(5, firstDot - 5);
-  }
   std::vector<std::string> argTypes;
   for (size_t i = 0; i < nopqArgs; i++)
   {
@@ -1791,7 +1790,8 @@ void LeanMetaReduce::printStepCase(std::ostream& out,
                                    bool isPop)
 {
   std::stringstream thmName;
-  thmName << (isPop ? "" : "exact ") << "cmd_step_" << (isPop ? "pop_" : "") << prule << "_properties";
+  thmName << (isPop ? "" : "exact ") << "cmd_step_" << (isPop ? "pop_" : "")
+          << prule << "_properties";
   out << "  | " << prule << " =>" << std::endl;
   out << "      exact cmd_step_" << (isPop ? "pop_" : "")
       << "facts_of_rule_properties";
@@ -1817,11 +1817,11 @@ void LeanMetaReduce::printStepCase(std::ostream& out,
   }
   std::stringstream ss;
   ss << "plugins/lean_meta/rules/lean_meta_rule_" << prule << "_gen.lean";
+  const std::string resource = isPop
+                                   ? "plugins/lean_meta/lean_meta_rule_pop.lean"
+                                   : "plugins/lean_meta/lean_meta_rule.lean";
   const std::string outPath =
-      emitResourceFile("plugins/lean_meta/lean_meta_rule.lean",
-                       ss.str(),
-                       {{"$EO_RULE$", prule}},
-                       true);
+      emitResourceFile(resource, ss.str(), {{"$EO_RULE$", prule}}, true);
   Trace("lean-meta") << "Write lean-defs rule " << outPath << std::endl;
   //  | contra =>
   //      exact cmd_step_facts_of_rule_properties M s premises hs <|
@@ -1831,19 +1831,6 @@ void LeanMetaReduce::printStepCase(std::ostream& out,
   //      exact cmd_step_pop_facts_of_rule_properties root tail A premises <|
   //        cmd_step_pop_scope_properties A root args premises
   //          hATrans hATy hPremisesTrans hPremisesTy hProg
-}
-
-void LeanMetaReduce::printStepEmptyCase(std::ostream& out,
-                                        const std::string& prule,
-                                        bool isPop)
-{
-  //out << "  | " << prule << " =>" << std::endl;
-  //out << "      cases args <;> cases premises <;> exact False.elim (hProg rfl)"
-  //    << std::endl;
-  //  | scope =>
-  //      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
-  //  | contra =>
-  //      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
 }
 
 bool LeanMetaReduce::echo(const std::string& msg)
@@ -1880,7 +1867,6 @@ bool LeanMetaReduce::echo(const std::string& msg)
     }
     return false;
   }
-  std::cout << "ECHO " << msg << std::endl;
   if (msg.compare(0, 10, "lean-meta ") == 0)
   {
     std::string eosc = msg.substr(10);
@@ -1892,28 +1878,32 @@ bool LeanMetaReduce::echo(const std::string& msg)
     Expr vv = d_state.getVar(eosc);
     if (vv.isNull())
     {
-      Assert(false) << "When making Lean theorem, could not find program "
-                    << eosc;
+      EO_FATAL() << "When making Lean theorem, could not find program " << eosc;
     }
     std::string progName = cleanId(eosc);
     ConjectureType ctype = MetaReducePlugin::optionMetaConjectureType();
     if (ctype == ConjectureType::VC)
     {
-      // ------------------ new
-      std::string prule = progName.substr(10);
+      const std::string progPrefix = cleanId("$eo_prog_");
+      if (progName.compare(0, progPrefix.size(), progPrefix) != 0
+          || progName.size() == progPrefix.size())
+      {
+        EO_FATAL() << "Malformed lean-meta program name " << eosc
+                   << "; expected $eo_prog_<rule>";
+      }
+      std::string prule = progName.substr(progPrefix.size());
       std::string fileName = prule;
-      fileName[0] = toupper(fileName[0]);
+      fileName[0] = static_cast<char>(
+          std::toupper(static_cast<unsigned char>(fileName[0])));
       d_rlInclude << "import $EO_CALC$.Proofs.Rules." << fileName << std::endl;
       // TODO: don't hardcode this
       if (prule == "scope")
       {
-        printStepEmptyCase(d_rlIncludeStep, prule, false);
         printStepCase(d_rlIncludeStepPop, prule, true);
       }
       else
       {
         printStepCase(d_rlIncludeStep, prule, false);
-        printStepEmptyCase(d_rlIncludeStepPop, prule, true);
       }
     }
     else
