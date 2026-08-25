@@ -28,14 +28,14 @@ def native_str_substr (s : native_String) (i n : native_Int) : native_String :=
     let start : Nat := Int.toNat i
     let take  : Nat := Int.toNat (min n (len - i))
     (s.drop start).take take
-def native_str_indexof_rec (s t : native_String) (i len fuel : Nat) : native_Int :=
+def native_str_indexof_rec (s t : native_String) (i fuel : Nat) : native_Int :=
   match fuel with
   | 0 => -1
   | fuel + 1 =>
       if native_string_prefix_eq t (s.drop i) then
         Int.ofNat i
       else
-        native_str_indexof_rec s t (i + 1) len fuel
+        native_str_indexof_rec s t (i + 1) fuel
 def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
   if i < 0 then
     -1
@@ -44,7 +44,7 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
     let start := Int.toNat i
     let tLen := Int.toNat (native_str_len t)
     if h : start + tLen <= sLen then
-      native_str_indexof_rec s t start tLen (sLen - (start + tLen) + 1)
+      native_str_indexof_rec s t start (sLen - (start + tLen) + 1)
     else
       -1
 
@@ -66,9 +66,11 @@ def native_tcmp (a b : Term) : native_Bool :=
   | Ordering.lt => true
   | _ => false
 
-/- Used for defining hash -/
+/- Used for defining hash. This is intentionally a stub: EO treats hash as an
+   underconstrained oracle, so signatures must not rely on distinct terms
+   receiving distinct values in the executable Lean checker. -/
 def native_thash : Term -> native_Int
-  | _ => 0 -- FIXME
+  | _ => 0
 
 /- Proofs -/
 inductive Proof : Type where
