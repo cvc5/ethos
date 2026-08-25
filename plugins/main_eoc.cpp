@@ -23,6 +23,7 @@
  * exit code is 0.
  */
 
+#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -74,6 +75,12 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
   }
   if (name == "model-smt")
   {
+    // With no --defs the plugin reads the signature it defaults to; naming
+    // one that is empty would instead fail once the stage runs.
+    if (defsFile.empty())
+    {
+      return std::make_unique<ModelSmt>(s);
+    }
     return std::make_unique<ModelSmt>(s, defsFile);
   }
   EO_FATAL() << "Error: unknown plugin \"" << name
@@ -205,6 +212,13 @@ int main(int argc, char* argv[])
   {
     EO_FATAL() << "Error: --lean-config requires --plugin.lean-meta";
   }
+  if (opts.d_requireProofOfFalse)
+  {
+    // This binary compiles a signature; what a proof ends in is no business
+    // of its own, so the option of ethos that says so is not one it takes.
+    EO_FATAL() << "Error: --require-proof-of-false is not supported by "
+                  "ethos-eoc";
+  }
   // options are finalized, now initialize the state and the plugin
   Stats stats;
   State s(opts, stats);
@@ -237,6 +251,10 @@ int main(int argc, char* argv[])
   if (plugin != nullptr)
   {
     plugin->finalize();
+  }
+  if (opts.d_stats)
+  {
+    std::cout << stats.toString(s, opts.d_statsCompact, opts.d_statsAll);
   }
   // exit immediately, which avoids deleting all expressions which can take time
   exit(0);

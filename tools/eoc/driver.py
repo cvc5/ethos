@@ -31,6 +31,17 @@ LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
 # per-rule files under lean/Rules/ are published separately, see
 # publish_generated_lean_rule_outputs. Keep this in sync with EOC_LEAN_OUTPUTS
 # in tools/eoc/cpc/common.sh, which installs these files into a Logos package.
+#
+# <final out dir>/lean is what a run publishes, not a Lean package that builds
+# on its own: the generated modules import <Calc>.Proofs.CheckerCore and
+# <Calc>.Proofs.RuleSupport.Support, which the compiler never writes and which
+# belong to the package the files are installed into. That package holds the
+# proof-side modules under Proofs/, and the published tree is it with that one
+# component dropped, uniformly: RuleLemmas.lean is installed as
+# Proofs/RuleLemmas.lean and Rules/<Rule>.lean as Proofs/Rules/<Rule>.lean,
+# which is what the import <Calc>.Proofs.Rules.<Rule> lines that the former
+# carries name. Everything else is installed at the root of the package, where
+# its name already is its import.
 LEAN_OUTPUTS: tuple[tuple[str, str, bool], ...] = (
     ("lean_meta/lean_meta_checker_gen.lean", "Logos.lean", True),
     ("lean_meta/lean_meta_checker_term_gen.lean", "LogosTerm.lean", True),
@@ -308,6 +319,12 @@ class Pipeline:
                 child.unlink()
 
     def publish_generated_lean_rule_outputs(self, lean_dir: Path) -> None:
+        """Publish the file of each rule the run compiled.
+
+        These go under lean/Rules, which is Proofs/Rules of the package they
+        are installed into with the leading component dropped, as the rest of
+        the published tree is; see LEAN_OUTPUTS.
+        """
         plugin_rule_dir = self.plugin_out_dir / "lean_meta" / "rules"
         final_rule_dir = lean_dir / "Rules"
         if final_rule_dir.exists():
@@ -356,10 +373,15 @@ class Pipeline:
         next such line, which is the same split the model-smt stage makes, see
         DefsFile::read in plugins/model_smt/defs_reader.cpp.
         """
-        if self.defs_file is None or not self.defs_file.exists():
+        if self.defs_file is None:
             return []
         out: list[tuple[str, str]] = []
-        for block in re.split(r"\n; -- ", self.defs_file.read_text())[1:]:
+        # Prepending a newline lets the same marker recognize a block on line
+        # one, which is what DefsFile::read does for the same reason. Without
+        # it this side and the model-smt stage would read the same file
+        # differently.
+        text = "\n" + self.defs_file.read_text()
+        for block in re.split(r"\n; -- ", text)[1:]:
             sym, _, body = block.partition("\n")
             out.append((sym.strip(), body))
         return out
@@ -701,9 +723,9 @@ class Pipeline:
         if build_first:
             self.build()
         output = self.final_out_dir / "desugar.eo"
-        print(f"**** smt_meta: Run ethos + desugar on {input_name} to generate {output}")
+        print(f"**** desugar: Run ethos + desugar on {input_name} to generate {output}")
         self.desugar(input_name, output, use_vc_plugin=True, deps=None, plugin_label=None)
-        print("**** smt_meta: Verify it parses")
+        print("**** desugar: Verify it parses")
         self.parse_file(output)
         return output
 
@@ -767,7 +789,8 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         default=None,
         help=(
             "EO file of the signature of the input written in the deep "
-            "embedding, read by the model-smt stage."
+            "embedding, read by the model-smt stage. Defaults to "
+            "plugins/model_smt/cpc_defs.eo."
         ),
     )
     parser.add_argument(
@@ -876,16 +899,38 @@ def main(argv: list[str]) -> int:
         solve_args = shlex.split(getattr(args, "solve_args", "") or "")
     except ValueError as err:
         parser.error(f"invalid --solve-args: {err}")
+
+    def resolve_file_arg(name: str, flag: str) -> Optional[Path]:
+        """The file the given option names, resolved as the input is.
+
+        It has to exist: read as empty, a mistyped --defs would quietly
+        compile a signature with no exclusions and no dependencies instead of
+        saying that the file it was pointed at is not there.
+        """
+        value = getattr(args, name, None)
+        if value is None:
+            return None
+        resolved = resolve_path_arg(value, cwd=invocation_cwd)
+        if not resolved.is_file():
+            parser.error(f"{flag} file not found: {resolved}")
+        return resolved
+
+    build_dir_arg = getattr(args, "build_dir", None) or os.getcwd()
     pipeline = Pipeline(
-        Path(getattr(args, "build_dir", os.getcwd())),
+        resolve_path_arg(build_dir_arg, cwd=invocation_cwd),
         final_out_dir,
         getattr(args, "jobs", 4),
         cvc5,
         solve_args,
-        Path(args.defs) if getattr(args, "defs", None) else None,
-        Path(args.lean_config) if getattr(args, "lean_config", None) else None,
+        resolve_file_arg("defs", "--defs"),
+        resolve_file_arg("lean_config", "--lean-config"),
     )
     build_first = not getattr(args, "no_build", False)
+    if not build_first and not pipeline.binary.is_file():
+        parser.error(
+            f"ethos-eoc not found at {pipeline.binary}; drop --no-build or "
+            "name the build directory it is in with --build-dir"
+        )
 
     try:
         if args.command == "vc":
@@ -900,6 +945,11 @@ def main(argv: list[str]) -> int:
         elif args.command == "lean":
             if not args.all and not args.targets:
                 parser.error("lean requires at least one target unless --all is passed")
+            if args.all and args.targets:
+                parser.error(
+                    "lean --all compiles the whole signature; it takes no targets, "
+                    f"but was given {' '.join(args.targets)}"
+                )
             pipeline.run_lean(
                 args.input,
                 list(args.targets),

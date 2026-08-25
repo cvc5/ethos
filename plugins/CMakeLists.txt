@@ -26,8 +26,8 @@ ethos_add_core_library(ethos-eoc-core)
 
 # Every plugin source in this directory, matching the plugins-compile-check
 # target in the top-level CMakeLists.txt so that the two cannot drift: a new
-# plugin source is picked up by both. cpp_compiler is its own project, see
-# cpp_compiler/CMakeLists.txt.
+# plugin source is picked up by both. cpp_compiler is its own project (see
+# cpp_compiler/CMakeLists.txt).
 file(GLOB_RECURSE ethos_eoc_SRC CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 list(FILTER ethos_eoc_SRC EXCLUDE REGEX "/cpp_compiler/")
