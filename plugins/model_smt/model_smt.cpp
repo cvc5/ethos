@@ -12,11 +12,20 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <type_traits>
 
 #include "../utils.h"
 #include "state.h"
 
 namespace ethos {
+
+static_assert(std::is_constructible<ModelSmt, State&>::value,
+              "ModelSmt must support the generic plugin factory");
+
+ModelSmt::ModelSmt(State& s)
+    : ModelSmt(s, getResourcePath("plugins/model_smt/cpc_defs.eo"))
+{
+}
 
 ModelSmt::ModelSmt(State& s, const std::string& defsFile)
     : StdPlugin(s), d_defsFile(defsFile)
@@ -37,7 +46,7 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   d_declSeen.emplace_back(name, e);
 }
 
-void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
+void ModelSmt::finalizeDecl(const std::string& name)
 {
   if (d_defsCovered.count(name) != 0)
   {
@@ -55,7 +64,6 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
   // interpret the symbol, we cannot claim this verification condition
   // accurately models SMT-LIB semantics.
   EO_FATAL() << "ERROR: no model semantics found for " << name;
-  Assert(false) << "No model semantics found for " << name;
 }
 
 void ModelSmt::loadDefs()
@@ -67,9 +75,7 @@ void ModelSmt::loadDefs()
   }
   if (d_defsFile.empty())
   {
-    EO_FATAL() << "ModelSmt: no signature was given for the input; name the"
-                  " one written in the deep embedding with --defs, e.g."
-                  " plugins/model_smt/cpc_defs.eo for CPC";
+    EO_FATAL() << "ModelSmt: no input signature resource was given";
   }
   if (!d_inputDefs.read(d_defsFile))
   {
@@ -98,52 +104,13 @@ void ModelSmt::loadDefs()
   // block of a symbol the input does not declare goes just before the one that
   // needs it, e.g. the constructor of uneg before the case for the overloaded
   // minus that names it.
-  std::map<std::string, const DefsBlock*> owner;
-  for (const DefsBlock* b : blocks)
-  {
-    for (const std::string& d : b->d_defs)
-    {
-      owner[d] = b;
-    }
-  }
-  std::vector<const DefsBlock*> byDecl;
-  std::set<const DefsBlock*> placed;
-  std::set<std::string> declared;
+  std::vector<std::string> declarations;
   for (const std::pair<std::string, Expr>& d : d_declSeen)
   {
-    declared.insert(d.first);
+    declarations.push_back(d.first);
   }
-  for (const std::pair<std::string, Expr>& d : d_declSeen)
-  {
-    for (const DefsBlock* b : blocks)
-    {
-      if (b->d_sym != d.first || placed.count(b) != 0)
-      {
-        continue;
-      }
-      // what it needs that the input does not declare, which has no place of
-      // its own to go to
-      for (const std::string& u : b->d_uses)
-      {
-        std::map<std::string, const DefsBlock*>::const_iterator it =
-            owner.find(u);
-        if (it != owner.end() && declared.count(it->second->d_sym) == 0
-            && placed.insert(it->second).second)
-        {
-          byDecl.push_back(it->second);
-        }
-      }
-      placed.insert(b);
-      byDecl.push_back(b);
-    }
-  }
-  for (const DefsBlock* b : blocks)
-  {
-    if (placed.insert(b).second)
-    {
-      byDecl.push_back(b);
-    }
-  }
+  std::vector<const DefsBlock*> byDecl =
+      orderByDeclarations(blocks, declarations);
   for (const DefsBlock* b : byDecl)
   {
     // A block that says nothing about the model, e.g. one that only gives the
@@ -211,46 +178,72 @@ void ModelSmt::finalize()
   loadDefs();
   for (std::pair<std::string, Expr>& d : d_declSeen)
   {
-    finalizeDecl(d.first, d.second);
+    finalizeDecl(d.first);
   }
   // Each placeholder is commented out in the template, which is what lets that
   // template be parsed on its own, see plugins/model_smt/model_smt.eo. The
   // comment is part of what a substitution replaces, so that the generated
   // content takes the whole line.
-  auto replace = [](std::string& txt,
-                    const std::string& tag,
-                    const std::string& replacement) {
+  auto replacePlaceholder = [](std::string& txt,
+                               const std::string& tag,
+                               const std::string& replacement) {
     const std::string guarded = ";" + tag;
     auto pos = txt.find(guarded);
-    if (pos != std::string::npos)
+    if (pos == std::string::npos)
     {
-      txt.replace(pos, guarded.length(), replacement);
+      EO_FATAL() << "ModelSmt: template is missing placeholder " << tag;
     }
+    txt.replace(pos, guarded.length(), replacement);
   };
 
   // note that the deep embedding is *not* re-incorporated into
   // the final input to smt-meta.
 
   // now, go back and compile *.eo for the proof rules
-  std::ifstream ins(getResourcePath("plugins/model_smt/model_smt.eo"));
+  const std::string templatePath =
+      getResourcePath("plugins/model_smt/model_smt.eo");
+  std::ifstream ins(templatePath);
+  if (!ins.is_open())
+  {
+    EO_FATAL() << "ModelSmt: failed to open resource " << templatePath;
+  }
   std::ostringstream sss;
   sss << ins.rdbuf();
+  if (ins.bad())
+  {
+    EO_FATAL() << "ModelSmt: failed to read resource " << templatePath;
+  }
   std::string finalSmt = sss.str();
   // plug in the evaluation cases handled by this plugin
-  replace(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
-  replace(finalSmt, "$SMT_EVAL_PROGS_FWD_DECL$", d_modelEvalProgsFwd.str());
-  replace(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());
-  replace(finalSmt, "$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
-  replace(finalSmt, "$EO_DESUGAR_AUX$", d_desugarAux.str());
-  replace(finalSmt, "$EO_TO_SMT_CASES$", d_eoToSmt.str());
-  replace(finalSmt, "$EO_TO_SMT_TYPE_CASES$", d_eoToSmtType.str());
-  replace(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
-  replace(finalSmt, "$SMT_TYPEOF_CASES$", d_smtTypeof.str());
-  replace(finalSmt, "$SMT_TYPEOF_AUX$", d_smtTypeofAux.str());
+  replacePlaceholder(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
+  replacePlaceholder(
+      finalSmt, "$SMT_EVAL_PROGS_FWD_DECL$", d_modelEvalProgsFwd.str());
+  replacePlaceholder(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());
+  replacePlaceholder(finalSmt, "$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
+  replacePlaceholder(finalSmt, "$EO_DESUGAR_AUX$", d_desugarAux.str());
+  replacePlaceholder(finalSmt, "$EO_TO_SMT_CASES$", d_eoToSmt.str());
+  replacePlaceholder(finalSmt, "$EO_TO_SMT_TYPE_CASES$", d_eoToSmtType.str());
+  replacePlaceholder(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
+  replacePlaceholder(finalSmt, "$SMT_TYPEOF_CASES$", d_smtTypeof.str());
+  replacePlaceholder(finalSmt, "$SMT_TYPEOF_AUX$", d_smtTypeofAux.str());
+  if (finalSmt.find("$eoc_") != std::string::npos)
+  {
+    EO_FATAL() << "ModelSmt: generated output contains an unexpanded $eoc_ "
+                  "name";
+  }
 
   std::string outPath = getOutputPath("plugins/model_smt/model_smt_gen.eo");
   std::ofstream oute(outPath);
+  if (!oute.is_open())
+  {
+    EO_FATAL() << "ModelSmt: failed to open output " << outPath;
+  }
   oute << finalSmt;
+  oute.close();
+  if (!oute)
+  {
+    EO_FATAL() << "ModelSmt: failed to write output " << outPath;
+  }
 }
 
 }  // namespace ethos

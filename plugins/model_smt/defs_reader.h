@@ -1,3 +1,12 @@
+/******************************************************************************
+ * This file is part of the ethos project.
+ *
+ * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ ******************************************************************************/
+
 #ifndef PLUGINS__MODEL_SMT__DEFS_READER_H
 #define PLUGINS__MODEL_SMT__DEFS_READER_H
 
@@ -54,7 +63,10 @@ struct DefsBlock
 class DefsFile
 {
  public:
-  /** Read the file at path. Returns false if it could not be read. */
+  /**
+   * Read the file at path. Returns false if it could not be read or contained
+   * no definition blocks.
+   */
   bool read(const std::string& path);
   /**
    * The blocks whose symbol is in syms, together with every block those
@@ -65,16 +77,14 @@ class DefsFile
    * file is answered: the transformation of - names the constructor of uneg,
    * which the SMT-LIB file is what defines.
    */
-  std::vector<const DefsBlock*> select(const std::set<std::string>& syms,
-                                      const std::set<std::string>& names =
-                                          {}) const;
+  std::vector<const DefsBlock*> select(
+      const std::set<std::string>& syms,
+      const std::set<std::string>& names = {}) const;
   /** The names the blocks use that no block of this file defines. */
   std::set<std::string> externalUses(
       const std::vector<const DefsBlock*>& blocks) const;
   /** The blocks, in the order the file gives them. */
   const std::vector<DefsBlock>& getBlocks() const { return d_blocks; }
-  /** True if some block is of the symbol sym. */
-  bool hasSymbol(const std::string& sym) const;
 
  private:
   /** Read one block from text, having already taken its symbol. */
@@ -83,6 +93,14 @@ class DefsFile
   /** The block that defines each name. */
   std::map<std::string, size_t> d_owner;
 };
+
+/**
+ * Order blocks by the input declaration order. Before each declared block,
+ * recursively place any dependency block whose symbol is not itself declared.
+ */
+std::vector<const DefsBlock*> orderByDeclarations(
+    const std::vector<const DefsBlock*>& blocks,
+    const std::vector<std::string>& declarations);
 
 }  // namespace ethos
 

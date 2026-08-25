@@ -1,9 +1,18 @@
+/******************************************************************************
+ * This file is part of the ethos project.
+ *
+ * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ ******************************************************************************/
+
 #include "defs_reader.h"
 
+#include <cctype>
 #include <fstream>
+#include <functional>
 #include <sstream>
-
-#include "base/check.h"
 
 namespace ethos {
 
@@ -118,7 +127,12 @@ std::string formKind(const std::string& form)
   return form.substr(1, j - 1);
 }
 
-/** Every name form uses, i.e. every word of it that begins with a dollar. */
+/**
+ * Every dollar-prefixed word form uses. This deliberately over-approximates
+ * dependencies: bound parameters such as $T are included as uses as well.
+ * They normally have no owner and are therefore harmless; keeping them avoids
+ * duplicating the parser's binding logic in this text-only reader.
+ */
 void namesOf(const std::string& form, std::set<std::string>& out)
 {
   for (size_t i = 0, n = form.size(); i < n; i++)
@@ -172,9 +186,10 @@ std::vector<std::string> casesOf(const std::string& prog,
   {
     std::string cs = c;
     size_t p = cs.find(name);
-    if (p != std::string::npos)
+    while (p != std::string::npos)
     {
-      cs = cs.substr(0, p) + agg + cs.substr(p + name.size());
+      cs.replace(p, name.size(), agg);
+      p = cs.find(name, p + agg.size());
     }
     ret.push_back(cs);
   }
@@ -250,19 +265,24 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
     }
     else if (isPre("$eoc_eval_"))
     {
-      b.d_evalCases = casesOf(f, name, "$smtx_model_eval");
+      std::vector<std::string> cases = casesOf(f, name, "$smtx_model_eval");
+      b.d_evalCases.insert(b.d_evalCases.end(), cases.begin(), cases.end());
     }
     else if (isPre("$eoc_typeof_"))
     {
-      b.d_typeofCases = casesOf(f, name, "$smtx_typeof");
+      std::vector<std::string> cases = casesOf(f, name, "$smtx_typeof");
+      b.d_typeofCases.insert(b.d_typeofCases.end(), cases.begin(), cases.end());
     }
     else if (isPre("$eoc_transform_type_"))
     {
-      b.d_transTypeCases = casesOf(f, name, "$eo_to_smt_type");
+      std::vector<std::string> cases = casesOf(f, name, "$eo_to_smt_type");
+      b.d_transTypeCases.insert(
+          b.d_transTypeCases.end(), cases.begin(), cases.end());
     }
     else if (isPre("$eoc_transform_"))
     {
-      b.d_transCases = casesOf(f, name, "$eo_to_smt");
+      std::vector<std::string> cases = casesOf(f, name, "$eo_to_smt");
+      b.d_transCases.insert(b.d_transCases.end(), cases.begin(), cases.end());
     }
     else if (isPre("$smtx_typeof_"))
     {
@@ -302,6 +322,8 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
 
 bool DefsFile::read(const std::string& path)
 {
+  d_blocks.clear();
+  d_owner.clear();
   std::ifstream in(path);
   if (!in.is_open())
   {
@@ -309,7 +331,12 @@ bool DefsFile::read(const std::string& path)
   }
   std::stringstream ss;
   ss << in.rdbuf();
-  const std::string text = ss.str();
+  if (in.bad())
+  {
+    return false;
+  }
+  // Prepending a newline lets the same marker recognize a block on line one.
+  const std::string text = "\n" + ss.str();
   // A block runs from the line that names its symbol to the next one.
   const std::string mark = "\n; -- ";
   size_t i = text.find(mark);
@@ -317,26 +344,18 @@ bool DefsFile::read(const std::string& path)
   {
     size_t ns = i + mark.size();
     size_t ne = text.find('\n', ns);
+    if (ne == std::string::npos)
+    {
+      return false;
+    }
     size_t next = text.find(mark, ns);
     addBlock(text.substr(ns, ne - ns),
-             text.substr(ne + 1,
-                         (next == std::string::npos ? text.size() : next)
-                             - (ne + 1)));
+             text.substr(
+                 ne + 1,
+                 (next == std::string::npos ? text.size() : next) - (ne + 1)));
     i = next;
   }
-  return true;
-}
-
-bool DefsFile::hasSymbol(const std::string& sym) const
-{
-  for (const DefsBlock& b : d_blocks)
-  {
-    if (b.d_sym == sym)
-    {
-      return true;
-    }
-  }
-  return false;
+  return !d_blocks.empty();
 }
 
 std::set<std::string> DefsFile::externalUses(
@@ -357,8 +376,7 @@ std::set<std::string> DefsFile::externalUses(
 }
 
 std::vector<const DefsBlock*> DefsFile::select(
-    const std::set<std::string>& syms,
-    const std::set<std::string>& names) const
+    const std::set<std::string>& syms, const std::set<std::string>& names) const
 {
   std::set<size_t> keep;
   std::vector<size_t> todo;
@@ -397,6 +415,58 @@ std::vector<const DefsBlock*> DefsFile::select(
     ret.push_back(&d_blocks[i]);
   }
   return ret;
+}
+
+std::vector<const DefsBlock*> orderByDeclarations(
+    const std::vector<const DefsBlock*>& blocks,
+    const std::vector<std::string>& declarations)
+{
+  std::map<std::string, const DefsBlock*> owner;
+  for (const DefsBlock* b : blocks)
+  {
+    for (const std::string& d : b->d_defs)
+    {
+      owner[d] = b;
+    }
+  }
+  std::set<std::string> declared(declarations.begin(), declarations.end());
+  std::vector<const DefsBlock*> ordered;
+  std::set<const DefsBlock*> placed;
+  std::function<void(const DefsBlock*)> placeDependencies =
+      [&](const DefsBlock* b) {
+        for (const std::string& u : b->d_uses)
+        {
+          std::map<std::string, const DefsBlock*>::const_iterator it =
+              owner.find(u);
+          if (it != owner.end() && declared.count(it->second->d_sym) == 0
+              && placed.insert(it->second).second)
+          {
+            placeDependencies(it->second);
+            ordered.push_back(it->second);
+          }
+        }
+      };
+  for (const std::string& declaration : declarations)
+  {
+    for (const DefsBlock* b : blocks)
+    {
+      if (b->d_sym != declaration || placed.count(b) != 0)
+      {
+        continue;
+      }
+      placeDependencies(b);
+      placed.insert(b);
+      ordered.push_back(b);
+    }
+  }
+  for (const DefsBlock* b : blocks)
+  {
+    if (placed.insert(b).second)
+    {
+      ordered.push_back(b);
+    }
+  }
+  return ordered;
 }
 
 }  // namespace ethos

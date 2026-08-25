@@ -2,7 +2,7 @@
 ; embedding.
 ;
 ; This is what the model-smt stage compiles the CPC half of a model from. For
-; each of the 180 symbols it covers it gives one thing:
+; each of the 181 symbols it covers it gives one thing:
 ;
 ;   $eoc_transform_X       the cases X contributes to $eo_to_smt, i.e.
 ;                            T -> $smt_Term for a Eunoia term of any type T;
