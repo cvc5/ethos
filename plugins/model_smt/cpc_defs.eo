@@ -1473,27 +1473,39 @@
   )
 )
 
-; The tester of tuple is the one $eo_to_smt_tester cannot give, which is why
-; (is tuple x2) is a case of $eo_to_smt of its own: a tuple type is modelled as
-; the conventional datatype @Tuple, whose constructor no symbol of the input
-; denotes on its own, so ($eo_to_smt tuple) is nothing. It is built here from
-; the type the term is of instead, which is also what says the term is a tuple
-; at all: a term of any other type has no tester of @Tuple.
-(program $eo_to_smt_tuple_tester
-  ((T $smt_Type) (s $native_String) (s2 $native_String) (d $smt_Datatype)
-   (t $smt_Term))
-  :signature ($smt_Type $smt_Term) $smt_Term
+; The constructor of the datatype a tuple type is modelled as, if the type
+; given is a tuple type at all. A tuple type is modelled as the conventional
+; datatype @Tuple, whose constructor no symbol of the input denotes on its own,
+; so it is built here from the type instead. A type of any other shape, or one
+; whose declaration is under another name, has no such constructor.
+(program $eo_to_smt_tuple_cons
+  ((T $smt_Type) (s $native_String) (s2 $native_String) (d $smt_Datatype))
+  :signature ($smt_Type) $smt_Term
   (
-  (($eo_to_smt_tuple_tester ($tsm_Datatype s ($dd_cons s2 d $dd_nil)) t)
+  (($eo_to_smt_tuple_cons ($tsm_Datatype s ($dd_cons s2 d $dd_nil)))
     ($native_ite
       ($native_and
         ($native_str_= s $native_str_tuple_name)
         ($native_str_= s2 $native_str_tuple_name))
-      ($sm_apply
-        ($sm_DtTester $native_str_tuple_name ($eo_to_smt_tuple_decl d) $native_n_zero)
-        t)
+      ($sm_DtCons $native_str_tuple_name ($eo_to_smt_tuple_decl d) $native_n_zero)
       $sm_none))
-  (($eo_to_smt_tuple_tester T t)                    $sm_none)
+  (($eo_to_smt_tuple_cons T)                        $sm_none)
+  )
+)
+
+; The tester of tuple is the one $eo_to_smt_tester cannot give, which is why
+; (is tuple x2) is a case of $eo_to_smt of its own: ($eo_to_smt tuple) is
+; nothing, since no symbol of the input denotes the @Tuple constructor. The
+; constructor is recovered from the type the term is of instead, which is also
+; what says the term is a tuple at all, and the tester is then taken of it in
+; the ordinary way, so that this agrees with the general case wherever the
+; general case applies.
+(program $eo_to_smt_tuple_tester
+  ((T $smt_Type) (t $smt_Term))
+  :signature ($smt_Type $smt_Term) $smt_Term
+  (
+  (($eo_to_smt_tuple_tester T t)
+    ($sm_apply ($eo_to_smt_tester ($eo_to_smt_tuple_cons T)) t))
   )
 )
 
