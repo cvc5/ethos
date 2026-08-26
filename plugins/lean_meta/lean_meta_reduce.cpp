@@ -669,68 +669,6 @@ void LeanMetaReduce::finalizePrograms()
     bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
     Expr def = d_progToDef[prog];
     finalizeProgram(prog, def, isDefine);
-    /*
-        // Trying to minimize mutual blocks....
-        Expr prog = d_progDefs[i];
-        if (progProcessed.find(prog) != progProcessed.end())
-        {
-          continue;
-        }
-        Expr def = d_progToDef[prog];
-        std::vector<Expr> calls =
-            StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, def);
-        bool hasWaitingDef = false;
-        for (size_t j = 0, ncalls = calls.size(); j < ncalls; j++)
-        {
-          Expr sc = calls[j];
-          if (sc != prog && progProcessed.find(sc) == progProcessed.end()
-              && d_progToDef.find(sc) != d_progToDef.end())
-          {
-            if (std::find(waiting.begin(), waiting.end(), sc) == waiting.end())
-            {
-              waitingDef.insert(sc);
-            }
-            hasWaitingDef = true;
-          }
-        }
-        if (!hasWaitingDef)
-        {
-          // go ahead and define it
-          bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
-          finalizeProgram(prog, def, isDefine);
-          progProcessed.insert(prog);
-        }
-        else
-        {
-          // otherwise we are waiting
-          waiting.push_back(prog);
-        }
-        // remove from waiting defs
-        waitingDef.erase(prog);
-        if (!waiting.empty() && waitingDef.empty())
-        {
-          if (waiting.size() > 1)
-          {
-            d_defs << "mutual" << std::endl;
-          }
-          for (size_t j = 0, ncalls = waiting.size(); j < ncalls; j++)
-          {
-            Expr prog = waiting[j];
-            Expr def = d_progToDef[prog];
-            if (!def.isNull())
-            {
-              bool isDefine = (d_progIsDefine.find(prog) !=
-       d_progIsDefine.end()); finalizeProgram(prog, def, isDefine);
-              progProcessed.insert(prog);
-            }
-          }
-          if (waiting.size() > 1)
-          {
-            d_defs << "end" << std::endl;
-          }
-          waiting.clear();
-        }
-    */
   }
   Assert(waiting.empty());
 }
