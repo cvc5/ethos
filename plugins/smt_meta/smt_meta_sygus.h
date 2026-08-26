@@ -112,7 +112,7 @@ class SmtMetaSygus : public StdPlugin
   /** Sentinel standing for the grammar of embedded SMT-LIB types. */
   Expr d_gsmtType;
   /** Whether finalizeGrammars has been called. */
-  bool d_gisFinalized;
+  bool d_gisFinalized = false;
   /**
    * Maps each grammar key to the approximated types its rules reference;
    * the corresponding non-terminals are added in finalizeGrammars.

@@ -721,7 +721,7 @@ class Pipeline:
             self.build()
         output = self.final_out_dir / "desugar.eo"
         print(f"**** desugar: Run ethos + desugar on {input_name} to generate {output}")
-        self.desugar(input_name, output, use_vc_plugin=True, deps=None, plugin_label=None)
+        self.desugar(input_name, output, use_vc_plugin=False, deps=None, plugin_label=None)
         print("**** desugar: Verify it parses")
         self.parse_file(output)
         return output
@@ -995,7 +995,7 @@ def main(argv: list[str]) -> int:
                         validate_with_cvc5=not args.skip_cvc5,
                         solve_with_cvc5=args.solve,
                     )
-                except subprocess.CalledProcessError:
+                except (subprocess.CalledProcessError, RuntimeError):
                     failures.append(rule)
                     if not args.keep_going:
                         raise

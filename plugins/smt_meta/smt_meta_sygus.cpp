@@ -75,11 +75,13 @@ void SmtMetaSygus::finalizeGrammars()
   Trace("smt-meta-sygus") << "FINALIZE grammars" << std::endl;
   d_gisFinalized = true;
   SygusGrammar* sg = getGrammarFor(d_null);
+  std::map<Expr, std::set<Expr>> processed;
   // add reference to unknown to all eo.Term grammars
   for (std::pair<const Expr, SygusGrammar*>& g : d_grammarTypeAlloc)
   {
     Assert(!g.first.isNull());
     sg->d_rules << g.second->d_gname << " ";
+    processed[d_null].insert(g.first);
     if (g.first == d_gfun)
     {
       // (partial) function applications
@@ -91,15 +93,15 @@ void SmtMetaSygus::finalizeGrammars()
   for (std::pair<const Expr, std::vector<Expr>>& g : d_grefs)
   {
     SygusGrammar* sg = getGrammarFor(g.first);
-    std::set<Expr> processed;
+    std::set<Expr>& processedForGrammar = processed[g.first];
     for (size_t i = 0, nrefs = g.second.size(); i < nrefs; i++)
     {
       Expr aret = g.second[i];
-      if (processed.find(aret) != processed.end())
+      if (processedForGrammar.find(aret) != processedForGrammar.end())
       {
         continue;
       }
-      processed.insert(aret);
+      processedForGrammar.insert(aret);
       SygusGrammar* sgr = getGrammarFor(aret);
       sg->d_rules << sgr->d_gname << " ";
     }
