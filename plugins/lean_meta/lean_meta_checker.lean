@@ -48,6 +48,10 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
     else
       -1
 
+/- Term equality -/
+def native_teq : Term -> Term -> native_Bool
+  | x, y => decide (x = y)
+
 /- Term ITE -/
 abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
   (native_ite (native_teq x1 (Term.Boolean true))

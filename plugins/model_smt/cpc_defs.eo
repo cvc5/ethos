@@ -1462,20 +1462,6 @@
   )
 )
 
-; -- $eo_to_smt_tuple_decl
-; The declaration a tuple type is of. SMT-LIB has no tuples, so there is no
-; symbol of the target for this: the type is modelled as a datatype whose
-; declaration holds one datatype under the conventional name, which is what
-; this builds from the datatype the fields give. See the blocks for tuple and
-; for Tuple, whose $eo_to_smt_type_tuple reads a declaration back apart.
-(program $eo_to_smt_tuple_decl
-  ((d $smt_Datatype))
-  :signature ($smt_Datatype) $smt_DatatypeDecl
-  (
-  (($eo_to_smt_tuple_decl d) ($dd_cons $native_str_tuple_name d $dd_nil))
-  )
-)
-
 ; -- is
 ; In eo_to_smt, (is x1) returns ($eo_to_smt_tester ($eo_to_smt x1)).
 (program $eo_to_smt_tester
@@ -1487,11 +1473,12 @@
   )
 )
 
-; The tester of tuple is the one $eo_to_smt_tester cannot give: a tuple type is
-; modelled as the conventional datatype @Tuple, whose constructor no symbol of
-; the input denotes on its own, so ($eo_to_smt tuple) is nothing. It is built
-; here from the type the term is of instead, which is also what says the term
-; is a tuple at all: a term of any other type has no tester of @Tuple.
+; The tester of tuple is the one $eo_to_smt_tester cannot give, which is why
+; (is tuple x2) is a case of $eo_to_smt of its own: a tuple type is modelled as
+; the conventional datatype @Tuple, whose constructor no symbol of the input
+; denotes on its own, so ($eo_to_smt tuple) is nothing. It is built here from
+; the type the term is of instead, which is also what says the term is a tuple
+; at all: a term of any other type has no tester of @Tuple.
 (program $eo_to_smt_tuple_tester
   ((T $smt_Type) (s $native_String) (s2 $native_String) (d $smt_Datatype)
    (t $smt_Term))
@@ -1514,7 +1501,8 @@
   ((T Type) (T1 Type) (T2 Type) (x1 T1) (x2 T2))
   :signature (T) $smt_Term
   (
-  (($eoc_transform_is (is x1 x2)) ($native_ite ($native_teq x1 tuple) ($eo_to_smt_tuple_tester ($smtx_typeof ($eo_to_smt x2)) ($eo_to_smt x2)) ($emb_sm.Apply ($eo_to_smt_tester ($eo_to_smt x1)) ($eo_to_smt x2))))
+  (($eoc_transform_is (is tuple x2)) ($eo_to_smt_tuple_tester ($smtx_typeof ($eo_to_smt x2)) ($eo_to_smt x2)))
+  (($eoc_transform_is (is x1 x2)) ($emb_sm.Apply ($eo_to_smt_tester ($eo_to_smt x1)) ($eo_to_smt x2)))
   )
 )
 
@@ -1567,6 +1555,20 @@
   :signature (T) $smt_Term
   (
   (($eoc_transform_tuple.unit tuple.unit) ($emb_sm.DtCons ($native_apply_0 """@Tuple""") ($emb_dd.cons ($native_apply_0 """@Tuple""") ($emb_dt.sum $emb_dtc.unit $emb_dt.null) $emb_dd.nil) ($native_apply_0 "nat.zero")))
+  )
+)
+
+; -- $eo_to_smt_tuple_decl
+; The declaration a tuple type is of. SMT-LIB has no tuples, so there is no
+; symbol of the target for this: the type is modelled as a datatype whose
+; declaration holds one datatype under the conventional name, which is what
+; this builds from the datatype the fields give. See the blocks for tuple and
+; for Tuple, whose $eo_to_smt_type_tuple reads a declaration back apart.
+(program $eo_to_smt_tuple_decl
+  ((d $smt_Datatype))
+  :signature ($smt_Datatype) $smt_DatatypeDecl
+  (
+  (($eo_to_smt_tuple_decl d) ($dd_cons $native_str_tuple_name d $dd_nil))
   )
 )
 
