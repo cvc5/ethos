@@ -44,6 +44,27 @@ jobs:
         cmake --build build-cpp-compiler-test --parallel ${{ env.num_proc }} \
           --target cpp-compiler-roundtrip
 
+    - name: Run EOC pipeline smoke tests
+      run: |
+        python3 tools/eoc/driver.py vc \
+          --build-dir build-eoc \
+          --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
+          --no-build --skip-cvc5 \
+          tests/Booleans-rules.eo and_intro
+        python3 tools/eoc/driver.py vc \
+          --build-dir build-eoc \
+          --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
+          --no-build --skip-cvc5 --sygus \
+          tests/Booleans-rules.eo and_intro
+        python3 tools/eoc/driver.py lean \
+          --build-dir build-eoc \
+          --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
+          --no-build --skip-cvc5 \
+          tests/Booleans-rules.eo and_intro
+        test -s "${RUNNER_TEMP}/eoc-smoke/vc/final-booleans-rules-and_intro.smt2"
+        test -s "${RUNNER_TEMP}/eoc-smoke/sygus/final-booleans-rules-and_intro.sy"
+        test -s "${RUNNER_TEMP}/eoc-smoke/lean/Rules/And_intro.lean"
+
     - name: Build and run custom auto-parser binary
       run: |
         plugins/cpp_compiler/build_custom_ethos.sh \
