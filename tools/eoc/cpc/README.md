@@ -1,12 +1,13 @@
-# CPC Compatibility Wrappers
+# CPC Wrappers
 
-These bash scripts preserve the old `build-debug/run_gen_*` workflow on top of
-`tools/eoc/driver.py`.
+These bash scripts are thin CPC-specific front-ends for
+`tools/eoc/driver.py`: each fills in the default CPC signature and options,
+then invokes the driver.
 
 Most wrappers default to the external CPC signature:
 
 ```text
-input: ../cvc5-ajr/proofs/eo/cpc/Cpc.eo
+input: <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
 What its symbols mean to the model is said by `plugins/model_smt/cpc_defs.eo`,
@@ -18,10 +19,10 @@ namely the lambda symbol, its beta-reduction rule, and their private helper
 methods; every wrapper leaves those out, not just the ones that compile the
 whole signature. The list is literal; no dependency analysis is performed.
 
-`run_gen_vc_all_alethe` keeps the old Alethe default:
+`run_gen_vc_all_alethe` defaults to the Alethe signature instead:
 
 ```text
-../AletheInEunoia/signature/Alethe.eo
+<alethe-in-eunoia>/signature/Alethe.eo
 ```
 
 Useful environment variables:
@@ -29,7 +30,7 @@ Useful environment variables:
 - `BUILD_DIR=/path/to/build` to override the build tree. If unset, the wrappers
   use the current directory when it contains an executable `ethos-eoc`,
   otherwise `<repo>/build-eoc`.
-- `EOC_NO_BUILD=1` for wrappers that previously supported skipping the rebuild,
+- `EOC_NO_BUILD=1` to skip the rebuild, for the wrappers that support it,
   namely `run_gen_vc_all`, `run_gen_vc_all_alethe`, `run_gen_sygus_all`,
   `run_gen_lean_all`, `run_trim_defs`, and `run_count_deps`.
 - `EOC_SKIP_CVC5=1` to skip solver parse checks.
@@ -47,12 +48,12 @@ Useful environment variables:
   signature.
 - `EOC_FINAL_OUT_DIR=/path/to/out` to override the published output tree.
 - `LOGOS_DIR`, `LOGOS_TESTS_DIR`, `CVC5_LOGOS`, and `CPC_GEN_LOGOS_CMD` to
-  override the legacy `install_logos` destinations and helper command.
+  override the `install_logos` destinations and helper command.
 - `SUB_DIR` (default `CpcMini`) and `MINI_TARGETS` (default
   `symm contra refl scope trans`) to override the destination package and the
   compiled rule set of `install_logos_mini`.
 
-The install wrappers keep their legacy destination module layout. The generated
+The install wrappers publish a fixed destination module layout. The generated
 Lean module name comes from the input file name up to its first dot, so the
 default input `Cpc.eo` generates `Cpc`. If you point
 `EOC_CPC_INPUT` at an input that names another calculus, the wrappers detect the
@@ -81,11 +82,6 @@ For one rule it prints only the count; for multiple rules it prints
 `RULE COUNT` pairs. The counted trimmed EO slice is left at
 `tools/eoc/out/trim_defs/trim_gen.eo` for inspection. With multiple rules, this
 file contains the slice for the last rule processed.
-
-Compatibility scripts restored from the old workflow:
-
-- `install_logos`
-- `install_logos_mini`
 
 `install_logos` publishes the generated proof parser as
 `$LOGOS_DIR/Cpc/Parser.lean`. The generated module is only a

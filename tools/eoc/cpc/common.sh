@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared helper library for the CPC compatibility wrappers in this directory.
+# Shared helper library for the CPC wrappers in this directory.
 # Source this file from the wrapper scripts; it is not meant to be run directly.
 # The wrappers default to publishing stage and final artifacts in tools/eoc/out.
 # shellcheck shell=bash
@@ -11,7 +11,7 @@ EOC_DRIVER="$EOC_TOOLS_DIR/driver.py"
 # The input is the CPC signature itself. What its symbols mean to the model is
 # said by a signature of its own, written in the deep embedding, which the
 # model-smt stage is given with --defs.
-EOC_DEFAULT_CPC_INPUT="$EOC_REPO_ROOT/../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
+EOC_DEFAULT_CPC_INPUT="$EOC_REPO_ROOT/../cvc5/proofs/eo/cpc/Cpc.eo"
 EOC_DEFAULT_CPC_DEFS="$EOC_REPO_ROOT/plugins/model_smt/cpc_defs.eo"
 # Why each of its recursive programs terminates, which the generated Lean has
 # to say and the compiler cannot derive; given to the lean-meta stage with
