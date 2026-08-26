@@ -1,8 +1,7 @@
 # EOC Workflow
 
 `tools/eoc/driver.py` is the canonical entrypoint for the optional
-`ethos-eoc` workflow. It replaces the old collection of
-`build-debug/run_gen_*` wrapper scripts with one documented interface.
+`ethos-eoc` workflow.
 
 ## What `ethos-eoc` is for
 
@@ -384,19 +383,6 @@ python3 tools/eoc/driver.py list-rules INPUT
 This walks `include` chains and preserves declaration order.
 
 ## Common workflows
-
-### Reproduce the old `run_gen_vc_single`
-
-```bash
-python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE
-```
-
-### Reproduce the old "run all rules" scripts
-
-```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc vc INPUT --all-rules --clean
-python3 tools/eoc/driver.py batch --build-dir build-eoc sygus INPUT --all-rules --clean
-```
 
 ### Generate Lean and then copy files elsewhere
 
