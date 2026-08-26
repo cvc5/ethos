@@ -162,6 +162,8 @@ def native_binary_concat : native_Int -> native_Int -> native_Int -> native_Int 
   | w1, n1, w2, n2 => (native_zplus (native_zmult n1 (native_int_pow2 w2)) n2)
 
 def native_binary_extract : native_Int -> native_Int -> native_Int -> native_Int -> native_Int
+  -- The caller masks this quotient to width x1 - x2 + 1; w and x1 are carried
+  -- here only to match the native EO operation's signature.
   | w, n, x1, x2 => (native_div_total n (native_int_pow2 x2))
 
 -- Natural numbers
