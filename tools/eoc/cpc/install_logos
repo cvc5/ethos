@@ -19,7 +19,7 @@ BUILD_DIR="$(eoc_build_dir)"
 FINAL_OUT_DIR="$(eoc_final_out_dir)"
 SOURCE_INPUT="$(eoc_cpc_input)"
 LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
-LOGOS_TESTS_DIR="${LOGOS_TESTS_DIR:-$HOME/ethos/smtlibTests/logos-tests}"
+LOGOS_TESTS_DIR="${LOGOS_TESTS_DIR:-$EOC_REPO_ROOT/smtlibTests/logos-tests}"
 CVC5_LOGOS="${CVC5_LOGOS:-$HOME/bin/cvc5-logos}"
 CPC_GEN_LOGOS_CMD="${CPC_GEN_LOGOS_CMD:-cpc_gen_logos.sh}"
 

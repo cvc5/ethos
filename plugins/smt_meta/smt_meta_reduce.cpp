@@ -437,8 +437,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // operators that print the identifier embedding e.g.
       // `($native_apply_3 "ite"` becomes `(ite`
       if (sname.compare(0, 14, "$native_apply_") == 0
-          || sname.compare(0, 10, "$smt_type_") == 0
-          || sname.compare(0, 14, "$smt_datatype_") == 0)
+          || sname.compare(0, 13, "$native_type_") == 0
+          || sname.compare(0, 16, "$native_datatype") == 0)
       {
         std::string embName = getEmbedName(recTerm);
         if (recTerm.getNumChildren() > 2)
@@ -895,7 +895,6 @@ void SmtMetaReduce::finalize()
 
 bool SmtMetaReduce::echo(const std::string& msg)
 {
-  std::cout << "ECHO " << msg << std::endl;
   if (msg.compare(0, 9, "smt-meta ") == 0)
   {
     std::string eosc = msg.substr(9);

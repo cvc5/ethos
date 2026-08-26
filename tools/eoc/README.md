@@ -1,8 +1,7 @@
 # EOC Workflow
 
 `tools/eoc/driver.py` is the canonical entrypoint for the optional
-`ethos-eoc` workflow. It replaces the old collection of
-`build-debug/run_gen_*` wrapper scripts with one documented interface.
+`ethos-eoc` workflow, which it exposes as one documented interface.
 
 ## What `ethos-eoc` is for
 
@@ -241,7 +240,7 @@ python3 tools/eoc/driver.py lean --build-dir build-eoc tests/Booleans-rules.eo a
 Generate Lean for the whole signature:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build-eoc --all ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo
+python3 tools/eoc/driver.py lean --build-dir build-eoc --all <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
 A declaration the signature of the input leaves out of the compilation is
@@ -251,19 +250,19 @@ signatures written in the deep embedding" above.
 List all rules declared by a signature and its includes:
 
 ```bash
-python3 tools/eoc/driver.py list-rules ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo
+python3 tools/eoc/driver.py list-rules <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
 Run every discovered rule through the VC pipeline:
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc vc ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc vc <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
 ```
 
 Run every discovered rule through the SyGuS pipeline:
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc sygus ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc sygus <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
 ```
 
 ## Command reference
@@ -385,13 +384,13 @@ This walks `include` chains and preserves declaration order.
 
 ## Common workflows
 
-### Reproduce the old `run_gen_vc_single`
+### Generate a VC for one rule
 
 ```bash
 python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE
 ```
 
-### Reproduce the old "run all rules" scripts
+### Generate VCs for every rule
 
 ```bash
 python3 tools/eoc/driver.py batch --build-dir build-eoc vc INPUT --all-rules --clean
@@ -405,11 +404,11 @@ python3 tools/eoc/driver.py lean --build-dir build-eoc --all INPUT
 ls tools/eoc/out/lean
 ```
 
-If you previously used `install_logos` or `install_logos_mini`, compatibility
-wrappers now live under `tools/eoc/cpc/`. They still run the `lean` pipeline
-through `driver.py`, then copy the generated Lean files from `tools/eoc/out/lean`
-including `Rules/*.lean` into your downstream Logos trees using the old default
-paths unless you override them with environment variables.
+`tools/eoc/cpc/install_logos` and `tools/eoc/cpc/install_logos_mini` run the
+`lean` pipeline through `driver.py`, then copy the generated Lean files from
+`tools/eoc/out/lean`, including `Rules/*.lean`, into a downstream Logos tree.
+The destinations are the ones named in [`cpc/README.md`](cpc/README.md), each
+overridable with an environment variable.
 
 ### Manually inspect or debug intermediate files
 
@@ -426,39 +425,15 @@ build-eoc/ethos-eoc tools/eoc/out/lean-booleans-rules-final.eo
 build-eoc/ethos-eoc --plugin.lean-meta tools/eoc/out/lean-booleans-rules-final.eo
 ```
 
-## Migration from the old `build-debug` scripts
-
-| Old script | Replacement |
-| --- | --- |
-| `run_gen_vc_single INPUT RULE` | `python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE` |
-| `run_gen_vc_all_* [INPUT]` | `python3 tools/eoc/driver.py batch --build-dir build-eoc vc INPUT --all-rules --clean` |
-| `run_gen_sygus RULE` | `python3 tools/eoc/driver.py vc --build-dir build-eoc --sygus INPUT RULE` |
-| `run_gen_sygus_all [INPUT]` | `python3 tools/eoc/driver.py batch --build-dir build-eoc sygus INPUT --all-rules --clean` |
-| `run_gen_lean INPUT RULE...` | `python3 tools/eoc/driver.py lean --build-dir build-eoc INPUT RULE...` |
-| `run_gen_lean_all [INPUT]` | `python3 tools/eoc/driver.py lean --build-dir build-eoc --all INPUT` |
-| `run_gen_desugar_all [INPUT]` | `python3 tools/eoc/driver.py desugar --build-dir build-eoc INPUT` |
-| `run_trim_defs INPUT TARGET...` | `python3 tools/eoc/driver.py trim-defs --build-dir build-eoc INPUT TARGET...` |
-| `mkscripts INPUT` | `python3 tools/eoc/driver.py list-rules INPUT` |
-| `debug_smt_meta` | Run `build-eoc/ethos-eoc` directly on files in `tools/eoc/out/` while debugging a late stage |
-| `run_test_plugin` | Use `desugar`, `vc`, or direct `ethos-eoc` invocations shown above |
-| `run_sygus_cex FILE.sy` | Invoke your preferred solver directly on `tools/eoc/out/sygus/final-*.sy` |
-| `install_logos` / `install_logos_mini` | `tools/eoc/cpc/install_logos` / `tools/eoc/cpc/install_logos_mini` |
-
-The `build-debug` copies of these scripts have been removed, so `driver.py` is
-the only EOC interface the repository implements. CPC-specific front-ends for
-most of the rows above are still available under `tools/eoc/cpc/`, but they are
-thin wrappers that just fill in the default CPC signature and invoke
-`driver.py`; see [`cpc/README.md`](cpc/README.md).
-
 ## Solver configuration
 
 By default, parse checks use:
 
 1. `--cvc5 /path/to/cvc5`, if passed
 2. `$CVC5`, if set
-3. `~/bin/cvc5-test`, if it exists
+3. `cvc5` on `PATH`
 
-If none of those exist, either pass `--skip-cvc5` or set `CVC5`.
+If none of those resolve, either pass `--skip-cvc5` or set `CVC5`.
 
 ## Troubleshooting
 

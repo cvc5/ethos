@@ -53,7 +53,7 @@
 (define-fun uconst_id ((x Nat)) String (str.++ "@u." (str.from_int (nat.to_int x))))
 (define-fun const_id ((x Nat)) String (str.++ "@c." (str.from_int (nat.to_int x))))
 
-(define-fun char_valid ((x Int)) Bool (< x 196608))
+(define-fun char_valid ((x Int)) Bool (and (<= 0 x) (< x 196608)))
 (define-fun string_valid ((x String)) Bool true)
 
 ; integer exponentiation is not handled by cvc5, axiomatize it
@@ -62,7 +62,7 @@
   (! (= (zexp_total x y) (ite (< y 0) 0 (ite (= y 0) 1 (* x (zexp_total x (- y 1))))))
   :pattern ((zexp_total x y))))
   :named smtx.zexp_total.def))
-(declare-fun qexp_total (Real Int) Int)
+(declare-fun qexp_total (Real Int) Real)
 (assert (! (forall ((x Real) (y Int))
   (! (= (qexp_total x y) (ite (< y 0) 0.0 (ite (= y 0) 1.0 (* x (qexp_total x (- y 1))))))
   :pattern ((qexp_total x y))))
@@ -1157,7 +1157,7 @@
 (synth-fun arg_F () eo.Term
   ((G_Start eo.Term) (G_eo.Term eo.Term) (G_Bool Bool) (G_Int Int) (G_RegLan RegLan) (G_Int_C Int) (G_Rat Rat) (G_String String) (G_Nat Nat) (T_Type eo.Term) (T_$eo_Proof eo.Term) (T_SmtType eo.Term) (T_Fun eo.Term) (T_Int eo.Term) (T_SmtTerm eo.Term) (T_Bool eo.Term) (T_Real eo.Term) (T_Seq eo.Term) (T_BitVec eo.Term)) (
   (G_Start eo.Term (T_Bool))
-  (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_eo.Term G_eo.Term) (eo.DtcAppType G_eo.Term G_eo.Term) (eo.USort G_Nat) (eo.UConst G_Nat G_eo.Term) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_$eo_Proof T_Int T_Real T_BitVec T_Seq T_Type T_$eo_Proof T_SmtType T_Fun T_Int T_SmtTerm T_Bool T_Real T_Seq T_BitVec ))
+  (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_eo.Term G_eo.Term) (eo.DtcAppType G_eo.Term G_eo.Term) (eo.USort G_Nat) (eo.UConst G_Nat G_eo.Term) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_$eo_Proof T_Int T_Real T_BitVec T_Seq ))
   (G_Bool Bool (true false))
   (G_Int Int (0 (- G_Int_C) G_Int_C))
   (G_RegLan RegLan (re.all re.none (str.to_re G_String) (re.union G_RegLan G_RegLan)))
