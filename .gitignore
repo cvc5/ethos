@@ -1,6 +1,5 @@
 build
-build-debug
-build-eoc
+build-*/
 tools/eoc/out
 tools/eoc/__pycache__
 .vscode

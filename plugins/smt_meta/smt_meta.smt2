@@ -53,7 +53,7 @@
 (define-fun uconst_id ((x Nat)) String (str.++ "@u." (str.from_int (nat.to_int x))))
 (define-fun const_id ((x Nat)) String (str.++ "@c." (str.from_int (nat.to_int x))))
 
-(define-fun char_valid ((x Int)) Bool (< x 196608))
+(define-fun char_valid ((x Int)) Bool (and (<= 0 x) (< x 196608)))
 (define-fun string_valid ((x String)) Bool true)
 
 ; integer exponentiation is not handled by cvc5, axiomatize it
@@ -62,7 +62,7 @@
   (! (= (zexp_total x y) (ite (< y 0) 0 (ite (= y 0) 1 (* x (zexp_total x (- y 1))))))
   :pattern ((zexp_total x y))))
   :named smtx.zexp_total.def))
-(declare-fun qexp_total (Real Int) Int)
+(declare-fun qexp_total (Real Int) Real)
 (assert (! (forall ((x Real) (y Int))
   (! (= (qexp_total x y) (ite (< y 0) 0.0 (ite (= y 0) 1.0 (* x (qexp_total x (- y 1))))))
   :pattern ((qexp_total x y))))

@@ -75,11 +75,13 @@ void SmtMetaSygus::finalizeGrammars()
   Trace("smt-meta-sygus") << "FINALIZE grammars" << std::endl;
   d_gisFinalized = true;
   SygusGrammar* sg = getGrammarFor(d_null);
+  std::map<Expr, std::set<Expr>> processed;
   // add reference to unknown to all eo.Term grammars
   for (std::pair<const Expr, SygusGrammar*>& g : d_grammarTypeAlloc)
   {
     Assert(!g.first.isNull());
     sg->d_rules << g.second->d_gname << " ";
+    processed[d_null].insert(g.first);
     if (g.first == d_gfun)
     {
       // (partial) function applications
@@ -91,15 +93,15 @@ void SmtMetaSygus::finalizeGrammars()
   for (std::pair<const Expr, std::vector<Expr>>& g : d_grefs)
   {
     SygusGrammar* sg = getGrammarFor(g.first);
-    std::set<Expr> processed;
+    std::set<Expr>& processedForGrammar = processed[g.first];
     for (size_t i = 0, nrefs = g.second.size(); i < nrefs; i++)
     {
       Expr aret = g.second[i];
-      if (processed.find(aret) != processed.end())
+      if (processedForGrammar.find(aret) != processedForGrammar.end())
       {
         continue;
       }
-      processed.insert(aret);
+      processedForGrammar.insert(aret);
       SygusGrammar* sgr = getGrammarFor(aret);
       sg->d_rules << sgr->d_gname << " ";
     }
@@ -336,7 +338,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
 #if 0
   if (approxSig.size()>1)
   {
-    Trace("smt-meta-sygus") << "AJR check " << cname << " " << ct << std::endl;
+    Trace("smt-meta-sygus") << "check " << cname << " " << ct << std::endl;
     std::pair<std::vector<Expr>, Expr> ftype = ct.getFunctionType();
     std::vector<Expr>& fargs = ftype.first;
     Assert (approxSig.size()==fargs.size()+1);
@@ -346,7 +348,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
       {
         continue;
       }
-      Trace("smt-meta-sygus") << "AJR maybe " << i << " " << fargs << std::endl;
+      Trace("smt-meta-sygus") << "maybe " << i << " " << fargs << std::endl;
       std::unordered_set<size_t> eqArgs;
       eqArgs.insert(i-1);
       for (size_t j=i, nargs=fargs.size(); j<nargs; j++)
