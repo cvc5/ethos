@@ -240,7 +240,7 @@ python3 tools/eoc/driver.py lean --build-dir build-eoc tests/Booleans-rules.eo a
 Generate Lean for the whole signature:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build-eoc --all ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo
+python3 tools/eoc/driver.py lean --build-dir build-eoc --all <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
 A declaration the signature of the input leaves out of the compilation is
@@ -250,19 +250,19 @@ signatures written in the deep embedding" above.
 List all rules declared by a signature and its includes:
 
 ```bash
-python3 tools/eoc/driver.py list-rules ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo
+python3 tools/eoc/driver.py list-rules <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
 Run every discovered rule through the VC pipeline:
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc vc ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc vc <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
 ```
 
 Run every discovered rule through the SyGuS pipeline:
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc sygus ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc sygus <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
 ```
 
 ## Command reference
@@ -412,9 +412,9 @@ By default, parse checks use:
 
 1. `--cvc5 /path/to/cvc5`, if passed
 2. `$CVC5`, if set
-3. `~/bin/cvc5-test`, if it exists
+3. `cvc5` on `PATH`
 
-If none of those exist, either pass `--skip-cvc5` or set `CVC5`.
+If none of those resolve, either pass `--skip-cvc5` or set `CVC5`.
 
 ## Troubleshooting
 

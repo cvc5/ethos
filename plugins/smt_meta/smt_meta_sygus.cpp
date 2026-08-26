@@ -336,7 +336,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
 #if 0
   if (approxSig.size()>1)
   {
-    Trace("smt-meta-sygus") << "AJR check " << cname << " " << ct << std::endl;
+    Trace("smt-meta-sygus") << "check " << cname << " " << ct << std::endl;
     std::pair<std::vector<Expr>, Expr> ftype = ct.getFunctionType();
     std::vector<Expr>& fargs = ftype.first;
     Assert (approxSig.size()==fargs.size()+1);
@@ -346,7 +346,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
       {
         continue;
       }
-      Trace("smt-meta-sygus") << "AJR maybe " << i << " " << fargs << std::endl;
+      Trace("smt-meta-sygus") << "maybe " << i << " " << fargs << std::endl;
       std::unordered_set<size_t> eqArgs;
       eqArgs.insert(i-1);
       for (size_t j=i, nargs=fargs.size(); j<nargs; j++)

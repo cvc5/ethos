@@ -21,7 +21,6 @@ from typing import Iterable, Optional
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 DEFAULT_FINAL_OUT_DIR = SCRIPT_DIR / "out"
-DEFAULT_CVC5 = Path("~/bin/cvc5-test").expanduser()
 LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
 
 # The signature-wide Lean files written by the lean subcommand, in module
@@ -752,7 +751,8 @@ def resolve_cvc5(path_arg: Optional[str], *, cwd: Path) -> Optional[Path]:
     if env_path:
         candidate = resolve_path_arg(env_path, cwd=cwd)
         return candidate if candidate.exists() else None
-    return DEFAULT_CVC5 if DEFAULT_CVC5.exists() else None
+    found = shutil.which("cvc5")
+    return Path(found) if found else None
 
 
 def add_common_args(parser: argparse.ArgumentParser) -> None:
@@ -770,7 +770,7 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--cvc5",
         default=None,
-        help="Path to cvc5 for parse/validation checks. Defaults to $CVC5 or ~/bin/cvc5-test.",
+        help="Path to cvc5 for parse/validation checks. Defaults to $CVC5 or cvc5 on PATH.",
     )
     parser.add_argument(
         "--skip-cvc5",
