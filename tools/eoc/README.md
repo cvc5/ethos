@@ -1,7 +1,8 @@
 # EOC Workflow
 
 `tools/eoc/driver.py` is the canonical entrypoint for the optional
-`ethos-eoc` workflow.
+`ethos-eoc` workflow. It replaces the old collection of
+`build-debug/run_gen_*` wrapper scripts with one documented interface.
 
 ## What `ethos-eoc` is for
 
@@ -11,10 +12,11 @@ non-standard EOC plugins:
 - `desugar`
 - `trim-defs`
 - `model-smt`
+- `smt-meta`
 - `lean-meta`
 
 The default `ethos` build does not include these plugins. Use `ethos-eoc`
-only when you want the Eunoia-to-Lean pipeline.
+only when you want the Eunoia-to-SMT2 or Eunoia-to-Lean pipeline.
 
 `model-smt` gives every symbol of the signature its SMT-LIB semantics. A symbol
 that instead has no semantics of its own is *eliminated* on the way to the
@@ -95,7 +97,8 @@ so with directives of the following forms:
 ```
 
 `Pipeline.defs_excludes` collects them and gives them to the desugar stage,
-which is what drops what they name. The names are matched
+which is what drops what they name; a rule among them is also left out of
+`--all-rules`, since there is nothing to verify about it. The names are matched
 literally: the compiler neither checks that a name exists nor computes a
 dependency closure, so the block has to name every declaration that goes with
 the one it omits.
@@ -147,7 +150,7 @@ The driver resolves input paths relative to the directory where you invoke
 For example, from the repository root:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build-eoc tests/Booleans-rules.eo and_intro
+python3 tools/eoc/driver.py vc --build-dir build-eoc tests/Booleans-rules.eo and_intro
 ```
 
 The input path `tests/Booleans-rules.eo` is interpreted relative to the
@@ -168,12 +171,17 @@ Published and stage files:
 ```text
 tools/eoc/out/
   trim-*.eo
+  trim-d-*.eo
+  vcm-def-*.eo
+  vcmt-def-*.eo
   desugar.eo
   lean-*-trim.eo
   lean-*-desugar.eo
   lean-*-defs.eo
   lean-*-final.eo
   trim_defs/trim_gen.eo
+  vc/final-*.smt2
+  sygus/final-*.sy
   lean/
     Logos.lean
     LogosTerm.lean
@@ -206,10 +214,23 @@ Plugin-private files:
   desugar/
   lean_meta/
   model_smt/
+  smt_meta/
   trim_defs/
 ```
 
 ## Quick start
+
+Generate one VC:
+
+```bash
+python3 tools/eoc/driver.py vc --build-dir build-eoc tests/Booleans-rules.eo and_intro
+```
+
+Generate one SyGuS query:
+
+```bash
+python3 tools/eoc/driver.py vc --build-dir build-eoc --sygus tests/Booleans-rules.eo and_intro
+```
 
 Generate Lean for selected rules:
 
@@ -232,7 +253,56 @@ List all rules declared by a signature and its includes:
 ```bash
 python3 tools/eoc/driver.py list-rules ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo
 ```
+
+Run every discovered rule through the VC pipeline:
+
+```bash
+python3 tools/eoc/driver.py batch --build-dir build-eoc vc ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo --all-rules --clean
+```
+
+Run every discovered rule through the SyGuS pipeline:
+
+```bash
+python3 tools/eoc/driver.py batch --build-dir build-eoc sygus ../../cvc5-ajr/proofs/eo/cpc/Cpc.eo --all-rules --clean
+```
+
 ## Command reference
+
+### `vc`
+
+Generate a single SMT2 VC for one rule.
+
+```bash
+python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE
+```
+
+Useful options:
+
+- `--sygus`: generate a SyGuS query instead of SMT2
+- `--skip-cvc5`: skip parse checks with `cvc5`
+- `--solve`: run `cvc5` on the generated VC or SyGuS file after optional parse checks
+- `--solve-args "ARGS"`: shell-style string of extra options passed to `cvc5` during `--solve`
+- `--no-build`: do not rebuild `ethos-eoc` first
+- `--cvc5 /path/to/cvc5`: override the solver used for parse checks
+
+### `batch`
+
+Run many rules through the same pipeline.
+
+```bash
+python3 tools/eoc/driver.py batch --build-dir build-eoc vc INPUT RULE1 RULE2 RULE3
+```
+
+Useful options:
+
+- `--all-rules`: discover all `(declare-rule ...)` entries recursively
+- `--rules-file FILE`: read one rule name per line from a file
+- `--clean`: remove old files from `out/vc` or `out/sygus` first
+- `--keep-going`: continue after failures and report all failed rules
+- `--skip-cvc5`
+- `--solve`
+- `--solve-args "ARGS"`
+- `--no-build`
 
 ### `lean`
 
@@ -315,6 +385,19 @@ This walks `include` chains and preserves declaration order.
 
 ## Common workflows
 
+### Reproduce the old `run_gen_vc_single`
+
+```bash
+python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE
+```
+
+### Reproduce the old "run all rules" scripts
+
+```bash
+python3 tools/eoc/driver.py batch --build-dir build-eoc vc INPUT --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc sygus INPUT --all-rules --clean
+```
+
 ### Generate Lean and then copy files elsewhere
 
 ```bash
@@ -330,9 +413,22 @@ directly to `ethos-eoc` if you want to debug a later stage manually.
 Examples:
 
 ```bash
+build-eoc/ethos-eoc tools/eoc/out/trim-d-booleans-rules.eo
+build-eoc/ethos-eoc --plugin.smt-meta tools/eoc/out/vcmt-def-booleans-rules.eo
+build-eoc/ethos-eoc --plugin.smt-meta-sygus tools/eoc/out/vcmt-def-booleans-rules.eo
 build-eoc/ethos-eoc tools/eoc/out/lean-booleans-rules-final.eo
 build-eoc/ethos-eoc --plugin.lean-meta tools/eoc/out/lean-booleans-rules-final.eo
 ```
+
+## Solver configuration
+
+By default, parse checks use:
+
+1. `--cvc5 /path/to/cvc5`, if passed
+2. `$CVC5`, if set
+3. `~/bin/cvc5-test`, if it exists
+
+If none of those exist, either pass `--skip-cvc5` or set `CVC5`.
 
 ## Troubleshooting
 
@@ -341,7 +437,16 @@ build-eoc/ethos-eoc --plugin.lean-meta tools/eoc/out/lean-booleans-rules-final.e
 Check which directory you ran the driver from. Input paths are resolved
 relative to the current shell directory, not to `--build-dir`.
 
+### `cvc5 executable not found`
+
+Either:
+
+- pass `--skip-cvc5`
+- pass `--cvc5 /path/to/cvc5`
+- export `CVC5=/path/to/cvc5`
+
 ### I want to inspect the generated artifacts directly
 
 Look in `tools/eoc/out/` for both the staged EO artifacts and the final
-published outputs.
+published outputs. The plugin-private generated files remain under
+`<build-dir>/out/plugins/`.

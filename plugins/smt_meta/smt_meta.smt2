@@ -1,0 +1,392 @@
+(set-logic ALL)
+
+(define-sort Rat () Real)
+(define-fun iff ((x Bool) (y Bool)) Bool (= x y))
+; Helpers to avoid mixed arithmetic
+(define-fun mk_rational ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))
+(define-fun zeq ((x Int) (y Int)) Bool (= x y))
+(define-fun zleq ((x Int) (y Int)) Bool (<= x y))
+(define-fun zlt ((x Int) (y Int)) Bool (< x y))
+(define-fun zplus ((x Int) (y Int)) Int (+ x y))
+(define-fun zmult ((x Int) (y Int)) Int (* x y))
+(define-fun zneg ((x Int)) Int (- x))
+(define-fun zabs ((x Int)) Int (ite (< x 0) (- x) x))
+(define-fun qeq ((x Real) (y Real)) Bool (= x y))
+(define-fun qleq ((x Real) (y Real)) Bool (<= x y))
+(define-fun qlt ((x Real) (y Real)) Bool (< x y))
+(define-fun qplus ((x Real) (y Real)) Real (+ x y))
+(define-fun qmult ((x Real) (y Real)) Real (* x y))
+(define-fun qneg ((x Real)) Real (- x))
+(define-fun qabs ((x Real)) Real (ite (< x 0) (- x) x))
+(define-fun zdiv_total ((x Int) (y Int)) Real (/_total (to_real x) (to_real y)))
+(define-fun qdiv_total ((x Real) (y Real)) Real (/_total x y))
+(define-sort Char () Int)
+(define-fun streq ((x String) (y String)) Bool (= x y))
+; can rely on first class equality for regular expressions
+(define-fun re_ext_eq ((r1 RegLan) (r2 RegLan)) Bool (= r1 r2))
+
+(declare-datatype Nat ((nat.zero) (nat.succ (nat.succ.arg1 Nat))))
+(define-fun nateq ((x Nat) (y Nat)) Bool (= x y))
+(declare-fun int.to_nat (Int) Nat)
+(assert (! (forall ((x Int)) 
+  (! (= (int.to_nat x) (ite (<= x 0) nat.zero (nat.succ (int.to_nat (- x 1)))))
+  :pattern ((int.to_nat x))))
+  :named smtx.int.to_nat.def))
+(declare-fun nat.to_int (Nat) Int)
+(assert (! (forall ((x Nat)) 
+  (! (= (nat.to_int x) (ite ((_ is nat.succ) x) (+ 1 (nat.to_int (nat.succ.arg1 x))) 0))
+  :pattern ((nat.to_int x))))
+  :named smtx.nat.to_int.def))
+(declare-fun nat.+ (Nat Nat) Nat)
+(assert (! (forall ((x Nat) (y Nat)) 
+  (! (= (nat.+ x y) (ite ((_ is nat.succ) x) (nat.+ (nat.succ.arg1 x) (nat.succ y)) y))
+  :pattern ((nat.+ x y))))
+  :named smtx.nat.+.def))
+  
+; uninterpreted constant identifier for builtin partial functions
+(define-fun /_by_zero_id () String "@/_by_zero")
+(define-fun div_by_zero_id () String "@div_by_zero")
+(define-fun mod_by_zero_id () String "@mod_by_zero")
+(define-fun wrong_apply_sel_id ((x Nat) (y Nat)) String 
+  (str.++ "@wrong_apply_sel_" (str.from_int (nat.to_int x)) "_" (str.from_int (nat.to_int y))))
+(define-fun oob_seq_nth_id () String "@oob_seq_nth")
+(define-fun uconst_id ((x Nat)) String (str.++ "@u." (str.from_int (nat.to_int x))))
+(define-fun const_id ((x Nat)) String (str.++ "@c." (str.from_int (nat.to_int x))))
+
+(define-fun char_valid ((x Int)) Bool (< x 196608))
+(define-fun string_valid ((x String)) Bool true)
+
+; integer exponentiation is not handled by cvc5, axiomatize it
+(declare-fun zexp_total (Int Int) Int)
+(assert (! (forall ((x Int) (y Int)) 
+  (! (= (zexp_total x y) (ite (< y 0) 0 (ite (= y 0) 1 (* x (zexp_total x (- y 1))))))
+  :pattern ((zexp_total x y))))
+  :named smtx.zexp_total.def))
+(declare-fun qexp_total (Real Int) Int)
+(assert (! (forall ((x Real) (y Int))
+  (! (= (qexp_total x y) (ite (< y 0) 0.0 (ite (= y 0) 1.0 (* x (qexp_total x (- y 1))))))
+  :pattern ((qexp_total x y))))
+  :named smtx.qexp_total.def))
+
+(define-fun bit ((x1 Int) (x2 Int)) Bool
+  (zeq 1 (mod (div x1 (int.pow2 x2)) 2)))
+(define-fun msb ((x1 Int) (x2 Int)) Bool
+  (bit x2 (zplus x1 (zneg 1))))
+(define-fun binary_and ((x1 Int) (x2 Int) (x3 Int)) Int
+  (ite (zeq x1 0) 0 (piand x1 x2 x3)))
+(define-fun binary_or ((x1 Int) (x2 Int) (x3 Int)) Int
+  (zplus x2 (zplus x3 (zneg (ite (zeq x1 0) 0 (piand x1 x2 x3))))))
+(define-fun binary_xor ((x1 Int) (x2 Int) (x3 Int)) Int
+  (zplus x2 (zplus x3 (zneg (zmult 2 (ite (zeq x1 0) 0 (piand x1 x2 x3)))))))
+(define-fun binary_not ((x1 Int) (x2 Int)) Int
+  (zplus (int.pow2 x1) (zneg (zplus x2 1))))
+(define-fun binary_max ((x1 Int)) Int
+  (zplus (int.pow2 x1) (zneg 1)))
+(define-fun binary_uts ((w Int) (n Int)) Int
+  (zplus (zmult 2 (mod n (int.pow2 (zplus w (zneg 1))))) (zneg n)))
+(define-fun binary_concat ((x1 Int) (x2 Int) (x3 Int) (x4 Int)) Int
+  (zplus (zmult x2 (int.pow2 x3)) x4))
+(define-fun binary_extract ((x1 Int) (x2 Int) (x3 Int) (x4 Int)) Int
+  (div x2 (int.pow2 x4)))
+
+(define-fun reserved_datatype_name ((s String)) Bool (str.prefixof "@" s))
+    
+; tsm.Type:
+;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
+; sm.Term:
+;   The final embedding of atomic SMT-LIB terms that are relevant to the VC.
+; eo.Term:
+;   The final embedding of Eunoia terms that are relevant to the VC.
+;   SMT-LIB terms, types and values are embedded in this datatype. This
+;   datatype contains a superset of the Herbrand universe of all types being
+;   considered.
+;   We require a mutually recursive datatype, since these are
+;   inter-dependent.
+; regular language values are the builtin SMT-LIB sort
+(define-sort SmtRegLan () RegLan)
+
+(declare-datatypes
+  ((eo.Term 0) (DatatypeDecl 0)  (Datatype 0) (DatatypeCons 0)
+   (vsm.Value 0) (msm.Map 0) (ssm.Seq 0) (sm.Term 0) (tsm.Type 0)
+   (SmtDatatypeDecl 0) (SmtDatatype 0) (SmtDatatypeCons 0))
+  (
+  (
+$SM_EO_TERM_DECL$
+  )
+  (
+  (edd.nil)
+  (edd.cons (edd.cons.arg1 String) (edd.cons.arg2 Datatype) (edd.cons.arg3 DatatypeDecl))
+  )
+  (
+  (edt.null)
+  (edt.sum (edt.sum.arg1 DatatypeCons) (edt.sum.arg2 Datatype))
+  )
+  (
+  (edtc.unit)
+  (edtc.cons (edtc.cons.arg1 eo.Term) (edtc.cons.arg2 DatatypeCons))
+  )
+  (
+$SM_VALUE_DECL$
+  )
+  (
+$SM_MAP_DECL$
+  )
+  (
+$SM_SEQ_DECL$
+  )
+  (
+$SM_TERM_DECL$
+  )
+  (
+$SM_TYPE_DECL$
+  )
+  (
+  (dd.nil)
+  (dd.cons (dd.cons.arg1 String) (dd.cons.arg2 SmtDatatype) (dd.cons.arg3 SmtDatatypeDecl))
+  )
+  (
+  (dt.null)
+  (dt.sum (dt.sum.arg1 SmtDatatypeCons) (dt.sum.arg2 SmtDatatype))
+  )
+  (
+  (dtc.unit)
+  (dtc.cons (dtc.cons.arg1 tsm.Type) (dtc.cons.arg2 SmtDatatypeCons))
+  )
+  )
+)
+
+; sequences and string conversions
+(declare-fun unpack_seq (ssm.Seq) (Seq vsm.Value))
+(declare-fun pack_seq (tsm.Type (Seq vsm.Value)) ssm.Seq)
+(declare-fun unpack_string (ssm.Seq) String)
+(declare-fun pack_string (String) ssm.Seq)
+(declare-fun char_of_value (vsm.Value) String)
+
+(assert (! (forall ((x ssm.Seq))
+  (! (= (unpack_seq x) 
+    (ite ((_ is ssm.cons) x) 
+      (seq.++ (seq.unit (ssm.cons.arg1 x)) (unpack_seq (ssm.cons.arg2 x)))
+      (as seq.empty (Seq vsm.Value))))
+  :pattern ((unpack_seq x))))
+  :named smtx.unpack_seq.def))
+  
+(assert (! (forall ((T tsm.Type) (x (Seq vsm.Value)))
+  (! (= (pack_seq T x) 
+    (ite (> (seq.len x) 0)
+      (ssm.cons (seq.nth x 0) (pack_seq T (seq.extract x 1 (- (seq.len x) 1))))
+      (ssm.empty T)))
+  :pattern ((pack_seq T x))))
+  :named smtx.pack_seq.def))
+
+(assert (! (forall ((x ssm.Seq))
+  (! (= (unpack_string x)
+    (ite ((_ is ssm.cons) x)
+      (str.++ (char_of_value (ssm.cons.arg1 x)) (unpack_string (ssm.cons.arg2 x)))
+      ""))
+  :pattern ((unpack_string x))))
+  :named smtx.unpack_string.def))
+
+(assert (! (forall ((x String))
+  (! (= (pack_string x)
+    (ite (> (str.len x) 0)
+      (ssm.cons (vsm.Char (str.to_code (str.substr x 0 1))) (pack_string (str.substr x 1 (- (str.len x) 1))))
+      (ssm.empty tsm.Char)))
+  :pattern ((pack_string x))))
+  :named smtx.pack_string.def))
+
+(assert (! (forall ((x vsm.Value))
+  (! (= (char_of_value x)
+    (ite ((_ is vsm.Char) x) (str.from_code (vsm.Char.arg1 x)) ""))
+  :pattern ((char_of_value x))))
+  :named smtx.char_of_value.def))
+
+; conversions between native strings and (unpacked) sequences of character
+; values, used by the value-sequence based regular expression operators below
+(declare-fun values_to_string ((Seq vsm.Value)) String)
+(assert (! (forall ((x (Seq vsm.Value)))
+  (! (= (values_to_string x)
+    (ite (> (seq.len x) 0)
+      (str.++ (char_of_value (seq.nth x 0)) (values_to_string (seq.extract x 1 (- (seq.len x) 1))))
+      ""))
+  :pattern ((values_to_string x))))
+  :named smtx.values_to_string.def))
+(declare-fun string_to_values (String) (Seq vsm.Value))
+(assert (! (forall ((x String))
+  (! (= (string_to_values x)
+    (ite (> (str.len x) 0)
+      (seq.++ (seq.unit (vsm.Char (str.to_code (str.substr x 0 1)))) (string_to_values (str.substr x 1 (- (str.len x) 1))))
+      (as seq.empty (Seq vsm.Value))))
+  :pattern ((string_to_values x))))
+  :named smtx.string_to_values.def))
+
+; the value-sequence based regular expression operators; these are the SMT2
+; counterparts of native string regular expression operators. Their arguments
+; are canonical character sequences, while generic sequence pattern operators
+; map directly to the polymorphic SMT seq.* operators.
+(define-fun str_to_re ((x (Seq vsm.Value))) RegLan
+  (str.to_re (values_to_string x)))
+(define-fun re_range ((x (Seq vsm.Value)) (y (Seq vsm.Value))) RegLan
+  (re.range (values_to_string x) (values_to_string y)))
+(define-fun str_in_re ((x (Seq vsm.Value)) (r RegLan)) Bool
+  (str.in_re (values_to_string x) r))
+(define-fun str_indexof_re ((x (Seq vsm.Value)) (r RegLan) (n Int)) Int
+  (str.indexof_re (values_to_string x) r n))
+(define-fun str_replace_re ((x (Seq vsm.Value)) (r RegLan) (y (Seq vsm.Value))) (Seq vsm.Value)
+  (string_to_values (str.replace_re (values_to_string x) r (values_to_string y))))
+(define-fun str_replace_re_all ((x (Seq vsm.Value)) (r RegLan) (y (Seq vsm.Value))) (Seq vsm.Value)
+  (string_to_values (str.replace_re_all (values_to_string x) r (values_to_string y))))
+; these operators are not SMT-LIB builtins; they are left uninterpreted here
+(declare-fun str_indexof_re_split ((Seq vsm.Value) RegLan RegLan) Int)
+(declare-fun str_occur_index_re ((Seq vsm.Value) RegLan Int) Int)
+
+; models
+(define-sort SmtModelKey () (Tuple Bool String tsm.Type))
+(define-sort SmtModel () (Array SmtModelKey vsm.Value))
+
+(declare-datatype srl.RefList
+  ((reflist_nil) (reflist_insert (reflist_insert.arg1 srl.RefList) (reflist_insert.arg2 String))))
+
+(declare-fun reflist_contains (srl.RefList String) Bool)
+(assert (! (forall ((rl srl.RefList) (s String))
+  (! (= (reflist_contains rl s) 
+    (ite ((_ is reflist_nil) rl) false
+    (ite (= (reflist_insert.arg2 rl) s) true
+      (reflist_contains (reflist_insert.arg1 rl) s))))
+  :pattern ((reflist_contains rl s))))
+  :named smtx.reflist_contains_def))
+  
+(define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
+(define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))
+(define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))
+
+(declare-fun thash (eo.Term) Int)
+(declare-fun trevhash (Int) eo.Term)
+; axiom for hash
+; note: this implies that thash is injective, which implies $eo_hash is injective.
+(assert (! (forall ((x eo.Term))
+    (! (= (trevhash (thash x)) x) :pattern ((thash x)))) :named eo.hash_injective))
+(define-fun tcmp ((a eo.Term) (b eo.Term)) Bool (< (thash a) (thash b)))
+
+; forward declarations
+(declare-fun model_lookup (SmtModel String tsm.Type) vsm.Value)
+(declare-fun model_var_lookup (SmtModel String tsm.Type) vsm.Value)
+(declare-fun model_push (SmtModel String tsm.Type vsm.Value) SmtModel)
+(declare-fun eval_texists (SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_tforall (SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_tchoice (SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun inhabited_type (tsm.Type) Bool)
+(declare-fun eval_map_diff_msm (msm.Map msm.Map) vsm.Value)
+(declare-fun eval_seq_diff_ssm (ssm.Seq ssm.Seq) vsm.Value)
+(declare-fun eval_fun_apply (SmtModel String tsm.Type tsm.Type vsm.Value) vsm.Value)
+; whether two (e.g. map) value are extensionally equal
+(declare-fun veq_ext (msm.Map msm.Map) Bool)
+  
+;;; Relevant definitions
+
+$SM_DEFS$
+
+;;; Meta-level properties of models
+
+(assert (! (forall ((M SmtModel) (id String) (T tsm.Type))
+  (! (= (model_lookup M id T) (select M (tuple false id T)))
+  :pattern ((model_lookup M id T))))
+  :named smtx.model_lookup_def))
+
+(assert (! (forall ((M SmtModel) (id String) (T tsm.Type))
+  (! (= (model_var_lookup M id T) (select M (tuple true id T)))
+  :pattern ((model_var_lookup M id T))))
+  :named smtx.model_var_lookup_def))
+
+(assert (! (forall ((M SmtModel) (id String) (T tsm.Type) (v vsm.Value))
+  (! (= (model_push M id T v) (store M (tuple true id T) v))
+  :pattern ((model_push M id T v))))
+  :named smtx.model_update_def))
+
+; true iff there exists a value of type T that when substituted into F
+; is evaluated as tgt. Note that we do not check the type of T here,
+; instead $smtx_substitute will generate terms ($sm_Const v T), which
+; only evaluate to v if it is of type T.
+(define-fun texists_eq ((M SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+  (exists ((v vsm.Value))
+    (and (= ($smtx_typeof_value v) T)
+         (= ($smtx_model_eval (model_push M s T v) F) tgt))))
+
+; true iff all values of type T when substituted into F are evaluated as tgt.
+(define-fun tforall_eq ((M SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
+  (forall ((v vsm.Value))
+    (=> (= ($smtx_typeof_value v) T)
+        (= ($smtx_model_eval (model_push M s T v) F) tgt))))
+
+; exists
+(assert (! (forall ((M SmtModel) (s String) (T tsm.Type) (F sm.Term))
+  (! (= (eval_texists M s T F)
+     (ite (texists_eq M s T F (vsm.Boolean true)) (vsm.Boolean true)
+     (ite (tforall_eq M s T F (vsm.Boolean false)) (vsm.Boolean false)
+       vsm.NotValue)))
+  :pattern ((eval_texists M s T F))))
+  :named smtx.texists.def))
+  
+; forall
+(assert (! (forall ((M SmtModel) (s String) (T tsm.Type) (F sm.Term))
+  (! (= (eval_tforall M s T F)
+     (ite (texists_eq M s T F (vsm.Boolean false)) (vsm.Boolean false)
+     (ite (tforall_eq M s T F (vsm.Boolean true)) (vsm.Boolean true)
+       vsm.NotValue)))
+  :pattern ((eval_tforall M s T F))))
+  :named smtx.tforall.def))
+
+; choice
+; If there exists a value making the existential true, we can assume
+; that substituting with choice also makes it true.
+(assert (! (forall ((M SmtModel) (s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
+  (! (=> (texists_eq M s T F (vsm.Boolean true))
+      (= ($smtx_model_eval (model_push M s T (eval_tchoice M s T F)) F)
+         (vsm.Boolean true)))
+  :pattern ((eval_tchoice M s T F))))
+  :named smtx.tchoice.def))
+
+; typeof choice, must be an inhabitant, else it is ill-typed.
+(assert (! (forall ((T tsm.Type))
+  (! (= (inhabited_type T) 
+    (exists ((v vsm.Value)) (= ($smtx_typeof_value v) T)))
+  :pattern ((inhabited_type T))))
+  :named smtx.inhabited_type.def))
+  
+; whether two map values are extensionally equal
+(assert (! (forall ((v1 msm.Map) (v2 msm.Map))
+  (! (= (veq_ext v1 v2)
+        (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))
+  :pattern ((veq_ext v1 v2))))
+  :named smtx.veq_ext.def))
+
+; FIXME
+;(assert (! (forall ((v1 msm.Map) (v2 msm.Map))
+;  (! (= (eval_map_diff_msm v1 v2)
+;        (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))
+;  :pattern ((veq_ext v1 v2))))
+;  :named smtx.veq_ext.def))
+
+;;; What a verification condition asks of the model
+
+; The formula a term denotes evaluates, under the model M, to the value v.
+; A term the model gives no type of Bool to answers no. This is the only place
+; that says what the two below mean: the EO layer declares them and never
+; defines them, so that the model itself has nothing to say about how a proof
+; rule is verified.
+(define-fun $eo_model_interprets ((M SmtModel) (F eo.Term) (v vsm.Value)) eo.Term
+  (eo.Boolean (and (Teq ($smtx_typeof ($eo_to_smt F)) tsm.Bool)
+                   (veq ($smtx_model_eval M ($eo_to_smt F)) v))))
+
+(assert (! (forall ((M SmtModel) (F eo.Term))
+  (! (= ($eo_model_sat M F) ($eo_model_interprets M F (vsm.Boolean true)))
+  :pattern (($eo_model_sat M F))))
+  :named eo.model_sat.def))
+
+(assert (! (forall ((M SmtModel) (F eo.Term))
+  (! (= ($eo_model_unsat M F) ($eo_model_interprets M F (vsm.Boolean false)))
+  :pattern (($eo_model_unsat M F))))
+  :named eo.model_unsat.def))
+
+;;; The verification condition
+
+$SMT_VC$

@@ -36,6 +36,7 @@
 #include "desugar/desugar.h"
 #include "lean_meta/lean_meta_reduce.h"
 #include "model_smt/model_smt.h"
+#include "smt_meta/smt_meta_reduce.h"
 #include "trim_defs/trim_defs.h"
 
 using namespace ethos;
@@ -51,6 +52,18 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
   if (name == "desugar")
   {
     return std::make_unique<Desugar>(s);
+  }
+  if (name == "desugar-vc")
+  {
+    return std::make_unique<Desugar>(s, /*genVcs=*/true);
+  }
+  if (name == "smt-meta")
+  {
+    return std::make_unique<SmtMetaReduce>(s);
+  }
+  if (name == "smt-meta-sygus")
+  {
+    return std::make_unique<SmtMetaReduce>(s, /*sygus=*/true);
   }
   if (name == "lean-meta")
   {
@@ -71,7 +84,8 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
     return std::make_unique<ModelSmt>(s, defsFile);
   }
   EO_FATAL() << "Error: unknown plugin \"" << name
-             << "\" (available: desugar, lean-meta, trim-defs, model-smt)";
+             << "\" (available: desugar, desugar-vc, smt-meta, "
+                "smt-meta-sygus, lean-meta, trim-defs, model-smt)";
   return nullptr;
 }
 

@@ -53,3 +53,18 @@ You can also filter tests using regular expressions for example:
 ```
 ctest -R arith
 ```
+
+## Optional `ethos-eoc` pipeline
+
+The experimental Eunoia compiler workflow is built as a separate standalone
+project in [`plugins/`](plugins/), leaving the core ethos build untouched:
+
+```bash
+cmake -S plugins -B build-eoc
+cmake --build build-eoc --target ethos-eoc -j4
+```
+
+Use the source-controlled driver at
+[`tools/eoc/driver.py`](tools/eoc/driver.py) instead of the old
+`build-debug` helper scripts. Detailed usage is documented in
+[`tools/eoc/README.md`](tools/eoc/README.md).
