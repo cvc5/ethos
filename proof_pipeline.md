@@ -1,89 +1,86 @@
-# How cvc5 proofs are produced, checked, and verified
+# The cvc5 proof pipeline
 
-This document is an executive summary of the whole cvc5 proof setup: what
-happens to a query between cvc5 reading it and someone believing the answer,
-and where in that path each awkward detail is dealt with.
+This document summarizes how a cvc5 proof is produced, checked, and verified.
+It covers one pipeline:
 
-It spans three code bases. Only the middle one is this repository:
+```
+input.smt2 -> cvc5 parser -> cvc5 API -> cvc5 internals -> proof.cpc
+                                                              |
+                                                Cpc.eo -> ethos -> accept/reject
+                                                   |
+                                                   +-> desugar -> model-smt -+-> rule.smt2
+                                                                             +-> Logos (Lean)
+```
 
-| Code base | Role here |
+Stages 1 to 3 produce a proof in the CPC calculus. Stage 4 checks that proof
+against the CPC signature, `Cpc.eo`. Stages 5 to 8 compile `Cpc.eo` itself
+into a verification condition or a Lean theorem, which is what establishes
+that the rules the checker applies are sound. Stages 1 to 4 run on every
+query; stages 5 to 8 run offline, per proof rule.
+
+Three code bases are involved. Only ethos is this repository:
+
+| Code base | Role |
 | --- | --- |
-| cvc5 | solves the query and prints a proof in the CPC calculus |
-| ethos (this repository) | defines CPC in Eunoia, and checks proofs against it |
+| cvc5 | solves the query and prints a CPC proof |
+| ethos (this repository) | defines CPC in Eunoia, checks proofs against it, and compiles it |
 | Logos | the Lean development in which the checker is proved correct |
 
-Sections marked **(cvc5)** describe files in the cvc5 repository, not in this
-one.
+Sections marked **(cvc5)** describe files in the cvc5 repository.
 
-## The two journeys
+Stages 5 to 8 are the `ethos-eoc` binary, built from the standalone project in
+[`plugins/`](plugins/) and driven by
+[`tools/eoc/driver.py`](tools/eoc/driver.py):
 
-A proof travels two quite different paths, and most confusion about this setup
-comes from running them together. They answer different questions.
+```bash
+cmake -S plugins -B build-eoc
+cmake --build build-eoc --target ethos-eoc -j8
 
-```
-  Journey 1 — every query, at solving time
-  ----------------------------------------
-  input.smt2 --> cvc5 parser --> cvc5 API --> cvc5 internals
-                                                    |
-                                                    v
-                                            proof.cpc (a CPC proof)
-                                                    |
-                                     Cpc.eo ---> ethos ---> accept / reject
+# a verification condition for one rule
+python3 tools/eoc/driver.py vc --build-dir build-eoc <input.eo> <proof-rule>
 
-
-  Journey 2 — once per proof rule, offline
-  ----------------------------------------
-  Cpc.eo --> desugar --> model-smt --+--> smt-meta  --> rule.smt2  (unsat = good)
-                                     |
-                                     +--> lean-meta --> Logos      (theorem to prove)
+# the whole CPC signature, compiled to Lean
+python3 tools/eoc/driver.py lean --build-dir build-eoc --all \
+  --defs=plugins/model_smt/cpc_defs.eo \
+  --lean-config=plugins/lean_meta/cpc_termination.lean \
+  <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
-**Journey 1 answers**: does this proof follow the rules written in `Cpc.eo`?
-That is what `ethos` decides, and it is fast and fully automatic.
+See [`tools/eoc/README.md`](tools/eoc/README.md) for the full driver
+interface.
 
-**Journey 2 answers**: are the rules written in `Cpc.eo` actually sound with
-respect to SMT-LIB semantics? Journey 1 takes `Cpc.eo` entirely on trust, so
-this is where that trust is earned. It is the `ethos-eoc` binary's job, it is
-run offline, and it is per rule rather than per proof.
-
-Both journeys are lossy in ways worth knowing about, which is what the rest of
-this document is for.
-
-## Journey 1: producing and checking a proof
-
-### Stage 1: cvc5 parsing (cvc5)
+## Stage 1: cvc5 parsing (cvc5)
 
 Handled here:
 
 - `let` as a parsing construct, not a binder.
 - Global variable semantics: variables are unique up to their name and type.
-  It is an open question how exactly this relates to SMT-LIB.
+  How this relates to SMT-LIB is unresolved.
 - Numerals read as decimals in logics without integers.
 - `:named`.
 
-### Stage 2: cvc5 API (cvc5)
+## Stage 2: cvc5 API (cvc5)
 
 Handled here:
 
 - Desugaring of `:chainable` and some `:left-assoc` / `:right-assoc`
   operators. This desugaring is mirrored in the CPC signature and in the ethos
-  parser, so the two must be kept in step.
+  parser, so the three must be kept in step.
 
-### Stage 3: cvc5 internals to CPC proof (cvc5)
+## Stage 3: cvc5 internals to CPC proof (cvc5)
 
-Handled here, when turning the input into proof assumptions
-(`solver_engine.cpp`):
+Handled when turning the input into proof assumptions (`solver_engine.cpp`):
 
 - `define-fun-rec` desugared to `declare-fun` plus an asserted `forall`.
 - Mixed arithmetic is silently eliminated.
 
-And in the proof printer:
+Handled in the proof printer:
 
 - `match` desugared to `ite`.
 - Some floating-point operators renamed.
 - Currying of `ProofRule::SCOPE`.
 
-### Stage 4: the ethos parser
+## Stage 4: the ethos parser and checker
 
 Handled here:
 
@@ -94,61 +91,42 @@ Handled here:
 - Desugaring of n-ary literal operations to binary, e.g. `(eo::add a b c)`
   becomes `(eo::add (eo::add a b) c)`.
 
-At this point ethos can check the proof, and Journey 1 is done. Roughly 10k
-lines of C++ in `src/`, plus GMP, are what a `checked` verdict rests on,
-together with `Cpc.eo` itself.
+Ethos then checks the proof. A `checked` verdict rests on 10,261 lines of C++
+in `src/`, on GMP, and on `Cpc.eo` itself. The remaining stages are about that
+last dependency.
 
-## Journey 2: verifying the CPC signature
+## The deep embedding
 
-Everything below is the `ethos-eoc` binary, built from the standalone project
-in [`plugins/`](plugins/) and driven by
-[`tools/eoc/driver.py`](tools/eoc/driver.py). To generate the verification
-condition for one rule:
-
-```bash
-python3 tools/eoc/driver.py vc --build-dir build-eoc <input.eo> <proof-rule>
-```
-
-See [`tools/eoc/README.md`](tools/eoc/README.md) for the full driver
-interface.
-
-### The idea: a deep embedding
-
-Both backends end in a deep embedding, and both encode a rule's correctness as
-a search over that embedding:
-
-- A datatype `eo.Term` is declared, with builtin constructors such as
-  `eo.Stuck` and `eo.Apply`.
-- Every constant in the Eunoia signature becomes a constructor of that
-  datatype.
+Stages 5 to 8 share one target. A datatype `eo.Term` is declared with builtin
+constructors such as `eo.Stuck` and `eo.Apply`, and every constant in the
+Eunoia signature becomes a constructor of that datatype.
 
 Under the SMT backend, Eunoia programs become uninterpreted functions and
 their definitions become quantified axioms; a program that is forward declared
 but never defined stays a free uninterpreted function. Under the Lean backend,
 Eunoia programs become Lean definitions.
 
-So a rule's soundness becomes a question about the *syntactic space* of Eunoia
-terms: is there a term that witnesses the rule being unsound? An `unsat` from
-the SMT backend says no such witness exists, which is the evidence that the
-rule is sound.
+A rule's soundness is then a question about the syntactic space of Eunoia
+terms: is there a term witnessing that the rule is unsound? `unsat` from the
+SMT backend means there is no such term.
 
-Terms carry a *meta-kind* through the pipeline saying what their embedding is:
-a Eunoia term, an SMT term, an SMT type, an SMT value, a map or sequence
-value, a builtin, a proof, a checker rule or command. Types applied to
-`$native_embed_eo`, `$native_embed_smt` or `$native_embed_checker` in the
-Eunoia templates declare which of the three layers a datatype belongs to; see
-`MetaKind` in [`plugins/utils.h`](plugins/utils.h).
+Terms carry a *meta-kind* saying what their embedding is: a Eunoia term, an SMT
+term, an SMT type, an SMT value, a map or sequence value, a builtin, a proof,
+a checker rule or command. Types applied to `$native_embed_eo`,
+`$native_embed_smt` or `$native_embed_checker` in the Eunoia templates declare
+which of the three layers a datatype belongs to. See `MetaKind` in
+[`plugins/utils.h`](plugins/utils.h).
 
-### Stage 5: desugar
+## Stage 5: desugar
 
 Compiles `*.eo` to `*.eo`, rewriting non-essential Eunoia features into Eunoia
 programs. It emits a forward declaration of the side condition `$eo_model_sat`,
-which the next stage defines.
+which stage 6 defines.
 
-Optionally, a proof rule is compiled to a Eunoia program `$eo_prog_X` that
+Optionally a proof rule is compiled to a Eunoia program `$eo_prog_X` that
 operates over *formulas* rather than proofs, plus a program `$eovc_X` that
 calls `$eo_model_sat` and `$eo_prog_X` and evaluates successfully exactly when
-the rule is unsound. `$eovc_X` is the target the SMT backend verifies.
+the rule is unsound. `$eovc_X` is what stage 7 verifies.
 
 Relies on `plugins/desugar/`: `desugar.{h,cpp}`, the `eo_desugar.eo` template,
 `native_embed.eo` (references to native SMT types, integer-pair encodings that
@@ -162,12 +140,13 @@ checker.
 Handled here:
 
 - `define` commands inlined. Each definition is re-emitted as `$parse_<name>`,
-  consumed only by the Lean stage to build the generated proof parser's tables.
+  consumed only by stage 8 to build the generated proof parser's tables.
   Definitions whose own name starts with `$` are signature helpers and are not
   preserved.
 - Optionally, flattening of evaluation: evaluation nested inside ordinary
   applications is lifted, so stuckness propagates eagerly through ordinary
-  constant applications, and each `eo::requires` / `eo::ite` becomes a program.
+  constant applications, and each `eo::requires` and `eo::ite` becomes a
+  program.
 - `declare-rule`: the proof type is handled as part of generating `$eovc_X`.
 - `declare-consts`: `$eo_lit_type_Numeral`, `$eo_lit_type_Rational`,
   `$eo_lit_type_String`, `$eo_lit_type_Binary` as references to builtin types.
@@ -188,22 +167,25 @@ Handled here:
   and constants. Datatype, constructor and selector semantics survive as the
   auto-generated `eo::dt_constructors` and `eo::dt_selectors` cases.
 
-### Stage 6: model-smt
+## Stage 6: model-smt
 
 Compiles `*.eo` to `*.eo`, adding the definition of `$eo_model_sat`: SMT-LIB
 model semantics, written in Eunoia.
 
-The SMT-LIB signature itself is *not* hardcoded in C++. It is written directly
-in the deep embedding in a definitions file, `plugins/model_smt/cpc_defs.eo`,
-passed with `--defs`. For each symbol `X` that file gives the embedding
-constructor `$emb_sm.X` and its macro, the cases `X` contributes to
-`$smtx_typeof` and to the evaluation program `$smtx_model_eval`, and the
-auxiliary programs those cases call. `defs_reader.{h,cpp}` reads the file as
-*text* blocks — a block opens at a `; -- X` line — and concatenates the cases
-into the aggregate programs, copying everything else through unchanged. Reading
-it as text rather than as terms is what stops the embedding definitions from
-being expanded on the way. `plugins/model_smt/smt_defs.eo` is an in-progress
-signature written the same way, not yet wired into the pipeline.
+The SMT-LIB signature is not hardcoded in C++. It is written directly in the
+deep embedding in a definitions file, `plugins/model_smt/cpc_defs.eo`, passed
+with `--defs`. For each symbol `X` that file gives the embedding constructor
+`$emb_sm.X` and its macro, the cases `X` contributes to `$smtx_typeof` and to
+the evaluation program `$smtx_model_eval`, and the auxiliary programs those
+cases call. `defs_reader.{h,cpp}` reads the file as *text* blocks, each opened
+by a `; -- X` line, and concatenates the cases into the aggregate programs,
+copying everything else through unchanged. Reading it as text rather than as
+terms is what stops the embedding definitions from being expanded on the way.
+The same file carries `eoc-exclude` directives naming the rules, methods and
+symbols to leave out of a compilation.
+
+`plugins/model_smt/smt_defs.eo` is a further signature written the same way,
+not yet included by anything.
 
 What stays in `plugins/model_smt/model_smt.eo` is the embedding itself: the
 literals, the binders, the application and datatype constructors, the two
@@ -218,7 +200,7 @@ Handled here:
   `eo::extract`, `eo::find`; `eo::to_z`, `eo::to_q`, `eo::to_bin`, `eo::to_str`;
   and `eo::var`, `eo::nameof`, which represent variables as the constant
   `$eot_Var`.
-- Macros definable in terms of those, done here rather than in desugar so that
+- Macros definable in terms of those, done here rather than in stage 5 so that
   desugaring never forward-references `eo::`: `eo::is_eq`, `eo::is_z`,
   `eo::is_q`, `eo::is_bin`, `eo::is_str`, `eo::is_bool`, `eo::is_var`,
   `eo::gt`, `eo::cmp`.
@@ -229,44 +211,43 @@ Handled here:
 - SMT-LIB semantics proper: a map utility for array and function values, with
   lookup and canonical update, specialized for sets; a sequence utility for
   sequence values; the core evaluation semantics `$smtx_model_eval`; and
-  `$smtx_type_default`, which enumerates the first term of a finite type.
+  `$smtx_type_default`, which returns the first term of a finite type.
 
 `$smtx_model_eval` has a case for function application, plus cases in three
 auto-generated forms:
 
-- **Term reductions** — this operator evaluates by way of another term, e.g.
+- **Term reductions**: the operator evaluates by way of another term, e.g.
   `(bvsle x1 x2)` is `(bvsge x2 x1)`.
-- **Constant folding** — this operator evaluates its arguments then applies the
+- **Constant folding**: the operator evaluates its arguments then applies the
   SMT-LIB operator, e.g. `(+ x1 x2)` is
   `($native_apply_2 "+" ($evaluate x1) ($evaluate x2))`.
-- **Hard-coded cases** — this operator uses a custom function from the
+- **Hard-coded cases**: the operator uses a custom function from the
   signature, e.g. `(select x1 x2)` is
   `($smtx_map_select ($evaluate x1) ($evaluate x2))`.
 
 Overloaded arithmetic uses multi-case programs, and the overload naming is
 reverted here: `$eoo_-.2` is recognized as SMT-LIB `-`.
 
-### Stage 7a: smt-meta, the SMT-LIB and SyGuS backend
+## Stage 7: smt-meta
 
 Compiles `*.eo` to `*.smt2`. Constructs the final deep embedding: Eunoia terms
 (`eo.Term`), SMT terms (`sm.Term`), SMT types (`tsm.Type`), SMT values
 (`vsm.Value`), and the datatypes that model SMT values. Values are disjoint
 from terms.
 
-It applies a policy that reads opaque arguments as constructor arguments, and
-distinguished names for Eunoia types and operators as marks for native SMT
-types and operators. Non-recursive programs are optimized into `define-fun`.
-Finally it emits, for a program under test such as `$eovc_X`, the conjecture
-that the program does not get stuck for some input. `unsat` means no such input
-exists, which is the evidence of soundness.
+It reads opaque arguments as constructor arguments, and distinguished names for
+Eunoia types and operators as marks for native SMT types and operators.
+Non-recursive programs are optimized into `define-fun`. It then emits, for a
+program under test such as `$eovc_X`, the conjecture that the program does not
+get stuck for some input.
 
 Handled here:
 
 - Function types become ordinary applications: `(-> T1 T2)` becomes
   `(_ (_ -> T1) T2)`.
 - Eunoia pattern matching in terms of datatype selectors and testers.
-- The symbols the model-smt stage introduced for the embedding,
-  `$native_apply_N` and `$native_type_N`.
+- The symbols stage 6 introduced for the embedding, `$native_apply_N` and
+  `$native_type_N`.
 - Remaining `eo::define` and `define` commands inlined.
 - An axiom for `eo::hash`.
 - `:opaque` on user symbols becomes part of the embedding. For example
@@ -286,23 +267,25 @@ Handled here:
 `smt_meta_sygus.{h,cpp}` emits an alternative `*.sy` file, with a well-typed
 grammar, for SyGuS solvers.
 
-**Not handled**: well-foundedness of Eunoia programs. Because the encoding does
-not establish it, this stage can report a spurious unsoundness.
+Not handled: well-foundedness of Eunoia programs. Because the encoding does not
+establish it, this stage can report a spurious unsoundness.
 
-### Stage 7b: lean-meta, the Lean backend
+## Stage 8: lean-meta
 
 Compiles `*.eo` to `*.lean`, under the same opaque-argument and native-name
-policy as smt-meta. It constructs correctness theorems for the individual rules
+policy as stage 7. It constructs correctness theorems for the individual rules
 and for the checker as a whole. `linear_patterns.{h,cpp}` linearizes repeated
 variables in Eunoia patterns first, since Lean will not accept them directly.
 
-Lean will complain about any Eunoia program it cannot see is terminating, so
-termination obligations surface at this stage rather than being assumed away.
+Lean will reject any Eunoia program it cannot see is terminating, so
+termination obligations surface here. What the compiler cannot derive is
+supplied per signature with `--lean-config`; for CPC that is
+`plugins/lean_meta/cpc_termination.lean`.
 
-## The Lean end state
+## The Lean result
 
-Compiling `Cpc.eo` through the Lean backend produces a Lean package, Logos,
-whose central obligation is stated in the specification module:
+Compiling `Cpc.eo` through stage 8 produces the Lean package Logos, whose
+central obligation is stated in the specification module:
 
 ```lean
 theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
@@ -312,32 +295,29 @@ theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
   eo_satisfiability F false
 ```
 
-Here `eo_is_refutation` invokes the generated checker, and `eo_satisfiability`
-is defined through the Eunoia-to-SMT translation and the SMT model semantics —
+`eo_is_refutation` invokes the generated checker, and `eo_satisfiability` is
+defined through the Eunoia-to-SMT translation and the SMT model semantics:
 `eo_satisfiability t b` is `smt_satisfiability (__eo_to_smt t) b`. The
 hypotheses `TranslatableAssumptionList` and `CmdListTranslationOk` are stated
 in the Logos development, not generated from this repository.
 
 The trusted computing base is the import closure of the specification module:
-everything *except* the checker, the parser and the rule lemmas. That is the
-evaluation utilities, the term datatype, the SMT model semantics and the
-specification itself, on the order of 2,700 lines of Lean. The checker
-(~8k lines), the parser (~2k lines) and the rule lemmas are all outside it,
-because they are what the theorem is about rather than what it assumes.
+everything except the checker, the parser and the rule lemmas. That is 2,696
+lines of Lean out of 27,158 generated, as the appendix breaks down.
 
 ## Known gaps
 
-- Well-foundedness of Eunoia programs is not established, so smt-meta can
-  report spurious unsoundness (Stage 7a).
+- Well-foundedness of Eunoia programs is not established, so stage 7 can report
+  spurious unsoundness.
 - `eo::typeof` approximates rather than reproduces Eunoia's internal type
-  system (Stage 5).
-- The `:chainable` and assoc desugarings are mirrored in three places — the
-  cvc5 API, the CPC signature, and the ethos parser — with nothing checking
-  that the three agree (Stages 2 and 4).
+  system (stage 5).
+- The `:chainable` and assoc desugarings are mirrored in the cvc5 API, the CPC
+  signature and the ethos parser, with nothing checking that the three agree
+  (stages 2 and 4).
 - Mixed arithmetic is eliminated silently on the way into proof assumptions
-  (Stage 3).
+  (stage 3).
 - How cvc5's global variable semantics relates to SMT-LIB's is unresolved
-  (Stage 1).
+  (stage 1).
 
 ## Future directions
 
@@ -351,17 +331,16 @@ because they are what the theorem is about rather than what it assumes.
 
 ## Appendix: component sizes
 
-Counts are code lines, excluding blank and comment lines. They are indicative
-rather than exact, and go stale; refresh them with:
+Code lines, excluding blank and comment lines, measured 2026-08-26 with cloc
+2.11:
 
 ```bash
 cloc --force-lang=Lisp,eo --force-lang=Lisp,smt2 <files>
 ```
 
-A count for a C++ component is its implementation plus its header. Measured
-2026-08-26.
+A count for a C++ component is its implementation plus its header.
 
-### Shared infrastructure
+### Shared
 
 | Component | LOC |
 | --- | --- |
@@ -369,9 +348,9 @@ A count for a C++ component is its implementation plus its header. Measured
 | `src/plugin.h`, the callback interface | 64 C++ |
 | `plugins/std_plugin`, `meta_reduce_plugin`, `utils` | 782 C++ |
 | `plugins/main_eoc.cpp` | 206 C++ |
-| `tools/eoc/driver.py` | 874 Python |
+| `tools/eoc/driver.py` | 823 Python |
 
-### Eunoia to Lean
+### Stages 5, 6 and 8: Eunoia to Lean
 
 | Component | LOC |
 | --- | --- |
@@ -381,7 +360,7 @@ A count for a C++ component is its implementation plus its header. Measured
 | `defs_reader.{h,cpp}` | 447 C++ |
 | `linear_patterns.{h,cpp}` | 176 C++ |
 | `lean_meta_reduce.{h,cpp}` | 1,815 C++ |
-| shared infrastructure | 782 C++ |
+| shared | 782 C++ |
 | **C++ total** | **4,879** |
 | `native_embed.eo` | 142 EO |
 | `eo_desugar.eo` | 394 EO |
@@ -395,9 +374,9 @@ A count for a C++ component is its implementation plus its header. Measured
 `plugins/model_smt/smt_defs.eo` is a further 3,434 lines of Eunoia, not yet
 included by anything.
 
-### Eunoia to SMT-LIB and SyGuS
+### Stage 7: Eunoia to SMT-LIB and SyGuS
 
-The desugar and model-smt rows above are shared; this backend adds:
+Stages 5 and 6 above are shared; this backend adds:
 
 | Component | LOC |
 | --- | --- |
@@ -409,19 +388,22 @@ The desugar and model-smt rows above are shared; this backend adds:
 
 ### Generated Logos
 
-Sizes of the Lean package compiled from `Cpc.eo` with the CPC exclusions
-applied. Reproducing these needs a full CPC run against a cvc5 checkout, so
-treat them as a snapshot rather than a current measurement.
+The Lean package compiled from `Cpc.eo` by the `lean --all` command above,
+using the exclusions in `cpc_defs.eo`.
 
 | Module | LOC | In TCB |
 | --- | --- | --- |
 | `SmtEval.lean`, evaluation utilities | 140 | yes |
-| `LogosTerm.lean`, term datatype | 248 | yes |
-| `SmtModel*.lean`, `SmtValueOrder.lean`, model semantics | 1,925 | yes |
-| `Spec.lean`, Eunoia to SMT correspondence | 380 | yes |
-| `Logos.lean`, the checker | 8,219 | no |
-| `Parser.lean`, proof parser configuration | 2,004 | no |
+| `LogosTerm.lean`, term datatype | 247 | yes |
+| `SmtModel.lean` | 1,598 | yes |
+| `SmtModelDefs.lean` | 226 | yes |
+| `SmtValueOrder.lean` | 98 | yes |
+| `Spec.lean`, Eunoia to SMT correspondence | 387 | yes |
+| `Logos.lean`, the checker | 8,215 | no |
+| `Parser.lean`, proof parser configuration | 1,999 | no |
 | `RuleLemmas.lean`, rule lemma statements | 3,607 | no |
-| `Rules/*.lean`, 591 per-rule files | 10,638 | no |
+| `Rules/*.lean`, 591 per-rule files | 10,641 | no |
+| **Total** | **27,158** | |
 
-Trusted computing base: 140 + 248 + 1,925 + 380 = 2,693 lines of Lean.
+Trusted computing base: 140 + 247 + 1,598 + 226 + 98 + 387 = 2,696 lines of
+Lean.
