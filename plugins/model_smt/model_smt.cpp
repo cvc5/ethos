@@ -22,17 +22,22 @@ namespace ethos {
 static_assert(std::is_constructible<ModelSmt, State&>::value,
               "ModelSmt must support the generic plugin factory");
 
-ModelSmt::ModelSmt(State& s)
-    : ModelSmt(s, getResourcePath("plugins/model_smt/cpc_defs.eo"))
+ModelSmt::ModelSmt(State& s) : ModelSmt(s, "")
 {
+  // The plugin has no signature of its own to fall back on: which input is
+  // being compiled is not its business, so the signature of that input is
+  // given to it with --signature and loadDefs is what says so when it is not. The
+  // SMT-LIB signature is the one exception, since it is the target.
 }
 
-ModelSmt::ModelSmt(State& s, const std::string& defsFile)
-    : StdPlugin(s), d_defsFile(defsFile)
+ModelSmt::ModelSmt(State& s,
+                   const std::string& defsFile,
+                   const std::string& smtDefsFile)
+    : StdPlugin(s), d_defsFile(defsFile), d_smtDefsFile(smtDefsFile)
 {
   // What each symbol of a signature means to the model is said by the
   // signatures written in the deep embedding rather than here, see loadDefs
-  // and plugins/model_smt/smt_defs.eo.
+  // and tools/eoc/out/smt_defs.eo.
 }
 
 ModelSmt::~ModelSmt() {}
@@ -68,14 +73,22 @@ void ModelSmt::finalizeDecl(const std::string& name)
 
 void ModelSmt::loadDefs()
 {
-  if (!d_smtDefs.read(getResourcePath("plugins/model_smt/smt_defs.eo")))
+  // The SMT-LIB signature is the target of the compilation, so the plugin
+  // ships with one and reads that where it was given no other; --semantics is
+  // what gives it another, the way --signature gives it the input's.
+  const std::string smtDefs =
+      d_smtDefsFile.empty() ? getResourcePath("tools/eoc/out/smt_defs.eo")
+                            : d_smtDefsFile;
+  if (!d_smtDefs.read(smtDefs))
   {
     EO_FATAL() << "ModelSmt: could not read the SMT-LIB signature written in"
-                  " the deep embedding";
+                  " the deep embedding at "
+               << smtDefs;
   }
   if (d_defsFile.empty())
   {
-    EO_FATAL() << "ModelSmt: no input signature resource was given";
+    EO_FATAL() << "ModelSmt: no signature of the input was given; pass --signature,"
+                  " see tools/eoc/driver.py";
   }
   if (!d_inputDefs.read(d_defsFile))
   {
@@ -140,6 +153,31 @@ void ModelSmt::loadDefs()
     for (const std::string& c : b->d_transTypeCases)
     {
       d_eoToSmtType << "  " << c << std::endl;
+    }
+  }
+  // The types are the embedding's own -- every block of one is kept, whatever
+  // the input declares -- so they stand in the order the configuration gives
+  // them rather than in the order a calculus declares its own. What is derived
+  // from that order is then the same in every generated package however few
+  // rules it was compiled for, e.g. the key a value is ordered by, see
+  // typeKey in the generated SmtValueOrder.
+  for (const DefsBlock* b : blocks)
+  {
+    for (const std::string& f : b->d_typeCons)
+    {
+      d_smtTypes << f << std::endl;
+    }
+    for (const std::string& c : b->d_typeWfCases)
+    {
+      d_typeWf << "  " << c << std::endl;
+    }
+    for (const std::string& c : b->d_typeBoundedCases)
+    {
+      d_typeBounded << "  " << c << std::endl;
+    }
+    for (const std::string& c : b->d_typeDefaultCases)
+    {
+      d_typeDefault << "  " << c << std::endl;
     }
   }
   // The programs follow the same order, which they may because each evaluator
@@ -224,6 +262,10 @@ void ModelSmt::finalize()
   replacePlaceholder(finalSmt, "$EO_TO_SMT_CASES$", d_eoToSmt.str());
   replacePlaceholder(finalSmt, "$EO_TO_SMT_TYPE_CASES$", d_eoToSmtType.str());
   replacePlaceholder(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
+  replacePlaceholder(finalSmt, "$SMT_TYPE_CONSTRUCTORS$", d_smtTypes.str());
+  replacePlaceholder(finalSmt, "$SMT_TYPE_WF_CASES$", d_typeWf.str());
+  replacePlaceholder(finalSmt, "$SMT_TYPE_BOUNDED_CASES$", d_typeBounded.str());
+  replacePlaceholder(finalSmt, "$SMT_TYPE_DEFAULT_CASES$", d_typeDefault.str());
   replacePlaceholder(finalSmt, "$SMT_TYPEOF_CASES$", d_smtTypeof.str());
   replacePlaceholder(finalSmt, "$SMT_TYPEOF_AUX$", d_smtTypeofAux.str());
   if (finalSmt.find("$eoc_") != std::string::npos)

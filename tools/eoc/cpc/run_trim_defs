@@ -14,7 +14,8 @@ ARGS=(trim-defs --build-dir "$BUILD_DIR")
 
 eoc_add_no_build
 
-eoc_add_defs
+eoc_add_signature
+eoc_add_semantics
 ARGS+=("$1")
 shift
 ARGS+=("$@")

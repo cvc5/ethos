@@ -243,10 +243,6 @@
   (sm.Apply (sm.Apply.arg1 sm.Term) (sm.Apply.arg2 sm.Term))
   ; smt-cons: Var
   (sm.Var (sm.Var.arg1 String) (sm.Var.arg2 tsm.Type))
-  ; smt-cons: ite
-  (sm.ite (sm.ite.arg1 sm.Term) (sm.ite.arg2 sm.Term) (sm.ite.arg3 sm.Term))
-  ; smt-cons: =
-  (sm.= (sm.=.arg1 sm.Term) (sm.=.arg2 sm.Term))
   ; smt-cons: exists
   (sm.exists (sm.exists.arg1 String) (sm.exists.arg2 tsm.Type) (sm.exists.arg3 sm.Term))
   ; smt-cons: forall
@@ -267,6 +263,10 @@
   (sm.not (sm.not.arg1 sm.Term))
   ; smt-cons: and
   (sm.and (sm.and.arg1 sm.Term) (sm.and.arg2 sm.Term))
+  ; smt-cons: =
+  (sm.= (sm.=.arg1 sm.Term) (sm.=.arg2 sm.Term))
+  ; smt-cons: ite
+  (sm.ite (sm.ite.arg1 sm.Term) (sm.ite.arg2 sm.Term) (sm.ite.arg3 sm.Term))
 
   )
   (
@@ -596,20 +596,20 @@
     (and ($smtx_dd_has_dt (tsm.Datatype.arg1 x1) (tsm.Datatype.arg2 x1)) ($smtx_decl_wf_rec (tsm.Datatype.arg2 x1) (tsm.Datatype.arg2 x1)))
   (ite ((_ is tsm.TypeRef) x1)
     false
-  (ite ((_ is tsm.Seq) x1)
-    (and (inhabited_type (tsm.Seq.arg1 x1)) ($smtx_type_wf_rec (tsm.Seq.arg1 x1)))
-  (ite ((_ is tsm.Map) x1)
-    (and (and (inhabited_type (tsm.Map.arg1 x1)) ($smtx_type_wf_rec (tsm.Map.arg1 x1))) (and (inhabited_type (tsm.Map.arg2 x1)) ($smtx_type_wf_rec (tsm.Map.arg2 x1))))
   (ite ((_ is tsm.FunType) x1)
     false
-  (ite ((_ is tsm.Set) x1)
-    (and (inhabited_type (tsm.Set.arg1 x1)) ($smtx_type_wf_rec (tsm.Set.arg1 x1)))
   (ite ((_ is tsm.DtcAppType) x1)
     false
   (ite (= x1 tsm.None)
     false
   (ite (= x1 tsm.RegLan)
     false
+  (ite ((_ is tsm.Map) x1)
+    (and (and (inhabited_type (tsm.Map.arg1 x1)) ($smtx_type_wf_rec (tsm.Map.arg1 x1))) (and (inhabited_type (tsm.Map.arg2 x1)) ($smtx_type_wf_rec (tsm.Map.arg2 x1))))
+  (ite ((_ is tsm.Set) x1)
+    (and (inhabited_type (tsm.Set.arg1 x1)) ($smtx_type_wf_rec (tsm.Set.arg1 x1)))
+  (ite ((_ is tsm.Seq) x1)
+    (and (inhabited_type (tsm.Seq.arg1 x1)) ($smtx_type_wf_rec (tsm.Seq.arg1 x1)))
     true
 )))))))))) :pattern (($smtx_type_wf_rec x1)))) :named sm.axiom.$smtx_type_wf_rec))
 
@@ -776,22 +776,6 @@
     tsm.None
 )))))))))))))) :pattern (($smtx_typeof_value x1)))) :named sm.axiom.$smtx_typeof_value))
 
-; program: $smtx_model_eval_ite
-(define-fun $smtx_model_eval_ite ((x1 vsm.Value) (x2 vsm.Value) (x3 vsm.Value)) vsm.Value
-  (ite (and ((_ is vsm.Boolean) x1) (= (vsm.Boolean.arg1 x1) true))
-    x2
-  (ite (and ((_ is vsm.Boolean) x1) (= (vsm.Boolean.arg1 x1) false))
-    x3
-    vsm.NotValue
-)))
-
-; program: $smtx_model_eval_=
-(define-fun $smtx_model_eval_= ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
-  (ite (and ((_ is vsm.RegLan) x1) ((_ is vsm.RegLan) x2))
-    (vsm.Boolean (re_ext_eq (vsm.RegLan.arg1 x1) (vsm.RegLan.arg1 x2)))
-    (vsm.Boolean (veq x1 x2))
-))
-
 ; program: $smtx_model_eval_apply
 (define-fun $smtx_model_eval_apply ((x1 SmtModel) (x2 vsm.Value) (x3 vsm.Value)) vsm.Value
   (ite (= x3 vsm.NotValue)
@@ -821,6 +805,12 @@
 ; fwd-decl: $smtx_model_eval_and
 (declare-fun $smtx_model_eval_and (vsm.Value vsm.Value) vsm.Value)
 
+; fwd-decl: $smtx_model_eval_=
+(declare-fun $smtx_model_eval_= (vsm.Value vsm.Value) vsm.Value)
+
+; fwd-decl: $smtx_model_eval_ite
+(declare-fun $smtx_model_eval_ite (vsm.Value vsm.Value vsm.Value) vsm.Value)
+
 ; program: $smtx_model_eval_not
 (assert (! (forall ((x1 vsm.Value))
   (! (= ($smtx_model_eval_not x1)
@@ -836,6 +826,24 @@
     (vsm.Boolean (and (vsm.Boolean.arg1 x1) (vsm.Boolean.arg1 x2)))
     vsm.NotValue
 )) :pattern (($smtx_model_eval_and x1 x2)))) :named sm.axiom.$smtx_model_eval_and))
+
+; program: $smtx_model_eval_=
+(assert (! (forall ((x1 vsm.Value) (x2 vsm.Value))
+  (! (= ($smtx_model_eval_= x1 x2)
+  (ite (and ((_ is vsm.RegLan) x1) ((_ is vsm.RegLan) x2))
+    (vsm.Boolean (re_ext_eq (vsm.RegLan.arg1 x1) (vsm.RegLan.arg1 x2)))
+    (vsm.Boolean (veq x1 x2))
+)) :pattern (($smtx_model_eval_= x1 x2)))) :named sm.axiom.$smtx_model_eval_=))
+
+; program: $smtx_model_eval_ite
+(assert (! (forall ((x1 vsm.Value) (x2 vsm.Value) (x3 vsm.Value))
+  (! (= ($smtx_model_eval_ite x1 x2 x3)
+  (ite (and ((_ is vsm.Boolean) x1) (= (vsm.Boolean.arg1 x1) true))
+    x2
+  (ite (and ((_ is vsm.Boolean) x1) (= (vsm.Boolean.arg1 x1) false))
+    x3
+    vsm.NotValue
+))) :pattern (($smtx_model_eval_ite x1 x2 x3)))) :named sm.axiom.$smtx_model_eval_ite))
 
 ; program: $smtx_model_eval
 (assert (! (forall ((x1 SmtModel) (x2 sm.Term))
@@ -854,10 +862,10 @@
     ($smtx_model_eval_not ($smtx_model_eval x1 (sm.not.arg1 x2)))
   (ite ((_ is sm.and) x2)
     ($smtx_model_eval_and ($smtx_model_eval x1 (sm.and.arg1 x2)) ($smtx_model_eval x1 (sm.and.arg2 x2)))
-  (ite ((_ is sm.ite) x2)
-    ($smtx_model_eval_ite ($smtx_model_eval x1 (sm.ite.arg1 x2)) ($smtx_model_eval x1 (sm.ite.arg2 x2)) ($smtx_model_eval x1 (sm.ite.arg3 x2)))
   (ite ((_ is sm.=) x2)
     ($smtx_model_eval_= ($smtx_model_eval x1 (sm.=.arg1 x2)) ($smtx_model_eval x1 (sm.=.arg2 x2)))
+  (ite ((_ is sm.ite) x2)
+    ($smtx_model_eval_ite ($smtx_model_eval x1 (sm.ite.arg1 x2)) ($smtx_model_eval x1 (sm.ite.arg2 x2)) ($smtx_model_eval x1 (sm.ite.arg3 x2)))
   (ite ((_ is sm.exists) x2)
     (eval_texists x1 (sm.exists.arg1 x2) (sm.exists.arg2 x2) (sm.exists.arg3 x2))
   (ite ((_ is sm.forall) x2)
@@ -881,18 +889,6 @@
     vsm.NotValue
 )))))))))))))))))))) :pattern (($smtx_model_eval x1 x2)))) :named sm.axiom.$smtx_model_eval))
 
-; program: $smtx_typeof_ite
-(define-fun $smtx_typeof_ite ((x1 tsm.Type) (x2 tsm.Type) (x3 tsm.Type)) tsm.Type
-  (ite (= x1 tsm.Bool)
-    (ite (Teq x2 x3) x2 tsm.None)
-    tsm.None
-))
-
-; program: $smtx_typeof_=
-(define-fun $smtx_typeof_= ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
-    ($smtx_typeof_guard x1 (ite (Teq x1 x2) tsm.Bool tsm.None))
-)
-
 ; program: $smtx_typeof_apply
 (define-fun $smtx_typeof_apply ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
   (ite ((_ is tsm.FunType) x1)
@@ -901,6 +897,18 @@
     ($smtx_typeof_guard (tsm.DtcAppType.arg1 x1) (ite (Teq (tsm.DtcAppType.arg1 x1) x2) (tsm.DtcAppType.arg2 x1) tsm.None))
     tsm.None
 )))
+
+; program: $smtx_typeof_=
+(define-fun $smtx_typeof_= ((x1 tsm.Type) (x2 tsm.Type)) tsm.Type
+    ($smtx_typeof_guard x1 (ite (Teq x1 x2) tsm.Bool tsm.None))
+)
+
+; program: $smtx_typeof_ite
+(define-fun $smtx_typeof_ite ((x1 tsm.Type) (x2 tsm.Type) (x3 tsm.Type)) tsm.Type
+  (ite (= x1 tsm.Bool)
+    (ite (Teq x2 x3) x2 tsm.None)
+    tsm.None
+))
 
 ; program: $smtx_typeof
 (assert (! (forall ((x1 sm.Term))
@@ -919,10 +927,10 @@
     (ite (Teq ($smtx_typeof (sm.not.arg1 x1)) tsm.Bool) tsm.Bool tsm.None)
   (ite ((_ is sm.and) x1)
     (ite (Teq ($smtx_typeof (sm.and.arg1 x1)) tsm.Bool) (ite (Teq ($smtx_typeof (sm.and.arg2 x1)) tsm.Bool) tsm.Bool tsm.None) tsm.None)
-  (ite ((_ is sm.ite) x1)
-    ($smtx_typeof_ite ($smtx_typeof (sm.ite.arg1 x1)) ($smtx_typeof (sm.ite.arg2 x1)) ($smtx_typeof (sm.ite.arg3 x1)))
   (ite ((_ is sm.=) x1)
     ($smtx_typeof_= ($smtx_typeof (sm.=.arg1 x1)) ($smtx_typeof (sm.=.arg2 x1)))
+  (ite ((_ is sm.ite) x1)
+    ($smtx_typeof_ite ($smtx_typeof (sm.ite.arg1 x1)) ($smtx_typeof (sm.ite.arg2 x1)) ($smtx_typeof (sm.ite.arg3 x1)))
   (ite ((_ is sm.exists) x1)
     (ite (Teq ($smtx_typeof (sm.exists.arg3 x1)) tsm.Bool) ($smtx_typeof_guard_wf (sm.exists.arg2 x1) tsm.Bool) tsm.None)
   (ite ((_ is sm.forall) x1)

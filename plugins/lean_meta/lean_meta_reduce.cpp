@@ -58,7 +58,7 @@ LeanMetaReduce::LeanMetaReduce(State& s,
   // deep embedding holds for every input; the one of the input signature is
   // named on the command line, and an input whose programs all recurse
   // structurally needs none.
-  readTerminationClauses(getResourcePath("plugins/lean_meta/termination.lean"));
+  readTerminationClauses(getResourcePath("tools/eoc/out/smt_termination.lean"));
   if (!configFile.empty())
   {
     readTerminationClauses(configFile);

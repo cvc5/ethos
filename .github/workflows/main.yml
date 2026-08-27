@@ -44,22 +44,28 @@ jobs:
         cmake --build build-cpp-compiler-test --parallel ${{ env.num_proc }} \
           --target cpp-compiler-roundtrip
 
+    # --signature names the central file of the configuration of the input's
+    # signature, which the driver compiles before the model-smt stage; that
+    # stage reads one such file and the plugin has no signature of its own, so
+    # it is required. See tools/eoc/README.md.
     - name: Run EOC pipeline smoke tests
+      env:
+        EOC_SIGNATURE: tools/eoc/semantics/debug-cpc.eos
       run: |
         python3 tools/eoc/driver.py vc \
           --build-dir build-eoc \
           --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
-          --no-build --skip-cvc5 \
+          --no-build --skip-cvc5 --signature "${EOC_SIGNATURE}" \
           tests/Booleans-rules.eo and_intro
         python3 tools/eoc/driver.py vc \
           --build-dir build-eoc \
           --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
-          --no-build --skip-cvc5 --sygus \
+          --no-build --skip-cvc5 --sygus --signature "${EOC_SIGNATURE}" \
           tests/Booleans-rules.eo and_intro
         python3 tools/eoc/driver.py lean \
           --build-dir build-eoc \
           --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
-          --no-build --skip-cvc5 \
+          --no-build --skip-cvc5 --signature "${EOC_SIGNATURE}" \
           tests/Booleans-rules.eo and_intro
         test -s "${RUNNER_TEMP}/eoc-smoke/vc/final-booleans-rules-and_intro.smt2"
         test -s "${RUNNER_TEMP}/eoc-smoke/sygus/final-booleans-rules-and_intro.sy"

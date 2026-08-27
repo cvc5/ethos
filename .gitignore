@@ -4,3 +4,10 @@ tools/eoc/__pycache__
 .vscode
 .DS_Store
 build-cpp-compiler-test
+
+# What the configuration under tools/eoc/semantics compiles to, which the
+# driver writes before any stage runs.
+tools/eoc/out/smt_defs.eo
+tools/eoc/out/user_defs.eo
+tools/eoc/out/smt_termination.lean
+tools/eoc/out/user_termination.lean
