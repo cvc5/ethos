@@ -87,6 +87,31 @@ const std::string& getParseDefPrefix()
   static const std::string prefix = "$parse_";
   return prefix;
 }
+std::string rtrimLines(const std::string& text)
+{
+  std::string out;
+  out.reserve(text.size());
+  size_t line = 0;
+  while (line <= text.size())
+  {
+    size_t end = text.find('\n', line);
+    const bool last = end == std::string::npos;
+    size_t stop = last ? text.size() : end;
+    while (stop > line && (text[stop - 1] == ' ' || text[stop - 1] == '\t'))
+    {
+      stop--;
+    }
+    out.append(text, line, stop - line);
+    if (last)
+    {
+      break;
+    }
+    out.push_back('\n');
+    line = end + 1;
+  }
+  return out;
+}
+
 bool isParseDefName(const std::string& name)
 {
   const std::string& prefix = getParseDefPrefix();

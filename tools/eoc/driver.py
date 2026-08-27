@@ -210,6 +210,7 @@ class Pipeline:
         cvc5: Optional[Path],
         solve_args: list[str],
         defs_file: Optional[Path],
+        smt_defs_file: Optional[Path],
         lean_config: Optional[Path],
     ):
         self.build_dir = build_dir.resolve()
@@ -218,6 +219,10 @@ class Pipeline:
         self.cvc5 = cvc5
         self.solve_args = list(solve_args)
         self.defs_file = defs_file.resolve() if defs_file else None
+        # The SMT-LIB semantics the stage is to read, where a run names one
+        # rather than leaving it the one the plugin ships with.
+        self.smt_defs_file = (smt_defs_file.resolve() if smt_defs_file
+                              else None)
         self.lean_config = lean_config.resolve() if lean_config else None
         self.binary = self.build_dir / "ethos-eoc"
         self.stage_out_dir = self.final_out_dir
@@ -501,7 +506,10 @@ class Pipeline:
         # tools/eoc/README.md.
         args = ["--plugin.model-smt"]
         if self.defs_file is not None:
-            args.append(f"--defs={self.binary_path_arg(self.defs_file)}")
+            args.append(f"--signature={self.binary_path_arg(self.defs_file)}")
+        if self.smt_defs_file is not None:
+            args.append(
+                f"--semantics={self.binary_path_arg(self.smt_defs_file)}")
         args.append(self.binary_path_arg(input_file))
         self.ethos(args, quiet=True)
         output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -559,7 +567,10 @@ class Pipeline:
             args.append("--no-parser")
         # What the input signature needs said about its generated Lean that the
         # compiler cannot derive, namely why each of its recursive programs
-        # terminates; see plugins/lean_meta/termination.lean.
+        # terminates. It is what the input's set compiled to unless
+        # --lean-config named another, see compile_signatures; the deep
+        # embedding's own clauses are read by the stage itself, see
+        # LeanMetaReduce.
         if self.lean_config is not None:
             args.append(f"--lean-config={self.binary_path_arg(self.lean_config)}")
         args.append(self.binary_path_arg(input_file))
@@ -755,6 +766,68 @@ def resolve_cvc5(path_arg: Optional[str], *, cwd: Path) -> Optional[Path]:
     return Path(found) if found else None
 
 
+def compile_signatures(
+    signature: Optional[Path], semantics: Optional[Path] = None
+) -> tuple[Optional[Path], Optional[Path], Optional[Path]]:
+    """Compile the configuration of the model-smt signatures, and say where
+    each of the two the stage reads came out, together with where the
+    termination clauses of the input's programs did.
+
+    That stage reads two files written in the deep embedding: the SMT-LIB
+    semantics the compilation is the target of, and the signature of the input,
+    which is written against it. Both are generated from a configuration under
+    tools/eoc/semantics, so both are compiled here, before any stage runs; a
+    file is written only where its text changed. A set also compiles the Lean
+    its methods say under :lean, and the third of what comes back is where the
+    input's came out, which is what the lean-meta stage is given where
+    --lean-config names nothing; the deep embedding's own is read by that
+    stage itself, see LeanMetaReduce.
+
+    Each option names the *central file* of a configuration set, and what comes
+    back is what that set compiled to. The option a set is named with is what
+    gives it its role -- --semantics names the SMT-LIB semantics, the target of
+    the compilation, and --signature the signature of an input -- and the role
+    is what says which shape the set compiles to, see sem_compile.role_of. A
+    file that is not a central file is taken to be a signature already written
+    out and is passed through, which is what lets one that has no configuration
+    still be given directly. Naming neither leaves the stage the sets the tool
+    ships with.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import sem_compile
+
+    sets = {os.path.realpath(c): (c, t) for c, t in sem_compile.SHIPPED}
+    named = []
+    for given, is_target in ((signature, False), (semantics, True)):
+        mine = str(given.resolve()) if given is not None else None
+        if mine is not None and not sem_compile.is_config(mine):
+            mine = None
+        if mine is not None:
+            key = os.path.realpath(mine)
+            if key in sets and sets[key][1] != is_target:
+                raise RuntimeError(
+                    f"{mine} is given two roles; --semantics names the "
+                    "SMT-LIB semantics and --signature the signature of an "
+                    "input, and a set is one or the other"
+                )
+            sets[key] = (mine, is_target)
+        named.append(mine)
+    written = sem_compile.compile_to_files(list(sets.values()))
+
+    def compiled(mine):
+        return next(v for k, v in written.items()
+                    if sem_compile.same_file(k, mine))
+
+    out: list[Optional[Path]] = []
+    for given, mine in zip((signature, semantics), named):
+        if mine is None:
+            out.append(given)
+        else:
+            out.append(Path(compiled(mine)[0]))
+    lean_config = Path(compiled(named[0])[1]) if named[0] is not None else None
+    return out[0], out[1], lean_config
+
+
 def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--build-dir",
@@ -783,12 +856,23 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         help="Do not rebuild ethos-eoc before running the pipeline.",
     )
     parser.add_argument(
-        "--defs",
+        "--signature",
         default=None,
         help=(
-            "EO file of the signature of the input written in the deep "
-            "embedding, read by the model-smt stage. Defaults to "
-            "plugins/model_smt/cpc_defs.eo."
+            "The central file of the configuration of the input's signature, "
+            "e.g. tools/eoc/semantics/development-cpc.eos. It is compiled "
+            "before the model-smt stage reads what it compiles to. A file "
+            "that is not a central file is taken to be a signature already "
+            "written out."
+        ),
+    )
+    parser.add_argument(
+        "--semantics",
+        default=None,
+        help=(
+            "The same, for the SMT-LIB semantics the input's signature is "
+            "written against, e.g. tools/eoc/semantics/smt.eos. The model-smt "
+            "stage reads the one it ships with where this names none."
         ),
     )
     parser.add_argument(
@@ -796,7 +880,9 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         default=None,
         help=(
             "Lean file of the termination clauses of the input's programs, "
-            "read by the lean-meta stage."
+            "read by the lean-meta stage. Without it, the clauses the "
+            "input's configuration set compiled to are read, so this names "
+            "one only for a signature given already written out."
         ),
     )
 
@@ -901,7 +987,7 @@ def main(argv: list[str]) -> int:
     def resolve_file_arg(name: str, flag: str) -> Optional[Path]:
         """The file the given option names, resolved as the input is.
 
-        It has to exist: read as empty, a mistyped --defs would quietly
+        It has to exist: read as empty, a mistyped --signature would quietly
         compile a signature with no exclusions and no dependencies instead of
         saying that the file it was pointed at is not there.
         """
@@ -914,14 +1000,23 @@ def main(argv: list[str]) -> int:
         return resolved
 
     build_dir_arg = getattr(args, "build_dir", None) or os.getcwd()
+    # The signatures the model-smt stage reads are generated, so they are
+    # compiled before anything runs; the options then name what each set
+    # compiled to. The termination clauses of the input come out of the same
+    # compilation, so --lean-config names another only where the generated
+    # ones will not do.
+    defs_file, smt_defs_file, lean_config_file = compile_signatures(
+        resolve_file_arg("signature", "--signature"),
+        resolve_file_arg("semantics", "--semantics"))
     pipeline = Pipeline(
         resolve_path_arg(build_dir_arg, cwd=invocation_cwd),
         final_out_dir,
         getattr(args, "jobs", 4),
         cvc5,
         solve_args,
-        resolve_file_arg("defs", "--defs"),
-        resolve_file_arg("lean_config", "--lean-config"),
+        defs_file,
+        smt_defs_file,
+        resolve_file_arg("lean_config", "--lean-config") or lean_config_file,
     )
     build_first = not getattr(args, "no_build", False)
     if not build_first and not pipeline.binary.is_file():
