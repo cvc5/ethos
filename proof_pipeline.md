@@ -9,7 +9,9 @@ input.smt2 -> cvc5 parser -> cvc5 API -> cvc5 internals -> proof.cpc
                                                 Cpc.eo -> ethos -> accept/reject
                                                    |
                                                    +-> desugar -> model-smt -+-> rule.smt2
-                                                                             +-> Logos (Lean)
+                                                                      ^      +-> Logos (Lean)
+                                                                      |
+                                                        *.eos -> sem_compile.py
 ```
 
 Stages 1 to 3 produce a proof in the CPC calculus. Stage 4 checks that proof
@@ -37,14 +39,23 @@ cmake -S plugins -B build-eoc
 cmake --build build-eoc --target ethos-eoc -j8
 
 # a verification condition for one rule
-python3 tools/eoc/driver.py vc --build-dir build-eoc <input.eo> <proof-rule>
+python3 tools/eoc/driver.py vc --build-dir build-eoc \
+  --signature tools/eoc/semantics/development-cpc.eos \
+  <input.eo> <proof-rule>
 
 # the whole CPC signature, compiled to Lean
 python3 tools/eoc/driver.py lean --build-dir build-eoc --all \
-  --defs=plugins/model_smt/cpc_defs.eo \
-  --lean-config=plugins/lean_meta/cpc_termination.lean \
+  --signature tools/eoc/semantics/development-cpc.eos \
+  --lean-config tools/eoc/out/user_termination.lean \
   <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
+
+`--signature` names what the *input's* symbols mean to a model and
+`--semantics` the SMT-LIB semantics they are written against; both name a
+configuration the driver compiles before any stage runs, see stage 6. The
+wrappers in [`tools/eoc/cpc/`](tools/eoc/cpc/) pass them for the default CPC
+input, so `run_gen_vc <rule>` and `run_gen_lean_all` are the same two commands
+with the paths filled in.
 
 See [`tools/eoc/README.md`](tools/eoc/README.md) for the full driver
 interface.
@@ -120,13 +131,15 @@ calls `$eo_model_sat` and `$eo_prog_X` and evaluates successfully exactly when
 the rule is unsound. `$eovc_X` is what stage 7a verifies.
 
 The pass is `plugins/desugar/`: `desugar.{h,cpp}`, the `eo_desugar.eo`
-template, `native_embed.eo` (references to native SMT types, integer-pair
-encodings that mimic parametric bitvector operations, SMT datatypes and
-constructors), and `eo_desugar_native.eo` (the SMT-like builtins of Eunoia,
-and the declarations of the SMT-LIB deep embedding). Two parts are optional:
-`plugins/trim_defs/`, which slices the signature down so the resulting VCs stay
-manageable, and `desugar_checker.{h,cpp}` with `eo_desugar_checker.eo`, which
-desugars the executable checker.
+template, `native_embed.eo` (the natives the whole embedding is written over --
+references to native SMT types, integer-pair encodings that mimic parametric
+bitvector operations, SMT datatypes and constructors), and
+`eo_desugar_native.eo` (the SMT-like builtins of Eunoia, and the declarations
+of the *Eunoia* deep embedding, `eo.Term` and the `$emb_X` constructor of each
+symbol). Two parts are optional: `plugins/trim_defs/`, which slices the
+signature down so the resulting VCs stay manageable, and
+`desugar_checker.{h,cpp}` with `eo_desugar_checker.eo`, which desugars the
+executable checker.
 
 What the pass rewrites:
 
@@ -170,33 +183,83 @@ written directly in the deep embedding, both read by this stage alone:
 
 | File | What it says |
 | --- | --- |
-| `plugins/model_smt/smt_defs.eo` | the SMT-LIB signature, which is the target and so is fixed |
-| `--defs <file>`, e.g. `plugins/model_smt/cpc_defs.eo` | how the symbols of the input transform into it |
+| `tools/eoc/out/smt_defs.eo` | the SMT-LIB signature, which is the target and so is fixed |
+| `tools/eoc/out/user_defs.eo` | how the symbols of the input transform into it |
 
 Each is a sequence of blocks, one per symbol, opened by a `; -- X` line. For a
 symbol `X`, `smt_defs.eo` gives the embedding constructor `$emb_sm.X` and the
 macro `$sm_X`, the cases `X` contributes to `$smtx_typeof` and to the
 evaluation program `$smtx_model_eval` (as `$eoc_typeof_X` and `$eoc_eval_X`),
-and the auxiliary programs those cases call. `cpc_defs.eo` gives
+and the auxiliary programs those cases call. `user_defs.eo` gives
 `$eoc_transform_X`, the cases `X` contributes to `$eo_to_smt`, and
 `$eoc_transform_type_X` for a type constructor.
 
-`defs_reader.{h,cpp}` reads a file as *text* blocks and splices the cases into
-the aggregate programs, copying everything else through unchanged. Reading text
-rather than terms is what stops the embedding definitions from being expanded
-on the way. The plugin algorithms hold no per-symbol semantics: they take the
-blocks the input needs together with the blocks those name, put what each says
-where it belongs in the template, and check that no declared symbol was left
-without a meaning.
+**Both files are generated.** What is written by hand is a *configuration*
+under [`tools/eoc/semantics/`](tools/eoc/semantics/), which
+`tools/eoc/sem_compile.py` compiles into them; the driver runs it before any
+stage, so the two are never out of step with what the stage reads.
 
-A block may also say that the compilation has no place for its symbol, by
-giving `eoc-exclude` directives instead of a model. The desugar stage reads
-those and drops what they name.
+| Configuration | Compiles to |
+| --- | --- |
+| `smt.eos`, named by `--semantics` | `smt_defs.eo`, `smt_termination.lean` |
+| `development-cpc.eos`, named by `--signature` | `user_defs.eo`, `user_termination.lean` |
+
+`smt.eos` is the target, so every input is compiled through it and nothing
+about an input is asked of it. `development-cpc.eos` is a *test*, kept so that
+the compiler and the stages after it have a real signature to run over; **the
+official semantics of CPC lives in the Logos repository**, and that is what a
+run meaning to say something about CPC names with `--signature`. A set that
+lives in another tree compiles beside itself, so running against the official
+one leaves this tree alone.
+
+A configuration says what each symbol means once, in the vocabulary of SMT-LIB
+and of the input, and the compiler works out the programs, the constructors and
+the cases it compiles to:
+
+```lisp
+(define-symbol select (a i)
+  :typeof ($smtx_typeof_select a i)
+  :eval (a i) ($smtx_map_select a i))
+```
+
+`a` and `i` stand for the *values* its arguments evaluate to under `:eval` and
+for their *types* under `:typeof`, the level being read off the place each
+stands in, so neither is said twice.
+
+Its forms are `define-symbol`, `define-sort`, `define-value`, `define-literal`,
+`define-method`, `define-rule`, `program`, `define-macro` and `section`, and
+**nothing else**: a form the compiler cannot read is refused rather than copied
+into the generated file, so everything a signature names has been checked
+against the vocabulary of the embedding, ordered against the other blocks, and
+can be trimmed with them. A set therefore says what a theory *does* and never
+what the embedding *is*. `tools/eoc/semantics/README.md` is the reference for
+the language.
+
+`defs_reader.{h,cpp}` reads a generated file as *text* blocks and splices the
+cases into the aggregate programs, copying everything else through unchanged.
+Reading text rather than terms is what stops the embedding definitions from
+being expanded on the way. The plugin algorithms hold no per-symbol semantics:
+they take the blocks the input needs together with the blocks those name, put
+what each says where it belongs in the template, and check that no declared
+symbol was left without a meaning. Where each form goes is settled by the name
+it defines -- a constructor with the terms, the types or the values of its
+family, and every auxiliary program together in one stream before the first
+aggregate whose cases may call one.
+
+A block may also say that the compilation has no place for its symbol. The
+configuration writes `:exclude` on the symbol, the method or the rule; the
+compiler turns that into an `eoc-exclude` directive, and the desugar stage
+drops what it names.
 
 What stays in `plugins/model_smt/model_smt.eo` is the embedding itself: the
-literals, the binders, the application and datatype constructors, the two
-builtins `$sm_=` and `$sm_ite`, the operations the embedding has of its own,
-and the default case of each aggregate.
+term, type and value languages it declares -- including the shapes a value is
+built over, the map an array and a set are and the sequence a string is -- the
+binders, the application, the datatypes an input declares, the programs over
+types that everything else is written against, and the default case of each
+aggregate. Which symbols and theories there are it does not say; that is the
+configuration's, down to the literals and to `ite` and `=`, which are written
+there as ordinary symbols that say `:keep` so a signature trimmed to a handful
+of rules still has them.
 
 This stage also reduces the Eunoia builtins to SMT-LIB literal semantics:
 `eo::eq`; `eo::not`, `eo::and`, `eo::or`, `eo::xor`; `eo::add`, `eo::mul`,
@@ -213,10 +276,19 @@ the type of variables (`$eot_Var`), referring back to `$eo_typeof_main`. And
 `eo::is_ok` is defined in terms of the deep embedding: `$eo_is_ok` asks whether
 the term under test embeds as `eo.Stuck`.
 
-The SMT-LIB semantics proper consist of a map utility for array and function
-values, with lookup and canonical update, specialized for sets; a sequence
-utility for sequence values; the core evaluation semantics `$smtx_model_eval`;
-and `$smtx_type_default`, which returns the first term of a finite type.
+The SMT-LIB semantics proper consist of the core evaluation semantics
+`$smtx_model_eval`; `$smtx_type_default`, which returns the first term of a
+finite type, beside `$smtx_type_wf` and `$smtx_type_bounded`, which say whether
+the values of a type are a set at all and whether they are finitely many; and,
+written in the configuration beside the sorts they belong to, the programs over
+a map value -- lookup, canonical update, the type of one and whether it is
+written the one way -- and their counterparts over a sequence value.
+
+A map value is what an array and a set are. A *function* value is not one:
+`$vsm_Fun` carries only a name and the two halves of its type, and applying one
+is left to the model, so `$smtx_model_eval_apply` hands it to the native
+`eval_fun_apply` rather than looking it up. Applying a datatype constructor is
+left alone as well, an application of one being the Herbrand term it denotes.
 
 `$smtx_model_eval` has a case for function application, plus cases in three
 auto-generated forms:
@@ -282,9 +354,13 @@ repeated variables in Eunoia patterns first, since Lean will not accept them
 directly.
 
 Lean rejects any Eunoia program it cannot see is terminating, so termination
-obligations surface here rather than being assumed away. What the compiler
-cannot derive is supplied per signature with `--lean-config`; for CPC that is
-`plugins/lean_meta/cpc_termination.lean`.
+obligations surface here rather than being assumed away. No measure the
+compiler could guess would do, so the clause is stated as the Lean text it is:
+a program says it with `:lean` in the configuration, and the compiler gathers
+the clauses into `tools/eoc/out/smt_termination.lean` for the embedding's own
+programs and `tools/eoc/out/user_termination.lean` for the input's, the second
+being what `--lean-config` names. This stage appends each to the definition of
+the program it belongs to.
 
 ## The Lean result
 
@@ -315,9 +391,10 @@ Logos checks a sublanguage of what ethos checks, so a proof ethos accepts is
 not necessarily one Logos accepts.
 
 - **No `lambda` or `beta-reduce`.** SMT-LIB gives a proof-level binder no
-  meaning, so `cpc_defs.eo` excludes the symbol `lambda`, the methods
-  `$get_lambda_type`, `$beta_reduce_type` and `$beta_reduce`, and the rule
-  `beta-reduce`.
+  meaning, so `development-cpc.eos` writes `:exclude` on the symbol `lambda`,
+  on the methods `$get_lambda_type`, `$beta_reduce_type` and `$beta_reduce`,
+  and on the rule `beta-reduce`. No dependency closure is computed, so each
+  says so where it stands.
 - **No `define-fun`.** The generated command language is `assume_push`,
   `check_proven`, `step` and `step_pop`; there is no command that introduces a
   definition, so a proof that defines terms is out of scope.
@@ -349,11 +426,11 @@ not necessarily one Logos accepts.
 
 ## Appendix: component sizes
 
-Code lines, excluding blank and comment lines, measured 2026-08-26 with cloc
+Code lines, excluding blank and comment lines, measured 2026-08-27 with cloc
 2.11:
 
 ```bash
-cloc --force-lang=Lisp,eo --force-lang=Lisp,smt2 <files>
+cloc --force-lang=Lisp,eo --force-lang=Lisp,eos --force-lang=Lisp,smt2 <files>
 ```
 
 A count for a C++ component is its implementation plus its header.
@@ -364,9 +441,10 @@ A count for a C++ component is its implementation plus its header.
 | --- | --- |
 | ethos core, `src/` | 10,261 C++ |
 | `src/plugin.h`, the callback interface | 64 C++ |
-| `plugins/std_plugin`, `meta_reduce_plugin`, `utils` | 782 C++ |
-| `plugins/main_eoc.cpp` | 206 C++ |
-| `tools/eoc/driver.py` | 823 Python |
+| `plugins/std_plugin`, `meta_reduce_plugin`, `utils` | 808 C++ |
+| `plugins/main_eoc.cpp` | 218 C++ |
+| `tools/eoc/driver.py` | 932 Python |
+| `tools/eoc/sem_{lang,target,compile}.py`, the signature compiler | 2,111 Python |
 
 ### Stages 5, 6 and 7b: Eunoia to Lean
 
@@ -374,21 +452,28 @@ A count for a C++ component is its implementation plus its header.
 | --- | --- |
 | `desugar.{h,cpp}` | 1,279 C++ |
 | `desugar_checker.{h,cpp}` | 153 C++ |
-| `model_smt.{h,cpp}` | 227 C++ |
-| `defs_reader.{h,cpp}` | 447 C++ |
+| `model_smt.{h,cpp}` | 305 C++ |
+| `defs_reader.{h,cpp}` | 519 C++ |
 | `linear_patterns.{h,cpp}` | 176 C++ |
 | `lean_meta_reduce.{h,cpp}` | 1,815 C++ |
-| shared | 782 C++ |
-| **C++ total** | **4,879** |
+| shared | 808 C++ |
+| **C++ total** | **5,055** |
 | `native_embed.eo` | 142 EO |
 | `eo_desugar.eo` | 394 EO |
 | `eo_desugar_native.eo` | 592 EO |
 | `eo_desugar_checker.eo` | 204 EO |
-| `model_smt.eo` | 1,010 EO |
-| `smt_defs.eo`, the SMT-LIB signature | 3,434 EO |
-| `cpc_defs.eo`, the CPC signature | 1,596 EO |
-| **Eunoia total** | **7,372** |
-| Lean templates, `plugins/lean_meta/*.lean` | 1,102 Lean |
+| `model_smt.eo`, the embedding | 673 EO |
+| **Eunoia total** | **2,005** |
+| Lean templates, `plugins/lean_meta/*.lean` | 1,065 Lean |
+
+The two signatures the model-smt stage reads are generated from the
+configuration, so what is written by hand is the configuration and what the
+stage reads is derived from it:
+
+| Written by hand | LOC | Generated | LOC |
+| --- | --- | --- | --- |
+| `semantics/smt.eos` | 1,198 | `out/smt_defs.eo` | 4,079 EO |
+| `semantics/development-cpc.eos` | 608 | `out/user_defs.eo` | 1,602 EO |
 
 ### Stage 7a: Eunoia to SMT-LIB and SyGuS
 
@@ -399,7 +484,7 @@ Stages 5 and 6 above are shared; this backend adds:
 | `smt_meta_reduce.{h,cpp}` | 945 C++ |
 | `smt_meta_sygus.{h,cpp}` | 497 C++ |
 | `smt_meta/utils.{h,cpp}` | 62 C++ |
-| `trim_defs.{h,cpp}` | 756 C++ |
+| `trim_defs.{h,cpp}` | 757 C++ |
 | `smt_meta.smt2` template | 293 SMT2 |
 
 ### Generated Logos
@@ -413,12 +498,12 @@ The Lean package compiled from `Cpc.eo` by the `lean --all` command above.
 | `SmtModel.lean` | 1,598 | yes |
 | `SmtModelDefs.lean` | 226 | yes |
 | `SmtValueOrder.lean` | 98 | yes |
-| `Spec.lean`, Eunoia to SMT correspondence | 387 | yes |
+| `Spec.lean`, Eunoia to SMT correspondence | 396 | yes |
 | `Logos.lean`, the checker | 8,215 | no |
 | `Parser.lean`, proof parser configuration | 1,999 | no |
 | `RuleLemmas.lean`, rule lemma statements | 3,607 | no |
 | `Rules/*.lean`, 591 per-rule files | 10,641 | no |
-| **Total** | **27,158** | |
+| **Total** | **27,167** | |
 
-Trusted computing base: 140 + 247 + 1,598 + 226 + 98 + 387 = 2,696 lines of
+Trusted computing base: 140 + 247 + 1,598 + 226 + 98 + 396 = 2,705 lines of
 Lean.
