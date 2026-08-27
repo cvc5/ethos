@@ -13,7 +13,8 @@ ARGS=(lean --build-dir "$BUILD_DIR" --all)
 
 eoc_add_no_build
 
-eoc_add_defs
+eoc_add_signature
+eoc_add_semantics
 eoc_add_lean_config
 ARGS+=("$INPUT")
 eoc_exec_driver "${ARGS[@]}"

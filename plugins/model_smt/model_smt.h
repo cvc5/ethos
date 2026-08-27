@@ -31,16 +31,16 @@ namespace ethos {
  * denotes in them.
  *
  * What every symbol *means* to the model is not stated here. It is stated by
- * two signatures written directly in the deep embedding: the SMT-LIB one,
- * plugins/model_smt/smt_defs.eo, which is the target and so is fixed, and the
- * one of the input, which is supplied at construction (the bundled CPC
- * signature by default). Each is a sequence of blocks, one per symbol, giving
- * the constructor of the embedding for it, the cases it contributes to
- * `$smtx_typeof`, `$smtx_model_eval`, `$eo_to_smt` and `$eo_to_smt_type`, and
- * the programs those cases call. The plugin algorithms contain no per-symbol
- * model semantics: they take the blocks the input needs, put what each says
- * where it belongs in the template, and check that nothing was left without a
- * meaning.
+ * two signatures written directly in the deep embedding, both supplied at
+ * construction: the SMT-LIB one, which is the target of the compilation and
+ * which the plugin ships with, and the one of the input, of which it has none
+ * of its own, since which input is being compiled is not its business. Each is
+ * a sequence of blocks, one per symbol, giving the constructor of the
+ * embedding for it, the cases it contributes to `$smtx_typeof`,
+ * `$smtx_model_eval`, `$eo_to_smt` and `$eo_to_smt_type`, and the programs
+ * those cases call. The plugin algorithms contain no per-symbol model
+ * semantics: they take the blocks the input needs, put what each says where it
+ * belongs in the template, and check that nothing was left without a meaning.
  *
  * So the work is:
  * - bind records what the input declares, in the order it declares it;
@@ -60,16 +60,24 @@ namespace ethos {
 class ModelSmt : public StdPlugin
 {
  public:
-  /** Construct the plugin with the bundled CPC input signature. */
+  /**
+   * Construct the plugin with the SMT-LIB signature it ships with and no
+   * signature of an input, which is an error once the stage runs; see
+   * loadDefs.
+   */
   ModelSmt(State& s);
   /**
-   * Construct the plugin. defsFile is an absolute or working-directory-relative
-   * path to the signature of the *input* written in the deep embedding, which
-   * says what each of its symbols means to the model; the SMT-LIB signature it
-   * is written against is fixed, being the target rather than a matter of the
-   * input. See loadDefs.
+   * Construct the plugin. Each file is an absolute or working-directory-
+   * relative path to a signature written in the deep embedding: defsFile is
+   * the one of the *input*, which says what each of its symbols means to the
+   * model, and smtDefsFile the SMT-LIB one it is written against. Naming
+   * neither is what the bundled ones are for: the SMT-LIB signature the
+   * plugin ships with, and no input at all, which is an error once the stage
+   * runs. See loadDefs.
    */
-  ModelSmt(State& s, const std::string& defsFile);
+  ModelSmt(State& s,
+           const std::string& defsFile,
+           const std::string& smtDefsFile = "");
   /** Destroy the model_smt plugin. */
   ~ModelSmt();
   /** Remember constant declarations for model-semantics generation. */
@@ -86,6 +94,8 @@ class ModelSmt : public StdPlugin
   void loadDefs();
   /** The signature of the input written in the deep embedding. */
   std::string d_defsFile;
+  /** The SMT-LIB one, where another than the bundled one was named. */
+  std::string d_smtDefsFile;
   /** The blocks of each file, and the symbols they cover. */
   DefsFile d_smtDefs;
   DefsFile d_inputDefs;
@@ -111,6 +121,12 @@ class ModelSmt : public StdPlugin
   std::stringstream d_eoToSmtAux;
   /** Generated SMT term constructor declarations. */
   std::stringstream d_smtTerms;
+  /** Generated SMT type constructor declarations. */
+  std::stringstream d_smtTypes;
+  /** Generated cases of what the types of the signature say about themselves:
+   * whether one is well-founded, whether it is bounded, and the value a model
+   * reaches for where it has to name one of it. */
+  std::stringstream d_typeWf, d_typeBounded, d_typeDefault;
   /** Generated SMT type rules for terms. */
   std::stringstream d_smtTypeof;
   /** Auxiliary definitions used by SMT type rules. */

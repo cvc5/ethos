@@ -1,0 +1,1106 @@
+; What each symbol of the input becomes, said as a transformation into the deep
+; embedding: the other half of a model is compiled from this. For each symbol
+; it gives the cases X contributes to $eo_to_smt (as $eoc_transform_X), or, for
+; a type constructor, to $eo_to_smt_type (as $eoc_transform_type_X). It
+; declares no constant: the constants are those of the SMT-LIB signature, see
+; tools/eoc/out/smt_defs.eo.
+;
+; This one is of CPC and is kept as a test, so that the compiler and every stage
+; after it have a real signature to run over. The official semantics of CPC
+; lives in the Logos repository, which is what a run that means to say something
+; about CPC names with --signature; nothing keeps this copy in step with it.
+
+; This is a configuration of the eoc pipeline rather than anything a stage of it
+; reads. tools/eoc/sem_compile.py compiles it, before any stage runs, into
+; tools/eoc/out/user_defs.eo and tools/eoc/out/user_termination.lean,
+; both generated in full: what is to be changed is here. A run names another
+; with --signature, and one outside this tree compiles beside itself. See
+; README.md for the language.
+;
+; The whole of the set stands here, one theory to a section, in the order the
+; blocks are emitted.
+;
+; What the set compiles to, and the shape of what it writes, it does not say:
+; the stage reads one signature of the input whichever input a run compiles and
+; the plugin has no signature of its own, so both are fixed by the tool. See
+; tools/eoc/sem_target.py.
+
+;-----------------------------------------------------------------------------
+(section "The vocabularies of the two layers")
+;-----------------------------------------------------------------------------
+
+; The two vocabularies this set writes in a body, named.
+;
+; A transformation reads the input and writes the SMT-LIB signature, and a bare
+; name is one of the family the level it stands at is of, so neither layer's
+; own constructors have a bare name here. Both are named below, `eo.` for what
+; the input is embedded as and `smt.` for what the target is, so a body says
+; which layer it is speaking of and never writes the `$` behind either. See
+; ../smt/embedding.eo, which names the `smt.` half for the other set.
+
+; -- the input, as the desugar stage embeds it
+; A list the stage gathered, and the terms a pattern reads out of one.
+(define-macro eo.list_cons (x xs)  ($eo_List_cons x xs))
+(define-macro eo.list_nil ()       $eo_List_nil)
+(define-macro eo.var (s T)         ($eot_Var s T))
+(define-macro eo.string (x)        ($eot_string x))
+(define-macro eo.numeral (x)       ($eot_numeral x))
+
+; -- the methods of the target
+; What a transformation asks of the SMT-LIB signature it transforms into: the
+; type of a term, and whether a type is one the target has a name for.
+(define-macro smt.typeof (t)              ($smtx_typeof t))
+(define-macro smt.typeof_guard (T U)      ($smtx_typeof_guard T U))
+(define-macro smt.type_wf (T)             ($smtx_type_wf T))
+(define-macro smt.type_wf_component (T)   ($smtx_type_wf_component T))
+(define-macro smt.decl_lookup (s dd)      ($smtx_dd_lookup s dd))
+(define-macro smt.num_selectors (d n)     ($smtx_dt_num_sels d n))
+
+; -- the datatype family
+; A declaration is a list of named datatypes, a datatype a list of
+; constructors, and a constructor a list of the types of its fields.
+(define-macro smt.decl_cons (s d dd)      ($dd_cons s d dd))
+(define-macro smt.decl_nil ()             $dd_nil)
+(define-macro smt.datatype_cons (c d)     ($dt_sum c d))
+(define-macro smt.datatype_nil ()         $dt_null)
+(define-macro smt.cons_field (T c)        ($dtc_cons T c))
+(define-macro smt.cons_unit ()            $dtc_unit)
+
+;-----------------------------------------------------------------------------
+(section "The core symbols")
+;-----------------------------------------------------------------------------
+
+; The core symbols of the input.
+;
+; All but one transform pointwise into the SMT-LIB symbol of the same name,
+; which is what an arity written on its own says. ite and = are among them even
+; though the SMT-LIB signature declares no constructor for either, since what
+; they transform into is builtin to the embedding. Distinctness is the
+; exception: it is over the list the desugar stage gathered rather than over
+; arguments, so both what it walks and what it transforms into are written out
+; here.
+
+(define-symbol ite (c x y))
+
+(define-symbol not (x))
+
+(define-symbol or (x y))
+
+(define-symbol and (x y))
+
+(define-symbol => (x y))
+
+(define-symbol xor (x y))
+
+(define-symbol = (x y))
+
+; Distinctness is over the list the desugar stage gathered rather than over
+; arguments, so both what it walks and what it transforms into are written out.
+; -- distinct
+(program $eo_to_smt_distinct_pairs
+  ((T Type) (s SmtTerm) (x T) (xs (@@TypedList T)))
+  :signature (SmtTerm (@@TypedList T)) SmtTerm
+  (
+  (($eo_to_smt_distinct_pairs s (@@TypedList.cons x xs))
+     (and (not (= s x)) ($eo_to_smt_distinct_pairs s xs)))
+  (($eo_to_smt_distinct_pairs s (@@TypedList.nil T)) true)
+  (($eo_to_smt_distinct_pairs s xs) none)
+  )
+)
+(program $eo_to_smt_distinct
+  ((T Type) (s SmtTerm) (x T) (xs (@@TypedList T)))
+  :signature ((@@TypedList T)) SmtTerm
+  (
+  (($eo_to_smt_distinct (@@TypedList.cons x xs))
+     (and ($eo_to_smt_distinct_pairs x xs) ($eo_to_smt_distinct xs)))
+  (($eo_to_smt_distinct (@@TypedList.nil T)) true)
+  (($eo_to_smt_distinct xs) none)
+  )
+)
+(program $eo_to_smt_typed_list_elem_type ((T Type) (t T) (ts (@@TypedList T)))
+  :signature (T) SmtType
+  (
+  (($eo_to_smt_typed_list_elem_type (@@TypedList.nil T))
+    (eo::define ((eT T))
+      ("ite" (smt.type_wf eT) eT none)))
+  (($eo_to_smt_typed_list_elem_type (@@TypedList.cons t ts))
+    (eo::define ((eT (smt.typeof t)))
+      ("ite" ("Teq" eT ($eo_to_smt_typed_list_elem_type ts))
+        eT
+        none)))
+  (($eo_to_smt_typed_list_elem_type t) none)
+  )
+)
+(define-symbol distinct ((! xs :raw))
+  :term ("ite" ("Teq" ($eo_to_smt_typed_list_elem_type xs) none) none ($eo_to_smt_distinct xs)))
+
+; What a purification stands for is its argument, of whatever type.
+(define-symbol @purify (x))
+
+; The desugar stage gathers an n-ary application into a list, and to do so it
+; has to know which term is the *nil* of the operator, i.e. the unit it may
+; drop. Deciding that from the term alone is not possible in general: whether 0
+; is the nil of + depends on whether the application is over Int or Real, and
+; whether a bit-vector is the nil of bvand depends on how wide it is.
+;
+; Asking for the type would make every list operator depend on $eo_typeof,
+; which is what this avoids: instead each n-ary symbol carries a predicate of
+; its own, which the stage calls on the term. It is a workaround rather than a
+; definition, and each symbol carries it beside its own case rather than the
+; compiler knowing which symbols have one.
+;
+; The list the stage gathers into is itself such a symbol, and the only one
+; that becomes nothing: it never reaches the model, so it says `:term none`
+; and no case of $eo_to_smt is written for it.
+(define-symbol @@TypedList.cons (x xs)
+  :term none
+  :is-list-nil (@@TypedList.nil T) true)
+
+;-----------------------------------------------------------------------------
+(section "Arithmetic")
+;-----------------------------------------------------------------------------
+
+; Arithmetic.
+;
+; The theory transforms pointwise: what a symbol says is its arity and nothing
+; more. + and * are n-ary, so each carries the predicate the desugar stage asks
+; for the unit an application may drop, see :is-list-nil. The five at the end
+; have no meaning of their own to the model, and each says instead what it is
+; eliminated into.
+
+(define-symbol + (x y)
+  :is-list-nil x (eo::is_eq (eo::to_q x) 0/1))
+
+(define-symbol - (x y))
+
+(define-symbol * (x y)
+  :is-list-nil x (eo::is_eq (eo::to_q x) 1/1))
+
+(define-symbol < (x y))
+
+(define-symbol <= (x y))
+
+(define-symbol > (x y))
+
+(define-symbol >= (x y))
+
+(define-symbol to_real (x))
+
+(define-symbol to_int (x))
+
+(define-symbol is_int (x))
+
+(define-symbol abs (x))
+
+(define-symbol div_total (x y))
+
+; Division and remainder agree with the total ones away from zero, and at zero
+; are what the model says they are, which is still written out as a case.
+(define-symbol div (x y))
+
+(define-symbol mod_total (x y))
+
+(define-symbol mod (x y))
+
+(define-symbol divisible (x y))
+
+(define-symbol int.pow2 (x))
+
+(define-symbol int.log2 (x))
+
+(define-symbol /_total (x y))
+
+(define-symbol / (x y))
+
+; The symbols below have no meaning of their own to the model: each is
+; eliminated on the way to the SMT-LIB signature, so each gives a
+; transformation and no block of the SMT-LIB half.
+(define-symbol int.ispow2 (x)
+  :term (and (>= x 0) (= x (int.pow2 (int.log2 x)))))
+
+(define-symbol @int_div_by_zero (x)
+  :term (div x 0))
+
+(define-symbol @mod_by_zero (x)
+  :term (mod x 0))
+
+; -- @div_by_zero
+(define-symbol @div_by_zero (x)
+  :term (/ x (rational ("z_/_total" 0 1))))
+
+; The second symbol the input overloads - with, which is unary minus. No
+; signature declares the name the desugar stage gives that overload, so this
+; entry is the only thing that says what it means: it denotes what uneg does,
+; whose block gives the constructor named here.
+(define-symbol - (x)
+  :overload $eoo_-.2
+  :term (uneg x))
+
+;-----------------------------------------------------------------------------
+(section "Arrays")
+;-----------------------------------------------------------------------------
+
+; Arrays.
+;
+; select and store transform pointwise. @array_deq_diff does not: the symbol
+; the input uses for the difference of two arrays becomes map_diff, which the
+; embedding has of its own and no signature declares, and the transformation
+; has to see the type of both arguments before it may say so.
+
+(define-symbol select (a i))
+
+(define-symbol store (a i e))
+
+(program $eo_to_smt_array_deq_diff
+  ((a SmtTerm) (aT SmtType) (aU SmtType) (b SmtTerm) (bT SmtType) (bU SmtType))
+  :signature (SmtTerm SmtType SmtTerm SmtType) SmtTerm
+  (
+  (($eo_to_smt_array_deq_diff a (Map aT aU) b (Map bT bU)) (map_diff a b))
+  (($eo_to_smt_array_deq_diff a aT b bT) none)
+  )
+)
+
+(define-symbol @array_deq_diff (a b)
+  :term ($eo_to_smt_array_deq_diff a (smt.typeof a) b (smt.typeof b)))
+
+;-----------------------------------------------------------------------------
+(section "Bit-vectors")
+;-----------------------------------------------------------------------------
+
+; Bit-vectors.
+;
+; The theory transforms pointwise, and the n-ary symbols carry the predicate
+; the desugar stage asks for the unit an application may drop, see :is-list-nil.
+;
+; The symbols at the end have no meaning of their own to the model: each is
+; eliminated on the way to the SMT-LIB signature, all but one of them into an
+; application of other symbols. $eo_to_smt_bv_size, which reads a width off a
+; type and is what (width x) in such an application calls, comes first.
+
+; The width a bit-vector type is of, or minus one if the type is not one.
+(program $eo_to_smt_bv_size ((x1 "Nat") (t1 SmtValue))
+  :signature (SmtType) "Int"
+  (
+  (($eo_to_smt_bv_size (BitVec x1)) ("n_to_z" x1))
+  (($eo_to_smt_bv_size t1) "z_neg_one")
+  )
+)
+
+; The width of a bit-vector, which this set has the term of in hand and so
+; reads off the type that term has. It is a whole number, and a native is what
+; stands wherever the symbols below put it.
+(define-macro width (t)
+  ($eo_to_smt_bv_size (smt.typeof t)))
+
+; A bit-vector literal, i.e. the symbol of the signature that is one. Its
+; declaration is what says both its arguments are natives, so nothing here has
+; to say so.
+(define-macro bv (w v)
+  (binary w v))
+
+(define-symbol concat (x y))
+
+(define-symbol extract (i j x))
+
+(define-symbol repeat (k x))
+
+(define-symbol bvnot (x))
+
+(define-symbol bvand (x y)
+  :is-list-nil x (eo::is_eq (eo::to_z (eo::not x)) 0))
+
+(define-symbol bvor (x y)
+  :is-list-nil x (eo::is_eq (eo::to_z x) 0))
+
+(define-symbol bvnand (x y))
+
+(define-symbol bvnor (x y))
+
+(define-symbol bvxor (x y)
+  :is-list-nil x (eo::is_eq (eo::to_z x) 0))
+
+(define-symbol bvxnor (x y))
+
+(define-symbol bvcomp (x y))
+
+(define-symbol bvneg (x))
+
+(define-symbol bvadd (x y)
+  :is-list-nil x (eo::is_eq (eo::to_z x) 0))
+
+(define-symbol bvmul (x y)
+  :is-list-nil x (eo::is_eq (eo::to_z x) 1))
+
+(define-symbol bvudiv (x y))
+
+(define-symbol bvurem (x y))
+
+(define-symbol bvsub (x y))
+
+(define-symbol bvsdiv (x y))
+
+(define-symbol bvsrem (x y))
+
+(define-symbol bvsmod (x y))
+
+(define-symbol bvugt (x y))
+
+(define-symbol bvult (x y))
+
+(define-symbol bvuge (x y))
+
+(define-symbol bvule (x y))
+
+(define-symbol bvsgt (x y))
+
+(define-symbol bvslt (x y))
+
+(define-symbol bvsge (x y))
+
+(define-symbol bvsle (x y))
+
+(define-symbol bvshl (x y))
+
+(define-symbol bvlshr (x y))
+
+(define-symbol bvashr (x y))
+
+(define-symbol zero_extend (k x))
+
+(define-symbol sign_extend (k x))
+
+(define-symbol rotate_left (k x))
+
+(define-symbol rotate_right (k x))
+
+(define-symbol bvuaddo (x y))
+
+(define-symbol bvnego (x))
+
+(define-symbol bvsaddo (x y))
+
+(define-symbol bvumulo (x y))
+
+(define-symbol bvsmulo (x y))
+
+(define-symbol bvusubo (x y))
+
+(define-symbol bvssubo (x y))
+
+(define-symbol bvsdivo (x y))
+
+; The conversions between the integers and the bit-vectors.
+(define-symbol int_to_bv (k i))
+
+(define-symbol ubv_to_int (x))
+
+(define-symbol sbv_to_int (x))
+
+; The symbols below have no meaning of their own to the model: each is
+; eliminated on the way to the SMT-LIB signature, so each gives a
+; transformation and no block of the SMT-LIB half.
+(define-symbol @bvsize (x)
+  :term (eo::define ((n (width x))) ("ite" ("z_<=" 0 n) (@purify (numeral n)) none)))
+
+(define-symbol bvite (c x y)
+  :term (ite (= c (bv 1 1)) x y))
+
+(define-symbol bvultbv (x y)
+  :term (ite (bvult x y) (bv 1 1) (bv 1 0)))
+
+(define-symbol bvsltbv (x y)
+  :term (ite (bvslt x y) (bv 1 1) (bv 1 0)))
+
+(define-symbol bvredand (x)
+  :term (bvcomp x (bvnot (bv (width x) 0))))
+
+(define-symbol bvredor (x)
+  :term (bvnot (bvcomp x (bv (width x) 0))))
+
+(define-symbol @bit (i x)
+  :term (= (extract i i x) (bv 1 1)))
+
+(define-symbol @from_bools (b x)
+  :term (concat x (ite b (bv 1 1) (bv 1 0))))
+
+;-----------------------------------------------------------------------------
+(section "Strings, sequences and regular expressions")
+;-----------------------------------------------------------------------------
+
+; Strings, sequences and regular expressions.
+;
+; The theory transforms pointwise, but for seq.empty, which is written with the
+; type of its elements and so transforms through a program of its own, and
+; str.++, which is n-ary and carries the predicate the desugar stage asks for
+; the unit an application may drop.
+;
+; The symbols at the end have no meaning of their own to the model: each is
+; eliminated on the way to the SMT-LIB signature, and what it is eliminated
+; into is still written in the vocabulary of the embedding. The programs those
+; cases name, $eo_to_smt_nat among them, stand above the symbol that names
+; them.
+
+(program $eo_to_smt_seq.empty ((T SmtType))
+  :signature (SmtType) SmtTerm
+  (
+  (($eo_to_smt_seq.empty (Seq T)) (seq.empty T))
+  (($eo_to_smt_seq.empty T) none)
+  )
+)
+
+(define-symbol seq.empty ((! t :type))
+  :term ($eo_to_smt_seq.empty t))
+
+(define-symbol str.len (s))
+
+; The nil of str.++ is the empty sequence of any element type as well as the
+; empty string, which is two cases where most symbols have one.
+(define-symbol str.++ (s t)
+  :is-list-nil (seq.empty T) true
+  :is-list-nil s             (eo::eq s ""))
+
+(define-symbol str.substr (s i n))
+
+(define-symbol str.contains (s t))
+
+(define-symbol str.replace (s t u))
+
+(define-symbol str.indexof (s t i))
+
+(define-symbol str.at (s i))
+
+(define-symbol str.prefixof (s t))
+
+(define-symbol str.suffixof (s t))
+
+(define-symbol str.rev (s))
+
+(define-symbol str.update (s i t))
+
+(define-symbol str.to_lower (s))
+
+(define-symbol str.to_upper (s))
+
+(define-symbol str.to_code (s))
+
+(define-symbol str.from_code (i))
+
+(define-symbol str.is_digit (s))
+
+(define-symbol str.to_int (s))
+
+(define-symbol str.from_int (i))
+
+(define-symbol str.< (s t))
+
+(define-symbol str.<= (s t))
+
+(define-symbol str.replace_all (s t u))
+
+; The type rule of the symbols below demands a string where the evaluator
+; matches any sequence, so each says the signature its type rule is read off
+; with :typeof, beside the one its value is read off.
+(define-symbol str.replace_re (s r t))
+
+(define-symbol str.replace_re_all (s r t))
+
+(define-symbol str.indexof_re (s r i))
+
+; regular expressions
+(define-symbol re.allchar ())
+
+(define-symbol re.none ())
+
+(define-symbol re.all ())
+
+(define-symbol str.to_re (s))
+
+(define-symbol re.* (r))
+
+(define-symbol re.++ (r q))
+
+(define-symbol re.+ (r))
+
+(define-symbol re.^ (k r))
+
+(define-symbol re.union (r q))
+
+(define-symbol re.opt (r))
+
+(define-symbol re.comp (r))
+
+(define-symbol re.range (a b))
+
+(define-symbol re.inter (r q))
+
+(define-symbol re.diff (r q))
+
+(define-symbol re.loop (lo hi r))
+
+(define-symbol str.in_re (s r))
+
+(define-symbol str.indexof_re_split (s r q))
+
+; sequences of any element type
+(define-symbol seq.unit (x))
+
+(define-symbol seq.nth (s i))
+
+(define-symbol @strings_occur_index (s t i))
+
+(define-symbol @strings_occur_index_re (s r i))
+
+; The symbols below have no meaning of their own to the model: each is
+; eliminated on the way to the SMT-LIB signature, and what it is written with
+; is still the vocabulary of the embedding.
+
+; -- $eo_to_smt_nat
+(program $eo_to_smt_nat_is_valid ((n "Int") (t $eo_Term))
+  :signature ($eo_Term) "Bool"
+  (
+  (($eo_to_smt_nat_is_valid (eo.numeral n)) ("z_<=" 0 n))
+  (($eo_to_smt_nat_is_valid t) "false")
+  )
+)
+
+(program $eo_to_smt_nat ((n "Int") (t $eo_Term))
+  :signature ($eo_Term) "Nat"
+  (
+  (($eo_to_smt_nat (eo.numeral n)) ("z_to_n" n))
+  (($eo_to_smt_nat t) "n_zero")
+  )
+)
+
+; -- @re_unfold_pos_component
+(program $eo_to_smt_re_unfold_pos_component
+  ((_y2 SmtTerm) (_y3 "Nat") (n "Nat") (r1 SmtTerm) (r2 SmtTerm) (s SmtTerm))
+  :signature (SmtTerm SmtTerm "Nat") SmtTerm
+  (
+  (($eo_to_smt_re_unfold_pos_component s (re.++ r1 r2) "n_zero")
+    (str.substr s 0 (str.indexof_re_split s r1 r2)))
+  (($eo_to_smt_re_unfold_pos_component s (re.++ r1 r2) ("n_succ" n))
+    ($eo_to_smt_re_unfold_pos_component
+      (str.substr s (str.indexof_re_split s r1 r2)
+      (- (str.len s) (str.indexof_re_split s r1 r2))) r2 n))
+  (($eo_to_smt_re_unfold_pos_component s _y2 _y3) none)
+  )
+)
+(define-symbol @re_unfold_pos_component (s r (! k :raw))
+  :term ("ite" ($eo_to_smt_nat_is_valid k) ($eo_to_smt_re_unfold_pos_component s r ($eo_to_smt_nat k)) none))
+
+; -- @strings_deq_diff
+(define-symbol @strings_deq_diff (s t)
+  :term (seq_diff s t))
+
+; -- @strings_stoi_result
+(define-symbol @strings_stoi_result (s n)
+  :term (ite (= n 0) 0 (str.to_int (str.substr s 0 n))))
+
+; -- @strings_stoi_non_digit
+(define-symbol @strings_stoi_non_digit (s)
+  :term (str.indexof_re s
+               (re.inter re.allchar (re.comp (re.range (string "str_c0") (string "str_c9"))))
+               0))
+
+; -- @strings_itos_result
+(define-symbol @strings_itos_result (i n)
+  :term (ite (= n 0) 0 (str.to_int (str.substr (str.from_int i) 0 n))))
+
+; -- @strings_num_occur
+(define-symbol @strings_num_occur (s t)
+  :term (- (str.len (str.replace_all s t (str.substr s 0 1))) (str.len (str.replace_all s t (str.substr s 0 0)))))
+
+; -- @strings_num_occur_re
+(define-symbol @strings_num_occur_re (s r)
+  :term (- (str.len (str.replace_re_all s r (str.substr s 0 1))) (str.len (str.replace_re_all s r (str.substr s 0 0)))))
+
+; -- @strings_replace_all_result
+(define-symbol @strings_replace_all_result (s t u n)
+  :term (str.replace_all (str.substr s (@strings_occur_index s t n) (str.len s)) t u))
+
+; -- @strings_replace_re_all_result
+(define-symbol @strings_replace_re_all_result (s r u n)
+  :term (str.replace_re_all (str.substr s (@strings_occur_index_re s r n) (str.len s)) r u))
+
+; -- @witness_string_length
+; The length and the serial number are guarded before they are used, so both
+; reach the case as the input wrote them and the length is transformed where
+; the witness itself needs it.
+(define-symbol @witness_string_length ((! ty :type) (! len :raw) (! k :raw))
+  :term ("ite" ($eo_to_smt_nat_is_valid len)
+               ("ite" ($eo_to_smt_nat_is_valid k)
+                 (choice "str_vname" ty (= (str.len (Var "str_vname" ty)) len))
+                 none)
+               none))
+
+;-----------------------------------------------------------------------------
+(section "Sets")
+;-----------------------------------------------------------------------------
+
+; Sets.
+;
+; The symbols the SMT-LIB signature declares transform pointwise, but for
+; set.empty, which is written with the type of its elements and so transforms
+; through a program of its own. The five at the end have no meaning of their
+; own to the model: each is eliminated into set.empty, into map_diff, or into a
+; union of singletons. The programs those name come first.
+
+(program $eo_to_smt_set.empty ((T SmtType))
+  :signature (SmtType) SmtTerm
+  (
+  (($eo_to_smt_set.empty (Set T)) (set.empty T))
+  (($eo_to_smt_set.empty T) none)
+  )
+)
+
+(program $eo_to_smt_set_elem_type ((T SmtType))
+  :signature (SmtType) SmtType
+  (
+  (($eo_to_smt_set_elem_type (Set T)) T)
+  (($eo_to_smt_set_elem_type T) none)
+  )
+)
+
+(define-symbol set.empty ((! t :type))
+  :term ($eo_to_smt_set.empty t))
+
+(define-symbol set.singleton (x))
+
+(define-symbol set.union (a b))
+
+(define-symbol set.inter (a b))
+
+(define-symbol set.minus (a b))
+
+(define-symbol set.member (x a))
+
+(define-symbol set.subset (a b))
+
+; The symbols below have no meaning of their own to the model: each is
+; eliminated on the way to the SMT-LIB signature.
+
+; -- set.choose
+(define-symbol set.choose (a)
+  :term (eo::define ((T ($eo_to_smt_set_elem_type (smt.typeof a)))) (map_diff a (set.empty T))))
+
+; -- set.is_empty
+(define-symbol set.is_empty (a)
+  :term (= a (set.empty ($eo_to_smt_set_elem_type (smt.typeof a)))))
+
+; -- set.is_singleton
+(define-symbol set.is_singleton (a)
+  :term (= a (set.singleton (eo::define ((T ($eo_to_smt_set_elem_type (smt.typeof a)))) (map_diff a (set.empty T))))))
+
+; -- set.insert
+(program $eo_to_smt_set.insert ((T Type) (t1 T) (t2 $eo_List) (t3 SmtTerm))
+  :signature ($eo_List SmtTerm) SmtTerm
+  (
+  (($eo_to_smt_set.insert (@@TypedList.cons t1 t2) t3)
+    (set.union (set.singleton t1) ($eo_to_smt_set.insert t2 t3)))
+  (($eo_to_smt_set.insert (@@TypedList.nil T) t3) ("ite" ("Teq" (smt.typeof t3) (Set T)) t3 none))
+  (($eo_to_smt_set.insert t2 t3) none)
+  )
+)
+(define-symbol set.insert ((! xs :raw) a)
+  :term ($eo_to_smt_set.insert xs a))
+
+; -- @sets_deq_diff
+(program $eo_to_smt_sets_deq_diff
+  ((a SmtTerm) (aT SmtType) (b SmtTerm) (bT SmtType))
+  :signature (SmtTerm SmtType SmtTerm SmtType) SmtTerm
+  (
+  (($eo_to_smt_sets_deq_diff a (Set aT) b (Set bT)) (map_diff a b))
+  (($eo_to_smt_sets_deq_diff a aT b bT) none)
+  )
+)
+(define-symbol @sets_deq_diff (a b)
+  :term ($eo_to_smt_sets_deq_diff a (smt.typeof a) b (smt.typeof b)))
+
+;-----------------------------------------------------------------------------
+(section "Datatypes and tuples")
+;-----------------------------------------------------------------------------
+
+; Datatypes and tuples.
+;
+; What a tester, an updater or a tuple transforms into is a walk over the
+; declaration the desugar stage built, so each is still written in the
+; vocabulary of the embedding.
+
+; -- is
+(program $eo_to_smt_tester
+  ((s "String") (dd SmtDatatypeDecl) (n "Nat") (t SmtTerm))
+  :signature (SmtTerm) SmtTerm
+  (
+  (($eo_to_smt_tester (DtCons s dd n))  (DtTester s dd n))
+  (($eo_to_smt_tester t)                   none)
+  )
+)
+
+(define-symbol is (c x)
+  :term (apply ($eo_to_smt_tester c) x))
+
+; -- update
+; ($eo_to_smt_updater_rec s mn k t u acc)
+; returns the constructor app that is equivalent to u
+; but where the selector s field is updated to t.
+(program $eo_to_smt_updater_rec
+  ((s "String") (dd SmtDatatypeDecl) (n "Nat") (m "Nat")
+   (k "Nat") (t SmtTerm) (u SmtTerm) (acc SmtTerm) (v SmtTerm))
+  :signature (SmtTerm "Nat" SmtTerm SmtTerm SmtTerm) SmtTerm
+  (
+  (($eo_to_smt_updater_rec (DtSel s dd n m) "n_zero" t u acc) acc)
+  (($eo_to_smt_updater_rec (DtSel s dd n m) ("n_succ" k) t u acc)
+    (eo::define ((arg ("ite" ("n_=" m k) u (apply (DtSel s dd n k) t))))
+      (apply ($eo_to_smt_updater_rec (DtSel s dd n m) k t u acc) arg)))
+  (($eo_to_smt_updater_rec v k t u acc) none)
+  )
+)
+
+(program $eo_to_smt_updater
+  ((s "String") (dd SmtDatatypeDecl)
+   (n "Nat") (m "Nat") (sel SmtTerm) (t SmtTerm) (u SmtTerm))
+  :signature (SmtTerm SmtTerm SmtTerm) SmtTerm
+  (
+  (($eo_to_smt_updater (DtSel s dd n m) t u)
+    (eo::define ((nargs (smt.num_selectors (smt.decl_lookup s dd) n)))
+    ("ite" ("z_<" ("n_to_z" m) ("n_to_z" nargs))
+      (ite (apply (DtTester s dd n) t)
+        ($eo_to_smt_updater_rec (DtSel s dd n m) nargs t u (DtCons s dd n))
+        t)
+      none)))
+  (($eo_to_smt_updater sel t u)                     none)
+  )
+)
+
+(define-symbol update (sel t u)
+  :term ($eo_to_smt_updater sel t u))
+
+; -- tuple.unit
+(define-symbol tuple.unit ()
+  :term (DtCons "str_tuple_name" (smt.decl_cons "str_tuple_name" (smt.datatype_cons smt.cons_unit smt.datatype_nil) smt.decl_nil) "n_zero"))
+
+; -- $eo_to_smt_tuple_decl
+; The declaration a tuple type is of. SMT-LIB has no tuples, so there is no
+; symbol of the target for this: the type is modelled as a datatype whose
+; declaration holds one datatype under the conventional name, which is what
+; this builds from the datatype the fields give. See the blocks for tuple and
+; for Tuple, whose $eo_to_smt_type_tuple reads a declaration back apart.
+(program $eo_to_smt_tuple_decl
+  ((d SmtDatatype))
+  :signature (SmtDatatype) SmtDatatypeDecl
+  (
+  (($eo_to_smt_tuple_decl d) (smt.decl_cons "str_tuple_name" d smt.decl_nil))
+  )
+)
+
+; -- tuple
+; helper for CPC tuple constructor
+; Given an application of (tuple a1 a2), returns the same application
+; but where now tuple is the instance of the tuple constructor that expects
+; another argument of type T.
+(program $eo_to_smt_tuple_prepend_rec
+  ((dd SmtDatatypeDecl) (d SmtDatatype) (tail SmtTerm) (n "Nat")
+   (acc SmtTerm))
+  :signature (SmtDatatypeDecl SmtDatatype SmtTerm "Nat" SmtTerm) SmtTerm
+  (
+  (($eo_to_smt_tuple_prepend_rec dd d tail "n_zero" acc) acc)
+  (($eo_to_smt_tuple_prepend_rec dd d tail ("n_succ" n) acc)
+    (apply
+      ($eo_to_smt_tuple_prepend_rec dd d tail n acc)
+      (apply
+        (DtSel "str_tuple_name" dd "n_zero" n) tail)))
+  )
+)
+
+(program $eo_to_smt_tuple_prepend_of_type
+  ((T SmtType) (h SmtTerm) (hT SmtType) (tail SmtTerm)
+   (c SmtDatatypeCons) (s "String") (s2 "String"))
+  :signature (SmtType SmtTerm SmtType SmtTerm) SmtTerm
+  (
+  (($eo_to_smt_tuple_prepend_of_type (Datatype s (smt.decl_cons s2 (smt.datatype_cons c smt.datatype_nil) smt.decl_nil)) h hT tail)
+      (eo::define ((d (smt.datatype_cons c smt.datatype_nil)))
+      (eo::define ((d2 (smt.datatype_cons (smt.cons_field hT c) smt.datatype_nil)))
+      (eo::define ((dd ($eo_to_smt_tuple_decl d)))
+      (eo::define ((dd2 ($eo_to_smt_tuple_decl d2)))
+      ("ite"
+        ("and"
+          ("and"
+            ("str_=" s "str_tuple_name")
+            ("str_=" s2 "str_tuple_name"))
+          (smt.type_wf (Datatype "str_tuple_name" dd2)))
+        ($eo_to_smt_tuple_prepend_rec dd d tail (smt.num_selectors d "n_zero")
+          (apply (DtCons "str_tuple_name" dd2 "n_zero") h))
+        none))))))
+  (($eo_to_smt_tuple_prepend_of_type T h hT tail) none)
+  )
+)
+
+(program $eo_to_smt_tuple_prepend
+  ((h SmtTerm) (hT SmtType) (tail SmtTerm) (c SmtDatatypeCons))
+  :signature (SmtTerm SmtType SmtTerm) SmtTerm
+  (
+  (($eo_to_smt_tuple_prepend h hT tail)
+    ($eo_to_smt_tuple_prepend_of_type (smt.typeof tail) h hT tail))
+  )
+)
+
+(define-symbol tuple (h tail)
+  :term ($eo_to_smt_tuple_prepend h (smt.typeof h) tail))
+
+; -- tuple.select
+(program $eo_to_smt_tuple_select
+  ((T SmtType) (s "String") (s2 "String") (d SmtDatatype)
+   (n "Int") (t SmtTerm))
+  :signature (SmtType SmtTerm SmtTerm) SmtTerm
+  (
+  (($eo_to_smt_tuple_select (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (numeral n) t)
+    ("ite"
+      ("and"
+        ("and"
+          ("str_=" s "str_tuple_name")
+          ("str_=" s2 "str_tuple_name"))
+        ("z_<=" 0 n))
+      (apply
+        (DtSel "str_tuple_name" ($eo_to_smt_tuple_decl d) "n_zero" ("z_to_n" n))
+        t)
+      none))
+  (($eo_to_smt_tuple_select T n t)                    none)
+  )
+)
+
+(define-symbol tuple.select (n t)
+  :term ($eo_to_smt_tuple_select (smt.typeof t) n t))
+
+; -- tuple.update
+(program $eo_to_smt_tuple_update
+  ((T SmtType) (d SmtDatatype) (n "Int") (t SmtTerm) (u SmtTerm)
+   (s "String") (s2 "String"))
+  :signature (SmtType SmtTerm SmtTerm SmtTerm) SmtTerm
+  (
+  (($eo_to_smt_tuple_update (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (numeral n) t u)
+    ("ite"
+      ("and"
+        ("and"
+          ("str_=" s "str_tuple_name")
+          ("str_=" s2 "str_tuple_name"))
+        ("z_<=" 0 n))
+      ($eo_to_smt_updater
+        (DtSel "str_tuple_name" ($eo_to_smt_tuple_decl d) "n_zero" ("z_to_n" n))
+        t
+        u)
+      none))
+  (($eo_to_smt_tuple_update T n t u)                    none)
+  )
+)
+
+(define-symbol tuple.update (n t u)
+  :term ($eo_to_smt_tuple_update (smt.typeof t) n t u))
+
+;-----------------------------------------------------------------------------
+(section "Quantifiers, skolems, and the binder left out")
+;-----------------------------------------------------------------------------
+
+; Quantifiers, the constants the desugar stage introduces, and the binder the
+; compilation has no place for.
+
+; -- $eo_to_smt_exists
+(program $eo_to_smt_exists
+  ((s "String") (T $eo_Term) (vs $eo_List) (F $eo_Term))
+  :signature ($eo_List SmtTerm) SmtTerm
+  (
+  (($eo_to_smt_exists eo.list_nil F) F)
+  (($eo_to_smt_exists (eo.list_cons (eo.var (eo.string s) T) vs) F)
+    (exists s T ($eo_to_smt_exists vs F)))
+  (($eo_to_smt_exists vs F) none)
+  )
+)
+
+; -- forall
+(define-symbol forall ((! vs :raw) body)
+  :term (forall eo.list_nil body) none
+  :term (forall vs body) (not ($eo_to_smt_exists vs (not body))))
+
+; -- exists
+(define-symbol exists ((! vs :raw) body)
+  :term (exists eo.list_nil body) none
+  :term (exists vs body) ($eo_to_smt_exists vs body))
+
+; -- @quantifiers_skolemize
+(program $eo_to_smt_quantifiers_skolemize
+  ((s "String") (T $eo_Term) (vs $eo_List) (F SmtTerm) (G SmtTerm) (n "Nat") (t SmtTerm))
+  :signature ($eo_List SmtTerm "Nat") SmtTerm
+  (
+  (($eo_to_smt_quantifiers_skolemize (eo.list_cons (eo.var (eo.string s) T) vs) G "n_zero")
+    (choice s T ($eo_to_smt_exists vs G)))
+  (($eo_to_smt_quantifiers_skolemize (eo.list_cons (eo.var (eo.string s) T) vs) G ("n_succ" n))
+    ($eo_to_smt_quantifiers_skolemize vs
+      (bind s T (choice s T ($eo_to_smt_exists vs G)) G) n))
+  (($eo_to_smt_quantifiers_skolemize vs G t) none)
+  )
+)
+(define-symbol @quantifiers_skolemize ((! vs :raw) body (! n :raw))
+  :term (@quantifiers_skolemize (forall vs body) n) ("ite" ($eo_to_smt_nat_is_valid n) ($eo_to_smt_quantifiers_skolemize vs (not body) ($eo_to_smt_nat n)) none))
+
+; -- @const
+(define-symbol @const ((! i :raw) (! u :type))
+  :term ("ite" ($eo_to_smt_nat_is_valid i) (UConst ("to_const_id" ($eo_to_smt_nat i)) u) none))
+
+; The proof-level binder of CPC, together with the methods and the rule that
+; reduce an application of one. SMT-LIB gives these no meaning at all, so
+; instead of a model each says it is left out of the compilation altogether:
+; the desugar stage drops what an exclusion names, and what never reaches the
+; model-smt stage needs no case at all. See Desugar::echo for what it does with
+; them and Pipeline.defs_excludes in tools/eoc/driver.py for how they are taken
+; from the generated file.
+;
+; No dependency closure is computed, so what dropping the binder would leave
+; behind says so for itself: a method of the signature is written out with
+; define-method and a proof rule with define-rule, and each is left out on the
+; same terms as the symbol.
+(define-symbol lambda ()
+  :exclude)
+
+(define-method $get_lambda_type :exclude)
+
+(define-method $beta_reduce_type :exclude)
+
+(define-method $beta_reduce :exclude)
+
+(define-rule beta-reduce :exclude)
+
+;-----------------------------------------------------------------------------
+(section "The type constructors")
+;-----------------------------------------------------------------------------
+
+; The type constructors of the input, i.e. what they contribute to
+; $eo_to_smt_type rather than to $eo_to_smt.
+;
+; A parameter is transformed by $eo_to_smt_type and guarded, since a type built
+; over one the target has no name for is no type of the target either. The
+; three at the end are written out: a bit-vector carries a width to check, and
+; a tuple is a datatype declaration to walk.
+
+; A type built over one the target has no name for is no type of the target
+; either, which is what a parameter is guarded for.
+(define-macro guard (a T) (smt.typeof_guard a T))
+
+(define-symbol Bool ()
+  :type Bool)
+
+(define-symbol Int ()
+  :type Int)
+
+(define-symbol Real ()
+  :type Real)
+
+(define-symbol Char ()
+  :type Char)
+
+(define-symbol RegLan ()
+  :type RegLan)
+
+; -- BitVec
+(define-symbol BitVec ((! n :raw))
+  :type (BitVec (eo.numeral n)) ("ite" ("z_<=" 0 n) (BitVec ("z_to_n" n)) none))
+
+(define-symbol Seq (T)
+  :type (guard T (Seq T)))
+
+(define-symbol Set (T)
+  :type (guard T (Set T)))
+
+(define-symbol Array (I E)
+  :type (guard I (guard E (Array I E))))
+
+; -- UnitTuple
+(define-symbol UnitTuple ()
+  :type (Datatype "str_tuple_name" (smt.decl_cons "str_tuple_name" (smt.datatype_cons smt.cons_unit smt.datatype_nil) smt.decl_nil)))
+
+; -- Tuple
+(program $eo_to_smt_type_tuple
+  ((U SmtType) (T SmtType) (s "String") (s2 "String")
+   (c SmtDatatypeCons))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($eo_to_smt_type_tuple U (Datatype s (smt.decl_cons s2 (smt.datatype_cons c smt.datatype_nil) smt.decl_nil)))
+    (eo::define ((d (smt.datatype_cons (smt.cons_field U c) smt.datatype_nil)))
+      ("ite"
+        ("and" ("and" ("str_=" s "str_tuple_name") ("str_=" s2 "str_tuple_name")) (smt.type_wf_component U))
+        (Datatype "str_tuple_name" ($eo_to_smt_tuple_decl d))
+        none)))
+  (($eo_to_smt_type_tuple U T) none)
+  )
+)
+
+(define-symbol Tuple (a b)
+  :type ("ite" (smt.type_wf ($eo_to_smt_type_tuple a b)) ($eo_to_smt_type_tuple a b) none))
+
+;-----------------------------------------------------------------------------
+(section "The methods of the signature")
+;-----------------------------------------------------------------------------
+
+; What the generated Lean has to be told about the programs this signature
+; writes out, which no compiler could derive: why each recursion terminates.
+; The text is Lean and is appended to the definition as it stands.
+;
+; It may not name the native layer, for the reason the same section of
+; semantics/smt.eos gives.
+
+; Distinctness of a list of values is decided by walking the list and, at each
+; element, the rest of it, so the measure is the size of the two lists.
+(define-method $set_is_not_subset
+  :lean "termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2")
+
+(define-method $seq_distinct_terms
+  :lean "termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2")
+
+(define-method $dt_distinct_terms
+  :lean "termination_by x1 x2 => sizeOf x1 + sizeOf x2")
+
+(define-method $are_distinct_terms_type
+  :lean "termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2 + 1
+decreasing_by
+  all_goals simp_wf
+  all_goals omega")
+
+; Flattening a regular expression alternates between the tree and a pass over
+; it, which the flag distinguishes, so the measure counts the tree twice and
+; breaks the tie with the flag.
+(define-method $re_flatten
+  :lean "termination_by flag tree => 2 * sizeOf tree + (if flag = Term.Boolean true then 1 else 0)
+decreasing_by
+  all_goals simp_wf
+  all_goals omega")
+
+; Regular expression inclusion descends through four mutually recursive
+; helpers, so each step is given room by scaling the measure, and the base
+; case is ordered after the others by the offset.
+(define-method $str_re_includes_lhs_union
+  :lean "termination_by a b => 4 * (sizeOf a + sizeOf b)
+decreasing_by
+  all_goals simp_wf
+  all_goals omega")
+
+(define-method $str_re_includes_lhs_star
+  :lean "termination_by a b => 4 * (sizeOf a + sizeOf b)
+decreasing_by
+  all_goals simp_wf
+  all_goals omega")
+
+(define-method $str_re_includes_rhs_inter
+  :lean "termination_by a b => 4 * (sizeOf a + sizeOf b)
+decreasing_by
+  all_goals simp_wf
+  all_goals omega")
+
+(define-method $str_re_includes_rec
+  :lean "termination_by a b => 4 * (sizeOf a + sizeOf b)
+decreasing_by
+  all_goals simp_wf
+  all_goals omega")
+
+(define-method $str_re_includes_base_rec
+  :lean "termination_by a b => 4 * (sizeOf a + sizeOf b) + 1
+decreasing_by
+  all_goals simp_wf
+  all_goals omega")

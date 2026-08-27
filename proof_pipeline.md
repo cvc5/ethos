@@ -41,8 +41,7 @@ python3 tools/eoc/driver.py vc --build-dir build-eoc <input.eo> <proof-rule>
 
 # the whole CPC signature, compiled to Lean
 python3 tools/eoc/driver.py lean --build-dir build-eoc --all \
-  --defs=plugins/model_smt/cpc_defs.eo \
-  --lean-config=plugins/lean_meta/cpc_termination.lean \
+  --signature tools/eoc/semantics/development-cpc.eos \
   <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
@@ -284,7 +283,8 @@ directly.
 Lean rejects any Eunoia program it cannot see is terminating, so termination
 obligations surface here rather than being assumed away. What the compiler
 cannot derive is supplied per signature with `--lean-config`; for CPC that is
-`plugins/lean_meta/cpc_termination.lean`.
+`tools/eoc/out/user_termination.lean`, compiled from the `:lean` clauses of
+`tools/eoc/semantics/development-cpc.eos`.
 
 ## The Lean result
 

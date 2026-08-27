@@ -14,8 +14,8 @@
  * e.g.:
  *
  *   ethos-eoc --plugin.desugar <file>
- *   ethos-eoc --plugin.model-smt --defs=<file> <file>
- *   ethos-eoc --plugin.lean-meta --lean-config=<file> <file>
+ *   ethos-eoc --plugin.model-smt --signature=<file> [--semantics=<file>] <file>
+ *   ethos-eoc --plugin.lean-meta --lean-config=<file> [--no-trim-natives] <file>
  *
  * With no --plugin.* argument, it parses the given file like plain ethos.
  * Unlike the plain ethos binary, it requires a file argument (no stdin mode)
@@ -59,6 +59,7 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
                                      State& s,
                                      bool generateParser,
                                      const std::string& defsFile,
+                                     const std::string& smtDefsFile,
                                      const std::string& leanConfigFile,
                                      bool trimNatives)
 {
@@ -89,13 +90,14 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
   }
   if (name == "model-smt")
   {
-    // With no --defs the plugin reads the signature it defaults to; naming
-    // one that is empty would instead fail once the stage runs.
-    if (defsFile.empty())
+    // With no --signature the plugin reads the signature it defaults to; naming
+    // one that is empty would instead fail once the stage runs. With no
+    // --semantics it reads the SMT-LIB signature it ships with.
+    if (defsFile.empty() && smtDefsFile.empty())
     {
       return std::make_unique<ModelSmt>(s);
     }
-    return std::make_unique<ModelSmt>(s, defsFile);
+    return std::make_unique<ModelSmt>(s, defsFile, smtDefsFile);
   }
   EO_FATAL() << "Error: unknown plugin \"" << name
              << "\" (available: desugar, desugar-vc, smt-meta, "
@@ -113,6 +115,7 @@ int main(int argc, char* argv[])
   std::string pluginName;
   bool generateParser = true;
   std::string defsFile;
+  std::string smtDefsFile;
   std::string leanConfigFile;
   bool trimNatives = true;
   // the list of includes and whether they were an include or reference
@@ -146,12 +149,20 @@ int main(int argc, char* argv[])
       trimNatives = false;
       continue;
     }
-    if (arg.compare(0, 7, "--defs=") == 0)
+    if (arg.compare(0, 12, "--semantics=") == 0)
+    {
+      // The SMT-LIB signature written in the deep embedding, which the input's
+      // is written against. The plugin ships with one, so this is what names
+      // another; like --signature, it is read by the model-smt plugin alone.
+      smtDefsFile = arg.substr(12);
+      continue;
+    }
+    if (arg.compare(0, 12, "--signature=") == 0)
     {
       // The signature of the input written in the deep embedding, which says
       // what each of its symbols means to the model. It is read by the
       // model-smt plugin alone; no stage before that one sees it.
-      defsFile = arg.substr(7);
+      defsFile = arg.substr(12);
       continue;
     }
     if (arg.compare(0, 14, "--lean-config=") == 0)
@@ -227,9 +238,13 @@ int main(int argc, char* argv[])
   {
     EO_FATAL() << "Error: --no-parser requires --plugin.lean-meta";
   }
+  if (!smtDefsFile.empty() && pluginName != "model-smt")
+  {
+    EO_FATAL() << "Error: --semantics requires --plugin.model-smt";
+  }
   if (!defsFile.empty() && pluginName != "model-smt")
   {
-    EO_FATAL() << "Error: --defs requires --plugin.model-smt";
+    EO_FATAL() << "Error: --signature requires --plugin.model-smt";
   }
   if (!leanConfigFile.empty() && pluginName != "lean-meta")
   {
@@ -246,8 +261,8 @@ int main(int argc, char* argv[])
   if (!pluginName.empty())
   {
     plugin =
-        createPlugin(pluginName, s, generateParser, defsFile, leanConfigFile,
-                     trimNatives);
+        createPlugin(pluginName, s, generateParser, defsFile, smtDefsFile,
+                     leanConfigFile, trimNatives);
     // note the plugin must be set before any file is included, so that it
     // receives callbacks during parsing
     s.setPlugin(plugin.get());

@@ -38,22 +38,22 @@
 ;;; Eunoia datatype constructors
 
 ; User terms
-(declare-parameterized-const $emb_UOp 
+(declare-parameterized-const $emb_UOp
   ((u ($native_type_0 "UserOp") :opaque)) $eo_Term)
 (define $eot_uop ((u ($native_type_0 "UserOp"))) ($emb_UOp u))
-(declare-parameterized-const $emb_UOp1 
+(declare-parameterized-const $emb_UOp1
   ((u ($native_type_0 "UserOp1") :opaque) (t1 $eo_Term :opaque)) $eo_Term)
 (define $eot_uop1 ((u ($native_type_0 "UserOp1")) (t1 $eo_Term))
   ($emb_UOp1 u t1))
-(declare-parameterized-const $emb_UOp2 
+(declare-parameterized-const $emb_UOp2
   ((u ($native_type_0 "UserOp2") :opaque) (t1 $eo_Term :opaque)
    (t2 $eo_Term :opaque)) $eo_Term)
 (define $eot_uop2 ((u ($native_type_0 "UserOp2")) (t1 $eo_Term) (t2 $eo_Term))
   ($emb_UOp2 u t1 t2))
-(declare-parameterized-const $emb_UOp3 
-  ((u ($native_type_0 "UserOp3") :opaque) (t1 $eo_Term :opaque) 
+(declare-parameterized-const $emb_UOp3
+  ((u ($native_type_0 "UserOp3") :opaque) (t1 $eo_Term :opaque)
    (t2 $eo_Term :opaque) (t3 $eo_Term :opaque)) $eo_Term)
-(define $eot_uop3 
+(define $eot_uop3
   ((u ($native_type_0 "UserOp3")) (t1 $eo_Term) (t2 $eo_Term) (t3 $eo_Term))
   ($emb_UOp3 u t1 t2 t3))
 
@@ -62,7 +62,7 @@
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List))
-  
+
 ; The Boolean type
 (declare-const $emb_Bool $eo_Term)
 (define $eot_Bool () $emb_Bool)
@@ -128,7 +128,7 @@
 (define $eot_DatatypeType ((s $native_String) (d $eo_DatatypeDecl))
   ($emb_DatatypeType s d))
 
-(declare-parameterized-const $emb_DatatypeTypeRef 
+(declare-parameterized-const $emb_DatatypeTypeRef
   ((s $native_String :opaque))
   $eo_Term)
 (define $eot_DatatypeTypeRef ((s $native_String))
@@ -157,11 +157,11 @@
   ((s $native_String) (d $eo_DatatypeDecl) (ci $native_Nat)
    (ai $native_Nat))
   ($emb_DtSel s d ci ai))
-  
+
 ; uninterpreted sorts
 (declare-parameterized-const $emb_USort ((n $native_Nat :opaque)) $eo_Term)
 (define $eot_USort ((n $native_Nat)) ($emb_USort n))
-  
+
 ; uninterpreted constants
 (declare-parameterized-const $emb_UConst
   ((n $native_Nat :opaque) (T $eo_Term :opaque))
@@ -188,7 +188,7 @@
 ; A datatype having no constructors
 (declare-const $emb_edt.null $eo_Datatype)
 (define $edt_null () $emb_edt.null)
-  
+
 ; A datatype having at least one constructor
 (declare-parameterized-const $emb_edt.sum
   ((c $eo_DatatypeCons :opaque) (d $eo_Datatype :opaque))
@@ -199,14 +199,14 @@
 ; An empty datatype declaration
 (declare-const $emb_edd.nil $eo_DatatypeDecl)
 (define $edd_nil () $emb_edd.nil)
-  
+
 ; A datatype declaration having at least one datatype
 (declare-parameterized-const $emb_edd.cons
   ((s $native_String :opaque) (d $eo_Datatype :opaque) (dd $eo_DatatypeDecl :opaque))
   $eo_DatatypeDecl)
 (define $edd_cons ((s $native_String) (d $eo_Datatype) (dd $eo_DatatypeDecl))
   ($emb_edd.cons s d dd))
-  
+
 ;;; Utilities
 
 ; return: The embedding of (-> T1 T2).
@@ -781,7 +781,7 @@
 
 ; program: $eo_var
 ; implements: eo::var
-(define $eo_var ((s $eo_Term) (T $eo_Term)) 
+(define $eo_var ((s $eo_Term) (T $eo_Term))
   ($eot_Var s T))
 
 ; program: $eo_nameof
@@ -831,7 +831,7 @@
 )
 
 (program $eo_dd_lookup
-  ((s $native_String) (s2 $native_String) (d $eo_Datatype) (c $eo_DatatypeCons) 
+  ((s $native_String) (s2 $native_String) (d $eo_Datatype) (c $eo_DatatypeCons)
    (dd $eo_DatatypeDecl))
   :signature ($native_String $eo_DatatypeDecl) $eo_Datatype
   (
@@ -840,7 +840,7 @@
   (($eo_dd_lookup s $edd_nil) $edt_null)
   )
 )
-  
+
 (program $eo_dd_resolve
   ((s $native_String) (dd $eo_DatatypeDecl))
   :signature ($native_String $eo_DatatypeDecl) $eo_Datatype
@@ -902,7 +902,7 @@
 
 ; program: $eo_dt_selectors
 ; implements: eo::dt_selectors
-(program $eo_dt_selectors 
+(program $eo_dt_selectors
   ((s $native_String) (dd $eo_DatatypeDecl) (n $native_Nat) (t $eo_Term))
   :signature ($eo_Term) $eo_Term
   (

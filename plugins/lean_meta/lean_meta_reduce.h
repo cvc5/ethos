@@ -191,7 +191,7 @@ class LeanMetaReduce : public MetaReducePlugin
    *
    * A block runs from a line naming one or more programs, written
    * `-- $name ...`, to the next such line; what lies between is the clause.
-   * See plugins/lean_meta/termination.lean.
+   * See tools/eoc/out/smt_termination.lean.
    */
   void readTerminationClauses(const std::string& path);
   /**

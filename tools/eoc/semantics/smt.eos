@@ -1,0 +1,1499 @@
+; What each symbol of SMT-LIB means to a model, said in the deep embedding: the
+; SMT-LIB half of a model is compiled from this. For each symbol it gives the
+; constructor $emb_sm.X of the embedding together with the macro $sm_X that
+; applies it, the cases X contributes to $smtx_typeof and to $smtx_model_eval
+; (as $eoc_typeof_X and $eoc_eval_X), and the auxiliary programs those cases
+; call. A block also comes after the ones its cases name.
+;
+; It gives the *types* its terms are of as well, in the section below the
+; vocabulary: the constructor $emb_tsm.X and its macro $tsm_X, and what each
+; type says about itself to the three programs written over the types.
+;
+; This is the target of the compilation: every input is compiled through it, so
+; what it says is what a model of any input means, and nothing about an input
+; is asked of it.
+
+; This is a configuration of the eoc pipeline rather than anything a stage of it
+; reads. tools/eoc/sem_compile.py compiles it, before any stage runs, into
+; tools/eoc/out/smt_defs.eo and tools/eoc/out/smt_termination.lean, both
+; generated in full: what is to be changed is here. A run names another with
+; --semantics. See README.md for the language.
+;
+; The whole of the set stands here, one theory to a section, in the order the
+; blocks are emitted.
+;
+; What the set compiles to, and the shape of what it writes, it does not say:
+; this semantics is the target of the compilation, so both are fixed by the
+; tool. See tools/eoc/sem_target.py.
+;
+; A definitions file is ordered so that a symbol follows the ones its cases
+; name, and each set keeps an order of its own: this one has div_total before
+; div where the signature of the input has the reverse.
+;
+; There is no file of the datatypes or the quantifiers of the input, since the
+; SMT-LIB signature has nothing to say about them.
+
+;-----------------------------------------------------------------------------
+(section "The vocabulary of the embedding")
+;-----------------------------------------------------------------------------
+
+; The vocabulary of the embedding this set writes in a body, named.
+;
+; A bare name is one of the family the level it stands at is of -- a symbol of
+; the signature where a term is wanted, a type constructor where a type is, an
+; evaluator where a value is -- so the *constructors* of the value world have
+; no bare name of their own, and neither have the programs of the embedding a
+; case reaches for. Both are named here, under one prefix, and a body writes
+; the name rather than the `$` it stands for.
+;
+; A name a *declaration* gives -- the pattern of a shape, the program of an
+; aggregate -- is the embedding's own and is written as it is: naming the
+; embedding is what a declaration is for.
+
+; -- the value family
+; A value of each shape, from what it holds.
+(define-macro smt.bool (b)          ($vsm_bool b))
+(define-macro smt.numeral (n)       ($vsm_numeral n))
+(define-macro smt.rational (r)      ($vsm_rational r))
+(define-macro smt.binary (w v)      ($vsm_binary w v))
+(define-macro smt.seq (s)           ($vsm_seq s))
+(define-macro smt.re (r)            ($vsm_re r))
+(define-macro smt.char (c)          ($vsm_char c))
+(define-macro smt.map (m)           ($vsm_map m))
+(define-macro smt.set (m)           ($vsm_set m))
+
+; The values of that family the embedding names for themselves. A whole number
+; is not among them: 0 and 1 at value level are already what they denote.
+(define-macro smt.not_value ()      $vsm_not_value)
+(define-macro smt.true ()           $vsm_true)
+(define-macro smt.false ()          $vsm_false)
+(define-macro smt.q_zero ()         $vsm_q_zero)
+(define-macro smt.string_empty ()   $vsm_string_empty)
+(define-macro smt.binary_empty ()   $vsm_binary_empty)
+(define-macro smt.bit_true ()       $vsm_binary_bit_true)
+(define-macro smt.bit_false ()      $vsm_binary_bit_false)
+
+; -- the map and sequence families
+; What a map and a sequence are built from, which is not a value until one of
+; the two above wraps it.
+(define-macro smt.map_cons (i e m)  ($msm_cons i e m))
+(define-macro smt.map_default (T e) ($msm_default T e))
+(define-macro smt.map_empty_set (T) ($msm_empty_set T))
+(define-macro smt.seq_cons (i s)    ($ssm_cons i s))
+(define-macro smt.seq_empty (T)     ($ssm_empty T))
+
+; -- the programs of the embedding
+; The methods of the map and of the value language that a case reaches for.
+(define-macro smt.map_lookup (m i)        ($smtx_msm_lookup m i))
+(define-macro smt.map_update (m i e)      ($smtx_msm_update m i e))
+(define-macro smt.typeof_value (v)        ($smtx_typeof_value v))
+(define-macro smt.typeof_map_value (m)    ($smtx_typeof_map_value m))
+(define-macro smt.typeof_seq_value (s)    ($smtx_typeof_seq_value s))
+(define-macro smt.typeof_guard_wf (T U)   ($smtx_typeof_guard_wf T U))
+
+(section "The types")
+;-----------------------------------------------------------------------------
+
+; The types of the signature, i.e. what a term of it is of.
+;
+; A type is a constructor of the embedding the way a symbol is, applied by a
+; macro of its own, and a body writes the bare name: Bool, (Seq T), (BitVec n).
+; A parameter stands for itself, since a type is already of the embedding, and
+; one written raw is the index a type is built over rather than a type.
+;
+; Three things are asked of a type, and a type that says nothing about one is
+; answered for by the program the case is spliced into:
+;
+;   :wf       whether the values of it are a set at all -- asked of a type
+;             built over another, and true of the rest
+;   :bounded  whether it has exactly one value, where u is true, or finitely
+;             many, where u is false -- neither, of a type that says nothing
+;   :default  the value a model reaches for where it has to name one -- none,
+;             of a type that says nothing
+;
+; They stand here rather than in the section of their theory because everything
+; below is written over them, and because the datatypes, the functions and the
+; types the embedding keeps for itself are the rest of the same three programs,
+; see plugins/model_smt/model_smt.eo.
+
+(define-sort Bool ()
+  :bounded ("not" u)
+  :default smt.false)
+
+(define-sort Int ()
+  :default (smt.numeral 0))
+
+(define-sort Real ()
+  :default smt.q_zero)
+
+; A regular expression is not the type of anything a model gives values to, so
+; it is well-founded nowhere; the empty language is what stands for its value.
+(define-sort RegLan ()
+  :wf "false"
+  :default (smt.re "re.none"))
+
+; A bit-vector is built over its width rather than over a type. It has one
+; value when that width is zero, and finitely many at any width.
+(define-sort BitVec ((! w :raw))
+  :bounded ("or" ("not" u) ("n_=" w "n_zero"))
+  :default (smt.binary ("n_to_z" w) 0))
+
+; A map is unit when what it maps to is, and finite when both halves are. Its
+; default maps everything to the default of its range, and has none at all
+; where that range has none.
+(define-sort Map (I E)
+  :wf ("and" ($smtx_type_wf_component_rec I) ($smtx_type_wf_component_rec E))
+  :bounded ("or" ($smtx_type_bounded "true" E)
+             ("and" ("not" u)
+               ("and" ($smtx_type_bounded u I) ($smtx_type_bounded u E))))
+  :default (eo::define ((d ($smtx_type_default E)))
+             ("ite" ("veq" d smt.not_value)
+               smt.not_value
+               (smt.map (smt.map_default I d)))))
+
+; A set is a map to the Booleans, so it is never unit -- the empty set and the
+; full one are two -- and is finite when what it holds is.
+(define-sort Set (T)
+  :wf ($smtx_type_wf_component_rec T)
+  :bounded ("and" ("not" u) ($smtx_type_bounded u T))
+  :default ($smtx_empty_set T))
+
+(define-sort Seq (T)
+  :wf ($smtx_type_wf_component_rec T)
+  :default ($smtx_empty_seq T))
+
+(define-sort Char ()
+  :bounded ("not" u)
+  :default (smt.char ("n_to_char" "n_zero")))
+
+;-----------------------------------------------------------------------------
+(section "The core symbols")
+;-----------------------------------------------------------------------------
+
+; The core symbols.
+;
+; Most are a Boolean operator whose type is what `of2` says -- both arguments
+; asked for their type and answered against Bool -- and whose value is what the
+; native operator of the same name gives. ite and = are not: each is of any
+; type its arguments agree on, which is a rule of its own, and each is said
+; here all the same. distinct is not here at all: an input n-ary distinct is
+; transformed into a conjunction of equalities, so the target declares nothing
+; for it, see the core symbols of semantics/development-cpc.eos.
+;
+; The idioms every theory is written with come first: the type of a symbol
+; whose signature names no variable, the shape of a Boolean value, and the
+; shape of a value a case takes apart no further.
+
+; The type of a symbol whose arguments are of types given and whose result is
+; another, i.e. what a signature naming no variable comes to: each argument is
+; asked for its type, and anything else is no type at all.
+(define-macro of1 (T1 R a)           ("ite" ("Teq" a T1) R none))
+(define-macro of2 (T1 T2 R a b)      ("ite" ("Teq" a T1) (of1 T2 R b) none))
+(define-macro of3 (T1 T2 T3 R a b c) ("ite" ("Teq" a T1) (of2 T2 T3 R b c) none))
+
+
+; -- $smtx_typeof_ite
+; A conditional is of the type of its branches, which have to agree, and its
+; condition has to be Boolean.
+(program $smtx_typeof_ite ((T SmtType) (U SmtType) (V SmtType))
+  :signature (SmtType SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_ite Bool U V) ("ite" ("Teq" U V) U none))
+  (($smtx_typeof_ite T U V)    none)
+  )
+)
+
+(define-symbol ite (c x y)
+  :keep
+  :typeof ($smtx_typeof_ite c x y)
+  :eval (smt.true x y)  x
+  :eval (smt.false x y) y)
+
+; -- $smtx_typeof_=
+; An equality is Boolean when its sides are of one type, and that type has to
+; be a type at all, which is what the guard asks.
+(program $smtx_typeof_= ((T SmtType) (U SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_= T U) ($smtx_typeof_guard T ("ite" ("Teq" T U) Bool none)))
+  )
+)
+
+; Equality insists on valueness and then reduces to an equality over the values
+; of the embedding, so it holds for every type, including the functions and the
+; uninterpreted sorts whose values no term denotes. Regular expressions are the
+; exception: two of them are equal when they accept the same language, which is
+; what the native decides.
+(define-symbol = (x y)
+  :keep
+  :typeof ($smtx_typeof_= x y)
+  :eval ((smt.re r1) (smt.re r2)) (smt.bool ("re_ext_eq" r1 r2))
+  :eval (v1 v2) (smt.bool ("veq" v1 v2)))
+
+(define-symbol not (x)
+  :typeof (of1 Bool Bool x)
+  :eval ((smt.bool x)) (smt.bool ("not" x)))
+
+(define-symbol or (x y)
+  :typeof (of2 Bool Bool Bool x y)
+  :eval ((smt.bool x) (smt.bool y)) (smt.bool ("or" x y)))
+
+(define-symbol and (x y)
+  :typeof (of2 Bool Bool Bool x y)
+  :eval ((smt.bool x) (smt.bool y)) (smt.bool ("and" x y)))
+
+(define-symbol => (x y)
+  :typeof (of2 Bool Bool Bool x y)
+  :eval (x y) (or (not x) y))
+
+(define-symbol xor (x y)
+  :typeof (of2 Bool Bool Bool x y)
+  :eval (x y) (not (= x y)))
+
+; What a purification stands for is its argument, of whatever type.
+(define-symbol @purify (x)
+  :typeof x
+  :eval (x) x)
+
+;-----------------------------------------------------------------------------
+(section "Arithmetic")
+;-----------------------------------------------------------------------------
+
+; Arithmetic.
+;
+; A symbol over Int and Real says a case for each, since the natives of the two
+; are named apart -- z over the integers and q over the reals -- and a case
+; names the one it is of. There is no sort class and nothing selects a rule: a
+; symbol names the program its type is read off, and the two shapes below say
+; how a value of each is taken apart and put back together.
+;
+; The three type rules the symbols name, and the coercion division needs, are
+; written out first.
+
+
+; The type of an arithmetic operator that returns what its argument is, which is Int or Real.
+(program $smtx_typeof_arith_overload_op_1 ((T SmtType))
+  :signature (SmtType) SmtType
+  (
+  (($smtx_typeof_arith_overload_op_1 Int) Int)
+  (($smtx_typeof_arith_overload_op_1 Real) Real)
+  (($smtx_typeof_arith_overload_op_1 T) none)
+  )
+)
+
+; The same, for two arguments, which must be of one of those types.
+(program $smtx_typeof_arith_overload_op_2
+  ((T SmtType) (U SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_arith_overload_op_2 Int Int) Int)
+  (($smtx_typeof_arith_overload_op_2 Real Real) Real)
+  (($smtx_typeof_arith_overload_op_2 T U) none)
+  )
+)
+
+; The same, for one that returns a type given rather than its arguments'.
+(program $smtx_typeof_arith_overload_op_2_ret
+  ((T SmtType) (U SmtType) (V SmtType))
+  :signature (SmtType SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_arith_overload_op_2_ret Int Int T) T)
+  (($smtx_typeof_arith_overload_op_2_ret Real Real T) T)
+  (($smtx_typeof_arith_overload_op_2_ret T U V) none)
+  )
+)
+
+; -- $smtx_to_real_coerce
+(program $smtx_to_real_coerce ((x1 "Int") (x2 "Rat") (v SmtValue))
+  :signature (SmtValue) SmtValue
+  (
+  (($smtx_to_real_coerce (smt.numeral x1)) (smt.rational ("z_to_real" x1)))
+  (($smtx_to_real_coerce (smt.rational x2)) (smt.rational x2))
+  (($smtx_to_real_coerce v) smt.not_value)
+  )
+)
+
+(define-symbol + (x y)
+  :typeof ($smtx_typeof_arith_overload_op_2 x y)
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("z_+" x y))
+  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("q_+" qx qy)))
+
+(define-symbol - (x y)
+  :typeof ($smtx_typeof_arith_overload_op_2 x y)
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("z_-" x y))
+  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("q_-" qx qy)))
+
+(define-symbol * (x y)
+  :typeof ($smtx_typeof_arith_overload_op_2 x y)
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("z_*" x y))
+  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("q_*" qx qy)))
+
+(define-symbol < (x y)
+  :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.bool ("z_<" x y))
+  :eval ((smt.rational qx) (smt.rational qy)) (smt.bool ("q_<" qx qy)))
+
+(define-symbol <= (x y)
+  :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.bool ("z_<=" x y))
+  :eval ((smt.rational qx) (smt.rational qy)) (smt.bool ("q_<=" qx qy)))
+
+(define-symbol > (x y)
+  :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
+  :eval (x y) (< y x))
+
+(define-symbol >= (x y)
+  :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
+  :eval (x y) (<= y x))
+
+(define-symbol to_real (x)
+  :typeof (of1 Int Real x)
+  :eval ((smt.numeral x)) (smt.rational ("z_to_real" x)))
+
+(define-symbol to_int (x)
+  :typeof (of1 Real Int x)
+  :eval ((smt.rational x)) (smt.numeral ("to_int" x)))
+
+(define-symbol is_int (x)
+  :typeof (of1 Real Bool x)
+  :eval (x) (= (to_real (to_int x)) x))
+
+(define-symbol abs (x)
+  :typeof ($smtx_typeof_arith_overload_op_1 x)
+  :eval ((smt.numeral x)) (smt.numeral ("z_abs" x))
+  :eval ((smt.rational qx)) (smt.rational ("q_abs" qx)))
+
+; Unary minus is what the input overloads - with, and the desugar stage gives
+; that overload the name $eoo_-.2, so nothing transforms into uneg by its own
+; name; see the block of $eoo_-.2 below.
+(define-symbol uneg (x)
+  :typeof ($smtx_typeof_arith_overload_op_1 x)
+  :eval ((smt.numeral x)) (smt.numeral ("z_uneg" x))
+  :eval ((smt.rational qx)) (smt.rational ("q_uneg" qx)))
+
+(define-symbol div_total (x y)
+  :typeof (of2 Int Int Int x y)
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("div_total" x y)))
+
+; Division and remainder agree with the total ones away from zero, and at zero
+; are what the model says they are, so each says its own case rather than a
+; rule: it is the model it has to reach for.
+(define-symbol div (x y)
+  :typeof (of2 Int Int Int x y)
+  :value (eo::define ((a x)) (eo::define ((b y))
+           (ite (= b 0)
+             (apply M ("model_lookup" M "div_by_zero_id" (FunType Int Int)) a)
+             (div_total a b)))))
+
+(define-symbol mod_total (x y)
+  :typeof (of2 Int Int Int x y)
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("mod_total" x y)))
+
+(define-symbol mod (x y)
+  :typeof (of2 Int Int Int x y)
+  :value (eo::define ((a x)) (eo::define ((b y))
+           (ite (= b 0)
+             (apply M ("model_lookup" M "mod_by_zero_id" (FunType Int Int)) a)
+             (mod_total a b)))))
+
+(define-symbol divisible (x y)
+  :typeof (of2 Int Int Bool x y)
+  :eval (x y) (= (mod_total y x) 0))
+
+(define-symbol int.pow2 (x)
+  :typeof (of1 Int Int x)
+  :eval ((smt.numeral x)) (smt.numeral ("z_pow2" x)))
+
+(define-symbol int.log2 (x)
+  :typeof (of1 Int Int x)
+  :eval ((smt.numeral x)) (smt.numeral ("int.log2" x)))
+
+(define-symbol /_total (x y)
+  :typeof ($smtx_typeof_arith_overload_op_2_ret x y Real)
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.rational ("z_/_total" x y))
+  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("q_/_total" qx qy)))
+
+(define-symbol / (x y)
+  :typeof ($smtx_typeof_arith_overload_op_2_ret x y Real)
+  :value (eo::define ((q1 ($smtx_to_real_coerce x))) (eo::define ((q2 ($smtx_to_real_coerce y)))
+           (ite (= q2 smt.q_zero)
+             (apply M ("model_lookup" M "/_by_zero_id" (FunType Real Real)) q1)
+             (/_total q1 q2)))))
+
+;-----------------------------------------------------------------------------
+(section "Arrays")
+;-----------------------------------------------------------------------------
+
+; Arrays, and the difference of two maps.
+;
+; An array is a map. Both of the symbols the signature declares reach for the
+; map directly rather than for another symbol's evaluator, which is what a
+; $-name in a value says; map_diff is what the embedding has of its own, and no
+; signature declares it -- it is what a symbol of the input that is a
+; difference of two arrays or of two sets is eliminated into.
+;
+; The two shapes a map has come first: a map, and a set, which is a map to the
+; Booleans. Nothing is built of either, since what these symbols give is a
+; value already.
+
+
+(program $smtx_map_select
+  ((v SmtValue) (i SmtValue) (m SmtMap))
+  :signature (SmtValue SmtValue) SmtValue
+  (
+  (($smtx_map_select (smt.map m) i) (smt.map_lookup m i))
+  (($smtx_map_select (smt.set m) i) (smt.map_lookup m i))
+  (($smtx_map_select v i)            smt.not_value)
+  )
+)
+
+(program $smtx_map_store
+  ((v SmtValue) (i SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtValue SmtValue SmtValue) SmtValue
+  (
+  (($smtx_map_store (smt.map m) i e) (smt.map (smt.map_update m i e)))
+  (($smtx_map_store (smt.set m) i e) (smt.set (smt.map_update m i e)))
+  (($smtx_map_store v i e)            smt.not_value)
+  )
+)
+
+(program $smtx_typeof_select ( (x1 SmtType) (x2 SmtType)  (x3 SmtType)  (x4 SmtType)  (x5 SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_select (Array x1 x2) x3) ("ite" ("Teq" x1 x3) x2 none))
+  (($smtx_typeof_select x4 x5) none)
+  )
+)
+
+(program $smtx_typeof_store ( (x1 SmtType) (x2 SmtType)  (x3 SmtType)  (x4 SmtType)  (x5 SmtType)  (x6 SmtType)  (x7 SmtType))
+  :signature (SmtType SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_store (Array x1 x2) x3 x4) ("ite" ("Teq" x1 x3) ("ite" ("Teq" x2 x4) (Array x1 x2) none) none))
+  (($smtx_typeof_store x5 x6 x7) none)
+  )
+)
+
+(program $smtx_typeof_map_diff
+  ((T1 SmtType) (U1 SmtType) (T2 SmtType) (U2 SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_map_diff (Map T1 U1) (Map T2 U2))
+    ("ite" ("and" ("Teq" T1 T2) ("Teq" U1 U2)) T1 none))
+  (($smtx_typeof_map_diff (Set T1) (Set T2))
+    ("ite" ("Teq" T1 T2) T1 none))
+  (($smtx_typeof_map_diff T1 T2) none)
+  )
+)
+
+(define-symbol select (a i)
+  :typeof ($smtx_typeof_select a i)
+  :eval (a i) ($smtx_map_select a i))
+
+(define-symbol store (a i e)
+  :typeof ($smtx_typeof_store a i e)
+  :eval (a i e) ($smtx_map_store a i e))
+
+(define-symbol map_diff (a b)
+  :typeof ($smtx_typeof_map_diff a b)
+  :eval ((smt.map m1) (smt.map m2)) ("eval_map_diff_msm" m1 m2)
+  :eval ((smt.set m1) (smt.set m2)) ("eval_map_diff_msm" m1 m2))
+
+;-----------------------------------------------------------------------------
+(section "Bit-vectors")
+;-----------------------------------------------------------------------------
+
+; Bit-vectors.
+;
+; A case says the shape of each argument and the shape its result is built to:
+; (bv n x) matches a bit-vector value, binding its width to n and its value to
+; x, and -> (bv n) builds one of width n, reducing the value to that width.
+; -> (bv-exact n) is for a value that already fits.
+;
+; So a width is a name a case binds rather than something read off a signature,
+; and an operator over two arguments of one width still binds two: what says
+; they agree is the type rule, which the symbol names.
+;
+; An argument written (! i :raw) is an index, i.e. one the *type* rule is handed
+; as the term writes it; its value is evaluated like any other.
+;
+; The type rules the symbols name, and the evaluators that count down or that
+; the signed symbols are written with, all come first.
+
+; A bit-vector value of a given width, which is what a case that computes one
+; builds: the value is reduced to that width. A case that gives a value already
+; of the width writes smt.binary itself, since there is nothing to reduce.
+(define-macro of_width (n v)
+  (smt.binary n ("mod_total" v ("z_pow2" n))))
+
+; The type of a bit-vector operator that returns what its argument is.
+(program $smtx_typeof_bv_op_1 ((T SmtType) (n "Int"))
+  :signature (SmtType) SmtType
+  (
+  (($smtx_typeof_bv_op_1 (BitVec n)) (BitVec n))
+  (($smtx_typeof_bv_op_1 T)               none)
+  )
+)
+
+; The type of a bit-vector operator whose two arguments must be of one width.
+(program $smtx_typeof_bv_op_2
+  ((T SmtType) (U SmtType) (n1 "Nat") (n2 "Nat"))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_bv_op_2 (BitVec n1) (BitVec n2))
+    ("ite" ("n_=" n1 n2) (BitVec n1) none))
+  (($smtx_typeof_bv_op_2 T U) none)
+  )
+)
+
+; The same, for one that returns a type given rather than its arguments'.
+(program $smtx_typeof_bv_op_2_ret
+  ((T SmtType) (U SmtType) (V SmtType) (n1 "Nat") (n2 "Nat"))
+  :signature (SmtType SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_bv_op_2_ret (BitVec n1) (BitVec n2) U)
+    ("ite" ("n_=" n1 n2) U none))
+  (($smtx_typeof_bv_op_2_ret T U V) none)
+  )
+)
+
+; The same, for one that returns a type given rather than its argument's.
+(program $smtx_typeof_bv_op_1_ret ((T SmtType) (U SmtType) (n "Int"))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_bv_op_1_ret (BitVec n) T) T)
+  (($smtx_typeof_bv_op_1_ret T U)               none)
+  )
+)
+
+; The width a bit-vector value is of, or minus one if the value is not one.
+(program $smtx_bv_sizeof_value
+  ((x1 "Int") (x2 "Int") (t1 SmtValue))
+  :signature (SmtValue) "Int"
+  (
+  (($smtx_bv_sizeof_value (smt.binary x1 x2)) x1)
+  (($smtx_bv_sizeof_value t1) "z_neg_one")
+  )
+)
+
+(program $smtx_typeof_concat ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_concat (BitVec x1) (BitVec x2)) (BitVec ("z_to_n" ("z_+" ("n_to_z" x1) ("n_to_z" x2)))))
+  (($smtx_typeof_concat x3 x4) none)
+  )
+)
+
+(program $smtx_typeof_extract ( (x1 "Int") (x2 "Int")  (x3 "Int")  (x4 SmtType)  (x5 SmtType)  (x6 SmtType))
+  :signature (SmtTerm SmtTerm SmtType) SmtType
+  (
+  (($smtx_typeof_extract (numeral x1) (numeral x2) (BitVec x3)) ("ite" ("z_<=" 0 x2) ("ite" ("z_<" x1 ("n_to_z" x3)) ("ite" ("z_<" 0 ("z_+" ("z_+" x1 1) ("z_uneg" x2))) (BitVec ("z_to_n" ("z_+" ("z_+" x1 1) ("z_uneg" x2)))) none) none) none))
+  (($smtx_typeof_extract x4 x5 x6) none)
+  )
+)
+
+(program $smtx_typeof_repeat ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
+  :signature (SmtTerm SmtType) SmtType
+  (
+  (($smtx_typeof_repeat (numeral x1) (BitVec x2)) ("ite" ("z_<=" 1 x1) (BitVec ("z_to_n" ("z_*" x1 ("n_to_z" x2)))) none))
+  (($smtx_typeof_repeat x3 x4) none)
+  )
+)
+
+(program $smtx_typeof_zero_extend ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
+  :signature (SmtTerm SmtType) SmtType
+  (
+  (($smtx_typeof_zero_extend (numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" ("z_+" x1 ("n_to_z" x2)))) none))
+  (($smtx_typeof_zero_extend x3 x4) none)
+  )
+)
+
+(program $smtx_typeof_sign_extend ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
+  :signature (SmtTerm SmtType) SmtType
+  (
+  (($smtx_typeof_sign_extend (numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" ("z_+" x1 ("n_to_z" x2)))) none))
+  (($smtx_typeof_sign_extend x3 x4) none)
+  )
+)
+
+(program $smtx_typeof_rotate_left ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
+  :signature (SmtTerm SmtType) SmtType
+  (
+  (($smtx_typeof_rotate_left (numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec x2) none))
+  (($smtx_typeof_rotate_left x3 x4) none)
+  )
+)
+
+(program $smtx_typeof_rotate_right ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
+  :signature (SmtTerm SmtType) SmtType
+  (
+  (($smtx_typeof_rotate_right (numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec x2) none))
+  (($smtx_typeof_rotate_right x3 x4) none)
+  )
+)
+
+(program $smtx_typeof_int_to_bv ( (x1 "Int") (x2 SmtType)  (x3 SmtType))
+  :signature (SmtTerm SmtType) SmtType
+  (
+  (($smtx_typeof_int_to_bv (numeral x1) Int) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" x1)) none))
+  (($smtx_typeof_int_to_bv x2 x3) none)
+  )
+)
+
+(program $smtx_repeat_rec ((n "Nat")(x1 SmtValue)(x1 SmtValue))
+  :signature ("Nat" SmtValue) SmtValue
+  (
+  (($smtx_repeat_rec "n_zero" x1) smt.binary_empty)
+  (($smtx_repeat_rec ("n_succ" n) x1) (concat x1 ($smtx_repeat_rec n x1)))
+  )
+)
+
+(program $smtx_rotate_left_rec ((n "Nat")(x1 "Int") (x2 "Int")(x1 "Int") (x2 "Int") (t1 SmtValue))
+  :signature ("Nat" SmtValue) SmtValue
+  (
+  (($smtx_rotate_left_rec "n_zero" (smt.binary x1 x2)) (smt.binary x1 x2))
+  (($smtx_rotate_left_rec ("n_succ" n) (smt.binary x1 x2)) (eo::define ((wm1 (smt.numeral ("z_dec" x1)))) (eo::define ((wm2 (smt.numeral ("z_dec" ("z_dec" x1))))) ($smtx_rotate_left_rec n (concat (extract wm2 0 (smt.binary x1 x2)) (extract wm1 wm1 (smt.binary x1 x2)))))))
+  (($smtx_rotate_left_rec n t1) smt.not_value)
+  )
+)
+
+(program $smtx_rotate_right_rec ((n "Nat")(x1 "Int") (x2 "Int")(x1 "Int") (x2 "Int") (t1 SmtValue))
+  :signature ("Nat" SmtValue) SmtValue
+  (
+  (($smtx_rotate_right_rec "n_zero" (smt.binary x1 x2)) (smt.binary x1 x2))
+  (($smtx_rotate_right_rec ("n_succ" n) (smt.binary x1 x2)) (eo::define ((wm1 (smt.numeral ("z_dec" x1)))) ($smtx_rotate_right_rec n (concat (extract 0 0 (smt.binary x1 x2)) (extract wm1 1 (smt.binary x1 x2))))))
+  (($smtx_rotate_right_rec n t1) smt.not_value)
+  )
+)
+
+; The width of a bit-vector, which this set has the value of in hand and so
+; reads off the value itself. It is a whole number, and a value is what stands
+; wherever the idioms below put it.
+(define-macro width (v)
+  (smt.numeral ($smtx_bv_sizeof_value v)))
+
+; The idioms the signed operators are stated in terms of: the sign bit of a
+; value, the same bit taken at the width of another value, the absolute value
+; each of those two gives, and the zero of a value's own width.
+(define-macro msb (v)
+  (= (extract (- (width v) 1) (- (width v) 1) v) smt.bit_true))
+
+(define-macro msb_at (w v)
+  (= (extract (- (width w) 1) (- (width w) 1) v) smt.bit_true))
+
+(define-macro bvabs (v)
+  (ite (msb v) (bvneg v) v))
+
+(define-macro bvabs_at (w v)
+  (ite (msb_at w v) (bvneg v) v))
+
+(define-macro bvzero (v)
+  (smt.binary ($smtx_bv_sizeof_value v) 0))
+
+(define-symbol concat (x y)
+  :typeof ($smtx_typeof_concat x y)
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width ("z_+" n m) ("binary_concat" n x m y)))
+
+(define-symbol extract ((! i :raw) (! j :raw) x)
+  :typeof ($smtx_typeof_extract i j x)
+  :eval ((smt.numeral i) (smt.numeral j) (smt.binary n x)) (of_width ("z_+" ("z_+" i 1) ("z_uneg" j)) ("binary_extract" n x i j)))
+
+(define-symbol repeat ((! k :raw) x)
+  :typeof ($smtx_typeof_repeat k x)
+  :eval ((smt.numeral k) (smt.binary n x)) ($smtx_repeat_rec ("z_to_n" k) (smt.binary n x)))
+
+(define-symbol bvnot (x)
+  :typeof ($smtx_typeof_bv_op_1 x)
+  :eval ((smt.binary n x)) (of_width n ("binary_not" n x)))
+
+(define-symbol bvand (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("binary_and" n x y)))
+
+(define-symbol bvor (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("binary_or" n x y)))
+
+(define-symbol bvnand (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval (x y) (bvnot (bvand x y)))
+
+(define-symbol bvnor (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval (x y) (bvnot (bvor x y)))
+
+(define-symbol bvxor (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("binary_xor" n x y)))
+
+(define-symbol bvxnor (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval (x y) (bvnot (bvxor x y)))
+
+(define-symbol bvcomp (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y (BitVec ("n_succ" "n_zero")))
+  :eval (x y) (ite (= x y) smt.bit_true smt.bit_false))
+
+(define-symbol bvneg (x)
+  :typeof ($smtx_typeof_bv_op_1 x)
+  :eval ((smt.binary n x)) (of_width n ("z_uneg" x)))
+
+(define-symbol bvadd (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("z_+" x y)))
+
+(define-symbol bvmul (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("z_*" x y)))
+
+(define-symbol bvudiv (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("ite" ("z_=" y 0) ("binary_max" n) ("div_total" x y))))
+
+(define-symbol bvurem (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("ite" ("z_=" y 0) x ("mod_total" x y))))
+
+(define-symbol bvsub (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval (x y) (bvadd x (bvneg y)))
+
+(define-symbol bvsdiv (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval (x y)
+    (ite (and (not (msb x)) (not (msb_at x y)))  (bvudiv x y)
+    (ite (and (msb x) (not (msb_at x y)))        (bvneg (bvudiv (bvneg x) y))
+    (ite (and (not (msb x)) (msb_at x y))        (bvneg (bvudiv x (bvneg y)))
+                                                    (bvudiv (bvneg x) (bvneg y))))))
+
+(define-symbol bvsrem (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval (x y)
+    (ite (and (not (msb x)) (not (msb_at x y)))  (bvurem x y)
+    (ite (and (msb x) (not (msb_at x y)))        (bvneg (bvurem (bvneg x) y))
+    (ite (and (not (msb x)) (msb_at x y))        (bvurem x (bvneg y))
+                                                    (bvneg (bvurem (bvneg x) (bvneg y)))))))
+
+(define-symbol bvsmod (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval (x y)
+    (ite (= (bvurem (bvabs x) (bvabs_at x y)) (bvzero x))  (bvurem (bvabs x) (bvabs_at x y))
+    (ite (and (not (msb x)) (not (msb_at x y)))            (bvurem (bvabs x) (bvabs_at x y))
+    (ite (and (msb x) (not (msb_at x y)))                  (bvadd (bvneg (bvurem (bvabs x) (bvabs_at x y))) y)
+    (ite (and (not (msb x)) (msb_at x y))                  (bvadd (bvurem (bvabs x) (bvabs_at x y)) y)
+                                                              (bvneg (bvurem (bvabs x) (bvabs_at x y))))))))
+
+(define-symbol bvugt (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval ((smt.binary n x) (smt.binary m y)) (smt.bool ("z_<" y x)))
+
+(define-symbol bvult (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval (x y) (bvugt y x))
+
+(define-symbol bvuge (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval (x y) (or (bvugt x y) (= x y)))
+
+(define-symbol bvule (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval (x y) (bvuge y x))
+
+(define-symbol bvsgt (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval (x y)
+    (or (and (not (msb x)) (msb y))
+        (and (= (msb x) (msb y)) (bvugt x y))))
+
+(define-symbol bvslt (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval (x y) (bvsgt y x))
+
+(define-symbol bvsge (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval (x y) (or (bvsgt x y) (= x y)))
+
+(define-symbol bvsle (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval (x y) (bvsge y x))
+
+(define-symbol bvshl (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("z_*" x ("z_pow2" y))))
+
+(define-symbol bvlshr (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("div_total" x ("z_pow2" y))))
+
+(define-symbol bvashr (x y)
+  :typeof ($smtx_typeof_bv_op_2 x y)
+  :eval (x y)
+    (ite (= (extract (- (width x) 1) (- (width x) 1) x) smt.bit_false)
+      (bvlshr x y)
+      (bvnot (bvlshr (bvnot x) y))))
+
+(define-symbol zero_extend ((! k :raw) x)
+  :typeof ($smtx_typeof_zero_extend k x)
+  :eval ((smt.numeral k) (smt.binary n x)) (smt.binary ("z_+" k n) x))
+
+(define-symbol sign_extend ((! k :raw) x)
+  :typeof ($smtx_typeof_sign_extend k x)
+  :eval ((smt.numeral k) (smt.binary n x)) (of_width ("z_+" k n) ("binary_uts" n x)))
+
+(define-symbol rotate_left ((! k :raw) x)
+  :typeof ($smtx_typeof_rotate_left k x)
+  :eval ((smt.numeral k) x) ($smtx_rotate_left_rec ("z_to_n" k) x))
+
+(define-symbol rotate_right ((! k :raw) x)
+  :typeof ($smtx_typeof_rotate_right k x)
+  :eval ((smt.numeral k) x) ($smtx_rotate_right_rec ("z_to_n" k) x))
+
+(define-symbol bvuaddo (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval ((smt.binary n x) (smt.binary m y)) (smt.bool ("z_<=" ("z_pow2" n) ("z_+" x y))))
+
+(define-symbol bvnego (x)
+  :typeof ($smtx_typeof_bv_op_1_ret x Bool)
+  :eval ((smt.binary n x)) (smt.bool ("z_=" x ("z_pow2" ("z_+" n ("z_uneg" 1))))))
+
+(define-symbol bvsaddo (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval ((smt.binary n x) (smt.binary m y))
+    (smt.bool
+      ("or" ("z_<=" ("z_pow2" ("z_+" n ("z_uneg" 1))) ("z_+" ("binary_uts" n x) ("binary_uts" m y)))
+            ("z_<" ("z_+" ("binary_uts" n x) ("binary_uts" m y)) ("z_uneg" ("z_pow2" ("z_+" n ("z_uneg" 1))))))))
+
+(define-symbol bvumulo (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval ((smt.binary n x) (smt.binary m y)) (smt.bool ("z_<=" ("z_pow2" n) ("z_*" x y))))
+
+(define-symbol bvsmulo (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval ((smt.binary n x) (smt.binary m y))
+    (smt.bool
+      ("or" ("z_<=" ("z_pow2" ("z_+" n ("z_uneg" 1))) ("z_*" ("binary_uts" n x) ("binary_uts" m y)))
+            ("z_<" ("z_*" ("binary_uts" n x) ("binary_uts" m y)) ("z_uneg" ("z_pow2" ("z_+" n ("z_uneg" 1))))))))
+
+(define-symbol bvusubo (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval (x y) (bvult x y))
+
+(define-symbol bvssubo (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval (x y) (ite (bvnego y) (bvsge x (bvzero x)) (bvsaddo x (bvneg y))))
+
+(define-symbol bvsdivo (x y)
+  :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
+  :eval (x y) (and (bvnego x) (= y (bvnot (bvzero x)))))
+
+; The conversions between the integers and the bit-vectors.
+(define-symbol int_to_bv ((! k :raw) i)
+  :typeof ($smtx_typeof_int_to_bv k i)
+  :eval ((smt.numeral k) (smt.numeral i)) (of_width k i))
+
+(define-symbol ubv_to_int (x)
+  :typeof ($smtx_typeof_bv_op_1_ret x Int)
+  :eval ((smt.binary n x)) (smt.numeral x))
+
+(define-symbol sbv_to_int (x)
+  :typeof ($smtx_typeof_bv_op_1_ret x Int)
+  :eval ((smt.binary n x)) (smt.numeral ("binary_uts" n x)))
+
+;-----------------------------------------------------------------------------
+(section "Strings, sequences and regular expressions")
+;-----------------------------------------------------------------------------
+
+; Strings, sequences and regular expressions.
+;
+; A sequence and a string are the same value and differ in how it is taken
+; apart and put back together, which is what these four say. `chars` and `text`
+; are what the operators of each are given, since those work on the characters
+; rather than on the sequence itself; `of_chars` and `of_text` put one back,
+; and a sequence carries the type of its elements, so building one is given the
+; sequence to take that type from.
+(define-macro chars (s) ("unpack_seq" s))
+(define-macro text (s)  ("unpack_string" s))
+
+(define-macro of_chars (like v)
+  (smt.seq ("pack_seq" ($smtx_elem_typeof_seq_value like) v)))
+
+(define-macro of_text (v)
+  (smt.seq ("pack_string" v)))
+
+; The same, for one that returns a type given rather than its argument's.
+(program $smtx_typeof_seq_op_1_ret ((x1 SmtType) (x2 SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_seq_op_1_ret (Seq x1) x2) x2)
+  (($smtx_typeof_seq_op_1_ret x1 x2) none)
+  )
+)
+
+; The type of a sequence operator whose two arguments must be of one type.
+(program $smtx_typeof_seq_op_2 ((x1 SmtType) (x2 SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_seq_op_2 (Seq x1) (Seq x2))
+    ("ite" ("Teq" x1 x2) (Seq x1) none))
+  (($smtx_typeof_seq_op_2 x1 x2) none)
+  )
+)
+
+; The type of the elements of a sequence value, or nothing if they disagree.
+(program $smtx_elem_typeof_seq_value
+  ((v SmtValue) (vs SmtSeq) (T SmtType))
+  :signature (SmtSeq) SmtType
+  (
+  (($smtx_elem_typeof_seq_value (smt.seq_cons v vs)) ($smtx_elem_typeof_seq_value vs))
+  (($smtx_elem_typeof_seq_value (smt.seq_empty T)) T)
+  )
+)
+
+; The same, for one that returns a type given rather than its arguments'.
+(program $smtx_typeof_seq_op_2_ret
+  ((T SmtType) (U SmtType) (V SmtType) (x1 SmtType) (x2 SmtType))
+  :signature (SmtType SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_seq_op_2_ret (Seq x1) (Seq x2) T)
+    ("ite" ("Teq" x1 x2) T none))
+  (($smtx_typeof_seq_op_2_ret T U V) none)
+  )
+)
+
+; The type of a sequence operator whose three arguments must be of one type.
+(program $smtx_typeof_seq_op_3 ((x1 SmtType) (x2 SmtType) (x3 SmtType))
+  :signature (SmtType SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_seq_op_3 (Seq x1) (Seq x2) (Seq x3))
+    ("ite" ("Teq" x1 x2)
+    ("ite" ("Teq" x2 x3) (Seq x1) none) none))
+  (($smtx_typeof_seq_op_3 x1 x2 x3) none)
+  )
+)
+
+; The type of a sequence operator that returns what its argument is.
+(program $smtx_typeof_seq_op_1 ((x1 SmtType))
+  :signature (SmtType) SmtType
+  (
+  (($smtx_typeof_seq_op_1 (Seq x1)) (Seq x1) )
+  (($smtx_typeof_seq_op_1 x1) none)
+  )
+)
+
+(program $smtx_typeof_str.substr ( (x1 SmtType) (x2 SmtType)  (x3 SmtType)  (x4 SmtType))
+  :signature (SmtType SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_str.substr (Seq x1) Int Int) (Seq x1))
+  (($smtx_typeof_str.substr x2 x3 x4) none)
+  )
+)
+
+(program $smtx_typeof_str.indexof ( (x1 SmtType) (x2 SmtType)   (x3 SmtType)  (x4 SmtType)  (x5 SmtType))
+  :signature (SmtType SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_str.indexof (Seq x1) (Seq x2) Int) ("ite" ("Teq" x1 x2) Int none))
+  (($smtx_typeof_str.indexof x3 x4 x5) none)
+  )
+)
+
+(program $smtx_typeof_str.at ( (x1 SmtType) (x2 SmtType)  (x3 SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_str.at (Seq x1) Int) (Seq x1))
+  (($smtx_typeof_str.at x2 x3) none)
+  )
+)
+
+(program $smtx_typeof_str.update ( (x1 SmtType) (x2 SmtType)  (x3 SmtType)  (x4 SmtType)  (x5 SmtType))
+  :signature (SmtType SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_str.update (Seq x1) Int (Seq x2)) ("ite" ("Teq" x1 x2) (Seq x1) none))
+  (($smtx_typeof_str.update x3 x4 x5) none)
+  )
+)
+
+(program $smtx_typeof_re.^ ( (x1 "Int") (x2 SmtType)  (x3 SmtType))
+  :signature (SmtTerm SmtType) SmtType
+  (
+  (($smtx_typeof_re.^ (numeral x1) RegLan) ("ite" ("z_<=" 0 x1) RegLan none))
+  (($smtx_typeof_re.^ x2 x3) none)
+  )
+)
+
+(program $smtx_typeof_re.loop ( (x1 "Int") (x2 "Int")   (x3 SmtType)  (x4 SmtType)  (x5 SmtType))
+  :signature (SmtTerm SmtTerm SmtType) SmtType
+  (
+  (($smtx_typeof_re.loop (numeral x1) (numeral x2) RegLan) ("ite" ("z_<=" 0 x1) ("ite" ("z_<=" 0 x2) RegLan none) none))
+  (($smtx_typeof_re.loop x3 x4 x5) none)
+  )
+)
+
+(program $smtx_typeof_seq.nth ( (x1 SmtType) (x2 SmtType)  (x3 SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_seq.nth (Seq x1) Int) (smt.typeof_guard_wf x1 x1))
+  (($smtx_typeof_seq.nth x2 x3) none)
+  )
+)
+
+(program $smtx_typeof_seq_diff
+  ((T1 SmtType) (T2 SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_seq_diff (Seq T1) (Seq T2))
+    ("ite" ("Teq" T1 T2) Int none))
+  (($smtx_typeof_seq_diff T1 T2) none)
+  )
+)
+
+(program $smtx_re.^_rec ((n "Nat")(x1 SmtValue)(x1 SmtValue))
+  :signature ("Nat" SmtValue) SmtValue
+  (
+  (($smtx_re.^_rec "n_zero" x1) (str.to_re smt.string_empty))
+  (($smtx_re.^_rec ("n_succ" n) x1) (re.++ ($smtx_re.^_rec n x1) x1))
+  )
+)
+
+(program $smtx_re.loop_rec ((n "Nat")(x1 SmtValue)(x2 "Int") (x3 SmtValue)(x1 SmtValue)(x2 "Int") (x3 SmtValue) (t1 SmtValue) (t2 SmtValue) (t3 SmtValue))
+  :signature ("Nat" SmtValue SmtValue SmtValue) SmtValue
+  (
+  (($smtx_re.loop_rec "n_zero" x1 (smt.numeral x2) x3) (re.^ x1 x3))
+  (($smtx_re.loop_rec ("n_succ" n) x1 (smt.numeral x2) x3) (re.union ($smtx_re.loop_rec n x1 (smt.numeral ("z_dec" x2)) x3) (re.^ (smt.numeral x2) x3)))
+  (($smtx_re.loop_rec n t1 t2 t3) smt.not_value)
+  )
+)
+
+(program $smtx_ssm_seq_nth
+  ((v SmtValue) (vs SmtSeq) (n "Int") (T SmtType) (d SmtValue))
+  :signature (SmtSeq "Int" SmtValue) SmtValue
+  (
+  (($smtx_ssm_seq_nth (smt.seq_empty T) n d)                     d)
+  (($smtx_ssm_seq_nth (smt.seq_cons v vs) 0 d) v)
+  (($smtx_ssm_seq_nth (smt.seq_cons v vs) n d)
+    ($smtx_ssm_seq_nth vs ("z_dec" n) d))
+  )
+)
+
+(program $smtx_seq_nth_wrong
+  ((M SmtModel) (s SmtSeq) (n "Int") (T SmtType))
+  :signature (SmtModel SmtSeq "Int" SmtType) SmtValue
+  (
+  (($smtx_seq_nth_wrong M s n (Seq T))
+    ($smtx_map_select
+      ($smtx_map_select
+        ("model_lookup" M "oob_seq_nth_id" (Map (Seq T) (Map Int T)))
+        (smt.seq s))
+      (smt.numeral n)))
+  (($smtx_seq_nth_wrong M s n T)  smt.not_value)
+  )
+)
+
+; Sequence nth
+(program $smtx_seq_nth
+  ((M SmtModel) (s SmtSeq) (n "Int") (v1 SmtValue) (v2 SmtValue))
+  :signature (SmtModel SmtValue SmtValue) SmtValue
+  (
+  (($smtx_seq_nth M (smt.seq s) (smt.numeral n))
+    ($smtx_ssm_seq_nth s n ($smtx_seq_nth_wrong M s n (smt.typeof_seq_value s))))
+  (($smtx_seq_nth M v1 v2) smt.not_value)
+  )
+)
+
+(define-symbol seq.empty ((! t :type))
+  :typeof (smt.typeof_guard_wf (Seq t) (Seq t))
+  :value (smt.seq (smt.seq_empty t)))
+
+(define-symbol str.len (s)
+  :typeof ($smtx_typeof_seq_op_1_ret s Int)
+  :eval ((smt.seq s)) (smt.numeral ("seq.len" (chars s))))
+
+(define-symbol str.++ (s t)
+  :typeof ($smtx_typeof_seq_op_2 s t)
+  :eval ((smt.seq s) (smt.seq t)) (of_chars s ("seq.++" (chars s) (chars t))))
+
+(define-symbol str.substr (s i n)
+  :typeof ($smtx_typeof_str.substr s i n)
+  :eval ((smt.seq s) (smt.numeral i) (smt.numeral n)) (of_chars s ("seq.extract" (chars s) i n)))
+
+(define-symbol str.contains (s t)
+  :typeof ($smtx_typeof_seq_op_2_ret s t Bool)
+  :eval ((smt.seq s) (smt.seq t)) (smt.bool ("seq.contains" (chars s) (chars t))))
+
+(define-symbol str.replace (s t u)
+  :typeof ($smtx_typeof_seq_op_3 s t u)
+  :eval ((smt.seq s) (smt.seq t) (smt.seq u)) (of_chars s ("seq.replace" (chars s) (chars t) (chars u))))
+
+(define-symbol str.indexof (s t i)
+  :typeof ($smtx_typeof_str.indexof s t i)
+  :eval ((smt.seq s) (smt.seq t) (smt.numeral i)) (smt.numeral ("seq.indexof" (chars s) (chars t) i)))
+
+(define-symbol str.at (s i)
+  :typeof ($smtx_typeof_str.at s i)
+  :eval (s i) (str.substr s i 1))
+
+(define-symbol str.prefixof (s t)
+  :typeof ($smtx_typeof_seq_op_2_ret s t Bool)
+  :eval (s t) (= s (str.substr t 0 (str.len s))))
+
+(define-symbol str.suffixof (s t)
+  :typeof ($smtx_typeof_seq_op_2_ret s t Bool)
+  :eval (s t) (= s (str.substr t (- (str.len t) (str.len s)) (str.len s))))
+
+(define-symbol str.rev (s)
+  :typeof ($smtx_typeof_seq_op_1 s)
+  :eval ((smt.seq s)) (of_chars s ("seq.rev" (chars s))))
+
+(define-symbol str.update (s i t)
+  :typeof ($smtx_typeof_str.update s i t)
+  :eval ((smt.seq s) (smt.numeral i) (smt.seq t)) (of_chars s ("seq.update" (chars s) i (chars t))))
+
+(define-symbol str.to_lower (s)
+  :typeof (of1 String String s)
+  :eval ((smt.seq s)) (of_text ("str.to_lower" (text s))))
+
+(define-symbol str.to_upper (s)
+  :typeof (of1 String String s)
+  :eval ((smt.seq s)) (of_text ("str.to_upper" (text s))))
+
+(define-symbol str.to_code (s)
+  :typeof (of1 String Int s)
+  :eval ((smt.seq s)) (smt.numeral ("str.to_code" (text s))))
+
+(define-symbol str.from_code (i)
+  :typeof (of1 Int String i)
+  :eval ((smt.numeral i)) (of_text ("str.from_code" i)))
+
+(define-symbol str.is_digit (s)
+  :typeof (of1 String Bool s)
+  :eval (s) (and (<= 48 (str.to_code s)) (<= (str.to_code s) 57)))
+
+(define-symbol str.to_int (s)
+  :typeof (of1 String Int s)
+  :eval ((smt.seq s)) (smt.numeral ("str.to_int" (text s))))
+
+(define-symbol str.from_int (i)
+  :typeof (of1 Int String i)
+  :eval ((smt.numeral i)) (of_text ("str.from_int" i)))
+
+(define-symbol str.< (s t)
+  :typeof (of2 String String Bool s t)
+  :eval ((smt.seq s) (smt.seq t)) (smt.bool ("str.<" (text s) (text t))))
+
+(define-symbol str.<= (s t)
+  :typeof (of2 String String Bool s t)
+  :eval (s t) (or (= s t) (str.< s t)))
+
+(define-symbol str.replace_all (s t u)
+  :typeof ($smtx_typeof_seq_op_3 s t u)
+  :eval ((smt.seq s) (smt.seq t) (smt.seq u)) (of_chars s ("seq.replace_all" (chars s) (chars t) (chars u))))
+
+; The type rule of the symbols below demands a string where the evaluator
+; matches any sequence, so each says the signature its type rule is read off
+; with :typeof, beside the one its value is read off.
+(define-symbol str.replace_re (s r t)
+  :typeof (of3 String RegLan String String s r t)
+  :eval ((smt.seq s) (smt.re r) (smt.seq t)) (of_chars s ("str_replace_re" (chars s) r (chars t))))
+
+(define-symbol str.replace_re_all (s r t)
+  :typeof (of3 String RegLan String String s r t)
+  :eval ((smt.seq s) (smt.re r) (smt.seq t)) (of_chars s ("str_replace_re_all" (chars s) r (chars t))))
+
+(define-symbol str.indexof_re (s r i)
+  :typeof (of3 String RegLan Int Int s r i)
+  :eval ((smt.seq s) (smt.re r) (smt.numeral i)) (smt.numeral ("str_indexof_re" (chars s) r i)))
+
+; regular expressions
+(define-symbol re.allchar ()
+  :typeof RegLan
+  :value (smt.re "re.allchar"))
+
+(define-symbol re.none ()
+  :typeof RegLan
+  :value (smt.re "re.none"))
+
+(define-symbol re.all ()
+  :typeof RegLan
+  :value (smt.re "re.all"))
+
+(define-symbol str.to_re (s)
+  :typeof (of1 String RegLan s)
+  :eval ((smt.seq s)) (smt.re ("str_to_re" (chars s))))
+
+(define-symbol re.* (r)
+  :typeof (of1 RegLan RegLan r)
+  :eval ((smt.re r)) (smt.re ("re.*" r)))
+
+(define-symbol re.++ (r q)
+  :typeof (of2 RegLan RegLan RegLan r q)
+  :eval ((smt.re r) (smt.re q)) (smt.re ("re.++" r q)))
+
+(define-symbol re.+ (r)
+  :typeof (of1 RegLan RegLan r)
+  :eval (r) (re.++ r (re.* r)))
+
+(define-symbol re.^ ((! k :raw) r)
+  :typeof ($smtx_typeof_re.^ k r)
+  :eval ((smt.numeral k) (smt.re r)) ($smtx_re.^_rec ("z_to_n" k) (smt.re r)))
+
+(define-symbol re.union (r q)
+  :typeof (of2 RegLan RegLan RegLan r q)
+  :eval ((smt.re r) (smt.re q)) (smt.re ("re.union" r q)))
+
+(define-symbol re.opt (r)
+  :typeof (of1 RegLan RegLan r)
+  :eval (r) (re.union r (str.to_re smt.string_empty)))
+
+(define-symbol re.comp (r)
+  :typeof (of1 RegLan RegLan r)
+  :eval ((smt.re r)) (smt.re ("re.comp" r)))
+
+(define-symbol re.range (a b)
+  :typeof (of2 String String RegLan a b)
+  :eval ((smt.seq a) (smt.seq b)) (smt.re ("re_range" (chars a) (chars b))))
+
+(define-symbol re.inter (r q)
+  :typeof (of2 RegLan RegLan RegLan r q)
+  :eval ((smt.re r) (smt.re q)) (smt.re ("re.inter" r q)))
+
+(define-symbol re.diff (r q)
+  :typeof (of2 RegLan RegLan RegLan r q)
+  :eval ((smt.re r) (smt.re q)) (smt.re ("re.diff" r q)))
+
+(define-symbol re.loop ((! lo :raw) (! hi :raw) r)
+  :typeof ($smtx_typeof_re.loop lo hi r)
+  :eval ((smt.numeral lo) (smt.numeral hi) (smt.re r))
+    (ite (> (smt.numeral lo) (smt.numeral hi))
+      (smt.re "re.none")
+      ($smtx_re.loop_rec ("z_to_n" ("z_-" hi lo)) (smt.numeral lo) (smt.numeral hi) (smt.re r))))
+
+(define-symbol str.in_re (s r)
+  :typeof (of2 String RegLan Bool s r)
+  :eval ((smt.seq s) (smt.re r)) (smt.bool ("str_in_re" (chars s) r)))
+
+(define-symbol str.indexof_re_split (s r q)
+  :typeof (of3 String RegLan RegLan Int s r q)
+  :eval ((smt.seq s) (smt.re r) (smt.re q)) (smt.numeral ("str_indexof_re_split" (chars s) r q)))
+
+; sequences of any element type
+(define-symbol seq.unit (x)
+  :typeof (smt.typeof_guard_wf (Seq x) (Seq x))
+  :value (eo::define ((e1 x)) (smt.seq (smt.seq_cons e1 (smt.seq_empty (smt.typeof_value e1))))))
+
+(define-symbol seq.nth (s i)
+  :typeof ($smtx_typeof_seq.nth s i)
+  :value ($smtx_seq_nth M s i))
+
+(define-symbol seq_diff (a b)
+  :typeof ($smtx_typeof_seq_diff a b)
+  :eval ((smt.seq s) (smt.seq t)) ("eval_seq_diff_ssm" s t))
+
+(define-symbol @strings_occur_index (s t i)
+  :typeof ($smtx_typeof_str.indexof s t i)
+  :eval ((smt.seq s) (smt.seq t) (smt.numeral i)) (smt.numeral ("seq.occur_index" (chars s) (chars t) i)))
+
+(define-symbol @strings_occur_index_re (s r i)
+  :typeof (of3 String RegLan Int Int s r i)
+  :eval ((smt.seq s) (smt.re r) (smt.numeral i)) (smt.numeral ("str_occur_index_re" (chars s) r i)))
+
+;-----------------------------------------------------------------------------
+(section "Sets")
+;-----------------------------------------------------------------------------
+
+; Sets.
+;
+; A set is a map to the Booleans, and the three symbols that walk two of them
+; at once reach for a program of their own, which is what a $-name in a value
+; says. Those programs and the type rules the symbols name come first.
+
+; The type a map is indexed by, which for a set is the type of its elements.
+(program $smtx_index_typeof_map ((T SmtType) (U SmtType))
+  :signature (SmtType) SmtType
+  (
+  (($smtx_index_typeof_map (Map T U)) T)
+  (($smtx_index_typeof_map T) none)
+  )
+)
+
+; The type of a set operator whose two arguments must be sets of one type.
+(program $smtx_typeof_sets_op_2 ((x1 SmtType) (x2 SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_sets_op_2 (Set x1) (Set x2))
+    ("ite" ("Teq" x1 x2) (Set x1) none))
+  (($smtx_typeof_sets_op_2 x1 x2) none)
+  )
+)
+
+; Binary set operators, computed over the map a set is. It takes a flag and
+; the two maps, and accumulates into the third: with the flag it keeps what
+; lies in both, and without it what lies in the first alone. Note it does not
+; insist on true/false, to ensure the function is total.
+(program $smtx_mss_op_internal
+  ((T SmtType) (m1 SmtMap) (m2 SmtMap) (acc SmtMap) (e SmtValue)
+   (efalse SmtValue) (etrue SmtValue) (isInter "Bool"))
+  :signature ("Bool" SmtMap SmtMap SmtMap) SmtMap
+  (
+  (($smtx_mss_op_internal isInter (smt.map_default T efalse) m2 acc) acc)
+  (($smtx_mss_op_internal isInter (smt.map_cons e etrue m1) m2 acc)
+    ($smtx_mss_op_internal isInter m1 m2
+      ("ite"
+        ("iff" ("veq" (smt.map_lookup m2 e) smt.true) isInter)
+        (smt.map_update acc e smt.true)
+        acc)))
+  )
+)
+
+; The same, for one that returns a type given rather than its arguments'.
+(program $smtx_typeof_sets_op_2_ret
+  ((T SmtType) (U SmtType) (V SmtType) (x1 SmtType) (x2 SmtType))
+  :signature (SmtType SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_sets_op_2_ret (Set x1) (Set x2) T)
+    ("ite" ("Teq" x1 x2) T none))
+  (($smtx_typeof_sets_op_2_ret T U V) none)
+  )
+)
+
+; Set union
+; return the union of two set values.
+(program $smtx_set_union
+  ((m1 SmtMap) (m2 SmtMap) (v1 SmtValue) (v2 SmtValue))
+  :signature (SmtValue SmtValue) SmtValue
+  (
+  (($smtx_set_union (smt.set m1) (smt.set m2))
+    ; m1 minus the empty set starting with m2.
+    (smt.set ($smtx_mss_op_internal "false" m1 (smt.map_empty_set ($smtx_index_typeof_map (smt.typeof_map_value m1))) m2)))
+  (($smtx_set_union v1 v2)  smt.not_value)
+  )
+)
+
+; Set intersection
+; return the intersection of two set values.
+(program $smtx_set_inter
+  ((m1 SmtMap) (m2 SmtMap) (v1 SmtValue) (v2 SmtValue))
+  :signature (SmtValue SmtValue) SmtValue
+  (
+  (($smtx_set_inter (smt.set m1) (smt.set m2))
+    ; m1 intersected m2 starting with empty set.
+    (smt.set ($smtx_mss_op_internal "true" m1 m2 (smt.map_empty_set ($smtx_index_typeof_map (smt.typeof_map_value m1))))))
+  (($smtx_set_inter v1 v2)  smt.not_value)
+  )
+)
+
+; Set minus
+; return the set minus of two set values.
+(program $smtx_set_minus
+  ((m1 SmtMap) (m2 SmtMap) (v1 SmtValue) (v2 SmtValue))
+  :signature (SmtValue SmtValue) SmtValue
+  (
+  (($smtx_set_minus (smt.set m1) (smt.set m2))
+    ; m1 minus m2 starting with empty set.
+    (smt.set ($smtx_mss_op_internal "false" m1 m2 (smt.map_empty_set ($smtx_index_typeof_map (smt.typeof_map_value m1))))))
+  (($smtx_set_minus v1 v2)  smt.not_value)
+  )
+)
+
+(program $smtx_typeof_set.member ( (x1 SmtType) (x2 SmtType)  (x3 SmtType)  (x4 SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_set.member x1 (Set x2)) ("ite" ("Teq" x1 x2) Bool none))
+  (($smtx_typeof_set.member x3 x4) none)
+  )
+)
+
+(define-symbol set.empty ((! t :type))
+  :typeof (smt.typeof_guard_wf (Set t) (Set t))
+  :value (smt.set (smt.map_default t (smt.bool "false"))))
+
+(define-symbol set.singleton (x)
+  :typeof (smt.typeof_guard_wf (Set x) (Set x))
+  :eval (x) (smt.set (smt.map_cons x (smt.bool "true") (smt.map_default (smt.typeof_value x) (smt.bool "false")))))
+
+(define-symbol set.union (a b)
+  :typeof ($smtx_typeof_sets_op_2 a b)
+  :eval (a b) ($smtx_set_union a b))
+
+(define-symbol set.inter (a b)
+  :typeof ($smtx_typeof_sets_op_2 a b)
+  :eval (a b) ($smtx_set_inter a b))
+
+(define-symbol set.minus (a b)
+  :typeof ($smtx_typeof_sets_op_2 a b)
+  :eval (a b) ($smtx_set_minus a b))
+
+(define-symbol set.member (x a)
+  :typeof ($smtx_typeof_set.member x a)
+  :eval (x a) ($smtx_map_select a x))
+
+(define-symbol set.subset (a b)
+  :typeof ($smtx_typeof_sets_op_2_ret a b Bool)
+  :eval (a b) (= (set.inter a b) a))
+
+;-----------------------------------------------------------------------------
+(section "The methods of the embedding")
+;-----------------------------------------------------------------------------
+
+; What the generated Lean has to be told about the programs the embedding
+; writes out for itself, which no compiler could derive: why each recursion
+; terminates, and what has to be proved once about a definition. The text is
+; Lean and is appended to the definition as it stands.
+;
+; It may not name the native layer. A clause is appended to a generated
+; definition rather than written into a resource, so it is not one of the
+; blocks that layer is trimmed by and a name it gave would keep nothing alive.
+; Every native type abbreviates a Lean type, which is what a clause writes
+; instead. See LeanMetaReduce::trimNativeDefs.
+
+; Datatype defaults recurse through a mutually inductive type/declaration
+; tree. The declaration suffix is the datatype recursion budget; the small
+; offsets orient calls through datatype, constructor, and field helpers.
+(define-method $smtx_type_default
+  :lean "termination_by T => 2 * sizeOf T")
+
+(define-method $smtx_datatype_decl_default
+  :lean "termination_by ddF => 2 * sizeOf ddF")
+
+(define-method $smtx_datatype_default
+  :lean "termination_by dF ddF => 2 * (sizeOf dF + sizeOf ddF) + 1")
+
+(define-method $smtx_datatype_cons_default
+  :lean "termination_by c ddF => 2 * (sizeOf c + sizeOf ddF) + 2")
+
+(define-method $smtx_field_type_default
+  :lean "termination_by T ddF => 2 * (sizeOf T + sizeOf ddF) + 3
+decreasing_by
+  all_goals simp_wf
+  all_goals omega")
+
+; Type boundedness (unit/finite) computes a fixpoint over datatype
+; declarations. The lexicographic measures decrease on the structural
+; component for descents into subterms, on the pass countdown for the
+; fixpoint iteration, and on the final component for the tie between
+; field types and their recheck as ordinary types.
+(define-method $smtx_type_bounded
+  :lean "termination_by T => (sizeOf T, 0)")
+
+(define-method $smtx_datatype_decl_bounded
+  :lean "termination_by ddC dd ddB => (sizeOf dd, sizeOf ddC)")
+
+(define-method $smtx_datatype_decl_bounded_step
+  :lean "termination_by ddR ddB => (sizeOf ddR, 0)")
+
+(define-method $smtx_datatype_bounded
+  :lean "termination_by dF ddB => (sizeOf dF, 0)")
+
+(define-method $smtx_datatype_cons_bounded
+  :lean "termination_by c ddB => (sizeOf c, 0)")
+
+(define-method $smtx_field_type_bounded
+  :lean "termination_by T ddB => (sizeOf T, 1)")
+
+; The evaluator recurses structurally, and the theorem that follows it caches
+; the equation for a Boolean term, which Lean would otherwise unfold anew at
+; every use.
+(define-method $smtx_model_eval
+  :lean "termination_by structural t => t
+
+private theorem __smtx_model_eval_eqns_cache (M : SmtModel) (b : Bool) :
+    __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
+  unfold __smtx_model_eval
+  rfl")

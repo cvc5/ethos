@@ -26,32 +26,57 @@ reduces.
 
 ## The signatures written in the deep embedding
 
-What a symbol means to the model is said by two files. The SMT-LIB one is the
-target and so is fixed; the one of the input is named with `--defs`:
+What a symbol means to the model is said by two files, and a run may name
+either: the signature of the input with `--signature`, and the SMT-LIB
+semantics it is written against with `--semantics`. Naming neither leaves the
+stage the two the tool ships with, which is what the paths below are:
 
 ```text
-plugins/model_smt/smt_defs.eo   the SMT-LIB signature, written in the embedding
---defs <file>                   how the input's symbols transform into it,
-                                e.g. plugins/model_smt/cpc_defs.eo for CPC
+tools/eoc/out/smt_defs.eo   the SMT-LIB signature, written in the embedding
+tools/eoc/out/user_defs.eo  how the input's symbols transform into it
 ```
+
+**Both are generated.** They are compiled from the configuration under
+`semantics` by `tools/eoc/sem_compile.py`, which the driver runs
+before any stage, so they are current whenever the model-smt stage reads them;
+see `compile_signatures` in `driver.py`. What the configuration is and the
+language it is written in are documented in full in `semantics/README.md`. A
+file is written only where its text changed, so a run with nothing to do leaves
+the tree alone.
+
+What either option names is therefore the *central file of the configuration*,
+not the generated signature:
 
 ```text
 python3 tools/eoc/driver.py lean --all \
-  --defs plugins/model_smt/cpc_defs.eo <cvc5>/proofs/eo/cpc/Cpc.eo
+  --signature semantics/development-cpc.eos <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
+
+A set the tool ships with compiles into the plugin that reads it, as the paths
+above show; any other compiles beside itself, so a configuration that lives in
+another tree writes what it compiles to into that tree rather than into this
+one.
+
+A file that is not a central file is taken to be a signature already written
+out and is passed through, which is what lets one that has no configuration
+still be given directly. The plugin itself has no signature of its own to fall
+back on: which input is being compiled is not its business, so `--signature` is
+required and the stage says so when it is missing.
 
 Only the `model-smt` stage reads them; no stage before it sees either. A symbol
 the input declares that the file says nothing about is an error rather than a
-term the model would silently say nothing about. A run that names no `--defs`
-reads `plugins/model_smt/cpc_defs.eo`, which is what the examples below that
-compile a signature of CPC symbols rely on.
+term the model would silently say nothing about. The examples below leave
+`--signature` out because the wrappers in `tools/eoc/cpc` pass it, see
+`EOC_DEFAULT_CPC_DEFS` in `common.sh`; the driver on its own requires it.
 
 Each is a sequence of blocks, one per symbol, opened by a `; -- X` line. For a
 symbol X, `smt_defs.eo` gives the constructor `$emb_sm.X` and the macro
 `$sm_X`, the cases X contributes to `$smtx_typeof` and to `$smtx_model_eval`
 (as `$eoc_typeof_X` and `$eoc_eval_X`), and the auxiliary programs those cases
-call. `cpc_defs.eo` gives `$eoc_transform_X`, the cases X contributes to
-`$eo_to_smt`, and `$eoc_transform_type_X` for a type constructor.
+call. `user_defs.eo` gives `$eoc_transform_X`, the cases X contributes to
+`$eo_to_smt`, and `$eoc_transform_type_X` for a type constructor. It is named
+for what it is to the stage, the signature of whatever input a run compiles,
+rather than for CPC.
 
 What a block says to the compiler is named `$eoc_`, which is what tells it
 apart from what the compiler emits: the case of an `$eoc_` program is spliced
@@ -84,10 +109,10 @@ matches. Trimming a signature to one proof rule has to keep such a symbol, so
 the driver reads those dependencies off the blocks and tells `trim-defs`; see
 `Pipeline.defs_depends` in `tools/eoc/driver.py`.
 
-A block may also say that the compilation has no place for its symbol at all:
-SMT-LIB gives a proof-level binder no meaning, so `lambda` and everything that
-reduces an application of one are left out rather than modelled. A block says
-so with directives of the following forms:
+A block may also say that the compilation has no place for what it is of at
+all: SMT-LIB gives a proof-level binder no meaning, so `lambda` and everything
+that reduces an application of one are left out rather than modelled. A block
+says so with directives of the following forms:
 
 ```lisp
 (echo "eoc-exclude symbol lambda")
@@ -95,12 +120,17 @@ so with directives of the following forms:
 (echo "eoc-exclude rule beta-reduce")
 ```
 
+The configuration writes `:exclude` on the symbol, the method or the rule
+itself -- a method with `define-method` and a rule with `define-rule` -- and the
+compiler puts the directive back, the kind being what the form that declared it
+says one is; see `semantics/README.md`.
+
 `Pipeline.defs_excludes` collects them and gives them to the desugar stage,
 which is what drops what they name; a rule among them is also left out of
 `--all-rules`, since there is nothing to verify about it. The names are matched
 literally: the compiler neither checks that a name exists nor computes a
-dependency closure, so the block has to name every declaration that goes with
-the one it omits.
+dependency closure, so every declaration that goes with an omitted one says so
+for itself.
 
 ## Why the generated Lean terminates
 
@@ -110,14 +140,17 @@ programs that need one. So the clause is stated as the Lean text it is, and the
 `lean-meta` stage appends it to the definition of the program it names:
 
 ```text
-plugins/lean_meta/termination.lean   the programs of the deep embedding, which
-                                     every input is compiled through
+tools/eoc/out/smt_termination.lean       the programs of the deep embedding,
+                                     which every input is compiled through
 --lean-config <file>                 the programs of the input signature, e.g.
-                                     plugins/lean_meta/cpc_termination.lean
+                                     tools/eoc/out/user_termination.lean
 ```
 
-A block runs from a line naming one or more programs, written `-- $name ...`,
-to the next comment line, and what lies between is the clause. An input whose
+Both are generated: a clause is what a method of a configuration set says under
+`:lean`, and the compiler writes the file of each set beside what that set
+compiles to, see `semantics/README.md`. A block runs from a line naming one or more
+programs, written `-- $name ...`, to the next comment line, and what lies
+between is the clause. An input whose
 programs all recurse structurally needs no file of its own, so `--lean-config`
 is optional; without it the generated Lean simply carries no clause for them,
 which Lean will reject if one was needed.
@@ -241,7 +274,9 @@ outputs under `tools/eoc/out` by default.
 The driver uses two output trees:
 
 - `tools/eoc/out/` for stage EO files and final published outputs, unless
-  overridden with `--final-out-dir` or `EOC_FINAL_OUT_DIR`
+  overridden with `--final-out-dir` or `EOC_FINAL_OUT_DIR`, and for what the
+  configuration compiles to, which stands there whatever a run overrides and is
+  not checked in
 - `<build-dir>/out/plugins/` for plugin-private generated files consumed by the
   driver
 
@@ -249,6 +284,10 @@ Published and stage files:
 
 ```text
 tools/eoc/out/
+  smt_defs.eo               what the configuration compiles to, see
+  user_defs.eo              tools/eoc/semantics/README.md
+  smt_termination.lean
+  user_termination.lean
   trim-*.eo
   trim-d-*.eo
   vcm-def-*.eo

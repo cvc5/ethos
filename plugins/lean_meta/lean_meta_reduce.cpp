@@ -61,7 +61,7 @@ LeanMetaReduce::LeanMetaReduce(State& s,
   // deep embedding holds for every input; the one of the input signature is
   // named on the command line, and an input whose programs all recurse
   // structurally needs none.
-  readTerminationClauses(getResourcePath("plugins/lean_meta/termination.lean"));
+  readTerminationClauses(getResourcePath("tools/eoc/out/smt_termination.lean"));
   if (!configFile.empty())
   {
     readTerminationClauses(configFile);
@@ -737,7 +737,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
       os << bv.getSize() << " " << bvi.toString() << ")";
     }
     else if (k == Kind::STRING)
-    {     
+    {
       os << "(Term.String ";
       std::string css = l->toString();
       AlwaysAssert(css.find_first_of("\"\\") == std::string::npos)
@@ -1686,7 +1686,7 @@ void LeanMetaReduce::printOrderKeyCase(const std::string& cname,
 }
 
 void LeanMetaReduce::finalizeChecker()
-{  
+{
   const std::string outPatht =
       emitLeanFile("plugins/lean_meta/lean_meta_checker_term.lean",
                        "plugins/lean_meta/lean_meta_checker_term_gen.lean",

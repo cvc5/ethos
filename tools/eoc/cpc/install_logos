@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
 # Generate the full CPC Lean package and install it into local Logos trees.
 # Usage: install_logos
-# Output: reads the generated Lean files from tools/eoc/out/lean/ and installs
-# them under $LOGOS_DIR/Cpc, namely the signature-wide modules listed in
-# EOC_LEAN_OUTPUTS in common.sh (Logos.lean, LogosTerm.lean, Parser.lean,
+# Output: first compiles the model-smt signatures, saying what smt_defs.eo and
+# user_defs.eo were each compiled from; see eoc_compile_sem_signatures in
+# common.sh. It then reads the generated Lean files from tools/eoc/out/lean/
+# and installs them under $LOGOS_DIR/Cpc, namely the signature-wide modules
+# listed in EOC_LEAN_OUTPUTS in common.sh (Logos.lean, LogosTerm.lean, Parser.lean,
 # SmtEval.lean, SmtModelDefs.lean, SmtValueOrder.lean, SmtModel.lean and
 # Spec.lean directly in $LOGOS_DIR/Cpc, RuleLemmas.lean in
 # $LOGOS_DIR/Cpc/Proofs) and the per-rule files in $LOGOS_DIR/Cpc/Proofs/Rules.
 # Existing rule files there are preserved, and imports are rewritten from the
 # generated source module to Cpc. It then optionally regenerates example files
-# from $LOGOS_TESTS_DIR when that directory exists.
+# from $LOGOS_TESTS_DIR when that directory exists, leaving nothing of its own
+# behind there.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -22,6 +25,9 @@ LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
 LOGOS_TESTS_DIR="${LOGOS_TESTS_DIR:-$EOC_REPO_ROOT/smtlibTests/logos-tests}"
 CVC5_LOGOS="${CVC5_LOGOS:-$HOME/bin/cvc5-logos}"
 CPC_GEN_LOGOS_CMD="${CPC_GEN_LOGOS_CMD:-cpc_gen_logos.sh}"
+
+echo "********* Compiling model-smt signatures *********"
+eoc_compile_sem_signatures
 
 echo "********* Generating Lean signature *********"
 "$SCRIPT_DIR/run_gen_lean_all"
@@ -38,6 +44,10 @@ if [[ -d "$LOGOS_TESTS_DIR" ]] \
   (
     cd "$LOGOS_TESTS_DIR"
     shopt -s nullglob
+    # The generator writes what it read and what it wrote beside each input,
+    # as temp.txt and <input>.cpc.lean; what the run wanted is the copy under
+    # $LOGOS_DIR/examples, so the rest goes however this ends.
+    trap 'rm -f temp.lean temp.txt ./*.smt2.cpc.lean' EXIT
     for file in *.smt2; do
       base_file="$(basename "$file")"
       base_name="${base_file%.*}"
@@ -45,7 +55,6 @@ if [[ -d "$LOGOS_TESTS_DIR" ]] \
       "$CPC_GEN_LOGOS_CMD" "$CVC5_LOGOS" "$file" > temp.lean
       mkdir -p "$LOGOS_DIR/examples"
       cp temp.lean "$LOGOS_DIR/examples/test-$base_name.cpc.lean"
-      rm -f temp.lean
     done
   )
 elif [[ -d "$LOGOS_TESTS_DIR" ]]; then

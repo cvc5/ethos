@@ -10,13 +10,21 @@ EOC_REPO_ROOT="$(cd "$EOC_COMPAT_DIR/../../.." && pwd)"
 EOC_DRIVER="$EOC_TOOLS_DIR/driver.py"
 # The input is the CPC signature itself. What its symbols mean to the model is
 # said by a signature of its own, written in the deep embedding, which the
-# model-smt stage is given with --defs.
-EOC_DEFAULT_CPC_INPUT="$EOC_REPO_ROOT/../cvc5/proofs/eo/cpc/Cpc.eo"
-EOC_DEFAULT_CPC_DEFS="$EOC_REPO_ROOT/plugins/model_smt/cpc_defs.eo"
+# model-smt stage is given with --signature.
+#
+# What is named here is the *configuration* of that signature rather than the
+# signature itself: the driver compiles it before the model-smt stage and gives
+# the stage what it compiled to, so the two are never out of step. See
+# compile_signatures in tools/eoc/driver.py.
+EOC_DEFAULT_CPC_INPUT="$EOC_REPO_ROOT/../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
+EOC_DEFAULT_CPC_SIGNATURE="$EOC_TOOLS_DIR/semantics/development-cpc.eos"
+# The SMT-LIB semantics it is written against, which is the target of the
+# compilation and so the same whichever input a run compiles.
+EOC_DEFAULT_SEMANTICS="$EOC_TOOLS_DIR/semantics/smt.eos"
 # Why each of its recursive programs terminates, which the generated Lean has
 # to say and the compiler cannot derive; given to the lean-meta stage with
 # --lean-config.
-EOC_DEFAULT_CPC_LEAN_CONFIG="$EOC_REPO_ROOT/plugins/lean_meta/cpc_termination.lean"
+EOC_DEFAULT_CPC_LEAN_CONFIG="$EOC_TOOLS_DIR/out/user_termination.lean"
 EOC_DEFAULT_ALETHE_INPUT="$EOC_REPO_ROOT/../AletheInEunoia/signature/Alethe.eo"
 EOC_DEFAULT_FINAL_OUT_DIR="$EOC_TOOLS_DIR/out"
 
@@ -36,18 +44,32 @@ eoc_cpc_input() {
   printf '%s\n' "${EOC_CPC_INPUT:-$EOC_DEFAULT_CPC_INPUT}"
 }
 
-eoc_cpc_defs() {
-  printf '%s\n' "${EOC_CPC_DEFS:-$EOC_DEFAULT_CPC_DEFS}"
+eoc_cpc_signature() {
+  printf '%s\n' "${EOC_CPC_SIGNATURE:-$EOC_DEFAULT_CPC_SIGNATURE}"
 }
 
 # Append the signature of the input to ARGS. An input given by the caller has a
 # signature of its own or none at all, so the default is used only for the
 # default input.
-eoc_add_defs() {
-  if [[ -n "${EOC_CPC_DEFS:-}" ]]; then
-    ARGS+=("--defs=${EOC_CPC_DEFS}")
+eoc_add_signature() {
+  if [[ -n "${EOC_CPC_SIGNATURE:-}" ]]; then
+    ARGS+=("--signature=${EOC_CPC_SIGNATURE}")
   elif [[ -z "${EOC_CPC_INPUT:-}" ]]; then
-    ARGS+=("--defs=$EOC_DEFAULT_CPC_DEFS")
+    ARGS+=("--signature=$EOC_DEFAULT_CPC_SIGNATURE")
+  fi
+}
+
+# The SMT-LIB semantics the signature of an input is written against, which
+# every input is compiled through. It is the target of the compilation, so a
+# run leaves it to the one the model-smt stage ships with unless it names
+# another; naming one is what says the semantics are a configuration too.
+eoc_semantics() {
+  printf '%s\n' "${EOC_SEMANTICS:-$EOC_DEFAULT_SEMANTICS}"
+}
+
+eoc_add_semantics() {
+  if [[ -n "${EOC_SEMANTICS:-}" ]]; then
+    ARGS+=("--semantics=${EOC_SEMANTICS}")
   fi
 }
 
@@ -56,7 +78,8 @@ eoc_cpc_lean_config() {
 }
 
 # Append the Lean configuration of the input to ARGS, on the same terms as
-# eoc_add_defs: an input given by the caller has one of its own or none at all.
+# eoc_add_signature: an input given by the caller has one of its own or none
+# at all.
 eoc_add_lean_config() {
   if [[ -n "${EOC_CPC_LEAN_CONFIG:-}" ]]; then
     ARGS+=("--lean-config=${EOC_CPC_LEAN_CONFIG}")
@@ -210,6 +233,48 @@ eoc_rewrite_lean_calc_imports() {
       "s/import \\(all \\)\\{0,1\\}${src_calc}\\./import \\1${dst_calc}\\./g" \
       "$file"
   done < <(find "$dest_dir" -type f -name '*.lean' -print0)
+}
+
+# Compile the configuration of the model-smt signatures and say what came out,
+# in the same shape as eoc_copy_lean_outputs reports the Lean files.
+#
+# The stage reads two signatures written in the deep embedding: the SMT-LIB one,
+# smt_defs.eo, which it finds for itself since it is the target, and the input's,
+# user_defs.eo, which --signature names. Both are generated from the configuration
+# under tools/eoc/semantics. The driver compiles them before any stage runs
+# (see compile_signatures in tools/eoc/driver.py) but does so silently, so a run
+# never says where user_defs.eo came from; this compiles them first and prints
+# it. Doing so costs nothing and leaves the driver's own pass with nothing to
+# do: a file is written only where its text changed.
+#
+# The set of configurations is read from sem_compile itself rather than listed
+# here, so it cannot drift. One named with EOC_CPC_SIGNATURE that is not among them
+# is compiled by the driver during the run rather than reported here.
+eoc_compile_sem_signatures() {
+  echo "Compiling the configuration under" \
+    "$EOC_TOOLS_DIR/semantics"
+  python3 - "$EOC_TOOLS_DIR" <<'EOC_SEM_PY'
+import os, sys
+sys.path.insert(0, sys.argv[1])
+import sem_compile
+
+def rel(path):
+  return os.path.relpath(path, sem_compile.ROOT)
+
+for config, blocks in sem_compile.compile_all(sem_compile.CONFIGS):
+  # A set writes the signature in the deep embedding that the model-smt stage
+  # reads, and the clauses the lean-meta stage is to append to what it writes.
+  for text, target, what in (
+      (sem_compile.render(blocks, config), config.target,
+       '%d blocks' % len(blocks)),
+      (sem_compile.render_lean(config), config.lean_target,
+       '%d clauses' % len(config.clauses))):
+    changed = sem_compile.write_if_changed(text, target)
+    print('  %s -> %s (%s, %s)'
+          % (rel(config.path), rel(target),
+             'wrote' if changed else 'unchanged', what))
+  print('    %s' % sem_compile.summary(config))
+EOC_SEM_PY
 }
 
 # The signature-wide Lean files installed by eoc_copy_lean_outputs, in module

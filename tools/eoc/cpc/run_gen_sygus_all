@@ -21,6 +21,7 @@ if (( ${#EOC_FILTERED_ARGS[@]} > 1 )); then
 fi
 INPUT="${EOC_FILTERED_ARGS[0]:-$(eoc_cpc_input)}"
 ARGS[5]="$INPUT"
-eoc_add_defs
+eoc_add_signature
+eoc_add_semantics
 
 eoc_exec_driver "${ARGS[@]}"

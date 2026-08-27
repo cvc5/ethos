@@ -267,7 +267,7 @@ def __eo_is_closed_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Var s T), Term.__eo_List_nil => (Term.Boolean false)
-  | (Term.Var s T), (Term.Apply (Term.Apply Term.__eo_List_cons x) vs) => 
+  | (Term.Var s T), (Term.Apply (Term.Apply Term.__eo_List_cons x) vs) =>
     let _v0 := (Term.Var s T)
     (__eo_ite (__eo_eq _v0 x) (Term.Boolean true) (__eo_is_closed_rec _v0 vs))
   | (Term.Apply f x), env => (__eo_and (__eo_is_closed_rec f env) (__eo_is_closed_rec x env))
@@ -436,7 +436,7 @@ def __eo_checker_is_refutation : Term -> CCmdList -> native_Bool
 
 /- Definition of refutation -/
 inductive eo_is_refutation : Term -> CCmdList -> Prop
-  | intro (F : Term) (c : CCmdList) : 
+  | intro (F : Term) (c : CCmdList) :
     (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 
 
