@@ -101,16 +101,6 @@ bool isEmbedMetaKind(MetaKind k);
  */
 const std::string& getParseDefPrefix();
 /** Return true if name is the name of a parse definition. */
-/**
- * The text with no line ending in a blank.
- *
- * What a stage writes is compared byte for byte with what is checked in, so
- * nothing may end a line that a reader cannot see. A comment taken off the end
- * of a line is where such a blank comes from: the space that stood before the
- * `;` stays behind once the comment is gone.
- */
-std::string rtrimLines(const std::string& text);
-
 bool isParseDefName(const std::string& name);
 /**
  * Return the name of the parse definition for the definition named name, i.e.
