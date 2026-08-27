@@ -90,9 +90,8 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
   }
   if (name == "model-smt")
   {
-    // With no --signature the plugin reads the signature it defaults to; naming
-    // one that is empty would instead fail once the stage runs. With no
-    // --semantics it reads the SMT-LIB signature it ships with.
+    // Naming neither leaves the plugin the SMT-LIB semantics it ships with
+    // and no signature of an input, which fails once the stage runs.
     if (defsFile.empty() && smtDefsFile.empty())
     {
       return std::make_unique<ModelSmt>(s);
@@ -149,20 +148,19 @@ int main(int argc, char* argv[])
       trimNatives = false;
       continue;
     }
-    if (arg.compare(0, 12, "--semantics=") == 0)
-    {
-      // The SMT-LIB signature written in the deep embedding, which the input's
-      // is written against. The plugin ships with one, so this is what names
-      // another; like --signature, it is read by the model-smt plugin alone.
-      smtDefsFile = arg.substr(12);
-      continue;
-    }
     if (arg.compare(0, 12, "--signature=") == 0)
     {
       // The signature of the input written in the deep embedding, which says
       // what each of its symbols means to the model. It is read by the
       // model-smt plugin alone; no stage before that one sees it.
       defsFile = arg.substr(12);
+      continue;
+    }
+    if (arg.compare(0, 12, "--semantics=") == 0)
+    {
+      // The SMT-LIB semantics it is written against, which the plugin ships
+      // with; this is what names another. It is read by the same plugin alone.
+      smtDefsFile = arg.substr(12);
       continue;
     }
     if (arg.compare(0, 14, "--lean-config=") == 0)
@@ -238,13 +236,13 @@ int main(int argc, char* argv[])
   {
     EO_FATAL() << "Error: --no-parser requires --plugin.lean-meta";
   }
-  if (!smtDefsFile.empty() && pluginName != "model-smt")
-  {
-    EO_FATAL() << "Error: --semantics requires --plugin.model-smt";
-  }
   if (!defsFile.empty() && pluginName != "model-smt")
   {
     EO_FATAL() << "Error: --signature requires --plugin.model-smt";
+  }
+  if (!smtDefsFile.empty() && pluginName != "model-smt")
+  {
+    EO_FATAL() << "Error: --semantics requires --plugin.model-smt";
   }
   if (!leanConfigFile.empty() && pluginName != "lean-meta")
   {
