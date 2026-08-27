@@ -10,9 +10,9 @@
 # Spec.lean directly in $LOGOS_DIR/Cpc, RuleLemmas.lean in
 # $LOGOS_DIR/Cpc/Proofs) and the per-rule files in $LOGOS_DIR/Cpc/Proofs/Rules.
 # Existing rule files there are preserved, and imports are rewritten from the
-# generated source module to Cpc. It then optionally regenerates example files
-# from $LOGOS_TESTS_DIR when that directory exists, leaving nothing of its own
-# behind there.
+# generated source module to Cpc. It then optionally regenerates the Lean
+# regressions under $LOGOS_DIR/test/regress from $LOGOS_TESTS_DIR when that
+# directory exists, leaving nothing of its own behind there.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -23,6 +23,7 @@ FINAL_OUT_DIR="$(eoc_final_out_dir)"
 SOURCE_INPUT="$(eoc_cpc_input)"
 LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
 LOGOS_TESTS_DIR="${LOGOS_TESTS_DIR:-$EOC_REPO_ROOT/smtlibTests/logos-tests}"
+LOGOS_REGRESS_DIR="${LOGOS_REGRESS_DIR:-$LOGOS_DIR/test/regress}"
 CVC5_LOGOS="${CVC5_LOGOS:-$HOME/bin/cvc5-logos}"
 CPC_GEN_LOGOS_CMD="${CPC_GEN_LOGOS_CMD:-cpc_gen_logos.sh}"
 
@@ -46,19 +47,19 @@ if [[ -d "$LOGOS_TESTS_DIR" ]] \
     shopt -s nullglob
     # The generator writes what it read and what it wrote beside each input,
     # as temp.txt and <input>.cpc.lean; what the run wanted is the copy under
-    # $LOGOS_DIR/examples, so the rest goes however this ends.
+    # $LOGOS_DIR/test/regress, so the rest goes however this ends.
     trap 'rm -f temp.lean temp.txt ./*.smt2.cpc.lean' EXIT
     for file in *.smt2; do
       base_file="$(basename "$file")"
       base_name="${base_file%.*}"
-      echo "Generating $CVC5_LOGOS $PWD/$file to $LOGOS_DIR/examples/test-$base_name.cpc.lean"
+      echo "Generating $CVC5_LOGOS $PWD/$file to $LOGOS_REGRESS_DIR/test-$base_name.cpc.lean"
       "$CPC_GEN_LOGOS_CMD" "$CVC5_LOGOS" "$file" > temp.lean
-      mkdir -p "$LOGOS_DIR/examples"
-      cp temp.lean "$LOGOS_DIR/examples/test-$base_name.cpc.lean"
+      mkdir -p "$LOGOS_REGRESS_DIR"
+      cp temp.lean "$LOGOS_REGRESS_DIR/test-$base_name.cpc.lean"
     done
   )
 elif [[ -d "$LOGOS_TESTS_DIR" ]]; then
-  echo "warning: skipping Logos examples; CPC_GEN_LOGOS_CMD or CVC5_LOGOS is unavailable" >&2
+  echo "warning: skipping Logos regressions; CPC_GEN_LOGOS_CMD or CVC5_LOGOS is unavailable" >&2
 fi
 
 echo "********* Clean *********"
