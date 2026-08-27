@@ -119,7 +119,7 @@ LEAN_GENERATED = """\
 -- definition rather than written into a resource, so it is not one of the
 -- blocks that layer is trimmed by and a name it gave would keep nothing
 -- alive. Every native type abbreviates a Lean type, which is what a clause
--- writes instead. See LeanMetaReduce::trimNativeDefs.
+-- writes instead. See LeanMetaReduce::placeNativeDefs.
 --
 %s"""
 

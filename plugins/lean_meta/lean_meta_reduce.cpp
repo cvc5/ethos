@@ -9,6 +9,7 @@
 
 #include "lean_meta_reduce.h"
 
+#include <algorithm>
 #include <cctype>
 #include <fstream>
 #include <sstream>
@@ -228,11 +229,12 @@ std::string LeanMetaReduce::getLeanDeclName(const std::string& line)
   return "";
 }
 
-std::vector<LeanMetaReduce::NativeSegment> LeanMetaReduce::readNativeResource(
-    const std::string& text, std::vector<std::string>& roots)
+LeanMetaReduce::NativeFile LeanMetaReduce::readNativeResource(
+    const std::string& text)
 {
-  std::vector<NativeSegment> segs;
+  NativeFile nf;
   std::vector<std::string> names;
+  std::string needs;
   std::stringstream body;
   // A segment ends where the next marker begins, so what has been read is
   // taken once the whole of it is known, here and again at the end of file.
@@ -240,7 +242,8 @@ std::vector<LeanMetaReduce::NativeSegment> LeanMetaReduce::readNativeResource(
     std::string btext = body.str();
     if (!btext.empty())
     {
-      segs.push_back(NativeSegment{names, btext});
+      nf.d_segs.push_back(
+          NativeSegment{names, btext, names.empty() ? "" : needs, ""});
     }
     else if (!names.empty())
     {
@@ -250,6 +253,17 @@ std::vector<LeanMetaReduce::NativeSegment> LeanMetaReduce::readNativeResource(
     names.clear();
     body.str("");
   };
+  // The words a marker line carries.
+  auto words = [](const std::string& line, size_t from) {
+    std::vector<std::string> ws;
+    std::stringstream ls(line.substr(from));
+    std::string w;
+    while (ls >> w)
+    {
+      ws.push_back(w);
+    }
+    return ws;
+  };
   std::istringstream in(text);
   std::string line;
   while (std::getline(in, line))
@@ -257,12 +271,48 @@ std::vector<LeanMetaReduce::NativeSegment> LeanMetaReduce::readNativeResource(
     if (line.compare(0, 16, "-- $native-root ") == 0)
     {
       take();
-      std::stringstream ls(line.substr(16));
-      std::string name;
-      while (ls >> name)
+      std::vector<std::string> ws = words(line, 16);
+      nf.d_roots.insert(nf.d_roots.end(), ws.begin(), ws.end());
+      continue;
+    }
+    if (line.compare(0, 17, "-- $native-needs ") == 0)
+    {
+      take();
+      std::vector<std::string> ws = words(line, 17);
+      if (ws.size() != 1)
       {
-        roots.push_back(name);
+        EO_FATAL() << "LeanMetaReduce: `-- $native-needs` takes one scope";
       }
+      needs = ws[0];
+      continue;
+    }
+    if (line.compare(0, 16, "-- $native-sees ") == 0)
+    {
+      take();
+      std::vector<std::string> ws = words(line, 16);
+      if (ws.empty())
+      {
+        EO_FATAL() << "LeanMetaReduce: `-- $native-sees` names no scope";
+      }
+      nf.d_sees.insert(ws.begin(), ws.end());
+      continue;
+    }
+    if (line.compare(0, 17, "-- $native-place ") == 0)
+    {
+      take();
+      std::vector<std::string> ws = words(line, 17);
+      if (ws.size() != 1)
+      {
+        EO_FATAL() << "LeanMetaReduce: `-- $native-place` takes one scope";
+      }
+      if (!nf.d_place.empty())
+      {
+        EO_FATAL() << "LeanMetaReduce: a file is the home of more than one "
+                      "scope of the native layer";
+      }
+      nf.d_place = ws[0];
+      nf.d_sees.insert(ws[0]);
+      nf.d_segs.push_back(NativeSegment{{}, "", "", ws[0]});
       continue;
     }
     if (line.compare(0, 14, "-- $native-end") == 0)
@@ -273,12 +323,7 @@ std::vector<LeanMetaReduce::NativeSegment> LeanMetaReduce::readNativeResource(
     if (line.compare(0, 11, "-- $native ") == 0)
     {
       take();
-      std::stringstream ls(line.substr(11));
-      std::string name;
-      while (ls >> name)
-      {
-        names.push_back(name);
-      }
+      names = words(line, 11);
       if (names.empty())
       {
         EO_FATAL() << "LeanMetaReduce: a native block names nothing";
@@ -288,13 +333,34 @@ std::vector<LeanMetaReduce::NativeSegment> LeanMetaReduce::readNativeResource(
     body << line << std::endl;
   }
   take();
-  return segs;
+  return nf;
 }
 
-void LeanMetaReduce::trimNativeDefs()
+void LeanMetaReduce::placeNativeDefs()
 {
-  std::vector<std::vector<NativeSegment>> resources;
-  std::vector<std::string> roots;
+  // The library, which is not one of the files this run wrote: it is read
+  // from the resources and its blocks are written into the files below.
+  NativeFile lib;
+  {
+    std::string libPath =
+        getResourcePath("plugins/lean_meta/lean_meta_native.lean");
+    std::ifstream in(libPath);
+    if (!in.is_open())
+    {
+      EO_FATAL() << "LeanMetaReduce: could not read " << libPath;
+    }
+    std::stringstream ss;
+    ss << in.rdbuf();
+    lib = readNativeResource(ss.str());
+  }
+  if (!lib.d_roots.empty())
+  {
+    EO_FATAL() << "LeanMetaReduce: the native library declares the root `"
+               << lib.d_roots[0]
+               << "`; a root is declared by the file that demands it, which "
+                  "is what says where it comes out";
+  }
+  std::vector<NativeFile> files;
   // whether the file at the same index says anything about the native layer,
   // which is what tells a file that has to be written again from one whose
   // text this stage leaves as it found it
@@ -308,21 +374,26 @@ void LeanMetaReduce::trimNativeDefs()
     }
     std::stringstream ss;
     ss << in.rdbuf();
-    size_t nroots = roots.size();
-    resources.push_back(readNativeResource(ss.str(), roots));
-    bool hasMarker = roots.size() > nroots;
-    for (const NativeSegment& seg : resources.back())
+    files.push_back(readNativeResource(ss.str()));
+    const NativeFile& nf = files.back();
+    bool hasMarker = !nf.d_roots.empty() || !nf.d_sees.empty();
+    for (const NativeSegment& seg : nf.d_segs)
     {
-      hasMarker = hasMarker || !seg.d_names.empty();
+      hasMarker = hasMarker || !seg.d_names.empty() || !seg.d_place.empty();
     }
     marked.push_back(hasMarker);
   }
-  // the blocks of the native layer, by each of the names they define
+  size_t nfiles = files.size();
+  // The blocks of the native layer, by each of the names they define. A
+  // block of the library is placed by the demand for it; a block that stands
+  // in a generated file is kept or dropped where it stands, since what its
+  // file writes around it is what it belongs with.
   std::map<std::string, size_t> blocks;
-  std::vector<const std::string*> blockText;
-  for (const std::vector<NativeSegment>& segs : resources)
-  {
-    for (const NativeSegment& seg : segs)
+  std::vector<const NativeSegment*> blockSegs;
+  // the file a block stands in, or nfiles for a block of the library
+  std::vector<size_t> blockHome;
+  auto addBlocks = [&](const NativeFile& nf, size_t home) {
+    for (const NativeSegment& seg : nf.d_segs)
     {
       if (seg.d_names.empty())
       {
@@ -343,33 +414,24 @@ void LeanMetaReduce::trimNativeDefs()
           EO_FATAL() << "LeanMetaReduce: the native block of `" << name
                      << "` never mentions it";
         }
-        blocks[name] = blockText.size();
+        blocks[name] = blockSegs.size();
       }
-      blockText.push_back(&seg.d_text);
+      blockSegs.push_back(&seg);
+      blockHome.push_back(home);
     }
-  }
-  for (const std::string& root : roots)
+  };
+  addBlocks(lib, nfiles);
+  for (size_t i = 0; i < nfiles; i++)
   {
-    if (blocks.find(root) == blocks.end())
-    {
-      EO_FATAL() << "LeanMetaReduce: `" << root
-                 << "` is declared a native root but no block defines it";
-    }
+    addBlocks(files[i], i);
   }
-  // What the compilation reaches. The text around the blocks is what the
-  // generated definitions were spliced into, so it is what asks for the
-  // native layer in the first place; a definition of the layer that no name
-  // in that text leads to is dead for this input.
-  std::vector<std::string> work(roots.begin(), roots.end());
-  for (const std::vector<NativeSegment>& segs : resources)
-  {
-    for (const NativeSegment& seg : segs)
+  // A definition of the native layer that its own block does not name is
+  // kept or dropped with whatever block swallowed it, or emitted for every
+  // input when none did, rather than on the demand for it.
+  auto checkDecls = [](const NativeFile& nf) {
+    for (const NativeSegment& seg : nf.d_segs)
     {
-      // A definition of the native layer that its own block does not name is
-      // kept or dropped with whatever block swallowed it, or emitted for
-      // every input when none did, rather than on the demand for it.
-      std::string code = stripLeanText(seg.d_text);
-      std::istringstream cin(code);
+      std::istringstream cin(stripLeanText(seg.d_text));
       std::string line;
       while (std::getline(cin, line))
       {
@@ -385,57 +447,239 @@ void LeanMetaReduce::trimNativeDefs()
         }
         if (!named)
         {
-          EO_FATAL() << "LeanMetaReduce: `" << decl
-                     << "` is defined "
+          EO_FATAL() << "LeanMetaReduce: `" << decl << "` is defined "
                      << (seg.d_names.empty()
                              ? "outside a native block"
                              : "in the native block of `" + seg.d_names[0]
                                    + "`, which does not name it");
         }
       }
-      if (!seg.d_names.empty())
+    }
+  };
+  checkDecls(lib);
+  for (const NativeFile& nf : files)
+  {
+    checkDecls(nf);
+  }
+  // The library is blocks and the comments that introduce them: text of its
+  // own would be emitted nowhere, since only its blocks are written out.
+  for (const NativeSegment& seg : lib.d_segs)
+  {
+    if (!seg.d_names.empty())
+    {
+      if (seg.d_needs.empty())
+      {
+        EO_FATAL() << "LeanMetaReduce: the native block of `"
+                   << seg.d_names[0]
+                   << "` comes before any `-- $native-needs`, so what it "
+                      "needs in scope is not said";
+      }
+      continue;
+    }
+    std::string code = stripLeanText(seg.d_text);
+    if (code.find_first_not_of(" \t\r\n") != std::string::npos)
+    {
+      EO_FATAL() << "LeanMetaReduce: the native library has Lean outside a "
+                    "block, which no file would be written";
+    }
+  }
+  for (size_t i = 0; i < nfiles; i++)
+  {
+    for (const std::string& root : files[i].d_roots)
+    {
+      if (blocks.find(root) == blocks.end())
+      {
+        EO_FATAL() << "LeanMetaReduce: `" << root
+                   << "` is declared a native root but no block defines it";
+      }
+    }
+  }
+  // What each file of this run reaches. The text around the blocks is what
+  // the generated definitions were spliced into, so it is what asks for the
+  // native layer in the first place; a definition of the layer that no name
+  // in that text leads to is dead for this input. Which file it is that
+  // reaches a block is what says where the block can come out, so the
+  // closure is taken one file at a time rather than over all of them at once.
+  std::vector<std::set<std::string>> reach(nfiles);
+  for (size_t i = 0; i < nfiles; i++)
+  {
+    std::vector<std::string> work(files[i].d_roots.begin(),
+                                  files[i].d_roots.end());
+    for (const NativeSegment& seg : files[i].d_segs)
+    {
+      if (!seg.d_names.empty() || !seg.d_place.empty())
       {
         continue;
       }
       std::set<std::string> ids;
-      collectNativeNames(code, blocks, ids);
+      collectNativeNames(stripLeanText(seg.d_text), blocks, ids);
       work.insert(work.end(), ids.begin(), ids.end());
     }
+    while (!work.empty())
+    {
+      std::string name = work.back();
+      work.pop_back();
+      if (!reach[i].insert(name).second)
+      {
+        continue;
+      }
+      std::map<std::string, size_t>::const_iterator it = blocks.find(name);
+      AlwaysAssert(it != blocks.end())
+          << "Asked to keep the native block of " << name << ", which has none";
+      std::set<std::string> ids;
+      collectNativeNames(
+          stripLeanText(blockSegs[it->second]->d_text), blocks, ids);
+      work.insert(work.end(), ids.begin(), ids.end());
+    }
+  }
+  std::set<std::string> keep;
+  for (size_t i = 0; i < nfiles; i++)
+  {
+    keep.insert(reach[i].begin(), reach[i].end());
   }
   if (!d_trimNatives)
   {
     for (const std::pair<const std::string, size_t>& b : blocks)
     {
-      work.push_back(b.first);
+      keep.insert(b.first);
     }
   }
-  std::set<std::string> keep;
-  while (!work.empty())
+  // Where a block of the library can come out. A file that is the home of a
+  // scope covers itself and every file that has that scope in scope, which
+  // is the set of files a block written there is of use to.
+  struct NativePlace
   {
-    std::string name = work.back();
-    work.pop_back();
-    if (!keep.insert(name).second)
+    size_t d_file;
+    std::string d_scope;
+    std::set<size_t> d_cover;
+  };
+  std::vector<NativePlace> places;
+  for (size_t i = 0; i < nfiles; i++)
+  {
+    if (files[i].d_place.empty())
     {
       continue;
     }
-    std::map<std::string, size_t>::const_iterator it = blocks.find(name);
-    AlwaysAssert(it != blocks.end())
-        << "Asked to keep the native block of " << name << ", which has none";
-    std::set<std::string> ids;
-    collectNativeNames(stripLeanText(*blockText[it->second]), blocks, ids);
-    work.insert(work.end(), ids.begin(), ids.end());
+    NativePlace p;
+    p.d_file = i;
+    p.d_scope = files[i].d_place;
+    p.d_cover.insert(i);
+    for (size_t j = 0; j < nfiles; j++)
+    {
+      // Every file has the scope of the library that needs nothing of the
+      // embeddings in scope, so it is not one a file has to name.
+      if (p.d_scope == "SmtEval"
+          || files[j].d_sees.find(p.d_scope) != files[j].d_sees.end())
+      {
+        p.d_cover.insert(j);
+      }
+    }
+    for (const NativePlace& q : places)
+    {
+      if (q.d_scope == p.d_scope)
+      {
+        EO_FATAL() << "LeanMetaReduce: more than one file is the home of the "
+                   << p.d_scope << " scope of the native layer";
+      }
+    }
+    places.push_back(p);
   }
-  size_t nblocks = blockText.size();
-  size_t dropped = 0;
-  for (size_t i = 0, nfiles = d_leanOutputs.size(); i < nfiles; i++)
+  // What each file is written with, in the order the library gives.
+  std::vector<std::vector<size_t>> hosted(nfiles);
+  size_t nplaced = 0;
+  for (size_t b = 0, nblocks = blockSegs.size(); b < nblocks; b++)
+  {
+    if (blockHome[b] != nfiles)
+    {
+      continue;
+    }
+    const NativeSegment& seg = *blockSegs[b];
+    bool kept = false;
+    for (const std::string& name : seg.d_names)
+    {
+      kept = kept || keep.find(name) != keep.end();
+    }
+    if (!kept)
+    {
+      continue;
+    }
+    // The files that reach it, which the file it comes out in has to cover.
+    std::set<size_t> demand;
+    if (d_trimNatives)
+    {
+      for (size_t i = 0; i < nfiles; i++)
+      {
+        for (const std::string& name : seg.d_names)
+        {
+          if (reach[i].find(name) != reach[i].end())
+          {
+            demand.insert(i);
+            break;
+          }
+        }
+      }
+    }
+    const NativePlace* best = nullptr;
+    for (const NativePlace& p : places)
+    {
+      // A block goes no higher than what it needs in scope, and when it
+      // needs nothing of the embeddings it can go anywhere.
+      if (seg.d_needs != "SmtEval" && seg.d_needs != p.d_scope)
+      {
+        continue;
+      }
+      // Emitting the whole layer is asking for the library as it is written,
+      // so each block comes out where its own scope is at home.
+      if (!d_trimNatives && seg.d_needs != p.d_scope)
+      {
+        continue;
+      }
+      if (!std::includes(p.d_cover.begin(),
+                         p.d_cover.end(),
+                         demand.begin(),
+                         demand.end()))
+      {
+        continue;
+      }
+      // The narrowest home that will do, so that a definition one module
+      // reaches is written in that module rather than in what they share.
+      if (best == nullptr || p.d_cover.size() < best->d_cover.size())
+      {
+        best = &p;
+      }
+    }
+    if (best == nullptr)
+    {
+      EO_FATAL() << "LeanMetaReduce: the native block of `" << seg.d_names[0]
+                 << "` needs " << seg.d_needs
+                 << " in scope but no file that is the home of a scope it "
+                    "can go in covers what reaches it";
+    }
+    hosted[best->d_file].push_back(b);
+    nplaced++;
+  }
+  size_t nlib = 0;
+  for (size_t b = 0, nblocks = blockSegs.size(); b < nblocks; b++)
+  {
+    nlib += blockHome[b] == nfiles ? 1 : 0;
+  }
+  for (size_t i = 0; i < nfiles; i++)
   {
     if (!marked[i])
     {
       continue;
     }
     std::stringstream out;
-    for (const NativeSegment& seg : resources[i])
+    for (const NativeSegment& seg : files[i].d_segs)
     {
+      if (!seg.d_place.empty())
+      {
+        for (size_t b : hosted[i])
+        {
+          out << blockSegs[b]->d_text;
+        }
+        continue;
+      }
       bool kept = seg.d_names.empty();
       for (const std::string& name : seg.d_names)
       {
@@ -443,7 +687,6 @@ void LeanMetaReduce::trimNativeDefs()
       }
       if (!kept)
       {
-        dropped++;
         continue;
       }
       out << seg.d_text;
@@ -460,8 +703,8 @@ void LeanMetaReduce::trimNativeDefs()
       EO_FATAL() << "LeanMetaReduce: failed to write " << d_leanOutputs[i];
     }
   }
-  Trace("lean-meta") << "Trim natives: kept " << (nblocks - dropped) << " of "
-                     << nblocks << " blocks" << std::endl;
+  Trace("lean-meta") << "Place natives: wrote " << nplaced << " of " << nlib
+                     << " blocks of the library" << std::endl;
 }
 
 void LeanMetaReduce::readTerminationClauses(const std::string& path)
@@ -487,7 +730,7 @@ void LeanMetaReduce::readTerminationClauses(const std::string& path)
       // into a resource, so it is not one of the blocks the native layer is
       // trimmed by and naming the layer here would keep nothing alive. Every
       // native type is an abbreviation of the Lean type it stands for, which
-      // is what a measure writes instead. See trimNativeDefs.
+      // is what a measure writes instead. See placeNativeDefs.
       if (text.find("native_") != std::string::npos)
       {
         EO_FATAL() << "LeanMetaReduce: the termination clause of "
@@ -2151,7 +2394,7 @@ void LeanMetaReduce::finalize()
   finalizeLemmas();
   // Every file is written by now, so what they ask of the native layer is
   // known and the rest of it can go.
-  trimNativeDefs();
+  placeNativeDefs();
 }
 
 void LeanMetaReduce::printStepCase(std::ostream& out,

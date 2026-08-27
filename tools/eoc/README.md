@@ -203,6 +203,55 @@ for it by name. A definition that no block names is an error rather than one
 that is quietly emitted for every input, and so is a block whose text never
 mentions a name its header gives.
 
+### Where a definition comes out
+
+The blocks are one library, `plugins/lean_meta/lean_meta_native.lean`, rather
+than text of the files they end up in, so that a definition is written once
+whichever of the generated modules turns out to want it. Where a block comes
+out is the demand for it: a definition that more than one module reaches is
+written into what they share, and one that a single module reaches is written
+into that module.
+
+What a module has in scope is what bounds this, since the layer is written
+across three namespaces. The library is in sections, each opened by the scope
+its blocks need:
+
+```lean
+-- $native-needs SmtEval
+-- $native-needs Eo
+-- $native-needs Smtm
+```
+
+`SmtEval` is what a block that is Lean and nothing else needs, `Eo` what a
+block over the Eunoia term embedding needs, and `Smtm` what a block over the
+SMT-LIB value embedding needs. A file that is the home of a scope says so, and
+the blocks that come out in it are written where it says:
+
+```lean
+-- $native-place Smtm
+```
+
+A file that is not the home of a scope but has one in scope says that instead,
+which is what makes it a module a block of that scope can be written for:
+
+```lean
+-- $native-sees Eo Smtm
+```
+
+`SmtEval` is in scope everywhere and is not one a file has to name. A block is
+written into the narrowest home that both has what the block needs in scope
+and is seen by every file that reaches it; `SmtEval` is seen by all of them,
+so a block that needs nothing always has a home. The result is that
+`native_zneg`, which is Lean arithmetic and nothing more, is written into
+`SmtEval.lean` for a signature whose model semantics negates and into
+`Logos.lean` for one where only the checker does.
+
+A block the file it stands in has to be read with is left in that file rather
+than moved to the library, and is only kept or dropped. The definitions inside
+`SmtModel.lean`'s `mutual ... end` are the ones this is of: they are mutually
+recursive with the generated evaluator, so their place is that block and not
+a library section.
+
 ### Roots
 
 Some of the layer is called by the package the published tree is installed
@@ -229,11 +278,11 @@ see what was dropped, run the stage with the whole layer emitted:
 build-eoc/ethos-eoc --plugin.lean-meta --no-trim-natives tools/eoc/out/lean-cpc-final.eo
 ```
 
-See `LeanMetaReduce::trimNativeDefs` in
+See `LeanMetaReduce::placeNativeDefs` in
 `plugins/lean_meta/lean_meta_reduce.cpp`. The blocks live in
-`lean_meta_smt_eval.lean`, `lean_meta_smt_model.lean`,
-`lean_meta_checker.lean` and `lean_meta_spec.lean`; the other Lean resources
-define none, and need say nothing.
+`lean_meta_native.lean`, apart from the ones `lean_meta_smt_model.lean` has to
+be read with; the other Lean resources define none, and say only what they see
+and where they are the home of a scope.
 
 ## Building `ethos-eoc`
 

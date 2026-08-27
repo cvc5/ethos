@@ -47,7 +47,7 @@ class LeanMetaReduce : public MetaReducePlugin
    * If generateParser is false, omit the signature-specific Logos parser
    * configuration while still emitting every other Lean artifact. If
    * trimNatives is false, emit the whole of the native layer rather than the
-   * part of it the compilation reaches, see trimNativeDefs.
+   * part of it the compilation reaches, see placeNativeDefs.
    */
   LeanMetaReduce(State& s,
                  bool generateParser = true,
@@ -114,7 +114,7 @@ class LeanMetaReduce : public MetaReducePlugin
  private:
   /** Whether to emit the signature-specific Logos parser configuration. */
   bool d_generateParser;
-  /** Whether the native layer is trimmed, see trimNativeDefs. */
+  /** Whether the native layer is trimmed, see placeNativeDefs. */
   bool d_trimNatives;
   /** The Lean files this run wrote, in the order it wrote them. */
   std::vector<std::string> d_leanOutputs;
@@ -195,15 +195,14 @@ class LeanMetaReduce : public MetaReducePlugin
    */
   void readTerminationClauses(const std::string& path);
   /**
-   * One segment of a generated Lean file, as its `-- $native` markers split
-   * it.
+   * One segment of a Lean file, as its `-- $native` markers split it.
    *
    * A segment that names something is a *block*, which is the unit the
-   * native layer is trimmed by: a definition the compilation of this input
-   * never reaches is left out of what the run publishes. A segment that
-   * names nothing is the text around the blocks, which is always emitted and
-   * is where the demand for a block comes from, since it is what the
-   * generated definitions are spliced into.
+   * native layer is kept or dropped by: a definition the compilation of this
+   * input never reaches is left out of what the run publishes. A segment
+   * that names nothing is the text around the blocks, which is always
+   * emitted and is where the demand for a block comes from, since it is what
+   * the generated definitions are spliced into.
    */
   struct NativeSegment
   {
@@ -211,10 +210,40 @@ class LeanMetaReduce : public MetaReducePlugin
     std::vector<std::string> d_names;
     /** Its text, with the marker lines themselves removed. */
     std::string d_text;
+    /**
+     * The scope of the layer this block needs in scope, which is the floor
+     * on where it can be emitted, see placeNativeDefs. Blocks of the library
+     * have one; a block that stands in a generated file has none, since it
+     * is emitted where it stands.
+     */
+    std::string d_needs;
+    /**
+     * Non-empty on a segment that is not text but a place: the blocks of
+     * this scope are emitted here. Such a segment has no text of its own.
+     */
+    std::string d_place;
   };
   /**
-   * Split text into segments at its `-- $native` markers, appending what it
-   * declares a root of the trimming to roots.
+   * What one Lean file says about the native layer: its segments, and the
+   * directives that are about the file rather than about a block.
+   */
+  struct NativeFile
+  {
+    /** Its segments, in the order they are written. */
+    std::vector<NativeSegment> d_segs;
+    /** What it keeps whatever the compilation reaches. */
+    std::vector<std::string> d_roots;
+    /**
+     * The scopes of the layer it has in scope. `SmtEval` is in every file,
+     * so it is not listed; the rest is what its imports and `open` lines
+     * amount to, which only the file itself knows.
+     */
+    std::set<std::string> d_sees;
+    /** The scope it is the home of, empty if it is the home of none. */
+    std::string d_place;
+  };
+  /**
+   * Split text into segments at its `-- $native` markers.
    *
    * A block is opened by `-- $native <name> ...`, whose names are what it
    * defines, and closed by the next such line or by `-- $native-end`. Naming
@@ -228,11 +257,16 @@ class LeanMetaReduce : public MetaReducePlugin
    * the package the published tree is installed into calls, since this
    * compiler never sees that side.
    *
+   * A `-- $native-needs <scope>` line opens the section of blocks that need
+   * that scope, and a `-- $native-sees <scope> ...` line says what a
+   * generated file has in scope. A `-- $native-place <scope>` line is where
+   * the blocks that come out in this file are written, and says that the
+   * file has that scope in scope as well.
+   *
    * A file with no markers is one segment naming nothing, so a stage that
    * emits no native definitions has nothing to say.
    */
-  static std::vector<NativeSegment> readNativeResource(
-      const std::string& text, std::vector<std::string>& roots);
+  static NativeFile readNativeResource(const std::string& text);
   /**
    * Return text with its comments and the bodies of its string literals
    * removed, which is what the names a segment mentions are read off: a
@@ -256,16 +290,16 @@ class LeanMetaReduce : public MetaReducePlugin
   static std::string getLeanDeclName(const std::string& line);
   /**
    * Emit a Lean file as emitResourceFile does and remember its path, so that
-   * trimNativeDefs sees every file this run wrote.
+   * placeNativeDefs sees every file this run wrote.
    */
   std::string emitLeanFile(const std::string& resourcePath,
                            const std::string& outputPath,
                            const std::vector<Replacement>& replacements,
                            bool replAll = false);
   /**
-   * Drop from the files this run wrote every native definition its
-   * compilation of the input does not reach, and remove the markers from
-   * what remains.
+   * Write into the files this run wrote the part of the native layer its
+   * compilation of the input reaches, and remove the markers from what
+   * remains.
    *
    * The whole native layer is written for every signature there is, so most
    * of it is dead for any one input: a signature with no strings in it has
@@ -274,14 +308,24 @@ class LeanMetaReduce : public MetaReducePlugin
    * read off the input, since a definition of the layer is demanded by the
    * generated text that calls it, so it is computed here instead: the text
    * around the blocks of every file the run wrote is what the generated
-   * definitions were spliced into, and a block is kept when that text, or a
-   * block already kept, names it.
+   * definitions were spliced into, and a block is reached when that text, or
+   * a block it already reaches, names it.
+   *
+   * Most of the layer is one library, lean_meta_native.lean, rather than
+   * text of the files it is written into, so that a definition is written
+   * once whichever of them turns out to want it. Where a block of the
+   * library comes out is the demand for it: the narrowest `-- $native-place`
+   * that both has what the block needs in scope and covers every file that
+   * reaches it, which is the module they share when more than one does and
+   * the module itself when one does. A block that the file it stands in has
+   * to be read with, because what that file generates is defined with it, is
+   * left where it is and only kept or dropped.
    *
    * This runs once every file has been written rather than filtering each on
    * the way out, because the demand for a definition comes from all of them
    * and they are not written at once.
    */
-  void trimNativeDefs();
+  void placeNativeDefs();
   /** Generated Lean definitions for programs. */
   std::stringstream d_defs;
   /** Generated mutually recursive total Lean definitions. */

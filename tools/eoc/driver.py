@@ -34,7 +34,7 @@ LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
 # the plugin source tree, including the ones whose resource carries no
 # generated text: the stage trims the native layer to what the compilation
 # reaches once it has written every file, so a file that did not pass through
-# it would carry the whole layer. See LeanMetaReduce::trimNativeDefs.
+# it would carry the whole layer. See LeanMetaReduce::placeNativeDefs.
 #
 # <final out dir>/lean is what a run publishes, not a Lean package that builds
 # on its own: the generated modules import <Calc>.Proofs.CheckerCore and
