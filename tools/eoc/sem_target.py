@@ -60,6 +60,9 @@ class Constructor:
     self.macro_reserved = macro_reserved
 
   def type_of(self, kind, entry):
+    if not self.argument:
+      die('%s: every argument of a %s says the type it is of'
+          % (entry.name, entry.decls.noun))
     if kind not in self.argument:
       die('%s: no argument of a constructor is %s' % (entry.name, kind))
     return self.argument[kind]
@@ -667,7 +670,58 @@ VALUE_CANONICAL = Aggregate(
     stands_for=VALUE_STANDS,
     level='native')
 
+# ---------------------------------------------------------------------------
+# The literals of the embedding
+# ---------------------------------------------------------------------------
+
+# A literal is a term the embedding builds over a native -- a Boolean, a
+# numeral, the width and the value of a bit-vector -- rather than over terms,
+# so what its constructor takes is what its parameters say and there is no type
+# of arguments to fall back on.
+LITERAL_CONSTANT = Constructor(
+    name='$emb_sm.{symbol}',
+    macro='$sm_{symbol}',
+    argument={},
+    opaque=True,
+    returns='$smt_Term')
+
+# What an argument stands for in a body: itself, since what a literal carries
+# is a native rather than a term whose type or value is asked for.
+LITERAL_STANDS = {'plain': '%s'}
+
+# The type a literal is of, and its value in a model, which are the two the
+# symbols say as well: the cases of a literal are spliced into the same
+# programs, and stand before them, see $SMT_LITERAL_CONSTRUCTORS$ in
+# plugins/model_smt/model_smt.eo.
+LITERAL_TYPEOF = Aggregate(
+    key='typeof',
+    program='$smtx_typeof',
+    case='$eoc_typeof_{symbol}',
+    matches='$sm_',
+    declares={},
+    signature=('($smt_Term)', '$smt_Type'),
+    stands_for=LITERAL_STANDS,
+    level='type')
+
+LITERAL_VALUE = Aggregate(
+    key='value',
+    program='$smtx_model_eval',
+    case='$eoc_eval_{symbol}',
+    context=[('M', '$smt_Model')],
+    matches='$sm_',
+    declares={},
+    signature=('($smt_Model $smt_Term)', '$smt_Value'),
+    stands_for=LITERAL_STANDS,
+    level='value')
+
 SYMBOLS = Shape([TYPEOF, VALUE], constructor=CONSTANT)
+# A literal is the embedding's own, as the types and the values are. Its block
+# is named after the constructor it declares, which is what tells the stage
+# that reads the file that the constructor is one of the embedding's own rather
+# than one of a symbol written over them, see DefsFile::addBlock.
+LITERALS = Shape([LITERAL_TYPEOF, LITERAL_VALUE], constructor=LITERAL_CONSTANT,
+                 keyword='define-literal', noun='literal', keep=True,
+                 block='$emb_sm.{symbol}')
 # A value of the embedding is the embedding's own, as its types are.
 VALUES = Shape([VALUE_TYPEOF, VALUE_CANONICAL], constructor=VALUE_CONSTANT,
                keyword='define-value', noun='value', keep=True,
@@ -679,7 +733,7 @@ TYPES = Shape([TYPE_WF, TYPE_BOUNDED, TYPE_DEFAULT], constructor=TYPE_CONSTANT,
 
 INPUT_SYMBOLS = Shape([TERM, TYPE, IS_LIST_NIL])
 
-TARGET = Shapes(SYMBOLS, TYPES, VALUES, METHODS)
+TARGET = Shapes(SYMBOLS, LITERALS, TYPES, VALUES, METHODS)
 INPUT_SET = Shapes(INPUT_SYMBOLS, METHODS, RULES)
 
 

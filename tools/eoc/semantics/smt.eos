@@ -254,6 +254,44 @@
                ($smtx_value_canonical_bool a)))
 
 ;-----------------------------------------------------------------------------
+(section "The literals")
+;-----------------------------------------------------------------------------
+
+; The literals of the signature, i.e. the terms the embedding builds over a
+; native rather than over terms of its own. Each says what it is built over,
+; the way a value does, and what it carries stands for itself.
+;
+; Two things are asked of one, and they are the two a symbol says: the type it
+; is of and its value in a model. They are written where a symbol writes them,
+; and stand before the symbols written over them.
+
+(define-literal Boolean ((b "Bool"))
+  :typeof Bool
+  :value (smt.bool b))
+
+(define-literal Numeral ((n "Int"))
+  :typeof Int
+  :value (smt.numeral n))
+
+(define-literal Rational ((r "Rat"))
+  :typeof Real
+  :value (smt.rational r))
+
+; A string is of the strings when what it carries is one, i.e. when every
+; character of it is a character of SMT-LIB; its value is the sequence of them.
+(define-literal String ((s "String"))
+  :typeof ("ite" ("string_valid" s) String none)
+  :value (smt.seq ("pack_string" s)))
+
+; A bit-vector carries its width and its value, and is of that width when the
+; value is one the width can hold.
+(define-literal Binary ((w "Int") (v "Int"))
+  :typeof ("ite" ("and" ("z_<=" 0 w) ("z_=" v ("mod_total" v ("z_pow2" w))))
+            (BitVec ("z_to_n" w))
+            none)
+  :value (smt.binary w v))
+
+;-----------------------------------------------------------------------------
 (section "The core symbols")
 ;-----------------------------------------------------------------------------
 
@@ -673,7 +711,7 @@
 (program $smtx_typeof_extract ( (x1 "Int") (x2 "Int")  (x3 "Int")  (x4 SmtType)  (x5 SmtType)  (x6 SmtType))
   :signature (SmtTerm SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_extract (numeral x1) (numeral x2) (BitVec x3)) ("ite" ("z_<=" 0 x2) ("ite" ("z_<" x1 ("n_to_z" x3)) ("ite" ("z_<" 0 ("z_+" ("z_+" x1 1) ("z_uneg" x2))) (BitVec ("z_to_n" ("z_+" ("z_+" x1 1) ("z_uneg" x2)))) none) none) none))
+  (($smtx_typeof_extract (Numeral x1) (Numeral x2) (BitVec x3)) ("ite" ("z_<=" 0 x2) ("ite" ("z_<" x1 ("n_to_z" x3)) ("ite" ("z_<" 0 ("z_+" ("z_+" x1 1) ("z_uneg" x2))) (BitVec ("z_to_n" ("z_+" ("z_+" x1 1) ("z_uneg" x2)))) none) none) none))
   (($smtx_typeof_extract x4 x5 x6) none)
   )
 )
@@ -681,7 +719,7 @@
 (program $smtx_typeof_repeat ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_repeat (numeral x1) (BitVec x2)) ("ite" ("z_<=" 1 x1) (BitVec ("z_to_n" ("z_*" x1 ("n_to_z" x2)))) none))
+  (($smtx_typeof_repeat (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 1 x1) (BitVec ("z_to_n" ("z_*" x1 ("n_to_z" x2)))) none))
   (($smtx_typeof_repeat x3 x4) none)
   )
 )
@@ -689,7 +727,7 @@
 (program $smtx_typeof_zero_extend ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_zero_extend (numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" ("z_+" x1 ("n_to_z" x2)))) none))
+  (($smtx_typeof_zero_extend (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" ("z_+" x1 ("n_to_z" x2)))) none))
   (($smtx_typeof_zero_extend x3 x4) none)
   )
 )
@@ -697,7 +735,7 @@
 (program $smtx_typeof_sign_extend ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_sign_extend (numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" ("z_+" x1 ("n_to_z" x2)))) none))
+  (($smtx_typeof_sign_extend (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" ("z_+" x1 ("n_to_z" x2)))) none))
   (($smtx_typeof_sign_extend x3 x4) none)
   )
 )
@@ -705,7 +743,7 @@
 (program $smtx_typeof_rotate_left ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_rotate_left (numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec x2) none))
+  (($smtx_typeof_rotate_left (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec x2) none))
   (($smtx_typeof_rotate_left x3 x4) none)
   )
 )
@@ -713,7 +751,7 @@
 (program $smtx_typeof_rotate_right ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_rotate_right (numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec x2) none))
+  (($smtx_typeof_rotate_right (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec x2) none))
   (($smtx_typeof_rotate_right x3 x4) none)
   )
 )
@@ -721,7 +759,7 @@
 (program $smtx_typeof_int_to_bv ( (x1 "Int") (x2 SmtType)  (x3 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_int_to_bv (numeral x1) Int) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" x1)) none))
+  (($smtx_typeof_int_to_bv (Numeral x1) Int) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" x1)) none))
   (($smtx_typeof_int_to_bv x2 x3) none)
   )
 )
@@ -1101,7 +1139,7 @@
 (program $smtx_typeof_re.^ ( (x1 "Int") (x2 SmtType)  (x3 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_re.^ (numeral x1) RegLan) ("ite" ("z_<=" 0 x1) RegLan none))
+  (($smtx_typeof_re.^ (Numeral x1) RegLan) ("ite" ("z_<=" 0 x1) RegLan none))
   (($smtx_typeof_re.^ x2 x3) none)
   )
 )
@@ -1109,7 +1147,7 @@
 (program $smtx_typeof_re.loop ( (x1 "Int") (x2 "Int")   (x3 SmtType)  (x4 SmtType)  (x5 SmtType))
   :signature (SmtTerm SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_re.loop (numeral x1) (numeral x2) RegLan) ("ite" ("z_<=" 0 x1) ("ite" ("z_<=" 0 x2) RegLan none) none))
+  (($smtx_typeof_re.loop (Numeral x1) (Numeral x2) RegLan) ("ite" ("z_<=" 0 x1) ("ite" ("z_<=" 0 x2) RegLan none) none))
   (($smtx_typeof_re.loop x3 x4 x5) none)
   )
 )

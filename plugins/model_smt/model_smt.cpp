@@ -124,8 +124,37 @@ void ModelSmt::loadDefs()
   }
   std::vector<const DefsBlock*> byDecl =
       orderByDeclarations(blocks, declarations);
+  // The literals stand before the symbols written over them, and in the order
+  // the configuration gives rather than the order a calculus declares its own,
+  // for the same reason the types and the values do below: what the generated
+  // Lean derives from the order of the terms of the embedding is then the same
+  // in every generated package.
+  for (const DefsBlock* b : blocks)
+  {
+    if (!b->d_literal)
+    {
+      continue;
+    }
+    for (const std::string& f : b->d_cons)
+    {
+      d_smtLiterals << f << std::endl;
+    }
+    for (const std::string& c : b->d_typeofCases)
+    {
+      d_smtTypeof << "  " << c << std::endl;
+    }
+    for (const std::string& c : b->d_evalCases)
+    {
+      d_eval << "  " << c << std::endl;
+    }
+  }
   for (const DefsBlock* b : byDecl)
   {
+    if (b->d_literal)
+    {
+      // one of the embedding's own, emitted above
+      continue;
+    }
     // A block that says nothing about the model, e.g. one that only gives the
     // nil of an n-ary symbol, leaves that symbol to be compiled as any other.
     if (!b->d_cons.empty() || !b->d_typeofCases.empty()
@@ -273,6 +302,8 @@ void ModelSmt::finalize()
   replacePlaceholder(finalSmt, "$EO_DESUGAR_AUX$", d_desugarAux.str());
   replacePlaceholder(finalSmt, "$EO_TO_SMT_CASES$", d_eoToSmt.str());
   replacePlaceholder(finalSmt, "$EO_TO_SMT_TYPE_CASES$", d_eoToSmtType.str());
+  replacePlaceholder(
+      finalSmt, "$SMT_LITERAL_CONSTRUCTORS$", d_smtLiterals.str());
   replacePlaceholder(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
   replacePlaceholder(finalSmt, "$SMT_TYPE_CONSTRUCTORS$", d_smtTypes.str());
   replacePlaceholder(finalSmt, "$SMT_VALUE_CONSTRUCTORS$", d_smtValues.str());

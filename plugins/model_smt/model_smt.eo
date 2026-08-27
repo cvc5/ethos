@@ -55,40 +55,26 @@
 
 ;;;;;; SMT term constructors
 
+; No term at all, which a transformation answers with where what it was given
+; is not a term of the signature. It is the embedding's own rather than
+; anything a signature declares, so it is named here.
 (declare-const $emb_sm.None $smt_Term)
 (define $sm_none () $emb_sm.None)
 
-; the literal types
-(declare-parameterized-const $emb_sm.Boolean
-  ((b $native_Bool :opaque)) $smt_Term)
-(define $sm_bool ((b $native_Bool)) ($emb_sm.Boolean b))
-(define $sm_true () ($sm_bool $native_true))
-(define $sm_false () ($sm_bool $native_false))
+; The literals the configuration declares, i.e. the terms built over a native
+; rather than over terms, see the literals of tools/eoc/semantics/smt.eos.
+; They stand before the terms the embedding builds over them.
+;$SMT_LITERAL_CONSTRUCTORS$
 
-(declare-parameterized-const $emb_sm.Numeral
-  ((n $native_Int :opaque)) $smt_Term)
-(define $sm_numeral ((n $native_Int)) ($emb_sm.Numeral n))
-; helpers
-(define $sm_z_zero () ($sm_numeral $native_z_zero))
-(define $sm_z_one () ($sm_numeral $native_z_one))
-
-(declare-parameterized-const $emb_sm.Rational
-  ((r $native_Rat :opaque)) $smt_Term)
-(define $sm_rational ((r $native_Rat)) ($emb_sm.Rational r))
-; helpers
-(define $sm_q_zero () ($sm_rational $native_q_zero))
-
-(declare-parameterized-const $emb_sm.String
-  ((s $native_String :opaque)) $smt_Term)
-(define $sm_string ((s $native_String)) ($emb_sm.String s))
-
-(declare-parameterized-const $emb_sm.Binary
-  ((w $native_Int :opaque) (v $native_Int :opaque)) $smt_Term)
-(define $sm_binary ((w $native_Int) (v $native_Int))
-  ($emb_sm.Binary w v))
-; helpers
-(define $sm_binary_bit_false () ($sm_binary $native_z_one $native_z_zero))
-(define $sm_binary_bit_true () ($sm_binary $native_z_one $native_z_one))
+; What is written over the literals and is not one, i.e. a term named by a
+; native the way a literal is but built by the embedding itself.
+(define $sm_true () ($sm_Boolean $native_true))
+(define $sm_false () ($sm_Boolean $native_false))
+(define $sm_z_zero () ($sm_Numeral $native_z_zero))
+(define $sm_z_one () ($sm_Numeral $native_z_one))
+(define $sm_q_zero () ($sm_Rational $native_q_zero))
+(define $sm_binary_bit_false () ($sm_Binary $native_z_one $native_z_zero))
+(define $sm_binary_bit_true () ($sm_Binary $native_z_one $native_z_one))
 
 ; An application of a Eunoia term
 (declare-parameterized-const $emb_sm.Apply
@@ -213,9 +199,9 @@
 ;   ($sm_DtCons "List" d 1) : ($tsm_Datatype "List" d)
 ; The list (1,2) is the term:
 ; ($sm_apply
-;    ($sm_apply ($sm_DtCons "List" d 0) ($sm_numeral 1))
+;    ($sm_apply ($sm_DtCons "List" d 0) ($sm_Numeral 1))
 ;    ($sm_apply
-;       ($sm_apply ($sm_DtCons "List" d 0) ($sm_numeral 2))
+;       ($sm_apply ($sm_DtCons "List" d 0) ($sm_Numeral 2))
 ;       ($sm_DtCons "List" d 1)))
 ; The selectors head/tail for this datatype give indices to the constructor
 ; and argument position they refer to:
@@ -834,18 +820,15 @@
 (program $smtx_model_eval
   ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (dd $smt_DatatypeDecl)
    (i $native_Nat) (j $native_Nat)
-   (b $native_Bool) (w $native_Nat) (n $native_Int)
-   (m $native_Int) (r $native_Real) (s $native_String)
+   (m $native_Int) (s $native_String)
+   ; what a case of a literal is written with, named after the type it is of
+   (bool1 $native_Bool) (int1 $native_Int) (int2 $native_Int)
+   (rat1 $native_Rat) (string1 $native_String)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Model $smt_Term) $smt_Value
   (
 
-  (($smtx_model_eval M ($sm_bool b))      ($vsm_Boolean b))
-  (($smtx_model_eval M ($sm_numeral n))   ($vsm_Numeral n))
-  (($smtx_model_eval M ($sm_rational r))  ($vsm_Rational r))
-  (($smtx_model_eval M ($sm_string s))    ($vsm_Seq ($native_apply_1 "pack_string" s)))
-  (($smtx_model_eval M ($sm_binary w n))  ($vsm_Binary w n))
   ; evaluation of standard SMT symbols
   ; These calls will reference helper methods above, e.g. of the form
   ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
@@ -898,25 +881,14 @@
 (program $smtx_typeof
   ((M $smt_Model) (f $smt_Term) (T $smt_Type) (dd $smt_DatatypeDecl)
    (i $native_Nat) (j $native_Nat)
-   (b $native_Bool) (w $native_Int) (n $native_Int)
-   (m $native_Int) (r $native_Real) (s $native_String)
+   (m $native_Int) (s $native_String)
+   ; what a case of a literal is written with, named after the type it is of
+   (bool1 $native_Bool) (int1 $native_Int) (int2 $native_Int)
+   (rat1 $native_Rat) (string1 $native_String)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Term) $smt_Type
   (
-  (($smtx_typeof ($sm_bool b))      $tsm_Bool)
-  (($smtx_typeof ($sm_numeral n))   $tsm_Int)
-  (($smtx_typeof ($sm_rational r))  $tsm_Real)
-  (($smtx_typeof ($sm_string s))
-    ($native_ite ($native_apply_1 "string_valid" s) $tsm_String $tsm_none))
-  (($smtx_typeof ($sm_binary w n))
-    ; must be legal width and value
-    ($native_ite
-      ($native_and
-        ($native_z_<= $native_z_zero w)
-        ($native_z_= n ($native_mod_total n ($native_z_pow2 w))))
-      ($tsm_BitVec ($native_z_to_n w))
-      $tsm_none))
 ;$SMT_TYPEOF_CASES$
   ; quantifiers
   (($smtx_typeof ($sm_exists s T x1))
@@ -1029,11 +1001,11 @@
    (i $native_Nat) (j $native_Nat))
   :signature (T) $smt_Term
   (
-  (($eo_to_smt ($eot_bool b))        ($sm_bool b))
-  (($eo_to_smt ($eot_numeral n))     ($sm_numeral n))
-  (($eo_to_smt ($eot_rational r))    ($sm_rational r))
-  (($eo_to_smt ($eot_string s))      ($sm_string s))
-  (($eo_to_smt ($eot_binary w n))    ($sm_binary w n))
+  (($eo_to_smt ($eot_bool b))        ($sm_Boolean b))
+  (($eo_to_smt ($eot_numeral n))     ($sm_Numeral n))
+  (($eo_to_smt ($eot_rational r))    ($sm_Rational r))
+  (($eo_to_smt ($eot_string s))      ($sm_String s))
+  (($eo_to_smt ($eot_binary w n))    ($sm_Binary w n))
   (($eo_to_smt ($eot_Var ($eot_string s) T))
                                      ($sm_Var s ($eo_to_smt_type T)))
   (($eo_to_smt ($eot_DtCons s dd i))

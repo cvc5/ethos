@@ -418,7 +418,7 @@ LEVELS = {'$smt_Value': 'value', '$smt_Term': 'term', '$smt_Type': 'type'}
 FAMILY = {'value': '$smtx_model_eval_', 'term': '$sm_', 'type': '$tsm_'}
 
 # What a whole number is at each level, i.e. what wraps the native it denotes.
-NUMERAL = {'value': '$vsm_Numeral', 'term': '$sm_numeral'}
+NUMERAL = {'value': '$vsm_Numeral', 'term': '$sm_Numeral'}
 
 # What a term of the *input* becomes where a term or a type of the embedding is
 # wanted, which is the aggregate of that level applied to it. It is read off the

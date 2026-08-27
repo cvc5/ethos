@@ -216,6 +216,10 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
 {
   DefsBlock b;
   b.d_sym = sym;
+  // A block named after the constructor it declares is of a term the embedding
+  // builds itself rather than of a symbol written over them, see
+  // DefsBlock::d_literal.
+  b.d_literal = sym.compare(0, 8, "$emb_sm.") == 0;
   for (const std::string& f : forms(text))
   {
     const std::string kind = formKind(f);

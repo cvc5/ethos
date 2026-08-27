@@ -162,9 +162,11 @@ def render_lean(config):
 def summary(config):
   """How much of each thing a set holds, in the words of its kinds."""
   c = config.counts
+  # The kinds a set holds, in the order its shape gives them, and last the
+  # programs, which are what a set holds beside its entities.
+  nouns = [shape.noun + 's' for shape in config.decls.shapes] + ['programs']
   kinds = ['%d %s' % (c[k], k if c[k] != 1 else k[:-1])
-           for k in ('symbols', 'types', 'values', 'methods', 'rules',
-                        'programs') if c[k]]
+           for k in nouns if c[k]]
   said = ['%d %s' % (c[k], w) for k, w in (('keep', 'kept'),
                                            ('exclude', 'left out'),
                                            ('lean', 'annotated')) if c[k]]

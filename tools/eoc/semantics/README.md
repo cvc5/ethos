@@ -172,6 +172,7 @@ A file is a sequence of these.
 (define-symbol NAME (parameter*) attribute*)
 (define-sort NAME (parameter*) attribute*)          the target only
 (define-value NAME (parameter*) attribute*)         the target only
+(define-literal NAME (parameter*) attribute*)       the target only
 (define-method NAME attribute*)                     an input only
 (define-rule NAME attribute*)                       an input only
 
@@ -234,16 +235,16 @@ emitted:
 ```text
 smt.eos                             development-cpc.eos
 the vocabulary of the embedding     the vocabularies of the two layers
-the core symbols                    the core symbols -- ite, =, distinct
-the types                           the by-zero constants, unary minus
-Int and Real                        the difference of two arrays
-select and store                    the bit-vector symbols eliminated
-bit-vectors                         the string symbols eliminated
-strings, sequences                  the set symbols eliminated
-sets                                datatypes and tuples
-the methods of the embedding        quantifiers, skolems, the binder left out
-                                    the type constructors
-                                    the methods of the signature
+the types                           the core symbols -- ite, =, distinct
+the values                          arithmetic
+the literals                        arrays
+the core symbols                    bit-vectors
+arithmetic                          strings, sequences, regular expressions
+arrays                              sets
+bit-vectors                         datatypes and tuples
+strings, sequences                  quantifiers, skolems, the binder left out
+sets                                the type constructors
+the methods of the embedding        the methods of the signature
 ```
 
 The SMT-LIB semantics has no section of datatypes, quantifiers or type
@@ -311,6 +312,7 @@ two are read apart by the form that declares one.
 | a symbol of the **target**, `semantics/smt.eos` | `define-symbol` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof` under `:typeof`; a case of `$smtx_model_eval` under `:value`, or the program it hands its work to under `:eval` |
 | a type of the **target**, `semantics/smt.eos` | `define-sort` | a constant of the embedding and the macro that applies it; a case of `$smtx_type_wf_rec` under `:wf`, of `$smtx_type_bounded` under `:bounded`, of `$smtx_type_default` under `:default` |
 | a value of the **target**, `semantics/smt.eos` | `define-value` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical_bool` under `:canonical` |
+| a literal of the **target**, `semantics/smt.eos` | `define-literal` | a constant of the embedding and the macro that applies it; the two cases a symbol writes, `:typeof` and `:value`, over what it carries rather than over terms |
 | a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |
 | a rule of an **input**, `semantics/development-cpc.eos` | `define-rule` | the same, for a proof rule, which says only that it is left out |
@@ -373,6 +375,7 @@ their helper attributes. For the two sets in the tree:
 | `semantics/smt.eos`, a `define-sort` | `:wf`, `:bounded`, `:default`, `:overload`, `:exclude`, `:keep` |
 | `semantics/development-cpc.eos`, a `define-symbol` | `:term`, `:type`, `:is-list-nil`, `:overload`, `:exclude`, `:keep` |
 | `semantics/smt.eos`, a `define-value` | `:typeof`, `:canonical`, `:overload`, `:exclude`, `:keep` |
+| `semantics/smt.eos`, a `define-literal` | `:typeof`, `:value`, `:overload`, `:exclude`, `:keep` |
 | a `define-method`, either set | `:lean`, `:exclude` |
 | a `define-rule`, `semantics/development-cpc.eos` | `:exclude` |
 
@@ -613,6 +616,42 @@ Like the types, the values are the embedding's own, so every block one opens is
 kept whatever a calculus declares, and they stand in the order their
 constructors are given -- `valueKey` in the generated `SmtValueOrder` follows
 it -- so a value is added at the end.
+
+### `(define-literal NAME (param...) attr...)` -- the target
+
+One literal of the signature, i.e. a term the embedding builds over a native
+rather than over terms of its own. It writes the constructor and the macro the
+way a value does, and the two cases a symbol writes.
+
+```lisp
+(define-literal Binary ((w "Int") (v "Int"))
+  :typeof ("ite" ("and" ("z_<=" 0 w) ("z_=" v ("mod_total" v ("z_pow2" w))))
+            (BitVec ("z_to_n" w))
+            none)
+  :value (smt.binary w v))
+```
+
+| attribute | says | written at |
+| --- | --- | --- |
+| `:typeof` | the type a term of it is of | type level |
+| `:value` | what it evaluates to in a model | value level |
+
+Each parameter says the type it is of, and what it stands for in a body is
+itself: it is a native the term carries rather than a term whose type or value
+is asked for. That is the whole of the difference from a `define-symbol`, whose
+arguments are terms and stand for what is asked of them.
+
+The cases go where a symbol's go, into `$smtx_typeof` and `$smtx_model_eval`,
+and stand before them. So do the constructors: a literal is the embedding's own
+and its block is kept whatever a calculus declares, and the order of the
+constructors of the embedding is the order the configuration gives, which the
+generated `SmtTerm` follows. A literal is therefore added at the end.
+
+The block a literal opens is named after the constructor it declares, since
+`String` is a type and a literal both. That is also what tells the stage
+reading the file that the constructor is one of the embedding's own rather than
+one of a symbol written over them, see `DefsBlock::d_literal` in
+`plugins/model_smt/defs_reader.h`.
 
 ### `(define-method NAME attr...)`, `(define-rule NAME attr...)`
 
@@ -1065,6 +1104,13 @@ the type a term of it would be of, and what makes it canonical; a value that
 has nothing to say about one of those says nothing. Name the macro that applies
 it in the vocabulary block, since a value has no bare name. It goes at the end
 because the order of the values is what their constructors are numbered by.
+
+### Add a literal
+
+Write a `define-literal` at the end of the literals, saying the type of what it
+carries, the type a term of it is of, and its value in a model. Write the
+constructor of the value it evaluates to as well, unless the embedding already
+has one. It goes at the end for the same reason a value does.
 
 ### Add an attribute a symbol may carry
 

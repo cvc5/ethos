@@ -45,6 +45,16 @@ struct DefsBlock
    * See DefsFile::select.
    */
   bool d_keep = false;
+  /**
+   * Whether the block is of a term the embedding builds itself -- a literal,
+   * i.e. one built over a native rather than over terms -- rather than of a
+   * symbol of the signature written over them. A block of one is named after
+   * the constructor it declares, which is what says so: `$emb_sm.Binary`
+   * rather than a symbol's own name. Its constructor stands with the terms of
+   * the embedding, before the symbols, so that the order of them is the same
+   * whatever a calculus declares, see ModelSmt::finalize.
+   */
+  bool d_literal = false;
   /** The constructor of the embedding for the symbol, and the macro. */
   std::vector<std::string> d_cons;
   /** The same, where the block is of a type rather than of a symbol. */
