@@ -26,31 +26,42 @@ reduces.
 
 ## The signatures written in the deep embedding
 
-What a symbol means to the model is said by two files. The SMT-LIB one is the
-target and so is fixed; the one of the input is named with `--defs`:
+What a symbol means to the model is said by two files, and a run may name
+either: the signature of the input with `--signature`, and the SMT-LIB
+semantics it is written against with `--semantics`.
 
 ```text
-plugins/model_smt/smt_defs.eo   the SMT-LIB signature, written in the embedding
---defs <file>                   how the input's symbols transform into it,
-                                e.g. plugins/model_smt/cpc_defs.eo for CPC
+tools/eoc/out/smt_defs.eo   the SMT-LIB semantics, written in the embedding
+tools/eoc/out/user_defs.eo  how the input's symbols transform into it
 ```
+
+**Both are generated**, from the configuration under `tools/eoc/semantics`,
+which `tools/eoc/sem_compile.py` compiles before any stage runs; neither is
+checked in. What the options name is therefore the *central file of a
+configuration set* rather than what it compiles to:
 
 ```text
 python3 tools/eoc/driver.py lean --all \
-  --defs plugins/model_smt/cpc_defs.eo <cvc5>/proofs/eo/cpc/Cpc.eo
+  --signature tools/eoc/semantics/development-cpc.eos \
+  <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
+
+A file that is not a central file is taken to be a signature already written
+out and is passed through, which is what lets one that has no configuration
+still be given directly. See `tools/eoc/semantics/README.md` for what the
+configuration is and the language it is written in.
 
 Only the `model-smt` stage reads them; no stage before it sees either. A symbol
 the input declares that the file says nothing about is an error rather than a
-term the model would silently say nothing about. A run that names no `--defs`
-reads `plugins/model_smt/cpc_defs.eo`, which is what the examples below that
-compile a signature of CPC symbols rely on.
+term the model would silently say nothing about. The plugin ships with the
+SMT-LIB semantics but with no signature of an input, so a run that names none
+is an error once that stage runs.
 
 Each is a sequence of blocks, one per symbol, opened by a `; -- X` line. For a
 symbol X, `smt_defs.eo` gives the constructor `$emb_sm.X` and the macro
 `$sm_X`, the cases X contributes to `$smtx_typeof` and to `$smtx_model_eval`
 (as `$eoc_typeof_X` and `$eoc_eval_X`), and the auxiliary programs those cases
-call. `cpc_defs.eo` gives `$eoc_transform_X`, the cases X contributes to
+call. `user_defs.eo` gives `$eoc_transform_X`, the cases X contributes to
 `$eo_to_smt`, and `$eoc_transform_type_X` for a type constructor.
 
 What a block says to the compiler is named `$eoc_`, which is what tells it
