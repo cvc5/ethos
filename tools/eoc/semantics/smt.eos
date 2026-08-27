@@ -178,7 +178,7 @@
 ; type its arguments agree on, which is a rule of its own, and each is said
 ; here all the same. distinct is not here at all: an input n-ary distinct is
 ; transformed into a conjunction of equalities, so the target declares nothing
-; for it, see the core symbols of semantics/debug-cpc.eos.
+; for it, see the core symbols of semantics/development-cpc.eos.
 ;
 ; The idioms every theory is written with come first: the type of a symbol
 ; whose signature names no variable, the shape of a Boolean value, and the

@@ -4,7 +4,7 @@ signatures written directly in the deep embedding, i.e.
 
   semantics/smt.eos  ->  tools/eoc/out/smt_defs.eo
                       what each SMT-LIB symbol means to the model
-  semantics/debug-cpc.eos  ->  tools/eoc/out/user_defs.eo
+  semantics/development-cpc.eos  ->  tools/eoc/out/user_defs.eo
                       how each symbol of the input transforms into the
                       SMT-LIB one
 
@@ -67,7 +67,7 @@ SMT_SET = 'smt'
 
 # The file each set stands in. A set is one file: it holds its theories in the
 # order their blocks are emitted, one to a section.
-CONFIGS = (os.path.join(SEM, 'smt.eos'), os.path.join(SEM, 'debug-cpc.eos'))
+CONFIGS = (os.path.join(SEM, 'smt.eos'), os.path.join(SEM, 'development-cpc.eos'))
 
 # Where the vocabulary of the embedding is defined. A file of the configuration
 # names a native in quotes and a type of the embedding without its $smt_, and

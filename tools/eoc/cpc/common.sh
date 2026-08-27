@@ -17,7 +17,7 @@ EOC_DRIVER="$EOC_TOOLS_DIR/driver.py"
 # the stage what it compiled to, so the two are never out of step. See
 # compile_signatures in tools/eoc/driver.py.
 EOC_DEFAULT_CPC_INPUT="$EOC_REPO_ROOT/../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
-EOC_DEFAULT_CPC_SIGNATURE="$EOC_TOOLS_DIR/semantics/debug-cpc.eos"
+EOC_DEFAULT_CPC_SIGNATURE="$EOC_TOOLS_DIR/semantics/development-cpc.eos"
 # The SMT-LIB semantics it is written against, which is the target of the
 # compilation and so the same whichever input a run compiles.
 EOC_DEFAULT_SEMANTICS="$EOC_TOOLS_DIR/semantics/smt.eos"

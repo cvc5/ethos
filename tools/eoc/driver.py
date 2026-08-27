@@ -841,7 +841,7 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         default=None,
         help=(
             "The central file of the configuration of the input's signature, "
-            "e.g. tools/eoc/semantics/debug-cpc.eos. It is compiled before the "
+            "e.g. tools/eoc/semantics/development-cpc.eos. It is compiled before the "
             "model-smt stage reads what it compiles to. A file that is not a "
             "central file is taken to be a signature already written out."
         ),

@@ -12,7 +12,7 @@ input: <cvc5>/proofs/eo/cpc/Cpc.eo
 
 What its symbols mean to the model is said by a signature of its own, which
 the wrappers give with `--signature`. What they name there is the central file of
-its configuration, `semantics/debug-cpc.eos`: the driver compiles that
+its configuration, `semantics/development-cpc.eos`: the driver compiles that
 before the model-smt stage and gives the stage what it compiled to,
 `tools/eoc/out/user_defs.eo`, so the two are never out of step. Override it
 with `EOC_CPC_SIGNATURE`.

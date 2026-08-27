@@ -50,7 +50,7 @@ jobs:
     # it is required. See tools/eoc/README.md.
     - name: Run EOC pipeline smoke tests
       env:
-        EOC_SIGNATURE: tools/eoc/semantics/debug-cpc.eos
+        EOC_SIGNATURE: tools/eoc/semantics/development-cpc.eos
       run: |
         python3 tools/eoc/driver.py vc \
           --build-dir build-eoc \

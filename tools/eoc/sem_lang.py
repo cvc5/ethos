@@ -1,7 +1,7 @@
 """The language the signatures under semantics are written in.
 
   semantics/smt.eos  compiles to tools/eoc/out/smt_defs.eo
-  semantics/debug-cpc.eos  compiles to tools/eoc/out/user_defs.eo
+  semantics/development-cpc.eos  compiles to tools/eoc/out/user_defs.eo
 
 Each set is one file: a heading, then its theories one to a section. This
 module is the whole of the language -- how a file is read, what it may hold,

@@ -49,7 +49,7 @@ not the generated signature:
 
 ```text
 python3 tools/eoc/driver.py lean --all \
-  --signature semantics/debug-cpc.eos <cvc5>/proofs/eo/cpc/Cpc.eo
+  --signature semantics/development-cpc.eos <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
 A set the tool ships with compiles into the plugin that reads it, as the paths

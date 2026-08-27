@@ -31,16 +31,16 @@ namespace ethos {
  * denotes in them.
  *
  * What every symbol *means* to the model is not stated here. It is stated by
- * two signatures written directly in the deep embedding: the SMT-LIB one,
- * tools/eoc/out/smt_defs.eo, which is the target and so is fixed, and the
- * one of the input, which is supplied at construction (the bundled CPC
- * signature by default). Each is a sequence of blocks, one per symbol, giving
- * the constructor of the embedding for it, the cases it contributes to
- * `$smtx_typeof`, `$smtx_model_eval`, `$eo_to_smt` and `$eo_to_smt_type`, and
- * the programs those cases call. The plugin algorithms contain no per-symbol
- * model semantics: they take the blocks the input needs, put what each says
- * where it belongs in the template, and check that nothing was left without a
- * meaning.
+ * two signatures written directly in the deep embedding, both supplied at
+ * construction: the SMT-LIB one, which is the target of the compilation and
+ * which the plugin ships with, and the one of the input, of which it has none
+ * of its own, since which input is being compiled is not its business. Each is
+ * a sequence of blocks, one per symbol, giving the constructor of the
+ * embedding for it, the cases it contributes to `$smtx_typeof`,
+ * `$smtx_model_eval`, `$eo_to_smt` and `$eo_to_smt_type`, and the programs
+ * those cases call. The plugin algorithms contain no per-symbol model
+ * semantics: they take the blocks the input needs, put what each says where it
+ * belongs in the template, and check that nothing was left without a meaning.
  *
  * So the work is:
  * - bind records what the input declares, in the order it declares it;
@@ -60,7 +60,11 @@ namespace ethos {
 class ModelSmt : public StdPlugin
 {
  public:
-  /** Construct the plugin with the bundled CPC input signature. */
+  /**
+   * Construct the plugin with the SMT-LIB signature it ships with and no
+   * signature of an input, which is an error once the stage runs; see
+   * loadDefs.
+   */
   ModelSmt(State& s);
   /**
    * Construct the plugin. Each file is an absolute or working-directory-

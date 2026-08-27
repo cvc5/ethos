@@ -43,10 +43,10 @@ embedding that the model-smt stage reads, and what the set says the generated
 Lean is to be told, which the lean-meta stage reads. There are two sets:
 
 ```text
-smt.eos        ->  tools/eoc/out/smt_defs.eo
-                   tools/eoc/out/smt_termination.lean
-debug-cpc.eos  ->  tools/eoc/out/user_defs.eo
-                   tools/eoc/out/user_termination.lean
+smt.eos              ->  tools/eoc/out/smt_defs.eo
+                         tools/eoc/out/smt_termination.lean
+development-cpc.eos  ->  tools/eoc/out/user_defs.eo
+                         tools/eoc/out/user_termination.lean
 ```
 
 Neither set is read while the other is compiled, so a form belongs to one
@@ -57,7 +57,7 @@ of a term and the value of one. Every input is compiled through it, so what it
 says is what a model of any input means, and nothing about an input is asked of
 it. A run names another with `--semantics`.
 
-**`debug-cpc.eos` is a test**, kept so that the compiler and every stage after
+**`development-cpc.eos` is a test**, kept so that the compiler and every stage after
 it have a real signature to run over; CI compiles it on every push. **The
 official semantics of CPC lives in the Logos repository**, which is what a run
 that means to say something about CPC names with `--signature`. Nothing keeps
@@ -197,7 +197,7 @@ case         ::=  (pattern term)
 
 `:AGGREGATE` and `:HELPER` stand for the names the set declared -- `:typeof`,
 `:value` and `:eval` in semantics/smt.eos, `:term`, `:type` and `:is-list-nil`
-in semantics/debug-cpc.eos.
+in semantics/development-cpc.eos.
 
 An attribute that gives a case may be written more than once, each occurrence
 adding one. Whether it was given a pattern is read off what follows: a value is
@@ -231,7 +231,7 @@ the theory before it. The two sets hold theirs in the order their blocks are
 emitted:
 
 ```text
-smt.eos                             debug-cpc.eos
+smt.eos                             development-cpc.eos
 the vocabulary of the embedding     the vocabularies of the two layers
 the core symbols                    the core symbols -- ite, =, distinct
 the types                           the by-zero constants, unary minus
@@ -309,9 +309,9 @@ two are read apart by the form that declares one.
 | --- | --- | --- |
 | a symbol of the **target**, `semantics/smt.eos` | `define-symbol` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof` under `:typeof`; a case of `$smtx_model_eval` under `:value`, or the program it hands its work to under `:eval` |
 | a type of the **target**, `semantics/smt.eos` | `define-sort` | a constant of the embedding and the macro that applies it; a case of `$smtx_type_wf_rec` under `:wf`, of `$smtx_type_bounded` under `:bounded`, of `$smtx_type_default` under `:default` |
-| a symbol of an **input**, `semantics/debug-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
+| a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |
-| a rule of an **input**, `semantics/debug-cpc.eos` | `define-rule` | the same, for a proof rule, which says only that it is left out |
+| a rule of an **input**, `semantics/development-cpc.eos` | `define-rule` | the same, for a proof rule, which says only that it is left out |
 
 So the attribute names an entity may carry -- `:typeof`, `:value`, `:eval`,
 `:wf`, `:bounded`, `:default`, `:term`, `:type`, `:is-list-nil` -- come from
@@ -363,9 +363,9 @@ their helper attributes. For the two sets in the tree:
 | --- | --- |
 | `semantics/smt.eos`, a `define-symbol` | `:typeof`, `:value`, `:eval`, `:overload`, `:exclude`, `:keep` |
 | `semantics/smt.eos`, a `define-sort` | `:wf`, `:bounded`, `:default`, `:overload`, `:exclude`, `:keep` |
-| `semantics/debug-cpc.eos`, a `define-symbol` | `:term`, `:type`, `:is-list-nil`, `:overload`, `:exclude`, `:keep` |
+| `semantics/development-cpc.eos`, a `define-symbol` | `:term`, `:type`, `:is-list-nil`, `:overload`, `:exclude`, `:keep` |
 | a `define-method`, either set | `:lean`, `:exclude` |
-| a `define-rule`, `semantics/debug-cpc.eos` | `:exclude` |
+| a `define-rule`, `semantics/development-cpc.eos` | `:exclude` |
 
 Every attribute that gives a case has the macros of its file expanded out of it
 before anything else sees it, and every one may be **given more than once**,
@@ -517,7 +517,7 @@ A symbol that says nothing about an aggregate takes that aggregate's
 says nothing about any `:sole` aggregate, or the symbol wrote cases for that
 aggregate's helper.
 
-So in `semantics/debug-cpc.eos` a symbol that says nothing at all transforms
+So in `semantics/development-cpc.eos` a symbol that says nothing at all transforms
 pointwise, a symbol that says only `:is-list-nil` still transforms pointwise,
 and one that says `:type` -- a type constructor -- does not, `type` there being
 `:sole`. In `semantics/smt.eos`, a symbol with `:eval` and no `:value` gets a
@@ -773,7 +773,7 @@ uses in an `embedding.eo` of nothing but macros, under one prefix per layer:
 
 So a transformation reads `eo.` and writes `smt.`, and says which layer it is
 speaking of at every step. semantics/smt.eos names only the first, having no
-input to read; semantics/debug-cpc.eos names both.
+input to read; semantics/development-cpc.eos names both.
 
 A macro of no arguments stands for its body wherever its name stands, so
 `smt.bit_true` and `eo.list_nil` are written bare. A macro is matched by its
@@ -1019,7 +1019,7 @@ the program it writes, so the stage knows what to do with its cases.
 
 ### Add a signature of another input
 
-Write a file beside `semantics/debug-cpc.eos`: a heading, then its theories in
+Write a file beside `semantics/development-cpc.eos`: a heading, then its theories in
 sections. It takes the shape of an input, which is what everything not called
 `smt` is, and compiles beside itself unless it is one of the two the tool
 ships with. Name it with `--signature`. Nothing in the compiler names either
