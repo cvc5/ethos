@@ -55,8 +55,10 @@ Useful environment variables:
 - `EOC_ALETHE_INPUT=/path/to/Alethe.eo` to override the default Alethe
   signature.
 - `EOC_FINAL_OUT_DIR=/path/to/out` to override the published output tree.
-- `LOGOS_DIR`, `LOGOS_TESTS_DIR`, `CVC5_LOGOS`, and `CPC_GEN_LOGOS_CMD` to
-  override the `install_logos` destinations and helper command.
+- `LOGOS_DIR`, `LOGOS_TESTS_DIR`, `LOGOS_REGRESS_DIR` (default
+  `$LOGOS_DIR/test/regress`, where the generated `*.cpc.lean` regressions go),
+  `CVC5_LOGOS`, and `CPC_GEN_LOGOS_CMD` to override the `install_logos`
+  destinations and helper command.
 - `SUB_DIR` (default `CpcMini`) and `MINI_TARGETS` (default
   `symm contra refl scope trans`) to override the destination package and the
   compiled rule set of `install_logos_mini`.
