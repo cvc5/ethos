@@ -794,7 +794,7 @@ def compile_signatures(
         if mine is not None and not sem_compile.is_config(mine):
             mine = None
         if mine is not None and not any(
-            os.path.samefile(c, mine) for c in configs
+            sem_compile.same_file(c, mine) for c in configs
         ):
             configs.append(mine)
         named.append(mine)
@@ -805,7 +805,7 @@ def compile_signatures(
             out.append(given)
         else:
             out.append(Path(next(v for k, v in written.items()
-                                 if os.path.samefile(k, mine))))
+                                 if sem_compile.same_file(k, mine))))
     return out[0], out[1]
 
 

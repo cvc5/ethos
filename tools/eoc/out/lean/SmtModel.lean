@@ -73,7 +73,7 @@ def native_zabs : native_Int -> native_Int
   | x => if x < 0 then -x else x
 def native_qabs : native_Rat -> native_Rat
   | x => if x < 0 then -x else x
-  
+
 def native_char_is_digit (c : native_Char) : native_Bool :=
   48 <= c && c <= 57
 
@@ -571,7 +571,7 @@ def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
 
 
 def __smtx_typeof_map_value : SmtMap -> SmtType
-  | (SmtMap.cons i e m) => 
+  | (SmtMap.cons i e m) =>
     let _v0 := (__smtx_typeof_map_value m)
     (native_ite (native_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e)) _v0) _v0 SmtType.None)
   | (SmtMap.default T e) => (SmtType.Map T (__smtx_typeof_value e))
@@ -583,7 +583,7 @@ def __smtx_map_to_set_type : SmtType -> SmtType
 
 
 def __smtx_typeof_seq_value : SmtSeq -> SmtType
-  | (SmtSeq.cons v vs) => 
+  | (SmtSeq.cons v vs) =>
     let _v0 := (__smtx_typeof_seq_value vs)
     (native_ite (native_Teq (SmtType.Seq (__smtx_typeof_value v)) _v0) _v0 SmtType.None)
   | (SmtSeq.empty T) => (SmtType.Seq T)
@@ -719,13 +719,13 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.forall s T x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (__smtx_typeof_guard_wf T SmtType.Bool) SmtType.None)
   | (SmtTerm.choice s T x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (__smtx_typeof_guard_wf T T) SmtType.None)
   | (SmtTerm.bind s T x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) T) (__smtx_typeof_guard_wf T (__smtx_typeof x2)) SmtType.None)
-  | (SmtTerm.DtCons s dd i) => 
+  | (SmtTerm.DtCons s dd i) =>
     let _v0 := (SmtType.Datatype s dd)
     (__smtx_typeof_guard_wf _v0 (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_resolve (__smtx_dd_lookup s dd) dd) i))
-  | (SmtTerm.Apply (SmtTerm.DtSel s dd i j) x1) => 
+  | (SmtTerm.Apply (SmtTerm.DtSel s dd i j) x1) =>
     let _v0 := (__smtx_ret_typeof_sel s dd i j)
     (__smtx_typeof_guard_wf _v0 (__smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s dd) _v0) (__smtx_typeof x1)))
-  | (SmtTerm.Apply (SmtTerm.DtTester s dd i) x1) => 
+  | (SmtTerm.Apply (SmtTerm.DtTester s dd i) x1) =>
     let _v0 := (SmtType.Datatype s dd)
     (__smtx_typeof_guard (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_resolve (__smtx_dd_lookup s dd) dd) i) (__smtx_typeof_apply (SmtType.FunType _v0 SmtType.Bool) (__smtx_typeof x1)))
   | (SmtTerm.Apply f x1) => (__smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x1))
@@ -790,14 +790,14 @@ decreasing_by
 
 def __smtx_datatype_cons_default (v : SmtValue) (dd : SmtDatatypeDecl) : SmtDatatypeCons -> SmtDatatypeDecl -> SmtValue
   | SmtDatatypeCons.unit, ddF => v
-  | (SmtDatatypeCons.cons T c), ddF => 
+  | (SmtDatatypeCons.cons T c), ddF =>
     let _v0 := (__smtx_field_type_default dd T ddF)
     (native_ite (native_veq _v0 SmtValue.NotValue) SmtValue.NotValue (__smtx_datatype_cons_default (SmtValue.Apply v _v0) dd c ddF))
 termination_by c ddF => 2 * (sizeOf c + sizeOf ddF) + 2
 
 
 def __smtx_datatype_default (s : native_String) (dd : SmtDatatypeDecl) (n : native_Nat) : SmtDatatype -> SmtDatatypeDecl -> SmtValue
-  | (SmtDatatype.sum cF dF), ddF => 
+  | (SmtDatatype.sum cF dF), ddF =>
     let _v0 := (__smtx_datatype_cons_default (SmtValue.DtCons s dd n) dd cF ddF)
     (native_ite (native_not (native_veq _v0 SmtValue.NotValue)) _v0 (__smtx_datatype_default s dd (native_nat_succ n) dF ddF))
   | dF, ddF => SmtValue.NotValue
@@ -817,7 +817,7 @@ def __smtx_type_default : SmtType -> SmtValue
   | SmtType.Real => (SmtValue.Rational (native_mk_rational 0 1))
   | SmtType.RegLan => (SmtValue.RegLan native_re_none)
   | (SmtType.BitVec n1) => (SmtValue.Binary (native_nat_to_int n1) 0)
-  | (SmtType.Map x1 x2) => 
+  | (SmtType.Map x1 x2) =>
     let _v0 := (__smtx_type_default x2)
     (native_ite (native_veq _v0 SmtValue.NotValue) SmtValue.NotValue (SmtValue.Map (SmtMap.default x1 _v0)))
   | (SmtType.Set x1) => (SmtValue.Set (SmtMap.default x1 (SmtValue.Boolean false)))
@@ -890,7 +890,7 @@ def native_seq_len : List SmtValue -> native_Int
 
 def native_seq_concat : List SmtValue -> List SmtValue -> List SmtValue
   | x, y => x ++ y
-  
+
 def native_seq_extract (xs : List SmtValue) (i : native_Int) (n : native_Int) : List SmtValue :=
   let len : native_Int := Int.ofNat xs.length
   if i < 0 || n <= 0 || i >= len then
@@ -926,7 +926,7 @@ def native_seq_update (xs : List SmtValue) (i : native_Int) (ys : List SmtValue)
     let idx := Int.toNat i
     (xs.take idx) ++ (ys.take (xs.length - idx)) ++
       (xs.drop (idx + ys.length))
-    
+
 def native_seq_rev : List SmtValue -> List SmtValue
   | xs => xs.reverse
 

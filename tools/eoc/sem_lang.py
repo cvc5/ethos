@@ -176,9 +176,27 @@ class Reader:
     return Node('sym', val=raw, raw=raw)
 
 
+def read_text(path):
+  """The text of a file, read the one way the compiler reads one.
+
+  A file is UTF-8 whatever the machine says, and its lines end however they
+  end: reading in text mode is what makes both spellings of a line ending one
+  thing, so what the compiler sees does not depend on how a tree was checked
+  out. See write_text for the other half.
+  """
+  with open(path, encoding='utf-8') as f:
+    return f.read()
+
+
+def write_text(path, text):
+  """Write the text of a file, on the same terms and with lines ending in one
+  newline, whatever the machine would end them with of its own accord."""
+  with open(path, 'w', encoding='utf-8', newline='\n') as f:
+    f.write(text)
+
+
 def read_file(path):
-  with open(path) as f:
-    return Reader(f.read(), path).read_all()
+  return Reader(read_text(path), path).read_all()
 
 
 def applied(head, xs):

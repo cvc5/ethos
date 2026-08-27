@@ -280,7 +280,7 @@ void ModelSmt::finalize()
   {
     EO_FATAL() << "ModelSmt: failed to open output " << outPath;
   }
-  oute << finalSmt;
+  oute << rtrimLines(finalSmt);
   oute.close();
   if (!oute)
   {

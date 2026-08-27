@@ -45,12 +45,12 @@ def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
   | (Term.DatatypeType s dd) => (native_ite (native_reserved_datatype_name s) SmtType.None (SmtType.Datatype s (__eo_to_smt_datatype_decl dd)))
   | (Term.DatatypeTypeRef s) => (native_ite (native_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s))
-  | (Term.DtcAppType T1 T2) => 
+  | (Term.DtcAppType T1 T2) =>
     let _v0 := (__eo_to_smt_type T2)
     let _v1 := (__eo_to_smt_type T1)
     (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.DtcAppType _v1 _v0)))
   | (Term.USort i) => (SmtType.USort i)
-  | (Term.Apply (Term.Apply Term.FunType T1) T2) => 
+  | (Term.Apply (Term.Apply Term.FunType T1) T2) =>
     let _v0 := (__eo_to_smt_type T2)
     let _v1 := (__eo_to_smt_type T1)
     (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.FunType _v1 _v0)))
@@ -58,7 +58,7 @@ def __eo_to_smt_type : Term -> SmtType
   | (Term.UOp UserOp.Real) => SmtType.Real
   | (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral x1)) => (native_ite (native_zleq 0 x1) (SmtType.BitVec (native_int_to_nat x1)) SmtType.None)
   | (Term.UOp UserOp.Char) => SmtType.Char
-  | (Term.Apply (Term.UOp UserOp.Seq) x1) => 
+  | (Term.Apply (Term.UOp UserOp.Seq) x1) =>
     let _v0 := (__eo_to_smt_type x1)
     (__smtx_typeof_guard _v0 (SmtType.Seq _v0))
   | T => SmtType.None

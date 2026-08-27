@@ -73,7 +73,7 @@ def native_zabs : native_Int -> native_Int
   | x => if x < 0 then -x else x
 def native_qabs : native_Rat -> native_Rat
   | x => if x < 0 then -x else x
-  
+
 def native_char_is_digit (c : native_Char) : native_Bool :=
   48 <= c && c <= 57
 
@@ -517,7 +517,7 @@ def native_seq_len : List SmtValue -> native_Int
 
 def native_seq_concat : List SmtValue -> List SmtValue -> List SmtValue
   | x, y => x ++ y
-  
+
 def native_seq_extract (xs : List SmtValue) (i : native_Int) (n : native_Int) : List SmtValue :=
   let len : native_Int := Int.ofNat xs.length
   if i < 0 || n <= 0 || i >= len then
@@ -553,7 +553,7 @@ def native_seq_update (xs : List SmtValue) (i : native_Int) (ys : List SmtValue)
     let idx := Int.toNat i
     (xs.take idx) ++ (ys.take (xs.length - idx)) ++
       (xs.drop (idx + ys.length))
-    
+
 def native_seq_rev : List SmtValue -> List SmtValue
   | xs => xs.reverse
 

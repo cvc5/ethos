@@ -286,7 +286,7 @@ class Shape:
     symbol, longest first: a form written on its own is of the symbol its name
     ends with, and the longer prefix is the one that says so."""
     out = [a.case.split('{symbol}')[0] for a in self.aggregates.values()]
-    return sorted(out, key=len, reverse=True)
+    return sorted(out, key=lambda p: (-len(p), p))
 
   def helper_prefixes(self):
     """The name each program written over values is given, up to the symbol.
@@ -324,7 +324,7 @@ class Shape:
           'the macro that applies the constant of a symbol')
     for level, family in FAMILY.items():
       out.setdefault(family, 'what a bare name at %s level is' % level)
-    return sorted(out.items(), key=lambda kv: -len(kv[0]))
+    return sorted(out.items(), key=lambda kv: (-len(kv[0]), kv[0]))
 
   def attrs(self):
     """The attributes a symbol of this set may carry, and how many values each
@@ -381,7 +381,7 @@ class Shapes:
 
   def prefixes(self):
     out = [p for shape in self.shapes for p in shape.prefixes()]
-    return sorted(out, key=len, reverse=True)
+    return sorted(out, key=lambda p: (-len(p), p))
 
   def helper_prefixes(self):
     return [p for shape in self.shapes for p in shape.helper_prefixes()]
@@ -390,7 +390,7 @@ class Shapes:
     out = {}
     for shape in self.shapes:
       out.update(shape.reserved())
-    return sorted(out.items(), key=lambda kv: -len(kv[0]))
+    return sorted(out.items(), key=lambda kv: (-len(kv[0]), kv[0]))
 
 
 # An attribute that gives a case may give what it matches before what it

@@ -28,26 +28,26 @@
 (declare-datatype Nat ((nat.zero) (nat.succ (nat.succ.arg1 Nat))))
 (define-fun nateq ((x Nat) (y Nat)) Bool (= x y))
 (declare-fun int.to_nat (Int) Nat)
-(assert (! (forall ((x Int)) 
+(assert (! (forall ((x Int))
   (! (= (int.to_nat x) (ite (<= x 0) nat.zero (nat.succ (int.to_nat (- x 1)))))
   :pattern ((int.to_nat x))))
   :named smtx.int.to_nat.def))
 (declare-fun nat.to_int (Nat) Int)
-(assert (! (forall ((x Nat)) 
+(assert (! (forall ((x Nat))
   (! (= (nat.to_int x) (ite ((_ is nat.succ) x) (+ 1 (nat.to_int (nat.succ.arg1 x))) 0))
   :pattern ((nat.to_int x))))
   :named smtx.nat.to_int.def))
 (declare-fun nat.+ (Nat Nat) Nat)
-(assert (! (forall ((x Nat) (y Nat)) 
+(assert (! (forall ((x Nat) (y Nat))
   (! (= (nat.+ x y) (ite ((_ is nat.succ) x) (nat.+ (nat.succ.arg1 x) (nat.succ y)) y))
   :pattern ((nat.+ x y))))
   :named smtx.nat.+.def))
-  
+
 ; uninterpreted constant identifier for builtin partial functions
 (define-fun /_by_zero_id () String "@/_by_zero")
 (define-fun div_by_zero_id () String "@div_by_zero")
 (define-fun mod_by_zero_id () String "@mod_by_zero")
-(define-fun wrong_apply_sel_id ((x Nat) (y Nat)) String 
+(define-fun wrong_apply_sel_id ((x Nat) (y Nat)) String
   (str.++ "@wrong_apply_sel_" (str.from_int (nat.to_int x)) "_" (str.from_int (nat.to_int y))))
 (define-fun oob_seq_nth_id () String "@oob_seq_nth")
 (define-fun uconst_id ((x Nat)) String (str.++ "@u." (str.from_int (nat.to_int x))))
@@ -58,7 +58,7 @@
 
 ; integer exponentiation is not handled by cvc5, axiomatize it
 (declare-fun zexp_total (Int Int) Int)
-(assert (! (forall ((x Int) (y Int)) 
+(assert (! (forall ((x Int) (y Int))
   (! (= (zexp_total x y) (ite (< y 0) 0 (ite (= y 0) 1 (* x (zexp_total x (- y 1))))))
   :pattern ((zexp_total x y))))
   :named smtx.zexp_total.def))
@@ -90,7 +90,7 @@
   (div x2 (int.pow2 x4)))
 
 (define-fun reserved_datatype_name ((s String)) Bool (str.prefixof "@" s))
-    
+
 ; tsm.Type:
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
 ; sm.Term:
@@ -325,15 +325,15 @@
 (declare-fun char_of_value (vsm.Value) String)
 
 (assert (! (forall ((x ssm.Seq))
-  (! (= (unpack_seq x) 
-    (ite ((_ is ssm.cons) x) 
+  (! (= (unpack_seq x)
+    (ite ((_ is ssm.cons) x)
       (seq.++ (seq.unit (ssm.cons.arg1 x)) (unpack_seq (ssm.cons.arg2 x)))
       (as seq.empty (Seq vsm.Value))))
   :pattern ((unpack_seq x))))
   :named smtx.unpack_seq.def))
-  
+
 (assert (! (forall ((T tsm.Type) (x (Seq vsm.Value)))
-  (! (= (pack_seq T x) 
+  (! (= (pack_seq T x)
     (ite (> (seq.len x) 0)
       (ssm.cons (seq.nth x 0) (pack_seq T (seq.extract x 1 (- (seq.len x) 1))))
       (ssm.empty T)))
@@ -410,13 +410,13 @@
 
 (declare-fun reflist_contains (srl.RefList String) Bool)
 (assert (! (forall ((rl srl.RefList) (s String))
-  (! (= (reflist_contains rl s) 
+  (! (= (reflist_contains rl s)
     (ite ((_ is reflist_nil) rl) false
     (ite (= (reflist_insert.arg2 rl) s) true
       (reflist_contains (reflist_insert.arg1 rl) s))))
   :pattern ((reflist_contains rl s))))
   :named smtx.reflist_contains_def))
-  
+
 (define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
 (define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))
 (define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))
@@ -442,7 +442,7 @@
 (declare-fun eval_fun_apply (SmtModel String tsm.Type tsm.Type vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (msm.Map msm.Map) Bool)
-  
+
 ;;; Relevant definitions
 
 ; program: $eo_mk_apply
@@ -1097,7 +1097,7 @@
        vsm.NotValue)))
   :pattern ((eval_texists M s T F))))
   :named smtx.texists.def))
-  
+
 ; forall
 (assert (! (forall ((M SmtModel) (s String) (T tsm.Type) (F sm.Term))
   (! (= (eval_tforall M s T F)
@@ -1119,11 +1119,11 @@
 
 ; typeof choice, must be an inhabitant, else it is ill-typed.
 (assert (! (forall ((T tsm.Type))
-  (! (= (inhabited_type T) 
+  (! (= (inhabited_type T)
     (exists ((v vsm.Value)) (= ($smtx_typeof_value v) T)))
   :pattern ((inhabited_type T))))
   :named smtx.inhabited_type.def))
-  
+
 ; whether two map values are extensionally equal
 (assert (! (forall ((v1 msm.Map) (v2 msm.Map))
   (! (= (veq_ext v1 v2)

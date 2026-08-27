@@ -407,22 +407,22 @@
 ;;; Eunoia datatype constructors
 
 ; User terms
-(declare-parameterized-const $emb_UOp 
+(declare-parameterized-const $emb_UOp
   ((u ($native_type_0 "UserOp") :opaque)) $eo_Term)
 (define $eot_uop ((u ($native_type_0 "UserOp"))) ($emb_UOp u))
-(declare-parameterized-const $emb_UOp1 
+(declare-parameterized-const $emb_UOp1
   ((u ($native_type_0 "UserOp1") :opaque) (t1 $eo_Term :opaque)) $eo_Term)
 (define $eot_uop1 ((u ($native_type_0 "UserOp1")) (t1 $eo_Term))
   ($emb_UOp1 u t1))
-(declare-parameterized-const $emb_UOp2 
+(declare-parameterized-const $emb_UOp2
   ((u ($native_type_0 "UserOp2") :opaque) (t1 $eo_Term :opaque)
    (t2 $eo_Term :opaque)) $eo_Term)
 (define $eot_uop2 ((u ($native_type_0 "UserOp2")) (t1 $eo_Term) (t2 $eo_Term))
   ($emb_UOp2 u t1 t2))
-(declare-parameterized-const $emb_UOp3 
-  ((u ($native_type_0 "UserOp3") :opaque) (t1 $eo_Term :opaque) 
+(declare-parameterized-const $emb_UOp3
+  ((u ($native_type_0 "UserOp3") :opaque) (t1 $eo_Term :opaque)
    (t2 $eo_Term :opaque) (t3 $eo_Term :opaque)) $eo_Term)
-(define $eot_uop3 
+(define $eot_uop3
   ((u ($native_type_0 "UserOp3")) (t1 $eo_Term) (t2 $eo_Term) (t3 $eo_Term))
   ($emb_UOp3 u t1 t2 t3))
 
@@ -431,7 +431,7 @@
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List))
-  
+
 ; The Boolean type
 (declare-const $emb_Bool $eo_Term)
 (define $eot_Bool () $emb_Bool)
@@ -497,7 +497,7 @@
 (define $eot_DatatypeType ((s $native_String) (d $eo_DatatypeDecl))
   ($emb_DatatypeType s d))
 
-(declare-parameterized-const $emb_DatatypeTypeRef 
+(declare-parameterized-const $emb_DatatypeTypeRef
   ((s $native_String :opaque))
   $eo_Term)
 (define $eot_DatatypeTypeRef ((s $native_String))
@@ -526,11 +526,11 @@
   ((s $native_String) (d $eo_DatatypeDecl) (ci $native_Nat)
    (ai $native_Nat))
   ($emb_DtSel s d ci ai))
-  
+
 ; uninterpreted sorts
 (declare-parameterized-const $emb_USort ((n $native_Nat :opaque)) $eo_Term)
 (define $eot_USort ((n $native_Nat)) ($emb_USort n))
-  
+
 ; uninterpreted constants
 (declare-parameterized-const $emb_UConst
   ((n $native_Nat :opaque) (T $eo_Term :opaque))
@@ -557,7 +557,7 @@
 ; A datatype having no constructors
 (declare-const $emb_edt.null $eo_Datatype)
 (define $edt_null () $emb_edt.null)
-  
+
 ; A datatype having at least one constructor
 (declare-parameterized-const $emb_edt.sum
   ((c $eo_DatatypeCons :opaque) (d $eo_Datatype :opaque))
@@ -568,14 +568,14 @@
 ; An empty datatype declaration
 (declare-const $emb_edd.nil $eo_DatatypeDecl)
 (define $edd_nil () $emb_edd.nil)
-  
+
 ; A datatype declaration having at least one datatype
 (declare-parameterized-const $emb_edd.cons
   ((s $native_String :opaque) (d $eo_Datatype :opaque) (dd $eo_DatatypeDecl :opaque))
   $eo_DatatypeDecl)
 (define $edd_cons ((s $native_String) (d $eo_Datatype) (dd $eo_DatatypeDecl))
   ($emb_edd.cons s d dd))
-  
+
 ;;; Utilities
 
 ; return: The embedding of (-> T1 T2).
@@ -1150,7 +1150,7 @@
 
 ; program: $eo_var
 ; implements: eo::var
-(define $eo_var ((s $eo_Term) (T $eo_Term)) 
+(define $eo_var ((s $eo_Term) (T $eo_Term))
   ($eot_Var s T))
 
 ; program: $eo_nameof
@@ -1200,7 +1200,7 @@
 )
 
 (program $eo_dd_lookup
-  ((s $native_String) (s2 $native_String) (d $eo_Datatype) (c $eo_DatatypeCons) 
+  ((s $native_String) (s2 $native_String) (d $eo_Datatype) (c $eo_DatatypeCons)
    (dd $eo_DatatypeDecl))
   :signature ($native_String $eo_DatatypeDecl) $eo_Datatype
   (
@@ -1209,7 +1209,7 @@
   (($eo_dd_lookup s $edd_nil) $edt_null)
   )
 )
-  
+
 (program $eo_dd_resolve
   ((s $native_String) (dd $eo_DatatypeDecl))
   :signature ($native_String $eo_DatatypeDecl) $eo_Datatype
@@ -1271,7 +1271,7 @@
 
 ; program: $eo_dt_selectors
 ; implements: eo::dt_selectors
-(program $eo_dt_selectors 
+(program $eo_dt_selectors
   ((s $native_String) (dd $eo_DatatypeDecl) (n $native_Nat) (t $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
@@ -1927,7 +1927,7 @@
 )
 
 (program $eo_is_closed_rec
-  ((T Type) (U Type) (V Type) (s $eo_Term) (env $eo_List) 
+  ((T Type) (U Type) (V Type) (s $eo_Term) (env $eo_List)
    (f (-> U V T)) (x U) (vs $eo_List) (X Type) (u X) (x2 U) (x3 U))
   :signature ($eo_Term $eo_List) $eo_Term
   (
@@ -1938,9 +1938,9 @@
   (($eo_is_closed_rec (f x) env)
     (eo::and ($eo_is_closed_rec f env) ($eo_is_closed_rec x env)))
   (($eo_is_closed_rec ($eot_uop1 u x) env) ($eo_is_closed_rec x env))
-  (($eo_is_closed_rec ($eot_uop2 u x x2) env) 
+  (($eo_is_closed_rec ($eot_uop2 u x x2) env)
     (eo::and ($eo_is_closed_rec x env) ($eo_is_closed_rec x2 env)))
-  (($eo_is_closed_rec ($eot_uop3 u x x2 x3) env) 
+  (($eo_is_closed_rec ($eot_uop3 u x x2 x3) env)
     (eo::and (eo::and ($eo_is_closed_rec x env) ($eo_is_closed_rec x2 env)) ($eo_is_closed_rec x3 env)))
   (($eo_is_closed_rec x env) true)
   )
@@ -2075,13 +2075,13 @@
 ; this takes the variable to quantify over, which should then be applied
 ; to a formula, similarly for the other quantifiers
 (declare-parameterized-const $emb_sm.exists
-  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque)) 
+  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque))
   $smt_Term)
 (define $sm_exists ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.exists s T F))
 
 ; forall
 (declare-parameterized-const $emb_sm.forall
-  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque)) 
+  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque))
   $smt_Term)
 (define $sm_forall ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.forall s T F))
 
@@ -2104,7 +2104,7 @@
   $smt_Term)
 (define $sm_bind ((s $native_String) (T $smt_Type) (t1 $smt_Term) (t2 $smt_Term))
   ($emb_sm.bind s T t1 t2))
-  
+
 ; the ci^th constructor of datatype ($tsm_Datatype s dd).
 (declare-parameterized-const $emb_sm.DtCons
   ((s $native_String :opaque) (d $smt_DatatypeDecl :opaque)
@@ -2335,7 +2335,7 @@
 (define $vsm_char ((c $native_Char)) ($emb_vsm.Char c))
 
 ; A value denoting an uninterpreted sort
-(declare-parameterized-const $emb_vsm.UValue 
+(declare-parameterized-const $emb_vsm.UValue
   ((i $native_Nat :opaque) (e $native_Nat :opaque)) $smt_Value)
 (define $vsm_uvalue ((i $native_Nat) (e $native_Nat)) ($emb_vsm.UValue i e))
 
@@ -2441,7 +2441,7 @@
   $smt_DatatypeDecl)
 (define $dd_cons ((s $native_String) (d $smt_Datatype) (dd $smt_DatatypeDecl))
   ($emb_dd.cons s d dd))
-  
+
 ;;; forward declarations
 
 (program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
@@ -2473,7 +2473,7 @@
 )
 
 (program $smtx_dd_lookup
-  ((s $native_String) (s2 $native_String) (d $smt_Datatype) (c $smt_DatatypeCons) 
+  ((s $native_String) (s2 $native_String) (d $smt_Datatype) (c $smt_DatatypeCons)
    (dd $smt_DatatypeDecl))
   :signature ($native_String $smt_DatatypeDecl) $smt_Datatype
   (
@@ -2539,7 +2539,7 @@
   (($smtx_decl_wf_rec dd $dd_nil)  $native_true)
   )
 )
-  
+
 ; The cases the configuration writes are spliced in below, and x1, x2 and n1
 ; are what one of them is written with: a type stands at x<i> and the index a
 ; type is built over at n<i>, see the types of tools/eoc/semantics/smt.eos.
@@ -2800,7 +2800,7 @@
   (($smtx_typeof_value ($vsm_numeral n))    $tsm_Int)
   (($smtx_typeof_value ($vsm_rational q))   $tsm_Real)
   (($smtx_typeof_value ($vsm_binary w n))
-    ($native_ite 
+    ($native_ite
       ($native_and ($native_z_<= $native_z_zero w) ($native_z_= n ($native_mod_total n ($native_z_pow2 w))))
       ($tsm_BitVec ($native_z_to_n w))
       $tsm_none))
@@ -3386,7 +3386,7 @@
   (($smtx_type_default ($tsm_FunType T U))  ($vsm_fun ($native_apply_0 "default_fun_id") T U))
   (($smtx_type_default T) $vsm_not_value)
   )
-)  
+)
 
 ;;; Canonicity of values
 
@@ -3453,7 +3453,7 @@
       $native_true))
   (($smtx_value_canonical_bool ($vsm_char c)) ($native_apply_1 "char_valid" c))
   (($smtx_value_canonical_bool ($vsm_map m)) ($smtx_map_canonical m))
-  (($smtx_value_canonical_bool ($vsm_set m)) 
+  (($smtx_value_canonical_bool ($vsm_set m))
     ($native_and ($smtx_map_canonical m) ($native_veq ($smtx_msm_get_default m) $vsm_false)))
   (($smtx_value_canonical_bool ($vsm_seq s)) ($smtx_seq_canonical s))
   (($smtx_value_canonical_bool ($vsm_re r)) ($native_apply_1 "re_canonical" r))

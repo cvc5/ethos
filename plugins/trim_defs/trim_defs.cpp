@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "input.h"
+#include "../utils.h"
 
 namespace ethos {
 
@@ -777,7 +778,7 @@ void TrimDefs::finalize()
   {
     EO_FATAL() << "TrimDefs: failed to open output " << outPath;
   }
-  out << ss.str();
+  out << rtrimLines(ss.str());
   out.close();
   if (out.fail())
   {

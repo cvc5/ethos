@@ -251,7 +251,7 @@
 
 (define-symbol store (a i e))
 
-(program $eo_to_smt_array_deq_diff 
+(program $eo_to_smt_array_deq_diff
   ((a SmtTerm) (aT SmtType) (aU SmtType) (b SmtTerm) (bT SmtType) (bU SmtType))
   :signature (SmtTerm SmtType SmtTerm SmtType) SmtTerm
   (
@@ -572,15 +572,15 @@
 )
 
 ; -- @re_unfold_pos_component
-(program $eo_to_smt_re_unfold_pos_component 
+(program $eo_to_smt_re_unfold_pos_component
   ((_y2 SmtTerm) (_y3 "Nat") (n "Nat") (r1 SmtTerm) (r2 SmtTerm) (s SmtTerm))
   :signature (SmtTerm SmtTerm "Nat") SmtTerm
   (
-  (($eo_to_smt_re_unfold_pos_component s (re.++ r1 r2) "n_zero") 
+  (($eo_to_smt_re_unfold_pos_component s (re.++ r1 r2) "n_zero")
     (str.substr s 0 (str.indexof_re_split s r1 r2)))
-  (($eo_to_smt_re_unfold_pos_component s (re.++ r1 r2) ("n_succ" n)) 
-    ($eo_to_smt_re_unfold_pos_component 
-      (str.substr s (str.indexof_re_split s r1 r2) 
+  (($eo_to_smt_re_unfold_pos_component s (re.++ r1 r2) ("n_succ" n))
+    ($eo_to_smt_re_unfold_pos_component
+      (str.substr s (str.indexof_re_split s r1 r2)
       (- (str.len s) (str.indexof_re_split s r1 r2))) r2 n))
   (($eo_to_smt_re_unfold_pos_component s _y2 _y3) none)
   )
@@ -705,7 +705,7 @@
   :term ($eo_to_smt_set.insert xs a))
 
 ; -- @sets_deq_diff
-(program $eo_to_smt_sets_deq_diff 
+(program $eo_to_smt_sets_deq_diff
   ((a SmtTerm) (aT SmtType) (b SmtTerm) (bT SmtType))
   :signature (SmtTerm SmtType SmtTerm SmtType) SmtTerm
   (
@@ -813,7 +813,7 @@
 )
 
 (program $eo_to_smt_tuple_prepend_of_type
-  ((T SmtType) (h SmtTerm) (hT SmtType) (tail SmtTerm) 
+  ((T SmtType) (h SmtTerm) (hT SmtType) (tail SmtTerm)
    (c SmtDatatypeCons) (s "String") (s2 "String"))
   :signature (SmtType SmtTerm SmtType SmtTerm) SmtTerm
   (
@@ -854,7 +854,7 @@
   :signature (SmtType SmtTerm SmtTerm) SmtTerm
   (
   (($eo_to_smt_tuple_select (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (numeral n) t)
-    ("ite" 
+    ("ite"
       ("and"
         ("and"
           ("str_=" s "str_tuple_name")
@@ -878,7 +878,7 @@
   :signature (SmtType SmtTerm SmtTerm SmtTerm) SmtTerm
   (
   (($eo_to_smt_tuple_update (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (numeral n) t u)
-    ("ite" 
+    ("ite"
       ("and"
         ("and"
           ("str_=" s "str_tuple_name")

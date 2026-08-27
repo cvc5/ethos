@@ -37,13 +37,13 @@ import itertools
 import os
 import re
 import sys
-import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import sem_target  # noqa: E402
 from sem_lang import (counts, defined_names, die,  # noqa: E402
-                      lean_clauses, read_config, read_macros, read_vocabulary)
+                      lean_clauses, read_config, read_macros, read_text,
+                      read_vocabulary, write_text)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -115,30 +115,23 @@ LEAN_GENERATED = """\
 -- all the same clause; prose may be written between blocks, since a clause is
 -- Lean text and holds no comment of its own.
 --
--- %s"""
+%s"""
 
 # What each of the two Lean files is for, which is what the set it comes from
 # is: the programs of the deep embedding are compiled through whichever the
 # input is, so the stage reads that file for itself and is given the other.
+# Written as it is to be read, since text a run wraps for itself is text a run
+# could wrap differently.
 LEAN_WHICH = {
-    SMT_SET: 'This file is for the programs of the deep embedding, which every'
-             ' input is compiled through. A program of an input signature is'
-             ' named in a file of its own, which the compiler is given with'
-             ' --lean-config.',
-    None: 'This file is for the programs of one input signature, and is what'
-          ' --lean-config names. The programs of the deep embedding are in'
-          ' tools/eoc/out/smt_termination.lean.',
+    SMT_SET: """\
+-- This file is for the programs of the deep embedding, which every input is
+-- compiled through. A program of an input signature is named in a file of its
+-- own, which the compiler is given with --lean-config.""",
+    None: """\
+-- This file is for the programs of one input signature, and is what
+-- --lean-config names. The programs of the deep embedding are in
+-- tools/eoc/out/smt_termination.lean.""",
 }
-
-
-def commented(text):
-  """Prose as the comment lines of a Lean file.
-
-  A name is never broken across two of them, since --lean-config read as
-  --lean- and config is no longer the name of anything.
-  """
-  return '\n'.join('-- ' + line
-                   for line in textwrap.wrap(text, 76, break_on_hyphens=False))
 
 
 def render_lean(config):
@@ -149,9 +142,8 @@ def render_lean(config):
   heading, which is what naming several programs in one is for: the four
   helpers regular expression inclusion descends through share a measure.
   """
-  which = LEAN_WHICH[SMT_SET if config.is_target else None]
-  out = [LEAN_GENERATED % (os.path.relpath(config.path, ROOT),
-                           commented(which).lstrip('- '))]
+  out = [LEAN_GENERATED % (named(config.path),
+                          LEAN_WHICH[SMT_SET if config.is_target else None])]
   blocks = []
   for name, doc, text in config.clauses:
     if blocks and not doc and blocks[-1][1] == text:
@@ -178,10 +170,16 @@ def summary(config):
   return ', '.join(kinds) + ('; ' + ', '.join(said) if said else '')
 
 
+def named(path):
+  """A path as a generated file names one, i.e. from the root and with the one
+  separator, whatever the machine underneath spells one with."""
+  return os.path.relpath(path, ROOT).replace(os.sep, '/')
+
+
 def header(config):
   """What the generated file says for itself: how it came about, and then what
   the central file of its set says about the set."""
-  rel = os.path.relpath(config.path, ROOT)
+  rel = named(config.path)
   return GENERATED % rel + ''.join(l + '\n' for l in config.doc)
 
 
@@ -242,8 +240,8 @@ class Config:
     """
     return self.name == SMT_SET
 
-  def _beside(self, mine, theirs):
-    """Where one of the two files it compiles to is written.
+  def _beside(self, target):
+    """Where one of the files it compiles to is written.
 
     The sets the tool ships with compile into tools/eoc/out, which is where the
     stages read them from and which nothing checks in: what is kept is the
@@ -251,24 +249,28 @@ class Config:
     stands is the only place the tool knows of, so one that lives in another
     tree writes what it compiles to into that tree.
     """
-    if any(os.path.samefile(self.path, c) for c in CONFIGS
-           if os.path.exists(c)):
-      return mine
-    return os.path.join(os.path.dirname(self.path), os.path.basename(theirs))
+    if any(same_file(self.path, c) for c in CONFIGS):
+      return target
+    return os.path.join(os.path.dirname(self.path), os.path.basename(target))
 
   @property
   def target(self):
     """The signature in the deep embedding it compiles to."""
-    return self._beside(SMT_TARGET if self.is_target else INPUT_TARGET,
-                        SMT_TARGET if self.is_target else INPUT_TARGET)
+    return self._beside(SMT_TARGET if self.is_target else INPUT_TARGET)
 
   @property
   def lean_target(self):
     """Where what its methods say the generated Lean is to be told is written,
     on the same terms."""
     return self._beside(
-        SMT_LEAN_TARGET if self.is_target else INPUT_LEAN_TARGET,
         SMT_LEAN_TARGET if self.is_target else INPUT_LEAN_TARGET)
+
+
+def same_file(a, b):
+  """Whether two paths name one file, which neither has to exist to answer:
+  a set is compared with the ones the tool ships with before anything is
+  written."""
+  return os.path.realpath(a) == os.path.realpath(b)
 
 
 def name_of(path):
@@ -285,9 +287,8 @@ def read_config_file(path):
   """
   # The heading of the file, which is what the generated file says about
   # itself: the two describe the same signature.
-  with open(path) as f:
-    doc = list(itertools.takewhile(lambda l: l.startswith(';'),
-                                   f.read().split('\n')))
+  doc = list(itertools.takewhile(lambda l: l.startswith(';'),
+                                 read_text(path).split('\n')))
   return Config(path, sem_target.of(name_of(path) == SMT_SET), [path], doc)
 
 
@@ -298,8 +299,8 @@ def is_config(path):
   signature written out never does: it is written in the embedding throughout.
   """
   try:
-    with open(path) as f:
-      return any(line.startswith('(define-symbol ') for line in f)
+    return any(line.startswith('(define-symbol ')
+               for line in read_text(path).split('\n'))
   except OSError:
     return False
 
@@ -350,7 +351,8 @@ def build_aliases(vocab, macros):
   $emb_sm.X is applied by $sm_X, so it needs no entry of its own.
   """
   pairs = vocab.aliases + list(macros.items())
-  return sorted(pairs, key=lambda kv: -len(kv[0])) + [('$emb_sm.', '$sm_')]
+  return (sorted(pairs, key=lambda kv: (-len(kv[0]), kv[0]))
+          + [('$emb_sm.', '$sm_')])
 
 
 def unalias(text):
@@ -406,7 +408,7 @@ def check_order(blocks, name, exempt=()):
     # A name in a comment is not a use: what the block says about itself may
     # well name a block that comes after it.
     body = re.sub(r';[^\n]*', '', DEF_RE.sub('', text))
-    for u in set(USE_RE.findall(body)):
+    for u in sorted(set(USE_RE.findall(body))):
       if any(u.startswith(p) for p in exempt):
         continue
       if u in owner and owner[u] > i:
@@ -461,8 +463,7 @@ def check_forms(blocks, path):
   """
   gen = collections.Counter(normalize(x)
                             for _s, t in blocks for x in forms_of(t))
-  with open(path) as f:
-    mine = collections.Counter(normalize(x) for x in forms_of(f.read()))
+  mine = collections.Counter(normalize(x) for x in forms_of(read_text(path)))
   missing = mine - gen
   extra = gen - mine
   for k, v in list(missing.items())[:6]:
@@ -479,8 +480,7 @@ def check_lean(config):
   """Compare the Lean the set says with what is checked in beside it."""
   name = os.path.basename(config.lean_target)
   text = render_lean(config)
-  with open(config.lean_target) as f:
-    have = f.read()
+  have = read_text(config.lean_target)
   print('  %-20s %d clauses, %s'
         % (name, len(config.clauses),
            'unchanged' if have == text else 'DIFFERS'))
@@ -493,8 +493,7 @@ def check(blocks, path, verbose):
   A block that agrees only after normalize is reported apart, since it spells
   the same term with a macro the file wrote out or with different whitespace.
   """
-  with open(path) as f:
-    checked_in = split_blocks(f.read())
+  checked_in = split_blocks(read_text(path))
   have = dict(checked_in)
   order = [s for s, _ in checked_in]
   same = respelt = moved = bad = 0
@@ -552,15 +551,12 @@ def write_if_changed(text, path):
   The pipeline compiles the configuration before every run, so a run that has
   nothing to do has to leave the tree as it found it.
   """
-  if os.path.exists(path):
-    with open(path) as f:
-      if f.read() == text:
-        return False
+  if os.path.exists(path) and read_text(path) == text:
+    return False
   d = os.path.dirname(path)
   if d:
     os.makedirs(d, exist_ok=True)
-  with open(path, 'w') as f:
-    f.write(text)
+  write_text(path, text)
   return True
 
 

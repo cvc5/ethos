@@ -325,7 +325,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
       os << bv.getSize() << " " << bvi.toString() << ")";
     }
     else if (k == Kind::STRING)
-    {     
+    {
       os << "(Term.String ";
       std::string css = l->toString();
       AlwaysAssert(css.find_first_of("\"\\") == std::string::npos)
@@ -1274,7 +1274,7 @@ void LeanMetaReduce::printOrderKeyCase(const std::string& cname,
 }
 
 void LeanMetaReduce::finalizeChecker()
-{  
+{
   const std::string outPatht =
       emitResourceFile("plugins/lean_meta/lean_meta_checker_term.lean",
                        "plugins/lean_meta/lean_meta_checker_term_gen.lean",
