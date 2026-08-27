@@ -94,6 +94,29 @@ class Constructor:
 # What the i'th argument of a symbol is called in the program written for it.
 SLOT = 'x%d'
 
+# What a case calls the parameter of an argument, by the type that argument is
+# declared to be of. A name is that letter and the place the argument stands
+# at, so `s1` is a native string first, `T2` a type second and `x3` a term
+# third. The program a case is spliced into declares each name once, so two
+# types may not share a letter; add a type here to give it one.
+SLOT_BY_TYPE = {
+    '$native_Bool': 'b',
+    '$native_Char': 'c',
+    '$native_Int': 'i',
+    '$native_Nat': 'n',
+    '$native_Rat': 'r',
+    '$native_String': 's',
+    '$smt_Term': 'x',
+    '$smt_Type': 'T',
+    '$smt_Value': 'v',
+    '$smt_Map': 'm',
+    '$smt_Seq': 'q',
+    '$smt_RegLan': 're',
+    '$smt_Datatype': 'd',
+    '$smt_DatatypeCons': 'dc',
+    '$smt_DatatypeDecl': 'dd',
+}
+
 
 class Aggregate:
   """One attribute a symbol may carry, and what writing it produces.
@@ -142,15 +165,20 @@ class Aggregate:
 
   # -- the names a case is written with ---------------------------------------
 
-  def slot(self, i, kind=None, declared=None):
+  def slot(self, i, kind=None, declared=None, entry=None):
     """What a case calls the parameter of its i'th argument.
 
-    A parameter that says the type it is of is called after that type, so that
-    the program the cases are spliced into can declare each name once; one that
+    A parameter that says the type it is of is called after that type -- the
+    letter SLOT_BY_TYPE gives it and the place it stands at -- so that the
+    program the cases are spliced into can declare each name once; one that
     does not is called after its kind, or x<i> where the kind says nothing.
     """
     if declared is not None:
-      return '%s%d' % (declared.split('_')[-1].lower(), i + 1)
+      if declared not in SLOT_BY_TYPE:
+        die('%s: %s has no letter to name a parameter of it by; give it one in '
+            'SLOT_BY_TYPE, and one no other type there has'
+            % (entry.name if entry is not None else 'a case', declared))
+      return '%s%d' % (SLOT_BY_TYPE[declared], i + 1)
     fmt = self.slots.get(kind, SLOT) if self.slots else SLOT
     return fmt % (i + 1)
 
@@ -169,7 +197,7 @@ class Aggregate:
       # that type gives it, see Aggregate.slot.
       for i, t in enumerate(entry.types[:n]):
         declared = declared_type(t, entry, ctx) if t else None
-        out.append('(%s %s)' % (self.slot(i, entry.kinds[i], declared),
+        out.append('(%s %s)' % (self.slot(i, entry.kinds[i], declared, entry),
                                 declared))
     elif isinstance(self.declares, dict):
       for i, kind in enumerate(entry.kinds[:n]):

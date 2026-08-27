@@ -355,8 +355,12 @@ The two marked kinds are annotated the way SMT-LIB annotates a term. The last
 is for a kind of entity whose arguments are not all of one type -- a value of
 the embedding is built over a native of one sort or another -- and it settles
 what a case calls each argument: the program the cases are spliced into
-declares each name once, so an argument is named after the type it is of,
-`int1` and `map1` rather than `x1` twice.
+declares each name once, so an argument is named after the type it is of
+rather than `x1` twice. The name is a letter for that type and the place the
+argument stands at -- `s1` for a native string first, `T2` for a type second,
+`x3` for a term third -- and `SLOT_BY_TYPE` in `tools/eoc/sem_target.py` is
+where a type is given its letter. Two types may not share one, and a type with
+none is an error rather than a guess.
 
 What each stands for in a body is the aggregate's business. In
 `semantics/smt.eos` a `:raw` argument -- an index -- stands for the term itself

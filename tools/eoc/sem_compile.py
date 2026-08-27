@@ -324,13 +324,36 @@ def compile_config(config, vocab, macros):
   return out
 
 
+def target_blocks(paths):
+  """The blocks of the set that is the target, for the vocabulary of the rest.
+
+  An input is compiled *through* the target, so a symbol the target declares is
+  one an input may name -- the bit-vector literal is, and so is each binder --
+  and what each place of that symbol is of is what says how an argument written
+  there is transformed. Reading the target is what puts that in reach; without
+  it an argument falls back to the level around it, and a native written under
+  a symbol that takes one comes out wrapped as a term.
+
+  The target is read whether or not this run compiles it, since an input set
+  compiled on its own is written against it just the same.
+  """
+  path = next((p for p in paths if name_of(p) == SMT_SET),
+              next((c for c in CONFIGS if name_of(c) == SMT_SET), None))
+  if path is None:
+    return []
+  config = read_config_file(path)
+  return read_config(config.files, config.decls)
+
+
 def compile_all(paths):
   """Every set, as (config, blocks) pairs."""
   vocab, macros = read_vocabulary(VOCAB_FILES), read_macros(MACRO_FILES)
+  target = target_blocks(paths)
   out = []
   for p in paths:
     config = read_config_file(p)
-    out.append((config, compile_config(config, vocab, macros)))
+    base = vocab if name_of(p) == SMT_SET else vocab.extended(target)
+    out.append((config, compile_config(config, base, macros)))
   return out
 
 

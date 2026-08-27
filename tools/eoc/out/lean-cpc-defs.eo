@@ -2844,32 +2844,32 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Type rules for values
 
 ; The cases the configuration writes are spliced in below, and each argument
-; is named after the type it is of, see the values of
+; is a letter for the type it is of and the place it stands at, see the values of
 ; tools/eoc/semantics/smt.eos.
 (program $smtx_typeof_value
-  ((v $smt_Value) (bool1 $native_Bool) (int1 $native_Int) (int2 $native_Int)
-   (rat1 $native_Rat) (char1 $native_Char) (nat1 $native_Nat)
-   (nat2 $native_Nat) (nat3 $native_Nat) (string1 $native_String)
-   (map1 $smt_Map) (seq1 $smt_Seq) (reglan1 $smt_RegLan)
-   (datatypedecl2 $smt_DatatypeDecl) (type2 $smt_Type) (type3 $smt_Type)
-   (value1 $smt_Value) (value2 $smt_Value))
+  ((v $smt_Value) (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
+   (r1 $native_Rat) (c1 $native_Char) (n1 $native_Nat)
+   (n2 $native_Nat) (n3 $native_Nat) (s1 $native_String)
+   (m1 $smt_Map) (q1 $smt_Seq) (re1 $smt_RegLan)
+   (dd2 $smt_DatatypeDecl) (T2 $smt_Type) (T3 $smt_Type)
+   (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value) $smt_Type
   (
-  (($smtx_typeof_value ($vsm_Boolean bool1)) $tsm_Bool)
-  (($smtx_typeof_value ($vsm_Numeral int1)) $tsm_Int)
-  (($smtx_typeof_value ($vsm_Rational rat1)) $tsm_Real)
-  (($smtx_typeof_value ($vsm_Binary int1 int2)) ($native_ite ($native_and ($native_z_<= $native_z_zero int1) ($native_z_= int2 ($native_mod_total int2 ($native_z_pow2 int1))))
-            ($tsm_BitVec ($native_z_to_n int1))
+  (($smtx_typeof_value ($vsm_Boolean b1)) $tsm_Bool)
+  (($smtx_typeof_value ($vsm_Numeral i1)) $tsm_Int)
+  (($smtx_typeof_value ($vsm_Rational r1)) $tsm_Real)
+  (($smtx_typeof_value ($vsm_Binary i1 i2)) ($native_ite ($native_and ($native_z_<= $native_z_zero i1) ($native_z_= i2 ($native_mod_total i2 ($native_z_pow2 i1))))
+            ($tsm_BitVec ($native_z_to_n i1))
             $tsm_none))
-  (($smtx_typeof_value ($vsm_Map map1)) ($smtx_typeof_map_value map1))
-  (($smtx_typeof_value ($vsm_Fun string1 type2 type3)) ($tsm_FunType type2 type3))
-  (($smtx_typeof_value ($vsm_Set map1)) ($smtx_map_to_set_type ($smtx_typeof_map_value map1)))
-  (($smtx_typeof_value ($vsm_Seq seq1)) ($smtx_typeof_seq_value seq1))
-  (($smtx_typeof_value ($vsm_Char char1)) ($native_ite ($native_apply_1 "char_valid" char1) $tsm_Char $tsm_none))
-  (($smtx_typeof_value ($vsm_UValue nat1 nat2)) ($tsm_USort nat1))
-  (($smtx_typeof_value ($vsm_RegLan reglan1)) $tsm_RegLan)
-  (($smtx_typeof_value ($vsm_DtCons string1 datatypedecl2 nat3)) ($smtx_typeof_dt_cons_value_rec ($tsm_Datatype string1 datatypedecl2) ($smtx_dd_resolve string1 datatypedecl2) nat3))
-  (($smtx_typeof_value ($vsm_Apply value1 value2)) ($smtx_typeof_apply_value ($smtx_typeof_value value1) ($smtx_typeof_value value2)))
+  (($smtx_typeof_value ($vsm_Map m1)) ($smtx_typeof_map_value m1))
+  (($smtx_typeof_value ($vsm_Fun s1 T2 T3)) ($tsm_FunType T2 T3))
+  (($smtx_typeof_value ($vsm_Set m1)) ($smtx_map_to_set_type ($smtx_typeof_map_value m1)))
+  (($smtx_typeof_value ($vsm_Seq q1)) ($smtx_typeof_seq_value q1))
+  (($smtx_typeof_value ($vsm_Char c1)) ($native_ite ($native_apply_1 "char_valid" c1) $tsm_Char $tsm_none))
+  (($smtx_typeof_value ($vsm_UValue n1 n2)) ($tsm_USort n1))
+  (($smtx_typeof_value ($vsm_RegLan re1)) $tsm_RegLan)
+  (($smtx_typeof_value ($vsm_DtCons s1 dd2 n3)) ($smtx_typeof_dt_cons_value_rec ($tsm_Datatype s1 dd2) ($smtx_dd_resolve s1 dd2) n3))
+  (($smtx_typeof_value ($vsm_Apply v1 v2)) ($smtx_typeof_apply_value ($smtx_typeof_value v1) ($smtx_typeof_value v2)))
 
   (($smtx_typeof_value v)                   $tsm_none)
   )
@@ -2949,9 +2949,10 @@
   ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (dd $smt_DatatypeDecl)
    (i $native_Nat) (j $native_Nat)
    (m $native_Int) (s $native_String)
-   ; what a case of a literal is written with, named after the type it is of
-   (bool1 $native_Bool) (int1 $native_Int) (int2 $native_Int)
-   (rat1 $native_Rat) (string1 $native_String)
+   ; what a case of a literal is written with: a letter for the type it is of
+   ; and the place it stands at, see SLOT_BY_TYPE in tools/eoc/sem_target.py
+   (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
+   (r1 $native_Rat) (s1 $native_String)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Model $smt_Term) $smt_Value
@@ -2960,11 +2961,11 @@
   ; evaluation of standard SMT symbols
   ; These calls will reference helper methods above, e.g. of the form
   ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
-  (($smtx_model_eval M ($sm_Boolean bool1)) ($vsm_Boolean bool1))
-  (($smtx_model_eval M ($sm_Numeral int1)) ($vsm_Numeral int1))
-  (($smtx_model_eval M ($sm_Rational rat1)) ($vsm_Rational rat1))
-  (($smtx_model_eval M ($sm_String string1)) ($vsm_Seq ($native_apply_1 "pack_string" string1)))
-  (($smtx_model_eval M ($sm_Binary int1 int2)) ($vsm_Binary int1 int2))
+  (($smtx_model_eval M ($sm_Boolean b1)) ($vsm_Boolean b1))
+  (($smtx_model_eval M ($sm_Numeral i1)) ($vsm_Numeral i1))
+  (($smtx_model_eval M ($sm_Rational r1)) ($vsm_Rational r1))
+  (($smtx_model_eval M ($sm_String s1)) ($vsm_Seq ($native_apply_1 "pack_string" s1)))
+  (($smtx_model_eval M ($sm_Binary i1 i2)) ($vsm_Binary i1 i2))
   (($smtx_model_eval M ($sm_not x1)) ($smtx_model_eval_not ($smtx_model_eval M x1)))
   (($smtx_model_eval M ($sm_and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
   (($smtx_model_eval M ($sm_or x1 x2)) ($smtx_model_eval_or ($smtx_model_eval M x1) ($smtx_model_eval M x2)))
@@ -3008,19 +3009,20 @@
   ((M $smt_Model) (f $smt_Term) (T $smt_Type) (dd $smt_DatatypeDecl)
    (i $native_Nat) (j $native_Nat)
    (m $native_Int) (s $native_String)
-   ; what a case of a literal is written with, named after the type it is of
-   (bool1 $native_Bool) (int1 $native_Int) (int2 $native_Int)
-   (rat1 $native_Rat) (string1 $native_String)
+   ; what a case of a literal is written with: a letter for the type it is of
+   ; and the place it stands at, see SLOT_BY_TYPE in tools/eoc/sem_target.py
+   (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
+   (r1 $native_Rat) (s1 $native_String)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Term) $smt_Type
   (
-  (($smtx_typeof ($sm_Boolean bool1)) $tsm_Bool)
-  (($smtx_typeof ($sm_Numeral int1)) $tsm_Int)
-  (($smtx_typeof ($sm_Rational rat1)) $tsm_Real)
-  (($smtx_typeof ($sm_String string1)) ($native_ite ($native_apply_1 "string_valid" string1) $tsm_String $tsm_none))
-  (($smtx_typeof ($sm_Binary int1 int2)) ($native_ite ($native_and ($native_z_<= $native_z_zero int1) ($native_z_= int2 ($native_mod_total int2 ($native_z_pow2 int1))))
-            ($tsm_BitVec ($native_z_to_n int1))
+  (($smtx_typeof ($sm_Boolean b1)) $tsm_Bool)
+  (($smtx_typeof ($sm_Numeral i1)) $tsm_Int)
+  (($smtx_typeof ($sm_Rational r1)) $tsm_Real)
+  (($smtx_typeof ($sm_String s1)) ($native_ite ($native_apply_1 "string_valid" s1) $tsm_String $tsm_none))
+  (($smtx_typeof ($sm_Binary i1 i2)) ($native_ite ($native_and ($native_z_<= $native_z_zero i1) ($native_z_= i2 ($native_mod_total i2 ($native_z_pow2 i1))))
+            ($tsm_BitVec ($native_z_to_n i1))
             $tsm_none))
   (($smtx_typeof ($sm_not x1)) ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) $tsm_Bool $tsm_none))
   (($smtx_typeof ($sm_and x1 x2)) ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($native_ite ($native_Teq ($smtx_typeof x2) $tsm_Bool) $tsm_Bool $tsm_none) $tsm_none))
@@ -3419,22 +3421,22 @@
 
 ; The same, for what each value says about being canonical.
 (program $smtx_value_canonical_bool
-  ((v $smt_Value) (int1 $native_Int) (int2 $native_Int) (char1 $native_Char)
-   (map1 $smt_Map) (seq1 $smt_Seq) (reglan1 $smt_RegLan)
-   (value1 $smt_Value) (value2 $smt_Value))
+  ((v $smt_Value) (i1 $native_Int) (i2 $native_Int) (c1 $native_Char)
+   (m1 $smt_Map) (q1 $smt_Seq) (re1 $smt_RegLan)
+   (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value) $native_Bool
   (
-  (($smtx_value_canonical_bool ($vsm_Binary int1 int2)) ($native_ite ($native_z_<= $native_z_zero int1)
-               ($native_z_= int2 ($native_mod_total int2 ($native_z_pow2 int1)))
+  (($smtx_value_canonical_bool ($vsm_Binary i1 i2)) ($native_ite ($native_z_<= $native_z_zero i1)
+               ($native_z_= i2 ($native_mod_total i2 ($native_z_pow2 i1)))
                $native_true))
-  (($smtx_value_canonical_bool ($vsm_Map map1)) ($smtx_map_canonical map1))
-  (($smtx_value_canonical_bool ($vsm_Set map1)) ($native_and ($smtx_map_canonical map1)
-               ($native_veq ($smtx_msm_get_default map1) $vsm_false)))
-  (($smtx_value_canonical_bool ($vsm_Seq seq1)) ($smtx_seq_canonical seq1))
-  (($smtx_value_canonical_bool ($vsm_Char char1)) ($native_apply_1 "char_valid" char1))
-  (($smtx_value_canonical_bool ($vsm_RegLan reglan1)) ($native_apply_1 "re_canonical" reglan1))
-  (($smtx_value_canonical_bool ($vsm_Apply value1 value2)) ($native_and ($smtx_value_canonical_bool value1)
-               ($smtx_value_canonical_bool value2)))
+  (($smtx_value_canonical_bool ($vsm_Map m1)) ($smtx_map_canonical m1))
+  (($smtx_value_canonical_bool ($vsm_Set m1)) ($native_and ($smtx_map_canonical m1)
+               ($native_veq ($smtx_msm_get_default m1) $vsm_false)))
+  (($smtx_value_canonical_bool ($vsm_Seq q1)) ($smtx_seq_canonical q1))
+  (($smtx_value_canonical_bool ($vsm_Char c1)) ($native_apply_1 "char_valid" c1))
+  (($smtx_value_canonical_bool ($vsm_RegLan re1)) ($native_apply_1 "re_canonical" re1))
+  (($smtx_value_canonical_bool ($vsm_Apply v1 v2)) ($native_and ($smtx_value_canonical_bool v1)
+               ($smtx_value_canonical_bool v2)))
 
   (($smtx_value_canonical_bool v) $native_true)
   )
