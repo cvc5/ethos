@@ -402,6 +402,19 @@ This walks `include` chains and preserves declaration order.
 
 ## Common workflows
 
+### Generate a VC for one rule
+
+```bash
+python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE
+```
+
+### Generate VCs for every rule
+
+```bash
+python3 tools/eoc/driver.py batch --build-dir build-eoc vc INPUT --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc sygus INPUT --all-rules --clean
+```
+
 ### Generate Lean and then copy files elsewhere
 
 ```bash

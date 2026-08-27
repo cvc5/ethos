@@ -328,7 +328,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
       os << bv.getSize() << " " << bvi.toString() << ")";
     }
     else if (k == Kind::STRING)
-    {     
+    {
       os << "(Term.String ";
       std::string css = l->toString();
       AlwaysAssert(css.find_first_of("\"\\") == std::string::npos)
@@ -672,68 +672,6 @@ void LeanMetaReduce::finalizePrograms()
     bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
     Expr def = d_progToDef[prog];
     finalizeProgram(prog, def, isDefine);
-    /*
-        // Trying to minimize mutual blocks....
-        Expr prog = d_progDefs[i];
-        if (progProcessed.find(prog) != progProcessed.end())
-        {
-          continue;
-        }
-        Expr def = d_progToDef[prog];
-        std::vector<Expr> calls =
-            StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, def);
-        bool hasWaitingDef = false;
-        for (size_t j = 0, ncalls = calls.size(); j < ncalls; j++)
-        {
-          Expr sc = calls[j];
-          if (sc != prog && progProcessed.find(sc) == progProcessed.end()
-              && d_progToDef.find(sc) != d_progToDef.end())
-          {
-            if (std::find(waiting.begin(), waiting.end(), sc) == waiting.end())
-            {
-              waitingDef.insert(sc);
-            }
-            hasWaitingDef = true;
-          }
-        }
-        if (!hasWaitingDef)
-        {
-          // go ahead and define it
-          bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
-          finalizeProgram(prog, def, isDefine);
-          progProcessed.insert(prog);
-        }
-        else
-        {
-          // otherwise we are waiting
-          waiting.push_back(prog);
-        }
-        // remove from waiting defs
-        waitingDef.erase(prog);
-        if (!waiting.empty() && waitingDef.empty())
-        {
-          if (waiting.size() > 1)
-          {
-            d_defs << "mutual" << std::endl;
-          }
-          for (size_t j = 0, ncalls = waiting.size(); j < ncalls; j++)
-          {
-            Expr prog = waiting[j];
-            Expr def = d_progToDef[prog];
-            if (!def.isNull())
-            {
-              bool isDefine = (d_progIsDefine.find(prog) !=
-       d_progIsDefine.end()); finalizeProgram(prog, def, isDefine);
-              progProcessed.insert(prog);
-            }
-          }
-          if (waiting.size() > 1)
-          {
-            d_defs << "end" << std::endl;
-          }
-          waiting.clear();
-        }
-    */
   }
   Assert(waiting.empty());
 }
@@ -1339,7 +1277,7 @@ void LeanMetaReduce::printOrderKeyCase(const std::string& cname,
 }
 
 void LeanMetaReduce::finalizeChecker()
-{  
+{
   const std::string outPatht =
       emitResourceFile("plugins/lean_meta/lean_meta_checker_term.lean",
                        "plugins/lean_meta/lean_meta_checker_term_gen.lean",

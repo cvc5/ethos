@@ -1028,7 +1028,7 @@ void Desugar::finalize()
   {
     EO_FATAL() << "Desugar: failed to open output " << outPath;
   }
-  oute << finalEo;
+  oute << rtrimLines(finalEo);
   oute << std::endl;
   oute.close();
   if (!oute)
