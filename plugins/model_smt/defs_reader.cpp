@@ -221,9 +221,14 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
     const std::string kind = formKind(f);
     if (kind == "echo")
     {
-      // A directive to another stage of the compiler rather than something
-      // the model says, e.g. one that leaves the symbol out of the
-      // compilation altogether, see Desugar::echo. It names nothing here.
+      // A directive to a stage rather than something the model says. Most are
+      // addressed elsewhere, e.g. one that leaves the symbol out of the
+      // compilation altogether, see Desugar::echo; this one is addressed
+      // here. Either way it names nothing.
+      if (f.find("\"eoc-keep ") != std::string::npos)
+      {
+        b.d_keep = true;
+      }
       continue;
     }
     const std::string name = formName(f);
@@ -232,8 +237,18 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
     if (kind == "declare-const" || kind == "declare-parameterized-const"
         || kind == "define")
     {
-      // the constructor of the embedding for the symbol, and its macro
-      b.d_cons.push_back(f);
+      // the constructor of the embedding for the symbol, and its macro; a
+      // block of a type declares the constructor of a type, which the
+      // generated file has before the terms written over it
+      if (name.compare(0, 9, "$emb_tsm.") == 0
+          || name.compare(0, 5, "$tsm_") == 0)
+      {
+        b.d_typeCons.push_back(f);
+      }
+      else
+      {
+        b.d_cons.push_back(f);
+      }
       continue;
     }
     if (kind != "program")
@@ -283,6 +298,23 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
     {
       std::vector<std::string> cases = casesOf(f, name, "$eo_to_smt");
       b.d_transCases.insert(b.d_transCases.end(), cases.begin(), cases.end());
+    }
+    else if (isPre("$eoc_type_wf_"))
+    {
+      std::vector<std::string> cases = casesOf(f, name, "$smtx_type_wf_rec");
+      b.d_typeWfCases.insert(b.d_typeWfCases.end(), cases.begin(), cases.end());
+    }
+    else if (isPre("$eoc_type_bounded_"))
+    {
+      std::vector<std::string> cases = casesOf(f, name, "$smtx_type_bounded");
+      b.d_typeBoundedCases.insert(
+          b.d_typeBoundedCases.end(), cases.begin(), cases.end());
+    }
+    else if (isPre("$eoc_type_default_"))
+    {
+      std::vector<std::string> cases = casesOf(f, name, "$smtx_type_default");
+      b.d_typeDefaultCases.insert(
+          b.d_typeDefaultCases.end(), cases.begin(), cases.end());
     }
     else if (isPre("$smtx_typeof_"))
     {
@@ -382,7 +414,7 @@ std::vector<const DefsBlock*> DefsFile::select(
   std::vector<size_t> todo;
   for (size_t i = 0, n = d_blocks.size(); i < n; i++)
   {
-    bool wanted = syms.count(d_blocks[i].d_sym) != 0;
+    bool wanted = d_blocks[i].d_keep || syms.count(d_blocks[i].d_sym) != 0;
     for (std::set<std::string>::const_iterator it = names.begin();
          !wanted && it != names.end();
          ++it)

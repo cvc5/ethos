@@ -20,7 +20,8 @@ namespace ethos {
 /**
  * What one symbol of a signature contributes to the generated file, i.e. the
  * block a `; -- X` line opens in a definitions file, see
- * plugins/model_smt/smt_defs.eo and plugins/model_smt/cpc_defs.eo.
+ * tools/eoc/out/smt_defs.eo and the signature of the input given with
+ * --signature, e.g. tools/eoc/out/user_defs.eo.
  *
  * A block is read as *text* rather than as terms. What it says is copied into
  * the generated file as it stands, which is what keeps the definitions of the
@@ -35,8 +36,19 @@ struct DefsBlock
   std::set<std::string> d_defs;
   /** The names it uses that it does not define. */
   std::set<std::string> d_uses;
+  /**
+   * Whether the block stands whether or not the input declares its symbol,
+   * which `(echo "eoc-keep symbol X")` is what says. A few symbols are the
+   * embedding's own rather than any one calculus's -- ite and =, which the
+   * hand-written proofs about the generated Lean are written over -- and a
+   * calculus trimmed to a handful of rules would otherwise leave one out.
+   * See DefsFile::select.
+   */
+  bool d_keep = false;
   /** The constructor of the embedding for the symbol, and the macro. */
   std::vector<std::string> d_cons;
+  /** The same, where the block is of a type rather than of a symbol. */
+  std::vector<std::string> d_typeCons;
   /** The auxiliary programs, by the stream each belongs to. */
   std::vector<std::string> d_typeofAux, d_evalProgs, d_eoAux;
   /**
@@ -52,6 +64,9 @@ struct DefsBlock
    */
   std::vector<std::string> d_typeofCases, d_evalCases, d_transCases,
       d_transTypeCases;
+  /** The same, for what a block of a type says about it. */
+  std::vector<std::string> d_typeWfCases, d_typeBoundedCases,
+      d_typeDefaultCases;
 };
 
 /**
@@ -69,13 +84,13 @@ class DefsFile
    */
   bool read(const std::string& path);
   /**
-   * The blocks whose symbol is in syms, together with every block those
-   * depend on, in the order the file gives them. A block depends on the one
-   * that defines a name it uses, e.g. the value of div is the value of
-   * div_total away from zero, so keeping div keeps div_total. A block that
-   * defines one of names is kept as well, which is how a block of another
-   * file is answered: the transformation of - names the constructor of uneg,
-   * which the SMT-LIB file is what defines.
+   * The blocks whose symbol is in syms or that said `eoc-keep`, together with
+   * every block those depend on, in the order the file gives them. A block
+   * depends on the one that defines a name it uses, e.g. the value of div is
+   * the value of div_total away from zero, so keeping div keeps div_total. A
+   * block that defines one of names is kept as well, which is how a block of
+   * another file is answered: the transformation of - names the constructor
+   * of uneg, which the SMT-LIB file is what defines.
    */
   std::vector<const DefsBlock*> select(
       const std::set<std::string>& syms,
