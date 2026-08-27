@@ -5,6 +5,8 @@ tools/eoc/__pycache__
 .DS_Store
 build-cpp-compiler-test
 
+# The Lean a run publishes, which install_logos copies into the Logos tree.
+tools/eoc/out/lean/
 # What the configuration under tools/eoc/semantics compiles to, which the
 # driver writes before any stage runs.
 tools/eoc/out/smt_defs.eo

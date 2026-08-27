@@ -11,7 +11,8 @@
 # $LOGOS_DIR/Cpc/Proofs) and the per-rule files in $LOGOS_DIR/Cpc/Proofs/Rules.
 # Existing rule files there are preserved, and imports are rewritten from the
 # generated source module to Cpc. It then optionally regenerates example files
-# from $LOGOS_TESTS_DIR when that directory exists.
+# from $LOGOS_TESTS_DIR when that directory exists, leaving nothing of its own
+# behind there.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -43,6 +44,10 @@ if [[ -d "$LOGOS_TESTS_DIR" ]] \
   (
     cd "$LOGOS_TESTS_DIR"
     shopt -s nullglob
+    # The generator writes what it read and what it wrote beside each input,
+    # as temp.txt and <input>.cpc.lean; what the run wanted is the copy under
+    # $LOGOS_DIR/examples, so the rest goes however this ends.
+    trap 'rm -f temp.lean temp.txt ./*.smt2.cpc.lean' EXIT
     for file in *.smt2; do
       base_file="$(basename "$file")"
       base_name="${base_file%.*}"
@@ -50,7 +55,6 @@ if [[ -d "$LOGOS_TESTS_DIR" ]] \
       "$CPC_GEN_LOGOS_CMD" "$CVC5_LOGOS" "$file" > temp.lean
       mkdir -p "$LOGOS_DIR/examples"
       cp temp.lean "$LOGOS_DIR/examples/test-$base_name.cpc.lean"
-      rm -f temp.lean
     done
   )
 elif [[ -d "$LOGOS_TESTS_DIR" ]]; then
