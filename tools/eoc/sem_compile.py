@@ -19,20 +19,20 @@ naming conventions of the embedding; everything about what a set compiles to is
 said by the set. The language the sets are written in is documented in full in
 semantics/README.md.
 
-  usage: sem_compile.py [--out-dir DIR] [--check] [-v] [CONFIG...]
+  usage: sem_compile.py [--out-dir DIR] [--check] [--signature CONFIG]
+                        [--semantics CONFIG] [CONFIG...]
 
 The eoc pipeline runs this before the model-smt stage, see
 compile_signatures in tools/eoc/driver.py, so the generated files are current
 whenever that stage reads them. A file is written only when its text changes,
 so a run with nothing to do leaves the tree alone.
 
-With --check the generated text is compared against what is checked in, block
-by block, which is what says the configuration still means what the embedding
-did.
+With --check nothing is written: the ordering constraint of a definitions
+file is checked instead, see check_order, and each generated file is compared
+with what compiling would write, which is what says whether it is current.
 """
 
 import argparse
-import collections
 import itertools
 import os
 import re
@@ -62,12 +62,18 @@ INPUT_TARGET = os.path.join(OUT, 'user_defs.eo')
 # second with --lean-config.
 SMT_LEAN_TARGET = os.path.join(OUT, 'smt_termination.lean')
 INPUT_LEAN_TARGET = os.path.join(OUT, 'user_termination.lean')
-# The set that is the SMT-LIB signature, which is the one that is the target.
-SMT_SET = 'smt'
-
 # The file each set stands in. A set is one file: it holds its theories in the
 # order their blocks are emitted, one to a section.
 CONFIGS = (os.path.join(SEM, 'smt.eos'), os.path.join(SEM, 'development-cpc.eos'))
+
+# The sets the tool ships with, each with its role: whether it is the SMT-LIB
+# signature, which is the target of the compilation, rather than the signature
+# of an input. The two compile to different things, so a run has to know which
+# a set is before it reads a line, and the role is what says so: for these two
+# it is fixed here, and for any other set it is said by the option that names
+# it, --semantics for a target and --signature for an input -- never by what a
+# file is called.
+SHIPPED = ((CONFIGS[0], True), (CONFIGS[1], False))
 
 # Where the vocabulary of the embedding is defined. A file of the configuration
 # names a native in quotes and a type of the embedding without its $smt_, and
@@ -75,6 +81,7 @@ CONFIGS = (os.path.join(SEM, 'smt.eos'), os.path.join(SEM, 'development-cpc.eos'
 # takes, and what each of its places is of.
 VOCAB_FILES = (os.path.join(ROOT, 'plugins', 'desugar', 'native_embed.eo'),
                os.path.join(ROOT, 'plugins', 'desugar', 'eo_desugar.eo'),
+               os.path.join(ROOT, 'plugins', 'desugar', 'eo_desugar_native.eo'),
                os.path.join(ROOT, 'plugins', 'model_smt', 'model_smt.eo'))
 
 # Where the constructors of the embedding are declared together with the macros
@@ -91,7 +98,7 @@ GENERATED = """\
 ; it; to run it by hand:
 ;
 ;   python3 tools/eoc/sem_compile.py            to write this file
-;   python3 tools/eoc/sem_compile.py --check    to compare it with the surface
+;   python3 tools/eoc/sem_compile.py --check    to say whether it is current
 ;
 """
 
@@ -121,13 +128,13 @@ LEAN_GENERATED = """\
 # is: the programs of the deep embedding are compiled through whichever the
 # input is, so the stage reads that file for itself and is given the other.
 # Written as it is to be read, since text a run wraps for itself is text a run
-# could wrap differently.
+# could wrap differently. Keyed by whether the set is the target.
 LEAN_WHICH = {
-    SMT_SET: """\
+    True: """\
 -- This file is for the programs of the deep embedding, which every input is
 -- compiled through. A program of an input signature is named in a file of its
 -- own, which the compiler is given with --lean-config.""",
-    None: """\
+    False: """\
 -- This file is for the programs of one input signature, and is what
 -- --lean-config names. The programs of the deep embedding are in
 -- tools/eoc/out/smt_termination.lean.""",
@@ -142,8 +149,7 @@ def render_lean(config):
   heading, which is what naming several programs in one is for: the four
   helpers regular expression inclusion descends through share a measure.
   """
-  out = [LEAN_GENERATED % (named(config.path),
-                          LEAN_WHICH[SMT_SET if config.is_target else None])]
+  out = [LEAN_GENERATED % (named(config.path), LEAN_WHICH[config.is_target])]
   blocks = []
   for name, doc, text in config.clauses:
     if blocks and not doc and blocks[-1][1] == text:
@@ -214,13 +220,18 @@ class Ctx:
 
 
 class Config:
-  """One set: the file it stands in, and the shape of what it writes."""
+  """One set: the file it stands in, the role it was given, and the shape of
+  what it writes."""
 
-  def __init__(self, path, decls, files, doc):
+  def __init__(self, path, decls, files, doc, is_target):
     self.path = path
     self.decls = decls          # the shape of what it writes
     self.files = files          # the file it stands in
     self.doc = doc              # what the central file says about the set
+    # Whether the set is the SMT-LIB signature, which is the target of the
+    # compilation, rather than the signature of an input. This is the role the
+    # run gave the set, see SHIPPED.
+    self.is_target = is_target
     # What compiling it came to beside its blocks: what its methods say the
     # generated Lean is to be told, and how much of each thing it holds.
     self.clauses = []
@@ -229,16 +240,6 @@ class Config:
   @property
   def name(self):
     return name_of(self.path)
-
-  @property
-  def is_target(self):
-    """Whether the set is the SMT-LIB signature, which is the target of the
-    compilation, rather than the signature of an input.
-
-    Which one a set is is said by what it is called, since the two compile to
-    different things and a run has to know which before it reads a line.
-    """
-    return self.name == SMT_SET
 
   def _beside(self, target):
     """Where one of the files it compiles to is written.
@@ -278,18 +279,32 @@ def name_of(path):
   return os.path.splitext(os.path.basename(path))[0]
 
 
-def read_config_file(path):
-  """Read the file a set stands in.
+def role_of(path):
+  """The role of a set the tool ships with, or None for any other.
+
+  Which shape a set compiles to is said by the role a run gives it, never by
+  what its file is called: for the shipped sets the role is fixed, see
+  SHIPPED, and any other is given one by the option that names it.
+  """
+  for c, is_target in SHIPPED:
+    if same_file(path, c):
+      return is_target
+  return None
+
+
+def read_config_file(path, is_target):
+  """Read the file a set stands in, in the role the run gave it.
 
   A set is one file. What it compiles to is fixed by the tool, see
   Config.target, and so is the shape of what it writes, see sem_target.py, so
-  the file holds nothing but the theories themselves.
+  the file holds nothing but the theories themselves; which of the two shapes
+  is written is what `is_target` says, see role_of.
   """
   # The heading of the file, which is what the generated file says about
   # itself: the two describe the same signature.
   doc = list(itertools.takewhile(lambda l: l.startswith(';'),
                                  read_text(path).split('\n')))
-  return Config(path, sem_target.of(name_of(path) == SMT_SET), [path], doc)
+  return Config(path, sem_target.of(is_target), [path], doc, is_target)
 
 
 def is_config(path):
@@ -321,67 +336,38 @@ def compile_config(config, vocab, macros):
   return out
 
 
-def compile_all(paths):
-  """Every set, as (config, blocks) pairs."""
+def check_distinct(configs):
+  """No two sets of one run may write one file.
+
+  Two sets of one role standing in one directory would, since a set outside
+  the tool compiles beside itself, see Config._beside; what is written first
+  would be read as what was written last, so the run refuses instead.
+  """
+  seen = {}
+  for config in configs:
+    t = os.path.realpath(config.target)
+    if t in seen:
+      die('%s and %s both compile to %s; a set compiles beside itself, so '
+          'two of one role cannot stand in one directory'
+          % (seen[t], config.name, config.target))
+    seen[t] = config.name
+
+
+def compile_all(sets):
+  """Every set, as (config, blocks) pairs.
+
+  `sets` is (path, is_target) pairs: which shape a set compiles to is said by
+  the role the run gives it, see read_config_file.
+  """
   vocab, macros = read_vocabulary(VOCAB_FILES), read_macros(MACRO_FILES)
-  out = []
-  for p in paths:
-    config = read_config_file(p)
-    out.append((config, compile_config(config, vocab, macros)))
-  return out
+  configs = [read_config_file(p, t) for p, t in sets]
+  check_distinct(configs)
+  return [(c, compile_config(c, vocab, macros)) for c in configs]
 
 
 # -----------------------------------------------------------------------------
-# Checking against what is checked in
+# Checking what a compiled set has to satisfy
 # -----------------------------------------------------------------------------
-
-# Every pair that spells the same term two ways. Filled in by main once the
-# vocabulary has been read, see build_aliases.
-ALIASES = []
-
-
-def build_aliases(vocab, macros):
-  """Each way of spelling a term, and the one the configuration compiles to.
-
-  Nothing is listed by hand. A native is folded into the name the embedding
-  defines it under and a constructor into the macro that applies it, both read
-  out of the files that define them, so a block that differs from what is
-  checked in only by one of these is unchanged. The last pair is the rule for a
-  constructor the SMT-LIB configuration declares rather than model_smt.eo:
-  $emb_sm.X is applied by $sm_X, so it needs no entry of its own.
-  """
-  pairs = vocab.aliases + list(macros.items())
-  return (sorted(pairs, key=lambda kv: (-len(kv[0]), kv[0]))
-          + [('$emb_sm.', '$sm_')])
-
-
-def unalias(text):
-  for a, b in ALIASES:
-    text = text.replace(a, b)
-  return text
-
-
-def despace(text):
-  """The text as the stream of tokens it is.
-
-  A bracket ends a token whether or not a space stands between it and its
-  neighbour, so comparing the streams is what says two spellings are the same
-  term. The file written by hand has a case with no space in it that no
-  generated one would have.
-  """
-  return re.sub(r'\s+', ' ', re.sub(r'([()])', r' \1 ', text)).strip()
-
-
-def normalize(text):
-  return despace(unalias(text))
-
-
-def split_blocks(text):
-  """A definitions file as (symbol, text) pairs, in the order it gives them."""
-  parts = re.split(r'^(; -- .*)$', text, flags=re.M)
-  return [(parts[i][5:].strip(), (parts[i] + parts[i + 1]).strip('\n'))
-          for i in range(1, len(parts), 2)]
-
 
 DEF_RE = re.compile(r'\((?:program|define|declare-const|'
                     r'declare-parameterized-const) (\S+)')
@@ -419,125 +405,23 @@ def check_order(blocks, name, exempt=()):
   return bad
 
 
-def forms_of(text):
-  """The top-level forms of text, in order, a comment stepped over."""
-  out, i, n = [], 0, len(text)
-  while i < n:
-    c = text[i]
-    if c == ';':
-      while i < n and text[i] != '\n':
-        i += 1
-    elif c == '(':
-      depth, j = 0, i
-      while j < n:
-        if text[j] == '"':
-          j += 1
-          while j < n and text[j] != '"':
-            j += 1
-        elif text[j] == ';':
-          while j < n and text[j] != '\n':
-            j += 1
-        elif text[j] == '(':
-          depth += 1
-        elif text[j] == ')':
-          depth -= 1
-          if depth == 0:
-            break
-        j += 1
-      out.append(text[i:j + 1])
-      i = j
-    i += 1
-  return out
+def check_current(text, path):
+  """Whether the file at path holds what compiling writes.
 
-
-def check_forms(blocks, path):
-  """Compare the *forms* of the generated file with those of the file at path.
-
-  A block is a grouping, not a meaning: what the stage that reads the file goes
-  on is the forms and the names each defines and uses, so a program moving
-  between a block of its own and the block of the symbol whose cases name it
-  changes nothing. This is what says the two files hold the same programs
-  however they are grouped, and it compares the files whole rather than block
-  by block, since a grouping that changes is exactly what it is there to see
-  through.
+  This is what says a generated file is current, which a tree where the
+  configuration changed after the last run is not; the fix either way is to
+  run the compiler. A file that is not there at all has simply never been
+  written, which a fresh checkout has none of, so it is said apart rather
+  than read.
   """
-  gen = collections.Counter(normalize(x)
-                            for _s, t in blocks for x in forms_of(t))
-  mine = collections.Counter(normalize(x) for x in forms_of(read_text(path)))
-  missing = mine - gen
-  extra = gen - mine
-  for k, v in list(missing.items())[:6]:
-    print('  form missing (%d): %s' % (v, k[:110]))
-  for k, v in list(extra.items())[:6]:
-    print('  form added   (%d): %s' % (v, k[:110]))
-  print('  %-20s %d forms, %d missing, %d added'
-        % (os.path.basename(path), sum(gen.values()), sum(missing.values()),
-           sum(extra.values())))
-  return sum(missing.values()) + sum(extra.values())
-
-
-def check_lean(config):
-  """Compare the Lean the set says with what is checked in beside it."""
-  name = os.path.basename(config.lean_target)
-  text = render_lean(config)
-  have = read_text(config.lean_target)
-  print('  %-20s %d clauses, %s'
-        % (name, len(config.clauses),
-           'unchanged' if have == text else 'DIFFERS'))
-  return 0 if have == text else 1
-
-
-def check(blocks, path, verbose):
-  """Compare generated blocks against those of the file at path.
-
-  A block that agrees only after normalize is reported apart, since it spells
-  the same term with a macro the file wrote out or with different whitespace.
-  """
-  checked_in = split_blocks(read_text(path))
-  have = dict(checked_in)
-  order = [s for s, _ in checked_in]
-  same = respelt = moved = bad = 0
-  for sym, text in blocks:
-    if sym not in have:
-      # A block of a program that used to stand inside a symbol's own.
-      moved += 1
-      if verbose:
-        print('  %-28s new block (a program of its own)' % sym)
-    elif have[sym] == text:
-      same += 1
-    elif normalize(have[sym]) == normalize(text):
-      respelt += 1
-      if verbose:
-        why = []
-        if unalias(have[sym]) != unalias(text):
-          why.append('spacing')
-        if despace(have[sym]) != despace(text):
-          why.append('macro')
-        print('  %-28s respelt (%s)' % (sym, ' and '.join(why)))
-    elif not (collections.Counter(normalize(f) for f in forms_of(text))
-              - collections.Counter(normalize(f) for f in forms_of(have[sym]))):
-      # The block holds fewer forms than it did, the rest having moved into
-      # blocks of their own; check_forms is what says none was lost.
-      moved += 1
-      if verbose:
-        print('  %-28s regrouped' % sym)
-    else:
-      print('  %-28s DIFFERS' % sym)
-      bad += 1
-      for line in _diff(have[sym], text):
-        print('      ' + line)
-  pos = [order.index(s) for s, _ in blocks if s in order]
-  print('  %-20s %d identical, %d respelt, %d regrouped, %d differing%s'
-        % (os.path.basename(path), same, respelt, moved, bad,
-           ', order differs' if pos != sorted(pos) else ', same order'))
+  if not os.path.exists(path):
+    state, bad = 'MISSING; run sem_compile.py to write it', 1
+  elif read_text(path) == text:
+    state, bad = 'current', 0
+  else:
+    state, bad = 'STALE; run sem_compile.py to rewrite it', 1
+  print('  %-20s %s' % (os.path.basename(path), state))
   return bad
-
-
-def _diff(a, b):
-  import difflib
-  return list(difflib.unified_diff(a.split('\n'), b.split('\n'),
-                                   'checked-in', 'generated', lineterm='',
-                                   n=1))[2:]
 
 
 def render(blocks, config):
@@ -560,21 +444,23 @@ def write_if_changed(text, path):
   return True
 
 
-def compile_to_files(paths=CONFIGS, out_dir=None):
+def compile_to_files(sets=SHIPPED, out_dir=None):
   """Compile each set and write what it compiles to, where it changed.
 
-  This is what tools/eoc/driver.py calls before the model-smt stage. It gives
-  back what each set compiled to, so the caller need not know the layout.
+  This is what tools/eoc/driver.py calls before the model-smt stage. `sets` is
+  (path, is_target) pairs, see compile_all. It gives back what each set
+  compiled to -- its signature in the deep embedding and its termination
+  clauses, in that order -- so the caller need not know the layout.
   """
   out = {}
-  for config, blocks in compile_all(paths):
+  for config, blocks in compile_all(sets):
     target, lean_target = config.target, config.lean_target
     if out_dir is not None:
       target = os.path.join(out_dir, os.path.basename(target))
       lean_target = os.path.join(out_dir, os.path.basename(lean_target))
     write_if_changed(render(blocks, config), target)
     write_if_changed(render_lean(config), lean_target)
-    out[config.path] = target
+    out[config.path] = (target, lean_target)
   return out
 
 
@@ -582,27 +468,42 @@ def main():
   ap = argparse.ArgumentParser(
       description='Compile the configuration of the model-smt signatures.')
   ap.add_argument('configs', nargs='*', metavar='CONFIG',
-                  help='the central file of a set; both by default')
+                  help='a set the tool ships with; both by default')
+  ap.add_argument('--signature', action='append', default=[],
+                  metavar='CONFIG',
+                  help='the central file of the signature of an input')
+  ap.add_argument('--semantics', action='append', default=[],
+                  metavar='CONFIG',
+                  help='the central file of an SMT-LIB semantics, i.e. of a '
+                       'set that is the target of the compilation')
   ap.add_argument('--out-dir', default=None,
                   help='write the generated files here instead')
   ap.add_argument('--check', action='store_true',
-                  help='compare with what is checked in rather than writing')
-  ap.add_argument('-v', '--verbose', action='store_true')
+                  help='say whether the generated files are current rather '
+                       'than writing them')
   a = ap.parse_args()
-  paths = a.configs or list(CONFIGS)
-  global ALIASES
-  ALIASES = build_aliases(read_vocabulary(VOCAB_FILES),
-                          read_macros(MACRO_FILES))
+  # Which shape a set compiles to is said by the role a run gives it, and the
+  # option that names a set is what gives it one; a set named on its own has
+  # none to be given, so only the shipped ones, whose roles are fixed, may be.
+  sets = []
+  for p in a.configs:
+    role = role_of(p)
+    if role is None:
+      die('%s is not a set the tool ships with, so which shape it compiles to '
+          'has to be said: name it with --signature or --semantics' % p)
+    sets.append((p, role))
+  sets += [(p, False) for p in a.signature]
+  sets += [(p, True) for p in a.semantics]
+  sets = sets or list(SHIPPED)
   if a.check:
     bad = 0
-    for config, blocks in compile_all(paths):
+    for config, blocks in compile_all(sets):
       name = os.path.basename(config.target)
-      bad += check(blocks, config.target, a.verbose)
-      bad += check_forms(blocks, config.target)
       bad += check_order(blocks, name, config.decls.helper_prefixes())
-      bad += check_lean(config)
+      bad += check_current(render(blocks, config), config.target)
+      bad += check_current(render_lean(config), config.lean_target)
     sys.exit(1 if bad else 0)
-  for config, blocks in compile_all(paths):
+  for config, blocks in compile_all(sets):
     target, lean_target = config.target, config.lean_target
     if a.out_dir is not None:
       target = os.path.join(a.out_dir, os.path.basename(target))

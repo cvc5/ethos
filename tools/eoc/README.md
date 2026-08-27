@@ -28,55 +28,45 @@ reduces.
 
 What a symbol means to the model is said by two files, and a run may name
 either: the signature of the input with `--signature`, and the SMT-LIB
-semantics it is written against with `--semantics`. Naming neither leaves the
-stage the two the tool ships with, which is what the paths below are:
+semantics it is written against with `--semantics`.
 
 ```text
-tools/eoc/out/smt_defs.eo   the SMT-LIB signature, written in the embedding
+tools/eoc/out/smt_defs.eo   the SMT-LIB semantics, written in the embedding
 tools/eoc/out/user_defs.eo  how the input's symbols transform into it
 ```
 
-**Both are generated.** They are compiled from the configuration under
-`semantics` by `tools/eoc/sem_compile.py`, which the driver runs
-before any stage, so they are current whenever the model-smt stage reads them;
-see `compile_signatures` in `driver.py`. What the configuration is and the
-language it is written in are documented in full in `semantics/README.md`. A
-file is written only where its text changed, so a run with nothing to do leaves
-the tree alone.
-
-What either option names is therefore the *central file of the configuration*,
-not the generated signature:
+**Both are generated**, from the configuration under `tools/eoc/semantics`,
+which `tools/eoc/sem_compile.py` compiles before any stage runs; neither is
+checked in. What the options name is therefore the *central file of a
+configuration set* rather than what it compiles to:
 
 ```text
 python3 tools/eoc/driver.py lean --all \
-  --signature semantics/development-cpc.eos <cvc5>/proofs/eo/cpc/Cpc.eo
+  --signature tools/eoc/semantics/development-cpc.eos \
+  <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
-
-A set the tool ships with compiles into the plugin that reads it, as the paths
-above show; any other compiles beside itself, so a configuration that lives in
-another tree writes what it compiles to into that tree rather than into this
-one.
 
 A file that is not a central file is taken to be a signature already written
 out and is passed through, which is what lets one that has no configuration
-still be given directly. The plugin itself has no signature of its own to fall
-back on: which input is being compiled is not its business, so `--signature` is
-required and the stage says so when it is missing.
+still be given directly. See `tools/eoc/semantics/README.md` for what the
+configuration is and the language it is written in.
 
 Only the `model-smt` stage reads them; no stage before it sees either. A symbol
 the input declares that the file says nothing about is an error rather than a
-term the model would silently say nothing about. The examples below leave
-`--signature` out because the wrappers in `tools/eoc/cpc` pass it, see
-`EOC_DEFAULT_CPC_DEFS` in `common.sh`; the driver on its own requires it.
+term the model would silently say nothing about. The plugin ships with the
+SMT-LIB semantics but with no signature of an input, so a run that names none
+is an error once that stage runs.
+
+The examples below leave `--signature` out because the wrappers in
+`tools/eoc/cpc` pass it, see `EOC_DEFAULT_CPC_SIGNATURE` in `common.sh`; the
+driver on its own requires it.
 
 Each is a sequence of blocks, one per symbol, opened by a `; -- X` line. For a
 symbol X, `smt_defs.eo` gives the constructor `$emb_sm.X` and the macro
 `$sm_X`, the cases X contributes to `$smtx_typeof` and to `$smtx_model_eval`
 (as `$eoc_typeof_X` and `$eoc_eval_X`), and the auxiliary programs those cases
 call. `user_defs.eo` gives `$eoc_transform_X`, the cases X contributes to
-`$eo_to_smt`, and `$eoc_transform_type_X` for a type constructor. It is named
-for what it is to the stage, the signature of whatever input a run compiles,
-rather than for CPC.
+`$eo_to_smt`, and `$eoc_transform_type_X` for a type constructor.
 
 What a block says to the compiler is named `$eoc_`, which is what tells it
 apart from what the compiler emits: the case of an `$eoc_` program is spliced
@@ -136,24 +126,27 @@ for itself.
 
 Lean has to be told why a recursive definition terminates whenever it cannot
 see this for itself, and no measure the compiler could guess would do for the
-programs that need one. So the clause is stated as the Lean text it is, and the
-`lean-meta` stage appends it to the definition of the program it names:
+programs that need one. So the clause is stated as the Lean text it is, under
+`:lean` in the configuration set of the signature the program is of (see
+`semantics/README.md`), and the `lean-meta` stage appends it to the definition
+of the program it names:
 
 ```text
-tools/eoc/out/smt_termination.lean       the programs of the deep embedding,
-                                     which every input is compiled through
---lean-config <file>                 the programs of the input signature, e.g.
-                                     tools/eoc/out/user_termination.lean
+tools/eoc/out/smt_termination.lean   the programs of the deep embedding, which
+                                     every input is compiled through; read by
+                                     the stage itself
+tools/eoc/out/user_termination.lean  the programs of the input signature,
+                                     passed to the stage by the driver
 ```
 
-Both are generated: a clause is what a method of a configuration set says under
-`:lean`, and the compiler writes the file of each set beside what that set
-compiles to, see `semantics/README.md`. A block runs from a line naming one or more
-programs, written `-- $name ...`, to the next comment line, and what lies
-between is the clause. An input whose
-programs all recurse structurally needs no file of its own, so `--lean-config`
-is optional; without it the generated Lean simply carries no clause for them,
-which Lean will reject if one was needed.
+Both are generated by `sem_compile.py`, so what is to be changed is the
+`:lean` attribute of the set. A block of one runs from a line naming one or
+more programs, written `-- $name ...`, to the next comment line, and what lies
+between is the clause. An input whose programs all recurse structurally needs
+no clauses of its own; a signature given already written out rather than as a
+configuration names its clauses with `--lean-config`. Without clauses the
+generated Lean simply carries none for those programs, which Lean will reject
+if one was needed.
 
 ## Building `ethos-eoc`
 
@@ -363,7 +356,8 @@ still generating the remaining Lean modules and per-rule files. This also
 removes a stale `Parser.lean` from the selected final output directory.
 
 Pass `--lean-config FILE` to name the termination clauses of the input's own
-programs; see "Why the generated Lean terminates" above.
+programs where the input was given already written out rather than as a
+configuration set; see "Why the generated Lean terminates" above.
 
 Generated files are written to `tools/eoc/out/lean/` by default, including
 per-rule files in `tools/eoc/out/lean/Rules/`. `Parser.lean` is the minimal

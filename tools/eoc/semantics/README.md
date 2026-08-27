@@ -79,11 +79,12 @@ Compiling one set is four steps:
    the same set, and that no block uses a name a later block defines.
 
 ```bash
-python3 tools/eoc/sem_compile.py               # write what each set compiles to
-python3 tools/eoc/sem_compile.py --check       # compare with what is checked in
-python3 tools/eoc/sem_compile.py --check -v    # ... naming every respelt block
-python3 tools/eoc/sem_compile.py --out-dir D   # write elsewhere
-python3 tools/eoc/sem_compile.py CONFIG...     # one set rather than both
+python3 tools/eoc/sem_compile.py                    # write what each set compiles to
+python3 tools/eoc/sem_compile.py --check            # say whether the generated files are current
+python3 tools/eoc/sem_compile.py --out-dir D        # write elsewhere
+python3 tools/eoc/sem_compile.py CONFIG...          # one shipped set rather than both
+python3 tools/eoc/sem_compile.py --signature CONFIG # a set of another tree, as an input
+python3 tools/eoc/sem_compile.py --semantics CONFIG # ... as an SMT-LIB semantics
 ```
 
 The eoc driver runs the compiler before the model-smt stage, so the generated
@@ -254,9 +255,11 @@ its own, which is what one source order could not give: `smt_defs.eo` has
 **What a set compiles to it does not say.** The model-smt stage reads two
 files: the SMT-LIB semantics, which is the target of the compilation, and one
 signature of the input whichever input a run compiles. Which of the two a set
-is is said by what it is called -- `smt` is the target and anything else an
-input -- and where what it compiles to is written is the tool's to say, in
-`SMT_TARGET` and `INPUT_TARGET` in `tools/eoc/sem_compile.py`.
+is is said by the role a run gives it -- the two the tool ships with have
+theirs fixed, and any other is given one by the option that names it,
+`--semantics` for a target and `--signature` for an input, never by what its
+file is called -- and where what it compiles to is written is the tool's to
+say, in `SMT_TARGET` and `INPUT_TARGET` in `tools/eoc/sem_compile.py`.
 
 Those are where the sets the tool ships with compile to, `tools/eoc/out`, which
 nothing checks in: what is kept is the configuration. **Any other set compiles
@@ -829,18 +832,13 @@ The compiler enforces, beyond the grammar:
 - **A native exists and takes the right number of arguments.**
 - **A type of the embedding exists.**
 
-`--check` compares what the configuration compiles to with what is checked in,
-and reports:
+`--check` writes nothing, and reports:
 
 | report | meaning |
 | --- | --- |
-| identical | the block's text is the same |
-| respelt | the same after macros are folded together and whitespace normalised |
-| regrouped | the block holds fewer forms than it did, the rest having become blocks of their own |
-| differing | a real difference, printed as a diff |
-| forms missing / added | over the whole file, since a block is a grouping rather than a meaning |
 | out-of-order uses | a block uses a name a later block defines |
-| clauses | the Lean the set says, compared with the file it is written to |
+| current | the generated file holds what compiling would write |
+| STALE / MISSING | it does not, or has never been written; run the compiler |
 
 A definitions file is ordered so that a symbol follows the ones its cases name.
 The configuration does not state that: blocks are emitted in the order the
@@ -1020,10 +1018,9 @@ the program it writes, so the stage knows what to do with its cases.
 ### Add a signature of another input
 
 Write a file beside `semantics/development-cpc.eos`: a heading, then its theories in
-sections. It takes the shape of an input, which is what everything not called
-`smt` is, and compiles beside itself unless it is one of the two the tool
-ships with. Name it with `--signature`. Nothing in the compiler names either
-existing set.
+sections. Name it with `--signature`, which is what gives it the shape of an
+input, and it compiles beside itself unless it is one of the two the tool
+ships with. Nothing in the compiler names either existing set.
 
 ---
 

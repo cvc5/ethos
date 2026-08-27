@@ -123,6 +123,16 @@ std::string mkParseDefName(const std::string& name);
  */
 std::string getParseDefSurfaceName(const std::string& name);
 
+/**
+ * The text with no line ending in a blank.
+ *
+ * What a stage writes is compared byte for byte with what is checked in, so
+ * nothing may end a line that a reader cannot see. A comment taken off the end
+ * of a line is where such a blank comes from: the space that stood before the
+ * `;` stays behind once the comment is gone.
+ */
+std::string rtrimLines(const std::string& text);
+
 }  // namespace ethos
 
 #endif

@@ -75,7 +75,10 @@ void ModelSmt::loadDefs()
 {
   // The SMT-LIB signature is the target of the compilation, so the plugin
   // ships with one and reads that where it was given no other; --semantics is
-  // what gives it another, the way --signature gives it the input's.
+  // what gives it another, the way --signature gives it the input's. The one
+  // it ships with is generated from tools/eoc/semantics/smt.eos when
+  // ethos-eoc is built, see plugins/CMakeLists.txt, and again before every
+  // run of the pipeline, see compile_signatures in tools/eoc/driver.py.
   const std::string smtDefs =
       d_smtDefsFile.empty() ? getResourcePath("tools/eoc/out/smt_defs.eo")
                             : d_smtDefsFile;

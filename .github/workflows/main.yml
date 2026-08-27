@@ -46,8 +46,8 @@ jobs:
 
     # --signature names the central file of the configuration of the input's
     # signature, which the driver compiles before the model-smt stage; that
-    # stage reads one such file and the plugin has no signature of its own, so
-    # it is required. See tools/eoc/README.md.
+    # stage reads one such file and the plugin has none of its own, so it is
+    # required. See tools/eoc/semantics/README.md.
     - name: Run EOC pipeline smoke tests
       env:
         EOC_SIGNATURE: tools/eoc/semantics/development-cpc.eos

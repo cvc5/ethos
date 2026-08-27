@@ -47,11 +47,11 @@ Useful environment variables:
   signature of the input is written against, which every input is compiled
   through. Unset, a run leaves the stage the one it ships with; a set named
   here compiles beside itself and is given to the stage with `--semantics`.
-- `EOC_CPC_LEAN_CONFIG=/path/to/user_termination.lean` to override the termination
+- `EOC_CPC_LEAN_CONFIG=/path/to/user_termination.lean` to name the termination
   clauses of the input's programs, which `run_gen_lean` and `run_gen_lean_all`
-  give the lean-meta stage with `--lean-config`. A signature given with
-  `EOC_CPC_INPUT` gets none unless this names them, on the same terms as
-  `EOC_CPC_SIGNATURE`.
+  then give the lean-meta stage with `--lean-config`. A signature given as a
+  configuration set compiles its own clauses, which the driver gives that stage
+  of itself, so this is for one given already written out.
 - `EOC_ALETHE_INPUT=/path/to/Alethe.eo` to override the default Alethe
   signature.
 - `EOC_FINAL_OUT_DIR=/path/to/out` to override the published output tree.

@@ -22,8 +22,10 @@ EOC_DEFAULT_CPC_SIGNATURE="$EOC_TOOLS_DIR/semantics/development-cpc.eos"
 # compilation and so the same whichever input a run compiles.
 EOC_DEFAULT_SEMANTICS="$EOC_TOOLS_DIR/semantics/smt.eos"
 # Why each of its recursive programs terminates, which the generated Lean has
-# to say and the compiler cannot derive; given to the lean-meta stage with
-# --lean-config.
+# to say and the compiler cannot derive. This is what the configuration named
+# above compiles it to, which the driver gives the lean-meta stage of itself,
+# so nothing here passes --lean-config unless the caller named another; see
+# compile_signatures in tools/eoc/driver.py.
 EOC_DEFAULT_CPC_LEAN_CONFIG="$EOC_TOOLS_DIR/out/user_termination.lean"
 EOC_DEFAULT_ALETHE_INPUT="$EOC_REPO_ROOT/../AletheInEunoia/signature/Alethe.eo"
 EOC_DEFAULT_FINAL_OUT_DIR="$EOC_TOOLS_DIR/out"
@@ -77,14 +79,14 @@ eoc_cpc_lean_config() {
   printf '%s\n' "${EOC_CPC_LEAN_CONFIG:-$EOC_DEFAULT_CPC_LEAN_CONFIG}"
 }
 
-# Append the Lean configuration of the input to ARGS, on the same terms as
-# eoc_add_signature: an input given by the caller has one of its own or none
-# at all.
+# Append the Lean configuration of the input to ARGS. The clauses of a
+# signature given as a configuration are compiled with it, and the driver reads
+# them from where that set compiled them, so this names one only where the
+# caller did: naming the default here would be right only for a set of this
+# tree, since any other compiles beside itself.
 eoc_add_lean_config() {
   if [[ -n "${EOC_CPC_LEAN_CONFIG:-}" ]]; then
     ARGS+=("--lean-config=${EOC_CPC_LEAN_CONFIG}")
-  elif [[ -z "${EOC_CPC_INPUT:-}" ]]; then
-    ARGS+=("--lean-config=$EOC_DEFAULT_CPC_LEAN_CONFIG")
   fi
 }
 
@@ -247,9 +249,11 @@ eoc_rewrite_lean_calc_imports() {
 # it. Doing so costs nothing and leaves the driver's own pass with nothing to
 # do: a file is written only where its text changed.
 #
-# The set of configurations is read from sem_compile itself rather than listed
-# here, so it cannot drift. One named with EOC_CPC_SIGNATURE that is not among them
-# is compiled by the driver during the run rather than reported here.
+# The sets the tool ships with are read from sem_compile itself rather than
+# listed here, so they cannot drift; each is read with the role sem_compile.SHIPPED
+# fixes for it, which is what says which shape it compiles to. One named with
+# EOC_CPC_SIGNATURE that is not among them is compiled by the driver during the run
+# rather than reported here.
 eoc_compile_sem_signatures() {
   echo "Compiling the configuration under" \
     "$EOC_TOOLS_DIR/semantics"
@@ -261,7 +265,7 @@ import sem_compile
 def rel(path):
   return os.path.relpath(path, sem_compile.ROOT)
 
-for config, blocks in sem_compile.compile_all(sem_compile.CONFIGS):
+for config, blocks in sem_compile.compile_all(sem_compile.SHIPPED):
   # A set writes the signature in the deep embedding that the model-smt stage
   # reads, and the clauses the lean-meta stage is to append to what it writes.
   for text, target, what in (
