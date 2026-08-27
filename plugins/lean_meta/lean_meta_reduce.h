@@ -184,7 +184,8 @@ class LeanMetaReduce : public MetaReducePlugin
    *
    * A block runs from a line naming one or more programs, written
    * `-- $name ...`, to the next such line; what lies between is the clause.
-   * See tools/eoc/out/smt_termination.lean.
+   * The files read are generated from what a semantics configuration says
+   * under :lean, see tools/eoc/out/smt_termination.lean.
    */
   void readTerminationClauses(const std::string& path);
   /** Generated Lean definitions for programs. */

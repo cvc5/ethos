@@ -392,6 +392,13 @@ LEVELS = {'$smt_Value': 'value', '$smt_Term': 'term', '$smt_Type': 'type'}
 # none, so a bare name standing there is an error rather than a guess.
 FAMILY = {'value': '$smtx_model_eval_', 'term': '$sm_', 'type': '$tsm_'}
 
+# The level the *subject* of an aggregate is written at, read off the family
+# prefix its cases match under: a case of one is matched against terms of that
+# level, so a pattern it gives is cast the way a body at that level is. An
+# aggregate that matches under no family prefix has a subject of the input,
+# whose patterns are taken as the input wrote them.
+MATCH_LEVEL = {fam: lvl for lvl, fam in FAMILY.items()}
+
 # What a whole number is at each level, i.e. what wraps the native it denotes.
 NUMERAL = {'value': '$vsm_Numeral', 'term': '$sm_Numeral'}
 
@@ -938,6 +945,11 @@ def embedded(name, entry, ctx):
     # another way.
     die('%s: write %s, the symbol of the signature, rather than %s, %s'
         % (entry.name, name[len(found[0]):], name, found[1]))
+  # A name that is not the embedding's is a helper of the set, so some file
+  # of the set has to write it out; the compiler notes it here and Ctx.check
+  # says at the end whether every one was.
+  if name not in ctx.vocab:
+    ctx.need(name, entry.name)
   return name
 
 
@@ -1364,9 +1376,20 @@ class Symbol(Entry):
         xs = self.slots(agg, ctx)
         head = agg.head(self, xs)
       else:
-        places = _places(pat, set(self.params), agg)
+        places = _places(pat, self, agg)
         xs = [places.get(p) for p in self.params]
-        head = TOKEN.sub(lambda m: places.get(m.group(0), m.group(0)), pat.raw)
+        level = MATCH_LEVEL.get(agg.matches)
+        if level is None:
+          # The subject is of the input, so the pattern is taken as the input
+          # wrote it, with the parameters of the program put for the names the
+          # entry gave them.
+          head = TOKEN.sub(lambda m: places.get(m.group(0), m.group(0)),
+                           pat.raw)
+        else:
+          # The subject is of the embedding, so the pattern is cast the way a
+          # body at that level is -- a bare name is one of the family that
+          # level is of -- with what it binds standing for the parameters.
+          head = cast(pat, Scope(dict(places)), self, ctx, level)
       width = max(width, len([x for x in xs if x is not None]))
       env, surface = agg.scope(self, xs)
       if agg.level == 'input':
@@ -1443,18 +1466,31 @@ class Symbol(Entry):
 # -- reading one --------------------------------------------------------------
 
 
-def _places(pat, declared, agg):
+def _places(pat, entry, agg):
   """What each name a pattern binds is called in the program it compiles to.
 
   The parameters are scoped to the case: a case binds what its own pattern
   matches, and the program declares one per name, so the name that appears
-  first is the first parameter whatever the entry calls it.
+  first is the first parameter whatever the entry calls it. A name keeps the
+  kind its declaration gave it, which is what says what the program declares
+  its parameter as where the aggregate tells its arguments apart by kind, the
+  way the width of a bit-vector is told from a type.
   """
   order = []
   for tok in TOKEN.findall(pat.raw):
-    if tok in declared and tok not in order:
+    if tok in entry.params_declared and tok not in order:
       order.append(tok)
-  return {n: agg.slot(i) for i, n in enumerate(order)}
+  kinds = [entry.kinds[entry.params.index(n)] for n in order]
+  if ((agg.slots or isinstance(agg.declares, dict))
+          and kinds != list(entry.kinds[:len(order)])):
+    # The program declares its parameters by the kinds of the first arguments,
+    # see Aggregate.params, so a pattern whose bound names are of any other
+    # kinds would declare one thing and match another.
+    die('%s: the pattern binds %s, whose kinds are not those of the first '
+        '%d argument%s of %s; bind the arguments in the order they are '
+        'declared' % (entry.name, ', '.join(order), len(order),
+                      '' if len(order) == 1 else 's', entry.name))
+  return {n: agg.slot(i, k) for i, (n, k) in enumerate(zip(order, kinds))}
 
 
 def parse_params(node, name, path):

@@ -42,3 +42,17 @@ target_compile_definitions(
   ethos-eoc PRIVATE
   ETHOS_PLUGIN_SOURCE_DIR="${ETHOS_SOURCE_DIR}"
   ETHOS_PLUGIN_OUTPUT_DIR="${PROJECT_BINARY_DIR}/out")
+
+# The SMT-LIB semantics the model-smt plugin ships with, and the termination
+# clauses of the deep embedding the lean-meta plugin reads, are generated into
+# tools/eoc/out from the configuration under tools/eoc/semantics. Compiling
+# them here is what makes both resolve after a build alone, so that ethos-eoc
+# stands on its own; tools/eoc/driver.py compiles them again before every run,
+# so a stale tree never reaches a stage. The compiler writes a file only when
+# its text changes, so a build with nothing to do leaves the tree alone.
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_custom_target(eoc-semantics
+  COMMAND ${Python3_EXECUTABLE} "${ETHOS_SOURCE_DIR}/tools/eoc/sem_compile.py"
+  WORKING_DIRECTORY "${ETHOS_SOURCE_DIR}"
+  COMMENT "Compiling the semantics configuration under tools/eoc/semantics")
+add_dependencies(ethos-eoc eoc-semantics)
