@@ -281,91 +281,27 @@
 
 ;;; SMT value datatype constructors
 
-; Denotes a failure case for values.
-(declare-const $emb_vsm.NotValue $smt_Value)
-(define $vsm_not_value () $emb_vsm.NotValue)
+; The values the configuration declares, i.e. what a term of the signature
+; evaluates to, see the values of tools/eoc/semantics/smt.eos. What is left
+; below is what the embedding names for itself: the values it keeps a name of
+; its own for, and the two ways of taking an application of one apart.
+;$SMT_VALUE_CONSTRUCTORS$
 
-; the literal types
-(declare-parameterized-const $emb_vsm.Boolean
-  ((b $native_Bool :opaque)) $smt_Value)
-(define $vsm_bool ((b $native_Bool)) ($emb_vsm.Boolean b))
-; helpers
-(define $vsm_true () ($vsm_bool $native_true))
-(define $vsm_false () ($vsm_bool $native_false))
+; The values the embedding names, each of one it is given above.
+(define $vsm_true () ($vsm_Boolean $native_true))
+(define $vsm_false () ($vsm_Boolean $native_false))
+(define $vsm_z_zero () ($vsm_Numeral $native_z_zero))
+(define $vsm_z_one () ($vsm_Numeral $native_z_one))
+(define $vsm_q_zero () ($vsm_Rational $native_q_zero))
+(define $vsm_binary_empty () ($vsm_Binary $native_z_zero $native_z_zero))
+(define $vsm_binary_bit_false () ($vsm_Binary $native_z_one $native_z_zero))
+(define $vsm_binary_bit_true () ($vsm_Binary $native_z_one $native_z_one))
 
-(declare-parameterized-const $emb_vsm.Numeral
-  ((n $native_Int :opaque)) $smt_Value)
-(define $vsm_numeral ((n $native_Int)) ($emb_vsm.Numeral n))
-; helpers
-(define $vsm_z_zero () ($vsm_numeral $native_z_zero))
-(define $vsm_z_one () ($vsm_numeral $native_z_one))
-
-(declare-parameterized-const $emb_vsm.Rational
-  ((r $native_Rat :opaque)) $smt_Value)
-(define $vsm_rational ((r $native_Rat)) ($emb_vsm.Rational r))
-; helpers
-(define $vsm_q_zero () ($vsm_rational $native_q_zero))
-
-(declare-parameterized-const $emb_vsm.Binary
-  ((w $native_Int :opaque) (v $native_Int :opaque)) $smt_Value)
-(define $vsm_binary ((w $native_Int) (v $native_Int))
-  ($emb_vsm.Binary w v))
-; utilities
-(define $vsm_binary_empty () ($vsm_binary $native_z_zero $native_z_zero))
-(define $vsm_binary_bit_false () ($vsm_binary $native_z_one $native_z_zero))
-(define $vsm_binary_bit_true () ($vsm_binary $native_z_one $native_z_one))
-
-; A value denoting a map.
-(declare-parameterized-const $emb_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
-(define $vsm_map ((m $smt_Map)) ($emb_vsm.Map m))
-
-; A value denoting an intensional function.
-(declare-parameterized-const $emb_vsm.Fun
-  ((s $native_String :opaque) (T $smt_Type :opaque) (U $smt_Type :opaque))
-  $smt_Value)
-(define $vsm_fun ((s $native_String) (T $smt_Type) (U $smt_Type ))
-  ($emb_vsm.Fun s T U))
-
-; A value denoting a set. This also uses the map data structure internally.
-(declare-parameterized-const $emb_vsm.Set ((m $smt_Map :opaque)) $smt_Value)
-(define $vsm_set ((m $smt_Map)) ($emb_vsm.Set m))
-
-; A value denoting a sequence.
-(declare-parameterized-const $emb_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
-(define $vsm_seq ((s $smt_Seq)) ($emb_vsm.Seq s))
-
-; A char (for strings)
-(declare-parameterized-const $emb_vsm.Char
-  ((c $native_Char :opaque)) $smt_Value)
-(define $vsm_char ((c $native_Char)) ($emb_vsm.Char c))
-
-; A value denoting an uninterpreted sort
-(declare-parameterized-const $emb_vsm.UValue
-  ((i $native_Nat :opaque) (e $native_Nat :opaque)) $smt_Value)
-(define $vsm_uvalue ((i $native_Nat) (e $native_Nat)) ($emb_vsm.UValue i e))
-
-; A value denoting a regular language.
-(declare-parameterized-const $emb_vsm.RegLan ((r $smt_RegLan :opaque)) $smt_Value)
-(define $vsm_re ((r $smt_RegLan)) ($emb_vsm.RegLan r))
-
-; A constructor value
-(declare-parameterized-const $emb_vsm.DtCons
-  ((s $native_String :opaque) (d $smt_DatatypeDecl :opaque) (ci $native_Nat :opaque))
-  $smt_Value)
-(define $vsm_DtCons ((s $native_String) (d $smt_DatatypeDecl) (ci $native_Nat))
-  ($emb_vsm.DtCons s d ci))
-
-; Apply values (for Herbrand interpretations).
-(declare-parameterized-const $emb_vsm.Apply
-  ((f $smt_Value :opaque) (a $smt_Value :opaque))
-  $smt_Value)
-(define $vsm_apply ((f $smt_Value) (a $smt_Value))
-  ($emb_vsm.Apply f a))
 ; utilities
 (program $vsm_apply_head ((f $smt_Value) (a $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
-  (($vsm_apply_head ($vsm_apply f a)) ($vsm_apply_head f))
+  (($vsm_apply_head ($vsm_Apply f a)) ($vsm_apply_head f))
   (($vsm_apply_head a)                a)
   )
 )
@@ -376,10 +312,10 @@
   ((f $smt_Value) (a $smt_Value) (n $native_Nat) (npos $native_Nat))
   :signature ($smt_Value $native_Nat $native_Nat) $smt_Value
   (
-  (($vsm_apply_arg_nth ($vsm_apply f a) n ($native_n_succ npos))
+  (($vsm_apply_arg_nth ($vsm_Apply f a) n ($native_n_succ npos))
     ($native_ite ($native_n_= n npos) a
       ($vsm_apply_arg_nth f n npos)))
-  (($vsm_apply_arg_nth a n npos) $vsm_not_value)
+  (($vsm_apply_arg_nth a n npos) $vsm_NotValue)
   )
 )
 
@@ -408,7 +344,7 @@
 (declare-parameterized-const $emb_ssm.empty ((T $smt_Type :opaque)) $smt_Seq)
 (define $ssm_empty ((T $smt_Type)) ($emb_ssm.empty T))
 
-(define $vsm_string_empty () ($vsm_seq ($ssm_empty $tsm_Char)))
+(define $vsm_string_empty () ($vsm_Seq ($ssm_empty $tsm_Char)))
 
 ;;; Constructors for SMT-LIB datatypes and datatype constructors
 
@@ -790,32 +726,19 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Type rules for values
 
+; The cases the configuration writes are spliced in below, and each argument
+; is named after the type it is of, see the values of
+; tools/eoc/semantics/smt.eos.
 (program $smtx_typeof_value
-  ((v $smt_Value) (f $smt_Value) (dd $smt_DatatypeDecl)
-   (b $native_Bool) (w $native_Nat) (n $native_Int) (i $native_Nat) (e $native_Nat)
-   (q $native_Real) (s $native_String) (r $smt_RegLan) (c $native_Char)
-   (m $smt_Map) (ss $smt_Seq) (T $smt_Type) (U $smt_Type) (t $smt_Term))
+  ((v $smt_Value) (bool1 $native_Bool) (int1 $native_Int) (int2 $native_Int)
+   (rat1 $native_Rat) (char1 $native_Char) (nat1 $native_Nat)
+   (nat2 $native_Nat) (nat3 $native_Nat) (string1 $native_String)
+   (map1 $smt_Map) (seq1 $smt_Seq) (reglan1 $smt_RegLan)
+   (datatypedecl2 $smt_DatatypeDecl) (type2 $smt_Type) (type3 $smt_Type)
+   (value1 $smt_Value) (value2 $smt_Value))
   :signature ($smt_Value) $smt_Type
   (
-  (($smtx_typeof_value ($vsm_bool b))       $tsm_Bool)
-  (($smtx_typeof_value ($vsm_numeral n))    $tsm_Int)
-  (($smtx_typeof_value ($vsm_rational q))   $tsm_Real)
-  (($smtx_typeof_value ($vsm_binary w n))
-    ($native_ite
-      ($native_and ($native_z_<= $native_z_zero w) ($native_z_= n ($native_mod_total n ($native_z_pow2 w))))
-      ($tsm_BitVec ($native_z_to_n w))
-      $tsm_none))
-  (($smtx_typeof_value ($vsm_re r))         $tsm_RegLan)
-  (($smtx_typeof_value ($vsm_map m))        ($smtx_typeof_map_value m))
-  (($smtx_typeof_value ($vsm_set m))        ($smtx_map_to_set_type ($smtx_typeof_map_value m)))
-  (($smtx_typeof_value ($vsm_fun i T U))    ($tsm_FunType T U))
-  (($smtx_typeof_value ($vsm_seq ss))       ($smtx_typeof_seq_value ss))
-  (($smtx_typeof_value ($vsm_char c))       ($native_ite ($native_apply_1 "char_valid" c) $tsm_Char $tsm_none))
-  (($smtx_typeof_value ($vsm_uvalue i e))   ($tsm_USort i))
-  ; not guarded by well-foundedness as this creates circular dependencies
-  (($smtx_typeof_value ($vsm_DtCons s dd i)) ($smtx_typeof_dt_cons_value s dd i))
-  (($smtx_typeof_value ($vsm_apply f v))
-    ($smtx_typeof_apply_value ($smtx_typeof_value f) ($smtx_typeof_value v)))
+;$SMT_VALUE_TYPEOF_CASES$
   (($smtx_typeof_value v)                   $tsm_none)
   )
 )
@@ -832,12 +755,12 @@
 ;;; Sets
 
 ; Empty set
-(define $smtx_empty_set ((T $smt_Type)) ($vsm_set ($msm_empty_set T)))
+(define $smtx_empty_set ((T $smt_Type)) ($vsm_Set ($msm_empty_set T)))
 
 ;;; Sequences
 
 ; Empty sequence
-(define $smtx_empty_seq ((T $smt_Type)) ($vsm_seq ($ssm_empty T)))
+(define $smtx_empty_seq ((T $smt_Type)) ($vsm_Seq ($ssm_empty T)))
 
 ;;; Apply
 
@@ -852,15 +775,15 @@
    (s $native_String) (dd $smt_DatatypeDecl) (T $smt_Type) (t $smt_Term))
   :signature ($smt_Model $smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_model_eval_apply M v $vsm_not_value)    $vsm_not_value)
+  (($smtx_model_eval_apply M v $vsm_NotValue)    $vsm_NotValue)
   ; If a Herbrand interpretation, apply it to the next value.
-  (($smtx_model_eval_apply M ($vsm_DtCons s dd n) i) ($vsm_apply ($vsm_DtCons s dd n) i))
-  (($smtx_model_eval_apply M ($vsm_apply f v) i) ($vsm_apply ($vsm_apply f v) i))
+  (($smtx_model_eval_apply M ($vsm_DtCons s dd n) i) ($vsm_Apply ($vsm_DtCons s dd n) i))
+  (($smtx_model_eval_apply M ($vsm_Apply f v) i) ($vsm_Apply ($vsm_Apply f v) i))
   ; Call the native apply lookup
-  (($smtx_model_eval_apply M ($vsm_fun s T U) i)
+  (($smtx_model_eval_apply M ($vsm_Fun s T U) i)
     ($native_apply_5 "eval_fun_apply" M s T U i))
   ; The function did not evaluate to a map value, we fail.
-  (($smtx_model_eval_apply M v i)                 $vsm_not_value)
+  (($smtx_model_eval_apply M v i)                 $vsm_NotValue)
   )
 )
 
@@ -892,7 +815,7 @@
   (
   (($smtx_model_eval_dt_tester s dd n v1)
     ; check if the head of the apply term is ($vsm_DtCons s dd n)
-    ($vsm_bool ($native_veq ($vsm_apply_head v1) ($vsm_DtCons s dd n))))
+    ($vsm_Boolean ($native_veq ($vsm_apply_head v1) ($vsm_DtCons s dd n))))
   )
 )
 
@@ -905,7 +828,7 @@
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
 ; invariant: this must be a total function
-; invariant: unless this method returns $vsm_not_value, it must be such that
+; invariant: unless this method returns $vsm_NotValue, it must be such that
 ;            it represents a unique SMT-LIB value, i.e. ($vsm_term t) is
 ;            forbidden unless t denotes a value.
 (program $smtx_model_eval
@@ -918,11 +841,11 @@
   :signature ($smt_Model $smt_Term) $smt_Value
   (
 
-  (($smtx_model_eval M ($sm_bool b))      ($vsm_bool b))
-  (($smtx_model_eval M ($sm_numeral n))   ($vsm_numeral n))
-  (($smtx_model_eval M ($sm_rational r))  ($vsm_rational r))
-  (($smtx_model_eval M ($sm_string s))    ($vsm_seq ($native_apply_1 "pack_string" s)))
-  (($smtx_model_eval M ($sm_binary w n))  ($vsm_binary w n))
+  (($smtx_model_eval M ($sm_bool b))      ($vsm_Boolean b))
+  (($smtx_model_eval M ($sm_numeral n))   ($vsm_Numeral n))
+  (($smtx_model_eval M ($sm_rational r))  ($vsm_Rational r))
+  (($smtx_model_eval M ($sm_string s))    ($vsm_Seq ($native_apply_1 "pack_string" s)))
+  (($smtx_model_eval M ($sm_binary w n))  ($vsm_Binary w n))
   ; evaluation of standard SMT symbols
   ; These calls will reference helper methods above, e.g. of the form
   ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
@@ -952,7 +875,7 @@
     ($smtx_model_eval_apply M ($smtx_model_eval M f) ($smtx_model_eval M x1)))
   (($smtx_model_eval M ($sm_Var s T))     ($native_apply_3 "model_var_lookup" M s T))
   (($smtx_model_eval M ($sm_UConst s T))  ($native_apply_3 "model_lookup" M s T))
-  (($smtx_model_eval M x1)   $vsm_not_value)
+  (($smtx_model_eval M x1)   $vsm_NotValue)
   )
 )
 
@@ -1254,8 +1177,8 @@
   (($smtx_datatype_cons_default v dd $dtc_unit ddF) v)
   (($smtx_datatype_cons_default v dd ($dtc_cons T c) ddF)
     (eo::define ((va ($smtx_field_type_default dd T ddF)))
-      ($native_ite ($native_veq va $vsm_not_value) $vsm_not_value
-        ($smtx_datatype_cons_default ($vsm_apply v va) dd c ddF))))
+      ($native_ite ($native_veq va $vsm_NotValue) $vsm_NotValue
+        ($smtx_datatype_cons_default ($vsm_Apply v va) dd c ddF))))
   )
 )
 
@@ -1266,10 +1189,10 @@
   (
   (($smtx_datatype_default s dd n ($dt_sum cF dF) ddF)
     (eo::define ((v1 ($smtx_datatype_cons_default ($vsm_DtCons s dd n) dd cF ddF)))
-      ($native_ite ($native_not ($native_veq v1 $vsm_not_value))
+      ($native_ite ($native_not ($native_veq v1 $vsm_NotValue))
         v1
         ($smtx_datatype_default s dd ($native_n_succ n) dF ddF))))
-  (($smtx_datatype_default s dd n dF ddF) $vsm_not_value)
+  (($smtx_datatype_default s dd n dF ddF) $vsm_NotValue)
   )
 )
 
@@ -1282,7 +1205,7 @@
     ($native_ite ($native_str_= s sF)
       ($smtx_datatype_default s dd $native_n_zero dF ddF)
       ($smtx_datatype_decl_default s dd ddF)))
-  (($smtx_datatype_decl_default s dd ddF) $vsm_not_value)
+  (($smtx_datatype_decl_default s dd ddF) $vsm_NotValue)
   )
 )
 
@@ -1299,9 +1222,9 @@
   (($smtx_type_default ($tsm_Datatype s dd))
     ($smtx_datatype_decl_default s dd dd))
 ;$SMT_TYPE_DEFAULT_CASES$
-  (($smtx_type_default ($tsm_USort i))      ($vsm_uvalue i $native_n_zero))
-  (($smtx_type_default ($tsm_FunType T U))  ($vsm_fun ($native_apply_0 "default_fun_id") T U))
-  (($smtx_type_default T) $vsm_not_value)
+  (($smtx_type_default ($tsm_USort i))      ($vsm_UValue i $native_n_zero))
+  (($smtx_type_default ($tsm_FunType T U))  ($vsm_Fun ($native_apply_0 "default_fun_id") T U))
+  (($smtx_type_default T) $vsm_NotValue)
   )
 )
 
@@ -1359,25 +1282,14 @@
   )
 )
 
+; The same, for what each value says about being canonical.
 (program $smtx_value_canonical_bool
-  ((m $smt_Map) (s $smt_Seq) (f $smt_Value) (v $smt_Value) (w $native_Int)
-   (n $native_Int) (r $smt_RegLan) (c $native_Char))
+  ((v $smt_Value) (int1 $native_Int) (int2 $native_Int) (char1 $native_Char)
+   (map1 $smt_Map) (seq1 $smt_Seq) (reglan1 $smt_RegLan)
+   (value1 $smt_Value) (value2 $smt_Value))
   :signature ($smt_Value) $native_Bool
   (
-  (($smtx_value_canonical_bool ($vsm_binary w n))
-    ($native_ite ($native_z_<= $native_z_zero w)
-      ($native_z_= n ($native_mod_total n ($native_z_pow2 w)))
-      $native_true))
-  (($smtx_value_canonical_bool ($vsm_char c)) ($native_apply_1 "char_valid" c))
-  (($smtx_value_canonical_bool ($vsm_map m)) ($smtx_map_canonical m))
-  (($smtx_value_canonical_bool ($vsm_set m))
-    ($native_and ($smtx_map_canonical m) ($native_veq ($smtx_msm_get_default m) $vsm_false)))
-  (($smtx_value_canonical_bool ($vsm_seq s)) ($smtx_seq_canonical s))
-  (($smtx_value_canonical_bool ($vsm_re r)) ($native_apply_1 "re_canonical" r))
-  (($smtx_value_canonical_bool ($vsm_apply f v))
-    ($native_and
-      ($smtx_value_canonical_bool f)
-      ($smtx_value_canonical_bool v)))
+;$SMT_VALUE_CANONICAL_CASES$
   (($smtx_value_canonical_bool v) $native_true)
   )
 )

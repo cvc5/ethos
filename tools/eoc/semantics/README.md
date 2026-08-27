@@ -57,8 +57,8 @@ of a term and the value of one. Every input is compiled through it, so what it
 says is what a model of any input means, and nothing about an input is asked of
 it. A run names another with `--semantics`.
 
-**`development-cpc.eos` is a test**, kept so that the compiler and every stage after
-it have a real signature to run over; CI compiles it on every push. **The
+**`development-cpc.eos` is a test**, kept so that the compiler and every stage
+after it have a real signature to run over; CI compiles it on every push. **The
 official semantics of CPC lives in the Logos repository**, which is what a run
 that means to say something about CPC names with `--signature`. Nothing keeps
 the copy here in step with it, and a set named that way compiles beside itself,
@@ -171,6 +171,7 @@ A file is a sequence of these.
 (program NAME (declaration*) :signature (type*) type (case*))
 (define-symbol NAME (parameter*) attribute*)
 (define-sort NAME (parameter*) attribute*)          the target only
+(define-value NAME (parameter*) attribute*)         the target only
 (define-method NAME attribute*)                     an input only
 (define-rule NAME attribute*)                       an input only
 
@@ -309,6 +310,7 @@ two are read apart by the form that declares one.
 | --- | --- | --- |
 | a symbol of the **target**, `semantics/smt.eos` | `define-symbol` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof` under `:typeof`; a case of `$smtx_model_eval` under `:value`, or the program it hands its work to under `:eval` |
 | a type of the **target**, `semantics/smt.eos` | `define-sort` | a constant of the embedding and the macro that applies it; a case of `$smtx_type_wf_rec` under `:wf`, of `$smtx_type_bounded` under `:bounded`, of `$smtx_type_default` under `:default` |
+| a value of the **target**, `semantics/smt.eos` | `define-value` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical_bool` under `:canonical` |
 | a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |
 | a rule of an **input**, `semantics/development-cpc.eos` | `define-rule` | the same, for a proof rule, which says only that it is left out |
@@ -346,8 +348,14 @@ parameter marker `(! v :type)` alike -- **a type**.
 | `v` | `plain` | an ordinary argument |
 | `(! v :raw)` | `raw` | one that reaches a case as the term was written |
 | `(! v :type)` | `type` | a type rather than a term |
+| `(v T)` | `plain`, of `T` | one of the type named, written the way a program's parameter list writes one |
 
-The two that say something are annotated the way SMT-LIB annotates a term.
+The two marked kinds are annotated the way SMT-LIB annotates a term. The last
+is for a kind of entity whose arguments are not all of one type -- a value of
+the embedding is built over a native of one sort or another -- and it settles
+what a case calls each argument: the program the cases are spliced into
+declares each name once, so an argument is named after the type it is of,
+`int1` and `map1` rather than `x1` twice.
 
 What each stands for in a body is the aggregate's business. In
 `semantics/smt.eos` a `:raw` argument -- an index -- stands for the term itself
@@ -364,6 +372,7 @@ their helper attributes. For the two sets in the tree:
 | `semantics/smt.eos`, a `define-symbol` | `:typeof`, `:value`, `:eval`, `:overload`, `:exclude`, `:keep` |
 | `semantics/smt.eos`, a `define-sort` | `:wf`, `:bounded`, `:default`, `:overload`, `:exclude`, `:keep` |
 | `semantics/development-cpc.eos`, a `define-symbol` | `:term`, `:type`, `:is-list-nil`, `:overload`, `:exclude`, `:keep` |
+| `semantics/smt.eos`, a `define-value` | `:typeof`, `:canonical`, `:overload`, `:exclude`, `:keep` |
 | a `define-method`, either set | `:lean`, `:exclude` |
 | a `define-rule`, `semantics/development-cpc.eos` | `:exclude` |
 
@@ -517,11 +526,11 @@ A symbol that says nothing about an aggregate takes that aggregate's
 says nothing about any `:sole` aggregate, or the symbol wrote cases for that
 aggregate's helper.
 
-So in `semantics/development-cpc.eos` a symbol that says nothing at all transforms
-pointwise, a symbol that says only `:is-list-nil` still transforms pointwise,
-and one that says `:type` -- a type constructor -- does not, `type` there being
-`:sole`. In `semantics/smt.eos`, a symbol with `:eval` and no `:value` gets a
-`value` case that calls its helper.
+So in `semantics/development-cpc.eos` a symbol that says nothing at all
+transforms pointwise, a symbol that says only `:is-list-nil` still transforms
+pointwise, and one that says `:type` -- a type constructor -- does not, `type`
+there being `:sole`. In `semantics/smt.eos`, a symbol with `:eval` and no
+`:value` gets a `value` case that calls its helper.
 
 A symbol that would emit nothing at all is an error.
 
@@ -566,6 +575,44 @@ The types the embedding keeps for itself -- `none`, `Datatype`, `TypeRef`,
 `USort`, `FunType`, `DtcAppType` -- are not here: they are how the embedding
 represents what a calculus declares rather than types of a theory, and stand in
 `plugins/model_smt/model_smt.eo` with the rest of the same three programs.
+
+### `(define-value NAME (param...) attr...)` -- the target
+
+One value of the signature, i.e. what a term of it evaluates to in a model. It
+writes the constructor of the embedding for the value and the macro that
+applies it, the way a type does, and one case of each of the two programs
+written over the values.
+
+```lisp
+(define-value Set ((m SmtMap))
+  :typeof ($smtx_map_to_set_type (smt.typeof_map_value m))
+  :canonical ("and" ($smtx_map_canonical m)
+               ("veq" ($smtx_msm_get_default m) smt.false)))
+```
+
+Each parameter says the type it is of, since a value is built over natives of
+several sorts, over types, and over the shapes a map and a sequence are; what
+it stands for in a body is itself.
+
+| attribute | says | written at |
+| --- | --- | --- |
+| `:typeof` | the type a term whose value it is would be of | type level |
+| `:canonical` | whether it is the one spelling of what it denotes | native level |
+
+A value that says nothing about an attribute is answered for by the program its
+cases are spliced into: it is of no type, and it is canonical.
+
+An entity is named after the constructor it declares -- `Boolean`, not `bool` --
+so `$emb_vsm.Boolean` and `$vsm_Boolean` are what it writes. **A value has no
+bare name**: what a body writes is `smt.bool`, a macro of the set, and the
+vocabulary block is the one place the macro of a value is named. The block a
+value opens is named after its constructor for the same reason a type's is not:
+`Seq` is a type and a value both, and a block is named once.
+
+Like the types, the values are the embedding's own, so every block one opens is
+kept whatever a calculus declares, and they stand in the order their
+constructors are given -- `valueKey` in the generated `SmtValueOrder` follows
+it -- so a value is added at the end.
 
 ### `(define-method NAME attr...)`, `(define-rule NAME attr...)`
 
@@ -1011,6 +1058,14 @@ of it: a case matches one by writing it, and what the pattern binds is read off
 its declaration. If putting one back together is an idiom, write a macro for it
 in the section of its theory, the way `of_width` and `of_chars` are written.
 
+### Add a value
+
+Write a `define-value` at the end of the values, saying each parameter's type,
+the type a term of it would be of, and what makes it canonical; a value that
+has nothing to say about one of those says nothing. Name the macro that applies
+it in the vocabulary block, since a value has no bare name. It goes at the end
+because the order of the values is what their constructors are numbered by.
+
 ### Add an attribute a symbol may carry
 
 Not a change to a signature: add it to the shape in `tools/eoc/sem_target.py`,
@@ -1019,11 +1074,11 @@ the program it writes, so the stage knows what to do with its cases.
 
 ### Add a signature of another input
 
-Write a file beside `semantics/development-cpc.eos`: a heading, then its theories in
-sections. It takes the shape of an input, which is what everything not called
-`smt` is, and compiles beside itself unless it is one of the two the tool
-ships with. Name it with `--signature`. Nothing in the compiler names either
-existing set.
+Write a file beside `semantics/development-cpc.eos`: a heading, then its
+theories in sections. It takes the shape of an input, which is what everything
+not called `smt` is, and compiles beside itself unless it is one of the two the
+tool ships with. Name it with `--signature`. Nothing in the compiler names
+either existing set.
 
 ---
 

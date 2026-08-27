@@ -360,7 +360,7 @@ def read_config(paths, decls):
         joins = (open_block is not None
                  and (open_block.name == piece.name
                       or getattr(piece, 'joins_open_block', False)))
-        name = piece.name
+        name = piece.block_name or piece.name
       else:
         if kind == 'include':
           die('%s: a set is one file, so nothing is included into it' % path)
@@ -418,7 +418,7 @@ LEVELS = {'$smt_Value': 'value', '$smt_Term': 'term', '$smt_Type': 'type'}
 FAMILY = {'value': '$smtx_model_eval_', 'term': '$sm_', 'type': '$tsm_'}
 
 # What a whole number is at each level, i.e. what wraps the native it denotes.
-NUMERAL = {'value': '$vsm_numeral', 'term': '$sm_numeral'}
+NUMERAL = {'value': '$vsm_Numeral', 'term': '$sm_numeral'}
 
 # What a term of the *input* becomes where a term or a type of the embedding is
 # wanted, which is the aggregate of that level applied to it. It is read off the
@@ -596,20 +596,25 @@ class Vocab:
         level, entry)
 
   def extended(self, blocks):
-    """The same vocabulary, together with the programs one set writes out.
+    """The same vocabulary, together with what one set writes out.
 
     A program a symbol's cases name is written in the set rather than in the
     embedding, so what it takes is read off it here, the same way and for the
-    same reason.
+    same reason. So is the constructor of an entity the set declares: a value
+    of the embedding is one, and a pattern that takes one apart is read off
+    what it says its arguments are.
     """
     out = Vocab()
     out.args, out.ops = dict(self.args), self.ops
-    out.types = self.types
-    out.ints, out.aliases = self.ints, self.aliases
+    out.types, out.ints, out.aliases = dict(self.types), self.ints, self.aliases
     for b in blocks:
       for p in b.entries():
         if isinstance(p, Program):
           out.args[p.name] = [sig_level(t) for t in p.sig.items]
+        elif isinstance(p, Symbol) and p.decls.constructor is not None:
+          macro = p.decls.constructor.macro.format(symbol=p.name)
+          out.args[macro] = [level_of(t) if t else None for t in p.types]
+          out.types[macro] = list(p.types)
     return out
 
 
@@ -1049,6 +1054,9 @@ class Entry:
   bound_levels = {}
   params_declared = frozenset()
   attrs = {}
+  # What the block it opens is called, which is its own name unless the kind
+  # it is of says otherwise.
+  block_name = None
   # The comment written above the entry, which read_config puts there.
   doc = ()
 
@@ -1262,12 +1270,15 @@ NOTHING = 'none'
 class Symbol(Entry):
   """One symbol of a set: its arguments, and one case per aggregate."""
 
-  def __init__(self, name, params, kinds, attrs, decls):
+  def __init__(self, name, params, kinds, types, attrs, decls):
     # What the symbol is called: its own name, unless :overload says it is
     # written under another, as an overload the desugar stage named is.
     self.name = attrs['overload'].val if 'overload' in attrs else name
     self.params = params
     self.kinds = kinds
+    # The type each parameter says it is of, where its kind does not say.
+    self.types = types
+    self.block_name = decls.block.format(symbol=self.name)
     self.attrs = attrs
     self.decls = decls
     self.params_declared = set(params)
@@ -1313,6 +1324,17 @@ class Symbol(Entry):
                      if a.sole)
     return self.has(agg.helper_attr) if agg.helper is not None else False
 
+  def slots(self, agg, ctx):
+    """What a case of this aggregate calls each of the arguments.
+
+    A parameter that says the type it is of is called after that type, since
+    the program the cases are spliced into declares each name once and two
+    types cannot share one: a value built over a native integer and one built
+    over a map stand in the same place and are not the same thing.
+    """
+    return [agg.slot(i, kind, declared_type(t, self, ctx) if t else None)
+            for i, (kind, t) in enumerate(zip(self.kinds, self.types))]
+
   # -- what it compiles to ----------------------------------------------------
 
   def render(self, ctx):
@@ -1330,7 +1352,7 @@ class Symbol(Entry):
       # are, and then every entry of it says this without writing it.
       out.append('(echo "eoc-keep symbol %s")' % self.name)
     if self.decls.constructor is not None:
-      out.extend(self.decls.constructor.render(self))
+      out.extend(self.decls.constructor.render(self, ctx))
     for key in self.decls.order:
       agg = self.decls.aggregates[key]
       if agg.helper is not None and self.has(agg.helper_attr):
@@ -1364,8 +1386,8 @@ class Symbol(Entry):
     cases, width = [], 0
     for pat, term in self.cases_of(agg.key):
       if pat is None:
-        xs = [agg.slot(i, k) for i, k in enumerate(self.kinds)]
-        head = agg.head(self, len(self.params))
+        xs = self.slots(agg, ctx)
+        head = agg.head(self, xs)
       else:
         places = _places(pat, set(self.params), agg)
         xs = [places.get(p) for p in self.params]
@@ -1390,7 +1412,7 @@ class Symbol(Entry):
   def _default(self, agg, ctx):
     """The case of an aggregate a symbol that says nothing about it takes."""
     n = len(self.params)
-    xs = [agg.slot(i, k) for i, k in enumerate(self.kinds)]
+    xs = self.slots(agg, ctx)
     env, surface = agg.scope(self, xs)
     # A name of the input reaches the default the way it reaches a case: as
     # itself where the input is wanted, transformed where the embedding is.
@@ -1399,7 +1421,7 @@ class Symbol(Entry):
               if v in surface and agg.level in into else env[v]
               for v in self.params]
     rhs = applied(agg.default + self.name, stands)
-    return agg.render(self, [(agg.head(self, n), rhs)], ctx, n)
+    return agg.render(self, [(agg.head(self, xs), rhs)], ctx, n)
 
   # -- the program written over what the arguments evaluate to ----------------
 
@@ -1429,7 +1451,8 @@ class Symbol(Entry):
       # embedding and is written as it stands; a name that matched anything is
       # of the type the aggregate says each argument is, which the set wrote.
       arg = agg.helper_arg
-      params.extend('(%s %s)' % (v, arg if t is None else t.raw)
+      params.extend('(%s %s)' % (v, arg if t is None
+                                 else declared_type(t, self, ctx))
                     for v, t in bound)
       # A case matching nothing but names it binds leaves nothing over, so the
       # one for what is left could never be reached. A constructor that carries
@@ -1460,24 +1483,39 @@ def _places(pat, declared, agg):
 
 
 def parse_params(node, name, path):
-  """The parameters of a symbol, i.e. what its cases are written with."""
+  """The parameters of an entity, i.e. what its cases are written with.
+
+  A parameter is a name, a name marked with the kind it reaches a case as, or
+  a name with the type it is of -- written the way a program's parameter list
+  writes one, since it is the same thing. A kind of entity whose arguments are
+  not all of one type says the type of each: what a value of the embedding is
+  built over is a native of one sort or another.
+  """
   if node.kind != 'list':
-    die('%s: %s: the parameters of a symbol are a list of names' % (path, name))
-  names, kinds = [], []
+    die('%s: %s: the parameters of an entity are a list of names'
+        % (path, name))
+  names, kinds, types = [], [], []
   for a in node.items:
     if a.kind == 'sym':
       names.append(a.val)
       kinds.append(PLAIN)
+      types.append(None)
     elif (a.kind == 'list' and len(a.items) == 3 and a.items[0].is_sym('!')
           and a.items[2].val in KINDS):
       names.append(a.items[1].val)
       kinds.append(a.items[2].val[1:])
+      types.append(None)
+    elif (a.kind == 'list' and len(a.items) == 2
+          and a.items[0].kind == 'sym' and not a.items[0].is_sym('!')):
+      names.append(a.items[0].val)
+      kinds.append(PLAIN)
+      types.append(a.items[1])
     else:
-      die('%s: %s: a parameter is written `v` or `(! v :raw)`, got %s'
-          % (path, name, a.raw))
+      die('%s: %s: a parameter is written `v`, `(! v :raw)` or `(v T)`, '
+          'got %s' % (path, name, a.raw))
   if len(set(names)) != len(names):
     die('%s: %s: a parameter is named twice' % (path, name))
-  return names, kinds
+  return names, kinds, types
 
 
 def parser(decls):
@@ -1497,8 +1535,8 @@ def parser(decls):
           % (path, decls.noun, decls.keyword,
              '(param...) ' if decls.params else ''))
     name = node.items[1].val
-    params, kinds = (parse_params(node.items[2], name, path)
-                     if decls.params else ([], []))
+    params, kinds, types = (parse_params(node.items[2], name, path)
+                            if decls.params else ([], [], []))
     attrs = parse_attrs(node, start, name, path, known, expanded, macros)
-    return Symbol(name, params, kinds, attrs, decls)
+    return Symbol(name, params, kinds, types, attrs, decls)
   return read

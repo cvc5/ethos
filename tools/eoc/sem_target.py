@@ -22,7 +22,7 @@ and `%s` in a `stands_for` for the parameter one argument was given. The two
 shapes themselves are at the foot of the file.
 """
 
-from sem_lang import FAMILY, applied, die
+from sem_lang import FAMILY, applied, declared_type, die
 
 
 # What an argument written as the input wrote it stands for: itself where the
@@ -46,22 +46,33 @@ class Constructor:
   constants are the target's -- has none.
   """
 
-  def __init__(self, name, macro, argument, returns, opaque=False):
+  def __init__(self, name, macro, argument, returns, opaque=False,
+               macro_reserved=True):
     self.name = name            # the constructor, e.g. $emb_sm.{symbol}
     self.macro = macro          # the macro that applies it
     self.argument = argument    # the type of an argument, by how it was written
     self.returns = returns
     self.opaque = opaque
+    # Whether the macro is the compiler's name to write and no one else's. A
+    # value has no bare name of its own -- what a body writes for one is a
+    # macro of the set, `smt.bool` -- so the vocabulary block of the set names
+    # the macro that applies each value, and the namespace is shared.
+    self.macro_reserved = macro_reserved
 
   def type_of(self, kind, entry):
     if kind not in self.argument:
       die('%s: no argument of a constructor is %s' % (entry.name, kind))
     return self.argument[kind]
 
-  def render(self, entry):
-    """The constructor of a symbol together with the macro that applies it."""
+  def render(self, entry, ctx=None):
+    """The constructor of a symbol together with the macro that applies it.
+
+    An argument is of the type its parameter says, where it says one, and of
+    what the kind it was written as stands for otherwise.
+    """
     xs = [SLOT % (i + 1) for i in range(len(entry.params))]
-    ts = [self.type_of(k, entry) for k in entry.kinds]
+    ts = [declared_type(t, entry, ctx) if t else self.type_of(k, entry)
+          for k, t in zip(entry.kinds, entry.types)]
     con = self.name.format(symbol=entry.name)
     tail = ' :opaque' if self.opaque else ''
     return ['(declare-parameterized-const %s (%s) %s)'
@@ -128,8 +139,15 @@ class Aggregate:
 
   # -- the names a case is written with ---------------------------------------
 
-  def slot(self, i, kind=None):
-    """What a case calls the parameter of its i'th argument."""
+  def slot(self, i, kind=None, declared=None):
+    """What a case calls the parameter of its i'th argument.
+
+    A parameter that says the type it is of is called after that type, so that
+    the program the cases are spliced into can declare each name once; one that
+    does not is called after its kind, or x<i> where the kind says nothing.
+    """
+    if declared is not None:
+      return '%s%d' % (declared.split('_')[-1].lower(), i + 1)
     fmt = self.slots.get(kind, SLOT) if self.slots else SLOT
     return fmt % (i + 1)
 
@@ -143,7 +161,14 @@ class Aggregate:
     """
     out = ['(%s %s)' % (v, t) for v, t in self.context]
     out += ['(%s %s)' % (v, t) for v, t in self.own]
-    if isinstance(self.declares, dict):
+    if entry.types and any(t is not None for t in entry.types[:n]):
+      # Each argument is of the type it says, and is declared under the name
+      # that type gives it, see Aggregate.slot.
+      for i, t in enumerate(entry.types[:n]):
+        declared = declared_type(t, entry, ctx) if t else None
+        out.append('(%s %s)' % (self.slot(i, entry.kinds[i], declared),
+                                declared))
+    elif isinstance(self.declares, dict):
       for i, kind in enumerate(entry.kinds[:n]):
         if kind not in self.declares:
           die('%s: no argument of %s is %s' % (entry.name, self.key, kind))
@@ -153,14 +178,13 @@ class Aggregate:
         out += spread(line, n)
     return ' '.join(out)
 
-  def head(self, entry, n):
+  def head(self, entry, xs):
     """What a case matches where it gives no pattern of its own."""
     if self.matches is None:
       die('%s: every case of %s says what it matches, since the subject of '
           'one is not this symbol applied to its arguments'
           % (entry.name, self.key))
-    return applied(self.matches + entry.name,
-                   [self.slot(i, entry.kinds[i]) for i in range(n)])
+    return applied(self.matches + entry.name, xs)
 
   def scope(self, entry, xs):
     """What each name the entry declares stands for in a body of this
@@ -241,7 +265,7 @@ class Shape:
   stand in and the file they compile to, see Shapes."""
 
   def __init__(self, attributes, constructor=None, keyword='define-symbol',
-               noun='symbol', params=True, keep=False):
+               noun='symbol', params=True, keep=False, block='{symbol}'):
     self.aggregates = {a.key: a for a in attributes}
     self.order = [a.key for a in attributes]
     self.constructor = constructor
@@ -251,6 +275,10 @@ class Shape:
     # What one of them is, which is what it is counted as and what a directive
     # naming it says: a symbol, a type, a method or a rule.
     self.noun = noun
+    # What the block of one is called, which is the name of the entity unless
+    # a set holds two kinds that would name a block the same: Seq is a type
+    # and a value both, and a block is named once.
+    self.block = block
     # Whether an entity of this kind names the arguments it takes. One that
     # writes nothing of its own does not: what is said about a method or a
     # proof rule of the input is said about the whole of it.
@@ -320,8 +348,9 @@ class Shape:
     if self.constructor is not None:
       out[self.constructor.name.split('{symbol}')[0]] = (
           'the constant a symbol is declared as')
-      out[self.constructor.macro.split('{symbol}')[0]] = (
-          'the macro that applies the constant of a symbol')
+      if self.constructor.macro_reserved:
+        out[self.constructor.macro.split('{symbol}')[0]] = (
+            'the macro that applies the constant of a symbol')
     for level, family in FAMILY.items():
       out.setdefault(family, 'what a bare name at %s level is' % level)
     return sorted(out.items(), key=lambda kv: (-len(kv[0]), kv[0]))
@@ -386,6 +415,21 @@ class Shapes:
   def helper_prefixes(self):
     return [p for shape in self.shapes for p in shape.helper_prefixes()]
 
+  def constructor_prefixes(self):
+    """The name each constructor and its macro is given, up to the entity.
+
+    A block may name the constructor of one that stands after it, as the
+    default value of a type names the value it is: the stage writes every
+    constructor before it writes any case or program, so where the block of one
+    stands says nothing about when its name may be used.
+    """
+    out = []
+    for shape in self.shapes:
+      if shape.constructor is not None:
+        out.append(shape.constructor.name.split('{symbol}')[0])
+        out.append(shape.constructor.macro.split('{symbol}')[0])
+    return out
+
   def reserved(self):
     out = {}
     for shape in self.shapes:
@@ -449,7 +493,7 @@ VALUE = Aggregate(
     helper_attr='eval',
     helper_arg='$smt_Value',
     helper_gives='$smt_Value',
-    otherwise=('t{i}', '$smt_Value', '$vsm_not_value'))
+    otherwise=('t{i}', '$smt_Value', '$vsm_NotValue'))
 
 # ---------------------------------------------------------------------------
 # The signature of an input
@@ -579,7 +623,55 @@ METHODS = Shape([], keyword='define-method', noun='method', params=False)
 # A proof rule of the input, which says only that it is left out.
 RULES = Shape([], keyword='define-rule', noun='rule', params=False)
 
+# ---------------------------------------------------------------------------
+# The values of the SMT-LIB signature, which stand in the same file
+# ---------------------------------------------------------------------------
+
+# Every value is a constructor of the embedding too, applied by a macro of its
+# own. What each is built over its parameters say, one by one: a value is built
+# over natives of several sorts, over types, and over the shapes a map and a
+# sequence are.
+VALUE_CONSTANT = Constructor(
+    name='$emb_vsm.{symbol}',
+    macro='$vsm_{symbol}',
+    argument={'plain': '$smt_Value'},
+    opaque=True,
+    macro_reserved=False,
+    returns='$smt_Value')
+
+# What each argument stands for in a body: itself, since a value is of the
+# embedding already.
+VALUE_STANDS = {'plain': '%s', 'raw': '%s'}
+
+# The type a value is of, i.e. what a term it is the value of would be of. A
+# value that says nothing is of no type at all.
+VALUE_TYPEOF = Aggregate(
+    key='typeof',
+    program='$smtx_typeof_value',
+    case='$eoc_value_typeof_{symbol}',
+    matches='$vsm_',
+    declares=['(x{i} $smt_Value)'],
+    signature=('($smt_Value)', '$smt_Type'),
+    stands_for=VALUE_STANDS,
+    level='type')
+
+# Whether a value is canonical, i.e. whether it is the one spelling of what it
+# denotes. A value that says nothing is.
+VALUE_CANONICAL = Aggregate(
+    key='canonical',
+    program='$smtx_value_canonical_bool',
+    case='$eoc_value_canonical_{symbol}',
+    matches='$vsm_',
+    declares=['(x{i} $smt_Value)'],
+    signature=('($smt_Value)', '$native_Bool'),
+    stands_for=VALUE_STANDS,
+    level='native')
+
 SYMBOLS = Shape([TYPEOF, VALUE], constructor=CONSTANT)
+# A value of the embedding is the embedding's own, as its types are.
+VALUES = Shape([VALUE_TYPEOF, VALUE_CANONICAL], constructor=VALUE_CONSTANT,
+               keyword='define-value', noun='value', keep=True,
+               block='$emb_vsm.{symbol}')
 # A type of the embedding is the embedding's own whatever a calculus declares,
 # so its block is kept the way a symbol that says :keep is.
 TYPES = Shape([TYPE_WF, TYPE_BOUNDED, TYPE_DEFAULT], constructor=TYPE_CONSTANT,
@@ -587,7 +679,7 @@ TYPES = Shape([TYPE_WF, TYPE_BOUNDED, TYPE_DEFAULT], constructor=TYPE_CONSTANT,
 
 INPUT_SYMBOLS = Shape([TERM, TYPE, IS_LIST_NIL])
 
-TARGET = Shapes(SYMBOLS, TYPES, METHODS)
+TARGET = Shapes(SYMBOLS, TYPES, VALUES, METHODS)
 INPUT_SET = Shapes(INPUT_SYMBOLS, METHODS, RULES)
 
 

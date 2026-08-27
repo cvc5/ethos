@@ -155,17 +155,21 @@ void ModelSmt::loadDefs()
       d_eoToSmtType << "  " << c << std::endl;
     }
   }
-  // The types are the embedding's own -- every block of one is kept, whatever
-  // the input declares -- so they stand in the order the configuration gives
-  // them rather than in the order a calculus declares its own. What is derived
-  // from that order is then the same in every generated package however few
-  // rules it was compiled for, e.g. the key a value is ordered by, see
-  // typeKey in the generated SmtValueOrder.
+  // The types and the values are the embedding's own -- every block of one is
+  // kept, whatever the input declares -- so they stand in the order the
+  // configuration gives them rather than in the order a calculus declares its
+  // own. What is derived from that order is then the same in every generated
+  // package however few rules it was compiled for, e.g. the keys a value is
+  // ordered by, see typeKey and valueKey in the generated SmtValueOrder.
   for (const DefsBlock* b : blocks)
   {
     for (const std::string& f : b->d_typeCons)
     {
       d_smtTypes << f << std::endl;
+    }
+    for (const std::string& f : b->d_valueCons)
+    {
+      d_smtValues << f << std::endl;
     }
     for (const std::string& c : b->d_typeWfCases)
     {
@@ -178,6 +182,14 @@ void ModelSmt::loadDefs()
     for (const std::string& c : b->d_typeDefaultCases)
     {
       d_typeDefault << "  " << c << std::endl;
+    }
+    for (const std::string& c : b->d_valueTypeofCases)
+    {
+      d_valueTypeof << "  " << c << std::endl;
+    }
+    for (const std::string& c : b->d_valueCanonicalCases)
+    {
+      d_valueCanonical << "  " << c << std::endl;
     }
   }
   // The programs follow the same order, which they may because each evaluator
@@ -263,6 +275,10 @@ void ModelSmt::finalize()
   replacePlaceholder(finalSmt, "$EO_TO_SMT_TYPE_CASES$", d_eoToSmtType.str());
   replacePlaceholder(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
   replacePlaceholder(finalSmt, "$SMT_TYPE_CONSTRUCTORS$", d_smtTypes.str());
+  replacePlaceholder(finalSmt, "$SMT_VALUE_CONSTRUCTORS$", d_smtValues.str());
+  replacePlaceholder(finalSmt, "$SMT_VALUE_TYPEOF_CASES$", d_valueTypeof.str());
+  replacePlaceholder(
+      finalSmt, "$SMT_VALUE_CANONICAL_CASES$", d_valueCanonical.str());
   replacePlaceholder(finalSmt, "$SMT_TYPE_WF_CASES$", d_typeWf.str());
   replacePlaceholder(finalSmt, "$SMT_TYPE_BOUNDED_CASES$", d_typeBounded.str());
   replacePlaceholder(finalSmt, "$SMT_TYPE_DEFAULT_CASES$", d_typeDefault.str());

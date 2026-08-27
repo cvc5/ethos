@@ -49,6 +49,8 @@ struct DefsBlock
   std::vector<std::string> d_cons;
   /** The same, where the block is of a type rather than of a symbol. */
   std::vector<std::string> d_typeCons;
+  /** The same, where it is of a value. */
+  std::vector<std::string> d_valueCons;
   /** The auxiliary programs, by the stream each belongs to. */
   std::vector<std::string> d_typeofAux, d_evalProgs, d_eoAux;
   /**
@@ -67,6 +69,8 @@ struct DefsBlock
   /** The same, for what a block of a type says about it. */
   std::vector<std::string> d_typeWfCases, d_typeBoundedCases,
       d_typeDefaultCases;
+  /** The same, for what a block of a value says about it. */
+  std::vector<std::string> d_valueTypeofCases, d_valueCanonicalCases;
 };
 
 /**

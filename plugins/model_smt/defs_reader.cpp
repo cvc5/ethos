@@ -245,6 +245,11 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
       {
         b.d_typeCons.push_back(f);
       }
+      else if (name.compare(0, 9, "$emb_vsm.") == 0
+               || name.compare(0, 5, "$vsm_") == 0)
+      {
+        b.d_valueCons.push_back(f);
+      }
       else
       {
         b.d_cons.push_back(f);
@@ -298,6 +303,19 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
     {
       std::vector<std::string> cases = casesOf(f, name, "$eo_to_smt");
       b.d_transCases.insert(b.d_transCases.end(), cases.begin(), cases.end());
+    }
+    else if (isPre("$eoc_value_typeof_"))
+    {
+      std::vector<std::string> cases = casesOf(f, name, "$smtx_typeof_value");
+      b.d_valueTypeofCases.insert(
+          b.d_valueTypeofCases.end(), cases.begin(), cases.end());
+    }
+    else if (isPre("$eoc_value_canonical_"))
+    {
+      std::vector<std::string> cases =
+          casesOf(f, name, "$smtx_value_canonical_bool");
+      b.d_valueCanonicalCases.insert(
+          b.d_valueCanonicalCases.end(), cases.begin(), cases.end());
     }
     else if (isPre("$eoc_type_wf_"))
     {

@@ -52,19 +52,19 @@
 
 ; -- the value family
 ; A value of each shape, from what it holds.
-(define-macro smt.bool (b)          ($vsm_bool b))
-(define-macro smt.numeral (n)       ($vsm_numeral n))
-(define-macro smt.rational (r)      ($vsm_rational r))
-(define-macro smt.binary (w v)      ($vsm_binary w v))
-(define-macro smt.seq (s)           ($vsm_seq s))
-(define-macro smt.re (r)            ($vsm_re r))
-(define-macro smt.char (c)          ($vsm_char c))
-(define-macro smt.map (m)           ($vsm_map m))
-(define-macro smt.set (m)           ($vsm_set m))
+(define-macro smt.bool (b)          ($vsm_Boolean b))
+(define-macro smt.numeral (n)       ($vsm_Numeral n))
+(define-macro smt.rational (r)      ($vsm_Rational r))
+(define-macro smt.binary (w v)      ($vsm_Binary w v))
+(define-macro smt.seq (s)           ($vsm_Seq s))
+(define-macro smt.re (r)            ($vsm_RegLan r))
+(define-macro smt.char (c)          ($vsm_Char c))
+(define-macro smt.map (m)           ($vsm_Map m))
+(define-macro smt.set (m)           ($vsm_Set m))
 
 ; The values of that family the embedding names for themselves. A whole number
 ; is not among them: 0 and 1 at value level are already what they denote.
-(define-macro smt.not_value ()      $vsm_not_value)
+(define-macro smt.not_value ()      $vsm_NotValue)
 (define-macro smt.true ()           $vsm_true)
 (define-macro smt.false ()          $vsm_false)
 (define-macro smt.q_zero ()         $vsm_q_zero)
@@ -165,6 +165,93 @@
 (define-sort Char ()
   :bounded ("not" u)
   :default (smt.char ("n_to_char" "n_zero")))
+
+;-----------------------------------------------------------------------------
+(section "The values")
+;-----------------------------------------------------------------------------
+
+; The values of the signature, i.e. what a term of it evaluates to in a model.
+;
+; A value is a constructor of the embedding the way a symbol and a type are,
+; and each says what it is built over: a native of one sort or another, a type,
+; or one of the shapes a map and a sequence are. A value has no bare name, so
+; the vocabulary above is where the macro of each is named and a body writes
+; smt.X rather than the constructor.
+;
+; Two things are asked of a value, and one that says nothing about either is
+; answered for by the program the case is spliced into:
+;
+;   :typeof     the type a term whose value it is would be of -- none, of a
+;               value that says nothing
+;   :canonical  whether it is the one spelling of what it denotes -- true, of
+;               a value that says nothing
+;
+; They stand in the order their constructors are given, which what is derived
+; from that order depends on, so a value is added at the end.
+
+(define-value NotValue ())
+
+(define-value Boolean ((b "Bool"))
+  :typeof Bool)
+
+(define-value Numeral ((n "Int"))
+  :typeof Int)
+
+(define-value Rational ((r "Rat"))
+  :typeof Real)
+
+; A bit-vector is of the width it carries, and is the one spelling of what it
+; denotes when its value is that width's remainder.
+(define-value Binary ((w "Int") (v "Int"))
+  :typeof ("ite" ("and" ("z_<=" 0 w) ("z_=" v ("mod_total" v ("z_pow2" w))))
+            (BitVec ("z_to_n" w))
+            none)
+  :canonical ("ite" ("z_<=" 0 w)
+               ("z_=" v ("mod_total" v ("z_pow2" w)))
+               "true"))
+
+(define-value Map ((m SmtMap))
+  :typeof (smt.typeof_map_value m)
+  :canonical ($smtx_map_canonical m))
+
+; A function value is named rather than given, so what it is of is what it
+; says it is of.
+(define-value Fun ((s "String") (T SmtType) (U SmtType))
+  :typeof (FunType T U))
+
+; A set is a map to the Booleans, so it is canonical when the map is and when
+; what it maps the rest to is false.
+(define-value Set ((m SmtMap))
+  :typeof ($smtx_map_to_set_type (smt.typeof_map_value m))
+  :canonical ("and" ($smtx_map_canonical m)
+               ("veq" ($smtx_msm_get_default m) smt.false)))
+
+(define-value Seq ((s SmtSeq))
+  :typeof (smt.typeof_seq_value s)
+  :canonical ($smtx_seq_canonical s))
+
+(define-value Char ((c "Char"))
+  :typeof ("ite" ("char_valid" c) Char none)
+  :canonical ("char_valid" c))
+
+(define-value UValue ((i "Nat") (e "Nat"))
+  :typeof (USort i))
+
+(define-value RegLan ((r SmtRegLan))
+  :typeof RegLan
+  :canonical ("re_canonical" r))
+
+; A datatype constructor is of the type its declaration gives it. It is not
+; guarded by well-foundedness, which would be circular.
+(define-value DtCons ((s "String") (dd SmtDatatypeDecl) (ci "Nat"))
+  :typeof ($smtx_typeof_dt_cons_value s dd ci))
+
+; An application of one is a value of the type applying it gives, and is
+; canonical when both halves are.
+(define-value Apply ((f SmtValue) (a SmtValue))
+  :typeof ($smtx_typeof_apply_value (smt.typeof_value f) (smt.typeof_value a))
+  :canonical ("and" ($smtx_value_canonical_bool f)
+               ($smtx_value_canonical_bool a)))
 
 ;-----------------------------------------------------------------------------
 (section "The core symbols")

@@ -123,6 +123,11 @@ class ModelSmt : public StdPlugin
   std::stringstream d_smtTerms;
   /** Generated SMT type constructor declarations. */
   std::stringstream d_smtTypes;
+  /** Generated SMT value constructor declarations. */
+  std::stringstream d_smtValues;
+  /** Generated cases of what the values say about themselves: the type one is
+   * of, and whether one is canonical. */
+  std::stringstream d_valueTypeof, d_valueCanonical;
   /** Generated cases of what the types of the signature say about themselves:
    * whether one is well-founded, whether it is bounded, and the value a model
    * reaches for where it has to name one of it. */

@@ -163,7 +163,8 @@ def summary(config):
   """How much of each thing a set holds, in the words of its kinds."""
   c = config.counts
   kinds = ['%d %s' % (c[k], k if c[k] != 1 else k[:-1])
-           for k in ('symbols', 'types', 'methods', 'rules', 'programs') if c[k]]
+           for k in ('symbols', 'types', 'values', 'methods', 'rules',
+                        'programs') if c[k]]
   said = ['%d %s' % (c[k], w) for k, w in (('keep', 'kept'),
                                            ('exclude', 'left out'),
                                            ('lean', 'annotated')) if c[k]]
@@ -395,9 +396,11 @@ def check_order(blocks, name, exempt=()):
   the configuration has to give up in exchange for not stating it: the compiler
   emits in the order the files read and then checks the constraint holds.
 
-  A program written over values is exempt, which is what `exempt` names: the
-  stage forward declares every one of them before it defines any, see
-  DefsBlock::d_evalFwd, so one may name another whichever comes first.
+  Two things are exempt, which is what `exempt` names. A program written over
+  values, since the stage forward declares every one of them before it defines
+  any, see DefsBlock::d_evalFwd; and the constructor of an entity and its
+  macro, since the stage writes every constructor before it writes any case, so
+  the default of a type may name the value it is whichever block comes first.
   """
   owner = {}
   for i, (_sym, text) in enumerate(blocks):
@@ -599,7 +602,9 @@ def main():
       name = os.path.basename(config.target)
       bad += check(blocks, config.target, a.verbose)
       bad += check_forms(blocks, config.target)
-      bad += check_order(blocks, name, config.decls.helper_prefixes())
+      bad += check_order(blocks, name,
+                         config.decls.helper_prefixes()
+                         + config.decls.constructor_prefixes())
       bad += check_lean(config)
     sys.exit(1 if bad else 0)
   for config, blocks in compile_all(paths):
