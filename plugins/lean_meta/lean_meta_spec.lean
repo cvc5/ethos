@@ -14,14 +14,19 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+-- The native definitions below are the ones this signature reaches; the rest
+-- of the layer is left out. See LeanMetaReduce::trimNativeDefs.
+
 /-
 Definitions for eo_to_smt_type, eo_to_smt
 -/
 noncomputable section
 
+-- $native native_reserved_datatype_name
 def native_reserved_datatype_name (s : native_String) : native_Bool :=
   native_string_prefix_eq (native_string_lit "@") s
 
+-- $native-end
 $LEAN_EO_IS_OBJ_SIMPLE_DEFS$
 
 mutual

@@ -11,6 +11,12 @@
 -- all the same clause; prose may be written between blocks, since a clause is
 -- Lean text and holds no comment of its own.
 --
+-- A clause may not name the native layer. It is appended to a generated
+-- definition rather than written into a resource, so it is not one of the
+-- blocks that layer is trimmed by and a name it gave would keep nothing
+-- alive. Every native type abbreviates a Lean type, which is what a measure
+-- writes instead. See LeanMetaReduce::trimNativeDefs.
+--
 -- This file is for the programs of the deep embedding, which every input is
 -- compiled through. A program of the *input* signature is named in a file of
 -- its own, which the compiler is given with --lean-config, e.g.
@@ -69,7 +75,7 @@ termination_by T ddB => (sizeOf T, 1)
 -- $smtx_model_eval
 termination_by structural t => t
 
-private theorem __smtx_model_eval_eqns_cache (M : SmtModel) (b : native_Bool) :
+private theorem __smtx_model_eval_eqns_cache (M : SmtModel) (b : Bool) :
     __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
   unfold __smtx_model_eval
   rfl

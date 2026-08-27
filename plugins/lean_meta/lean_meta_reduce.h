@@ -45,11 +45,14 @@ class LeanMetaReduce : public MetaReducePlugin
    * Construct the Lean meta reducer and its meta-kind tables.
    *
    * If generateParser is false, omit the signature-specific Logos parser
-   * configuration while still emitting every other Lean artifact.
+   * configuration while still emitting every other Lean artifact. If
+   * trimNatives is false, emit the whole of the native layer rather than the
+   * part of it the compilation reaches, see trimNativeDefs.
    */
   LeanMetaReduce(State& s,
                  bool generateParser = true,
-                 const std::string& configFile = "");
+                 const std::string& configFile = "",
+                 bool trimNatives = true);
   /** Destroy the Lean meta reducer. */
   ~LeanMetaReduce() override;
   /** Remember a program definition for later Lean emission. */
@@ -111,6 +114,10 @@ class LeanMetaReduce : public MetaReducePlugin
  private:
   /** Whether to emit the signature-specific Logos parser configuration. */
   bool d_generateParser;
+  /** Whether the native layer is trimmed, see trimNativeDefs. */
+  bool d_trimNatives;
+  /** The Lean files this run wrote, in the order it wrote them. */
+  std::vector<std::string> d_leanOutputs;
   /** Return true if sname denotes a Lean meta symbol supplied by templates. */
   bool isBuiltinMetaSymbol(const std::string& sname) const override;
   /** Print an atomic EO expression in the Lean embedding. */
@@ -187,6 +194,94 @@ class LeanMetaReduce : public MetaReducePlugin
    * See plugins/lean_meta/termination.lean.
    */
   void readTerminationClauses(const std::string& path);
+  /**
+   * One segment of a generated Lean file, as its `-- $native` markers split
+   * it.
+   *
+   * A segment that names something is a *block*, which is the unit the
+   * native layer is trimmed by: a definition the compilation of this input
+   * never reaches is left out of what the run publishes. A segment that
+   * names nothing is the text around the blocks, which is always emitted and
+   * is where the demand for a block comes from, since it is what the
+   * generated definitions are spliced into.
+   */
+  struct NativeSegment
+  {
+    /** The names this segment defines, empty if it is not a block. */
+    std::vector<std::string> d_names;
+    /** Its text, with the marker lines themselves removed. */
+    std::string d_text;
+  };
+  /**
+   * Split text into segments at its `-- $native` markers, appending what it
+   * declares a root of the trimming to roots.
+   *
+   * A block is opened by `-- $native <name> ...`, whose names are what it
+   * defines, and closed by the next such line or by `-- $native-end`. Naming
+   * several things in one block keeps them together, which is what a
+   * definition with a private helper needs, or one whose type abbreviation
+   * has no other user. A name need not be of the native layer: what matters
+   * is that the closure can ask for it by name.
+   *
+   * A `-- $native-root <name> ...` line says that what it names is kept
+   * whatever the compilation reaches, which is for a definition that only
+   * the package the published tree is installed into calls, since this
+   * compiler never sees that side.
+   *
+   * A file with no markers is one segment naming nothing, so a stage that
+   * emits no native definitions has nothing to say.
+   */
+  static std::vector<NativeSegment> readNativeResource(
+      const std::string& text, std::vector<std::string>& roots);
+  /**
+   * Return text with its comments and the bodies of its string literals
+   * removed, which is what the names a segment mentions are read off: a
+   * mention in prose is not a use, and neither is one inside a literal.
+   */
+  static std::string stripLeanText(const std::string& text);
+  /**
+   * Add to out every key of blocks that the Lean in code mentions, where code
+   * has already been through stripLeanText. A dotted name mentions each of
+   * its prefixes, so that `X.f` asks for the block that defines X when no
+   * block defines `X.f` itself.
+   */
+  static void collectNativeNames(const std::string& code,
+                                 const std::map<std::string, size_t>& blocks,
+                                 std::set<std::string>& out);
+  /**
+   * Return the name the Lean declaration at the start of line declares, or
+   * the empty string if the line does not open one. Only a declaration at
+   * the left margin counts, which is what a generated file writes.
+   */
+  static std::string getLeanDeclName(const std::string& line);
+  /**
+   * Emit a Lean file as emitResourceFile does and remember its path, so that
+   * trimNativeDefs sees every file this run wrote.
+   */
+  std::string emitLeanFile(const std::string& resourcePath,
+                           const std::string& outputPath,
+                           const std::vector<Replacement>& replacements,
+                           bool replAll = false);
+  /**
+   * Drop from the files this run wrote every native definition its
+   * compilation of the input does not reach, and remove the markers from
+   * what remains.
+   *
+   * The whole native layer is written for every signature there is, so most
+   * of it is dead for any one input: a signature with no strings in it has
+   * no use for the regular-expression matcher, and one of Booleans alone has
+   * none for arithmetic. What is reached is not something this stage can
+   * read off the input, since a definition of the layer is demanded by the
+   * generated text that calls it, so it is computed here instead: the text
+   * around the blocks of every file the run wrote is what the generated
+   * definitions were spliced into, and a block is kept when that text, or a
+   * block already kept, names it.
+   *
+   * This runs once every file has been written rather than filtering each on
+   * the way out, because the demand for a definition comes from all of them
+   * and they are not written at once.
+   */
+  void trimNativeDefs();
   /** Generated Lean definitions for programs. */
   std::stringstream d_defs;
   /** Generated mutually recursive total Lean definitions. */

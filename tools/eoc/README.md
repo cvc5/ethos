@@ -122,6 +122,86 @@ programs all recurse structurally needs no file of its own, so `--lean-config`
 is optional; without it the generated Lean simply carries no clause for them,
 which Lean will reject if one was needed.
 
+A clause may not name the native layer, which the compiler checks. It is
+appended to a generated definition rather than written into a resource, so it
+is not one of the blocks that layer is trimmed by and a name it gave would
+keep nothing alive; see "Trimming the native layer" above. Every native type
+abbreviates a Lean type, which is what a measure writes instead.
+
+## Trimming the native layer
+
+The Lean the compiler generates is written against a layer of hand-written
+definitions named `native_`, which is what gives the deep embedding its
+arithmetic, its strings, its regular-expression matcher and the rest. That
+layer is written once for every signature there is, so most of it is dead for
+any one input: a signature of Booleans alone has no use for the matcher, and
+one with no bit-vectors has none for `native_binary_concat`. The `lean-meta`
+stage therefore emits only the part of it the compilation of the input
+reaches.
+
+What is reached is not something the stage can read off the input, since a
+definition of the layer is asked for by the generated text that calls it. So
+it is computed from the generated files themselves. Each hand-written
+definition is written as a *block*:
+
+```lean
+-- $native native_binary_and
+def native_binary_and : native_Int -> native_Int -> native_Int
+  | w, n1, n2 => (native_ite (native_zeq w 0) 0 (native_piand w n1 n2))
+```
+
+A block is opened by a `-- $native` line naming what it defines and closed by
+the next such line or by `-- $native-end`; the text around the blocks is what
+the generated definitions are spliced into, and is always emitted. Once every
+file has been written, a block is kept when that text, or a block already
+kept, names it, and dropped otherwise. Comments and string literals are not
+read, so a definition named only in prose is not thereby kept alive.
+
+Naming several things in one block keeps them together, which is what a
+definition with a private helper needs, or one whose type abbreviation has no
+other user:
+
+```lean
+-- $native RefList native_reflist_nil native_reflist_insert native_reflist_contains
+```
+
+A name need not begin with `native_`; what matters is that the closure can ask
+for it by name. A definition that no block names is an error rather than one
+that is quietly emitted for every input, and so is a block whose text never
+mentions a name its header gives.
+
+### Roots
+
+Some of the layer is called by the package the published tree is installed
+into rather than by anything the compiler writes, and that side is not visible
+here. Such a definition is declared a root, which keeps it whatever the
+compilation reaches:
+
+```lean
+-- $native-root native_string_lit
+```
+
+The roots are written next to the definitions they are of, with the reason.
+There are two today: `native_string_lit`, which a proof written against the
+published tree names its strings with, and the reference lists, which the
+translation proofs of the destination package use. A definition the *input*
+signature reaches needs no root, since the closure finds it: `eo::cmp` and
+`eo::hash` desugar to `$native_tcmp` and `$native_thash`, so a signature that
+uses them keeps those two on its own.
+
+Adding a root is how to fix a downstream build that a trimmed tree broke. To
+see what was dropped, run the stage with the whole layer emitted:
+
+```bash
+build-eoc/ethos-eoc --plugin.lean-meta --no-trim-natives tools/eoc/out/lean-cpc-final.eo
+```
+
+See `LeanMetaReduce::trimNativeDefs` in
+`plugins/lean_meta/lean_meta_reduce.cpp`. The blocks live in
+`lean_meta_smt_eval.lean`, `lean_meta_smt_model.lean`,
+`lean_meta_checker.lean` and `lean_meta_spec.lean`; the other Lean resources
+define none, and need say nothing.
+
 ## Building `ethos-eoc`
 
 `ethos-eoc` is built by the standalone CMake project in `plugins/`, which
@@ -326,6 +406,10 @@ removes a stale `Parser.lean` from the selected final output directory.
 Pass `--lean-config FILE` to name the termination clauses of the input's own
 programs; see "Why the generated Lean terminates" above.
 
+The generated modules carry only the `native_` definitions the input reaches,
+so the same signature compiled for fewer rules publishes a smaller native
+layer; see "Trimming the native layer" above.
+
 Generated files are written to `tools/eoc/out/lean/` by default, including
 per-rule files in `tools/eoc/out/lean/Rules/`. `Parser.lean` is the minimal
 calculus-specific instantiation of the generic Logos proof parser: it contains
@@ -424,6 +508,10 @@ build-eoc/ethos-eoc --plugin.smt-meta-sygus tools/eoc/out/vcmt-def-booleans-rule
 build-eoc/ethos-eoc tools/eoc/out/lean-booleans-rules-final.eo
 build-eoc/ethos-eoc --plugin.lean-meta tools/eoc/out/lean-booleans-rules-final.eo
 ```
+
+Pass `--no-trim-natives` to the last of those to emit the whole of the native
+layer rather than the part of it the input reaches, which is for reading what
+was dropped; see "Trimming the native layer" above.
 
 ## Solver configuration
 

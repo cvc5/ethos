@@ -33,8 +33,11 @@ bool optionEoUserOp() { return true; }
 
 LeanMetaReduce::LeanMetaReduce(State& s,
                                bool generateParser,
-                               const std::string& configFile)
-    : MetaReducePlugin(s), d_generateParser(generateParser)
+                               const std::string& configFile,
+                               bool trimNatives)
+    : MetaReducePlugin(s),
+      d_generateParser(generateParser),
+      d_trimNatives(trimNatives)
 {
   d_typeToMetaKind["$eo_Term"] = MetaKind::EUNOIA;
   d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
@@ -65,6 +68,402 @@ LeanMetaReduce::LeanMetaReduce(State& s,
   }
 }
 
+std::string LeanMetaReduce::emitLeanFile(
+    const std::string& resourcePath,
+    const std::string& outputPath,
+    const std::vector<Replacement>& replacements,
+    bool replAll)
+{
+  std::string path =
+      emitResourceFile(resourcePath, outputPath, replacements, replAll);
+  d_leanOutputs.push_back(path);
+  return path;
+}
+
+std::string LeanMetaReduce::stripLeanText(const std::string& text)
+{
+  std::string out;
+  out.reserve(text.size());
+  size_t i = 0;
+  size_t n = text.size();
+  size_t depth = 0;
+  while (i < n)
+  {
+    if (depth > 0)
+    {
+      // a Lean block comment nests, so the depth is counted rather than the
+      // first `-/` taken to close the outermost one
+      if (text.compare(i, 2, "/-") == 0)
+      {
+        depth++;
+        i += 2;
+        continue;
+      }
+      if (text.compare(i, 2, "-/") == 0)
+      {
+        depth--;
+        i += 2;
+        continue;
+      }
+      if (text[i] == '\n')
+      {
+        out.push_back('\n');
+      }
+      i++;
+      continue;
+    }
+    if (text.compare(i, 2, "/-") == 0)
+    {
+      depth = 1;
+      i += 2;
+      continue;
+    }
+    if (text.compare(i, 2, "--") == 0)
+    {
+      while (i < n && text[i] != '\n')
+      {
+        i++;
+      }
+      continue;
+    }
+    if (text[i] == '"')
+    {
+      i++;
+      while (i < n && text[i] != '"')
+      {
+        i += (text[i] == '\\' ? 2 : 1);
+      }
+      i++;
+      continue;
+    }
+    out.push_back(text[i]);
+    i++;
+  }
+  return out;
+}
+
+void LeanMetaReduce::collectNativeNames(
+    const std::string& code,
+    const std::map<std::string, size_t>& blocks,
+    std::set<std::string>& out)
+{
+  size_t i = 0;
+  size_t n = code.size();
+  while (i < n)
+  {
+    unsigned char c = static_cast<unsigned char>(code[i]);
+    if (!std::isalpha(c) && c != '_')
+    {
+      i++;
+      continue;
+    }
+    size_t start = i;
+    while (i < n)
+    {
+      unsigned char b = static_cast<unsigned char>(code[i]);
+      if (!std::isalnum(b) && b != '_' && b != '\'' && b != '?' && b != '!'
+          && b != '.')
+      {
+        break;
+      }
+      i++;
+    }
+    // A dotted name mentions each of its prefixes, so that `X.f` asks for the
+    // block that defines X when no block defines `X.f` itself.
+    std::string id = code.substr(start, i - start);
+    while (!id.empty())
+    {
+      if (blocks.find(id) != blocks.end())
+      {
+        out.insert(id);
+        break;
+      }
+      size_t dot = id.find_last_of('.');
+      if (dot == std::string::npos)
+      {
+        break;
+      }
+      id = id.substr(0, dot);
+    }
+  }
+}
+
+std::string LeanMetaReduce::getLeanDeclName(const std::string& line)
+{
+  static const std::vector<std::string> mods = {
+      "private ", "protected ", "partial ", "noncomputable ", "unsafe "};
+  static const std::vector<std::string> kws = {
+      "def ", "abbrev ", "opaque ", "axiom "};
+  size_t i = 0;
+  bool more = true;
+  while (more)
+  {
+    more = false;
+    for (const std::string& m : mods)
+    {
+      if (line.compare(i, m.size(), m) == 0)
+      {
+        i += m.size();
+        more = true;
+        break;
+      }
+    }
+  }
+  for (const std::string& k : kws)
+  {
+    if (line.compare(i, k.size(), k) != 0)
+    {
+      continue;
+    }
+    size_t start = i + k.size();
+    size_t end = start;
+    while (end < line.size()
+           && !std::isspace(static_cast<unsigned char>(line[end]))
+           && line[end] != '(' && line[end] != ':' && line[end] != '{')
+    {
+      end++;
+    }
+    return line.substr(start, end - start);
+  }
+  return "";
+}
+
+std::vector<LeanMetaReduce::NativeSegment> LeanMetaReduce::readNativeResource(
+    const std::string& text, std::vector<std::string>& roots)
+{
+  std::vector<NativeSegment> segs;
+  std::vector<std::string> names;
+  std::stringstream body;
+  // A segment ends where the next marker begins, so what has been read is
+  // taken once the whole of it is known, here and again at the end of file.
+  auto take = [&]() {
+    std::string btext = body.str();
+    if (!btext.empty())
+    {
+      segs.push_back(NativeSegment{names, btext});
+    }
+    else if (!names.empty())
+    {
+      EO_FATAL() << "LeanMetaReduce: the native block of `" << names[0]
+                 << "` is empty";
+    }
+    names.clear();
+    body.str("");
+  };
+  std::istringstream in(text);
+  std::string line;
+  while (std::getline(in, line))
+  {
+    if (line.compare(0, 16, "-- $native-root ") == 0)
+    {
+      take();
+      std::stringstream ls(line.substr(16));
+      std::string name;
+      while (ls >> name)
+      {
+        roots.push_back(name);
+      }
+      continue;
+    }
+    if (line.compare(0, 14, "-- $native-end") == 0)
+    {
+      take();
+      continue;
+    }
+    if (line.compare(0, 11, "-- $native ") == 0)
+    {
+      take();
+      std::stringstream ls(line.substr(11));
+      std::string name;
+      while (ls >> name)
+      {
+        names.push_back(name);
+      }
+      if (names.empty())
+      {
+        EO_FATAL() << "LeanMetaReduce: a native block names nothing";
+      }
+      continue;
+    }
+    body << line << std::endl;
+  }
+  take();
+  return segs;
+}
+
+void LeanMetaReduce::trimNativeDefs()
+{
+  std::vector<std::vector<NativeSegment>> resources;
+  std::vector<std::string> roots;
+  // whether the file at the same index says anything about the native layer,
+  // which is what tells a file that has to be written again from one whose
+  // text this stage leaves as it found it
+  std::vector<bool> marked;
+  for (const std::string& path : d_leanOutputs)
+  {
+    std::ifstream in(path);
+    if (!in.is_open())
+    {
+      EO_FATAL() << "LeanMetaReduce: could not read back " << path;
+    }
+    std::stringstream ss;
+    ss << in.rdbuf();
+    size_t nroots = roots.size();
+    resources.push_back(readNativeResource(ss.str(), roots));
+    bool hasMarker = roots.size() > nroots;
+    for (const NativeSegment& seg : resources.back())
+    {
+      hasMarker = hasMarker || !seg.d_names.empty();
+    }
+    marked.push_back(hasMarker);
+  }
+  // the blocks of the native layer, by each of the names they define
+  std::map<std::string, size_t> blocks;
+  std::vector<const std::string*> blockText;
+  for (const std::vector<NativeSegment>& segs : resources)
+  {
+    for (const NativeSegment& seg : segs)
+    {
+      if (seg.d_names.empty())
+      {
+        continue;
+      }
+      for (const std::string& name : seg.d_names)
+      {
+        if (blocks.find(name) != blocks.end())
+        {
+          EO_FATAL() << "LeanMetaReduce: `" << name
+                     << "` is defined by more than one native block";
+        }
+        // The header of a block says what the block defines, so a name it
+        // gives that the text never mentions has drifted from its definition
+        // and would keep or drop the block for the wrong reason.
+        if (seg.d_text.find(name) == std::string::npos)
+        {
+          EO_FATAL() << "LeanMetaReduce: the native block of `" << name
+                     << "` never mentions it";
+        }
+        blocks[name] = blockText.size();
+      }
+      blockText.push_back(&seg.d_text);
+    }
+  }
+  for (const std::string& root : roots)
+  {
+    if (blocks.find(root) == blocks.end())
+    {
+      EO_FATAL() << "LeanMetaReduce: `" << root
+                 << "` is declared a native root but no block defines it";
+    }
+  }
+  // What the compilation reaches. The text around the blocks is what the
+  // generated definitions were spliced into, so it is what asks for the
+  // native layer in the first place; a definition of the layer that no name
+  // in that text leads to is dead for this input.
+  std::vector<std::string> work(roots.begin(), roots.end());
+  for (const std::vector<NativeSegment>& segs : resources)
+  {
+    for (const NativeSegment& seg : segs)
+    {
+      // A definition of the native layer that its own block does not name is
+      // kept or dropped with whatever block swallowed it, or emitted for
+      // every input when none did, rather than on the demand for it.
+      std::string code = stripLeanText(seg.d_text);
+      std::istringstream cin(code);
+      std::string line;
+      while (std::getline(cin, line))
+      {
+        std::string decl = getLeanDeclName(line);
+        if (decl.compare(0, 7, "native_") != 0)
+        {
+          continue;
+        }
+        bool named = false;
+        for (const std::string& name : seg.d_names)
+        {
+          named = named || name == decl;
+        }
+        if (!named)
+        {
+          EO_FATAL() << "LeanMetaReduce: `" << decl
+                     << "` is defined "
+                     << (seg.d_names.empty()
+                             ? "outside a native block"
+                             : "in the native block of `" + seg.d_names[0]
+                                   + "`, which does not name it");
+        }
+      }
+      if (!seg.d_names.empty())
+      {
+        continue;
+      }
+      std::set<std::string> ids;
+      collectNativeNames(code, blocks, ids);
+      work.insert(work.end(), ids.begin(), ids.end());
+    }
+  }
+  if (!d_trimNatives)
+  {
+    for (const std::pair<const std::string, size_t>& b : blocks)
+    {
+      work.push_back(b.first);
+    }
+  }
+  std::set<std::string> keep;
+  while (!work.empty())
+  {
+    std::string name = work.back();
+    work.pop_back();
+    if (!keep.insert(name).second)
+    {
+      continue;
+    }
+    std::map<std::string, size_t>::const_iterator it = blocks.find(name);
+    AlwaysAssert(it != blocks.end())
+        << "Asked to keep the native block of " << name << ", which has none";
+    std::set<std::string> ids;
+    collectNativeNames(stripLeanText(*blockText[it->second]), blocks, ids);
+    work.insert(work.end(), ids.begin(), ids.end());
+  }
+  size_t nblocks = blockText.size();
+  size_t dropped = 0;
+  for (size_t i = 0, nfiles = d_leanOutputs.size(); i < nfiles; i++)
+  {
+    if (!marked[i])
+    {
+      continue;
+    }
+    std::stringstream out;
+    for (const NativeSegment& seg : resources[i])
+    {
+      bool kept = seg.d_names.empty();
+      for (const std::string& name : seg.d_names)
+      {
+        kept = kept || keep.find(name) != keep.end();
+      }
+      if (!kept)
+      {
+        dropped++;
+        continue;
+      }
+      out << seg.d_text;
+    }
+    std::ofstream os(d_leanOutputs[i]);
+    if (!os.is_open())
+    {
+      EO_FATAL() << "LeanMetaReduce: could not write " << d_leanOutputs[i];
+    }
+    os << out.str();
+    os.close();
+    if (!os)
+    {
+      EO_FATAL() << "LeanMetaReduce: failed to write " << d_leanOutputs[i];
+    }
+  }
+  Trace("lean-meta") << "Trim natives: kept " << (nblocks - dropped) << " of "
+                     << nblocks << " blocks" << std::endl;
+}
+
 void LeanMetaReduce::readTerminationClauses(const std::string& path)
 {
   std::ifstream in(path);
@@ -84,6 +483,19 @@ void LeanMetaReduce::readTerminationClauses(const std::string& path)
     text = (e == std::string::npos ? "" : text.substr(0, e + 1));
     if (!text.empty())
     {
+      // A clause is appended to a generated definition rather than written
+      // into a resource, so it is not one of the blocks the native layer is
+      // trimmed by and naming the layer here would keep nothing alive. Every
+      // native type is an abbreviation of the Lean type it stands for, which
+      // is what a measure writes instead. See trimNativeDefs.
+      if (text.find("native_") != std::string::npos)
+      {
+        EO_FATAL() << "LeanMetaReduce: the termination clause of "
+                   << (names.empty() ? std::string("a program") : names[0])
+                   << " in " << path
+                   << " names the native layer, which is trimmed to what the "
+                      "compilation reaches; write the Lean type it abbreviates";
+      }
       for (const std::string& n : names)
       {
         d_terminatingBy[n] = text;
@@ -1276,7 +1688,7 @@ void LeanMetaReduce::printOrderKeyCase(const std::string& cname,
 void LeanMetaReduce::finalizeChecker()
 {  
   const std::string outPatht =
-      emitResourceFile("plugins/lean_meta/lean_meta_checker_term.lean",
+      emitLeanFile("plugins/lean_meta/lean_meta_checker_term.lean",
                        "plugins/lean_meta/lean_meta_checker_term_gen.lean",
                        {{"$LEAN_TERM_DEF$", d_embedTermDt.str()},
                         {"$LEAN_EO_THEORY_OP_DEF$", d_embedTOpDt[0].str()},
@@ -1285,7 +1697,7 @@ void LeanMetaReduce::finalizeChecker()
                         {"$LEAN_EO_THEORY_OP3_DEF$", d_embedTOpDt[3].str()}});
   Trace("lean-meta") << "Write lean-defs-term " << outPatht << std::endl;
   const std::string outPath =
-      emitResourceFile("plugins/lean_meta/lean_meta_checker.lean",
+      emitLeanFile("plugins/lean_meta/lean_meta_checker.lean",
                        "plugins/lean_meta/lean_meta_checker_gen.lean",
                        {{"$LEAN_DEFS$", d_defs.str()},
                         {"$LEAN_DEFS_TOTAL$", d_defsTotal.str()},
@@ -1484,7 +1896,7 @@ void LeanMetaReduce::finalizeParser()
   std::stringstream defMacros;
   finalizeParseDefs(opNames, ops, defMacros);
 
-  const std::string outPath = emitResourceFile(
+  const std::string outPath = emitLeanFile(
       "plugins/lean_meta/lean_meta_parser.lean",
       "plugins/lean_meta/lean_meta_parser_gen.lean",
       {{"$LEAN_PARSER_OPS$", ops.str()},
@@ -1649,18 +2061,18 @@ void LeanMetaReduce::finalizeSmtModel()
     defsRepl.emplace_back("$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str());
   }
   const std::string outPathDefs =
-      emitResourceFile("plugins/lean_meta/lean_meta_smt_model_defs.lean",
+      emitLeanFile("plugins/lean_meta/lean_meta_smt_model_defs.lean",
                        "plugins/lean_meta/lean_meta_smt_model_defs_gen.lean",
                        defsRepl);
   Trace("lean-meta") << "Write lean-defs " << outPathDefs << std::endl;
   const std::string outPathOrder =
-      emitResourceFile("plugins/lean_meta/lean_meta_smt_value_order.lean",
+      emitLeanFile("plugins/lean_meta/lean_meta_smt_value_order.lean",
                        "plugins/lean_meta/lean_meta_smt_value_order_gen.lean",
                        {{"$LEAN_SMT_TYPE_KEY$", d_smtTypeKey.str()},
                         {"$LEAN_SMT_VALUE_KEY$", d_smtValueKey.str()}});
   Trace("lean-meta") << "Write lean-order " << outPathOrder << std::endl;
   const std::string outPath =
-      emitResourceFile("plugins/lean_meta/lean_meta_smt_model.lean",
+      emitLeanFile("plugins/lean_meta/lean_meta_smt_model.lean",
                        "plugins/lean_meta/lean_meta_smt_model_gen.lean",
                        {{"$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str()},
                         {"$LEAN_SMT_EVAL$", d_smt.str()}});
@@ -1670,7 +2082,7 @@ void LeanMetaReduce::finalizeSmtModel()
 void LeanMetaReduce::finalizeSpec()
 {
   const std::string outPath =
-      emitResourceFile("plugins/lean_meta/lean_meta_spec.lean",
+      emitLeanFile("plugins/lean_meta/lean_meta_spec.lean",
                        "plugins/lean_meta/lean_meta_spec_gen.lean",
                        {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()},
                         {"$LEAN_EO_IS_OBJ_SIMPLE_DEFS$", d_eoIsObjDefsSimple.str()}
@@ -1680,7 +2092,7 @@ void LeanMetaReduce::finalizeSpec()
 
 void LeanMetaReduce::finalizeLemmas()
 {
-  const std::string outPath = emitResourceFile(
+  const std::string outPath = emitLeanFile(
       "plugins/lean_meta/lean_meta_rule_lemmas.lean",
       "plugins/lean_meta/lean_meta_rule_lemmas_gen.lean",
       {{"$EO_RULE_LEMMA_INCLUDE$", d_rlInclude.str()},
@@ -1723,6 +2135,12 @@ void LeanMetaReduce::finalize()
       etd << std::endl;
     }
   }
+  // The native layer, which every other generated module is written against.
+  // It carries no generated text of its own, and is emitted here rather than
+  // copied by the driver so that the trimming sees it with the rest.
+  emitLeanFile("plugins/lean_meta/lean_meta_smt_eval.lean",
+               "plugins/lean_meta/lean_meta_smt_eval_gen.lean",
+               {});
   finalizeChecker();
   if (d_generateParser)
   {
@@ -1731,6 +2149,9 @@ void LeanMetaReduce::finalize()
   finalizeSmtModel();
   finalizeSpec();
   finalizeLemmas();
+  // Every file is written by now, so what they ask of the native layer is
+  // known and the rest of it can go.
+  trimNativeDefs();
 }
 
 void LeanMetaReduce::printStepCase(std::ostream& out,
@@ -1769,7 +2190,7 @@ void LeanMetaReduce::printStepCase(std::ostream& out,
                                    ? "plugins/lean_meta/lean_meta_rule_pop.lean"
                                    : "plugins/lean_meta/lean_meta_rule.lean";
   const std::string outPath =
-      emitResourceFile(resource, ss.str(), {{"$EO_RULE$", prule}}, true);
+      emitLeanFile(resource, ss.str(), {{"$EO_RULE$", prule}}, true);
   Trace("lean-meta") << "Write lean-defs rule " << outPath << std::endl;
   //  | contra =>
   //      exact cmd_step_facts_of_rule_properties M s premises hs <|

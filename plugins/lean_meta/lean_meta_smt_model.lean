@@ -8,6 +8,9 @@ public section
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+-- The native definitions below are the ones this signature reaches; the rest
+-- of the layer is left out. See LeanMetaReduce::trimNativeDefs.
+
 namespace Smtm
 
 open SmtEval
@@ -15,6 +18,7 @@ open SmtEval
 
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
+-- $native native_default_fun_id
 def native_default_fun_id : native_String := (native_string_lit "@native_default_fun")
 
 /- SMT-LIB model -/
@@ -29,15 +33,19 @@ structure SmtModel where
   nativeFuns : SmtModelKey -> SmtNativeFun
 deriving Inhabited
 
+-- $native native_model_key
 def native_model_key (s : native_String) (T : SmtType) : SmtModelKey :=
   { isVar := false, name := s, ty := T }
 
+-- $native native_model_var_lookup
 def native_model_var_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
   M.values { isVar := true, name := s, ty := T }
 
+-- $native native_model_lookup
 def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
   M.values (native_model_key s T)
 
+-- $native native_model_push
 def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
   { M with values := fun k =>
       if k = { isVar := true, name := s, ty := T } then
@@ -45,9 +53,16 @@ def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtV
       else
         M.values k }
 
+-- $native native_model_fun_lookup
 def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : SmtNativeFun :=
   M.nativeFuns (native_model_key fid (SmtType.FunType T U))
 
+-- The reference lists are not reached by any signature compiled so far: they
+-- are for the translation proofs of the package the published tree is
+-- installed into, which this compiler never sees. So they are roots rather
+-- than definitions the compilation has to reach.
+-- $native-root RefList
+-- $native RefList native_reflist_nil native_reflist_insert native_reflist_contains
 abbrev RefList := List native_String
 
 def native_reflist_nil : RefList := []
@@ -55,65 +70,88 @@ def native_reflist_insert (xs : RefList) (s : native_String) := (s :: xs)
 def native_reflist_contains (xs : RefList) (s : native_String ) :=
   decide (s ∈ xs)
 
+-- $native native_Teq
 /- Type equality -/
 def native_Teq : SmtType -> SmtType -> native_Bool
   | x, y => decide (x = y)
+-- $native native_veq
 /- Value equality -/
 def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
+-- $native native_vcmp
 /- Value comparsion -/
 def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
   SmtValueOrder.lt v1 v2
 
 -- SMT Beyond Eunoia
 
+-- $native native_int_log2
 def native_int_log2 : native_Int -> native_Int
   | x => Int.ofNat (Nat.log2 (Int.toNat x))
+-- $native native_zabs
 def native_zabs : native_Int -> native_Int
   | x => if x < 0 then -x else x
+-- $native native_qabs
 def native_qabs : native_Rat -> native_Rat
   | x => if x < 0 then -x else x
   
+-- $native native_char_is_digit
 def native_char_is_digit (c : native_Char) : native_Bool :=
   48 <= c && c <= 57
 
+-- $native native_char_to_upper
 def native_char_to_upper (c : native_Char) : native_Char :=
   if 97 <= c && c <= 122 then c - 32 else c
 
+-- $native native_char_to_lower
 def native_char_to_lower (c : native_Char) : native_Char :=
   if 65 <= c && c <= 90 then c + 32 else c
 
+-- $native native_decimal_digits_to_nat
 def native_decimal_digits_to_nat (xs : native_String) : native_Nat :=
   xs.foldl (fun acc c => 10 * acc + (c - 48)) 0
 
+-- $native native_str_lt
 def native_str_lt : native_String -> native_String -> native_Bool
   | s₁, s₂ => decide (s₁ < s₂)
+-- $native native_str_from_int
 def native_str_from_int : native_Int -> native_String
   | i => if i < 0 then native_string_lit "" else native_string_lit (toString i)
+-- $native native_str_to_int
 def native_str_to_int : native_String -> native_Int
   | s => match s with
           | [] => -1
           | _ => if s.all native_char_is_digit then Int.ofNat (native_decimal_digits_to_nat s) else -1
+-- $native native_str_to_upper
 def native_str_to_upper : native_String -> native_String
   | s => s.map native_char_to_upper
+-- $native native_str_to_lower
 def native_str_to_lower : native_String -> native_String
   | s => s.map native_char_to_lower
 
 -- Partial semantics
 
+-- $native native_qdiv_by_zero_id
 def native_qdiv_by_zero_id : native_String := (native_string_lit "@qdiv_by_zero")
+-- $native native_div_by_zero_id
 def native_div_by_zero_id : native_String := (native_string_lit "@div_by_zero")
+-- $native native_mod_by_zero_id
 def native_mod_by_zero_id : native_String := (native_string_lit "@mod_by_zero")
+-- $native native_wrong_apply_sel_id
 def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
   (native_string_lit "@wrong_apply_sel_") ++ (native_string_lit (toString n)) ++ (native_string_lit "_") ++ (native_string_lit (toString m))
+-- $native native_oob_seq_nth_id
 def native_oob_seq_nth_id : native_String := (native_string_lit "@oob_seq_nth")
+-- $native native_uconst_id
 def native_uconst_id : native_Nat -> native_String
   | i => (native_string_lit "@u.") ++ (native_string_lit (toString i))
+-- $native native_const_id
 def native_const_id : native_Nat -> native_String
   | i => (native_string_lit "@c.") ++ (native_string_lit (toString i))
 
 -- Regular expressions
 
+-- $native native_re_elem_valid
 /-- Whether a base element of a regular language is a valid character value.
 This is the well-formedness condition on base elements: a well-formed
 (canonical) regular language contains only valid characters (see
@@ -126,20 +164,24 @@ def native_re_elem_valid : SmtValue -> native_Bool
   | (SmtValue.Char c) => native_char_valid c
   | _ => false
 
+-- $native native_re_elem_le
 /-- Character ordering on base elements; only characters are comparable. -/
 def native_re_elem_le : SmtValue -> SmtValue -> native_Bool
   | (SmtValue.Char c₁), (SmtValue.Char c₂) => c₁ <= c₂
   | _, _ => false
 
+-- $native native_string_to_values
 /-- The embedding of native strings as value sequences. -/
 def native_string_to_values (s : native_String) : List SmtValue :=
   s.map SmtValue.Char
 
+-- $native native_re_str_valid
 /-- Whether a value sequence denotes a valid string, i.e. all of its
 elements are valid character values. -/
 def native_re_str_valid (xs : List SmtValue) : native_Bool :=
   xs.all native_re_elem_valid
 
+-- $native native_re_nullable
 def native_re_nullable : SmtRegLan -> native_Bool
   | .empty => false
   | .epsilon => true
@@ -152,6 +194,7 @@ def native_re_nullable : SmtRegLan -> native_Bool
   | .star _ => true
   | .comp r => !(native_re_nullable r)
 
+-- $native native_re_concat
 def native_re_concat (r₁ r₂ : SmtRegLan) : SmtRegLan :=
   match r₁, r₂ with
   | .empty, _ => .empty
@@ -160,28 +203,33 @@ def native_re_concat (r₁ r₂ : SmtRegLan) : SmtRegLan :=
   | r, .epsilon => r
   | r₁, r₂ => .concat r₁ r₂
 
+-- $native native_re_union
 def native_re_union (r₁ r₂ : SmtRegLan) : SmtRegLan :=
   match r₁, r₂ with
   | .empty, r => r
   | r, .empty => r
   | r₁, r₂ => if h : r₁ = r₂ then r₁ else .union r₁ r₂
 
+-- $native native_re_inter
 def native_re_inter (r₁ r₂ : SmtRegLan) : SmtRegLan :=
   match r₁, r₂ with
   | .empty, _ => .empty
   | _, .empty => .empty
   | r₁, r₂ => if h : r₁ = r₂ then r₁ else .inter r₁ r₂
 
+-- $native native_re_comp
 def native_re_comp : SmtRegLan -> SmtRegLan
   | .comp r => r
   | r => .comp r
 
+-- $native native_re_mult
 def native_re_mult : SmtRegLan -> SmtRegLan
   | .empty => .epsilon
   | .epsilon => .epsilon
   | .star r => .star r
   | r => .star r
 
+-- $native native_re_deriv
 def native_re_deriv (c : SmtValue) : SmtRegLan -> SmtRegLan
   | .empty => .empty
   | .epsilon => .empty
@@ -202,10 +250,12 @@ def native_re_deriv (c : SmtValue) : SmtRegLan -> SmtRegLan
   | .star r => native_re_concat (native_re_deriv c r) (.star r)
   | .comp r => native_re_comp (native_re_deriv c r)
 
+-- $native native_re_of_list
 def native_re_of_list : List SmtValue -> SmtRegLan
   | [] => .epsilon
   | c :: cs => native_re_concat (.char c) (native_re_of_list cs)
 
+-- $native native_re_prefix_match_len? native_re_prefix_match_len?.go
 def native_re_prefix_match_len?.go (r : SmtRegLan) :
     List SmtValue → Nat → Option Nat
   | [], n =>
@@ -220,6 +270,7 @@ def native_re_prefix_match_len? (r : SmtRegLan)
     (xs : List SmtValue) : Option Nat :=
   native_re_prefix_match_len?.go r xs 0
 
+-- $native native_re_positive_prefix_match_len?
 def native_re_positive_prefix_match_len? (r : SmtRegLan) :
     List SmtValue -> Option Nat
   | [] => none
@@ -228,6 +279,7 @@ def native_re_positive_prefix_match_len? (r : SmtRegLan) :
       | some n => some (n + 1)
       | none => none
 
+-- $native native_re_find_idx_aux
 def native_re_find_idx_aux (r : SmtRegLan) (xs : List SmtValue) (idx : Nat) : Option (Nat × Nat) :=
   match native_re_prefix_match_len? r xs with
   | some n => some (idx, n)
@@ -236,9 +288,11 @@ def native_re_find_idx_aux (r : SmtRegLan) (xs : List SmtValue) (idx : Nat) : Op
       | [] => none
       | _ :: cs => native_re_find_idx_aux r cs (idx + 1)
 
+-- $native native_re_find_idx_from
 def native_re_find_idx_from (r : SmtRegLan) (xs : List SmtValue) (start : Nat) : Option (Nat × Nat) :=
   native_re_find_idx_aux r (xs.drop start) start
 
+-- $native native_re_find_nonempty_idx_aux
 def native_re_find_nonempty_idx_aux (r : SmtRegLan) (xs : List SmtValue) (idx : Nat) :
     Option (Nat × Nat) :=
   match native_re_positive_prefix_match_len? r xs with
@@ -248,10 +302,12 @@ def native_re_find_nonempty_idx_aux (r : SmtRegLan) (xs : List SmtValue) (idx : 
       | [] => none
       | _ :: cs => native_re_find_nonempty_idx_aux r cs (idx + 1)
 
+-- $native native_re_find_nonempty_idx_from
 def native_re_find_nonempty_idx_from (r : SmtRegLan) (xs : List SmtValue) (start : Nat) :
     Option (Nat × Nat) :=
   native_re_find_nonempty_idx_aux r (xs.drop start) start
 
+-- $native native_re_replace_all_nonempty_list_aux
 def native_re_replace_all_nonempty_list_aux (fuel : Nat) (r : SmtRegLan)
     (replacement : List SmtValue) : List SmtValue -> List SmtValue
   | xs =>
@@ -267,25 +323,31 @@ def native_re_replace_all_nonempty_list_aux (fuel : Nat) (r : SmtRegLan)
               | [] => []
               | c :: cs => c :: native_re_replace_all_nonempty_list_aux fuel r replacement cs
 
+-- $native native_re_replace_all_nonempty_list
 def native_re_replace_all_nonempty_list (r : SmtRegLan) (replacement xs : List SmtValue) :
     List SmtValue :=
   native_re_replace_all_nonempty_list_aux (xs.length + 1) r replacement xs
 
+-- $native native_str_to_re
 def native_str_to_re : List SmtValue -> SmtRegLan
   | s => native_re_of_list s
+-- $native native_re_diff
 def native_re_diff : SmtRegLan -> SmtRegLan -> SmtRegLan
   | r₁, r₂ => native_re_inter r₁ (native_re_comp r₂)
+-- $native native_re_range
 def native_re_range : List SmtValue -> List SmtValue -> SmtRegLan
   | s₁, s₂ =>
       match s₁, s₂ with
       | [v₁], [v₂] => .range v₁ v₂
       | _, _ => .empty
+-- $native native_str_in_re
 def native_str_in_re : List SmtValue -> SmtRegLan -> native_Bool
   | s, r =>
       if native_re_str_valid s then
         native_re_nullable <| s.foldl (fun acc c => native_re_deriv c acc) r
       else
         false
+-- $native native_str_indexof_re
 def native_str_indexof_re : List SmtValue -> SmtRegLan -> native_Int -> native_Int
   | s, r, i =>
       if i < 0 then
@@ -298,6 +360,7 @@ def native_str_indexof_re : List SmtValue -> SmtRegLan -> native_Int -> native_I
           | none => -1
         else
           -1
+-- $native native_str_indexof_re_split_aux
 /-- Searches for the smallest split point of `s` into a prefix matching `r1` and a
 suffix matching `r2`.  `pre` is the prefix consumed so far (i.e. `s` with `suf`
 dropped) and `i` its length; recursion is structural on the remaining suffix. -/
@@ -310,21 +373,25 @@ def native_str_indexof_re_split_aux (r1 r2 : SmtRegLan) :
         match suf with
         | [] => -1
         | c :: cs => native_str_indexof_re_split_aux r1 r2 (pre ++ [c]) cs (i + 1)
+-- $native native_str_indexof_re_split
 def native_str_indexof_re_split : List SmtValue -> SmtRegLan -> SmtRegLan -> native_Int
   | s, r1, r2 =>
       if native_re_str_valid s then
         native_str_indexof_re_split_aux r1 r2 [] s 0
       else
         -1
+-- $native native_str_replace_re
 def native_str_replace_re : List SmtValue -> SmtRegLan -> List SmtValue -> List SmtValue
   | s, r, replacement =>
       match native_re_find_idx_from r s 0 with
       | some (idx, len) =>
           (s.take idx) ++ replacement ++ (s.drop (idx + len))
       | none => s
+-- $native native_str_replace_re_all
 def native_str_replace_re_all : List SmtValue -> SmtRegLan -> List SmtValue -> List SmtValue
   | s, r, replacement =>
       native_re_replace_all_nonempty_list r replacement s
+-- $native native_re_scan_ends_aux
 /-- End positions of the nonempty-match scan used by `str.replace_re_all`:
 successive leftmost, shortest, nonempty matches of `r` in `s` at or after
 `pos`.  Each step consumes at least one character, so `s.length + 1` fuel is
@@ -340,6 +407,7 @@ def native_re_scan_ends_aux (fuel : Nat) (r : SmtRegLan) (s : List SmtValue) :
               (idx + len) :: native_re_scan_ends_aux fuel r s (idx + len)
           | none => []
 
+-- $native native_str_occur_index_re
 /-- The `n`-th boundary of the nonempty-match scan of `r` over `s`: `0` for
 `n = 0`, the end position of the `n`-th match for `1 <= n <=` the number of
 matches, and `-1` out of range. The sequence occurrence-index operator is
@@ -352,10 +420,14 @@ def native_str_occur_index_re (s : List SmtValue) (r : SmtRegLan) (n : native_In
   else
     -1
 
+-- $native native_re_allchar
 def native_re_allchar : SmtRegLan := .allchar
+-- $native native_re_none
 def native_re_none : SmtRegLan := .empty
+-- $native native_re_all
 def native_re_all : SmtRegLan := .star .allchar
 
+-- $native native_re_canonical
 def native_re_canonical : SmtRegLan -> native_Bool
   | .empty => true
   | .epsilon => true
@@ -368,6 +440,7 @@ def native_re_canonical : SmtRegLan -> native_Bool
   | .star r => native_re_canonical r
   | .comp r => native_re_canonical r
 
+-- $native native_re_ext_eq
 macro_rules
   | `(native_re_ext_eq $r1 $r2) => do
       let strInReId := Lean.mkIdent `native_str_in_re
@@ -383,6 +456,8 @@ macro_rules
               true
             else
               false)
+-- $native native_eval_texists
+macro_rules
   | `(native_eval_texists $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
@@ -399,6 +474,8 @@ macro_rules
               SmtValue.Boolean true
             else
               SmtValue.Boolean false)
+-- $native native_eval_tforall
+macro_rules
   | `(native_eval_tforall $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
@@ -415,6 +492,8 @@ macro_rules
               SmtValue.Boolean true
             else
               SmtValue.Boolean false)
+-- $native native_eval_tchoice
+macro_rules
   | `(native_eval_tchoice $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
@@ -433,6 +512,8 @@ macro_rules
               Classical.choose hTy
             else
               SmtValue.NotValue)
+-- $native native_eval_map_diff_msm
+macro_rules
   | `(native_eval_map_diff_msm $m1 $m2) => do
       let lookupId := Lean.mkIdent `__smtx_msm_lookup
       let typeofMapValueId := Lean.mkIdent `__smtx_typeof_map_value
@@ -455,6 +536,8 @@ macro_rules
                     $typeDefaultId T1)
                   SmtValue.NotValue
             | _ => SmtValue.NotValue)
+-- $native native_eval_seq_diff_ssm
+macro_rules
   | `(native_eval_seq_diff_ssm $s1 $s2) => do
       `(by
           classical
@@ -473,20 +556,24 @@ macro_rules
               else
                 SmtValue.Numeral (-1)))
 
+-- $native-end
 /- Definition of SMT-LIB model semantics -/
 
 noncomputable section
 
 mutual
 
+-- $native native_inhabited_type
 def native_inhabited_type (T : SmtType) : native_Bool :=
   (native_and
     (native_not (native_Teq T SmtType.None))
     (native_Teq (__smtx_typeof_value (__smtx_type_default T)) T))
 
 
+-- $native-end
 $LEAN_SMT_EVAL_DEFS$
 
+-- $native native_eval_fun_apply
 def native_eval_fun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) (i : SmtValue) : SmtValue :=
   let fallback := __smtx_type_default U
   if fid = native_default_fun_id then
@@ -494,30 +581,38 @@ def native_eval_fun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) (
   else
     native_model_fun_lookup M fid T U i
 
+-- $native native_unpack_seq
 def native_unpack_seq : SmtSeq -> List SmtValue
   | (SmtSeq.cons v vs) => v :: (native_unpack_seq vs)
   | (SmtSeq.empty _) => []
 
+-- $native native_pack_seq
 def native_pack_seq (T : SmtType) : List SmtValue -> SmtSeq
   | [] => (SmtSeq.empty T)
   | v :: vs => (SmtSeq.cons v (native_pack_seq T vs))
 
+-- $native native_ssm_char_of_value
 def native_ssm_char_of_value : SmtValue -> native_Char
   | (SmtValue.Char c) => c
   | _ => 0
 
+-- $native native_unpack_string
 def native_unpack_string (x : SmtSeq) : native_String :=
   (native_unpack_seq x).map native_ssm_char_of_value
 
+-- $native native_pack_string
 def native_pack_string (s : native_String) : SmtSeq :=
   native_pack_seq SmtType.Char (s.map SmtValue.Char)
 
+-- $native native_seq_len
 def native_seq_len : List SmtValue -> native_Int
   | x => Int.ofNat x.length
 
+-- $native native_seq_concat
 def native_seq_concat : List SmtValue -> List SmtValue -> List SmtValue
   | x, y => x ++ y
   
+-- $native native_seq_extract
 def native_seq_extract (xs : List SmtValue) (i : native_Int) (n : native_Int) : List SmtValue :=
   let len : native_Int := Int.ofNat xs.length
   if i < 0 || n <= 0 || i >= len then
@@ -527,24 +622,30 @@ def native_seq_extract (xs : List SmtValue) (i : native_Int) (n : native_Int) : 
     let take : Nat := Int.toNat (min n (len - i))
     (xs.drop start).take take
 
+-- $native native_seq_indexof
 /-- Generic sequence pattern operations share the regular expression matcher.
 These small adapters also give the SMT backend distinct entry points that it
 can map directly to the corresponding polymorphic `seq.*` operators. -/
 def native_seq_indexof (xs pat : List SmtValue) (i : native_Int) : native_Int :=
   native_str_indexof_re xs (native_str_to_re pat) i
 
+-- $native native_seq_contains
 def native_seq_contains (xs pat : List SmtValue) : native_Bool :=
   0 <= native_seq_indexof xs pat 0
 
+-- $native native_seq_replace
 def native_seq_replace (xs pat repl : List SmtValue) : List SmtValue :=
   native_str_replace_re xs (native_str_to_re pat) repl
 
+-- $native native_seq_replace_all
 def native_seq_replace_all (xs pat repl : List SmtValue) : List SmtValue :=
   native_str_replace_re_all xs (native_str_to_re pat) repl
 
+-- $native native_seq_occur_index
 def native_seq_occur_index (xs pat : List SmtValue) (n : native_Int) : native_Int :=
   native_str_occur_index_re xs (native_str_to_re pat) n
 
+-- $native native_seq_update
 def native_seq_update (xs : List SmtValue) (i : native_Int) (ys : List SmtValue) : List SmtValue :=
   let len : native_Int := Int.ofNat xs.length
   if i < 0 || len <= i then
@@ -554,8 +655,10 @@ def native_seq_update (xs : List SmtValue) (i : native_Int) (ys : List SmtValue)
     (xs.take idx) ++ (ys.take (xs.length - idx)) ++
       (xs.drop (idx + ys.length))
     
+-- $native native_seq_rev
 def native_seq_rev : List SmtValue -> List SmtValue
   | xs => xs.reverse
+-- $native-end
 
 end
 
@@ -563,6 +666,7 @@ end
 
 $LEAN_SMT_EVAL$
 
+-- $native native_fun_typed
 def native_fun_typed (M : SmtModel) : Prop :=
   ∀ fid A B i,
     __smtx_type_wf (SmtType.FunType A B) = true ->
@@ -570,6 +674,7 @@ def native_fun_typed (M : SmtModel) : Prop :=
     __smtx_typeof_value (native_eval_fun_apply M fid A B i) = B ∧
       __smtx_value_canonical_bool (native_eval_fun_apply M fid A B i) = true
 
+-- $native-end
 def model_total_typed (M : SmtModel) : Prop :=
   (∀ isVar s T, __smtx_type_wf T = true ->
     __smtx_typeof_value (M.values { isVar := isVar, name := s, ty := T }) = T) ∧
