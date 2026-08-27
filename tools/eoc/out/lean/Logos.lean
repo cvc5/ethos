@@ -16,41 +16,27 @@ open SmtEval
 
 /- Eunoia literal evaluation defined -/
 
+-- The part of the native layer that the Eunoia term embedding is what decides,
+-- and so cannot come out above this file. See LeanMetaReduce::placeNativeDefs.
+def native_zplus : native_Int -> native_Int -> native_Int
+  | x, y => x+y
+
+def native_zneg : native_Int -> native_Int
+  | x => -x
+
+def native_piand : native_Int -> native_Int -> native_Int -> native_Int
+  | w, x, y => ((BitVec.ofInt (Int.toNat w) x) &&& (BitVec.ofInt (Int.toNat w) y)).toInt
+
+def native_binary_and : native_Int -> native_Int -> native_Int -> native_Int
+  | w, n1, n2 => (native_ite (native_zeq w 0) 0 (native_piand w n1 n2))
+
 def native_str_len : native_String -> native_Int
   | x => Int.ofNat x.length
-def native_str_concat : native_String -> native_String -> native_String
-  | x, y => x ++ y
-def native_str_substr (s : native_String) (i n : native_Int) : native_String :=
-  let len : Int := (native_str_len s)
-  if i < 0 || n <= 0 || i >= len then
-    []
-  else
-    let start : Nat := Int.toNat i
-    let take  : Nat := Int.toNat (min n (len - i))
-    (s.drop start).take take
-def native_str_indexof_rec (s t : native_String) (i fuel : Nat) : native_Int :=
-  match fuel with
-  | 0 => -1
-  | fuel + 1 =>
-      if native_string_prefix_eq t (s.drop i) then
-        Int.ofNat i
-      else
-        native_str_indexof_rec s t (i + 1) fuel
-def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
-  if i < 0 then
-    -1
-  else
-    let sLen := Int.toNat (native_str_len s)
-    let start := Int.toNat i
-    let tLen := Int.toNat (native_str_len t)
-    if h : start + tLen <= sLen then
-      native_str_indexof_rec s t start (sLen - (start + tLen) + 1)
-    else
-      -1
 
 /- Term equality -/
 def native_teq : Term -> Term -> native_Bool
   | x, y => decide (x = y)
+
 
 /- Term ITE -/
 abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
@@ -59,18 +45,6 @@ abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
     (native_ite (native_teq x1 (Term.Boolean false))
       x3
       Term.Stuck))
-
-/- Term less than, based on arbitrary ordering -/
-def native_tcmp (a b : Term) : native_Bool :=
-  match compare a b with
-  | Ordering.lt => true
-  | _ => false
-
-/- Used for defining hash. This is intentionally a stub: EO treats hash as an
-   underconstrained oracle, so signatures must not rely on distinct terms
-   receiving distinct values in the executable Lean checker. -/
-def native_thash : Term -> native_Int
-  | _ => 0
 
 /- Proofs -/
 inductive Proof : Type where
