@@ -109,8 +109,9 @@ class ModelSmt : public StdPlugin
   void finalizeDecl(const std::string& name);
   /** Forward declarations for SMT-LIB model-evaluation helper programs. */
   std::stringstream d_modelEvalProgsFwd;
-  /** Auxiliary programs for SMT-LIB model evaluation. */
-  std::stringstream d_modelEvalProgs;
+  /** Every auxiliary program the signature writes, in the order it gives
+   * them; see DefsBlock::d_helperProgs. */
+  std::stringstream d_helperProgs;
   /** SMT-LIB model evaluation cases */
   std::stringstream d_eval;
   /** Generated `$eo_to_smt` conversion cases. */
@@ -137,8 +138,9 @@ class ModelSmt : public StdPlugin
   std::stringstream d_typeWf, d_typeBounded, d_typeDefault;
   /** Generated SMT type rules for terms. */
   std::stringstream d_smtTypeof;
-  /** Auxiliary definitions used by SMT type rules. */
-  std::stringstream d_smtTypeofAux;
+  /** Auxiliary definitions used by the canonicity of values, which stand after
+   * the programs over types they call, see DefsBlock::d_canonicalAux. */
+  std::stringstream d_smtCanonicalAux;
   /** Extra desugar helper definitions required by model_smt. */
   std::stringstream d_desugarAux;
   /** Constant declarations in parser order. */

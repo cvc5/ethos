@@ -72,7 +72,7 @@ Compiling one set is four steps:
    or an input.
 3. Render each block: a symbol becomes a constructor and one program per
    aggregate it contributes to; a program becomes itself with the terms of its
-   cases cast; anything else is emitted as the text it is. What reaches the
+   cases cast; anything else is refused. What reaches the
    other file rather than this one -- the Lean a method says -- is gathered as
    it goes, and a block left with nothing is no block at all.
 4. Check that every helper a block came to name is written out by some file of
@@ -117,8 +117,8 @@ documentation.
 
 Where a comment block reaches a generated file depends on what it is above:
 
-- above a `(program ...)`, or above text of the embedding, it is what that
-  block says for itself and is emitted;
+- above a `(program ...)`, it is what that block says for itself and is
+  emitted, a program being emitted as itself;
 - above a `define-symbol`, it documents the *configuration* and is not emitted,
   the symbol compiling to something other than itself;
 - above a `; -- X` line, it documents the configuration and is not emitted;
@@ -176,8 +176,7 @@ A file is a sequence of these.
 (define-method NAME attribute*)                     an input only
 (define-rule NAME attribute*)                       an input only
 
-anything else                                       text of the embedding,
-                                                    emitted as it stands
+anything else                                       refused
 ```
 
 The attributes of a symbol or of a type are:
@@ -579,6 +578,12 @@ The types the embedding keeps for itself -- `none`, `Datatype`, `TypeRef`,
 represents what a calculus declares rather than types of a theory, and stand in
 `plugins/model_smt/model_smt.eo` with the rest of the same three programs.
 
+So is a type that is one of the sorts under a second name -- `Array`, which is
+a `Map`, and `String`, which is a `(Seq Char)`. Those stand there rather than
+here because a bare name at type level is `$tsm_X` whichever signature writes
+it, so an input that names an array is written against the embedding's `Array`;
+a macro would carry only across the files of the set that declared it.
+
 ### `(define-value NAME (param...) attr...)` -- the target
 
 One value of the signature, i.e. what a term of it evaluates to in a model. It
@@ -753,12 +758,29 @@ of a bit-vector in hand and the other the term.
 Only `eo::define` is builtin, and only because what it binds is of the level
 the body reads it at.
 
-### Text
+### Nothing else
 
-Any other form is text of the embedding and is emitted as it stands, with the
-comment above it. A form whose head begins with `define-` but is none of the
-above is an error rather than text: emitting it would put a form the target has
-no reading of into the file.
+Every form of a set is one of the entries above, a `program`, a `define-macro`
+or a `section`. **Anything else is refused**, and that includes a bare
+`declare-const`, `declare-parameterized-const` or `define`.
+
+Nothing is carried over as the text it is. A form emitted untouched would put
+into the generated file something the compiler never read, so what it names
+could not be checked against the vocabulary, ordered against the other blocks,
+or trimmed with them; and a name it defined would be one more thing that has to
+be kept in step by hand.
+
+So a set says what a theory **does**, and never what the embedding **is**. A
+declaration of the embedding -- the `$smt_Map` a map value is built over, the
+`$emb_msm.` constructors that build one, the `$vsm_` name of a value it spells
+out -- is written in `plugins/model_smt/model_smt.eo`, which is the one place
+that says what the embedding is built from. A set then writes the programs over
+it: `$smtx_msm_lookup`, `$smtx_typeof_map_value`, `$smtx_map_canonical`, each a
+`program` beside the sort it belongs to.
+
+If what you are reaching for is an idiom rather than a definition, write a
+`define-macro`: it is expanded before anything else sees it and reaches no
+generated file, which is what an inlined `define` amounted to anyway.
 
 ---
 
@@ -785,9 +807,9 @@ under, so `($vsm_numeral 0)` puts a native where `(bvudiv x 0)` puts a value; a
 place the declaration leaves open, as a branch of `ite` is, is of the level
 around it. The vocabulary is read from `plugins/desugar/native_embed.eo`,
 `plugins/desugar/eo_desugar.eo` and `plugins/model_smt/model_smt.eo`, together
-with the programs the set itself writes out, so a native that does not exist or
-is given the wrong number of arguments is caught by the compiler rather than by
-ethos.
+together with the programs the set itself writes out, so a native that does not
+exist or is given the wrong number of arguments is caught by the compiler
+rather than by ethos.
 
 A native in quotes and a `$`-name of the embedding are what they are wherever
 they stand, so the level never has to be said twice.
@@ -1097,6 +1119,13 @@ of it: a case matches one by writing it, and what the pattern binds is read off
 its declaration. If putting one back together is an idiom, write a macro for it
 in the section of its theory, the way `of_width` and `of_chars` are written.
 
+If a value of it is built over something that is neither a native nor a value
+-- a list of entries, a sequence -- the type of that and the constructors that
+build one are declared in `plugins/model_smt/model_smt.eo`, beside `$smt_Map`
+and `$smt_Seq`; a set may not declare one, see
+[Nothing else](#nothing-else). The programs over it are `program`s here, beside
+the sort.
+
 ### Add a value
 
 Write a `define-value` at the end of the values, saying each parameter's type,
@@ -1153,4 +1182,4 @@ Every message is prefixed `sem_compile:`. The ones worth knowing:
 | `X is both a macro and a symbol of this set` | a macro would shadow the symbol, since a macro is matched first |
 | `X is given twice, see F` | two blocks of one name |
 | `cannot tell what block X belongs to` | a form on its own whose name says nothing; open a block with a `; -- name` line |
-| `X is not a form of a configuration set` | a `define-` form that is none of the above |
+| `X is not a form of a configuration set` | a form that is none of the above, e.g. a bare `declare-const` or `define`; a set says what a theory does, never what the embedding is |

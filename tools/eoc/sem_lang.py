@@ -10,15 +10,15 @@ sem_target.py; what a run does with the result is in sem_compile.py.
 
 A file is read as *text* as well as as terms: a form keeps the source it was
 written with, so that a place read as the source it is -- a pattern at a place
-of the input, and a form of the embedding emitted as it stands -- reaches the
-generated file untouched, exactly as plugins/model_smt/defs_reader.cpp keeps a
-block of a definitions file.
+of the input -- reaches the generated file untouched, exactly as
+plugins/model_smt/defs_reader.cpp keeps a block of a definitions file.
 
 What a set has is a sequence of *blocks*, each named after the symbol it is of.
-A block holds *pieces*: either text of the embedding, written as itself and
-emitted untouched, or an entry the compiler expands. A `; -- X` comment line
-opens a block and gathers what follows into it; without one, each form is a
-block of its own, named after what it defines.
+A block holds *pieces*, and every piece is an entry the compiler expands:
+nothing is carried over as the text it is, so what a set names the compiler has
+read and can check, order and trim with the rest. A `; -- X` comment line opens
+a block and gathers what follows into it; without one, each form is a block of
+its own, named after what it defines.
 """
 
 import collections
@@ -155,8 +155,8 @@ class Reader:
     if c == ')':
       self.error('unexpected )')
     if c == '|':
-      self.error('a bar delimits nothing here; a form is written as an '
-                 's-expression, and text of the embedding as itself')
+      self.error('a bar delimits nothing here; every form of a set is '
+                 'written as an s-expression')
     if c == '"':
       self.i += 1
       while self.i < self.n and self.t[self.i] != '"':
@@ -204,11 +204,6 @@ def applied(head, xs):
   return '(%s%s)' % (head, ''.join(' ' + x for x in xs)) if xs else head
 
 
-# What a piece of text defines, which is what a later block may not redefine
-# and what the stage that selects blocks finds a block by.
-DEFINES = re.compile(r'\((?:program|define|declare-const|'
-                     r'declare-parameterized-const)\s+(\S+)')
-
 # The line that opens a block and names it.
 MARK = re.compile(r'^; -- (\S+)\s*$')
 
@@ -233,41 +228,22 @@ class Block:
     self.pieces.append(piece)
 
   def entries(self):
-    """The pieces that are entries rather than text."""
-    return [p for p in self.pieces if not isinstance(p, str)]
+    """The entries the block holds. Every piece is one: a set carries no text
+    of its own, see read_config."""
+    return list(self.pieces)
 
   def defines(self):
     """The names this block defines, whether written out or compiled."""
     out = set()
     for p in self.pieces:
-      if isinstance(p, str):
-        out.update(DEFINES.findall(p))
-      else:
-        out.update(getattr(p, 'defines', set)())
+      out.update(getattr(p, 'defines', set)())
     return out
 
   def render(self, ctx):
-    body = [b for b in (p if isinstance(p, str) else p.render(ctx)
-                        for p in self.pieces) if b]
+    body = [b for b in (p.render(ctx) for p in self.pieces) if b]
     # A block whose whole of what it says reaches another file -- the Lean
     # text of a method does -- is no block of this one.
     return '; -- %s\n%s' % (self.name, '\n'.join(body)) if body else ''
-
-
-def infer_name(node, decls):
-  """What a form written on its own names its block after.
-
-  The per-symbol program of an aggregate is of the symbol it is written for,
-  which is what the prefix its declaration gives says; anything else is of
-  itself, since it belongs to no symbol.
-  """
-  if node.kind != 'list' or len(node.items) < 2:
-    return None
-  n = node.items[1].val
-  for pre in decls.prefixes():
-    if n.startswith(pre):
-      return n[len(pre):]
-  return n
 
 
 def reserved_by(name, decls):
@@ -306,10 +282,11 @@ def read_config(paths, decls):
   """Read one configuration set into blocks, in the order the files give them.
 
   `decls` is what the central file of the set declared, which is what says how
-  a symbol of it is read and what it compiles to. Every form that is neither a
-  symbol, a program nor a macro is text of the embedding and is emitted as it
-  stands. define-macro is common to both sets: it names an idiom the bodies of
-  that file would otherwise repeat.
+  a symbol of it is read and what it compiles to. Every form of a set is one of
+  those, a program, a macro or a section, and a form that is none of them is
+  refused rather than carried over as the text it is. define-macro is common to
+  both sets: it names an idiom the bodies of that file would otherwise repeat,
+  and reaches no generated file.
 
   An entry written under a `; -- X` line whose name it carries joins that
   block, which is how a symbol keeps the programs its cases name in the block
@@ -362,19 +339,17 @@ def read_config(paths, decls):
                       or getattr(piece, 'joins_open_block', False)))
         name = piece.block_name or piece.name
       else:
-        if kind == 'include':
-          die('%s: a set is one file, so nothing is included into it' % path)
-        if kind is not None and kind.startswith('define-'):
-          # A misspelt entry or declaration. Emitting it as text would put a
-          # form the target has no reading of into the file.
-          die('%s: %s is not a form of a configuration set, which takes '
-              '%s' % (path, kind, ', '.join(sorted(entries))
-                      + ', define-macro and the declarations of the set'))
-        piece = '\n'.join(doc + [node.raw])
-        for d in DEFINES.findall(node.raw):
-          check_own_name(d, path, decls)
-        joins = open_block is not None
-        name = infer_name(node, decls)
+        # Every form of a set is an entry it declares, a program, a macro or a
+        # section. Nothing else is carried over: a form emitted as the text it
+        # is would put into the generated file something the compiler never
+        # read, so what it names could not be checked, ordered or trimmed with
+        # the rest. A declaration of the embedding is therefore written in
+        # plugins/model_smt/model_smt.eo, which is where the embedding says
+        # what it is built from; a set says what a theory *does* with it.
+        die('%s: %s is not a form of a configuration set, which takes %s'
+            % (path, kind if kind is not None else node.raw[:40],
+               ', '.join(sorted(entries))
+               + ', define-macro, section and the declarations of the set'))
       if mark is not None:
         # A `; -- X` line opens a block of its own and gathers what follows.
         name, joins = mark.group(1), False

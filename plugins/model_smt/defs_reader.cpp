@@ -254,9 +254,17 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
       {
         b.d_valueCons.push_back(f);
       }
-      else
+      else if (name.compare(0, 8, "$emb_sm.") == 0
+               || name.compare(0, 4, "$sm_") == 0)
       {
         b.d_cons.push_back(f);
+      }
+      else
+      {
+        // Not a constructor of any family, so it is a helper that happens to
+        // be written as a define rather than as a program -- $smtx_msm_update
+        // is one -- and belongs to whichever stream its name says.
+        classifyProgram(b, f, name);
       }
       continue;
     }
@@ -264,104 +272,7 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
     {
       continue;
     }
-    // A program is either one of the per-symbol programs, whose cases the
-    // aggregate it feeds takes, or an auxiliary one the cases call, which is
-    // copied as it stands.
-    auto isPre = [&name](const char* p) {
-      const std::string pre(p);
-      return name.size() > pre.size() && name.compare(0, pre.size(), pre) == 0;
-    };
-    if (isPre("$eoc_is_list_nil_"))
-    {
-      // The nil of an n-ary symbol, which the desugar stage looks up by name.
-      // It is written here as $eoc_ and emitted as $eo_, since it is the
-      // program that stage calls rather than a case of an aggregate.
-      const std::string from = "$eoc_is_list_nil_";
-      const std::string to = "$eo_is_list_nil_";
-      std::string out = f;
-      size_t pos = out.find(from);
-      while (pos != std::string::npos)
-      {
-        out = out.substr(0, pos) + to + out.substr(pos + from.size());
-        pos = out.find(from, pos + to.size());
-      }
-      b.d_desugarAux.push_back(out);
-    }
-    else if (isPre("$eoc_eval_"))
-    {
-      std::vector<std::string> cases = casesOf(f, name, "$smtx_model_eval");
-      b.d_evalCases.insert(b.d_evalCases.end(), cases.begin(), cases.end());
-    }
-    else if (isPre("$eoc_typeof_"))
-    {
-      std::vector<std::string> cases = casesOf(f, name, "$smtx_typeof");
-      b.d_typeofCases.insert(b.d_typeofCases.end(), cases.begin(), cases.end());
-    }
-    else if (isPre("$eoc_transform_type_"))
-    {
-      std::vector<std::string> cases = casesOf(f, name, "$eo_to_smt_type");
-      b.d_transTypeCases.insert(
-          b.d_transTypeCases.end(), cases.begin(), cases.end());
-    }
-    else if (isPre("$eoc_transform_"))
-    {
-      std::vector<std::string> cases = casesOf(f, name, "$eo_to_smt");
-      b.d_transCases.insert(b.d_transCases.end(), cases.begin(), cases.end());
-    }
-    else if (isPre("$eoc_value_typeof_"))
-    {
-      std::vector<std::string> cases = casesOf(f, name, "$smtx_typeof_value");
-      b.d_valueTypeofCases.insert(
-          b.d_valueTypeofCases.end(), cases.begin(), cases.end());
-    }
-    else if (isPre("$eoc_value_canonical_"))
-    {
-      std::vector<std::string> cases =
-          casesOf(f, name, "$smtx_value_canonical_bool");
-      b.d_valueCanonicalCases.insert(
-          b.d_valueCanonicalCases.end(), cases.begin(), cases.end());
-    }
-    else if (isPre("$eoc_type_wf_"))
-    {
-      std::vector<std::string> cases = casesOf(f, name, "$smtx_type_wf_rec");
-      b.d_typeWfCases.insert(b.d_typeWfCases.end(), cases.begin(), cases.end());
-    }
-    else if (isPre("$eoc_type_bounded_"))
-    {
-      std::vector<std::string> cases = casesOf(f, name, "$smtx_type_bounded");
-      b.d_typeBoundedCases.insert(
-          b.d_typeBoundedCases.end(), cases.begin(), cases.end());
-    }
-    else if (isPre("$eoc_type_default_"))
-    {
-      std::vector<std::string> cases = casesOf(f, name, "$smtx_type_default");
-      b.d_typeDefaultCases.insert(
-          b.d_typeDefaultCases.end(), cases.begin(), cases.end());
-    }
-    else if (isPre("$smtx_typeof_"))
-    {
-      b.d_typeofAux.push_back(f);
-    }
-    else if (isPre("$smtx_model_eval_"))
-    {
-      b.d_evalProgs.push_back(f);
-      std::string fwd = fwdOf(f, name);
-      if (!fwd.empty())
-      {
-        b.d_evalFwd.push_back(fwd);
-      }
-    }
-    else if (isPre("$eo_to_smt"))
-    {
-      b.d_eoAux.push_back(f);
-    }
-    else
-    {
-      // A method of the symbol that is neither of the two above, e.g. the one
-      // that reads a sequence at an index. It goes with the evaluators, which
-      // the generated file has before every case that may call one.
-      b.d_evalProgs.push_back(f);
-    }
+    classifyProgram(b, f, name);
   }
   for (const std::string& d : b.d_defs)
   {
@@ -372,6 +283,113 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
     d_owner[d] = d_blocks.size();
   }
   d_blocks.push_back(b);
+}
+
+void DefsFile::classifyProgram(DefsBlock& b,
+                               const std::string& f,
+                               const std::string& name)
+{
+  // A program is either one of the per-symbol programs, whose cases the
+  // aggregate it feeds takes, or an auxiliary one the cases call, which is
+  // copied as it stands.
+  auto isPre = [&name](const char* p) {
+    const std::string pre(p);
+    return name.size() > pre.size() && name.compare(0, pre.size(), pre) == 0;
+  };
+  if (isPre("$eoc_is_list_nil_"))
+  {
+    // The nil of an n-ary symbol, which the desugar stage looks up by name.
+    // It is written here as $eoc_ and emitted as $eo_, since it is the
+    // program that stage calls rather than a case of an aggregate.
+    const std::string from = "$eoc_is_list_nil_";
+    const std::string to = "$eo_is_list_nil_";
+    std::string out = f;
+    size_t pos = out.find(from);
+    while (pos != std::string::npos)
+    {
+      out = out.substr(0, pos) + to + out.substr(pos + from.size());
+      pos = out.find(from, pos + to.size());
+    }
+    b.d_desugarAux.push_back(out);
+  }
+  else if (isPre("$eoc_eval_"))
+  {
+    std::vector<std::string> cases = casesOf(f, name, "$smtx_model_eval");
+    b.d_evalCases.insert(b.d_evalCases.end(), cases.begin(), cases.end());
+  }
+  else if (isPre("$eoc_typeof_"))
+  {
+    std::vector<std::string> cases = casesOf(f, name, "$smtx_typeof");
+    b.d_typeofCases.insert(b.d_typeofCases.end(), cases.begin(), cases.end());
+  }
+  else if (isPre("$eoc_transform_type_"))
+  {
+    std::vector<std::string> cases = casesOf(f, name, "$eo_to_smt_type");
+    b.d_transTypeCases.insert(
+        b.d_transTypeCases.end(), cases.begin(), cases.end());
+  }
+  else if (isPre("$eoc_transform_"))
+  {
+    std::vector<std::string> cases = casesOf(f, name, "$eo_to_smt");
+    b.d_transCases.insert(b.d_transCases.end(), cases.begin(), cases.end());
+  }
+  else if (isPre("$eoc_value_typeof_"))
+  {
+    std::vector<std::string> cases = casesOf(f, name, "$smtx_typeof_value");
+    b.d_valueTypeofCases.insert(
+        b.d_valueTypeofCases.end(), cases.begin(), cases.end());
+  }
+  else if (isPre("$eoc_value_canonical_"))
+  {
+    std::vector<std::string> cases =
+        casesOf(f, name, "$smtx_value_canonical_bool");
+    b.d_valueCanonicalCases.insert(
+        b.d_valueCanonicalCases.end(), cases.begin(), cases.end());
+  }
+  else if (isPre("$eoc_type_wf_"))
+  {
+    std::vector<std::string> cases = casesOf(f, name, "$smtx_type_wf_rec");
+    b.d_typeWfCases.insert(b.d_typeWfCases.end(), cases.begin(), cases.end());
+  }
+  else if (isPre("$eoc_type_bounded_"))
+  {
+    std::vector<std::string> cases = casesOf(f, name, "$smtx_type_bounded");
+    b.d_typeBoundedCases.insert(
+        b.d_typeBoundedCases.end(), cases.begin(), cases.end());
+  }
+  else if (isPre("$eoc_type_default_"))
+  {
+    std::vector<std::string> cases = casesOf(f, name, "$smtx_type_default");
+    b.d_typeDefaultCases.insert(
+        b.d_typeDefaultCases.end(), cases.begin(), cases.end());
+  }
+  else if (name.size() > 10
+           && name.compare(name.size() - 10, 10, "_canonical") == 0)
+  {
+    // Whether a value of a shape is canonical, which is asked after the
+    // programs over types that it calls, see DefsBlock::d_canonicalAux.
+    b.d_canonicalAux.push_back(f);
+  }
+  else if (isPre("$smtx_model_eval_"))
+  {
+    b.d_helperProgs.push_back(f);
+    std::string fwd = fwdOf(f, name);
+    if (!fwd.empty())
+    {
+      b.d_evalFwd.push_back(fwd);
+    }
+  }
+  else if (isPre("$eo_to_smt"))
+  {
+    b.d_eoAux.push_back(f);
+  }
+  else
+  {
+    // Any other helper of the symbol, e.g. the one that reads a sequence at
+    // an index or the one that types a map value. It stands with the rest,
+    // in the order the signature wrote them.
+    b.d_helperProgs.push_back(f);
+  }
 }
 
 bool DefsFile::read(const std::string& path)

@@ -227,17 +227,17 @@ void ModelSmt::loadDefs()
   // which is what puts it before whatever calls it.
   for (const DefsBlock* b : byDecl)
   {
-    for (const std::string& f : b->d_typeofAux)
-    {
-      d_smtTypeofAux << f << std::endl;
-    }
     for (const std::string& f : b->d_evalFwd)
     {
       d_modelEvalProgsFwd << f << std::endl;
     }
-    for (const std::string& f : b->d_evalProgs)
+    for (const std::string& f : b->d_helperProgs)
     {
-      d_modelEvalProgs << f << std::endl;
+      d_helperProgs << f << std::endl;
+    }
+    for (const std::string& f : b->d_canonicalAux)
+    {
+      d_smtCanonicalAux << f << std::endl;
     }
     for (const std::string& f : b->d_eoAux)
     {
@@ -297,7 +297,7 @@ void ModelSmt::finalize()
   replacePlaceholder(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
   replacePlaceholder(
       finalSmt, "$SMT_EVAL_PROGS_FWD_DECL$", d_modelEvalProgsFwd.str());
-  replacePlaceholder(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());
+  replacePlaceholder(finalSmt, "$SMT_HELPER_PROGS$", d_helperProgs.str());
   replacePlaceholder(finalSmt, "$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
   replacePlaceholder(finalSmt, "$EO_DESUGAR_AUX$", d_desugarAux.str());
   replacePlaceholder(finalSmt, "$EO_TO_SMT_CASES$", d_eoToSmt.str());
@@ -314,7 +314,7 @@ void ModelSmt::finalize()
   replacePlaceholder(finalSmt, "$SMT_TYPE_BOUNDED_CASES$", d_typeBounded.str());
   replacePlaceholder(finalSmt, "$SMT_TYPE_DEFAULT_CASES$", d_typeDefault.str());
   replacePlaceholder(finalSmt, "$SMT_TYPEOF_CASES$", d_smtTypeof.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPEOF_AUX$", d_smtTypeofAux.str());
+  replacePlaceholder(finalSmt, "$SMT_CANONICAL_AUX$", d_smtCanonicalAux.str());
   if (finalSmt.find("$eoc_") != std::string::npos)
   {
     EO_FATAL() << "ModelSmt: generated output contains an unexpanded $eoc_ "

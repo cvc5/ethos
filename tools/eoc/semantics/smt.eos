@@ -9,6 +9,14 @@
 ; vocabulary: the constructor $emb_tsm.X and its macro $tsm_X, and what each
 ; type says about itself to the three programs written over the types.
 ;
+; It gives the programs written over the shapes a value is built over -- the
+; map an array and a set are, the sequence a string is -- which look one up,
+; type one and say whether one is written the one way. Each stands beside the
+; sort it belongs to. What such a shape *is* it does not say: a set writes what
+; a theory does with the embedding and never what the embedding is, so the
+; declaration of $smt_Map and of the constructors that build one stands in
+; plugins/model_smt/model_smt.eo.
+;
 ; This is the target of the compilation: every input is compiled through it, so
 ; what it says is what a model of any input means, and nothing about an input
 ; is asked of it.
@@ -78,18 +86,24 @@
 ; the two above wraps it.
 (define-macro smt.map_cons (i e m)  ($msm_cons i e m))
 (define-macro smt.map_default (T e) ($msm_default T e))
-(define-macro smt.map_empty_set (T) ($msm_empty_set T))
+(define-macro smt.map_empty_set (T) (smt.map_default T smt.false))
 (define-macro smt.seq_cons (i s)    ($ssm_cons i s))
 (define-macro smt.seq_empty (T)     ($ssm_empty T))
 
 ; -- the programs of the embedding
 ; The methods of the map and of the value language that a case reaches for.
 (define-macro smt.map_lookup (m i)        ($smtx_msm_lookup m i))
-(define-macro smt.map_update (m i e)      ($smtx_msm_update m i e))
+(define-macro smt.map_update (m i e)
+  ($smtx_msm_update_aux ($smtx_msm_get_default m) m i e))
 (define-macro smt.typeof_value (v)        ($smtx_typeof_value v))
 (define-macro smt.typeof_map_value (m)    ($smtx_typeof_map_value m))
 (define-macro smt.typeof_seq_value (s)    ($smtx_typeof_seq_value s))
 (define-macro smt.typeof_guard_wf (T U)   ($smtx_typeof_guard_wf T U))
+
+; The type of the ci^th constructor of a datatype declared under s. Substitutes
+; (TypeRef s) for (Datatype s dd), which is what makes the datatype closed.
+(define-macro smt.typeof_dt_cons_value (s dd n)
+  ($smtx_typeof_dt_cons_value_rec (Datatype s dd) ($smtx_dd_resolve s dd) n))
 
 (section "The types")
 ;-----------------------------------------------------------------------------
@@ -138,6 +152,109 @@
   :bounded ("or" ("not" u) ("n_=" w "n_zero"))
   :default (smt.binary ("n_to_z" w) 0))
 
+; -- $smtx_msm_get_default
+; Get the default for the map
+(program $smtx_msm_get_default
+  ((T SmtType) (i SmtValue) (j SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtMap) SmtValue
+  (
+  (($smtx_msm_get_default ($msm_cons j e m))  ($smtx_msm_get_default m))
+  (($smtx_msm_get_default ($msm_default T e)) e)
+  )
+)
+
+; This program looks up the value of a term in a map.
+; This is used for function evaluation.
+(program $smtx_msm_lookup
+  ((T SmtType) (i SmtValue) (j SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtMap SmtValue) SmtValue
+  (
+  (($smtx_msm_lookup ($msm_cons j e m) i)  ("ite" ("veq" j i) e ($smtx_msm_lookup m i)))
+  (($smtx_msm_lookup ($msm_default T e) i) e)
+  )
+)
+
+(program $smtx_msm_update_aux_no_default
+  ((ed SmtValue) (T SmtType) (i SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtValue SmtMap SmtValue SmtValue) SmtMap
+  (
+  (($smtx_msm_update_aux_no_default ed m i e)
+    ; check if we are redundant wrt the default value
+    ("ite" ("veq" ed e) m ($msm_cons i e m)))
+  )
+)
+
+; updates the map with a new entry, maintaining ordered-ness
+(program $smtx_msm_update_aux
+  ((ed SmtValue) (T SmtType) (i SmtValue) (j SmtValue) (e1 SmtValue) (e2 SmtValue) (m SmtMap))
+  :signature (SmtValue SmtMap SmtValue SmtValue) SmtMap
+  (
+  (($smtx_msm_update_aux ed ($msm_cons j e1 m) i e2)
+    ("ite" ("veq" j i)
+      ; we overwrite if same index
+      ($smtx_msm_update_aux_no_default ed m i e2)
+      ; otherwise, we check the hash to retain sortedness
+      ("ite" ("vcmp" j i)
+        ($smtx_msm_update_aux_no_default ed ($msm_cons j e1 m) i e2)
+        ($msm_cons j e1 ($smtx_msm_update_aux ed m i e2)))))
+  (($smtx_msm_update_aux ed m i e2)
+    ($smtx_msm_update_aux_no_default ed m i e2))
+  )
+)
+; Returns the type of the map value or tsm_none
+(program $smtx_typeof_map_value
+  ((i SmtValue) (e SmtValue) (m SmtMap) (T SmtType))
+  :signature (SmtMap) SmtType
+  (
+  (($smtx_typeof_map_value ($msm_cons i e m))
+    (eo::define ((mT ($smtx_typeof_map_value m)))
+    ("ite" ("Teq" (Map (smt.typeof_value i) (smt.typeof_value e)) mT)
+      mT
+      none)))
+  (($smtx_typeof_map_value ($msm_default T e))  (Map T (smt.typeof_value e)))
+  )
+)
+
+(program $smtx_map_entries_ordered_after
+  ((i SmtValue) (j SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtValue SmtMap) "Bool"
+  (
+  (($smtx_map_entries_ordered_after i ($msm_cons j e m)) ("vcmp" j i))
+  (($smtx_map_entries_ordered_after i m) "true")
+  )
+)
+
+(program $smtx_map_default_canonical ((T SmtType) (e SmtValue))
+  :signature (SmtType SmtValue) "Bool"
+  (
+  (($smtx_map_default_canonical T e)
+    (eo::define ((U (smt.typeof_value e)))
+    ; if a finite type, it must have the canonical finite type default
+    ("ite" ($smtx_is_finite_type T)
+      ("veq" e ($smtx_type_default U))
+      "true")))
+  )
+)
+
+(program $smtx_map_canonical
+  ((T SmtType) (i SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtMap) "Bool"
+  (
+  (($smtx_map_canonical ($msm_default T e))
+    ("and" ($smtx_map_default_canonical T e) ($smtx_value_canonical_bool e)))
+  (($smtx_map_canonical ($msm_cons i e m))
+    ("and"
+      ("and"
+        ("and"
+          ("and"
+            ($smtx_value_canonical_bool i)
+            ($smtx_value_canonical_bool e))
+          ($smtx_map_canonical m))
+        ($smtx_map_entries_ordered_after i m))
+      ("not" ("veq" e ($smtx_msm_get_default m)))))
+  )
+)
+
 ; A map is unit when what it maps to is, and finite when both halves are. Its
 ; default maps everything to the default of its range, and has none at all
 ; where that range has none.
@@ -151,16 +268,51 @@
                smt.not_value
                (smt.map (smt.map_default I d)))))
 
+; -- $smtx_map_to_set_type
+; A set is a mapping to Bool, so the type of one is read off the map it is.
+(program $smtx_map_to_set_type ((T SmtType))
+  :signature (SmtType) SmtType
+  (
+  (($smtx_map_to_set_type (Map T Bool)) (Set T))
+  (($smtx_map_to_set_type T) none)
+  )
+)
+
 ; A set is a map to the Booleans, so it is never unit -- the empty set and the
 ; full one are two -- and is finite when what it holds is.
 (define-sort Set (T)
   :wf ($smtx_type_wf_component_rec T)
   :bounded ("and" ("not" u) ($smtx_type_bounded u T))
-  :default ($smtx_empty_set T))
+  :default (smt.set (smt.map_empty_set T)))
+
+; -- $smtx_typeof_seq_value
+; Returns the type of the sequence value or tsm_none
+(program $smtx_typeof_seq_value
+  ((v SmtValue) (vs SmtSeq) (T SmtType))
+  :signature (SmtSeq) SmtType
+  (
+  (($smtx_typeof_seq_value ($ssm_cons v vs))
+    (eo::define ((sT ($smtx_typeof_seq_value vs)))
+    ("ite" ("Teq" (Seq (smt.typeof_value v)) sT)
+      sT
+      none)))
+  (($smtx_typeof_seq_value ($ssm_empty T)) (Seq T))
+  )
+)
+
+(program $smtx_seq_canonical
+  ((T SmtType) (v SmtValue) (s SmtSeq))
+  :signature (SmtSeq) "Bool"
+  (
+  (($smtx_seq_canonical ($ssm_empty T)) "true")
+  (($smtx_seq_canonical ($ssm_cons v s))
+    ("and" ($smtx_value_canonical_bool v) ($smtx_seq_canonical s)))
+  )
+)
 
 (define-sort Seq (T)
   :wf ($smtx_type_wf_component_rec T)
-  :default ($smtx_empty_seq T))
+  :default (smt.seq (smt.seq_empty T)))
 
 (define-sort Char ()
   :bounded ("not" u)
@@ -241,10 +393,43 @@
   :typeof RegLan
   :canonical ("re_canonical" r))
 
+; -- $smtx_typeof_dt_cons_value
+; The type of the ci^th constructor of a datatype, which is the type it builds
+; behind one DtcAppType per argument it takes.
+;
+; This is the same program as $smtx_typeof_dt_cons_rec of the embedding, which
+; answers the same for the *term*: the hand-written Lean proofs of Logos are
+; stated over both, so neither stands in for the other.
+(program $smtx_typeof_dt_cons_value_rec
+  ((T SmtType) (U SmtType) (n "Nat") (c SmtDatatypeCons) (d SmtDatatype))
+  :signature (SmtType SmtDatatype "Nat") SmtType
+  (
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum $dtc_unit d) "n_zero") T)
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum ($dtc_cons U c) d) "n_zero")
+    (DtcAppType U ($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) "n_zero")))
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) ("n_succ" n))
+    ($smtx_typeof_dt_cons_value_rec T d n))
+  (($smtx_typeof_dt_cons_value_rec T d n) none)
+  )
+)
+
 ; A datatype constructor is of the type its declaration gives it. It is not
 ; guarded by well-foundedness, which would be circular.
 (define-value DtCons ((s "String") (dd SmtDatatypeDecl) (ci "Nat"))
-  :typeof ($smtx_typeof_dt_cons_value s dd ci))
+  :typeof (smt.typeof_dt_cons_value s dd ci))
+
+; -- $smtx_typeof_apply_value
+; What applying one value to another is of. A datatype constructor may be
+; applied a part at a time, since its applications are the Herbrand
+; interpretation itself; a function and a map may not.
+(program $smtx_typeof_apply_value ((T SmtType) (U SmtType) (V SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_apply_value (DtcAppType T U) V)
+    ($smtx_typeof_guard T ("ite" ("Teq" T V) U none)))
+  (($smtx_typeof_apply_value T U) none)
+  )
+)
 
 ; An application of one is a value of the type applying it gives, and is
 ; canonical when both halves are.
