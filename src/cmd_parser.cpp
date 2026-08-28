@@ -42,8 +42,8 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
   d_table["set-option"] = Token::SET_OPTION;
-  d_table["pop"] = Token::POP;    // undocumented
-  d_table["push"] = Token::PUSH;  // undocumented
+  d_table["pop"] = Token::POP;
+  d_table["push"] = Token::PUSH;
   d_table["reset"] = Token::RESET;
 
   if (d_isReference)
@@ -1011,8 +1011,10 @@ bool CmdParser::parseNextCommand()
       // The formulas of a check-sat-assuming are part of the query, thus a
       // proof of unsat is permitted to assume them.
       std::vector<Expr> as = d_eparser.parseExprList();
-      for (const Expr& a : as)
+      for (Expr& a : as)
       {
+        // ensure each assumption has type Bool, as is done for assert
+        d_eparser.typeCheck(a, d_state.mkBoolType());
         d_state.addReferenceAssert(a);
       }
     }
@@ -1036,7 +1038,8 @@ bool CmdParser::parseNextCommand()
     {
       // Discards all assertions and pops all assertion levels, hence the
       // reference assertions accumulated so far are no longer part of the
-      // query.
+      // query. Note that (reset) also clears the reference assertions, via
+      // State::reset.
       d_state.clearReferenceAsserts();
     }
     break;
@@ -1057,6 +1060,9 @@ bool CmdParser::parseNextCommand()
       }
     }
     break;
+    // (push <numeral>?) and (pop <numeral>?). In reference files, the
+    // reference assertions added since the corresponding push are discarded
+    // on pop, see State::popScope.
     case Token::POP:
     case Token::PUSH:
     {

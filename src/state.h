@@ -85,8 +85,8 @@ class State
   /** add reference assert */
   void addReferenceAssert(const Expr& a);
   /**
-   * Discard all reference assertions, as e.g. done by the smt2 command
-   * reset-assertions.
+   * Discard all reference assertions and all their scopes, as e.g. done by
+   * the smt2 commands reset-assertions and reset.
    */
   void clearReferenceAsserts();
   /** Set type rule for literal kind k to t */
@@ -432,6 +432,11 @@ class State
   std::unordered_set<const ExprValue*> d_referenceAsserts;
   /** Reference assert list */
   std::vector<Expr> d_referenceAssertList;
+  /**
+   * The size of d_referenceAssertList at the time each pushScope was called,
+   * which is used to discard reference assertions on popScope.
+   */
+  std::vector<size_t> d_referenceAssertsSizeCtx;
   //--------------------- garbage collection
   /** The current set of expression values to delete */
   std::vector<ExprValue*> d_toDelete;
