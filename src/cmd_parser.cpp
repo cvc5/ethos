@@ -61,17 +61,8 @@ CmdParser::CmdParser(Lexer& lex,
     d_table["reset-assertions"] = Token::RESET_ASSERTIONS;
     d_table["set-logic"] = Token::SET_LOGIC;
     d_table["set-info"] = Token::SET_INFO;
-    // Commands that only query the solver for output. They have no impact on
-    // the set of assertions, hence we parse and ignore them.
-    d_table["get-assertions"] = Token::SMT2_QUERY_COMMAND;
-    d_table["get-assignment"] = Token::SMT2_QUERY_COMMAND;
-    d_table["get-info"] = Token::SMT2_QUERY_COMMAND;
-    d_table["get-model"] = Token::SMT2_QUERY_COMMAND;
-    d_table["get-option"] = Token::SMT2_QUERY_COMMAND;
-    d_table["get-proof"] = Token::SMT2_QUERY_COMMAND;
-    d_table["get-unsat-assumptions"] = Token::SMT2_QUERY_COMMAND;
-    d_table["get-unsat-core"] = Token::SMT2_QUERY_COMMAND;
-    d_table["get-value"] = Token::SMT2_QUERY_COMMAND;
+    // Note that any command whose name begins with "get-" is parsed and
+    // ignored, see nextCommandToken.
   }
   else
   {
@@ -102,6 +93,15 @@ Token CmdParser::nextCommandToken()
     if (it != d_table.end())
     {
       return it->second;
+    }
+    // In reference files, any command that begins with "get-" is one that
+    // queries the solver for output (e.g. get-model). Such commands have no
+    // impact on the set of assertions, hence we parse and ignore all of them.
+    // This is done by prefix so that we do not have to maintain a list of the
+    // commands of this form.
+    if (d_isReference && str.compare(0, 4, "get-") == 0)
+    {
+      return Token::SMT2_QUERY_COMMAND;
     }
   }
   return tok;

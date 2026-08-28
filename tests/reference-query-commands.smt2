@@ -13,4 +13,7 @@
 (get-unsat-assumptions)
 (get-unsat-core)
 (get-value (x (> x 0)))
+; not an smt2 2.6 command: any command beginning with "get-" is ignored
+(get-difficulty)
+(get-learned-literals :input)
 (exit)

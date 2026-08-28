@@ -2075,7 +2075,7 @@ The following aspects of SMT-LIB version 2.6 inputs are *not* supported when use
 - **Named assertions.** Term annotations such as `(assert (! F :named a0))` are parsed, but the `:named` attribute is ignored (with a warning) and the name is not bound as a symbol. A proof that refers to an assertion by its name will fail to parse.
 - **Other solver-specific commands.** Commands that are not part of SMT-LIB version 2.6, e.g. `minimize` or `block-model`, are not recognized and lead to a parse error.
 
-Commands whose only effect is to produce solver output (`get-assertions`, `get-assignment`, `get-info`, `get-model`, `get-option`, `get-proof`, `get-unsat-assumptions`, `get-unsat-core`, `get-value`) have no impact on the set of reference assertions. They are parsed and ignored.
+Any command whose name begins with `get-` is parsed and ignored, since the only effect of such a command is to produce solver output, which has no impact on the set of reference assertions. Its arguments are consumed as s-expressions and are not type checked. This policy is based on the prefix of the command name, so that solver-specific commands of this form are accepted as well. As of SMT-LIB version 2.6, the commands of this form are `get-assertions`, `get-assignment`, `get-info`, `get-model`, `get-option`, `get-proof`, `get-unsat-assumptions`, `get-unsat-core` and `get-value`. Note this list is given for reference only and is not maintained by ethos.
 
 ### Validation up to Normalization
 
@@ -2205,20 +2205,8 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (reset-assertions) |
     (set-info <attr>) |
     (set-logic <symbol>) |
-    <query-command> |
+    (get-<symbol> <sexpr>*) |
     <common-command>
-
-;;;
-<query-command> ::=
-    (get-assertions) |
-    (get-assignment) |
-    (get-info <keyword>) |
-    (get-model) |
-    (get-option <keyword>) |
-    (get-proof) |
-    (get-unsat-assumptions) |
-    (get-unsat-core) |
-    (get-value (<term>+))
 
 ;;;
 <keyword>       ::= :<symbol>
