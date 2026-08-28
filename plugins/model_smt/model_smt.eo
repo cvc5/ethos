@@ -320,25 +320,26 @@
 (define $vsm_binary_bit_true () ($vsm_Binary $native_z_one $native_z_one))
 (define $vsm_string_empty () ($vsm_Seq ($ssm_empty $tsm_Char)))
 
-; utilities
-(program $vsm_apply_head ((f $smt_Value) (a $smt_Value))
+; The two programs over an applied value, which stand with the constructors
+; they are written over rather than with the rest of the helpers.
+(program $smtx_apply_head_value ((f $smt_Value) (a $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
-  (($vsm_apply_head ($vsm_Apply f a)) ($vsm_apply_head f))
-  (($vsm_apply_head a)                a)
+  (($smtx_apply_head_value ($vsm_Apply f a)) ($smtx_apply_head_value f))
+  (($smtx_apply_head_value a)                a)
   )
 )
 
-; ($vsm_apply_arg_nth v n npos), where we are getting the n^th argument,
+; ($smtx_apply_arg_nth_value v n npos), where we are getting the n^th argument,
 ; npos is the current position we are at + 1.
-(program $vsm_apply_arg_nth
+(program $smtx_apply_arg_nth_value
   ((f $smt_Value) (a $smt_Value) (n $native_Nat) (npos $native_Nat))
   :signature ($smt_Value $native_Nat $native_Nat) $smt_Value
   (
-  (($vsm_apply_arg_nth ($vsm_Apply f a) n ($native_n_succ npos))
+  (($smtx_apply_arg_nth_value ($vsm_Apply f a) n ($native_n_succ npos))
     ($native_ite ($native_n_= n npos) a
-      ($vsm_apply_arg_nth f n npos)))
-  (($vsm_apply_arg_nth a n npos) $vsm_NotValue)
+      ($smtx_apply_arg_nth_value f n npos)))
+  (($smtx_apply_arg_nth_value a n npos) $vsm_NotValue)
   )
 )
 
@@ -683,8 +684,8 @@
   (
   (($smtx_model_eval_dt_sel M s dd n m v)
     ; check if the head of the apply term is ($vsm_DtCons s dd n)
-    ($native_ite ($native_veq ($vsm_apply_head v) ($vsm_DtCons s dd n))
-      ($vsm_apply_arg_nth v m ($smtx_dt_num_sels ($smtx_dd_lookup s dd) n))
+    ($native_ite ($native_veq ($smtx_apply_head_value v) ($vsm_DtCons s dd n))
+      ($smtx_apply_arg_nth_value v m ($smtx_dt_num_sels ($smtx_dd_lookup s dd) n))
       ; wrongly applied selector
       ; we introduce an uninterpreted function wrong_apply_sel : (-> Int Int D T)
       ; where (wrong_apply_sel_id n m) is the uninterpreted function corresponding
@@ -702,7 +703,7 @@
   (
   (($smtx_model_eval_dt_tester s dd n v1)
     ; check if the head of the apply term is ($vsm_DtCons s dd n)
-    ($vsm_Boolean ($native_veq ($vsm_apply_head v1) ($vsm_DtCons s dd n))))
+    ($vsm_Boolean ($native_veq ($smtx_apply_head_value v1) ($vsm_DtCons s dd n))))
   )
 )
 
@@ -1092,7 +1093,10 @@
 
 ;;; Canonicity of values
 
-(program $smtx_value_canonical_bool () :signature ($smt_Value) $native_Bool)
+; Whether a value is canonical, which answers with a native Bool. A proof
+; reads the same question as a Prop, which is a definition of its own and so
+; needs a name of its own: this one is taken.
+(program $smtx_value_canonical () :signature ($smt_Value) $native_Bool)
 
 ; Whether a value of a shape is canonical, which the configuration writes with
 ; the shape it is of: a map value is canonical when its entries are ordered and
@@ -1100,14 +1104,14 @@
 ;$SMT_CANONICAL_AUX$
 
 ; The same, for what each value says about being canonical.
-(program $smtx_value_canonical_bool
+(program $smtx_value_canonical
   ((v $smt_Value) (i1 $native_Int) (i2 $native_Int) (c1 $native_Char)
    (m1 $smt_Map) (q1 $smt_Seq) (re1 $smt_RegLan)
    (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value) $native_Bool
   (
 ;$SMT_VALUE_CANONICAL_CASES$
-  (($smtx_value_canonical_bool v) $native_true)
+  (($smtx_value_canonical v) $native_true)
   )
 )
 

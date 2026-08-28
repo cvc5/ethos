@@ -76,8 +76,8 @@ struct DefsBlock
   std::vector<std::string> d_eoAux;
   /**
    * The programs that say whether a value of a shape is canonical, which stand
-   * with $smtx_value_canonical_bool rather than with the other helpers: they
-   * call $smtx_type_default and $smtx_is_finite_type, which are written after
+   * with $smtx_value_canonical rather than with the other helpers: they call
+   * $smtx_type_default and $smtx_is_finite_type, which are written after
    * those. A program whose name ends in `_canonical` is one.
    */
   std::vector<std::string> d_canonicalAux;

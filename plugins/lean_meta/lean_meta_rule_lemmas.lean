@@ -20,7 +20,7 @@ set_option maxHeartbeats 10000000
    pattern here and dispatch to the arity helper matching the rule shape.
    The preservation theorems below then pick the new rule up automatically. -/
 theorem cmd_step_proven_facts_of_invariants
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (_hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
@@ -50,7 +50,7 @@ If `__eo_cmd_step_pop_proven` grows more supported rules, add a matching
 branch below and route it to the rule-specific helper.
 -/
 theorem cmd_step_pop_proven_facts_of_invariants
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (root tail : CState) (A : Term)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M root ->

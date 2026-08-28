@@ -665,7 +665,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v,
     else
     {
       // note we can't do this assertion since some programs e.g.
-      // $smtx_msm_lookup have exhaustive cases with no explicit default case
+      // $smtx_map_lookup have exhaustive cases with no explicit default case
       // Assert (print.empty()) << "Non-trivial base case for non-Eunoia program
       // " << v;
     }

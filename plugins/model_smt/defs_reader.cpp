@@ -262,7 +262,7 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
       else
       {
         // Not a constructor of any family, so it is a helper that happens to
-        // be written as a define rather than as a program -- $smtx_msm_update
+        // be written as a define rather than as a program -- $smtx_map_update
         // is one -- and belongs to whichever stream its name says.
         classifyProgram(b, f, name);
       }
@@ -342,7 +342,7 @@ void DefsFile::classifyProgram(DefsBlock& b,
   else if (isPre("$eoc_value_canonical_"))
   {
     std::vector<std::string> cases =
-        casesOf(f, name, "$smtx_value_canonical_bool");
+        casesOf(f, name, "$smtx_value_canonical");
     b.d_valueCanonicalCases.insert(
         b.d_valueCanonicalCases.end(), cases.begin(), cases.end());
   }

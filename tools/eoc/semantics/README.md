@@ -313,7 +313,7 @@ two are read apart by the form that declares one.
 | --- | --- | --- |
 | a symbol of the **target**, `semantics/smt.eos` | `define-symbol` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof` under `:typeof`; a case of `$smtx_model_eval` under `:value`, or the program it hands its work to under `:eval` |
 | a type of the **target**, `semantics/smt.eos` | `define-sort` | a constant of the embedding and the macro that applies it; a case of `$smtx_type_wf_rec` under `:wf`, of `$smtx_type_bounded` under `:bounded`, of `$smtx_type_default` under `:default` |
-| a value of the **target**, `semantics/smt.eos` | `define-value` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical_bool` under `:canonical` |
+| a value of the **target**, `semantics/smt.eos` | `define-value` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical` under `:canonical` |
 | a literal of the **target**, `semantics/smt.eos` | `define-literal` | a constant of the embedding and the macro that applies it; the two cases a symbol writes, `:typeof` and `:value`, over what it carries rather than over terms |
 | a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |
@@ -602,7 +602,7 @@ written over the values.
 (define-value Set ((m SmtMap))
   :typeof ($smtx_map_to_set_type (smt.typeof_map_value m))
   :canonical ("and" ($smtx_map_canonical m)
-               ("veq" ($smtx_msm_get_default m) smt.false)))
+               ("veq" ($smtx_map_get_default m) smt.false)))
 ```
 
 Each parameter says the type it is of, since a value is built over natives of
@@ -782,7 +782,7 @@ declaration of the embedding -- the `$smt_Map` a map value is built over, the
 `$emb_msm.` constructors that build one, the `$vsm_` name of a value it spells
 out -- is written in `plugins/model_smt/model_smt.eo`, which is the one place
 that says what the embedding is built from. A set then writes the programs over
-it: `$smtx_msm_lookup`, `$smtx_typeof_map_value`, `$smtx_map_canonical`, each a
+it: `$smtx_map_lookup`, `$smtx_typeof_map_value`, `$smtx_map_canonical`, each a
 `program` beside the sort it belongs to.
 
 If what you are reaching for is an idiom rather than a definition, write a
@@ -881,7 +881,7 @@ uses in an `embedding.eo` of nothing but macros, under one prefix per layer:
 
 ```lisp
 (define-macro smt.binary (w v)      ($vsm_binary w v))
-(define-macro smt.map_lookup (m i)  ($smtx_msm_lookup m i))
+(define-macro smt.map_lookup (m i)  ($smtx_map_lookup m i))
 (define-macro smt.bit_true ()       $vsm_binary_bit_true)
 (define-macro eo.list_cons (x xs)   ($eo_List_cons x xs))
 ```
@@ -908,7 +908,7 @@ is one of them:
 | kind | example | why a `$` |
 | --- | --- | --- |
 | a program the configuration writes | `$smtx_typeof_bv_op_2`, `$eo_to_smt_exists` | it is a program of this set, named as itself -- never under a name the compiler writes, see [Casting](#8-casting) |
-| either layer, in `embedding.eo` | `$vsm_binary`, `$smtx_msm_lookup`, `$eot_Var` | that file is where the two layers are named; everywhere else writes `smt.` or `eo.` |
+| either layer, in `embedding.eo` | `$vsm_binary`, `$smtx_map_lookup`, `$eot_Var` | that file is where the two layers are named; everywhere else writes `smt.` or `eo.` |
 | either layer, in a **declaration** | `$vsm_seq` in a shape's `:match`, `$smtx_typeof` in an aggregate's `:program` | naming the embedding is what a declaration is for |
 | the name of an **overload** | `$eoo_-.2` in an entry's `:overload` | it is the name the desugar stage gives that symbol, so the entry says it as it is |
 | a **type** of the input, in a signature | `$eo_Term`, `$eo_List` | a signature is not a term, so no macro reaches it; a type of the input is named as the input names it |
