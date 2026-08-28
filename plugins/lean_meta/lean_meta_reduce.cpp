@@ -341,12 +341,13 @@ LeanMetaReduce::NativeFile LeanMetaReduce::readNativeResource(
 
 void LeanMetaReduce::placeNativeDefs()
 {
-  // The library, which is not one of the files this run wrote: it is read
-  // from the resources and its blocks are written into the files below.
+  // The library, which is not one of the files this run wrote: it is compiled
+  // from plugins/lean_meta/lean.eos by tools/eoc/sem_compile.py, which the
+  // build runs and the driver runs again before this stage, and its blocks are
+  // written into the files below.
   NativeFile lib;
   {
-    std::string libPath =
-        getResourcePath("plugins/lean_meta/lean_meta_native.lean");
+    std::string libPath = getResourcePath("tools/eoc/out/lean_native.lean");
     std::ifstream in(libPath);
     if (!in.is_open())
     {
@@ -459,11 +460,10 @@ void LeanMetaReduce::placeNativeDefs()
       }
     }
   };
+  // Only of the library: a definition the *templates* write is emitted
+  // whatever an input reaches, since the file it stands in is written for
+  // every one, so there is no block for it to be in and nothing to decide.
   checkDecls(lib);
-  for (const NativeFile& nf : files)
-  {
-    checkDecls(nf);
-  }
   // The library is blocks and the comments that introduce them: text of its
   // own would be emitted nowhere, since only its blocks are written out.
   for (const NativeSegment& seg : lib.d_segs)

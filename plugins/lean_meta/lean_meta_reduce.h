@@ -312,7 +312,7 @@ class LeanMetaReduce : public MetaReducePlugin
    * definitions were spliced into, and a block is reached when that text, or
    * a block it already reaches, names it.
    *
-   * Most of the layer is one library, lean_meta_native.lean, rather than
+   * Most of the layer is one library, compiled from lean.eos, rather than
    * text of the files it is written into, so that a definition is written
    * once whichever of them turns out to want it. Where a block of the
    * library comes out is the demand for it: the narrowest `-- $native-place`

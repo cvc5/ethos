@@ -76,6 +76,14 @@ CONFIGS = (os.path.join(SEM, 'smt.eos'), os.path.join(SEM, 'development-cpc.eos'
 # file is called.
 SHIPPED = ((CONFIGS[0], True), (CONFIGS[1], False))
 
+# The native layer of the Lean backend: what the generated Lean is written over
+# and no compiler writes. It is one set, and a fixed one -- there is one such
+# layer, not one per input -- so it is compiled beside the two above rather
+# than named by an option. It stands in the plugin that reads what it compiles
+# to, since it is of that backend and of nothing else.
+NATIVE_CONFIG = os.path.join(ROOT, 'plugins', 'lean_meta', 'lean.eos')
+NATIVE_TARGET = os.path.join(OUT, 'lean_native.lean')
+
 # Where the vocabulary of the embedding is defined. A file of the configuration
 # names a native in quotes and a type of the embedding without its $smt_, and
 # the compiler puts the name back, so this is what says one exists, what it
@@ -490,6 +498,71 @@ def write_if_changed(text, path):
   return True
 
 
+NATIVE_GENERATED = """\
+-- GENERATED FILE -- do not edit.
+--
+-- Compiled from %s by tools/eoc/sem_compile.py, which is where a
+-- definition of the layer is to be changed or added.
+--
+-- The layer is what the generated Lean is allowed to call that the compiler
+-- does not write itself. A block runs from `-- $native <name> ...` to the
+-- next marker and is the unit the lean-meta stage keeps or drops; the names
+-- are what it defines and what a signature may reach, and whatever else its
+-- text defines has no name here and so is private to it. A
+-- `-- $native-needs <scope>` line opens the section of blocks that need that
+-- much of the embedding in scope. See LeanMetaReduce::placeNativeDefs.
+"""
+
+
+def render_native(config):
+  """The native layer as the file the lean-meta stage reads.
+
+  A block is what one entry says under :lean-impl, under the names it
+  declares; the sections are what :needs says, opened where the scope changes,
+  which is the order the set gives them.
+  """
+  out = [NATIVE_GENERATED % named(config.path)]
+  scope = None
+  for e in config.natives:
+    if e.needs != scope:
+      scope = e.needs
+      out.append('-- $native-needs %s' % scope)
+    doc = '\n'.join(('-- ' + d).rstrip() for d in e.doc)
+    out.append('%s-- $native %s\n%s'
+               % (doc + '\n' if doc else '', ' '.join(e.names), e.text))
+  return '\n\n'.join(out) + '\n'
+
+
+class Native:
+  """One entry of the native layer: what it defines, what it needs in scope,
+  and the Lean it is."""
+
+  def __init__(self, names, needs, text, doc):
+    self.names = names
+    self.needs = needs
+    self.text = text
+    self.doc = doc
+
+
+def compile_native(path=NATIVE_CONFIG):
+  """Read the native layer, which compiles to Lean and to nothing else."""
+  config = Config(path, sem_target.NATIVE_SET, [path],
+                  list(itertools.takewhile(lambda l: l.startswith(';'),
+                                           read_text(path).split('\n'))),
+                  False)
+  config.natives = []
+  for b in read_config([path], config.decls):
+    for e in b.entries():
+      if not e.has('lean-impl'):
+        die('%s: a native says what it is under :lean-impl' % e.name)
+      config.natives.append(Native(
+          [e.name],
+          e.get('needs').val if e.has('needs') else 'SmtEval',
+          e.get('lean-impl').val,
+          [d[1:].strip() for d in e.doc]))
+  return config
+
+
 def compile_to_files(sets=SHIPPED, out_dir=None):
   """Compile each set and write what it compiles to, where it changed.
 
@@ -499,6 +572,12 @@ def compile_to_files(sets=SHIPPED, out_dir=None):
   clauses, in that order -- so the caller need not know the layout.
   """
   out = {}
+  # The native layer is one set and a fixed one, so it is compiled whatever a
+  # run names, see NATIVE_CONFIG.
+  native_target = NATIVE_TARGET
+  if out_dir is not None:
+    native_target = os.path.join(out_dir, os.path.basename(native_target))
+  write_if_changed(render_native(compile_native()), native_target)
   for config, blocks in compile_all(sets):
     target, lean_target = config.target, config.lean_target
     if out_dir is not None:
@@ -560,6 +639,11 @@ def main():
         state, wrong = check_current(text, target)
         done.append((report.rel(target), state, None if wrong else what))
         bad += wrong
+    ncfg = compile_native()
+    state, wrong = check_current(render_native(ncfg), NATIVE_TARGET)
+    done.append((report.rel(NATIVE_TARGET), state,
+                 None if wrong else '%d natives' % len(ncfg.natives)))
+    bad += wrong
     at = max(len(n) for n, _, _ in done)
     for name, state, what in done:
       report.state(name, state, what, width=at)
@@ -568,6 +652,14 @@ def main():
                      % (name, state, report.rel(__file__)))
     sys.exit(1 if bad else 0)
   report.step('Compiling semantics under %s' % report.rel(home))
+  ncfg = compile_native()
+  ntarget = (os.path.join(a.out_dir, os.path.basename(NATIVE_TARGET))
+             if a.out_dir is not None else NATIVE_TARGET)
+  nchanged = write_if_changed(render_native(ncfg), ntarget)
+  report.item(report.rel(NATIVE_CONFIG), report.rel(ntarget),
+              '%d natives%s' % (len(ncfg.natives),
+                                '' if nchanged else ', unchanged'),
+              width=width)
   for (config, blocks), name in zip(compile_all(sets), named_sets):
     for text, target, what in written(blocks, config):
       if a.out_dir is not None:

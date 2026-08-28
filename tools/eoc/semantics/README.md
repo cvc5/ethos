@@ -175,6 +175,7 @@ A file is a sequence of these.
 (define-value NAME (parameter*) attribute*)         the target only
 (define-literal NAME (parameter*) attribute*)       the target only
 (define-method NAME attribute*)                     an input only
+(define-native-method NAME attribute*)              the native layer only
 (define-rule NAME attribute*)                       an input only
 
 anything else                                       refused
@@ -316,6 +317,7 @@ two are read apart by the form that declares one.
 | a value of the **target**, `semantics/smt.eos` | `define-value` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical` under `:canonical` |
 | a literal of the **target**, `semantics/smt.eos` | `define-literal` | a constant of the embedding and the macro that applies it; the two cases a symbol writes, `:typeof` and `:value`, over what it carries rather than over terms |
 | a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
+| a definition of the **native layer**, `plugins/lean_meta/lean.eos` | `define-native-method` | one block of the layer the generated Lean is written over: the Lean it is, under `:lean-impl`, and how much of the embedding that block needs in scope, under `:needs`. The name it declares is what a signature may reach; whatever else its Lean defines is private to the entry and is called `impl_native_` rather than `native_` to say so |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |
 | a rule of an **input**, `semantics/development-cpc.eos` | `define-rule` | the same, for a proof rule, which says only that it is left out |
 

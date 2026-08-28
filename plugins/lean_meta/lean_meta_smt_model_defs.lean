@@ -37,17 +37,13 @@ deriving Repr, DecidableEq, Inhabited, Ord
 
 -- Equality of a type and of a value, which the two above are what decide.
 
--- $native native_Teq
 /- Type equality -/
 def native_Teq : SmtType -> SmtType -> native_Bool
   | x, y => decide (x = y)
--- $native-end
 
--- $native native_veq
 /- Value equality -/
 def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
--- $native-end
 
 /-
 Regular languages. Base elements are SmtValue, which allows regular

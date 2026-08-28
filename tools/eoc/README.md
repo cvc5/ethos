@@ -180,74 +180,74 @@ abbreviates a Lean type, which is what a measure writes instead.
 
 ## Trimming the native layer
 
-The Lean the compiler generates is written against a layer of hand-written
-definitions named `native_`, which is what gives the deep embedding its
-arithmetic, its strings, its regular-expression matcher and the rest. That
-layer is written once for every signature there is, so most of it is dead for
-any one input: a signature of Booleans alone has no use for the matcher, and
-one with no bit-vectors has none for `native_binary_concat`. The `lean-meta`
-stage therefore emits only the part of it the compilation of the input
-reaches.
+The Lean the compiler generates is written against a layer of definitions
+named `native_`, which is what gives the deep embedding its arithmetic, its
+strings, its regular-expression matcher and the rest. That layer is written
+once for every signature there is, so most of it is dead for any one input: a
+signature of Booleans alone has no use for the matcher, and one with no
+bit-vectors has none for `native_binary_concat`. The `lean-meta` stage
+therefore emits only the part of it the compilation of the input reaches.
 
-What is reached is not something the stage can read off the input, since a
-definition of the layer is asked for by the generated text that calls it. So
-it is computed from the generated files themselves. Each hand-written
-definition is written as a *block*:
+**The layer is a configuration set**, `plugins/lean_meta/lean.eos`, which
+`tools/eoc/sem_compile.py` compiles to `tools/eoc/out/lean_native.lean`; that
+is the file the stage reads. One entry is one definition:
 
-```lean
--- $native native_binary_and
-def native_binary_and : native_Int -> native_Int -> native_Int
-  | w, n1, n2 => (native_ite (native_zeq w 0) 0 (native_piand w n1 n2))
+```lisp
+(define-native-method native_str_to_upper
+  :needs SmtEval
+  :lean-impl "def impl_native_char_to_upper (c : native_Char) : native_Char :=
+  if 97 <= c && c <= 122 then c - 32 else c
+
+def native_str_to_upper : native_String -> native_String
+  | s => s.map impl_native_char_to_upper")
 ```
 
-A block is opened by a `-- $native` line naming what it defines and closed by
-the next such line or by `-- $native-end`; the text around the blocks is what
-the generated definitions are spliced into, and is always emitted. Once every
-file has been written, a block is kept when that text, or a block already
-kept, names it, and dropped otherwise. Comments and string literals are not
-read, so a definition named only in prose is not thereby kept alive.
+The name the entry declares is what a signature may reach, spelled the way the
+embedding names it: an eoc reference names a native in quotes and the compiler
+answers `"X"` with `native_X`.
 
-A definition of the layer that no signature may name is called `impl_native_`
-rather than `native_`. The prefix is the whole of the rule: an eoc reference
-names a native in quotes and the compiler answers `"X"` with `native_X`, so no
-reference can spell an `impl_native_` name. What such a definition is for is
-the one it stands under, which is free to change it without asking what a
-signature relied on. The regular-expression matcher is written this way: a set
-names `"str_in_re"`, never the derivative step underneath it.
+**Whatever else the `:lean-impl` defines is private to that entry**, and is
+called `impl_native_` rather than `native_` to say so. The prefix is the whole
+of the rule: no eoc reference can spell one, since the compiler only ever
+answers with `native_X`, and the entry that writes it is free to change it
+without asking what a signature relied on. Such a definition has no name in
+the set either -- only the entry it stands in does -- so it is private twice
+over: `impl_native_char_to_upper` above is text of the one entry that has any
+use for it. Where several entries share a helper it is a `native_` entry of
+its own instead, which is what the regular-expression matcher does: a set
+names `"str_in_re"`, and the derivative step underneath it is
+`native_re_deriv`, reached by seven of them.
+
+What each entry compiles to is a *block* of the generated file, opened by a
+`-- $native` line naming what it defines. Once every module has been written,
+a block is kept when the generated text, or a block already kept, names it,
+and dropped otherwise. Comments and string literals are not read, so a
+definition named only in prose is not thereby kept alive. A `native_`
+definition that its own block does not name is an error rather than one
+quietly emitted for every input; an `impl_native_` one is not, since the block
+it stands in is what it belongs to.
 
 The layer is for what the embedding is written *over*, not for what is written
 *about a model*: the model, its lookups and the quantifier evaluators stand in
-`plugins/lean_meta/lean_meta_smt_model.lean`, beside what asks of them.
-
-Naming several things in one block keeps them together, which is what a
-definition with a private helper needs, or one whose type abbreviation has no
-other user:
-
-```lean
--- $native RefList native_reflist_nil native_reflist_insert native_reflist_contains
-```
-
-A name need not begin with `native_`; what matters is that the closure can ask
-for it by name. A definition that no block names is an error rather than one
-that is quietly emitted for every input, and so is a block whose text never
-mentions a name its header gives.
+`plugins/lean_meta/lean_meta_smt_model.lean`, and what decides equality of a
+term, a type or a value stands beside the type it decides over. Those are
+written in the templates as ordinary Lean and are emitted whatever an input
+reaches, since the module they stand in is written for every one.
 
 ### Where a definition comes out
 
-The blocks are one library, `plugins/lean_meta/lean_meta_native.lean`, rather
-than text of the files they end up in, so that a definition is written once
-whichever of the generated modules turns out to want it. Where a block comes
-out is the demand for it: a definition that more than one module reaches is
-written into what they share, and one that a single module reaches is written
-into that module.
+The entries are one set rather than text of the modules they end up in, so
+that a definition is written once whichever of the generated modules turns out
+to want it. Where a block comes out is the demand for it: a definition that
+more than one module reaches is written into what they share, and one that a
+single module reaches is written into that module.
 
 What a module has in scope is what bounds this, since the layer is written
-across three namespaces. The library is in sections, each opened by the scope
-its blocks need:
+across more than one namespace. Each entry says how much it needs with
+`:needs`, and the compiled file opens a section per scope:
 
 ```lean
 -- $native-needs SmtEval
--- $native-needs Eo
 -- $native-needs Smtm
 ```
 

@@ -165,13 +165,16 @@ class Reader:
                  'written as an s-expression')
     if c == '"':
       self.i += 1
+      # A backslash escapes the character after it, which is what lets a
+      # string hold a quote: the Lean an implementation is written as holds
+      # its own strings, see :lean-impl.
       while self.i < self.n and self.t[self.i] != '"':
-        self.i += 1
+        self.i += 2 if self.t[self.i] == '\\' else 1
       if self.i >= self.n:
         self.error('unterminated string')
       self.i += 1
       raw = self.t[start:self.i]
-      return Node('str', val=raw[1:-1], raw=raw)
+      return Node('str', val=unescape(raw[1:-1]), raw=raw)
     while self.i < self.n and self.t[self.i] not in _DELIM:
       self.i += 1
     raw = self.t[start:self.i]
@@ -180,6 +183,23 @@ class Reader:
     if raw.isdigit():
       return Node('int', val=int(raw), raw=raw)
     return Node('sym', val=raw, raw=raw)
+
+
+def unescape(text):
+  """What a string literal stands for: a backslash takes the character after
+  it as it is written. Only the two that have to be escaped are given a
+  meaning, so a backslash before anything else is that backslash.
+  """
+  out = []
+  i, n = 0, len(text)
+  while i < n:
+    if text[i] == '\\' and i + 1 < n and text[i + 1] in '\\"':
+      out.append(text[i + 1])
+      i += 2
+    else:
+      out.append(text[i])
+      i += 1
+  return ''.join(out)
 
 
 def read_text(path):
@@ -1554,10 +1574,12 @@ def parse_params(node, name, path):
 def parser(decls):
   """What reads an entity of the kind these declarations describe."""
   known = decls.attrs()
-  # :overload, :exclude, :keep and :lean give no case, so none is a term to
-  # expand macros in; the last is Lean text and no term at all.
+  # :overload, :exclude, :keep, :lean, :lean-impl and :needs give no case, so
+  # none is a term to expand macros in; the last three are Lean text and the
+  # scope it wants, neither of them a term at all.
   expanded = frozenset(k for k in known
-                       if k not in ('overload', 'exclude', 'keep', 'lean'))
+                       if k not in ('overload', 'exclude', 'keep', 'lean',
+                                    'lean-impl', 'needs'))
 
   def read(node, path, macros):
     # An entity that writes nothing of its own names no arguments: what is
