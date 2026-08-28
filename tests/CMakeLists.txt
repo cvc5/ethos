@@ -215,6 +215,10 @@ ethos_fail_test(check-sat-assuming-reference-fail.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(reference-reset-assertions-fail.eo
                 "was not part of the referenced assertions")
+ethos_fail_test(reference-define-fun-rec.eo
+                "Expected Eunoia command, got .define-fun-rec.")
+ethos_fail_test(reference-define-funs-rec.eo
+                "Expected Eunoia command, got .define-funs-rec.")
 ethos_fail_test(check-sat-assuming-non-bool.eo
                 "Expression of unexpected type")
 ethos_fail_test(require-proof-of-false-last-step.eo
