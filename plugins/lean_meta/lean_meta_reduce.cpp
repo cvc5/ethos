@@ -2106,8 +2106,7 @@ void LeanMetaReduce::finalizeParser()
   // The operators that the parser template declares itself, which a definition
   // of the same name does not override. Keep in sync with the head of
   // plugins/lean_meta/lean_meta_parser.lean.
-  std::set<std::string> opNames = {"Type", "Bool", "false", "true", "->",
-                                   "@list"};
+  std::set<std::string> opNames = {"Bool", "false", "true", "->", "@list"};
   std::stringstream ops;
   std::set<std::string> seenOps;
   for (const ParserOp& op : d_parserOps)
