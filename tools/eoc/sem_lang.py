@@ -26,9 +26,15 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import report  # noqa: E402
+
 
 def die(msg):
-  sys.stderr.write('sem_compile: %s\n' % msg)
+  """What the configuration got wrong, said the way every tool of the pipeline
+  says one, see report.error."""
+  report.error(msg)
   sys.exit(1)
 
 

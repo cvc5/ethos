@@ -4,6 +4,25 @@
 # The wrappers default to publishing stage and final artifacts in tools/eoc/out.
 # shellcheck shell=bash
 
+# How a script says what it is doing, which is how the tools it calls say it
+# too, see tools/eoc/report.py: a step of a run is a line under `-- ', what a
+# step is made of is indented two spaces further under it, and a path is
+# written from the root of the repository. What went wrong is not a step: it
+# goes to stderr as `error: ...', where the CI of a caller looks for it.
+eoc_step() { printf -- '-- %s\n' "$*"; }
+eoc_item() { printf -- '--   %s\n' "$*"; }
+eoc_error() { printf 'error: %s\n' "$*" >&2; }
+eoc_warning() { printf 'warning: %s\n' "$*" >&2; }
+
+# A path as a log names one: from the root of the repository where it is under
+# it, and as it stands otherwise, e.g. a tree the signature is read from.
+eoc_rel() {
+  case "$1" in
+    "$EOC_REPO_ROOT"/*) printf '%s\n' "${1#"$EOC_REPO_ROOT"/}" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
 EOC_COMPAT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EOC_TOOLS_DIR="$(cd "$EOC_COMPAT_DIR/.." && pwd)"
 EOC_REPO_ROOT="$(cd "$EOC_COMPAT_DIR/../../.." && pwd)"
@@ -141,7 +160,7 @@ eoc_extract_solve_options() {
     esac
   done
   if (( need_solve_args_value )); then
-    echo "error: --solve-args requires a value" >&2
+    eoc_error "--solve-args requires a value"
     exit 2
   fi
   if (( saw_solve )); then
@@ -237,48 +256,24 @@ eoc_rewrite_lean_calc_imports() {
   done < <(find "$dest_dir" -type f -name '*.lean' -print0)
 }
 
-# Compile the configuration of the model-smt signatures and say what came out,
-# in the same shape as eoc_copy_lean_outputs reports the Lean files.
+# Compile the configuration of the model-smt signatures, and say what came out.
 #
 # The stage reads two signatures written in the deep embedding: the SMT-LIB one,
 # smt_defs.eo, which it finds for itself since it is the target, and the input's,
-# user_defs.eo, which --signature names. Both are generated from the configuration
-# under tools/eoc/semantics. The driver compiles them before any stage runs
-# (see compile_signatures in tools/eoc/driver.py) but does so silently, so a run
-# never says where user_defs.eo came from; this compiles them first and prints
-# it. Doing so costs nothing and leaves the driver's own pass with nothing to
-# do: a file is written only where its text changed.
+# user_defs.eo, which --signature names. Both are generated from the
+# configuration under tools/eoc/semantics. The driver compiles them before any
+# stage runs (see compile_signatures in tools/eoc/driver.py) but does so
+# silently, so a run never says where user_defs.eo came from; this compiles them
+# first, where the compiler says it. Doing so costs nothing and leaves the
+# driver's own pass with nothing to do: a file is written only where its text
+# changed.
 #
-# The sets the tool ships with are read from sem_compile itself rather than
-# listed here, so they cannot drift; each is read with the role sem_compile.SHIPPED
-# fixes for it, which is what says which shape it compiles to. One named with
-# EOC_CPC_SIGNATURE that is not among them is compiled by the driver during the run
-# rather than reported here.
+# Which sets are compiled is sem_compile's own business rather than something
+# listed here, so the two cannot drift. One named with EOC_CPC_SIGNATURE that is
+# not among the sets the tool ships with is compiled by the driver during the
+# run rather than reported here.
 eoc_compile_sem_signatures() {
-  echo "Compiling the configuration under" \
-    "$EOC_TOOLS_DIR/semantics"
-  python3 - "$EOC_TOOLS_DIR" <<'EOC_SEM_PY'
-import os, sys
-sys.path.insert(0, sys.argv[1])
-import sem_compile
-
-def rel(path):
-  return os.path.relpath(path, sem_compile.ROOT)
-
-for config, blocks in sem_compile.compile_all(sem_compile.SHIPPED):
-  # A set writes the signature in the deep embedding that the model-smt stage
-  # reads, and the clauses the lean-meta stage is to append to what it writes.
-  for text, target, what in (
-      (sem_compile.render(blocks, config), config.target,
-       '%d blocks' % len(blocks)),
-      (sem_compile.render_lean(config), config.lean_target,
-       '%d clauses' % len(config.clauses))):
-    changed = sem_compile.write_if_changed(text, target)
-    print('  %s -> %s (%s, %s)'
-          % (rel(config.path), rel(target),
-             'wrote' if changed else 'unchanged', what))
-  print('    %s' % sem_compile.summary(config))
-EOC_SEM_PY
+  python3 "$EOC_TOOLS_DIR/sem_compile.py"
 }
 
 # The signature-wide Lean files installed by eoc_copy_lean_outputs, in module
@@ -313,9 +308,17 @@ eoc_copy_lean_outputs() {
   local rule_dest
   local copied
   local preserved
+  local at
 
   mkdir -p "$dest_dir" "$dest_dir/Proofs" "$dest_dir/Proofs/Rules"
-  echo "Installing generated Lean files from $lean_dir into $dest_dir"
+  eoc_step "Installing the generated Lean of $(eoc_rel "$lean_dir") into $(eoc_rel "$dest_dir")"
+  # What each line names the file it copied by, padded so that the files line
+  # up under one another.
+  at=0
+  for entry in "${EOC_LEAN_OUTPUTS[@]}"; do
+    read -r src dest <<< "$entry"
+    [[ "${#src}" -gt "$at" ]] && at="${#src}"
+  done
   for entry in "${EOC_LEAN_OUTPUTS[@]}"; do
     read -r src dest <<< "$entry"
     if [[ "$include_parser" == "0" && "$src" == "Parser.lean" ]]; then
@@ -323,10 +326,10 @@ eoc_copy_lean_outputs() {
       continue
     fi
     if [[ ! -f "$lean_dir/$src" ]]; then
-      echo "error: $lean_dir/$src was not generated" >&2
+      eoc_error "$(eoc_rel "$lean_dir/$src") was not generated"
       return 1
     fi
-    echo "  $src -> $dest_dir/$dest"
+    eoc_item "$(printf '%-*s -> %s' "$at" "$src" "$(basename "$dest_dir")/$dest")"
     cp "$lean_dir/$src" "$dest_dir/$dest"
   done
   if [[ -d "$rules_dir" ]]; then
@@ -343,8 +346,9 @@ eoc_copy_lean_outputs() {
         cp "$file" "$rule_dest"
         copied=$((copied + 1))
       done
-      echo "  Rules/*.lean -> $dest_dir/Proofs/Rules/" \
-        "($copied copied, $preserved existing preserved)"
+      eoc_item "$(printf '%-*s -> %s (%s)' "$at" "Rules/*.lean" \
+        "$(basename "$dest_dir")/Proofs/Rules/" \
+        "$copied copied, $preserved preserved")"
     )
   fi
 }
