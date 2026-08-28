@@ -132,7 +132,6 @@ set(ethos_test_file_list
     check-sat-assuming-reference.eo
     reference-query-commands.eo
     reference-reset-assertions.eo
-    reference-push-pop.eo
     left-cons.eo
     overload-standalone.eo
     datatypes-split-rule.eo
@@ -215,10 +214,6 @@ ethos_fail_test(parser-overflow-declare-sort.eo
 ethos_fail_test(check-sat-assuming-reference-fail.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(reference-reset-assertions-fail.eo
-                "was not part of the referenced assertions")
-ethos_fail_test(reference-push-pop-fail.eo
-                "was not part of the referenced assertions")
-ethos_fail_test(reference-push-pop-fail2.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(reference-define-fun-rec.eo
                 "Recursive function definitions are not supported")

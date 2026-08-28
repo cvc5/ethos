@@ -8,7 +8,6 @@
  ******************************************************************************/
 #include "state.h"
 
-#include <algorithm>
 #include <iostream>
 
 #include "base/check.h"
@@ -220,9 +219,6 @@ void State::reset()
   d_decls.clear();
   d_declsSizeCtx.clear();
   d_lastStepProvesFalseAtLevelZero = false;
-  // reset subsumes reset-assertions; all scopes are discarded as well
-  clearReferenceAsserts();
-  d_referenceAssertsSizeCtx.clear();
   if (d_plugin!=nullptr)
   {
     d_plugin->reset();
@@ -232,7 +228,6 @@ void State::reset()
 void State::pushScope()
 {
   d_declsSizeCtx.push_back(d_decls.size());
-  d_referenceAssertsSizeCtx.push_back(d_referenceAssertList.size());
   if (d_plugin!=nullptr)
   {
     d_plugin->pushScope();
@@ -248,20 +243,6 @@ void State::popScope()
   if (d_declsSizeCtx.empty())
   {
     EO_FATAL() << "State::popScope: empty context";
-  }
-  // discard the reference assertions added since the last pushScope
-  Assert(!d_referenceAssertsSizeCtx.empty());
-  size_t lastRefSize = d_referenceAssertsSizeCtx.back();
-  d_referenceAssertsSizeCtx.pop_back();
-  if (d_referenceAssertList.size() > lastRefSize)
-  {
-    // clear the raw-pointer set first, then rebuild it from the truncated list
-    d_referenceAsserts.clear();
-    d_referenceAssertList.resize(lastRefSize);
-    for (const Expr& a : d_referenceAssertList)
-    {
-      d_referenceAsserts.insert(a.getValue());
-    }
   }
   size_t lastSize = d_declsSizeCtx.back();
   d_declsSizeCtx.pop_back();
@@ -524,11 +505,6 @@ void State::clearReferenceAsserts()
 {
   d_referenceAsserts.clear();
   d_referenceAssertList.clear();
-  // all assertion levels are popped as well, so we reset the sizes recorded
-  // at each scope to zero
-  std::fill(d_referenceAssertsSizeCtx.begin(),
-            d_referenceAssertsSizeCtx.end(),
-            0);
 }
 
 void State::setLiteralTypeRule(Kind k, const Expr& t)

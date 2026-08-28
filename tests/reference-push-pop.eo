@@ -1,8 +1,0 @@
-; regression: reference assertions are scoped by push and pop
-(declare-const Int Type)
-(declare-const > (-> Int Int Bool))
-(declare-const < (-> Int Int Bool))
-(declare-consts <numeral> Int)
-(reference "reference-push-pop.smt2")
-(assume @p0 (> x 1))
-(assume @p1 (> x 0))
