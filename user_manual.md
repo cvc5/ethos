@@ -2065,7 +2065,7 @@ If it does not, then an error is thrown indicating that the proof is assuming a 
 
 > __Note:__ Only one reference command can be executed for each run of ethos.
 
-#### Unsupported Commands and Known Limitations to Reference Inputs
+#### Unsupported Commands and Known Limitations for Checking References
 <a name="reference-limitations"></a>
 
 The following aspects of SMT-LIB version 2.6 inputs are *not* supported when used as reference files in the current version of ethos.
