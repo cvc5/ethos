@@ -303,9 +303,16 @@ own.
 `eo::hash` has no Lean at all. EO leaves what it returns underconstrained, so
 a signature that reasons through it says nothing this backend could prove; the
 layer used to answer with a stub returning `0`, which is a claim about hash
-the signature never made. The `lean-meta` stage now fails on it instead. The
-other backends are unaffected: `$native_thash` reaches SMT-LIB and SyGuS as an
-uninterpreted function, which is what it is.
+the signature never made, so the layer defines no `native_thash`.
+
+The `lean-meta` stage therefore refuses to print `$eo_hash`, the program of the
+embedding that would call it, the way it refuses `$eo_ite`; see
+`LeanMetaReduce::finalizeProgram`. A signature with no use for hash never
+misses it, since nothing names the definition. One that *does* use hash gets
+generated Lean naming a definition that was never written, and **Lean is what
+reports it** -- the stage checks nothing further, since the generated file is
+not what says whether a name exists. The other backends are unaffected:
+`$native_thash` reaches SMT-LIB and SyGuS as the uninterpreted function it is.
 
 Adding a root is how to fix a downstream build that a trimmed tree broke. To
 see what was dropped, run the stage with the whole layer emitted:

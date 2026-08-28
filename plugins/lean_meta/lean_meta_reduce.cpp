@@ -1029,17 +1029,6 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   AlwaysAssert(l != nullptr)
       << "Expected string literal in smt apply app " << oApp;
   std::string smtStr = l->d_str.toString();
-  if (smtStr == "thash")
-  {
-    // eo::hash is an underconstrained oracle: EO promises nothing about what
-    // it returns beyond its type, so a signature that reasons about a proof
-    // through it says nothing this backend could prove. The layer used to
-    // answer with a stub that returned 0, which is a claim about hash the
-    // signature never made; failing here is what says so instead.
-    EO_FATAL() << "LeanMetaReduce: eo::hash has no Lean, since what it "
-                  "returns is underconstrained; a signature the Lean backend "
-                  "compiles cannot use it";
-  }
   // literals don't need native_
   if (is_integer(smtStr) || smtStr == "true" || smtStr == "false")
   {
@@ -1347,7 +1336,14 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
                                      bool isDefine)
 {
   std::string vname = getName(v);
-  if (vname == "$eo_ite")
+  // $eo_hash has no Lean: EO leaves what eo::hash returns underconstrained, so
+  // a definition compiled through it says nothing this backend could prove,
+  // and the native layer defines no native_thash for one to call. Refusing to
+  // print it is what leaves a signature with no use for hash unaffected --
+  // nothing names the definition, so nothing misses it -- while one that does
+  // use it gets Lean naming a definition that was never written, which Lean
+  // reports.
+  if (vname == "$eo_ite" || vname == "$eo_hash")
   {
     return;
   }
