@@ -1165,9 +1165,14 @@ class Program(Entry):
   # A program belongs to no symbol, so it belongs to the block it stands in.
   joins_open_block = True
 
-  def __init__(self, node, params, sig, ret, cases):
+  def __init__(self, node, params, sig, ret, cases, keep=False):
     self.node = node
     self.name = node.items[1].val
+    # Whether the block it stands in is taken whatever the input declares. A
+    # program is otherwise taken only where a block already taken names it,
+    # which is right for a helper of a symbol and wrong for one the *template*
+    # names, see $EO_TO_SMT_AUX$ in plugins/model_smt/model_smt.eo.
+    self.keep = keep
     self.params = params        # what each parameter is called
     self.sig = sig              # the type of each argument, as written
     self.ret = ret              # the type of the result, as written
@@ -1218,15 +1223,26 @@ class Program(Entry):
              declared_type(self.ret, self, ctx),
              self.cases.laid_out([self.case(c, ctx)
                                   for c in self.cases.items])]
-    return '\n'.join(list(self.doc) + [self.node.laid_out(parts)])
+    out = list(self.doc)
+    if self.keep:
+      # The same directive a symbol of the embedding writes, see
+      # DefsBlock::d_keep: the stage reads it and takes the block whatever the
+      # input declares.
+      out.append('(echo "eoc-keep symbol %s")' % self.name)
+    return '\n'.join(out + [self.node.laid_out(parts)])
 
 
 def parse_program(node, path, macros):
   it = node.items
+  # :keep may stand between the parameters and the signature, and says the
+  # block is taken whatever the input declares.
+  keep = len(it) > 3 and it[3].kind == 'kw' and it[3].val == ':keep'
+  if keep:
+    it = it[:3] + it[4:]
   if len(it) < 7 or it[2].kind != 'list' or it[3].kind != 'kw' \
           or it[3].val != ':signature' or it[4].kind != 'list':
-    die('%s: a program is written (program NAME (param...) :signature (T...) '
-        'R (case...))' % path)
+    die('%s: a program is written (program NAME (param...) [:keep] '
+        ':signature (T...) R (case...))' % path)
   params = [p.items[0].val for p in it[2].items
             if p.kind == 'list' and p.items]
   if len(it) < 7 or it[6].kind != 'list':
@@ -1235,7 +1251,7 @@ def parse_program(node, path, macros):
   # A macro is an idiom the bodies of a file would otherwise repeat, and the
   # cases of a program are bodies like any other.
   cases = expand_macros(it[6], macros, it[1].val)
-  return Program(node, params, it[4], it[5], cases)
+  return Program(node, params, it[4], it[5], cases, keep)
 
 
 # A program belongs to no symbol and is an entry of either set. It is written

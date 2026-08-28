@@ -24,6 +24,53 @@ abbrev SmtNativeFun := SmtValue -> SmtValue
 -- the rest only this file reaches. See LeanMetaReduce::placeNativeDefs.
 -- $native-place Smtm
 
+-- The model itself, and what is asked of one. This is not of the native
+-- layer: a model is what this file is about, so what stands over one is
+-- written here rather than in a library the compilation trims. What the
+-- embedding names -- the three lookups and the identifier a default function
+-- is given -- keeps its `native_` name, since that is the name a signature
+-- reaches it by; what only this file names does not.
+
+structure SmtModelKey where
+  isVar : native_Bool
+  name : native_String
+  ty : SmtType
+deriving Repr, DecidableEq, Inhabited
+
+structure SmtModel where
+  values : SmtModelKey -> SmtValue
+  nativeFuns : SmtModelKey -> SmtNativeFun
+deriving Inhabited
+
+def model_key (s : native_String) (T : SmtType) : SmtModelKey :=
+  { isVar := false, name := s, ty := T }
+
+def model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : SmtNativeFun :=
+  M.nativeFuns (model_key fid (SmtType.FunType T U))
+
+-- $native native_default_fun_id
+def native_default_fun_id : native_String := (native_string_lit "@native_default_fun")
+-- $native-end
+
+-- $native native_model_var_lookup
+def native_model_var_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
+  M.values { isVar := true, name := s, ty := T }
+-- $native-end
+
+-- $native native_model_lookup
+def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
+  M.values (model_key s T)
+-- $native-end
+
+-- $native native_model_push
+def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
+  { M with values := fun k =>
+      if k = { isVar := true, name := s, ty := T } then
+        v
+      else
+        M.values k }
+-- $native-end
+
 /- Definition of SMT-LIB model semantics -/
 
 noncomputable section
@@ -39,13 +86,81 @@ def native_inhabited_type (T : SmtType) : native_Bool :=
 
 $LEAN_SMT_EVAL_DEFS$
 
+-- The quantifier evaluators, which are of the model rather than of the
+-- native layer: each takes one and asks what a body comes to under it,
+-- which is what this file is about. They stand here for the same reason
+-- the lookups above do, and keep their `native_` names because the
+-- embedding names them, see $EO_TO_SMT_AUX$ in model_smt.eo.
+
+-- $native native_eval_texists
+macro_rules
+  | `(native_eval_texists $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical
+      `(by
+          classical
+          exact
+            if h :
+                ∃ v : SmtValue,
+                  $typeofValueId v = $T ∧
+                    $canonId v = true ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+-- $native-end
+
+-- $native native_eval_tforall
+macro_rules
+  | `(native_eval_tforall $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical
+      `(by
+          classical
+          exact
+            if h :
+                ∀ v : SmtValue,
+                  $typeofValueId v = $T ->
+                    $canonId v = true ->
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+-- $native-end
+
+-- $native native_eval_tchoice
+macro_rules
+  | `(native_eval_tchoice $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical
+      `(by
+          classical
+          exact
+            if hSat :
+                ∃ v : SmtValue,
+                  $typeofValueId v = $T ∧
+                    $canonId v = true ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              Classical.choose hSat
+            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId v then
+              Classical.choose hTy
+            else
+              SmtValue.NotValue)
+-- $native-end
+
 -- $native native_eval_fun_apply
 def native_eval_fun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) (i : SmtValue) : SmtValue :=
   let fallback := __smtx_type_default U
   if fid = native_default_fun_id then
     fallback
   else
-    native_model_fun_lookup M fid T U i
+    model_fun_lookup M fid T U i
 
 -- $native native_unpack_seq
 def native_unpack_seq : SmtSeq -> List SmtValue

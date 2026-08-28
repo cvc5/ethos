@@ -169,7 +169,7 @@ A file is a sequence of these.
 (section STRING)                                    opens one theory
 
 (define-macro NAME (NAME*) term)                    see Entries
-(program NAME (declaration*) :signature (type*) type (case*))
+(program NAME (declaration*) [:keep] :signature (type*) type (case*))
 (define-symbol NAME (parameter*) attribute*)
 (define-sort NAME (parameter*) attribute*)          the target only
 (define-value NAME (parameter*) attribute*)         the target only
@@ -731,6 +731,25 @@ it is named everywhere else:
 
 Naming a type the embedding has no such type for is caught here rather than by
 ethos.
+
+A program is a *helper*: its block is taken only where a block already taken
+names it, which is what a helper of a symbol wants. Writing `:keep` between
+the parameters and the signature says the block stands whatever the input
+declares, which is what a program the **template** names wants instead, since
+no symbol of the input names one. It compiles to the same `eoc-keep` directive
+a symbol of the embedding writes, see `DefsBlock::d_keep`.
+
+```lisp
+(program $eo_to_smt_reserved_datatype_name ((s "String"))
+  :keep
+  :signature ("String") "Bool"
+  ((($eo_to_smt_reserved_datatype_name s) ("string_head_eq" "str_at_sign" s))))
+```
+
+`$eo_to_smt` and `$eo_to_smt_type` in `plugins/model_smt/model_smt.eo` ask an
+input's set for that one by name: which datatype names a calculus keeps for
+itself is a convention of the calculus, not of the embedding. **An input set
+has to define it**, and one that does not fails when the stage runs.
 
 **The signature is what says how a case is read**, place by place. A place
 whose declared type is one of the input is taken as the input wrote it, and

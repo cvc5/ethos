@@ -207,6 +207,18 @@ file has been written, a block is kept when that text, or a block already
 kept, names it, and dropped otherwise. Comments and string literals are not
 read, so a definition named only in prose is not thereby kept alive.
 
+A definition of the layer that no signature may name is called `impl_native_`
+rather than `native_`. The prefix is the whole of the rule: an eoc reference
+names a native in quotes and the compiler answers `"X"` with `native_X`, so no
+reference can spell an `impl_native_` name. What such a definition is for is
+the one it stands under, which is free to change it without asking what a
+signature relied on. The regular-expression matcher is written this way: a set
+names `"str_in_re"`, never the derivative step underneath it.
+
+The layer is for what the embedding is written *over*, not for what is written
+*about a model*: the model, its lookups and the quantifier evaluators stand in
+`plugins/lean_meta/lean_meta_smt_model.lean`, beside what asks of them.
+
 Naming several things in one block keeps them together, which is what a
 definition with a private helper needs, or one whose type abbreviation has no
 other user:
@@ -284,9 +296,16 @@ The roots are written next to the definitions they are of, with the reason.
 There are two today: `native_string_lit`, which a proof written against the
 published tree names its strings with, and the reference lists, which the
 translation proofs of the destination package use. A definition the *input*
-signature reaches needs no root, since the closure finds it: `eo::cmp` and
-`eo::hash` desugar to `$native_tcmp` and `$native_thash`, so a signature that
-uses them keeps those two on its own.
+signature reaches needs no root, since the closure finds it: `eo::cmp`
+desugars to `$native_tcmp`, so a signature that uses it keeps that one on its
+own.
+
+`eo::hash` has no Lean at all. EO leaves what it returns underconstrained, so
+a signature that reasons through it says nothing this backend could prove; the
+layer used to answer with a stub returning `0`, which is a claim about hash
+the signature never made. The `lean-meta` stage now fails on it instead. The
+other backends are unaffected: `$native_thash` reaches SMT-LIB and SyGuS as an
+uninterpreted function, which is what it is.
 
 Adding a root is how to fix a downstream build that a trimmed tree broke. To
 see what was dropped, run the stage with the whole layer emitted:

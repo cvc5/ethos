@@ -1029,6 +1029,17 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   AlwaysAssert(l != nullptr)
       << "Expected string literal in smt apply app " << oApp;
   std::string smtStr = l->d_str.toString();
+  if (smtStr == "thash")
+  {
+    // eo::hash is an underconstrained oracle: EO promises nothing about what
+    // it returns beyond its type, so a signature that reasons about a proof
+    // through it says nothing this backend could prove. The layer used to
+    // answer with a stub that returned 0, which is a claim about hash the
+    // signature never made; failing here is what says so instead.
+    EO_FATAL() << "LeanMetaReduce: eo::hash has no Lean, since what it "
+                  "returns is underconstrained; a signature the Lean backend "
+                  "compiles cannot use it";
+  }
   // literals don't need native_
   if (is_integer(smtStr) || smtStr == "true" || smtStr == "false")
   {

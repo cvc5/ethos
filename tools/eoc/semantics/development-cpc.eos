@@ -972,6 +972,23 @@
 (section "The type constructors")
 ;-----------------------------------------------------------------------------
 
+; Which datatype names this calculus keeps for itself. CPC spells an internal
+; name with a leading `@`, and a type of one is no type of the model: the
+; transformation answers $tsm_none for it. That is a convention of this
+; signature rather than of the embedding, so it is said here, and the stage
+; asks for it by name, see $eo_to_smt_type in plugins/model_smt/model_smt.eo.
+; :keep is what says the block stands whatever the input declares, since what
+; names it is that program rather than a symbol of the input.
+
+; -- $eo_to_smt_reserved_datatype_name
+(program $eo_to_smt_reserved_datatype_name ((s "String"))
+  :keep
+  :signature ("String") "Bool"
+  (
+  (($eo_to_smt_reserved_datatype_name s) ("string_head_eq" "str_at_sign" s))
+  )
+)
+
 ; The type constructors of the input, i.e. what they contribute to
 ; $eo_to_smt_type rather than to $eo_to_smt.
 ;

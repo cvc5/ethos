@@ -154,9 +154,16 @@
    (op $smt_id) (x1 W1) (x2 W2) (x3 W3))
   ($native_apply_2 op x1 ($native_apply_2 op x2 x3)))
 
-; datatypes
-(define $native_reserved_datatype_name ((s $native_String))
-  ($native_apply_1 "reserved_datatype_name" s))
+; The at sign on its own. What a name beginning with one means is no business
+; of the embedding: a signature that reserves names by a prefix says so for
+; itself, see $eo_to_smt_reserved_datatype_name in
+; tools/eoc/semantics/development-cpc.eos.
+(define $native_str_at_sign () ($native_apply_0 """@"""))
+
+; Whether s begins with the one character c holds. Narrower than a prefix test
+; on purpose: the general matcher is private to the native layer.
+(define $native_string_head_eq ((c $native_String) (s $native_String))
+  ($native_apply_2 "string_head_eq" c s))
 
 ;;; Defining parametric bitvector operators
 
