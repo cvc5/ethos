@@ -193,7 +193,7 @@ therefore emits only the part of it the compilation of the input reaches.
 is the file the stage reads. One entry is one definition:
 
 ```lisp
-(define-native-method native_str_to_upper
+(define-native-method str_to_upper
   :needs SmtEval
   :lean-impl "def impl_native_char_to_upper (c : native_Char) : native_Char :=
   if 97 <= c && c <= 122 then c - 32 else c
@@ -202,9 +202,11 @@ def native_str_to_upper : native_String -> native_String
   | s => s.map impl_native_char_to_upper")
 ```
 
-The name the entry declares is what a signature may reach, spelled the way the
-embedding names it: an eoc reference names a native in quotes and the compiler
-answers `"X"` with `native_X`.
+The entry names the native **the way a set names one**, without the prefix the
+embedding gives it: `str_to_upper` here is what `"str_to_upper"` names in a
+set, and the compiler answers that with `native_str_to_upper`. The Lean the
+entry is defines the prefixed name, since that is what the generated text
+calls.
 
 **Whatever else the `:lean-impl` defines is private to that entry**, and is
 called `impl_native_` rather than `native_` to say so. The prefix is the whole

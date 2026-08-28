@@ -555,8 +555,12 @@ def compile_native(path=NATIVE_CONFIG):
     for e in b.entries():
       if not e.has('lean-impl'):
         die('%s: a native says what it is under :lean-impl' % e.name)
+      # An entry names the native the way a set does, without the prefix the
+      # embedding gives it: `ite` here is what `"ite"` names in a set and what
+      # the compiler answers with native_ite. The Lean it is defines the
+      # prefixed name, since that is what the generated text calls.
       config.natives.append(Native(
-          [e.name],
+          ['native_' + e.name],
           e.get('needs').val if e.has('needs') else 'SmtEval',
           e.get('lean-impl').val,
           [d[1:].strip() for d in e.doc]))
