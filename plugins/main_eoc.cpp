@@ -51,8 +51,10 @@ bool isUnsupportedOption(const std::string& key)
   // This binary compiles a signature rather than checking a proof, so an
   // option about what a proof has to look like has nothing here to act on.
   // Setting it would quietly do nothing, which is worse than saying it is not
-  // an option this binary takes.
-  return key == "require-proof-of-false";
+  // an option this binary takes. The usage and build information of ethos are
+  // likewise its own and not wired into this binary.
+  return key == "require-proof-of-false" || key == "help"
+         || key == "show-config";
 }
 
 std::unique_ptr<Plugin> createPlugin(const std::string& name,
