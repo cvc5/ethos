@@ -46,7 +46,6 @@ EOC_DEFAULT_SEMANTICS="$EOC_TOOLS_DIR/semantics/smt.eos"
 # so nothing here passes --lean-config unless the caller named another; see
 # compile_signatures in tools/eoc/driver.py.
 EOC_DEFAULT_CPC_LEAN_CONFIG="$EOC_TOOLS_DIR/out/user_termination.lean"
-EOC_DEFAULT_ALETHE_INPUT="$EOC_REPO_ROOT/../AletheInEunoia/signature/Alethe.eo"
 EOC_DEFAULT_FINAL_OUT_DIR="$EOC_TOOLS_DIR/out"
 
 eoc_default_build_dir() {
@@ -107,10 +106,6 @@ eoc_add_lean_config() {
   if [[ -n "${EOC_CPC_LEAN_CONFIG:-}" ]]; then
     ARGS+=("--lean-config=${EOC_CPC_LEAN_CONFIG}")
   fi
-}
-
-eoc_alethe_input() {
-  printf '%s\n' "${EOC_ALETHE_INPUT:-$EOC_DEFAULT_ALETHE_INPUT}"
 }
 
 eoc_final_out_dir() {
@@ -183,10 +178,6 @@ eoc_require_args() {
 
 eoc_exec_driver() {
   exec python3 "$EOC_DRIVER" "$@"
-}
-
-eoc_run_driver() {
-  python3 "$EOC_DRIVER" "$@"
 }
 
 eoc_lean_calc_name() {

@@ -1,10 +1,17 @@
 # CPC Wrappers
 
-These bash scripts are thin CPC-specific front-ends for
-`tools/eoc/driver.py`: each fills in the default CPC signature and options,
-then invokes the driver.
+What is here installs the generated Lean of the CPC signature into a Logos
+tree: `install_logos` does it for the whole calculus and `install_logos_mini`
+for the handful of rules `CpcMini` holds. The rest of the directory is what
+those two reach -- `run_gen_lean`, `run_gen_lean_all` and `run_clean`, which
+fill in the default CPC signature and options and invoke
+`tools/eoc/driver.py`, and `common.sh`, which they share.
 
-Most wrappers default to the external CPC signature:
+Nothing else has a wrapper. A verification condition, a SyGuS query, a trimmed
+slice of a signature: call the driver, which documents its own options in
+[`../README.md`](../README.md).
+
+The wrappers default to the external CPC signature:
 
 ```text
 input: <cvc5>/proofs/eo/cpc/Cpc.eo
@@ -23,20 +30,13 @@ namely the lambda symbol, its beta-reduction rule, and their private helper
 methods; every wrapper leaves those out, not just the ones that compile the
 whole signature. The list is literal; no dependency analysis is performed.
 
-`run_gen_vc_all_alethe` defaults to the Alethe signature instead:
-
-```text
-<alethe-in-eunoia>/signature/Alethe.eo
-```
-
 Useful environment variables:
 
 - `BUILD_DIR=/path/to/build` to override the build tree. If unset, the wrappers
   use the current directory when it contains an executable `ethos-eoc`,
   otherwise `<repo>/build-eoc`.
-- `EOC_NO_BUILD=1` to skip the rebuild, for the wrappers that support it,
-  namely `run_gen_vc_all`, `run_gen_vc_all_alethe`, `run_gen_sygus_all`,
-  `run_gen_lean_all`, `run_trim_defs`, and `run_count_deps`.
+- `EOC_NO_BUILD=1` to skip the rebuild, which `run_gen_lean_all` supports and
+  so `install_logos` does.
 - `EOC_SKIP_CVC5=1` to skip solver parse checks.
 - `EOC_CPC_INPUT=/path/to/signature.eo` to override the default CPC input. A
   signature given this way has no model definitions unless `EOC_CPC_SIGNATURE`
@@ -52,8 +52,6 @@ Useful environment variables:
   then give the lean-meta stage with `--lean-config`. A signature given as a
   configuration set compiles its own clauses, which the driver gives that stage
   of itself, so this is for one given already written out.
-- `EOC_ALETHE_INPUT=/path/to/Alethe.eo` to override the default Alethe
-  signature.
 - `EOC_FINAL_OUT_DIR=/path/to/out` to override the published output tree.
 - `LOGOS_DIR`, `LOGOS_TESTS_DIR`, `LOGOS_REGRESS_DIR` (default
   `$LOGOS_DIR/test/regress`, where the generated `*.cpc.lean` regressions go),
@@ -73,25 +71,15 @@ installation.
 Examples:
 
 ```bash
-tools/eoc/cpc/run_gen_vc --solve resolution
-EOC_CPC_INPUT=tests/Booleans-rules.eo tools/eoc/cpc/run_gen_vc_all --solve
-BUILD_DIR=build-eoc EOC_NO_BUILD=1 tools/eoc/cpc/run_gen_lean_all
-EOC_CPC_INPUT=tests/Uf-rules.eo EOC_NO_BUILD=1 tools/eoc/cpc/run_count_deps symm
+BUILD_DIR=build-eoc EOC_NO_BUILD=1 tools/eoc/cpc/install_logos
+LOGOS_DIR=/tmp/logos tools/eoc/cpc/install_logos_mini
+tools/eoc/cpc/run_gen_lean symm contra
 ```
 
-`run_gen_vc`, `run_gen_vc_all`, `run_gen_vc_all_alethe`, `run_gen_sygus`, and
-`run_gen_sygus_all` accept `--solve` to run the configured `cvc5` executable on
-the generated artifact after any parse check. They also accept `--solve-args="..."` to pass
-extra solver options through to that solve step, for example
-`--solve-args="--tlimit=1000 --seed=7"`.
-
-`run_count_deps RULE [RULE ...]` runs `trim-defs` for each rule and counts the
-non-comment, nonblank lines in `tools/eoc/out/trim_defs/trim_gen.eo`, ignoring
-`declare-const`, `declare-consts`, and `declare-parameterized-const` commands.
-For one rule it prints only the count; for multiple rules it prints
-`RULE COUNT` pairs. The counted trimmed EO slice is left at
-`tools/eoc/out/trim_defs/trim_gen.eo` for inspection. With multiple rules, this
-file contains the slice for the last rule processed.
+`run_gen_vc` and `run_gen_sygus` accept `--solve` to run the configured `cvc5`
+executable on the generated artifact after any parse check. They also accept
+`--solve-args="..."` to pass extra solver options through to that solve step,
+for example `--solve-args="--tlimit=1000 --seed=7"`.
 
 `install_logos` publishes the generated proof parser as
 `$LOGOS_DIR/Cpc/Parser.lean`. The generated module is only a
