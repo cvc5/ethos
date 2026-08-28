@@ -9,6 +9,14 @@
 ; vocabulary: the constructor $emb_tsm.X and its macro $tsm_X, and what each
 ; type says about itself to the three programs written over the types.
 ;
+; It gives the programs written over the shapes a value is built over -- the
+; map an array and a set are, the sequence a string is -- which look one up,
+; type one and say whether one is written the one way. Each stands beside the
+; sort it belongs to. What such a shape *is* it does not say: a set writes what
+; a theory does with the embedding and never what the embedding is, so the
+; declaration of $smt_Map and of the constructors that build one stands in
+; plugins/model_smt/model_smt.eo.
+;
 ; This is the target of the compilation: every input is compiled through it, so
 ; what it says is what a model of any input means, and nothing about an input
 ; is asked of it.
@@ -52,19 +60,19 @@
 
 ; -- the value family
 ; A value of each shape, from what it holds.
-(define-macro smt.bool (b)          ($vsm_bool b))
-(define-macro smt.numeral (n)       ($vsm_numeral n))
-(define-macro smt.rational (r)      ($vsm_rational r))
-(define-macro smt.binary (w v)      ($vsm_binary w v))
-(define-macro smt.seq (s)           ($vsm_seq s))
-(define-macro smt.re (r)            ($vsm_re r))
-(define-macro smt.char (c)          ($vsm_char c))
-(define-macro smt.map (m)           ($vsm_map m))
-(define-macro smt.set (m)           ($vsm_set m))
+(define-macro smt.bool (b)          ($vsm_Boolean b))
+(define-macro smt.numeral (n)       ($vsm_Numeral n))
+(define-macro smt.rational (r)      ($vsm_Rational r))
+(define-macro smt.binary (w v)      ($vsm_Binary w v))
+(define-macro smt.seq (s)           ($vsm_Seq s))
+(define-macro smt.re (r)            ($vsm_RegLan r))
+(define-macro smt.char (c)          ($vsm_Char c))
+(define-macro smt.map (m)           ($vsm_Map m))
+(define-macro smt.set (m)           ($vsm_Set m))
 
 ; The values of that family the embedding names for themselves. A whole number
 ; is not among them: 0 and 1 at value level are already what they denote.
-(define-macro smt.not_value ()      $vsm_not_value)
+(define-macro smt.not_value ()      $vsm_NotValue)
 (define-macro smt.true ()           $vsm_true)
 (define-macro smt.false ()          $vsm_false)
 (define-macro smt.q_zero ()         $vsm_q_zero)
@@ -78,18 +86,24 @@
 ; the two above wraps it.
 (define-macro smt.map_cons (i e m)  ($msm_cons i e m))
 (define-macro smt.map_default (T e) ($msm_default T e))
-(define-macro smt.map_empty_set (T) ($msm_empty_set T))
+(define-macro smt.map_empty_set (T) (smt.map_default T smt.false))
 (define-macro smt.seq_cons (i s)    ($ssm_cons i s))
 (define-macro smt.seq_empty (T)     ($ssm_empty T))
 
 ; -- the programs of the embedding
 ; The methods of the map and of the value language that a case reaches for.
 (define-macro smt.map_lookup (m i)        ($smtx_msm_lookup m i))
-(define-macro smt.map_update (m i e)      ($smtx_msm_update m i e))
+(define-macro smt.map_update (m i e)
+  ($smtx_msm_update_aux ($smtx_msm_get_default m) m i e))
 (define-macro smt.typeof_value (v)        ($smtx_typeof_value v))
 (define-macro smt.typeof_map_value (m)    ($smtx_typeof_map_value m))
 (define-macro smt.typeof_seq_value (s)    ($smtx_typeof_seq_value s))
 (define-macro smt.typeof_guard_wf (T U)   ($smtx_typeof_guard_wf T U))
+
+; The type of the ci^th constructor of a datatype declared under s. Substitutes
+; (TypeRef s) for (Datatype s dd), which is what makes the datatype closed.
+(define-macro smt.typeof_dt_cons_value (s dd n)
+  ($smtx_typeof_dt_cons_value_rec (Datatype s dd) ($smtx_dd_resolve s dd) n))
 
 (section "The types")
 ;-----------------------------------------------------------------------------
@@ -138,6 +152,109 @@
   :bounded ("or" ("not" u) ("n_=" w "n_zero"))
   :default (smt.binary ("n_to_z" w) 0))
 
+; -- $smtx_msm_get_default
+; Get the default for the map
+(program $smtx_msm_get_default
+  ((T SmtType) (i SmtValue) (j SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtMap) SmtValue
+  (
+  (($smtx_msm_get_default ($msm_cons j e m))  ($smtx_msm_get_default m))
+  (($smtx_msm_get_default ($msm_default T e)) e)
+  )
+)
+
+; This program looks up the value of a term in a map.
+; This is used for function evaluation.
+(program $smtx_msm_lookup
+  ((T SmtType) (i SmtValue) (j SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtMap SmtValue) SmtValue
+  (
+  (($smtx_msm_lookup ($msm_cons j e m) i)  ("ite" ("veq" j i) e ($smtx_msm_lookup m i)))
+  (($smtx_msm_lookup ($msm_default T e) i) e)
+  )
+)
+
+(program $smtx_msm_update_aux_no_default
+  ((ed SmtValue) (T SmtType) (i SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtValue SmtMap SmtValue SmtValue) SmtMap
+  (
+  (($smtx_msm_update_aux_no_default ed m i e)
+    ; check if we are redundant wrt the default value
+    ("ite" ("veq" ed e) m ($msm_cons i e m)))
+  )
+)
+
+; updates the map with a new entry, maintaining ordered-ness
+(program $smtx_msm_update_aux
+  ((ed SmtValue) (T SmtType) (i SmtValue) (j SmtValue) (e1 SmtValue) (e2 SmtValue) (m SmtMap))
+  :signature (SmtValue SmtMap SmtValue SmtValue) SmtMap
+  (
+  (($smtx_msm_update_aux ed ($msm_cons j e1 m) i e2)
+    ("ite" ("veq" j i)
+      ; we overwrite if same index
+      ($smtx_msm_update_aux_no_default ed m i e2)
+      ; otherwise, we check the hash to retain sortedness
+      ("ite" ("vcmp" j i)
+        ($smtx_msm_update_aux_no_default ed ($msm_cons j e1 m) i e2)
+        ($msm_cons j e1 ($smtx_msm_update_aux ed m i e2)))))
+  (($smtx_msm_update_aux ed m i e2)
+    ($smtx_msm_update_aux_no_default ed m i e2))
+  )
+)
+; Returns the type of the map value or tsm_none
+(program $smtx_typeof_map_value
+  ((i SmtValue) (e SmtValue) (m SmtMap) (T SmtType))
+  :signature (SmtMap) SmtType
+  (
+  (($smtx_typeof_map_value ($msm_cons i e m))
+    (eo::define ((mT ($smtx_typeof_map_value m)))
+    ("ite" ("Teq" (Map (smt.typeof_value i) (smt.typeof_value e)) mT)
+      mT
+      none)))
+  (($smtx_typeof_map_value ($msm_default T e))  (Map T (smt.typeof_value e)))
+  )
+)
+
+(program $smtx_map_entries_ordered_after
+  ((i SmtValue) (j SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtValue SmtMap) "Bool"
+  (
+  (($smtx_map_entries_ordered_after i ($msm_cons j e m)) ("vcmp" j i))
+  (($smtx_map_entries_ordered_after i m) "true")
+  )
+)
+
+(program $smtx_map_default_canonical ((T SmtType) (e SmtValue))
+  :signature (SmtType SmtValue) "Bool"
+  (
+  (($smtx_map_default_canonical T e)
+    (eo::define ((U (smt.typeof_value e)))
+    ; if a finite type, it must have the canonical finite type default
+    ("ite" ($smtx_is_finite_type T)
+      ("veq" e ($smtx_type_default U))
+      "true")))
+  )
+)
+
+(program $smtx_map_canonical
+  ((T SmtType) (i SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtMap) "Bool"
+  (
+  (($smtx_map_canonical ($msm_default T e))
+    ("and" ($smtx_map_default_canonical T e) ($smtx_value_canonical_bool e)))
+  (($smtx_map_canonical ($msm_cons i e m))
+    ("and"
+      ("and"
+        ("and"
+          ("and"
+            ($smtx_value_canonical_bool i)
+            ($smtx_value_canonical_bool e))
+          ($smtx_map_canonical m))
+        ($smtx_map_entries_ordered_after i m))
+      ("not" ("veq" e ($smtx_msm_get_default m)))))
+  )
+)
+
 ; A map is unit when what it maps to is, and finite when both halves are. Its
 ; default maps everything to the default of its range, and has none at all
 ; where that range has none.
@@ -151,20 +268,213 @@
                smt.not_value
                (smt.map (smt.map_default I d)))))
 
+; -- $smtx_map_to_set_type
+; A set is a mapping to Bool, so the type of one is read off the map it is.
+(program $smtx_map_to_set_type ((T SmtType))
+  :signature (SmtType) SmtType
+  (
+  (($smtx_map_to_set_type (Map T Bool)) (Set T))
+  (($smtx_map_to_set_type T) none)
+  )
+)
+
 ; A set is a map to the Booleans, so it is never unit -- the empty set and the
 ; full one are two -- and is finite when what it holds is.
 (define-sort Set (T)
   :wf ($smtx_type_wf_component_rec T)
   :bounded ("and" ("not" u) ($smtx_type_bounded u T))
-  :default ($smtx_empty_set T))
+  :default (smt.set (smt.map_empty_set T)))
+
+; -- $smtx_typeof_seq_value
+; Returns the type of the sequence value or tsm_none
+(program $smtx_typeof_seq_value
+  ((v SmtValue) (vs SmtSeq) (T SmtType))
+  :signature (SmtSeq) SmtType
+  (
+  (($smtx_typeof_seq_value ($ssm_cons v vs))
+    (eo::define ((sT ($smtx_typeof_seq_value vs)))
+    ("ite" ("Teq" (Seq (smt.typeof_value v)) sT)
+      sT
+      none)))
+  (($smtx_typeof_seq_value ($ssm_empty T)) (Seq T))
+  )
+)
+
+(program $smtx_seq_canonical
+  ((T SmtType) (v SmtValue) (s SmtSeq))
+  :signature (SmtSeq) "Bool"
+  (
+  (($smtx_seq_canonical ($ssm_empty T)) "true")
+  (($smtx_seq_canonical ($ssm_cons v s))
+    ("and" ($smtx_value_canonical_bool v) ($smtx_seq_canonical s)))
+  )
+)
 
 (define-sort Seq (T)
   :wf ($smtx_type_wf_component_rec T)
-  :default ($smtx_empty_seq T))
+  :default (smt.seq (smt.seq_empty T)))
 
 (define-sort Char ()
   :bounded ("not" u)
   :default (smt.char ("n_to_char" "n_zero")))
+
+;-----------------------------------------------------------------------------
+(section "The values")
+;-----------------------------------------------------------------------------
+
+; The values of the signature, i.e. what a term of it evaluates to in a model.
+;
+; A value is a constructor of the embedding the way a symbol and a type are,
+; and each says what it is built over: a native of one sort or another, a type,
+; or one of the shapes a map and a sequence are. A value has no bare name, so
+; the vocabulary above is where the macro of each is named and a body writes
+; smt.X rather than the constructor.
+;
+; Two things are asked of a value, and one that says nothing about either is
+; answered for by the program the case is spliced into:
+;
+;   :typeof     the type a term whose value it is would be of -- none, of a
+;               value that says nothing
+;   :canonical  whether it is the one spelling of what it denotes -- true, of
+;               a value that says nothing
+;
+; They stand in the order their constructors are given, which what is derived
+; from that order depends on, so a value is added at the end.
+
+(define-value NotValue ())
+
+(define-value Boolean ((b "Bool"))
+  :typeof Bool)
+
+(define-value Numeral ((n "Int"))
+  :typeof Int)
+
+(define-value Rational ((r "Rat"))
+  :typeof Real)
+
+; A bit-vector is of the width it carries, and is the one spelling of what it
+; denotes when its value is that width's remainder.
+(define-value Binary ((w "Int") (v "Int"))
+  :typeof ("ite" ("and" ("z_<=" 0 w) ("z_=" v ("mod_total" v ("z_pow2" w))))
+            (BitVec ("z_to_n" w))
+            none)
+  :canonical ("ite" ("z_<=" 0 w)
+               ("z_=" v ("mod_total" v ("z_pow2" w)))
+               "true"))
+
+(define-value Map ((m SmtMap))
+  :typeof (smt.typeof_map_value m)
+  :canonical ($smtx_map_canonical m))
+
+; A function value is named rather than given, so what it is of is what it
+; says it is of.
+(define-value Fun ((s "String") (T SmtType) (U SmtType))
+  :typeof (FunType T U))
+
+; A set is a map to the Booleans, so it is canonical when the map is and when
+; what it maps the rest to is false.
+(define-value Set ((m SmtMap))
+  :typeof ($smtx_map_to_set_type (smt.typeof_map_value m))
+  :canonical ("and" ($smtx_map_canonical m)
+               ("veq" ($smtx_msm_get_default m) smt.false)))
+
+(define-value Seq ((s SmtSeq))
+  :typeof (smt.typeof_seq_value s)
+  :canonical ($smtx_seq_canonical s))
+
+(define-value Char ((c "Char"))
+  :typeof ("ite" ("char_valid" c) Char none)
+  :canonical ("char_valid" c))
+
+(define-value UValue ((i "Nat") (e "Nat"))
+  :typeof (USort i))
+
+(define-value RegLan ((r SmtRegLan))
+  :typeof RegLan
+  :canonical ("re_canonical" r))
+
+; -- $smtx_typeof_dt_cons_value
+; The type of the ci^th constructor of a datatype, which is the type it builds
+; behind one DtcAppType per argument it takes.
+;
+; This is the same program as $smtx_typeof_dt_cons_rec of the embedding, which
+; answers the same for the *term*: the hand-written Lean proofs of Logos are
+; stated over both, so neither stands in for the other.
+(program $smtx_typeof_dt_cons_value_rec
+  ((T SmtType) (U SmtType) (n "Nat") (c SmtDatatypeCons) (d SmtDatatype))
+  :signature (SmtType SmtDatatype "Nat") SmtType
+  (
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum $dtc_unit d) "n_zero") T)
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum ($dtc_cons U c) d) "n_zero")
+    (DtcAppType U ($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) "n_zero")))
+  (($smtx_typeof_dt_cons_value_rec T ($dt_sum c d) ("n_succ" n))
+    ($smtx_typeof_dt_cons_value_rec T d n))
+  (($smtx_typeof_dt_cons_value_rec T d n) none)
+  )
+)
+
+; A datatype constructor is of the type its declaration gives it. It is not
+; guarded by well-foundedness, which would be circular.
+(define-value DtCons ((s "String") (dd SmtDatatypeDecl) (ci "Nat"))
+  :typeof (smt.typeof_dt_cons_value s dd ci))
+
+; -- $smtx_typeof_apply_value
+; What applying one value to another is of. A datatype constructor may be
+; applied a part at a time, since its applications are the Herbrand
+; interpretation itself; a function and a map may not.
+(program $smtx_typeof_apply_value ((T SmtType) (U SmtType) (V SmtType))
+  :signature (SmtType SmtType) SmtType
+  (
+  (($smtx_typeof_apply_value (DtcAppType T U) V)
+    ($smtx_typeof_guard T ("ite" ("Teq" T V) U none)))
+  (($smtx_typeof_apply_value T U) none)
+  )
+)
+
+; An application of one is a value of the type applying it gives, and is
+; canonical when both halves are.
+(define-value Apply ((f SmtValue) (a SmtValue))
+  :typeof ($smtx_typeof_apply_value (smt.typeof_value f) (smt.typeof_value a))
+  :canonical ("and" ($smtx_value_canonical_bool f)
+               ($smtx_value_canonical_bool a)))
+
+;-----------------------------------------------------------------------------
+(section "The literals")
+;-----------------------------------------------------------------------------
+
+; The literals of the signature, i.e. the terms the embedding builds over a
+; native rather than over terms of its own. Each says what it is built over,
+; the way a value does, and what it carries stands for itself.
+;
+; Two things are asked of one, and they are the two a symbol says: the type it
+; is of and its value in a model. They are written where a symbol writes them,
+; and stand before the symbols written over them.
+
+(define-literal Boolean ((b "Bool"))
+  :typeof Bool
+  :value (smt.bool b))
+
+(define-literal Numeral ((n "Int"))
+  :typeof Int
+  :value (smt.numeral n))
+
+(define-literal Rational ((r "Rat"))
+  :typeof Real
+  :value (smt.rational r))
+
+; A string is of the strings when what it carries is one, i.e. when every
+; character of it is a character of SMT-LIB; its value is the sequence of them.
+(define-literal String ((s "String"))
+  :typeof ("ite" ("string_valid" s) String none)
+  :value (smt.seq ("pack_string" s)))
+
+; A bit-vector carries its width and its value, and is of that width when the
+; value is one the width can hold.
+(define-literal Binary ((w "Int") (v "Int"))
+  :typeof ("ite" ("and" ("z_<=" 0 w) ("z_=" v ("mod_total" v ("z_pow2" w))))
+            (BitVec ("z_to_n" w))
+            none)
+  :value (smt.binary w v))
 
 ;-----------------------------------------------------------------------------
 (section "The core symbols")
@@ -586,7 +896,7 @@
 (program $smtx_typeof_extract ( (x1 "Int") (x2 "Int")  (x3 "Int")  (x4 SmtType)  (x5 SmtType)  (x6 SmtType))
   :signature (SmtTerm SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_extract (numeral x1) (numeral x2) (BitVec x3)) ("ite" ("z_<=" 0 x2) ("ite" ("z_<" x1 ("n_to_z" x3)) ("ite" ("z_<" 0 ("z_+" ("z_+" x1 1) ("z_uneg" x2))) (BitVec ("z_to_n" ("z_+" ("z_+" x1 1) ("z_uneg" x2)))) none) none) none))
+  (($smtx_typeof_extract (Numeral x1) (Numeral x2) (BitVec x3)) ("ite" ("z_<=" 0 x2) ("ite" ("z_<" x1 ("n_to_z" x3)) ("ite" ("z_<" 0 ("z_+" ("z_+" x1 1) ("z_uneg" x2))) (BitVec ("z_to_n" ("z_+" ("z_+" x1 1) ("z_uneg" x2)))) none) none) none))
   (($smtx_typeof_extract x4 x5 x6) none)
   )
 )
@@ -594,7 +904,7 @@
 (program $smtx_typeof_repeat ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_repeat (numeral x1) (BitVec x2)) ("ite" ("z_<=" 1 x1) (BitVec ("z_to_n" ("z_*" x1 ("n_to_z" x2)))) none))
+  (($smtx_typeof_repeat (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 1 x1) (BitVec ("z_to_n" ("z_*" x1 ("n_to_z" x2)))) none))
   (($smtx_typeof_repeat x3 x4) none)
   )
 )
@@ -602,7 +912,7 @@
 (program $smtx_typeof_zero_extend ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_zero_extend (numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" ("z_+" x1 ("n_to_z" x2)))) none))
+  (($smtx_typeof_zero_extend (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" ("z_+" x1 ("n_to_z" x2)))) none))
   (($smtx_typeof_zero_extend x3 x4) none)
   )
 )
@@ -610,7 +920,7 @@
 (program $smtx_typeof_sign_extend ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_sign_extend (numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" ("z_+" x1 ("n_to_z" x2)))) none))
+  (($smtx_typeof_sign_extend (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" ("z_+" x1 ("n_to_z" x2)))) none))
   (($smtx_typeof_sign_extend x3 x4) none)
   )
 )
@@ -618,7 +928,7 @@
 (program $smtx_typeof_rotate_left ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_rotate_left (numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec x2) none))
+  (($smtx_typeof_rotate_left (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec x2) none))
   (($smtx_typeof_rotate_left x3 x4) none)
   )
 )
@@ -626,7 +936,7 @@
 (program $smtx_typeof_rotate_right ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_rotate_right (numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec x2) none))
+  (($smtx_typeof_rotate_right (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec x2) none))
   (($smtx_typeof_rotate_right x3 x4) none)
   )
 )
@@ -634,7 +944,7 @@
 (program $smtx_typeof_int_to_bv ( (x1 "Int") (x2 SmtType)  (x3 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_int_to_bv (numeral x1) Int) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" x1)) none))
+  (($smtx_typeof_int_to_bv (Numeral x1) Int) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" x1)) none))
   (($smtx_typeof_int_to_bv x2 x3) none)
   )
 )
@@ -1014,7 +1324,7 @@
 (program $smtx_typeof_re.^ ( (x1 "Int") (x2 SmtType)  (x3 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_re.^ (numeral x1) RegLan) ("ite" ("z_<=" 0 x1) RegLan none))
+  (($smtx_typeof_re.^ (Numeral x1) RegLan) ("ite" ("z_<=" 0 x1) RegLan none))
   (($smtx_typeof_re.^ x2 x3) none)
   )
 )
@@ -1022,7 +1332,7 @@
 (program $smtx_typeof_re.loop ( (x1 "Int") (x2 "Int")   (x3 SmtType)  (x4 SmtType)  (x5 SmtType))
   :signature (SmtTerm SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_re.loop (numeral x1) (numeral x2) RegLan) ("ite" ("z_<=" 0 x1) ("ite" ("z_<=" 0 x2) RegLan none) none))
+  (($smtx_typeof_re.loop (Numeral x1) (Numeral x2) RegLan) ("ite" ("z_<=" 0 x1) ("ite" ("z_<=" 0 x2) RegLan none) none))
   (($smtx_typeof_re.loop x3 x4 x5) none)
   )
 )

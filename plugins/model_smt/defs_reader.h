@@ -45,12 +45,42 @@ struct DefsBlock
    * See DefsFile::select.
    */
   bool d_keep = false;
+  /**
+   * Whether the block is of a term the embedding builds itself -- a literal,
+   * i.e. one built over a native rather than over terms -- rather than of a
+   * symbol of the signature written over them. A block of one is named after
+   * the constructor it declares, which is what says so: `$emb_sm.Binary`
+   * rather than a symbol's own name. Its constructor stands with the terms of
+   * the embedding, before the symbols, so that the order of them is the same
+   * whatever a calculus declares, see ModelSmt::finalize.
+   */
+  bool d_literal = false;
   /** The constructor of the embedding for the symbol, and the macro. */
   std::vector<std::string> d_cons;
   /** The same, where the block is of a type rather than of a symbol. */
   std::vector<std::string> d_typeCons;
-  /** The auxiliary programs, by the stream each belongs to. */
-  std::vector<std::string> d_typeofAux, d_evalProgs, d_eoAux;
+  /** The same, where it is of a value. */
+  std::vector<std::string> d_valueCons;
+  /**
+   * The auxiliary programs the block holds, i.e. what its cases call rather
+   * than what they contribute, in the order the block writes them. They are
+   * one stream because they are one dependency graph: the evaluator of a
+   * sequence asks for the type of one, and the type of a sequence value is
+   * worked out over the values it holds, so neither family can be said to come
+   * first. What orders them is the signature itself, which writes a program
+   * after the ones it calls; see $SMT_HELPER_PROGS$ in
+   * plugins/model_smt/model_smt.eo.
+   */
+  std::vector<std::string> d_helperProgs;
+  /** The same, for the programs written over the transformation. */
+  std::vector<std::string> d_eoAux;
+  /**
+   * The programs that say whether a value of a shape is canonical, which stand
+   * with $smtx_value_canonical_bool rather than with the other helpers: they
+   * call $smtx_type_default and $smtx_is_finite_type, which are written after
+   * those. A program whose name ends in `_canonical` is one.
+   */
+  std::vector<std::string> d_canonicalAux;
   /**
    * What the *desugar* stage asks about the symbol rather than the model, i.e.
    * the program that decides whether a term is the nil of it.
@@ -67,6 +97,8 @@ struct DefsBlock
   /** The same, for what a block of a type says about it. */
   std::vector<std::string> d_typeWfCases, d_typeBoundedCases,
       d_typeDefaultCases;
+  /** The same, for what a block of a value says about it. */
+  std::vector<std::string> d_valueTypeofCases, d_valueCanonicalCases;
 };
 
 /**
@@ -104,6 +136,15 @@ class DefsFile
  private:
   /** Read one block from text, having already taken its symbol. */
   void addBlock(const std::string& sym, const std::string& text);
+  /**
+   * Put one form of a block into the stream its name says. It is what a
+   * program is classified by, and what a helper written as a define rather
+   * than as a program is classified by too, since neither is a constructor of
+   * any family.
+   */
+  static void classifyProgram(DefsBlock& b,
+                              const std::string& f,
+                              const std::string& name);
   std::vector<DefsBlock> d_blocks;
   /** The block that defines each name. */
   std::map<std::string, size_t> d_owner;

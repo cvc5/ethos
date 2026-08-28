@@ -78,10 +78,34 @@ A block may also be of a helper rather than of a symbol, in which case the
 `; -- X` line names the helper itself, e.g. `; -- $smtx_typeof_bv_op_2` for the
 typing of a bit-vector operator whose two arguments must be of one width. Such
 a block is taken only when a block that is kept names it, so a signature with
-no bit-vectors in it compiles to a model that has never heard of them. A helper
-belongs in the signature when only theory operators call it; what remains in
-`plugins/model_smt/model_smt.eo` is the type language, the value language and
-the terms that file declares itself, together with their methods.
+no bit-vectors in it compiles to a model that has never heard of them.
+
+A helper belongs in the signature when only theory operators call it. That is
+the whole of what a signature may hold beside its symbols: a set says what a
+theory **does** and never what the embedding **is**, so it writes programs and
+never a declaration, and a form that is neither is refused rather than carried
+over as the text it is; see `semantics/README.md`. The programs over a map --
+looking an entry up, typing one, saying whether one is written the one way --
+are therefore written in the configuration beside the sort they belong to,
+while the `$smt_Map` they are written over is declared in
+`plugins/model_smt/model_smt.eo` with the rest of the embedding.
+
+What remains in `plugins/model_smt/model_smt.eo` is what says what the
+embedding is, and what no theory is what asks for:
+
+- the term, type and value languages the file declares itself -- the shapes a
+  value is built over among them -- and the aggregates written over them;
+- the datatypes, which an input *declares* rather than a theory naming, and the
+  types the embedding keeps for what an input declares -- `USort`, `FunType`,
+  `DtcAppType`, `TypeRef`;
+- the binders, an application, and the programs over types that everything else
+  is written against -- well-foundedness, boundedness and the default of a
+  type.
+
+Every helper a signature writes is emitted together, before the first aggregate
+whose cases may call one; they are one stream because they are one dependency
+graph, and what orders them is the signature itself, which writes a program
+after the ones it calls. See `$SMT_HELPER_PROGS$` in the template.
 
 The stage takes the blocks of the symbols the input declares, together with
 every block those name, and puts what each says where it belongs; it knows

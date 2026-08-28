@@ -109,8 +109,9 @@ class ModelSmt : public StdPlugin
   void finalizeDecl(const std::string& name);
   /** Forward declarations for SMT-LIB model-evaluation helper programs. */
   std::stringstream d_modelEvalProgsFwd;
-  /** Auxiliary programs for SMT-LIB model evaluation. */
-  std::stringstream d_modelEvalProgs;
+  /** Every auxiliary program the signature writes, in the order it gives
+   * them; see DefsBlock::d_helperProgs. */
+  std::stringstream d_helperProgs;
   /** SMT-LIB model evaluation cases */
   std::stringstream d_eval;
   /** Generated `$eo_to_smt` conversion cases. */
@@ -119,18 +120,27 @@ class ModelSmt : public StdPlugin
   std::stringstream d_eoToSmtType;
   /** Auxiliary definitions used by EO-to-SMT conversion. */
   std::stringstream d_eoToSmtAux;
+  /** Generated declarations of the constructors of the literals, i.e. of the
+   * terms the embedding builds over a native rather than over terms. */
+  std::stringstream d_smtLiterals;
   /** Generated SMT term constructor declarations. */
   std::stringstream d_smtTerms;
   /** Generated SMT type constructor declarations. */
   std::stringstream d_smtTypes;
+  /** Generated SMT value constructor declarations. */
+  std::stringstream d_smtValues;
+  /** Generated cases of what the values say about themselves: the type one is
+   * of, and whether one is canonical. */
+  std::stringstream d_valueTypeof, d_valueCanonical;
   /** Generated cases of what the types of the signature say about themselves:
    * whether one is well-founded, whether it is bounded, and the value a model
    * reaches for where it has to name one of it. */
   std::stringstream d_typeWf, d_typeBounded, d_typeDefault;
   /** Generated SMT type rules for terms. */
   std::stringstream d_smtTypeof;
-  /** Auxiliary definitions used by SMT type rules. */
-  std::stringstream d_smtTypeofAux;
+  /** Auxiliary definitions used by the canonicity of values, which stand after
+   * the programs over types they call, see DefsBlock::d_canonicalAux. */
+  std::stringstream d_smtCanonicalAux;
   /** Extra desugar helper definitions required by model_smt. */
   std::stringstream d_desugarAux;
   /** Constant declarations in parser order. */

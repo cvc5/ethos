@@ -168,8 +168,11 @@ def render_lean(config):
 def summary(config):
   """How much of each thing a set holds, in the words of its kinds."""
   c = config.counts
+  # The kinds a set holds, in the order its shape gives them, and last the
+  # programs, which are what a set holds beside its entities.
+  nouns = [shape.noun + 's' for shape in config.decls.shapes] + ['programs']
   kinds = ['%d %s' % (c[k], k if c[k] != 1 else k[:-1])
-           for k in ('symbols', 'types', 'methods', 'rules', 'programs') if c[k]]
+           for k in nouns if c[k]]
   said = ['%d %s' % (c[k], w) for k, w in (('keep', 'kept'),
                                            ('exclude', 'left out'),
                                            ('lean', 'annotated')) if c[k]]
@@ -353,16 +356,43 @@ def check_distinct(configs):
     seen[t] = config.name
 
 
+def target_blocks(sets):
+  """The blocks of the set that is the target, for the vocabulary of the rest.
+
+  An input is compiled *through* the target, so a symbol the target declares is
+  one an input may name -- the bit-vector literal is, and so is each binder --
+  and what each place of that symbol is of is what says how an argument written
+  there is transformed. Reading the target is what puts that in reach; without
+  it an argument falls back to the level around it, and a native written under
+  a symbol that takes one comes out wrapped as a term.
+
+  The target is read whether or not this run compiles it, since an input set
+  compiled on its own is written against it just the same. Which set is the
+  target is the role a run gave it, never what its file is called, see role_of.
+  """
+  path = next((p for p, t in sets if t),
+              next((c for c, t in SHIPPED if t), None))
+  if path is None:
+    return []
+  config = read_config_file(path, True)
+  return read_config(config.files, config.decls)
+
+
 def compile_all(sets):
   """Every set, as (config, blocks) pairs.
 
   `sets` is (path, is_target) pairs: which shape a set compiles to is said by
-  the role the run gives it, see read_config_file.
+  the role the run gives it, see read_config_file. A set that is not the target
+  is compiled against the target's own blocks as well as the vocabulary of the
+  embedding, see target_blocks.
   """
   vocab, macros = read_vocabulary(VOCAB_FILES), read_macros(MACRO_FILES)
   configs = [read_config_file(p, t) for p, t in sets]
   check_distinct(configs)
-  return [(c, compile_config(c, vocab, macros)) for c in configs]
+  target = target_blocks(sets)
+  return [(c, compile_config(c, vocab if c.is_target else vocab.extended(target),
+                             macros))
+          for c in configs]
 
 
 # -----------------------------------------------------------------------------
@@ -381,9 +411,11 @@ def check_order(blocks, name, exempt=()):
   the configuration has to give up in exchange for not stating it: the compiler
   emits in the order the files read and then checks the constraint holds.
 
-  A program written over values is exempt, which is what `exempt` names: the
-  stage forward declares every one of them before it defines any, see
-  DefsBlock::d_evalFwd, so one may name another whichever comes first.
+  Two things are exempt, which is what `exempt` names. A program written over
+  values, since the stage forward declares every one of them before it defines
+  any, see DefsBlock::d_evalFwd; and the constructor of an entity and its
+  macro, since the stage writes every constructor before it writes any case, so
+  the default of a type may name the value it is whichever block comes first.
   """
   owner = {}
   for i, (_sym, text) in enumerate(blocks):
@@ -499,7 +531,9 @@ def main():
     bad = 0
     for config, blocks in compile_all(sets):
       name = os.path.basename(config.target)
-      bad += check_order(blocks, name, config.decls.helper_prefixes())
+      bad += check_order(blocks, name,
+                         config.decls.helper_prefixes()
+                         + config.decls.constructor_prefixes())
       bad += check_current(render(blocks, config), config.target)
       bad += check_current(render_lean(config), config.lean_target)
     sys.exit(1 if bad else 0)

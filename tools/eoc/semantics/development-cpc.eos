@@ -226,7 +226,7 @@
 
 ; -- @div_by_zero
 (define-symbol @div_by_zero (x)
-  :term (/ x (rational ("z_/_total" 0 1))))
+  :term (/ x (Rational ("z_/_total" 0 1))))
 
 ; The second symbol the input overloads - with, which is unary minus. No
 ; signature declares the name the desugar stage gives that overload, so this
@@ -296,7 +296,7 @@
 ; declaration is what says both its arguments are natives, so nothing here has
 ; to say so.
 (define-macro bv (w v)
-  (binary w v))
+  (Binary w v))
 
 (define-symbol concat (x y))
 
@@ -400,7 +400,7 @@
 ; eliminated on the way to the SMT-LIB signature, so each gives a
 ; transformation and no block of the SMT-LIB half.
 (define-symbol @bvsize (x)
-  :term (eo::define ((n (width x))) ("ite" ("z_<=" 0 n) (@purify (numeral n)) none)))
+  :term (eo::define ((n (width x))) ("ite" ("z_<=" 0 n) (@purify (Numeral n)) none)))
 
 (define-symbol bvite (c x y)
   :term (ite (= c (bv 1 1)) x y))
@@ -599,7 +599,7 @@
 ; -- @strings_stoi_non_digit
 (define-symbol @strings_stoi_non_digit (s)
   :term (str.indexof_re s
-               (re.inter re.allchar (re.comp (re.range (string "str_c0") (string "str_c9"))))
+               (re.inter re.allchar (re.comp (re.range (String "str_c0") (String "str_c9"))))
                0))
 
 ; -- @strings_itos_result
@@ -853,7 +853,7 @@
    (n "Int") (t SmtTerm))
   :signature (SmtType SmtTerm SmtTerm) SmtTerm
   (
-  (($eo_to_smt_tuple_select (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (numeral n) t)
+  (($eo_to_smt_tuple_select (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (Numeral n) t)
     ("ite"
       ("and"
         ("and"
@@ -877,7 +877,7 @@
    (s "String") (s2 "String"))
   :signature (SmtType SmtTerm SmtTerm SmtTerm) SmtTerm
   (
-  (($eo_to_smt_tuple_update (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (numeral n) t u)
+  (($eo_to_smt_tuple_update (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (Numeral n) t u)
     ("ite"
       ("and"
         ("and"
