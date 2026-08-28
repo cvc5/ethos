@@ -40,6 +40,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import report  # noqa: E402
 import sem_target  # noqa: E402
 from sem_lang import (counts, defined_names, die,  # noqa: E402
                       lean_clauses, read_config, read_macros, read_text,
@@ -430,10 +431,9 @@ def check_order(blocks, name, exempt=()):
       if any(u.startswith(p) for p in exempt):
         continue
       if u in owner and owner[u] > i:
-        print('  %s: %s uses %s, which block %s defines later'
-              % (name, sym, u, blocks[owner[u]][0]))
+        report.error('%s: block %s uses %s, which block %s defines later'
+                     % (name, sym, u, blocks[owner[u]][0]))
         bad += 1
-  print('  %-20s %d blocks, %d out-of-order uses' % (name, len(blocks), bad))
   return bad
 
 
@@ -447,13 +447,21 @@ def check_current(text, path):
   than read.
   """
   if not os.path.exists(path):
-    state, bad = 'MISSING; run sem_compile.py to write it', 1
+    state, bad = 'missing', 1
   elif read_text(path) == text:
     state, bad = 'current', 0
   else:
-    state, bad = 'STALE; run sem_compile.py to rewrite it', 1
-  print('  %-20s %s' % (os.path.basename(path), state))
-  return bad
+    state, bad = 'stale', 1
+  return state, bad
+
+
+def written(blocks, config):
+  """What compiling one set writes, in the order it is written: the signature
+  in the deep embedding that the model-smt stage reads, and the clauses the
+  lean-meta stage appends to the Lean it writes."""
+  return ((render(blocks, config), config.target, '%d blocks' % len(blocks)),
+          (render_lean(config), config.lean_target,
+           '%d clauses' % len(config.clauses)))
 
 
 def render(blocks, config):
@@ -527,30 +535,41 @@ def main():
   sets += [(p, False) for p in a.signature]
   sets += [(p, True) for p in a.semantics]
   sets = sets or list(SHIPPED)
+  # What the sets are named by in a line of the log: the directory they share
+  # where they share one, so that a line names the file rather than the way to
+  # it, see report.rel.
+  home = os.path.dirname(os.path.commonprefix(
+      [os.path.dirname(os.path.abspath(p)) + os.sep for p, _ in sets]))
+  named_sets = [report.rel(p, home) for p, _ in sets]
+  width = max(len(n) for n in named_sets)
   if a.check:
-    bad = 0
+    report.step('Checking the generated signatures against %s'
+                % report.rel(home))
+    bad, done = 0, []
     for config, blocks in compile_all(sets):
-      name = os.path.basename(config.target)
-      bad += check_order(blocks, name,
+      bad += check_order(blocks, report.rel(config.target),
                          config.decls.helper_prefixes()
                          + config.decls.constructor_prefixes())
-      bad += check_current(render(blocks, config), config.target)
-      bad += check_current(render_lean(config), config.lean_target)
+      for text, target, what in written(blocks, config):
+        state, wrong = check_current(text, target)
+        done.append((report.rel(target), state, None if wrong else what))
+        bad += wrong
+    at = max(len(n) for n, _, _ in done)
+    for name, state, what in done:
+      report.state(name, state, what, width=at)
+      if what is None:
+        report.error('%s is %s; run %s to write it'
+                     % (name, state, report.rel(__file__)))
     sys.exit(1 if bad else 0)
-  for config, blocks in compile_all(sets):
-    target, lean_target = config.target, config.lean_target
-    if a.out_dir is not None:
-      target = os.path.join(a.out_dir, os.path.basename(target))
-      lean_target = os.path.join(a.out_dir, os.path.basename(lean_target))
-    changed = write_if_changed(render(blocks, config), target)
-    lean_changed = write_if_changed(render_lean(config), lean_target)
-    print('%s %d blocks to %s'
-          % ('wrote' if changed else 'unchanged,', len(blocks),
-             os.path.relpath(target, ROOT)))
-    print('%s %d clauses to %s'
-          % ('wrote' if lean_changed else 'unchanged,', len(config.clauses),
-             os.path.relpath(lean_target, ROOT)))
-    print('  %s' % summary(config))
+  report.step('Compiling semantics under %s' % report.rel(home))
+  for (config, blocks), name in zip(compile_all(sets), named_sets):
+    for text, target, what in written(blocks, config):
+      if a.out_dir is not None:
+        target = os.path.join(a.out_dir, os.path.basename(target))
+      changed = write_if_changed(text, target)
+      report.item(name, report.rel(target),
+                  what if changed else '%s, unchanged' % what, width=width)
+    report.step(summary(config), 2)
 
 
 if __name__ == '__main__':

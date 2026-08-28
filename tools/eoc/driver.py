@@ -17,6 +17,10 @@ import sys
 from pathlib import Path
 from typing import Iterable, Optional
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import report  # noqa: E402
+
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
@@ -538,11 +542,11 @@ class Pipeline:
         shutil.copyfile(self.plugin_generated("smt_meta/smt_meta_gen.smt2"), output_file)
         if validate_with_cvc5:
             cmd = self.cvc5_validate_cmd(output_file, sygus=sygus)
-            print(f"**** smt_meta: Verify cvc5 parses via {self.format_cmd(cmd)}")
+            report.step(f"cvc5 parses it: {self.format_cmd(cmd)}", 2)
             self.validate_smt(output_file, sygus=sygus)
         if solve_with_cvc5:
             cmd = self.cvc5_solve_cmd(output_file, sygus=sygus)
-            print(f"**** smt_meta: Run cvc5 via {self.format_cmd(cmd)}")
+            report.step(f"cvc5 solves it: {self.format_cmd(cmd)}", 2)
             self.solve_smt(output_file, sygus=sygus)
         return output_file
 
@@ -618,12 +622,14 @@ class Pipeline:
         suffix = "sy" if sygus else "smt2"
         final_out = self.final_out_dir / ("sygus" if sygus else "vc") / f"final-{stem}-{target}.{suffix}"
 
-        print(
-            f"********* {'Searching for counterexamples of' if sygus else 'Verifying the correctness of'} {target} {'via sygus' if sygus else 'via smt2'} *********"
+        report.step(
+            f"{'Searching for counterexamples of' if sygus else 'Verifying'} "
+            f"{target} in {report.rel(input_name)} "
+            f"{'via sygus' if sygus else 'via smt2'}"
         )
-        print(f"**** smt_meta: Run ethos + trim-defs on {input_name} and {target} to {init_trim}")
+        report.stage(1, 6, "trim-defs", init_trim)
         self.trim_defs(input_name, [target], init_trim)
-        print(f"**** smt_meta: Run ethos + desugar on {init_trim} to generate {init_desugar}")
+        report.stage(2, 6, "desugar", init_desugar)
         self.desugar(
             self.binary_path_arg(init_trim),
             init_desugar,
@@ -631,16 +637,13 @@ class Pipeline:
             deps=DESUGAR_VC_DEPS,
             plugin_label="smt-meta",
         )
-        print(f"**** smt_meta: Run ethos + model-smt on {init_desugar} to generate {vcm_defs}")
+        report.stage(3, 6, "model-smt", vcm_defs)
         self.model_smt(init_desugar, vcm_defs)
-        print(f"**** smt_meta: Run ethos + trim-deps on {vcm_defs} to generate {vcmt_defs}")
+        report.stage(4, 6, "trim-deps", vcmt_defs)
         self.trim_defs(self.binary_path_arg(vcm_defs), [f"$eovc_{target}"], vcmt_defs)
-        print(f"**** smt_meta: Verify ethos parses {vcmt_defs}")
+        report.stage(5, 6, "parse", vcmt_defs, gives=False)
         self.parse_file(vcmt_defs)
-        if sygus:
-            print(f"**** smt_meta: Generate sygus from {vcmt_defs} to {final_out}")
-        else:
-            print(f"**** smt_meta: Generate SMT2 from {vcmt_defs} to {final_out}")
+        report.stage(6, 6, "sygus" if sygus else "smt2", final_out)
         self.smt_meta(
             vcmt_defs,
             final_out,
@@ -669,13 +672,15 @@ class Pipeline:
             )
         calc_name = lean_calc_name(Path(input_name))
         stem = self.stage_name(input_name)
-        print(
-            f"********* Generating Lean for {input_name if all_targets else ' '.join(targets) + ' in ' + input_name} *********"
+        report.step(
+            "Generating Lean for "
+            + (report.rel(input_name) if all_targets
+               else f"{' '.join(targets)} in {report.rel(input_name)}")
         )
         if all_targets:
             init_desugar = self.stage_out_dir / f"lean-{stem}-desugar.eo"
             final_defs = self.stage_out_dir / f"lean-{stem}-final.eo"
-            print(f"**** lean_meta: Run ethos + desugar on {input_name} to generate {init_desugar}")
+            report.stage(1, 4, "desugar", init_desugar)
             self.desugar(
                 input_name,
                 init_desugar,
@@ -683,11 +688,11 @@ class Pipeline:
                 deps=LEAN_ALL_DEPS,
                 plugin_label="lean-meta",
             )
-            print(f"**** lean_meta: Run ethos + model-smt on {init_desugar} to generate {final_defs}")
+            report.stage(2, 4, "model-smt", final_defs)
             self.model_smt(init_desugar, final_defs)
-            print(f"**** lean_meta: Verify ethos parses {final_defs}")
+            report.stage(3, 4, "parse", final_defs, gives=False)
             self.parse_file(final_defs)
-            print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
+            report.stage(4, 4, "lean", self.final_out_dir / 'lean')
             return self.lean(
                 final_defs,
                 calc_name=calc_name,
@@ -698,11 +703,9 @@ class Pipeline:
         init_desugar = self.stage_out_dir / f"lean-{stem}-desugar.eo"
         vcm_defs = self.stage_out_dir / f"lean-{stem}-defs.eo"
         final_defs = self.stage_out_dir / f"lean-{stem}-final.eo"
-        print(
-            f'**** lean_meta: Run ethos + trim-defs on {input_name} and "{" ".join(targets)}" to {init_trim}'
-        )
+        report.stage(1, 6, "trim-defs", init_trim)
         self.trim_defs(input_name, list(targets) + ["and", "=>"], init_trim)
-        print(f"**** lean_meta: Run ethos + desugar on {init_trim} to generate {init_desugar}")
+        report.stage(2, 6, "desugar", init_desugar)
         self.desugar(
             self.binary_path_arg(init_trim),
             init_desugar,
@@ -710,7 +713,7 @@ class Pipeline:
             deps=LEAN_SINGLE_DEPS,
             plugin_label="lean-meta",
         )
-        print(f"**** lean_meta: Run ethos + model-smt on {init_desugar} to generate {vcm_defs}")
+        report.stage(3, 6, "model-smt", vcm_defs)
         self.model_smt(init_desugar, vcm_defs)
         # The generated proof parser expands parameterized n-ary syntax with
         # the calculus' own nil/type utilities. Keep those utilities even when
@@ -718,11 +721,11 @@ class Pipeline:
         # intentionally preserved by trim-defs as well.
         target_progs = [f"$eo_prog_{target}" for target in targets]
         target_progs.extend(["$eo_nil", "$eo_typeof"])
-        print(f"**** lean_meta: Run ethos + trim-deps on {vcm_defs} to generate {final_defs}")
+        report.stage(4, 6, "trim-deps", final_defs)
         self.trim_defs(self.binary_path_arg(vcm_defs), target_progs, final_defs)
-        print(f"**** lean_meta: Verify ethos parses {final_defs}")
+        report.stage(5, 6, "parse", final_defs, gives=False)
         self.parse_file(final_defs)
-        print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
+        report.stage(6, 6, "lean", self.final_out_dir / 'lean')
         return self.lean(
             final_defs,
             calc_name=calc_name,
@@ -733,9 +736,10 @@ class Pipeline:
         if build_first:
             self.build()
         output = self.final_out_dir / "desugar.eo"
-        print(f"**** desugar: Run ethos + desugar on {input_name} to generate {output}")
+        report.step(f"Desugaring {report.rel(input_name)}")
+        report.stage(1, 2, "desugar", output)
         self.desugar(input_name, output, use_vc_plugin=False, deps=None, plugin_label=None)
-        print("**** desugar: Verify it parses")
+        report.stage(2, 2, "parse", output, gives=False)
         self.parse_file(output)
         return output
 
@@ -743,7 +747,8 @@ class Pipeline:
         if build_first:
             self.build()
         output = self.final_out_dir / "trim_defs" / "trim_gen.eo"
-        print(f"**** run_trim_defs: Run ethos + trim-defs on {input_name}")
+        report.step(f"Trimming {report.rel(input_name)}")
+        report.stage(1, 1, "trim-defs", output)
         self.trim_defs(input_name, targets, output)
         return output
 
@@ -1082,7 +1087,6 @@ def main(argv: list[str]) -> int:
                 pipeline.clean_final_dir("sygus" if args.mode == "sygus" else "vc")
             failures: list[str] = []
             for rule in rules:
-                print(f"==== {rule}")
                 try:
                     pipeline.run_vc(
                         args.input,
@@ -1096,16 +1100,19 @@ def main(argv: list[str]) -> int:
                     failures.append(rule)
                     if not args.keep_going:
                         raise
+            report.step(
+                f"{len(rules) - len(failures)} of {len(rules)} rules "
+                f"{'verified' if args.mode != 'sygus' else 'searched'}"
+            )
             if failures:
-                print("Failed rules:")
                 for rule in failures:
-                    print(f"  {rule}")
+                    report.error(f"{rule} failed")
                 return 1
         return 0
     except subprocess.CalledProcessError as err:
         return err.returncode
     except RuntimeError as err:
-        print(err, file=sys.stderr)
+        report.error(str(err))
         return 1
 
 

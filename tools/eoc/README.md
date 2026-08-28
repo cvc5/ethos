@@ -206,6 +206,44 @@ The input path `tests/Booleans-rules.eo` is interpreted relative to the
 repository root. The driver writes its EO stage files and final published
 outputs under `tools/eoc/out` by default.
 
+## What a run prints
+
+Every tool of the pipeline says what it is doing the same way, which matters
+because the checks that run this compiler live in other repositories -- logos
+and cvc5 -- and read its output there. One step of a run is a line under
+`-- `, what a step is made of is indented two spaces further, and a path is
+written from the root of the repository, so that a log reads the same whichever
+machine wrote it:
+
+```text
+-- Compiling semantics under tools/eoc/semantics
+--   smt.eos             -> tools/eoc/out/smt_defs.eo (219 blocks)
+--   smt.eos             -> tools/eoc/out/smt_termination.lean (12 clauses, unchanged)
+--     132 symbols, 5 literals, 9 types, 14 values, 12 methods, 67 programs
+--   development-cpc.eos -> tools/eoc/out/user_defs.eo (194 blocks, unchanged)
+-- Generating Lean for /home/me/cvc5/proofs/eo/cpc/Cpc.eo
+--   [1/4] desugar   -> tools/eoc/out/lean-cpc-desugar.eo
+--   [2/4] model-smt -> tools/eoc/out/lean-cpc-final.eo
+--   [3/4] parse        tools/eoc/out/lean-cpc-final.eo
+--   [4/4] lean      -> tools/eoc/out/lean
+-- Installing the generated Lean of tools/eoc/out/lean into /home/me/logos/Cpc
+--   Logos.lean         -> Cpc/Logos.lean
+--   Rules/*.lean       -> Cpc/Proofs/Rules/ (591 copied, 0 preserved)
+```
+
+A path outside the repository -- the signature of a calculus, the tree the Lean
+is installed into -- is written as it stands, since nothing else would name it.
+
+What went wrong is *not* a step. It goes to stderr as `error: ...`, which is
+what a caller's CI looks for, and the run exits non-zero; a run that carried on
+regardless says so as `warning: ...`. Anything meant to be read by a program
+rather than a person -- the rule names of `list-rules`, the counts of
+`run_count_deps` -- is written plainly to stdout with no prefix at all.
+
+The style is defined in one place per language: `tools/eoc/report.py` for the
+tools, and `eoc_step`, `eoc_item`, `eoc_error` in `tools/eoc/cpc/common.sh` for
+the scripts that call them.
+
 ## Output layout
 
 The driver uses two output trees:

@@ -20,7 +20,7 @@ LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
 SUB_DIR="${SUB_DIR:-CpcMini}"
 read -r -a MINI_TARGETS <<< "${MINI_TARGETS:-symm contra refl scope trans}"
 
-echo "********* Generating Mini-Lean signature *********"
+eoc_step "Generating the Mini-Lean signature"
 "$SCRIPT_DIR/run_gen_lean" --no-parser "${MINI_TARGETS[@]}"
 
 eoc_copy_lean_outputs "$LOGOS_DIR/$SUB_DIR" "$FINAL_OUT_DIR" 1 0
