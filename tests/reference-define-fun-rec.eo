@@ -1,5 +1,0 @@
-; regression: recursive function definitions are rejected in reference files
-(declare-const Int Type)
-(declare-const > (-> Int Int Bool))
-(declare-consts <numeral> Int)
-(reference "reference-define-fun-rec.smt2")
