@@ -27,10 +27,8 @@ LOGOS_REGRESS_DIR="${LOGOS_REGRESS_DIR:-$LOGOS_DIR/test/regress}"
 CVC5_LOGOS="${CVC5_LOGOS:-$HOME/bin/cvc5-logos}"
 CPC_GEN_LOGOS_CMD="${CPC_GEN_LOGOS_CMD:-cpc_gen_logos.sh}"
 
-echo "********* Compiling model-smt signatures *********"
 eoc_compile_sem_signatures
 
-echo "********* Generating Lean signature *********"
 "$SCRIPT_DIR/run_gen_lean_all"
 
 eoc_copy_lean_outputs "$LOGOS_DIR/Cpc" "$FINAL_OUT_DIR" 1
@@ -42,6 +40,7 @@ eoc_rewrite_lean_calc_imports "$LOGOS_DIR/Cpc" "$SOURCE_CALC" "Cpc"
 if [[ -d "$LOGOS_TESTS_DIR" ]] \
   && command -v "$CPC_GEN_LOGOS_CMD" >/dev/null 2>&1 \
   && [[ -x "$CVC5_LOGOS" ]]; then
+  eoc_step "Generating the Logos regressions into $(eoc_rel "$LOGOS_REGRESS_DIR")"
   (
     cd "$LOGOS_TESTS_DIR"
     shopt -s nullglob
@@ -52,15 +51,15 @@ if [[ -d "$LOGOS_TESTS_DIR" ]] \
     for file in *.smt2; do
       base_file="$(basename "$file")"
       base_name="${base_file%.*}"
-      echo "Generating $CVC5_LOGOS $PWD/$file to $LOGOS_REGRESS_DIR/test-$base_name.cpc.lean"
+      eoc_item "$(printf '%-28s -> %s' "$base_file" "test-$base_name.cpc.lean")"
       "$CPC_GEN_LOGOS_CMD" "$CVC5_LOGOS" "$file" > temp.lean
       mkdir -p "$LOGOS_REGRESS_DIR"
       cp temp.lean "$LOGOS_REGRESS_DIR/test-$base_name.cpc.lean"
     done
   )
 elif [[ -d "$LOGOS_TESTS_DIR" ]]; then
-  echo "warning: skipping Logos regressions; CPC_GEN_LOGOS_CMD or CVC5_LOGOS is unavailable" >&2
+  eoc_warning "skipping the Logos regressions: CPC_GEN_LOGOS_CMD or CVC5_LOGOS is unavailable"
 fi
 
-echo "********* Clean *********"
+eoc_step "Cleaning the stage files"
 EOC_SKIP_CVC5="${EOC_SKIP_CVC5:-1}" "$SCRIPT_DIR/run_clean"

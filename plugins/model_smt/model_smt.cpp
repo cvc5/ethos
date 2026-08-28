@@ -127,8 +127,37 @@ void ModelSmt::loadDefs()
   }
   std::vector<const DefsBlock*> byDecl =
       orderByDeclarations(blocks, declarations);
+  // The literals stand before the symbols written over them, and in the order
+  // the configuration gives rather than the order a calculus declares its own,
+  // for the same reason the types and the values do below: what the generated
+  // Lean derives from the order of the terms of the embedding is then the same
+  // in every generated package.
+  for (const DefsBlock* b : blocks)
+  {
+    if (!b->d_literal)
+    {
+      continue;
+    }
+    for (const std::string& f : b->d_cons)
+    {
+      d_smtLiterals << f << std::endl;
+    }
+    for (const std::string& c : b->d_typeofCases)
+    {
+      d_smtTypeof << "  " << c << std::endl;
+    }
+    for (const std::string& c : b->d_evalCases)
+    {
+      d_eval << "  " << c << std::endl;
+    }
+  }
   for (const DefsBlock* b : byDecl)
   {
+    if (b->d_literal)
+    {
+      // one of the embedding's own, emitted above
+      continue;
+    }
     // A block that says nothing about the model, e.g. one that only gives the
     // nil of an n-ary symbol, leaves that symbol to be compiled as any other.
     if (!b->d_cons.empty() || !b->d_typeofCases.empty()
@@ -158,17 +187,21 @@ void ModelSmt::loadDefs()
       d_eoToSmtType << "  " << c << std::endl;
     }
   }
-  // The types are the embedding's own -- every block of one is kept, whatever
-  // the input declares -- so they stand in the order the configuration gives
-  // them rather than in the order a calculus declares its own. What is derived
-  // from that order is then the same in every generated package however few
-  // rules it was compiled for, e.g. the key a value is ordered by, see
-  // typeKey in the generated SmtValueOrder.
+  // The types and the values are the embedding's own -- every block of one is
+  // kept, whatever the input declares -- so they stand in the order the
+  // configuration gives them rather than in the order a calculus declares its
+  // own. What is derived from that order is then the same in every generated
+  // package however few rules it was compiled for, e.g. the keys a value is
+  // ordered by, see typeKey and valueKey in the generated SmtValueOrder.
   for (const DefsBlock* b : blocks)
   {
     for (const std::string& f : b->d_typeCons)
     {
       d_smtTypes << f << std::endl;
+    }
+    for (const std::string& f : b->d_valueCons)
+    {
+      d_smtValues << f << std::endl;
     }
     for (const std::string& c : b->d_typeWfCases)
     {
@@ -182,6 +215,14 @@ void ModelSmt::loadDefs()
     {
       d_typeDefault << "  " << c << std::endl;
     }
+    for (const std::string& c : b->d_valueTypeofCases)
+    {
+      d_valueTypeof << "  " << c << std::endl;
+    }
+    for (const std::string& c : b->d_valueCanonicalCases)
+    {
+      d_valueCanonical << "  " << c << std::endl;
+    }
   }
   // The programs follow the same order, which they may because each evaluator
   // is forward declared above; a method that is not, having been written
@@ -189,17 +230,17 @@ void ModelSmt::loadDefs()
   // which is what puts it before whatever calls it.
   for (const DefsBlock* b : byDecl)
   {
-    for (const std::string& f : b->d_typeofAux)
-    {
-      d_smtTypeofAux << f << std::endl;
-    }
     for (const std::string& f : b->d_evalFwd)
     {
       d_modelEvalProgsFwd << f << std::endl;
     }
-    for (const std::string& f : b->d_evalProgs)
+    for (const std::string& f : b->d_helperProgs)
     {
-      d_modelEvalProgs << f << std::endl;
+      d_helperProgs << f << std::endl;
+    }
+    for (const std::string& f : b->d_canonicalAux)
+    {
+      d_smtCanonicalAux << f << std::endl;
     }
     for (const std::string& f : b->d_eoAux)
     {
@@ -259,18 +300,24 @@ void ModelSmt::finalize()
   replacePlaceholder(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
   replacePlaceholder(
       finalSmt, "$SMT_EVAL_PROGS_FWD_DECL$", d_modelEvalProgsFwd.str());
-  replacePlaceholder(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());
+  replacePlaceholder(finalSmt, "$SMT_HELPER_PROGS$", d_helperProgs.str());
   replacePlaceholder(finalSmt, "$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
   replacePlaceholder(finalSmt, "$EO_DESUGAR_AUX$", d_desugarAux.str());
   replacePlaceholder(finalSmt, "$EO_TO_SMT_CASES$", d_eoToSmt.str());
   replacePlaceholder(finalSmt, "$EO_TO_SMT_TYPE_CASES$", d_eoToSmtType.str());
+  replacePlaceholder(
+      finalSmt, "$SMT_LITERAL_CONSTRUCTORS$", d_smtLiterals.str());
   replacePlaceholder(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
   replacePlaceholder(finalSmt, "$SMT_TYPE_CONSTRUCTORS$", d_smtTypes.str());
+  replacePlaceholder(finalSmt, "$SMT_VALUE_CONSTRUCTORS$", d_smtValues.str());
+  replacePlaceholder(finalSmt, "$SMT_VALUE_TYPEOF_CASES$", d_valueTypeof.str());
+  replacePlaceholder(
+      finalSmt, "$SMT_VALUE_CANONICAL_CASES$", d_valueCanonical.str());
   replacePlaceholder(finalSmt, "$SMT_TYPE_WF_CASES$", d_typeWf.str());
   replacePlaceholder(finalSmt, "$SMT_TYPE_BOUNDED_CASES$", d_typeBounded.str());
   replacePlaceholder(finalSmt, "$SMT_TYPE_DEFAULT_CASES$", d_typeDefault.str());
   replacePlaceholder(finalSmt, "$SMT_TYPEOF_CASES$", d_smtTypeof.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPEOF_AUX$", d_smtTypeofAux.str());
+  replacePlaceholder(finalSmt, "$SMT_CANONICAL_AUX$", d_smtCanonicalAux.str());
   if (finalSmt.find("$eoc_") != std::string::npos)
   {
     EO_FATAL() << "ModelSmt: generated output contains an unexpanded $eoc_ "

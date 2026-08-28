@@ -850,7 +850,7 @@ macro_rules
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      let canonId := Lean.mkIdent `__smtx_value_canonical
       `(by
           classical
           exact
@@ -869,7 +869,7 @@ macro_rules
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      let canonId := Lean.mkIdent `__smtx_value_canonical
       `(by
           classical
           exact
@@ -888,7 +888,7 @@ macro_rules
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      let canonId := Lean.mkIdent `__smtx_value_canonical
       `(by
           classical
           exact
@@ -906,11 +906,11 @@ macro_rules
 -- $native native_eval_map_diff_msm
 macro_rules
   | `(native_eval_map_diff_msm $m1 $m2) => do
-      let lookupId := Lean.mkIdent `__smtx_msm_lookup
+      let lookupId := Lean.mkIdent `__smtx_map_lookup
       let typeofMapValueId := Lean.mkIdent `__smtx_typeof_map_value
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
       let typeDefaultId := Lean.mkIdent `__smtx_type_default
-      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      let canonId := Lean.mkIdent `__smtx_value_canonical
       `(by
           classical
           exact

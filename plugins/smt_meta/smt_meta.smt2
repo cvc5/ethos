@@ -355,14 +355,14 @@ $SM_DEFS$
 ; whether two map values are extensionally equal
 (assert (! (forall ((v1 msm.Map) (v2 msm.Map))
   (! (= (veq_ext v1 v2)
-        (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))
+        (forall ((i vsm.Value)) (= ($smtx_map_lookup v1 i) ($smtx_map_lookup v2 i))))
   :pattern ((veq_ext v1 v2))))
   :named smtx.veq_ext.def))
 
 ; FIXME
 ;(assert (! (forall ((v1 msm.Map) (v2 msm.Map))
 ;  (! (= (eval_map_diff_msm v1 v2)
-;        (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))
+;        (forall ((i vsm.Value)) (= ($smtx_map_lookup v1 i) ($smtx_map_lookup v2 i))))
 ;  :pattern ((veq_ext v1 v2))))
 ;  :named smtx.veq_ext.def))
 

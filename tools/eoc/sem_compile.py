@@ -40,6 +40,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import report  # noqa: E402
 import sem_target  # noqa: E402
 from sem_lang import (counts, defined_names, die,  # noqa: E402
                       lean_clauses, read_config, read_macros, read_text,
@@ -174,8 +175,11 @@ def render_lean(config):
 def summary(config):
   """How much of each thing a set holds, in the words of its kinds."""
   c = config.counts
+  # The kinds a set holds, in the order its shape gives them, and last the
+  # programs, which are what a set holds beside its entities.
+  nouns = [shape.noun + 's' for shape in config.decls.shapes] + ['programs']
   kinds = ['%d %s' % (c[k], k if c[k] != 1 else k[:-1])
-           for k in ('symbols', 'types', 'methods', 'rules', 'programs') if c[k]]
+           for k in nouns if c[k]]
   said = ['%d %s' % (c[k], w) for k, w in (('keep', 'kept'),
                                            ('exclude', 'left out'),
                                            ('lean', 'annotated')) if c[k]]
@@ -359,16 +363,43 @@ def check_distinct(configs):
     seen[t] = config.name
 
 
+def target_blocks(sets):
+  """The blocks of the set that is the target, for the vocabulary of the rest.
+
+  An input is compiled *through* the target, so a symbol the target declares is
+  one an input may name -- the bit-vector literal is, and so is each binder --
+  and what each place of that symbol is of is what says how an argument written
+  there is transformed. Reading the target is what puts that in reach; without
+  it an argument falls back to the level around it, and a native written under
+  a symbol that takes one comes out wrapped as a term.
+
+  The target is read whether or not this run compiles it, since an input set
+  compiled on its own is written against it just the same. Which set is the
+  target is the role a run gave it, never what its file is called, see role_of.
+  """
+  path = next((p for p, t in sets if t),
+              next((c for c, t in SHIPPED if t), None))
+  if path is None:
+    return []
+  config = read_config_file(path, True)
+  return read_config(config.files, config.decls)
+
+
 def compile_all(sets):
   """Every set, as (config, blocks) pairs.
 
   `sets` is (path, is_target) pairs: which shape a set compiles to is said by
-  the role the run gives it, see read_config_file.
+  the role the run gives it, see read_config_file. A set that is not the target
+  is compiled against the target's own blocks as well as the vocabulary of the
+  embedding, see target_blocks.
   """
   vocab, macros = read_vocabulary(VOCAB_FILES), read_macros(MACRO_FILES)
   configs = [read_config_file(p, t) for p, t in sets]
   check_distinct(configs)
-  return [(c, compile_config(c, vocab, macros)) for c in configs]
+  target = target_blocks(sets)
+  return [(c, compile_config(c, vocab if c.is_target else vocab.extended(target),
+                             macros))
+          for c in configs]
 
 
 # -----------------------------------------------------------------------------
@@ -387,9 +418,11 @@ def check_order(blocks, name, exempt=()):
   the configuration has to give up in exchange for not stating it: the compiler
   emits in the order the files read and then checks the constraint holds.
 
-  A program written over values is exempt, which is what `exempt` names: the
-  stage forward declares every one of them before it defines any, see
-  DefsBlock::d_evalFwd, so one may name another whichever comes first.
+  Two things are exempt, which is what `exempt` names. A program written over
+  values, since the stage forward declares every one of them before it defines
+  any, see DefsBlock::d_evalFwd; and the constructor of an entity and its
+  macro, since the stage writes every constructor before it writes any case, so
+  the default of a type may name the value it is whichever block comes first.
   """
   owner = {}
   for i, (_sym, text) in enumerate(blocks):
@@ -404,10 +437,9 @@ def check_order(blocks, name, exempt=()):
       if any(u.startswith(p) for p in exempt):
         continue
       if u in owner and owner[u] > i:
-        print('  %s: %s uses %s, which block %s defines later'
-              % (name, sym, u, blocks[owner[u]][0]))
+        report.error('%s: block %s uses %s, which block %s defines later'
+                     % (name, sym, u, blocks[owner[u]][0]))
         bad += 1
-  print('  %-20s %d blocks, %d out-of-order uses' % (name, len(blocks), bad))
   return bad
 
 
@@ -421,13 +453,21 @@ def check_current(text, path):
   than read.
   """
   if not os.path.exists(path):
-    state, bad = 'MISSING; run sem_compile.py to write it', 1
+    state, bad = 'missing', 1
   elif read_text(path) == text:
     state, bad = 'current', 0
   else:
-    state, bad = 'STALE; run sem_compile.py to rewrite it', 1
-  print('  %-20s %s' % (os.path.basename(path), state))
-  return bad
+    state, bad = 'stale', 1
+  return state, bad
+
+
+def written(blocks, config):
+  """What compiling one set writes, in the order it is written: the signature
+  in the deep embedding that the model-smt stage reads, and the clauses the
+  lean-meta stage appends to the Lean it writes."""
+  return ((render(blocks, config), config.target, '%d blocks' % len(blocks)),
+          (render_lean(config), config.lean_target,
+           '%d clauses' % len(config.clauses)))
 
 
 def render(blocks, config):
@@ -501,28 +541,41 @@ def main():
   sets += [(p, False) for p in a.signature]
   sets += [(p, True) for p in a.semantics]
   sets = sets or list(SHIPPED)
+  # What the sets are named by in a line of the log: the directory they share
+  # where they share one, so that a line names the file rather than the way to
+  # it, see report.rel.
+  home = os.path.dirname(os.path.commonprefix(
+      [os.path.dirname(os.path.abspath(p)) + os.sep for p, _ in sets]))
+  named_sets = [report.rel(p, home) for p, _ in sets]
+  width = max(len(n) for n in named_sets)
   if a.check:
-    bad = 0
+    report.step('Checking the generated signatures against %s'
+                % report.rel(home))
+    bad, done = 0, []
     for config, blocks in compile_all(sets):
-      name = os.path.basename(config.target)
-      bad += check_order(blocks, name, config.decls.helper_prefixes())
-      bad += check_current(render(blocks, config), config.target)
-      bad += check_current(render_lean(config), config.lean_target)
+      bad += check_order(blocks, report.rel(config.target),
+                         config.decls.helper_prefixes()
+                         + config.decls.constructor_prefixes())
+      for text, target, what in written(blocks, config):
+        state, wrong = check_current(text, target)
+        done.append((report.rel(target), state, None if wrong else what))
+        bad += wrong
+    at = max(len(n) for n, _, _ in done)
+    for name, state, what in done:
+      report.state(name, state, what, width=at)
+      if what is None:
+        report.error('%s is %s; run %s to write it'
+                     % (name, state, report.rel(__file__)))
     sys.exit(1 if bad else 0)
-  for config, blocks in compile_all(sets):
-    target, lean_target = config.target, config.lean_target
-    if a.out_dir is not None:
-      target = os.path.join(a.out_dir, os.path.basename(target))
-      lean_target = os.path.join(a.out_dir, os.path.basename(lean_target))
-    changed = write_if_changed(render(blocks, config), target)
-    lean_changed = write_if_changed(render_lean(config), lean_target)
-    print('%s %d blocks to %s'
-          % ('wrote' if changed else 'unchanged,', len(blocks),
-             os.path.relpath(target, ROOT)))
-    print('%s %d clauses to %s'
-          % ('wrote' if lean_changed else 'unchanged,', len(config.clauses),
-             os.path.relpath(lean_target, ROOT)))
-    print('  %s' % summary(config))
+  report.step('Compiling semantics under %s' % report.rel(home))
+  for (config, blocks), name in zip(compile_all(sets), named_sets):
+    for text, target, what in written(blocks, config):
+      if a.out_dir is not None:
+        target = os.path.join(a.out_dir, os.path.basename(target))
+      changed = write_if_changed(text, target)
+      report.item(name, report.rel(target),
+                  what if changed else '%s, unchanged' % what, width=width)
+    report.step(summary(config), 2)
 
 
 if __name__ == '__main__':

@@ -78,10 +78,34 @@ A block may also be of a helper rather than of a symbol, in which case the
 `; -- X` line names the helper itself, e.g. `; -- $smtx_typeof_bv_op_2` for the
 typing of a bit-vector operator whose two arguments must be of one width. Such
 a block is taken only when a block that is kept names it, so a signature with
-no bit-vectors in it compiles to a model that has never heard of them. A helper
-belongs in the signature when only theory operators call it; what remains in
-`plugins/model_smt/model_smt.eo` is the type language, the value language and
-the terms that file declares itself, together with their methods.
+no bit-vectors in it compiles to a model that has never heard of them.
+
+A helper belongs in the signature when only theory operators call it. That is
+the whole of what a signature may hold beside its symbols: a set says what a
+theory **does** and never what the embedding **is**, so it writes programs and
+never a declaration, and a form that is neither is refused rather than carried
+over as the text it is; see `semantics/README.md`. The programs over a map --
+looking an entry up, typing one, saying whether one is written the one way --
+are therefore written in the configuration beside the sort they belong to,
+while the `$smt_Map` they are written over is declared in
+`plugins/model_smt/model_smt.eo` with the rest of the embedding.
+
+What remains in `plugins/model_smt/model_smt.eo` is what says what the
+embedding is, and what no theory is what asks for:
+
+- the term, type and value languages the file declares itself -- the shapes a
+  value is built over among them -- and the aggregates written over them;
+- the datatypes, which an input *declares* rather than a theory naming, and the
+  types the embedding keeps for what an input declares -- `USort`, `FunType`,
+  `DtcAppType`, `TypeRef`;
+- the binders, an application, and the programs over types that everything else
+  is written against -- well-foundedness, boundedness and the default of a
+  type.
+
+Every helper a signature writes is emitted together, before the first aggregate
+whose cases may call one; they are one stream because they are one dependency
+graph, and what orders them is the signature itself, which writes a program
+after the ones it calls. See `$SMT_HELPER_PROGS$` in the template.
 
 The stage takes the blocks of the symbols the input declares, together with
 every block those name, and puts what each says where it belongs; it knows
@@ -310,6 +334,44 @@ python3 tools/eoc/driver.py vc --build-dir build-eoc tests/Booleans-rules.eo and
 The input path `tests/Booleans-rules.eo` is interpreted relative to the
 repository root. The driver writes its EO stage files and final published
 outputs under `tools/eoc/out` by default.
+
+## What a run prints
+
+Every tool of the pipeline says what it is doing the same way, which matters
+because the checks that run this compiler live in other repositories -- logos
+and cvc5 -- and read its output there. One step of a run is a line under
+`-- `, what a step is made of is indented two spaces further, and a path is
+written from the root of the repository, so that a log reads the same whichever
+machine wrote it:
+
+```text
+-- Compiling semantics under tools/eoc/semantics
+--   smt.eos             -> tools/eoc/out/smt_defs.eo (219 blocks)
+--   smt.eos             -> tools/eoc/out/smt_termination.lean (12 clauses, unchanged)
+--     132 symbols, 5 literals, 9 types, 14 values, 12 methods, 67 programs
+--   development-cpc.eos -> tools/eoc/out/user_defs.eo (194 blocks, unchanged)
+-- Generating Lean for /home/me/cvc5/proofs/eo/cpc/Cpc.eo
+--   [1/4] desugar   -> tools/eoc/out/lean-cpc-desugar.eo
+--   [2/4] model-smt -> tools/eoc/out/lean-cpc-final.eo
+--   [3/4] parse        tools/eoc/out/lean-cpc-final.eo
+--   [4/4] lean      -> tools/eoc/out/lean
+-- Installing the generated Lean of tools/eoc/out/lean into /home/me/logos/Cpc
+--   Logos.lean         -> Cpc/Logos.lean
+--   Rules/*.lean       -> Cpc/Proofs/Rules/ (591 copied, 0 preserved)
+```
+
+A path outside the repository -- the signature of a calculus, the tree the Lean
+is installed into -- is written as it stands, since nothing else would name it.
+
+What went wrong is *not* a step. It goes to stderr as `error: ...`, which is
+what a caller's CI looks for, and the run exits non-zero; a run that carried on
+regardless says so as `warning: ...`. Anything meant to be read by a program
+rather than a person -- the rule names of `list-rules` -- is written plainly to
+stdout with no prefix at all.
+
+The style is defined in one place per language: `tools/eoc/report.py` for the
+tools, and `eoc_step`, `eoc_item`, `eoc_error` in `tools/eoc/cpc/common.sh` for
+the scripts that call them.
 
 ## Output layout
 
