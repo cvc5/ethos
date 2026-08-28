@@ -65,4 +65,6 @@ cmake --build build-eoc --target ethos-eoc -j4
 ```
 
 The workflow is driven by [`tools/eoc/driver.py`](tools/eoc/driver.py), whose
-usage is documented in [`tools/eoc/README.md`](tools/eoc/README.md).
+usage is documented in [`tools/eoc/README.md`](tools/eoc/README.md). What this
+development branch carries beyond the checker, and what of it is scaffolding,
+is described in [`dev_branch.md`](dev_branch.md).
