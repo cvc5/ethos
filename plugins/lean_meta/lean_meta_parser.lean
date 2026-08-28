@@ -7,6 +7,8 @@ import all $EO_CALC$.Logos
 
 public section
 
+-- $native-sees Eo
+
 namespace Eo
 
 open SmtEval

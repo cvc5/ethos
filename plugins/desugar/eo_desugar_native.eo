@@ -346,7 +346,7 @@
   :signature (T T) T
   (
   (($eo_xor ($eot_bool b1) ($eot_bool b2))
-     ($eot_bool ($native_apply_2 "xor" b1 b2)))
+     ($eot_bool ($native_not ($native_iff b1 b2))))
   (($eo_xor ($eot_binary w1 n1) ($eot_binary w2 n2))
     (eo::requires ($eot_numeral w1) ($eot_numeral w2)
      ($eo_binary_mod_w w1 ($native_binary_xor w1 n1 n2))))

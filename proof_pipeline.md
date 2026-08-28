@@ -46,7 +46,6 @@ python3 tools/eoc/driver.py vc --build-dir build-eoc \
 # the whole CPC signature, compiled to Lean
 python3 tools/eoc/driver.py lean --build-dir build-eoc --all \
   --signature tools/eoc/semantics/development-cpc.eos \
-  --lean-config tools/eoc/out/user_termination.lean \
   <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 

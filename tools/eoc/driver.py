@@ -28,12 +28,17 @@ DEFAULT_FINAL_OUT_DIR = SCRIPT_DIR / "out"
 LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
 
 # The signature-wide Lean files written by the lean subcommand, in module
-# dependency order. Each entry is (source relative to plugins/, name written
-# under <final out dir>/lean, whether the source is rendered by the Lean
-# backend rather than copied verbatim from the plugin source tree). The
-# per-rule files under lean/Rules/ are published separately, see
+# dependency order. Each entry is (source relative to <build dir>/out/plugins,
+# name written under <final out dir>/lean). The per-rule files under
+# lean/Rules/ are published separately, see
 # publish_generated_lean_rule_outputs. Keep this in sync with EOC_LEAN_OUTPUTS
 # in tools/eoc/cpc/common.sh, which installs these files into a Logos package.
+#
+# Every one of them is rendered by the lean-meta stage rather than copied from
+# the plugin source tree, including the ones whose resource carries no
+# generated text: the stage trims the native layer to what the compilation
+# reaches once it has written every file, so a file that did not pass through
+# it would carry the whole layer. See LeanMetaReduce::placeNativeDefs.
 #
 # <final out dir>/lean is what a run publishes, not a Lean package that builds
 # on its own: the generated modules import <Calc>.Proofs.CheckerCore and
@@ -45,16 +50,16 @@ LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
 # which is what the import <Calc>.Proofs.Rules.<Rule> lines that the former
 # carries name. Everything else is installed at the root of the package, where
 # its name already is its import.
-LEAN_OUTPUTS: tuple[tuple[str, str, bool], ...] = (
-    ("lean_meta/lean_meta_checker_gen.lean", "Logos.lean", True),
-    ("lean_meta/lean_meta_checker_term_gen.lean", "LogosTerm.lean", True),
-    ("lean_meta/lean_meta_parser_gen.lean", "Parser.lean", True),
-    ("lean_meta/lean_meta_smt_eval.lean", "SmtEval.lean", False),
-    ("lean_meta/lean_meta_smt_model_defs_gen.lean", "SmtModelDefs.lean", True),
-    ("lean_meta/lean_meta_smt_value_order_gen.lean", "SmtValueOrder.lean", True),
-    ("lean_meta/lean_meta_smt_model_gen.lean", "SmtModel.lean", True),
-    ("lean_meta/lean_meta_spec_gen.lean", "Spec.lean", True),
-    ("lean_meta/lean_meta_rule_lemmas_gen.lean", "RuleLemmas.lean", True),
+LEAN_OUTPUTS: tuple[tuple[str, str], ...] = (
+    ("lean_meta/lean_meta_checker_gen.lean", "Logos.lean"),
+    ("lean_meta/lean_meta_checker_term_gen.lean", "LogosTerm.lean"),
+    ("lean_meta/lean_meta_parser_gen.lean", "Parser.lean"),
+    ("lean_meta/lean_meta_smt_eval_gen.lean", "SmtEval.lean"),
+    ("lean_meta/lean_meta_smt_model_defs_gen.lean", "SmtModelDefs.lean"),
+    ("lean_meta/lean_meta_smt_value_order_gen.lean", "SmtValueOrder.lean"),
+    ("lean_meta/lean_meta_smt_model_gen.lean", "SmtModel.lean"),
+    ("lean_meta/lean_meta_spec_gen.lean", "Spec.lean"),
+    ("lean_meta/lean_meta_rule_lemmas_gen.lean", "RuleLemmas.lean"),
 )
 
 DECLARE_RULE_RE = re.compile(r"^\(declare-rule\s+([^\s(]+)")
@@ -581,15 +586,10 @@ class Pipeline:
             args.append(f"--lean-config={self.binary_path_arg(self.lean_config)}")
         args.append(self.binary_path_arg(input_file))
         self.ethos(args, quiet=True)
-        for source, name, generated in LEAN_OUTPUTS:
+        for source, name in LEAN_OUTPUTS:
             if not generate_parser and name == "Parser.lean":
                 continue
-            source_path = (
-                self.plugin_generated(source)
-                if generated
-                else REPO_ROOT / "plugins" / source
-            )
-            shutil.copyfile(source_path, out_lean / name)
+            shutil.copyfile(self.plugin_generated(source), out_lean / name)
         self.publish_generated_lean_rule_outputs(out_lean)
         self.materialize_lean_calc(out_lean, calc_name)
         return out_lean

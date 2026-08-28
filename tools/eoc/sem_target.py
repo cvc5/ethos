@@ -401,6 +401,11 @@ class Shape:
     # The Lean text that follows the definition the lean-meta stage writes for
     # a method, i.e. what Lean has to be told and no compiler could derive.
     out['lean'] = 1
+    # The Lean a native *is*, which the stage emits as a block of the layer
+    # rather than after a definition it wrote itself, and how much of the
+    # embedding that block needs in scope.
+    out['lean-impl'] = 1
+    out['needs'] = 1
     # The other way round: a symbol the embedding names itself, whose block is
     # kept whether or not the input declares it. What is written over such a
     # symbol -- a hand-written proof about the generated Lean -- is written
@@ -654,6 +659,15 @@ METHODS = Shape([], keyword='define-method', noun='method', params=False)
 # A proof rule of the input, which says only that it is left out.
 RULES = Shape([], keyword='define-rule', noun='rule', params=False)
 
+# One definition of the native layer, i.e. what the generated Lean is written
+# over and no compiler writes. It compiles to nothing of the model: what it
+# says is Lean text, under :lean-impl, which the lean-meta stage is given as a
+# block of the layer. The names it declares are the ones a signature may
+# reach; anything else the text defines is private to it by having no name
+# here at all.
+NATIVES = Shape([], keyword='define-native-method', noun='native',
+                params=False)
+
 # ---------------------------------------------------------------------------
 # The values of the SMT-LIB signature, which stand in the same file
 # ---------------------------------------------------------------------------
@@ -763,6 +777,7 @@ INPUT_SYMBOLS = Shape([TERM, TYPE, IS_LIST_NIL])
 
 TARGET = Shapes(SYMBOLS, LITERALS, TYPES, VALUES, METHODS)
 INPUT_SET = Shapes(INPUT_SYMBOLS, METHODS, RULES)
+NATIVE_SET = Shapes(NATIVES)
 
 
 def of(target):

@@ -301,6 +301,38 @@
 ; sequence operators.
 (define $smt_RegLan () ($native_embed_smt "SmtRegLan"))
 
+; The constructors of a regular language, which are the embedding's own: the
+; Lean inductive is written by hand, see SmtRegLan in
+; plugins/lean_meta/lean_meta_smt_model_defs.lean, and each constructor prints
+; as one of it because its return type says which inductive it builds. Naming
+; them here is what lets the configuration say what a regular language is,
+; rather than leaving that to a native, see $smtx_re_canonical in
+; tools/eoc/semantics/smt.eos.
+(declare-const $emb_rsm.empty $smt_RegLan)
+(define $rsm_empty () $emb_rsm.empty)
+(declare-const $emb_rsm.epsilon $smt_RegLan)
+(define $rsm_epsilon () $emb_rsm.epsilon)
+(declare-const $emb_rsm.allchar $smt_RegLan)
+(define $rsm_allchar () $emb_rsm.allchar)
+(declare-parameterized-const $emb_rsm.char ((c $smt_Value :opaque)) $smt_RegLan)
+(define $rsm_char ((c $smt_Value)) ($emb_rsm.char c))
+(declare-parameterized-const $emb_rsm.range
+  ((lo $smt_Value :opaque) (hi $smt_Value :opaque)) $smt_RegLan)
+(define $rsm_range ((lo $smt_Value) (hi $smt_Value)) ($emb_rsm.range lo hi))
+(declare-parameterized-const $emb_rsm.concat
+  ((r1 $smt_RegLan :opaque) (r2 $smt_RegLan :opaque)) $smt_RegLan)
+(define $rsm_concat ((r1 $smt_RegLan) (r2 $smt_RegLan)) ($emb_rsm.concat r1 r2))
+(declare-parameterized-const $emb_rsm.union
+  ((r1 $smt_RegLan :opaque) (r2 $smt_RegLan :opaque)) $smt_RegLan)
+(define $rsm_union ((r1 $smt_RegLan) (r2 $smt_RegLan)) ($emb_rsm.union r1 r2))
+(declare-parameterized-const $emb_rsm.inter
+  ((r1 $smt_RegLan :opaque) (r2 $smt_RegLan :opaque)) $smt_RegLan)
+(define $rsm_inter ((r1 $smt_RegLan) (r2 $smt_RegLan)) ($emb_rsm.inter r1 r2))
+(declare-parameterized-const $emb_rsm.star ((r $smt_RegLan :opaque)) $smt_RegLan)
+(define $rsm_star ((r $smt_RegLan)) ($emb_rsm.star r))
+(declare-parameterized-const $emb_rsm.comp ((r $smt_RegLan :opaque)) $smt_RegLan)
+(define $rsm_comp ((r $smt_RegLan)) ($emb_rsm.comp r))
+
 ;;; SMT value datatype constructors
 
 ; The values the configuration declares, i.e. what a term of the signature
@@ -859,10 +891,10 @@
   (
   (($eo_to_smt_type Bool)                     $tsm_Bool)
   (($eo_to_smt_type ($eot_DatatypeType s dd))
-    ($native_ite ($native_reserved_datatype_name s) $tsm_none
+    ($native_ite ($eo_to_smt_reserved_datatype_name s) $tsm_none
       ($tsm_Datatype s ($eo_to_smt_datatype_decl dd))))
   (($eo_to_smt_type ($eot_DatatypeTypeRef s))
-    ($native_ite ($native_reserved_datatype_name s) $tsm_none
+    ($native_ite ($eo_to_smt_reserved_datatype_name s) $tsm_none
       ($tsm_TypeRef s)))
   (($eo_to_smt_type ($eot_DtcAppType T1 T2))
     (eo::define ((S1 ($eo_to_smt_type T1)))
@@ -894,10 +926,10 @@
   (($eo_to_smt ($eot_Var ($eot_string s) T))
                                      ($sm_Var s ($eo_to_smt_type T)))
   (($eo_to_smt ($eot_DtCons s dd i))
-    ($native_ite ($native_reserved_datatype_name s) $sm_none
+    ($native_ite ($eo_to_smt_reserved_datatype_name s) $sm_none
       ($sm_DtCons s ($eo_to_smt_datatype_decl dd) i)))
   (($eo_to_smt ($eot_DtSel s dd i j))
-    ($native_ite ($native_reserved_datatype_name s) $sm_none
+    ($native_ite ($eo_to_smt_reserved_datatype_name s) $sm_none
       ($sm_DtSel s ($eo_to_smt_datatype_decl dd) i j)))
   (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($native_to_uconst_id i) ($eo_to_smt_type T)))
 ;$EO_TO_SMT_CASES$

@@ -169,12 +169,13 @@ A file is a sequence of these.
 (section STRING)                                    opens one theory
 
 (define-macro NAME (NAME*) term)                    see Entries
-(program NAME (declaration*) :signature (type*) type (case*))
+(program NAME (declaration*) [:keep] :signature (type*) type (case*))
 (define-symbol NAME (parameter*) attribute*)
 (define-sort NAME (parameter*) attribute*)          the target only
 (define-value NAME (parameter*) attribute*)         the target only
 (define-literal NAME (parameter*) attribute*)       the target only
 (define-method NAME attribute*)                     an input only
+(define-native-method NAME attribute*)              the native layer only
 (define-rule NAME attribute*)                       an input only
 
 anything else                                       refused
@@ -316,6 +317,7 @@ two are read apart by the form that declares one.
 | a value of the **target**, `semantics/smt.eos` | `define-value` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical` under `:canonical` |
 | a literal of the **target**, `semantics/smt.eos` | `define-literal` | a constant of the embedding and the macro that applies it; the two cases a symbol writes, `:typeof` and `:value`, over what it carries rather than over terms |
 | a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
+| a definition of the **native layer**, `plugins/lean_meta/lean.eos` | `define-native-method` | one block of the layer the generated Lean is written over: the Lean it is, under `:lean-impl`, and how much of the embedding that block needs in scope, under `:needs`. It names the native the way a set does, without the `native_` the embedding gives it; whatever else its Lean defines is private to the entry and is called `impl_native_` rather than `native_` to say so |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |
 | a rule of an **input**, `semantics/development-cpc.eos` | `define-rule` | the same, for a proof rule, which says only that it is left out |
 
@@ -698,6 +700,13 @@ set gives them, and the comment above a method is prose of that file, since a
 clause holds no comment of its own. Methods that stand together and say the same
 clause come out under one heading.
 
+A clause may not name the native layer: it is appended to a generated definition
+rather than written into a resource, so it is not one of the blocks that layer is
+trimmed by and a name it gave would keep nothing alive. Every native type
+abbreviates a Lean type -- `Bool` for `native_Bool`, `Int` for `native_Int` --
+which is what a clause writes instead. The lean-meta stage rejects one that does
+not.
+
 **`:exclude`** says the compilation has no place for it. What is left out is not
 always a symbol: dropping the binder of CPC drops the methods that reduce an
 application of one and the rule written over them, and each says so where it
@@ -724,6 +733,25 @@ it is named everywhere else:
 
 Naming a type the embedding has no such type for is caught here rather than by
 ethos.
+
+A program is a *helper*: its block is taken only where a block already taken
+names it, which is what a helper of a symbol wants. Writing `:keep` between
+the parameters and the signature says the block stands whatever the input
+declares, which is what a program the **template** names wants instead, since
+no symbol of the input names one. It compiles to the same `eoc-keep` directive
+a symbol of the embedding writes, see `DefsBlock::d_keep`.
+
+```lisp
+(program $eo_to_smt_reserved_datatype_name ((s "String"))
+  :keep
+  :signature ("String") "Bool"
+  ((($eo_to_smt_reserved_datatype_name s) ("string_head_eq" "str_at_sign" s))))
+```
+
+`$eo_to_smt` and `$eo_to_smt_type` in `plugins/model_smt/model_smt.eo` ask an
+input's set for that one by name: which datatype names a calculus keeps for
+itself is a convention of the calculus, not of the embedding. **An input set
+has to define it**, and one that does not fails when the stage runs.
 
 **The signature is what says how a case is read**, place by place. A place
 whose declared type is one of the input is taken as the input wrote it, and

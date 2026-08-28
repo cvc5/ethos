@@ -73,4 +73,18 @@ deriving Repr, DecidableEq, Inhabited, Ord
 
 end
 
+-- Equality and ordering of Eunoia terms, which the checker asks for and the
+-- term embedding is what decides: they stand beside it rather than in the
+-- native library, which is for what the embedding is written over.
+
+/- Term equality -/
+def native_teq : Term -> Term -> native_Bool
+  | x, y => decide (x = y)
+
+/- Term less than, based on arbitrary ordering -/
+def native_tcmp (a b : Term) : native_Bool :=
+  match compare a b with
+  | Ordering.lt => true
+  | _ => false
+
 end Eo
