@@ -97,9 +97,9 @@ deriving Repr, DecidableEq, Inhabited, Ord
 
 end
 
--- Equality of a type and of a value, which the inductives above are what
--- decide. They stand after the mutual block rather than beside the inductive
--- whose `deriving` makes them possible: a mutual block holds inductives or
+-- Equality of a type and of a value, decided by the two inductives above.
+-- They stand after the mutual block rather than beside the inductive whose
+-- `deriving` makes them possible: a mutual block holds inductives or
 -- definitions, never both.
 
 /- Type equality -/

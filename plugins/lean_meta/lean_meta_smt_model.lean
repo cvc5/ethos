@@ -93,7 +93,7 @@ end
 -- embedding names them.
 
 macro_rules
-  | `(native_eval_texists $M $s $T $body) => do
+  | `(native_eval_exists $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
@@ -111,7 +111,7 @@ macro_rules
               SmtValue.Boolean false)
 
 macro_rules
-  | `(native_eval_tforall $M $s $T $body) => do
+  | `(native_eval_forall $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
@@ -129,7 +129,7 @@ macro_rules
               SmtValue.Boolean false)
 
 macro_rules
-  | `(native_eval_tchoice $M $s $T $body) => do
+  | `(native_eval_choice $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value

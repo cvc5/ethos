@@ -271,12 +271,12 @@ $SM_TYPE_DECL$
 (declare-fun model_lookup (SmtModel String tsm.Type) vsm.Value)
 (declare-fun model_var_lookup (SmtModel String tsm.Type) vsm.Value)
 (declare-fun model_push (SmtModel String tsm.Type vsm.Value) SmtModel)
-(declare-fun eval_texists (SmtModel String tsm.Type sm.Term) vsm.Value)
-(declare-fun eval_tforall (SmtModel String tsm.Type sm.Term) vsm.Value)
-(declare-fun eval_tchoice (SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_exists (SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_forall (SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_choice (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun inhabited_type (tsm.Type) Bool)
-(declare-fun eval_map_diff_msm (msm.Map msm.Map) vsm.Value)
-(declare-fun eval_seq_diff_ssm (ssm.Seq ssm.Seq) vsm.Value)
+(declare-fun eval_map_diff (msm.Map msm.Map) vsm.Value)
+(declare-fun eval_seq_diff (ssm.Seq ssm.Seq) vsm.Value)
 (declare-fun eval_fun_apply (SmtModel String tsm.Type tsm.Type vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (msm.Map msm.Map) Bool)
@@ -319,20 +319,20 @@ $SM_DEFS$
 
 ; exists
 (assert (! (forall ((M SmtModel) (s String) (T tsm.Type) (F sm.Term))
-  (! (= (eval_texists M s T F)
+  (! (= (eval_exists M s T F)
      (ite (texists_eq M s T F (vsm.Boolean true)) (vsm.Boolean true)
      (ite (tforall_eq M s T F (vsm.Boolean false)) (vsm.Boolean false)
        vsm.NotValue)))
-  :pattern ((eval_texists M s T F))))
+  :pattern ((eval_exists M s T F))))
   :named smtx.texists.def))
 
 ; forall
 (assert (! (forall ((M SmtModel) (s String) (T tsm.Type) (F sm.Term))
-  (! (= (eval_tforall M s T F)
+  (! (= (eval_forall M s T F)
      (ite (texists_eq M s T F (vsm.Boolean false)) (vsm.Boolean false)
      (ite (tforall_eq M s T F (vsm.Boolean true)) (vsm.Boolean true)
        vsm.NotValue)))
-  :pattern ((eval_tforall M s T F))))
+  :pattern ((eval_forall M s T F))))
   :named smtx.tforall.def))
 
 ; choice
@@ -340,9 +340,9 @@ $SM_DEFS$
 ; that substituting with choice also makes it true.
 (assert (! (forall ((M SmtModel) (s String) (T tsm.Type) (F sm.Term) (v vsm.Value))
   (! (=> (texists_eq M s T F (vsm.Boolean true))
-      (= ($smtx_model_eval (model_push M s T (eval_tchoice M s T F)) F)
+      (= ($smtx_model_eval (model_push M s T (eval_choice M s T F)) F)
          (vsm.Boolean true)))
-  :pattern ((eval_tchoice M s T F))))
+  :pattern ((eval_choice M s T F))))
   :named smtx.tchoice.def))
 
 ; typeof choice, must be an inhabitant, else it is ill-typed.
@@ -361,7 +361,7 @@ $SM_DEFS$
 
 ; FIXME
 ;(assert (! (forall ((v1 msm.Map) (v2 msm.Map))
-;  (! (= (eval_map_diff_msm v1 v2)
+;  (! (= (eval_map_diff v1 v2)
 ;        (forall ((i vsm.Value)) (= ($smtx_map_lookup v1 i) ($smtx_map_lookup v2 i))))
 ;  :pattern ((veq_ext v1 v2))))
 ;  :named smtx.veq_ext.def))

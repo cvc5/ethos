@@ -832,8 +832,8 @@
 
 (define-symbol map_diff (a b)
   :typeof ($smtx_typeof_map_diff a b)
-  :eval ((smt.map m1) (smt.map m2)) ("eval_map_diff_msm" m1 m2)
-  :eval ((smt.set m1) (smt.set m2)) ("eval_map_diff_msm" m1 m2))
+  :eval ((smt.map m1) (smt.map m2)) ("eval_map_diff" m1 m2)
+  :eval ((smt.set m1) (smt.set m2)) ("eval_map_diff" m1 m2))
 
 ;-----------------------------------------------------------------------------
 (section "Bit-vectors")
@@ -1621,7 +1621,7 @@
 
 (define-symbol seq_diff (a b)
   :typeof ($smtx_typeof_seq_diff a b)
-  :eval ((smt.seq s) (smt.seq t)) ("eval_seq_diff_ssm" s t))
+  :eval ((smt.seq s) (smt.seq t)) ("eval_seq_diff" s t))
 
 (define-symbol @strings_occur_index (s t i)
   :typeof ($smtx_typeof_str.indexof s t i)

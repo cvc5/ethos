@@ -764,11 +764,11 @@
 ;$SMT_EVAL_CASES$
   ; quantifiers
   (($smtx_model_eval M ($sm_exists s T x1))
-    ($native_apply_4 "eval_texists" M s T x1))
+    ($native_apply_4 "eval_exists" M s T x1))
   (($smtx_model_eval M ($sm_forall s T x1))
-    ($native_apply_4 "eval_tforall" M s T x1))
+    ($native_apply_4 "eval_forall" M s T x1))
   (($smtx_model_eval M ($sm_choice s T x1))
-    ($native_apply_4 "eval_tchoice" M s T x1))
+    ($native_apply_4 "eval_choice" M s T x1))
   ; bind evaluates its body in the model extended with s bound to the value of
   ; the first term.
   (($smtx_model_eval M ($sm_bind s T x1 x2))

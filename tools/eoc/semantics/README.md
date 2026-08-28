@@ -426,7 +426,7 @@ gives is a term.
       (of_chars s ("seq.extract" (chars s) i n))
 
 :eval ((smt.binary n x) (smt.binary m y))  (of_width n ("z_+" x y))
-:eval ((smt.map m1) (smt.map m2))          ("eval_map_diff_msm" m1 m2)
+:eval ((smt.map m1) (smt.map m2))          ("eval_map_diff" m1 m2)
 ```
 
 **What a pattern binds, the program declares**, and what each name is declared
