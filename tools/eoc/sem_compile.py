@@ -505,43 +505,107 @@ NATIVE_GENERATED = """\
 -- definition of the layer is to be changed or added.
 --
 -- The layer is what the generated Lean is allowed to call that the compiler
--- does not write itself. A block runs from `-- $native <name> ...` to the
--- next marker and is the unit the lean-meta stage keeps or drops; the names
--- are what it defines and what a signature may reach, and whatever else its
--- text defines has no name here and so is private to it. A
--- `-- $native-needs <scope>` line opens the section of blocks that need that
--- much of the embedding in scope. See LeanMetaReduce::placeNativeDefs.
+-- does not write itself. A block runs from its `-- $native` line to the next
+-- one and is the unit the lean-meta stage keeps or drops.
+--
+-- The line says everything the stage has to know about the block:
+--
+--   -- $native <name> <needs> <calls>...
+--
+-- <name> is what the block defines and what a signature may reach; whatever
+-- else its text defines has no name here and so is private to it. <needs> is
+-- how much of the embedding the block wants in scope, which is the floor on
+-- where it can be emitted. <calls> is the rest of the layer its text names,
+-- which is what the stage takes the closure over; it is worked out here, see
+-- native_deps, so that the stage reads the closure rather than the text.
+-- See LeanMetaReduce::placeNativeDefs.
 """
 
 
 def render_native(config):
   """The native layer as the file the lean-meta stage reads.
 
-  A block is what one entry says under :lean-impl, under the names it
-  declares; the sections are what :needs says, opened where the scope changes,
-  which is the order the set gives them.
+  A block is what one entry says under :lean-impl, under the name it declares,
+  opened by a line that carries what the stage has to know about it: the name,
+  the scope it needs, and what it calls. See NATIVE_GENERATED.
   """
   out = [NATIVE_GENERATED % named(config.path)]
-  scope = None
   for e in config.natives:
-    if e.needs != scope:
-      scope = e.needs
-      out.append('-- $native-needs %s' % scope)
     doc = '\n'.join(('-- ' + d).rstrip() for d in e.doc)
-    out.append('%s-- $native %s\n%s'
-               % (doc + '\n' if doc else '', ' '.join(e.names), e.text))
+    out.append('%s-- $native %s %s%s\n%s'
+               % (doc + '\n' if doc else '',
+                  ' '.join(e.names),
+                  e.needs,
+                  ''.join(' ' + d for d in e.deps),
+                  e.text))
   return '\n\n'.join(out) + '\n'
 
 
 class Native:
   """One entry of the native layer: what it defines, what it needs in scope,
-  and the Lean it is."""
+  the Lean it is, and which other entries that Lean calls."""
 
   def __init__(self, names, needs, text, doc):
     self.names = names
     self.needs = needs
     self.text = text
     self.doc = doc
+    # What this entry calls, filled in by native_deps once every name is
+    # known. An entry is written before what it calls is read, so the edges
+    # cannot be worked out one entry at a time.
+    self.deps = []
+
+
+# An identifier as Lean writes one. The trailing characters are the ones a
+# name of the layer uses -- `native_re_match?`, `native_str_len'` -- so this
+# has to be what LeanMetaReduce::collectNativeNames scans for and no less: a
+# name cut short here is an edge the stage never hears about, and the block it
+# led to is dropped from a file that calls it.
+LEAN_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_'?!.]*")
+
+
+# A type of the SMT-LIB value embedding, which spells its own Smt... and is
+# the only part of the embedding the layer names today.
+SMTM_NAME = re.compile(r"\bSmt[A-Z][A-Za-z0-9_]*")
+
+
+def native_needs(text):
+  """How much of the embedding a block wants in scope.
+
+  A block that names a type of the SMT-LIB value embedding cannot be written
+  above the module that declares them, and one that names none of them wants
+  nothing but Lean itself. That is what its Lean says, so it is read off the
+  text rather than declared beside it: an annotation can drift from the text
+  it is about, and the text cannot drift from itself.
+  """
+  return 'Smtm' if SMTM_NAME.search(text) else 'SmtEval'
+
+
+def native_deps(natives):
+  """Fill in what each entry of the layer calls.
+
+  The Lean an entry is says what it calls by naming it, so the edges are read
+  off that text -- there is nowhere else they are written. Reading them here
+  is what leaves the stage with nothing to work out: it is given the closure
+  of the layer rather than the text to find it in. A name the layer does not
+  declare is one of Lean's own and is no edge.
+
+  A dotted name names each of its prefixes, so that `X.f` is an edge to the
+  entry that defines X where no entry defines `X.f` itself, which is again
+  what the stage does.
+  """
+  declared = set()
+  for e in natives:
+    declared.update(e.names)
+  for e in natives:
+    own, out = set(e.names), set()
+    for tok in LEAN_NAME.findall(e.text):
+      while tok:
+        if tok in declared:
+          out.add(tok)
+          break
+        tok = tok.rpartition('.')[0]
+    e.deps = sorted(out - own)
 
 
 def compile_native(path=NATIVE_CONFIG):
@@ -561,9 +625,10 @@ def compile_native(path=NATIVE_CONFIG):
       # prefixed name, since that is what the generated text calls.
       config.natives.append(Native(
           ['native_' + e.name],
-          e.get('needs').val if e.has('needs') else 'SmtEval',
+          native_needs(e.get('lean-impl').val),
           e.get('lean-impl').val,
           [d[1:].strip() for d in e.doc]))
+  native_deps(config.natives)
   return config
 
 

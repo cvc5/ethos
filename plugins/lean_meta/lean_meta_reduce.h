@@ -195,83 +195,89 @@ class LeanMetaReduce : public MetaReducePlugin
    * under :lean, see tools/eoc/out/smt_termination.lean.
    */
   void readTerminationClauses(const std::string& path);
-  /**
-   * One segment of a Lean file, as its `-- $native` markers split it.
-   *
-   * A segment that names something is a *block*, which is the unit the
-   * native layer is kept or dropped by: a definition the compilation of this
-   * input never reaches is left out of what the run publishes. A segment
-   * that names nothing is the text around the blocks, which is always
-   * emitted and is where the demand for a block comes from, since it is what
-   * the generated definitions are spliced into.
-   */
-  struct NativeSegment
+  /** One block of the native layer, as its `-- $native` line describes it. */
+  struct NativeBlock
   {
-    /** The names this segment defines, empty if it is not a block. */
-    std::vector<std::string> d_names;
-    /** Its text, with the marker lines themselves removed. */
-    std::string d_text;
+    /** What it defines, and what a signature may reach. */
+    std::string d_name;
     /**
-     * The scope of the layer this block needs in scope, which is the floor
-     * on where it can be emitted, see placeNativeDefs. Blocks of the library
-     * have one; a block that stands in a generated file has none, since it
-     * is emitted where it stands.
+     * How much of the embedding it wants in scope, which is the floor on
+     * where it can be emitted, see placeNativeDefs.
      */
     std::string d_needs;
     /**
-     * Non-empty on a segment that is not text but a place: the blocks of
-     * this scope are emitted here. Such a segment has no text of its own.
+     * The rest of the layer its text names, which is what the closure is
+     * taken over. It is worked out by tools/eoc/sem_compile.py rather than
+     * here, see native_deps there: the Lean of a block is text to this stage,
+     * and reading a dependency graph out of text is the compiler's work.
      */
-    std::string d_place;
+    std::vector<std::string> d_deps;
+    /** The Lean it is, carried as it stands. */
+    std::string d_text;
+  };
+  /** The native layer: its blocks, and the block that defines each name. */
+  struct NativeLib
+  {
+    /** Its blocks, in the order the library gives them. */
+    std::vector<NativeBlock> d_blocks;
+    /** The block that defines each name. */
+    std::map<std::string, size_t> d_of;
   };
   /**
-   * What one Lean file says about the native layer: its segments, and the
-   * directives that are about the file rather than about a block.
+   * What one generated Lean file says about the native layer. A file holds no
+   * block of its own: it says only what it has in scope, which scope it is
+   * the home of, and what it keeps whatever the compilation reaches.
    */
-  struct NativeFile
+  struct NativeTopo
   {
-    /** Its segments, in the order they are written. */
-    std::vector<NativeSegment> d_segs;
-    /** What it keeps whatever the compilation reaches. */
-    std::vector<std::string> d_roots;
+    /** The file with its directive lines taken out, i.e. as it is written. */
+    std::string d_text;
     /**
-     * The scopes of the layer it has in scope. `SmtEval` is in every file,
-     * so it is not listed; the rest is what its imports and `open` lines
-     * amount to, which only the file itself knows.
+     * The scopes of the layer it has in scope. `SmtEval` is in every file, so
+     * it is not listed; the rest is what its imports and `open` lines amount
+     * to, which only the file itself knows.
      */
     std::set<std::string> d_sees;
     /** The scope it is the home of, empty if it is the home of none. */
     std::string d_place;
+    /** Where in d_text the blocks of that scope go, npos if it is no home. */
+    size_t d_placeAt = std::string::npos;
+    /** What it keeps whatever the compilation reaches. */
+    std::vector<std::string> d_roots;
+    /**
+     * Whether it said anything at all, which is what tells a file that has to
+     * be written again from one whose text this stage leaves as it found it.
+     */
+    bool d_marked = false;
   };
   /**
-   * Split text into segments at its `-- $native` markers.
+   * Read the native layer out of what tools/eoc/sem_compile.py compiled
+   * plugins/lean_meta/lean.eos to.
    *
-   * A block is opened by `-- $native <name> ...`, whose names are what it
-   * defines, and closed by the next such line or by `-- $native-end`. Naming
-   * several things in one block keeps them together, which is what a
-   * definition with a private helper needs, or one whose type abbreviation
-   * has no other user. A name need not be of the native layer: what matters
-   * is that the closure can ask for it by name.
-   *
-   * A `-- $native-root <name> ...` line says that what it names is kept
-   * whatever the compilation reaches, which is for a definition that only
-   * the package the published tree is installed into calls, since this
-   * compiler never sees that side.
-   *
-   * A `-- $native-needs <scope>` line opens the section of blocks that need
-   * that scope, and a `-- $native-sees <scope> ...` line says what a
-   * generated file has in scope. A `-- $native-place <scope>` line is where
-   * the blocks that come out in this file are written, and says that the
-   * file has that scope in scope as well.
-   *
-   * A file with no markers is one segment naming nothing, so a stage that
-   * emits no native definitions has nothing to say.
+   * A block is opened by `-- $native <name> <needs> <calls>...`, which says
+   * everything this stage has to know about it, and runs to the next such
+   * line; what lies between them is the comment that introduces the next
+   * block, which no file is written. See render_native in sem_compile.py.
    */
-  static NativeFile readNativeResource(const std::string& text);
+  static NativeLib readNativeLibrary(const std::string& text);
+  /**
+   * Read what one generated Lean file says about the layer, and give back the
+   * file with those lines taken out.
+   *
+   * `-- $native-sees <scope>...` says what it has in scope,
+   * `-- $native-place <scope>` says it is the home of that scope and marks
+   * where the blocks of it are written, and `-- $native-root <name>...` says
+   * what it keeps whatever the compilation reaches, which is for a definition
+   * that only the package the published tree is installed into calls, since
+   * this compiler never sees that side.
+   *
+   * A file with no such line is one this stage leaves alone.
+   */
+  static NativeTopo readNativeTopology(const std::string& text);
   /**
    * Return text with its comments and the bodies of its string literals
-   * removed, which is what the names a segment mentions are read off: a
-   * mention in prose is not a use, and neither is one inside a literal.
+   * removed, which is what the names a file mentions are read off: a mention
+   * in prose is not a use, and neither is one inside a literal.
    */
   static std::string stripLeanText(const std::string& text);
   /**
@@ -283,12 +289,6 @@ class LeanMetaReduce : public MetaReducePlugin
   static void collectNativeNames(const std::string& code,
                                  const std::map<std::string, size_t>& blocks,
                                  std::set<std::string>& out);
-  /**
-   * Return the name the Lean declaration at the start of line declares, or
-   * the empty string if the line does not open one. Only a declaration at
-   * the left margin counts, which is what a generated file writes.
-   */
-  static std::string getLeanDeclName(const std::string& line);
   /**
    * Emit a Lean file as emitResourceFile does and remember its path, so that
    * placeNativeDefs sees every file this run wrote.

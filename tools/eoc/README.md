@@ -194,7 +194,6 @@ is the file the stage reads. One entry is one definition:
 
 ```lisp
 (define-native-method str_to_upper
-  :needs SmtEval
   :lean-impl "def impl_native_char_to_upper (c : native_Char) : native_Char :=
   if 97 <= c && c <= 122 then c - 32 else c
 
@@ -246,12 +245,17 @@ single module reaches is written into that module.
 
 What a module has in scope is what bounds this, since the layer is written
 across more than one namespace. Each entry says how much it needs with
-`:needs`, and the compiled file opens a section per scope:
+what its Lean names, which the compiled file writes on the line that opens
+the block, after the name and before what the block calls:
 
 ```lean
--- $native-needs SmtEval
--- $native-needs Smtm
+-- $native native_re_positive_prefix_match_len? Smtm native_re_deriv native_re_prefix_match_len?
 ```
+
+That line is everything the stage has to know about the block. What it calls
+is worked out by `tools/eoc/sem_compile.py`, see `native_deps` there, so the
+stage takes the closure over a graph it is given rather than reading one out
+of Lean text.
 
 `SmtEval` is what a block that is Lean and nothing else needs, `Eo` what a
 block over the Eunoia term embedding needs, and `Smtm` what a block over the
@@ -277,11 +281,11 @@ so a block that needs nothing always has a home. The result is that
 `SmtEval.lean` for a signature whose model semantics negates and into
 `Logos.lean` for one where only the checker does.
 
-A block the file it stands in has to be read with is left in that file rather
-than moved to the library, and is only kept or dropped. The definitions inside
-`SmtModel.lean`'s `mutual ... end` are the ones this is of: they are mutually
-recursive with the generated evaluator, so their place is that block and not
-a library section.
+Every block of the layer stands in the library; none is written into a
+template. A definition that has to be read with the file it stands in -- one
+mutually recursive with the generated evaluator, say -- would have to be
+written in that template as ordinary Lean, where it is emitted whatever an
+input reaches, since the module it stands in is written for every one.
 
 ### Roots
 
@@ -325,9 +329,9 @@ build-eoc/ethos-eoc --plugin.lean-meta --no-trim-natives tools/eoc/out/lean-cpc-
 
 See `LeanMetaReduce::placeNativeDefs` in
 `plugins/lean_meta/lean_meta_reduce.cpp`. The blocks live in
-`lean_meta_native.lean`, apart from the ones `lean_meta_smt_model.lean` has to
-be read with; the other Lean resources define none, and say only what they see
-and where they are the home of a scope.
+`tools/eoc/out/lean_native.lean`, which `plugins/lean_meta/lean.eos` compiles
+to; the Lean resources of the plugin define none, and say only what they see,
+where they are the home of a scope, and what they keep.
 
 ## Building `ethos-eoc`
 
