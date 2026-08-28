@@ -6,7 +6,7 @@
 ;; its :lean-impl defines has no name here and so is private to it. :needs says
 ;; how much of the embedding the block wants in scope, which is the floor on
 ;; where it can be emitted. Compiled by tools/eoc/sem_compile.py; the stage
-;; that reads what it compiles to is LeanMetaReduce::placeNativeDefs.
+;; that reads what it compiles to is the lean-meta stage of ethos-eoc.
 
 (define-native-method native_Bool
   :needs SmtEval
@@ -52,9 +52,7 @@
   :lean-impl "def native_string_prefix_eq : native_String -> native_String -> native_Bool
   | [], _ => true
   | _ :: _, [] => false
-  | c :: cs, d :: ds => decide (c = d) && native_string_prefix_eq cs ds
-
-    -- compare a.num / a.den vs b.num / b.den by cross-multiplication")
+  | c :: cs, d :: ds => decide (c = d) && native_string_prefix_eq cs ds")
 
 (define-native-method native_ite
   :needs SmtEval
@@ -79,9 +77,7 @@
 (define-native-method native_or
   :needs SmtEval
   :lean-impl "def native_or : native_Bool -> native_Bool -> native_Bool
-  | x, y => x || y
-
--- Integer arithmetic")
+  | x, y => x || y")
 
 (define-native-method native_zplus
   :needs SmtEval
@@ -200,9 +196,7 @@ def native_int_log (b : native_Int) (v : native_Int) : native_Int :=
 (define-native-method native_qexp_total
   :needs SmtEval
   :lean-impl "def native_qexp_total (x : native_Rat) (y : native_Int) : native_Rat :=
-  if y < 0 then (native_mk_rational 0 1) else (x ^ (Int.toNat y))
-
--- Conversions")
+  if y < 0 then (native_mk_rational 0 1) else (x ^ (Int.toNat y))")
 
 (define-native-method native_to_int
   :needs SmtEval
@@ -212,9 +206,7 @@ def native_int_log (b : native_Int) (v : native_Int) : native_Int :=
 (define-native-method native_to_real
   :needs SmtEval
   :lean-impl "def native_to_real : native_Int -> native_Rat
-  | x => (native_mk_rational x 1)
-
--- Strings")
+  | x => (native_mk_rational x 1)")
 
 (define-native-method native_str_to_code
   :needs SmtEval
@@ -294,9 +286,7 @@ def native_binary_xor : native_Int -> native_Int -> native_Int -> native_Int
   :lean-impl "def native_binary_extract : native_Int -> native_Int -> native_Int -> native_Int -> native_Int
   -- The caller masks this quotient to width x1 - x2 + 1; w and x1 are carried
   -- here only to match the native EO operation's signature.
-  | w, n, x1, x2 => (native_div_total n (native_int_pow2 x2))
-
--- Natural numbers")
+  | w, n, x1, x2 => (native_div_total n (native_int_pow2 x2))")
 
 (define-native-method native_int_to_nat
   :needs SmtEval
@@ -323,11 +313,7 @@ macro_rules
   :needs SmtEval
   :lean-impl "syntax \"native_nat_succ \" term : term
 macro_rules
-  | `(native_nat_succ $x) => `(Nat.succ $x)
-
--- Strings of the checker. The Eunoia string operators are over Lean strings,
--- where the SMT-LIB ones are over sequences of values, so the two are
--- different functions of the layer rather than one shared by both.")
+  | `(native_nat_succ $x) => `(Nat.succ $x)")
 
 (define-native-method native_str_len
   :needs SmtEval
@@ -371,10 +357,7 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
     if h : start + tLen <= sLen then
       impl_native_str_indexof_rec s t start (sLen - (start + tLen) + 1)
     else
-      -1
-
--- What the model needs of Lean alone: arithmetic and characters it computes
--- with, and the names it gives the values an ill-formed application takes.")
+      -1")
 
 (define-native-method native_int_log2
   :needs SmtEval
@@ -428,9 +411,7 @@ def native_str_to_upper : native_String -> native_String
   if 65 <= c && c <= 90 then c + 32 else c
 
 def native_str_to_lower : native_String -> native_String
-  | s => s.map impl_native_char_to_lower
-
--- Partial semantics")
+  | s => s.map impl_native_char_to_lower")
 
 (define-native-method native_qdiv_by_zero_id
   :needs SmtEval
@@ -461,31 +442,21 @@ def native_str_to_lower : native_String -> native_String
 (define-native-method native_const_id
   :needs SmtEval
   :lean-impl "def native_const_id : native_Nat -> native_String
-  | i => (native_string_lit \"@c.\") ++ (native_string_lit (toString i))
-
--- Regular expressions")
+  | i => (native_string_lit \"@c.\") ++ (native_string_lit (toString i))")
 
 (define-native-method native_re_elem_valid
   :needs Smtm
   :lean-impl "/-- Whether a base element of a regular language is a valid character value.
 This is the well-formedness condition the matcher goes on; what makes a
 regular language canonical is said by the configuration instead, see
-$smtx_re_canonical in tools/eoc/semantics/smt.eos. Matching against a base
-element (.char) is structural
-equality on values, which allows regular languages over arbitrary value
-sequences; the sequence pattern operators (e.g. seq.replace_all) are
+__smtx_re_canonical decides, in SmtModel. Matching against a base element
+(.char) is structural equality on values, which allows regular languages over
+arbitrary value sequences; the sequence pattern operators (e.g. seq.replace_all) are
 evaluated via singleton regular expressions over their pattern. The
 allchar and range constructors match valid characters only. -/
 def native_re_elem_valid : SmtValue -> native_Bool
   | (SmtValue.Char c) => native_char_valid c
   | _ => false")
-
-(define-native-method native_re_elem_le
-  :needs Smtm
-  :lean-impl "/-- Character ordering on base elements; only characters are comparable. -/
-def native_re_elem_le : SmtValue -> SmtValue -> native_Bool
-  | (SmtValue.Char c₁), (SmtValue.Char c₂) => c₁ <= c₂
-  | _, _ => false")
 
 (define-native-method native_re_str_valid
   :needs Smtm
@@ -550,13 +521,18 @@ def native_re_str_valid (xs : List SmtValue) : native_Bool :=
 
 (define-native-method native_re_deriv
   :needs Smtm
-  :lean-impl "def native_re_deriv (c : SmtValue) : SmtRegLan -> SmtRegLan
+  :lean-impl "/-- Character ordering on base elements; only characters are comparable. -/
+def impl_native_re_elem_le : SmtValue -> SmtValue -> native_Bool
+  | (SmtValue.Char c₁), (SmtValue.Char c₂) => c₁ <= c₂
+  | _, _ => false
+
+def native_re_deriv (c : SmtValue) : SmtRegLan -> SmtRegLan
   | .empty => .empty
   | .epsilon => .empty
   | .char d => if c = d then .epsilon else .empty
   | .range lo hi =>
       if native_re_elem_valid c && native_re_elem_valid lo && native_re_elem_valid hi
-          && native_re_elem_le lo c && native_re_elem_le c hi then
+          && impl_native_re_elem_le lo c && impl_native_re_elem_le c hi then
         .epsilon
       else
         .empty
@@ -596,20 +572,18 @@ def native_re_prefix_match_len? (r : SmtRegLan)
       | some n => some (n + 1)
       | none => none")
 
-(define-native-method native_re_find_idx_aux
+(define-native-method native_re_find_idx_from
   :needs Smtm
-  :lean-impl "def native_re_find_idx_aux (r : SmtRegLan) (xs : List SmtValue) (idx : Nat) : Option (Nat × Nat) :=
+  :lean-impl "def impl_native_re_find_idx_aux (r : SmtRegLan) (xs : List SmtValue) (idx : Nat) : Option (Nat × Nat) :=
   match native_re_prefix_match_len? r xs with
   | some n => some (idx, n)
   | none =>
       match xs with
       | [] => none
-      | _ :: cs => native_re_find_idx_aux r cs (idx + 1)")
+      | _ :: cs => impl_native_re_find_idx_aux r cs (idx + 1)
 
-(define-native-method native_re_find_idx_from
-  :needs Smtm
-  :lean-impl "def native_re_find_idx_from (r : SmtRegLan) (xs : List SmtValue) (start : Nat) : Option (Nat × Nat) :=
-  native_re_find_idx_aux r (xs.drop start) start")
+def native_re_find_idx_from (r : SmtRegLan) (xs : List SmtValue) (start : Nat) : Option (Nat × Nat) :=
+  impl_native_re_find_idx_aux r (xs.drop start) start")
 
 (define-native-method native_str_to_re
   :needs Smtm
@@ -835,3 +809,94 @@ macro_rules
                 SmtValue.Numeral (Int.ofNat (Classical.choose hDiff))
               else
                 SmtValue.Numeral (-1)))")
+
+(define-native-method native_unpack_seq
+  :needs Smtm
+  :lean-impl "def native_unpack_seq : SmtSeq -> List SmtValue
+  | (SmtSeq.cons v vs) => v :: (native_unpack_seq vs)
+  | (SmtSeq.empty _) => []")
+
+(define-native-method native_pack_seq
+  :needs Smtm
+  :lean-impl "def native_pack_seq (T : SmtType) : List SmtValue -> SmtSeq
+  | [] => (SmtSeq.empty T)
+  | v :: vs => (SmtSeq.cons v (native_pack_seq T vs))")
+
+(define-native-method native_unpack_string
+  :needs Smtm
+  :lean-impl "def impl_native_ssm_char_of_value : SmtValue -> native_Char
+  | (SmtValue.Char c) => c
+  | _ => 0
+
+def native_unpack_string (x : SmtSeq) : native_String :=
+  (native_unpack_seq x).map impl_native_ssm_char_of_value")
+
+(define-native-method native_pack_string
+  :needs Smtm
+  :lean-impl "def native_pack_string (s : native_String) : SmtSeq :=
+  native_pack_seq SmtType.Char (s.map SmtValue.Char)")
+
+(define-native-method native_seq_len
+  :needs Smtm
+  :lean-impl "def native_seq_len : List SmtValue -> native_Int
+  | x => Int.ofNat x.length")
+
+(define-native-method native_seq_concat
+  :needs Smtm
+  :lean-impl "def native_seq_concat : List SmtValue -> List SmtValue -> List SmtValue
+  | x, y => x ++ y")
+
+(define-native-method native_seq_extract
+  :needs Smtm
+  :lean-impl "def native_seq_extract (xs : List SmtValue) (i : native_Int) (n : native_Int) : List SmtValue :=
+  let len : native_Int := Int.ofNat xs.length
+  if i < 0 || n <= 0 || i >= len then
+    []
+  else
+    let start : Nat := Int.toNat i
+    let take : Nat := Int.toNat (min n (len - i))
+    (xs.drop start).take take")
+
+(define-native-method native_seq_indexof
+  :needs Smtm
+  :lean-impl "/-- Generic sequence pattern operations share the regular expression matcher.
+These small adapters also give the SMT backend distinct entry points that it
+can map directly to the corresponding polymorphic `seq.*` operators. -/
+def native_seq_indexof (xs pat : List SmtValue) (i : native_Int) : native_Int :=
+  native_str_indexof_re xs (native_str_to_re pat) i")
+
+(define-native-method native_seq_contains
+  :needs Smtm
+  :lean-impl "def native_seq_contains (xs pat : List SmtValue) : native_Bool :=
+  0 <= native_seq_indexof xs pat 0")
+
+(define-native-method native_seq_replace
+  :needs Smtm
+  :lean-impl "def native_seq_replace (xs pat repl : List SmtValue) : List SmtValue :=
+  native_str_replace_re xs (native_str_to_re pat) repl")
+
+(define-native-method native_seq_replace_all
+  :needs Smtm
+  :lean-impl "def native_seq_replace_all (xs pat repl : List SmtValue) : List SmtValue :=
+  native_str_replace_re_all xs (native_str_to_re pat) repl")
+
+(define-native-method native_seq_occur_index
+  :needs Smtm
+  :lean-impl "def native_seq_occur_index (xs pat : List SmtValue) (n : native_Int) : native_Int :=
+  native_str_occur_index_re xs (native_str_to_re pat) n")
+
+(define-native-method native_seq_update
+  :needs Smtm
+  :lean-impl "def native_seq_update (xs : List SmtValue) (i : native_Int) (ys : List SmtValue) : List SmtValue :=
+  let len : native_Int := Int.ofNat xs.length
+  if i < 0 || len <= i then
+    xs
+  else
+    let idx := Int.toNat i
+    (xs.take idx) ++ (ys.take (xs.length - idx)) ++
+      (xs.drop (idx + ys.length))")
+
+(define-native-method native_seq_rev
+  :needs Smtm
+  :lean-impl "def native_seq_rev : List SmtValue -> List SmtValue
+  | xs => xs.reverse")

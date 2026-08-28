@@ -269,8 +269,29 @@ LeanMetaReduce::NativeFile LeanMetaReduce::readNativeResource(
   };
   std::istringstream in(text);
   std::string line;
+  // A marker line is not written out, so the blank line that separates it
+  // from what follows would be written twice: once ending the text before it
+  // and once beginning the text after. The second is dropped, which is what
+  // leaves a file with no block in it the spacing it was written with.
+  bool afterBlankMarker = false;
   while (std::getline(in, line))
   {
+    if (afterBlankMarker)
+    {
+      afterBlankMarker = false;
+      if (line.empty())
+      {
+        continue;
+      }
+    }
+    if (line.compare(0, 10, "-- $native") == 0)
+    {
+      // Whether the text that ends here already ends in a blank line, which
+      // has to be read before take() empties it.
+      std::string sofar = body.str();
+      afterBlankMarker = (sofar.size() >= 2
+                          && sofar.compare(sofar.size() - 2, 2, "\n\n") == 0);
+    }
     if (line.compare(0, 16, "-- $native-root ") == 0)
     {
       take();
@@ -677,6 +698,16 @@ void LeanMetaReduce::placeNativeDefs()
     {
       if (!seg.d_place.empty())
       {
+        // The comment that introduces the placement is not the first block's
+        // own, so a blank line stands between them; without it the two run
+        // together and the header reads as part of the block.
+        std::string sofar = out.str();
+        if (!hosted[i].empty() && !sofar.empty()
+            && !(sofar.size() >= 2
+                 && sofar.compare(sofar.size() - 2, 2, "\n\n") == 0))
+        {
+          out << std::endl;
+        }
         for (size_t b : hosted[i])
         {
           out << blockSegs[b]->d_text;

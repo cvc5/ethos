@@ -17,7 +17,7 @@ open SmtEval
 /- Eunoia literal evaluation defined -/
 
 -- The part of the native layer that the Eunoia term embedding is what decides,
--- and so cannot come out above this file. See LeanMetaReduce::placeNativeDefs.
+-- and so cannot come out above this file.
 -- $native-place Eo
 
 /- Term ITE -/
