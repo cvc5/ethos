@@ -64,7 +64,7 @@ DEFS_EXCLUDE = re.compile(r'\(echo\s+"eoc-exclude\s+(\S+)\s+(\S+)"\s*\)')
 DESUGAR_VC_DEPS = (
     "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply "
     "$smtx_typeof_value $smtx_model_update $smtx_model_eval_apply "
-    "$smtx_msm_lookup "
+    "$smtx_map_lookup "
     # What a verification condition asks of the model is said by the SMT-LIB
     # template rather than by the EO layer, see plugins/smt_meta/smt_meta.smt2.
     # The two it says it of have to survive whether or not the rule at hand
@@ -79,7 +79,7 @@ LEAN_ALL_DEPS = (
     "$eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval "
     "$eo_checker_is_refutation and $eot_UConst $eot_USort "
     "$smtx_typeof $smtx_typeof_value $smtx_value_canonical_bool "
-    "$smtx_msm_lookup $emb_UOp"
+    "$smtx_map_lookup $emb_UOp"
 )
 
 LEAN_SINGLE_DEPS = (
@@ -87,7 +87,7 @@ LEAN_SINGLE_DEPS = (
     "$eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval "
     "$eo_checker_is_refutation and => $eot_UConst $eot_USort "
     "$smtx_model_eval_apply $smtx_typeof $smtx_typeof_value "
-    "$smtx_value_canonical_bool $smtx_msm_lookup $emb_UOp"
+    "$smtx_value_canonical_bool $smtx_map_lookup $emb_UOp"
 )
 
 

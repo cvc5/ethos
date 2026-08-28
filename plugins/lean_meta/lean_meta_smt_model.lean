@@ -434,7 +434,7 @@ macro_rules
             else
               SmtValue.NotValue)
   | `(native_eval_map_diff_msm $m1 $m2) => do
-      let lookupId := Lean.mkIdent `__smtx_msm_lookup
+      let lookupId := Lean.mkIdent `__smtx_map_lookup
       let typeofMapValueId := Lean.mkIdent `__smtx_typeof_map_value
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
       let typeDefaultId := Lean.mkIdent `__smtx_type_default
@@ -563,20 +563,20 @@ end
 
 $LEAN_SMT_EVAL$
 
-def native_fun_typed (M : SmtModel) : Prop :=
+def model_fun_wf (M : SmtModel) : Prop :=
   ∀ fid A B i,
     __smtx_type_wf (SmtType.FunType A B) = true ->
     __smtx_typeof_value i = A ->
     __smtx_typeof_value (native_eval_fun_apply M fid A B i) = B ∧
       __smtx_value_canonical_bool (native_eval_fun_apply M fid A B i) = true
 
-def model_total_typed (M : SmtModel) : Prop :=
+def model_wf (M : SmtModel) : Prop :=
   (∀ isVar s T, __smtx_type_wf T = true ->
     __smtx_typeof_value (M.values { isVar := isVar, name := s, ty := T }) = T) ∧
   (∀ isVar s T, __smtx_type_wf T = true ->
     __smtx_value_canonical_bool
       (M.values { isVar := isVar, name := s, ty := T }) = true) ∧
-  native_fun_typed M
+  model_fun_wf M
 
 /-
 SMT interpretation is satisfiability, i.e. the existence of a model
@@ -584,10 +584,10 @@ interpreting the free constants.
 -/
 inductive smt_satisfiability : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
-      (exists M : SmtModel, model_total_typed M /\ (__smtx_model_eval M t) = (SmtValue.Boolean true)) ->
+      (exists M : SmtModel, model_wf M /\ (__smtx_model_eval M t) = (SmtValue.Boolean true)) ->
       smt_satisfiability t true
   | intro_false (t : SmtTerm) :
-      (forall M : SmtModel, model_total_typed M -> (__smtx_model_eval M t) = (SmtValue.Boolean false))->
+      (forall M : SmtModel, model_wf M -> (__smtx_model_eval M t) = (SmtValue.Boolean false))->
       smt_satisfiability t false
 
 /- ---------------------------------------------- -/

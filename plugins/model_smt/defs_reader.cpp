@@ -262,7 +262,7 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
       else
       {
         // Not a constructor of any family, so it is a helper that happens to
-        // be written as a define rather than as a program -- $smtx_msm_update
+        // be written as a define rather than as a program -- $smtx_map_update
         // is one -- and belongs to whichever stream its name says.
         classifyProgram(b, f, name);
       }
