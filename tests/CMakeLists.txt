@@ -129,6 +129,9 @@ set(ethos_test_file_list
     reference-define-fun.eo
     simple-quant-reference.eo
     simple-lra-reference.eo
+    check-sat-assuming-reference.eo
+    reference-query-commands.eo
+    reference-reset-assertions.eo
     left-cons.eo
     overload-standalone.eo
     datatypes-split-rule.eo
@@ -208,6 +211,12 @@ endforeach()
 
 ethos_fail_test(parser-overflow-declare-sort.eo
                 "Numerals must fit into 32-bit unsigned integers")
+ethos_fail_test(check-sat-assuming-reference-fail.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(reference-reset-assertions-fail.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(reference-define-fun-rec.eo
+                "Recursive function definitions are not supported")
 ethos_fail_test(require-proof-of-false-last-step.eo
                 "last proof step did not prove false at assumption level zero")
 ethos_fail_test(require-proof-of-false-no-step.eo

@@ -41,6 +41,8 @@ enum class Token
   DEFINE,
   DEFINE_CONST,
   DEFINE_FUN,
+  DEFINE_FUN_REC,
+  DEFINE_FUNS_REC,
   DEFINE_SORT,
   DEFINE_TYPE,
   ECHO,
@@ -63,10 +65,14 @@ enum class Token
   RATIONAL_LITERAL,
   REFERENCE,
   RESET,
+  RESET_ASSERTIONS,
   RPAREN,
   SET_INFO,
   SET_LOGIC,
   SET_OPTION,
+  // an smt2 command that queries the solver for output (e.g. get-model) and
+  // that has no impact on the assertion state
+  SMT2_QUERY_COMMAND,
   STEP,
   STEP_POP,
   STRING_LITERAL,

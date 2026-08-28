@@ -2056,6 +2056,8 @@ The declaration commands in this file will be treated as normal, that is, they w
 By default, `define-fun` commands in reference files are interpreted as reference assertions equating the defined symbol with its body.
 If the option `reference-define-fun` is enabled, they are instead parsed as Eunoia definitions.
 The commands of the form `(assert F)` will add `F` to a set of formulas we will refer to as the _reference assertions_.
+The commands of the form `(check-sat-assuming (F1 ... Fn))` will likewise add `F1 ... Fn` to the reference assertions, since these formulas are part of the query that was checked.
+The command `(reset-assertions)` discards all reference assertions collected so far.
 Other commands in `file.smt2` (e.g. `set-logic`, `set-option`, and so on) will be ignored.
 
 If Ethos has read a reference file, then for each command of the form `(assume <symbol> G)`, Ethos will check whether `G` occurs in the set of parsed reference assertions.
@@ -2063,7 +2065,17 @@ If it does not, then an error is thrown indicating that the proof is assuming a 
 
 > __Note:__ Only one reference command can be executed for each run of ethos.
 
-> __Note:__ Incremental `*.smt2` inputs are not supported as reference files in the current version of ethos.
+#### Unsupported Commands and Known Limitations
+<a name="reference-limitations"></a>
+
+The following aspects of SMT-LIB version 2.6 inputs are *not* supported when used as reference files in the current version of ethos.
+
+- **Recursive function definitions.** The commands `define-fun-rec` and `define-funs-rec` are rejected with an error. Their semantics is to add a (possibly recursive) defining axiom for the declared function(s), for which ethos has no canonical representation as a reference assertion. Note that ignoring these commands would be unsound, since it would silently drop constraints that belong to the query.
+- **Incremental inputs.** Reference assertions are *not* scoped by `push` and `pop`. A file that asserts `F` inside a `push`/`pop` block still contributes `F` to the reference assertions after the block is popped. Similarly, the assumptions of a `check-sat-assuming` command remain reference assertions after that command. In other words, for a file containing multiple queries, the set of reference assertions is the union of the assertions of all of its queries (up to the last `reset-assertions`), and not the assertions of the specific query the proof was generated for.
+- **Named assertions.** Term annotations such as `(assert (! F :named a0))` are parsed, but the `:named` attribute is ignored (with a warning) and the name is not bound as a symbol. A proof that refers to an assertion by its name will fail to parse.
+- **Other solver-specific commands.** Commands that are not part of SMT-LIB version 2.6, e.g. `minimize` or `block-model`, are not recognized and lead to a parse error.
+
+Commands whose only effect is to produce solver output (`get-assertions`, `get-assignment`, `get-info`, `get-model`, `get-option`, `get-proof`, `get-unsat-assumptions`, `get-unsat-core`, `get-value`) have no impact on the set of reference assertions. They are parsed and ignored.
 
 ### Validation up to Normalization
 
@@ -2190,9 +2202,23 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (define-const <symbol> <type> <term>) |
     (define-fun <symbol> (<typed-param>*) <type> <term>) |
     (define-sort <symbol> (<symbol>*) <type>) |
+    (reset-assertions) |
     (set-info <attr>) |
     (set-logic <symbol>) |
+    <query-command> |
     <common-command>
+
+;;;
+<query-command> ::=
+    (get-assertions) |
+    (get-assignment) |
+    (get-info <keyword>) |
+    (get-model) |
+    (get-option <keyword>) |
+    (get-proof) |
+    (get-unsat-assumptions) |
+    (get-unsat-core) |
+    (get-value (<term>+))
 
 ;;;
 <keyword>       ::= :<symbol>

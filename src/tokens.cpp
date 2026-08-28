@@ -39,6 +39,8 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::DEFINE: o << "DEFINE"; break;
     case Token::DEFINE_CONST: o << "DEFINE_CONST"; break;
     case Token::DEFINE_FUN: o << "DEFINE_FUN"; break;
+    case Token::DEFINE_FUN_REC: o << "DEFINE_FUN_REC"; break;
+    case Token::DEFINE_FUNS_REC: o << "DEFINE_FUNS_REC"; break;
     case Token::DEFINE_SORT: o << "DEFINE_SORT"; break;
     case Token::DEFINE_TYPE: o << "DEFINE_TYPE"; break;
     case Token::ECHO: o << "ECHO"; break;
@@ -61,10 +63,12 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::RATIONAL_LITERAL: o << "RATIONAL_LITERAL"; break;
     case Token::REFERENCE: o << "REFERENCE"; break;
     case Token::RESET: o << "RESET"; break;
+    case Token::RESET_ASSERTIONS: o << "RESET_ASSERTIONS"; break;
     case Token::RPAREN: o << "RPAREN"; break;
     case Token::SET_LOGIC: o << "SET_LOGIC"; break;
     case Token::SET_INFO: o << "SET_INFO"; break;
     case Token::SET_OPTION: o << "SET_OPTION"; break;
+    case Token::SMT2_QUERY_COMMAND: o << "SMT2_QUERY_COMMAND"; break;
     case Token::STEP: o << "STEP"; break;
     case Token::STEP_POP: o << "STEP_POP"; break;
     case Token::STRING_LITERAL: o << "STRING_LITERAL"; break;

@@ -54,10 +54,24 @@ CmdParser::CmdParser(Lexer& lex,
     d_table["define-const"] = Token::DEFINE_CONST;
     d_table["define-fun"] = Token::DEFINE_FUN;
     d_table["define-sort"] = Token::DEFINE_SORT;
+    d_table["define-fun-rec"] = Token::DEFINE_FUN_REC;
+    d_table["define-funs-rec"] = Token::DEFINE_FUNS_REC;
     d_table["check-sat"] = Token::CHECK_SAT;
     d_table["check-sat-assuming"] = Token::CHECK_SAT_ASSUMING;
+    d_table["reset-assertions"] = Token::RESET_ASSERTIONS;
     d_table["set-logic"] = Token::SET_LOGIC;
     d_table["set-info"] = Token::SET_INFO;
+    // Commands that only query the solver for output. They have no impact on
+    // the set of assertions, hence we parse and ignore them.
+    d_table["get-assertions"] = Token::SMT2_QUERY_COMMAND;
+    d_table["get-assignment"] = Token::SMT2_QUERY_COMMAND;
+    d_table["get-info"] = Token::SMT2_QUERY_COMMAND;
+    d_table["get-model"] = Token::SMT2_QUERY_COMMAND;
+    d_table["get-option"] = Token::SMT2_QUERY_COMMAND;
+    d_table["get-proof"] = Token::SMT2_QUERY_COMMAND;
+    d_table["get-unsat-assumptions"] = Token::SMT2_QUERY_COMMAND;
+    d_table["get-unsat-core"] = Token::SMT2_QUERY_COMMAND;
+    d_table["get-value"] = Token::SMT2_QUERY_COMMAND;
   }
   else
   {
@@ -994,7 +1008,53 @@ bool CmdParser::parseNextCommand()
     // (check-sat-assuming (<formula>*))
     case Token::CHECK_SAT_ASSUMING:
     {
-      d_eparser.parseExprList();
+      // The formulas of a check-sat-assuming are part of the query, thus a
+      // proof of unsat is permitted to assume them.
+      std::vector<Expr> as = d_eparser.parseExprList();
+      for (const Expr& a : as)
+      {
+        d_state.addReferenceAssert(a);
+      }
+    }
+    break;
+    // (define-fun-rec <symbol> (<sorted-var>*) <sort> <term>)
+    // (define-funs-rec ((<fun-dec>)^n) (<term>^n))
+    case Token::DEFINE_FUN_REC:
+    case Token::DEFINE_FUNS_REC:
+    {
+      // The semantics of these commands is to add a (possibly recursive)
+      // defining axiom for the function(s), which we do not have a canonical
+      // representation for. Reporting an error is safer than ignoring them,
+      // since ignoring would silently drop assertions from the query.
+      d_lex.parseError(
+          "Recursive function definitions are not supported in reference "
+          "files");
+    }
+    break;
+    // (reset-assertions)
+    case Token::RESET_ASSERTIONS:
+    {
+      // Discards all assertions and pops all assertion levels, hence the
+      // reference assertions accumulated so far are no longer part of the
+      // query.
+      d_state.clearReferenceAsserts();
+    }
+    break;
+    // Commands that only produce solver output, e.g. (get-model). We consume
+    // their arguments as s-expressions and ignore them.
+    case Token::SMT2_QUERY_COMMAND:
+    {
+      // note we peek at most once per iteration, as required by the lexer
+      Token ptok = d_lex.peekToken();
+      while (ptok != Token::RPAREN)
+      {
+        if (ptok == Token::EOF_TOK)
+        {
+          d_lex.parseError("Expected s-expression");
+        }
+        d_eparser.parseSymbolicExpr();
+        ptok = d_lex.peekToken();
+      }
     }
     break;
     case Token::POP:
