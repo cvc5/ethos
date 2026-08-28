@@ -39,8 +39,6 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::DEFINE: o << "DEFINE"; break;
     case Token::DEFINE_CONST: o << "DEFINE_CONST"; break;
     case Token::DEFINE_FUN: o << "DEFINE_FUN"; break;
-    case Token::DEFINE_FUN_REC: o << "DEFINE_FUN_REC"; break;
-    case Token::DEFINE_FUNS_REC: o << "DEFINE_FUNS_REC"; break;
     case Token::DEFINE_SORT: o << "DEFINE_SORT"; break;
     case Token::DEFINE_TYPE: o << "DEFINE_TYPE"; break;
     case Token::ECHO: o << "ECHO"; break;

@@ -54,8 +54,6 @@ CmdParser::CmdParser(Lexer& lex,
     d_table["define-const"] = Token::DEFINE_CONST;
     d_table["define-fun"] = Token::DEFINE_FUN;
     d_table["define-sort"] = Token::DEFINE_SORT;
-    d_table["define-fun-rec"] = Token::DEFINE_FUN_REC;
-    d_table["define-funs-rec"] = Token::DEFINE_FUNS_REC;
     d_table["check-sat"] = Token::CHECK_SAT;
     d_table["check-sat-assuming"] = Token::CHECK_SAT_ASSUMING;
     d_table["reset-assertions"] = Token::RESET_ASSERTIONS;
@@ -1022,20 +1020,6 @@ bool CmdParser::parseNextCommand()
         d_eparser.typeCheck(a, d_state.mkBoolType());
         d_state.addReferenceAssert(a);
       }
-    }
-    break;
-    // (define-fun-rec <symbol> (<sorted-var>*) <sort> <term>)
-    // (define-funs-rec ((<fun-dec>)^n) (<term>^n))
-    case Token::DEFINE_FUN_REC:
-    case Token::DEFINE_FUNS_REC:
-    {
-      // The semantics of these commands is to add a (possibly recursive)
-      // defining axiom for the function(s), which we do not have a canonical
-      // representation for. Reporting an error is safer than ignoring them,
-      // since ignoring would silently drop assertions from the query.
-      d_lex.parseError(
-          "Recursive function definitions are not supported in reference "
-          "files");
     }
     break;
     // (reset-assertions)
