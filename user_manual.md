@@ -2065,15 +2065,14 @@ If it does not, then an error is thrown indicating that the proof is assuming a 
 
 > __Note:__ Only one reference command can be executed for each run of ethos.
 
-#### Unsupported Commands and Known Limitations
+#### Unsupported Commands and Known Limitations to Reference Inputs
 <a name="reference-limitations"></a>
 
 The following aspects of SMT-LIB version 2.6 inputs are *not* supported when used as reference files in the current version of ethos.
 
-- **Recursive function definitions.** The commands `define-fun-rec` and `define-funs-rec` are rejected with an error. Their semantics is to add a (possibly recursive) defining axiom for the declared function(s), for which ethos has no canonical representation as a reference assertion. Note that ignoring these commands would be unsound, since it would silently drop constraints that belong to the query.
+- **Recursive function definitions.** The commands `define-fun-rec` and `define-funs-rec` are rejected with an error. Note these commands can be seen equivalently as a `declare-fun` and a quantified assertion, per function. However, ethos rejects them outright.
 - **Incremental inputs.** Reference assertions are *not* scoped by `push` and `pop`. A file that asserts `F` inside a `push`/`pop` block still contributes `F` to the reference assertions after the block is popped. Similarly, the assumptions of a `check-sat-assuming` command remain reference assertions after that command. In other words, for a file containing multiple queries, the set of reference assertions is the union of the assertions of all of its queries (up to the last `reset-assertions`), and not the assertions of the specific query the proof was generated for.
-- **Named assertions.** Term annotations such as `(assert (! F :named a0))` are parsed, but the `:named` attribute is ignored (with a warning) and the name is not bound as a symbol. A proof that refers to an assertion by its name will fail to parse.
-- **Other solver-specific commands.** Commands that are not part of SMT-LIB version 2.6, e.g. `minimize` or `block-model`, are not recognized and lead to a parse error.
+- **Other solver-specific commands.** Commands that are not recognized and lead to a parse error.
 
 Any command whose name begins with `get-` is parsed and ignored, since the only effect of such a command is to produce solver output, which has no impact on the set of reference assertions. Its arguments are consumed as s-expressions and are not type checked. This policy is based on the prefix of the command name, so that solver-specific commands of this form are accepted as well. As of SMT-LIB version 2.6, the commands of this form are `get-assertions`, `get-assignment`, `get-info`, `get-model`, `get-option`, `get-proof`, `get-unsat-assumptions`, `get-unsat-core` and `get-value`. Note this list is given for reference only and is not maintained by ethos.
 
