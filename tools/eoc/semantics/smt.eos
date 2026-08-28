@@ -389,9 +389,36 @@
 (define-value UValue ((i "Nat") (e "Nat"))
   :typeof (USort i))
 
+; -- $smtx_re_canonical
+; A regular language is written the one way when every base element it holds
+; is a character value: those are what a well-formed one matches against, see
+; the note on SmtRegLan in plugins/lean_meta/lean_meta_smt_model_defs.lean.
+; Only the elements are asked about; the shape is the embedding's own, so
+; every way of building one is canonical in itself.
+(program $smtx_re_canonical
+  ((c SmtValue) (lo SmtValue) (hi SmtValue) (r SmtRegLan) (r2 SmtRegLan))
+  :signature (SmtRegLan) "Bool"
+  (
+  (($smtx_re_canonical $rsm_empty)          "true")
+  (($smtx_re_canonical $rsm_epsilon)        "true")
+  (($smtx_re_canonical $rsm_allchar)        "true")
+  (($smtx_re_canonical ($rsm_char c))       ("re_elem_valid" c))
+  (($smtx_re_canonical ($rsm_range lo hi))
+    ("and" ("re_elem_valid" lo) ("re_elem_valid" hi)))
+  (($smtx_re_canonical ($rsm_concat r r2))
+    ("and" ($smtx_re_canonical r) ($smtx_re_canonical r2)))
+  (($smtx_re_canonical ($rsm_union r r2))
+    ("and" ($smtx_re_canonical r) ($smtx_re_canonical r2)))
+  (($smtx_re_canonical ($rsm_inter r r2))
+    ("and" ($smtx_re_canonical r) ($smtx_re_canonical r2)))
+  (($smtx_re_canonical ($rsm_star r))       ($smtx_re_canonical r))
+  (($smtx_re_canonical ($rsm_comp r))       ($smtx_re_canonical r))
+  )
+)
+
 (define-value RegLan ((r SmtRegLan))
   :typeof RegLan
-  :canonical ("re_canonical" r))
+  :canonical ($smtx_re_canonical r))
 
 ; -- $smtx_typeof_dt_cons_value
 ; The type of the ci^th constructor of a datatype, which is the type it builds

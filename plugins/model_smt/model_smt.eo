@@ -301,6 +301,38 @@
 ; sequence operators.
 (define $smt_RegLan () ($native_embed_smt "SmtRegLan"))
 
+; The constructors of a regular language, which are the embedding's own: the
+; Lean inductive is written by hand, see SmtRegLan in
+; plugins/lean_meta/lean_meta_smt_model_defs.lean, and each constructor prints
+; as one of it because its return type says which inductive it builds. Naming
+; them here is what lets the configuration say what a regular language is,
+; rather than leaving that to a native, see $smtx_re_canonical in
+; tools/eoc/semantics/smt.eos.
+(declare-const $emb_rsm.empty $smt_RegLan)
+(define $rsm_empty () $emb_rsm.empty)
+(declare-const $emb_rsm.epsilon $smt_RegLan)
+(define $rsm_epsilon () $emb_rsm.epsilon)
+(declare-const $emb_rsm.allchar $smt_RegLan)
+(define $rsm_allchar () $emb_rsm.allchar)
+(declare-parameterized-const $emb_rsm.char ((c $smt_Value :opaque)) $smt_RegLan)
+(define $rsm_char ((c $smt_Value)) ($emb_rsm.char c))
+(declare-parameterized-const $emb_rsm.range
+  ((lo $smt_Value :opaque) (hi $smt_Value :opaque)) $smt_RegLan)
+(define $rsm_range ((lo $smt_Value) (hi $smt_Value)) ($emb_rsm.range lo hi))
+(declare-parameterized-const $emb_rsm.concat
+  ((r1 $smt_RegLan :opaque) (r2 $smt_RegLan :opaque)) $smt_RegLan)
+(define $rsm_concat ((r1 $smt_RegLan) (r2 $smt_RegLan)) ($emb_rsm.concat r1 r2))
+(declare-parameterized-const $emb_rsm.union
+  ((r1 $smt_RegLan :opaque) (r2 $smt_RegLan :opaque)) $smt_RegLan)
+(define $rsm_union ((r1 $smt_RegLan) (r2 $smt_RegLan)) ($emb_rsm.union r1 r2))
+(declare-parameterized-const $emb_rsm.inter
+  ((r1 $smt_RegLan :opaque) (r2 $smt_RegLan :opaque)) $smt_RegLan)
+(define $rsm_inter ((r1 $smt_RegLan) (r2 $smt_RegLan)) ($emb_rsm.inter r1 r2))
+(declare-parameterized-const $emb_rsm.star ((r $smt_RegLan :opaque)) $smt_RegLan)
+(define $rsm_star ((r $smt_RegLan)) ($emb_rsm.star r))
+(declare-parameterized-const $emb_rsm.comp ((r $smt_RegLan :opaque)) $smt_RegLan)
+(define $rsm_comp ((r $smt_RegLan)) ($emb_rsm.comp r))
+
 ;;; SMT value datatype constructors
 
 ; The values the configuration declares, i.e. what a term of the signature

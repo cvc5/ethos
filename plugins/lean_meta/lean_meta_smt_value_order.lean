@@ -112,4 +112,13 @@ end
 
 end SmtValueOrder
 
+-- The comparison of two values, which is the order above under the name the
+-- embedding gives it.
+
+-- $native native_vcmp
+/- Value comparison -/
+def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
+  SmtValueOrder.lt v1 v2
+-- $native-end
+
 end Smtm

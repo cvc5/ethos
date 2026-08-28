@@ -14,11 +14,6 @@ open SmtEval
 
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
--- A datatype declaration is checked against the list of references it may
--- name, which only the published tree builds, so the list is kept whatever
--- this compilation reaches.
--- $native-root RefList
-
 -- The part of the native layer that the SMT-LIB value embedding is what
 -- decides, and so cannot come out above this file, together with whatever of
 -- the rest only this file reaches. See LeanMetaReduce::placeNativeDefs.

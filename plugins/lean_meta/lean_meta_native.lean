@@ -62,11 +62,11 @@ def native_string_valid (s : native_String) : native_Bool :=
 def native_string_lit (s : String) : native_String :=
   s.toList.map Char.toNat
 
--- $native impl_native_string_prefix_eq
-def impl_native_string_prefix_eq : native_String -> native_String -> native_Bool
+-- $native native_string_prefix_eq
+def native_string_prefix_eq : native_String -> native_String -> native_Bool
   | [], _ => true
   | _ :: _, [] => false
-  | c :: cs, d :: ds => decide (c = d) && impl_native_string_prefix_eq cs ds
+  | c :: cs, d :: ds => decide (c = d) && native_string_prefix_eq cs ds
 
     -- compare a.num / a.den vs b.num / b.den by cross-multiplication
 
@@ -89,10 +89,6 @@ def native_iff : native_Bool -> native_Bool -> native_Bool
 -- $native native_or
 def native_or : native_Bool -> native_Bool -> native_Bool
   | x, y => x || y
-
--- $native native_xor
-def native_xor : native_Bool -> native_Bool -> native_Bool
-  | x, y => Bool.xor x y
 
 -- Integer arithmetic
 
@@ -327,7 +323,7 @@ def impl_native_str_indexof_rec (s t : native_String) (i fuel : Nat) : native_In
   match fuel with
   | 0 => -1
   | fuel + 1 =>
-      if impl_native_string_prefix_eq t (s.drop i) then
+      if native_string_prefix_eq t (s.drop i) then
         Int.ofNat i
       else
         impl_native_str_indexof_rec s t (i + 1) fuel
@@ -346,16 +342,7 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
       -1
 
 -- What the model needs of Lean alone: arithmetic and characters it computes
--- with, the names it gives the values an ill-formed application takes, and
--- the list of references a datatype declaration is checked against.
-
--- $native RefList native_reflist_nil native_reflist_insert native_reflist_contains
-abbrev RefList := List native_String
-
-def native_reflist_nil : RefList := []
-def native_reflist_insert (xs : RefList) (s : native_String) := (s :: xs)
-def native_reflist_contains (xs : RefList) (s : native_String ) :=
-  decide (s ∈ xs)
+-- with, and the names it gives the values an ill-formed application takes.
 
 -- $native native_int_log2
 def native_int_log2 : native_Int -> native_Int
@@ -435,61 +422,16 @@ def native_const_id : native_Nat -> native_String
 
 -- Regular expressions
 
--- $native native_string_head_eq
-/- Whether s begins with the one character c holds. This is narrower than a
-   prefix test on purpose: what a signature reserves a name by is one
-   character, and the general prefix matcher stays private to this layer. -/
-def native_string_head_eq (c s : native_String) : native_Bool :=
-  match c, s with
-  | [x], y :: _ => decide (x = y)
-  | _, _ => false
-
--- $native-needs Eo
-
--- Equality, ordering and hashing of Eunoia terms, which the checker asks of
--- the layer because the term embedding is what it decides them over.
-
--- $native native_teq
-/- Term equality -/
-def native_teq : Term -> Term -> native_Bool
-  | x, y => decide (x = y)
-
--- $native native_tcmp
-/- Term less than, based on arbitrary ordering -/
-def native_tcmp (a b : Term) : native_Bool :=
-  match compare a b with
-  | Ordering.lt => true
-  | _ => false
-
 -- $native-needs Smtm
-
--- The reference lists are not reached by any signature compiled so far: they
--- are for the translation proofs of the package the published tree is
--- installed into, which this compiler never sees. So they are roots rather
--- than definitions the compilation has to reach.
-
--- $native native_Teq
-/- Type equality -/
-def native_Teq : SmtType -> SmtType -> native_Bool
-  | x, y => decide (x = y)
-
--- $native native_veq
-/- Value equality -/
-def native_veq : SmtValue -> SmtValue -> native_Bool
-  | x, y => decide (x = y)
-
--- $native native_vcmp
-/- Value comparsion -/
-def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
-  SmtValueOrder.lt v1 v2
 
 -- SMT Beyond Eunoia
 
 -- $native native_re_elem_valid
 /-- Whether a base element of a regular language is a valid character value.
-This is the well-formedness condition on base elements: a well-formed
-(canonical) regular language contains only valid characters (see
-native_re_canonical). Matching against a base element (.char) is structural
+This is the well-formedness condition the matcher goes on; what makes a
+regular language canonical is said by the configuration instead, see
+$smtx_re_canonical in tools/eoc/semantics/smt.eos. Matching against a base
+element (.char) is structural
 equality on values, which allows regular languages over arbitrary value
 sequences; the sequence pattern operators (e.g. seq.replace_all) are
 evaluated via singleton regular expressions over their pattern. The
@@ -771,19 +713,6 @@ def native_re_none : SmtRegLan := .empty
 
 -- $native native_re_all
 def native_re_all : SmtRegLan := .star .allchar
-
--- $native native_re_canonical
-def native_re_canonical : SmtRegLan -> native_Bool
-  | .empty => true
-  | .epsilon => true
-  | .char c => native_re_elem_valid c
-  | .range lo hi => native_re_elem_valid lo && native_re_elem_valid hi
-  | .allchar => true
-  | .concat r₁ r₂ => native_re_canonical r₁ && native_re_canonical r₂
-  | .union r₁ r₂ => native_re_canonical r₁ && native_re_canonical r₂
-  | .inter r₁ r₂ => native_re_canonical r₁ && native_re_canonical r₂
-  | .star r => native_re_canonical r
-  | .comp r => native_re_canonical r
 
 -- $native native_re_ext_eq
 macro_rules

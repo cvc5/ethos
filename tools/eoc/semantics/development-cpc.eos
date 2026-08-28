@@ -985,7 +985,7 @@
   :keep
   :signature ("String") "Bool"
   (
-  (($eo_to_smt_reserved_datatype_name s) ("string_head_eq" "str_at_sign" s))
+  (($eo_to_smt_reserved_datatype_name s) ("string_prefix_eq" "str_at_sign" s))
   )
 )
 
