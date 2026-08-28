@@ -132,6 +132,8 @@ set(ethos_test_file_list
     check-sat-assuming-reference.eo
     reference-query-commands.eo
     reference-reset-assertions.eo
+    reference-indexed-opaque.eo
+    reference-bv-constant.eo
     left-cons.eo
     overload-standalone.eo
     datatypes-split-rule.eo

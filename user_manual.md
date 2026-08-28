@@ -2060,6 +2060,12 @@ The commands of the form `(check-sat-assuming (F1 ... Fn))` will likewise add `F
 The command `(reset-assertions)` discards all reference assertions collected so far.
 Other commands in `file.smt2` (e.g. `set-logic`, `set-option`, and so on) will be ignored.
 
+In reference files only, `(_ f i1 ... in)` is read as an SMT-LIB indexed identifier, that is, it denotes the same term as the application `(f i1 ... in)`.
+This is in contrast to Eunoia inputs, where `_` denotes higher-order application, which does not apply the desugaring policy of `f` (see [opaque arguments](#opaque)).
+The distinction matters for symbols whose arguments are marked `:opaque`, which is how the indexed operators of SMT-LIB are declared.
+For example, in a reference file `((_ extract 63 32) x)` denotes the same term as `(extract 63 32 x)`, which is how a proof must spell it.
+The indexed bit-vector constants `(_ bv<numeral> <width>)` are read as the binary literal of the given width.
+
 If Ethos has read a reference file, then for each command of the form `(assume <symbol> G)`, Ethos will check whether `G` occurs in the set of parsed reference assertions.
 If it does not, then an error is thrown indicating that the proof is assuming a formula that is not a part of the original input.
 
@@ -2072,6 +2078,7 @@ The following aspects of SMT-LIB version 2.6 inputs are *not* supported when use
 
 - **Recursive function definitions.** The commands `define-fun-rec` and `define-funs-rec` are rejected with an error. Each can be seen equivalently as a `declare-fun` and a quantified assertion, per function. The latter is the recommended way to express recursive functions if you want reference checking supported with ethos.
 - **Incremental inputs.** Reference checking should not be run on benchmarks with multiple queries, or on benchmarks that contain `push` or `pop`. Note that the assumptions of a `check-sat-assuming` command *are* considered for reference checking, but are not scoped to that command.
+- **Numerals are typed as `Int`.** A numeral in a reference file is always an `Int` literal, whereas SMT-LIB takes its type from the context. An input in a `Real` logic that asserts e.g. `(= z 0)` where `z` is a `Real` will therefore fail to type check. The option `--normalize-num` makes all numerals rationals, which addresses this at the cost of breaking integer inputs, so it is not usable as a default. Use a normalization routine (see below) if both are needed.
 - **Other solver-specific commands.** Any command not listed in the grammar below is not recognized and leads to a parse error.
 
 Any command whose name begins with `get-` is parsed and ignored, since the only effect of such a command is to produce solver output, which has no impact on the set of reference assertions. As of SMT-LIB version 2.6, the commands of this form are `get-assertions`, `get-assignment`, `get-info`, `get-model`, `get-option`, `get-proof`, `get-unsat-assumptions`, `get-unsat-core` and `get-value`; ethos does not maintain this list.

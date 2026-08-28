@@ -381,6 +381,17 @@ void Expr::printDebugInternal(const Expr& e,
         {
           os << kindToTerm(k) << " ";
         }
+        else if (ExprValue::d_state->getAttributeKind((*cur.first)[0])
+                 != Attr::NONE)
+        {
+          // If the head is a symbol whose applications are desugared, we must
+          // print the operator "_", since otherwise this term would be read
+          // back as the desugaring of the application. For example, a term
+          // APPLY(f, i) where f has an :opaque argument is printed
+          // (_ f i) and not (f i), where the latter would be read back as
+          // APPLY_OPAQUE(f, i), which is a distinct term.
+          os << kindToTerm(k) << " ";
+        }
         visit.back().second++;
         visit.emplace_back((*cur.first)[0], 0);
       }
