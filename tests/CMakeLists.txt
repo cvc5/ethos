@@ -111,7 +111,6 @@ set(ethos_test_file_list
     opaque-inst.eo
     opaque-inst2.eo
     mutual-rec.eo
-    push-pop.eo
     bv-extract-smt3.eo
     distinct_value_testers.eo
     gt_eval.eo
@@ -215,6 +214,8 @@ ethos_fail_test(check-sat-assuming-reference-fail.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(reference-reset-assertions-fail.eo
                 "was not part of the referenced assertions")
+ethos_fail_test(reference-push-pop.eo
+                "Expected Eunoia command, got .push.")
 ethos_fail_test(reference-define-fun-rec.eo
                 "Expected Eunoia command, got .define-fun-rec.")
 ethos_fail_test(reference-define-funs-rec.eo

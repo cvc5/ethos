@@ -42,8 +42,6 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
   d_table["set-option"] = Token::SET_OPTION;
-  d_table["pop"] = Token::POP;    // undocumented
-  d_table["push"] = Token::PUSH;  // undocumented
   d_table["reset"] = Token::RESET;
 
   if (d_isReference)
@@ -1045,29 +1043,6 @@ bool CmdParser::parseNextCommand()
         }
         d_eparser.parseSymbolicExpr();
         ptok = d_lex.peekToken();
-      }
-    }
-    break;
-    case Token::POP:
-    case Token::PUSH:
-    {
-      bool isPush = (tok==Token::PUSH);
-      tok = d_lex.peekToken();
-      size_t num = 1;
-      if (tok == Token::INTEGER_LITERAL)
-      {
-        num = d_eparser.parseIntegerNumeral();
-      }
-      for (size_t i=0; i<num; i++)
-      {
-        if (isPush)
-        {
-          d_state.pushScope();
-        }
-        else
-        {
-          d_state.popScope();
-        }
       }
     }
     break;

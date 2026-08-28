@@ -2071,7 +2071,7 @@ If it does not, then an error is thrown indicating that the proof is assuming a 
 The following aspects of SMT-LIB version 2.6 inputs are *not* supported when used as reference files in the current version of ethos.
 
 - **Recursive function definitions.** The commands `define-fun-rec` and `define-funs-rec` are not supported and lead to a parse error. Each can be seen equivalently as a `declare-fun` and a quantified assertion, per function. The latter is the recommended way to express recursive functions if you want reference checking supported with ethos.
-- **Incremental inputs.** Reference checking should not be run on benchmarks with multiple queries, or on benchmarks that contain `push` or `pop`. Note that the assumptions of a `check-sat-assuming` command *are* considered for reference checking, but are not scoped to that command.
+- **Incremental inputs.** The commands `push` and `pop` are not supported and lead to a parse error. Reference checking should not be run on benchmarks with multiple queries. Note that the assumptions of a `check-sat-assuming` command *are* considered for reference checking, but are not scoped to that command.
 - **Other solver-specific commands.** Any command not listed in the grammar below (e.g. solver-specific commands that do not begin with `get-`) leads to a parse error.
 
 Any command whose name begins with `get-` is parsed and ignored, since the only effect of such a command is to produce solver output, which has no impact on the set of reference assertions. As of SMT-LIB version 2.6, the commands of this form are `get-assertions`, `get-assignment`, `get-info`, `get-model`, `get-option`, `get-proof`, `get-unsat-assumptions`, `get-unsat-core` and `get-value`; ethos does not maintain this list.

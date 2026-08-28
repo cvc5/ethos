@@ -7,6 +7,7 @@ ethos 0.2.4 prerelease
 - Adds builtin operators `eo::pow` (exponentiation), `eo::log` (integer logarithm), `eo::list_repeat` (repeat a list element a given number of times), and `eo::list_singleton_intro` (turn a term into a singleton list).
 - Reference files now add the assumptions of `check-sat-assuming` commands to the set of reference assertions.
 - Reference files now support `reset-assertions` and `reset`, which discard the reference assertions read so far, and parse and ignore any command whose name begins with `get-`, e.g. `get-model`.
+- The (undocumented) commands `push` and `pop` are no longer supported, in Eunoia files or in reference files.
 
 ethos 0.2.3
 ===========
