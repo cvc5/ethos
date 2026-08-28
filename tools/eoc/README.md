@@ -237,8 +237,8 @@ is installed into -- is written as it stands, since nothing else would name it.
 What went wrong is *not* a step. It goes to stderr as `error: ...`, which is
 what a caller's CI looks for, and the run exits non-zero; a run that carried on
 regardless says so as `warning: ...`. Anything meant to be read by a program
-rather than a person -- the rule names of `list-rules`, the counts of
-`run_count_deps` -- is written plainly to stdout with no prefix at all.
+rather than a person -- the rule names of `list-rules` -- is written plainly to
+stdout with no prefix at all.
 
 The style is defined in one place per language: `tools/eoc/report.py` for the
 tools, and `eoc_step`, `eoc_item`, `eoc_error` in `tools/eoc/cpc/common.sh` for
