@@ -387,7 +387,7 @@ macro_rules
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      let canonId := Lean.mkIdent `__smtx_value_canonical
       `(by
           classical
           exact
@@ -403,7 +403,7 @@ macro_rules
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      let canonId := Lean.mkIdent `__smtx_value_canonical
       `(by
           classical
           exact
@@ -419,7 +419,7 @@ macro_rules
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      let canonId := Lean.mkIdent `__smtx_value_canonical
       `(by
           classical
           exact
@@ -438,7 +438,7 @@ macro_rules
       let typeofMapValueId := Lean.mkIdent `__smtx_typeof_map_value
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
       let typeDefaultId := Lean.mkIdent `__smtx_type_default
-      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      let canonId := Lean.mkIdent `__smtx_value_canonical
       `(by
           classical
           exact
@@ -568,13 +568,13 @@ def model_fun_wf (M : SmtModel) : Prop :=
     __smtx_type_wf (SmtType.FunType A B) = true ->
     __smtx_typeof_value i = A ->
     __smtx_typeof_value (native_eval_fun_apply M fid A B i) = B ∧
-      __smtx_value_canonical_bool (native_eval_fun_apply M fid A B i) = true
+      __smtx_value_canonical (native_eval_fun_apply M fid A B i) = true
 
 def model_wf (M : SmtModel) : Prop :=
   (∀ isVar s T, __smtx_type_wf T = true ->
     __smtx_typeof_value (M.values { isVar := isVar, name := s, ty := T }) = T) ∧
   (∀ isVar s T, __smtx_type_wf T = true ->
-    __smtx_value_canonical_bool
+    __smtx_value_canonical
       (M.values { isVar := isVar, name := s, ty := T }) = true) ∧
   model_fun_wf M
 

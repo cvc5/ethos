@@ -313,7 +313,7 @@ two are read apart by the form that declares one.
 | --- | --- | --- |
 | a symbol of the **target**, `semantics/smt.eos` | `define-symbol` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof` under `:typeof`; a case of `$smtx_model_eval` under `:value`, or the program it hands its work to under `:eval` |
 | a type of the **target**, `semantics/smt.eos` | `define-sort` | a constant of the embedding and the macro that applies it; a case of `$smtx_type_wf_rec` under `:wf`, of `$smtx_type_bounded` under `:bounded`, of `$smtx_type_default` under `:default` |
-| a value of the **target**, `semantics/smt.eos` | `define-value` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical_bool` under `:canonical` |
+| a value of the **target**, `semantics/smt.eos` | `define-value` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical` under `:canonical` |
 | a literal of the **target**, `semantics/smt.eos` | `define-literal` | a constant of the embedding and the macro that applies it; the two cases a symbol writes, `:typeof` and `:value`, over what it carries rather than over terms |
 | a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |

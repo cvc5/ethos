@@ -690,7 +690,7 @@ VALUE_TYPEOF = Aggregate(
 # denotes. A value that says nothing is.
 VALUE_CANONICAL = Aggregate(
     key='canonical',
-    program='$smtx_value_canonical_bool',
+    program='$smtx_value_canonical',
     case='$eoc_value_canonical_{symbol}',
     matches='$vsm_',
     declares=['(x{i} $smt_Value)'],

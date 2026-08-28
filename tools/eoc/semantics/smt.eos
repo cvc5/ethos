@@ -241,14 +241,14 @@
   :signature (SmtMap) "Bool"
   (
   (($smtx_map_canonical ($msm_default T e))
-    ("and" ($smtx_map_default_canonical T e) ($smtx_value_canonical_bool e)))
+    ("and" ($smtx_map_default_canonical T e) ($smtx_value_canonical e)))
   (($smtx_map_canonical ($msm_cons i e m))
     ("and"
       ("and"
         ("and"
           ("and"
-            ($smtx_value_canonical_bool i)
-            ($smtx_value_canonical_bool e))
+            ($smtx_value_canonical i)
+            ($smtx_value_canonical e))
           ($smtx_map_canonical m))
         ($smtx_map_entries_ordered_after i m))
       ("not" ("veq" e ($smtx_map_get_default m)))))
@@ -306,7 +306,7 @@
   (
   (($smtx_seq_canonical ($ssm_empty T)) "true")
   (($smtx_seq_canonical ($ssm_cons v s))
-    ("and" ($smtx_value_canonical_bool v) ($smtx_seq_canonical s)))
+    ("and" ($smtx_value_canonical v) ($smtx_seq_canonical s)))
   )
 )
 
@@ -435,8 +435,8 @@
 ; canonical when both halves are.
 (define-value Apply ((f SmtValue) (a SmtValue))
   :typeof ($smtx_typeof_apply_value (smt.typeof_value f) (smt.typeof_value a))
-  :canonical ("and" ($smtx_value_canonical_bool f)
-               ($smtx_value_canonical_bool a)))
+  :canonical ("and" ($smtx_value_canonical f)
+               ($smtx_value_canonical a)))
 
 ;-----------------------------------------------------------------------------
 (section "The literals")

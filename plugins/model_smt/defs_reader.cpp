@@ -342,7 +342,7 @@ void DefsFile::classifyProgram(DefsBlock& b,
   else if (isPre("$eoc_value_canonical_"))
   {
     std::vector<std::string> cases =
-        casesOf(f, name, "$smtx_value_canonical_bool");
+        casesOf(f, name, "$smtx_value_canonical");
     b.d_valueCanonicalCases.insert(
         b.d_valueCanonicalCases.end(), cases.begin(), cases.end());
   }
