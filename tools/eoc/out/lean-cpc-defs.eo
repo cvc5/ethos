@@ -2369,25 +2369,26 @@
 (define $vsm_binary_bit_true () ($vsm_Binary $native_z_one $native_z_one))
 (define $vsm_string_empty () ($vsm_Seq ($ssm_empty $tsm_Char)))
 
-; utilities
-(program $vsm_apply_head ((f $smt_Value) (a $smt_Value))
+; The two programs over an applied value, which stand with the constructors
+; they are written over rather than with the rest of the helpers.
+(program $smtx_apply_head_value ((f $smt_Value) (a $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
-  (($vsm_apply_head ($vsm_Apply f a)) ($vsm_apply_head f))
-  (($vsm_apply_head a)                a)
+  (($smtx_apply_head_value ($vsm_Apply f a)) ($smtx_apply_head_value f))
+  (($smtx_apply_head_value a)                a)
   )
 )
 
-; ($vsm_apply_arg_nth v n npos), where we are getting the n^th argument,
+; ($smtx_apply_arg_nth_value v n npos), where we are getting the n^th argument,
 ; npos is the current position we are at + 1.
-(program $vsm_apply_arg_nth
+(program $smtx_apply_arg_nth_value
   ((f $smt_Value) (a $smt_Value) (n $native_Nat) (npos $native_Nat))
   :signature ($smt_Value $native_Nat $native_Nat) $smt_Value
   (
-  (($vsm_apply_arg_nth ($vsm_Apply f a) n ($native_n_succ npos))
+  (($smtx_apply_arg_nth_value ($vsm_Apply f a) n ($native_n_succ npos))
     ($native_ite ($native_n_= n npos) a
-      ($vsm_apply_arg_nth f n npos)))
-  (($vsm_apply_arg_nth a n npos) $vsm_NotValue)
+      ($smtx_apply_arg_nth_value f n npos)))
+  (($smtx_apply_arg_nth_value a n npos) $vsm_NotValue)
   )
 )
 
@@ -2736,45 +2737,45 @@
   (($smtx_model_eval_= v1 v2) ($vsm_Boolean ($native_veq v1 v2)))
   )
 )
-(program $smtx_msm_get_default
+(program $smtx_map_get_default
   ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map) $smt_Value
   (
-  (($smtx_msm_get_default ($msm_cons j e m))  ($smtx_msm_get_default m))
-  (($smtx_msm_get_default ($msm_default T e)) e)
+  (($smtx_map_get_default ($msm_cons j e m))  ($smtx_map_get_default m))
+  (($smtx_map_get_default ($msm_default T e)) e)
   )
 )
-(program $smtx_msm_lookup
+(program $smtx_map_lookup
   ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
   (
-  (($smtx_msm_lookup ($msm_cons j e m) i)  ($native_ite ($native_veq j i) e ($smtx_msm_lookup m i)))
-  (($smtx_msm_lookup ($msm_default T e) i) e)
+  (($smtx_map_lookup ($msm_cons j e m) i)  ($native_ite ($native_veq j i) e ($smtx_map_lookup m i)))
+  (($smtx_map_lookup ($msm_default T e) i) e)
   )
 )
-(program $smtx_msm_update_aux_no_default
+(program $smtx_map_update_aux_no_default
   ((ed $smt_Value) (T $smt_Type) (i $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Value $smt_Map $smt_Value $smt_Value) $smt_Map
   (
-  (($smtx_msm_update_aux_no_default ed m i e)
+  (($smtx_map_update_aux_no_default ed m i e)
     ; check if we are redundant wrt the default value
     ($native_ite ($native_veq ed e) m ($msm_cons i e m)))
   )
 )
-(program $smtx_msm_update_aux
+(program $smtx_map_update_aux
   ((ed $smt_Value) (T $smt_Type) (i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (m $smt_Map))
   :signature ($smt_Value $smt_Map $smt_Value $smt_Value) $smt_Map
   (
-  (($smtx_msm_update_aux ed ($msm_cons j e1 m) i e2)
+  (($smtx_map_update_aux ed ($msm_cons j e1 m) i e2)
     ($native_ite ($native_veq j i)
       ; we overwrite if same index
-      ($smtx_msm_update_aux_no_default ed m i e2)
+      ($smtx_map_update_aux_no_default ed m i e2)
       ; otherwise, we check the hash to retain sortedness
       ($native_ite ($native_vcmp j i)
-        ($smtx_msm_update_aux_no_default ed ($msm_cons j e1 m) i e2)
-        ($msm_cons j e1 ($smtx_msm_update_aux ed m i e2)))))
-  (($smtx_msm_update_aux ed m i e2)
-    ($smtx_msm_update_aux_no_default ed m i e2))
+        ($smtx_map_update_aux_no_default ed ($msm_cons j e1 m) i e2)
+        ($msm_cons j e1 ($smtx_map_update_aux ed m i e2)))))
+  (($smtx_map_update_aux ed m i e2)
+    ($smtx_map_update_aux_no_default ed m i e2))
   )
 )
 (program $smtx_typeof_map_value
@@ -2916,8 +2917,8 @@
   (
   (($smtx_model_eval_dt_sel M s dd n m v)
     ; check if the head of the apply term is ($vsm_DtCons s dd n)
-    ($native_ite ($native_veq ($vsm_apply_head v) ($vsm_DtCons s dd n))
-      ($vsm_apply_arg_nth v m ($smtx_dt_num_sels ($smtx_dd_lookup s dd) n))
+    ($native_ite ($native_veq ($smtx_apply_head_value v) ($vsm_DtCons s dd n))
+      ($smtx_apply_arg_nth_value v m ($smtx_dt_num_sels ($smtx_dd_lookup s dd) n))
       ; wrongly applied selector
       ; we introduce an uninterpreted function wrong_apply_sel : (-> Int Int D T)
       ; where (wrong_apply_sel_id n m) is the uninterpreted function corresponding
@@ -2935,7 +2936,7 @@
   (
   (($smtx_model_eval_dt_tester s dd n v1)
     ; check if the head of the apply term is ($vsm_DtCons s dd n)
-    ($vsm_Boolean ($native_veq ($vsm_apply_head v1) ($vsm_DtCons s dd n))))
+    ($vsm_Boolean ($native_veq ($smtx_apply_head_value v1) ($vsm_DtCons s dd n))))
   )
 )
 
@@ -3376,7 +3377,10 @@
 
 ;;; Canonicity of values
 
-(program $smtx_value_canonical_bool () :signature ($smt_Value) $native_Bool)
+; Whether a value is canonical, which answers with a native Bool. A proof
+; reads the same question as a Prop, which is a definition of its own and so
+; needs a name of its own: this one is taken.
+(program $smtx_value_canonical () :signature ($smt_Value) $native_Bool)
 
 ; Whether a value of a shape is canonical, which the configuration writes with
 ; the shape it is of: a map value is canonical when its entries are ordered and
@@ -3387,7 +3391,7 @@
   (
   (($smtx_seq_canonical ($ssm_empty T)) $native_true)
   (($smtx_seq_canonical ($ssm_cons v s))
-    ($native_and ($smtx_value_canonical_bool v) ($smtx_seq_canonical s)))
+    ($native_and ($smtx_value_canonical v) ($smtx_seq_canonical s)))
   )
 )
 (program $smtx_map_default_canonical ((T $smt_Type) (e $smt_Value))
@@ -3404,41 +3408,41 @@
   :signature ($smt_Map) $native_Bool
   (
   (($smtx_map_canonical ($msm_default T e))
-    ($native_and ($smtx_map_default_canonical T e) ($smtx_value_canonical_bool e)))
+    ($native_and ($smtx_map_default_canonical T e) ($smtx_value_canonical e)))
   (($smtx_map_canonical ($msm_cons i e m))
     ($native_and
       ($native_and
         ($native_and
           ($native_and
-            ($smtx_value_canonical_bool i)
-            ($smtx_value_canonical_bool e))
+            ($smtx_value_canonical i)
+            ($smtx_value_canonical e))
           ($smtx_map_canonical m))
         ($smtx_map_entries_ordered_after i m))
-      ($native_not ($native_veq e ($smtx_msm_get_default m)))))
+      ($native_not ($native_veq e ($smtx_map_get_default m)))))
   )
 )
 
 
 ; The same, for what each value says about being canonical.
-(program $smtx_value_canonical_bool
+(program $smtx_value_canonical
   ((v $smt_Value) (i1 $native_Int) (i2 $native_Int) (c1 $native_Char)
    (m1 $smt_Map) (q1 $smt_Seq) (re1 $smt_RegLan)
    (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value) $native_Bool
   (
-  (($smtx_value_canonical_bool ($vsm_Binary i1 i2)) ($native_ite ($native_z_<= $native_z_zero i1)
+  (($smtx_value_canonical ($vsm_Binary i1 i2)) ($native_ite ($native_z_<= $native_z_zero i1)
                ($native_z_= i2 ($native_mod_total i2 ($native_z_pow2 i1)))
                $native_true))
-  (($smtx_value_canonical_bool ($vsm_Map m1)) ($smtx_map_canonical m1))
-  (($smtx_value_canonical_bool ($vsm_Set m1)) ($native_and ($smtx_map_canonical m1)
-               ($native_veq ($smtx_msm_get_default m1) $vsm_false)))
-  (($smtx_value_canonical_bool ($vsm_Seq q1)) ($smtx_seq_canonical q1))
-  (($smtx_value_canonical_bool ($vsm_Char c1)) ($native_apply_1 "char_valid" c1))
-  (($smtx_value_canonical_bool ($vsm_RegLan re1)) ($native_apply_1 "re_canonical" re1))
-  (($smtx_value_canonical_bool ($vsm_Apply v1 v2)) ($native_and ($smtx_value_canonical_bool v1)
-               ($smtx_value_canonical_bool v2)))
+  (($smtx_value_canonical ($vsm_Map m1)) ($smtx_map_canonical m1))
+  (($smtx_value_canonical ($vsm_Set m1)) ($native_and ($smtx_map_canonical m1)
+               ($native_veq ($smtx_map_get_default m1) $vsm_false)))
+  (($smtx_value_canonical ($vsm_Seq q1)) ($smtx_seq_canonical q1))
+  (($smtx_value_canonical ($vsm_Char c1)) ($native_apply_1 "char_valid" c1))
+  (($smtx_value_canonical ($vsm_RegLan re1)) ($native_apply_1 "re_canonical" re1))
+  (($smtx_value_canonical ($vsm_Apply v1 v2)) ($native_and ($smtx_value_canonical v1)
+               ($smtx_value_canonical v2)))
 
-  (($smtx_value_canonical_bool v) $native_true)
+  (($smtx_value_canonical v) $native_true)
   )
 )
 
@@ -3723,7 +3727,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 
-(echo "lean-meta $eo_prog_contra :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value $smtx_value_canonical_bool $smtx_msm_lookup $emb_UOp ")
-(echo "lean-meta $eo_prog_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value $smtx_value_canonical_bool $smtx_msm_lookup $emb_UOp ")
+(echo "lean-meta $eo_prog_contra :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value $smtx_value_canonical $smtx_map_lookup $emb_UOp ")
+(echo "lean-meta $eo_prog_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval $eo_checker_is_refutation and => $eot_UConst $eot_USort $smtx_model_eval_apply $smtx_typeof $smtx_typeof_value $smtx_value_canonical $smtx_map_lookup $emb_UOp ")
 
 

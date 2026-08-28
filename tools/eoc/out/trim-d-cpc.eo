@@ -1984,6 +1984,6 @@
   (($eovc_symm F $eoM) (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_model_unsat $eoM ($eo_prog_symm ($eo_pf F))) true true)))
   )
 )
-(echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply $smtx_msm_lookup $eo_model_sat $eo_model_unsat $eo_to_smt $smtx_typeof $smtx_model_eval ")
+(echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply $smtx_map_lookup $eo_model_sat $eo_model_unsat $eo_to_smt $smtx_typeof $smtx_model_eval ")
 
 

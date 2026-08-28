@@ -492,23 +492,23 @@
 ; fwd-decl: $eo_model_unsat
 (declare-fun $eo_model_unsat (SmtModel eo.Term) eo.Term)
 
-; program: $vsm_apply_head
-(declare-fun $vsm_apply_head (vsm.Value) vsm.Value)
+; program: $smtx_apply_head_value
+(declare-fun $smtx_apply_head_value (vsm.Value) vsm.Value)
 (assert (! (forall ((x1 vsm.Value))
-  (! (= ($vsm_apply_head x1)
+  (! (= ($smtx_apply_head_value x1)
   (ite ((_ is vsm.Apply) x1)
-    ($vsm_apply_head (vsm.Apply.arg1 x1))
+    ($smtx_apply_head_value (vsm.Apply.arg1 x1))
     x1
-)) :pattern (($vsm_apply_head x1)))) :named sm.axiom.$vsm_apply_head))
+)) :pattern (($smtx_apply_head_value x1)))) :named sm.axiom.$smtx_apply_head_value))
 
-; program: $vsm_apply_arg_nth
-(declare-fun $vsm_apply_arg_nth (vsm.Value Nat Nat) vsm.Value)
+; program: $smtx_apply_arg_nth_value
+(declare-fun $smtx_apply_arg_nth_value (vsm.Value Nat Nat) vsm.Value)
 (assert (! (forall ((x1 vsm.Value) (x2 Nat) (x3 Nat))
-  (! (= ($vsm_apply_arg_nth x1 x2 x3)
+  (! (= ($smtx_apply_arg_nth_value x1 x2 x3)
   (ite (and ((_ is vsm.Apply) x1) ((_ is nat.succ) x3))
-    (ite (nateq x2 (nat.succ.arg1 x3)) (vsm.Apply.arg2 x1) ($vsm_apply_arg_nth (vsm.Apply.arg1 x1) x2 (nat.succ.arg1 x3)))
+    (ite (nateq x2 (nat.succ.arg1 x3)) (vsm.Apply.arg2 x1) ($smtx_apply_arg_nth_value (vsm.Apply.arg1 x1) x2 (nat.succ.arg1 x3)))
     vsm.NotValue
-)) :pattern (($vsm_apply_arg_nth x1 x2 x3)))) :named sm.axiom.$vsm_apply_arg_nth))
+)) :pattern (($smtx_apply_arg_nth_value x1 x2 x3)))) :named sm.axiom.$smtx_apply_arg_nth_value))
 
 ; fwd-decl: $smtx_typeof_value
 (declare-fun $smtx_typeof_value (vsm.Value) tsm.Type)
@@ -749,14 +749,14 @@
     (vsm.Boolean (veq x1 x2))
 )) :pattern (($smtx_model_eval_= x1 x2)))) :named sm.axiom.$smtx_model_eval_=))
 
-; program: $smtx_msm_lookup
-(declare-fun $smtx_msm_lookup (msm.Map vsm.Value) vsm.Value)
+; program: $smtx_map_lookup
+(declare-fun $smtx_map_lookup (msm.Map vsm.Value) vsm.Value)
 (assert (! (forall ((x1 msm.Map) (x2 vsm.Value))
-  (! (= ($smtx_msm_lookup x1 x2)
+  (! (= ($smtx_map_lookup x1 x2)
   (ite ((_ is msm.cons) x1)
-    (ite (veq (msm.cons.arg1 x1) x2) (msm.cons.arg2 x1) ($smtx_msm_lookup (msm.cons.arg3 x1) x2))
+    (ite (veq (msm.cons.arg1 x1) x2) (msm.cons.arg2 x1) ($smtx_map_lookup (msm.cons.arg3 x1) x2))
     (msm.default.arg2 x1)
-)) :pattern (($smtx_msm_lookup x1 x2)))) :named sm.axiom.$smtx_msm_lookup))
+)) :pattern (($smtx_map_lookup x1 x2)))) :named sm.axiom.$smtx_map_lookup))
 
 ; program: $smtx_typeof_map_value
 (declare-fun $smtx_typeof_map_value (msm.Map) tsm.Type)
@@ -858,12 +858,12 @@
 
 ; program: $smtx_model_eval_dt_sel
 (define-fun $smtx_model_eval_dt_sel ((x1 SmtModel) (x2 String) (x3 SmtDatatypeDecl) (x4 Nat) (x5 Nat) (x6 vsm.Value)) vsm.Value
-    (ite (veq ($vsm_apply_head x6) (vsm.DtCons x2 x3 x4)) ($vsm_apply_arg_nth x6 x5 ($smtx_dt_num_sels ($smtx_dd_lookup x2 x3) x4)) ($smtx_model_eval_apply x1 (model_lookup x1 (wrong_apply_sel_id x4 x5) (tsm.FunType (tsm.Datatype x2 x3) ($smtx_ret_typeof_sel x2 x3 x4 x5))) x6))
+    (ite (veq ($smtx_apply_head_value x6) (vsm.DtCons x2 x3 x4)) ($smtx_apply_arg_nth_value x6 x5 ($smtx_dt_num_sels ($smtx_dd_lookup x2 x3) x4)) ($smtx_model_eval_apply x1 (model_lookup x1 (wrong_apply_sel_id x4 x5) (tsm.FunType (tsm.Datatype x2 x3) ($smtx_ret_typeof_sel x2 x3 x4 x5))) x6))
 )
 
 ; program: $smtx_model_eval_dt_tester
 (define-fun $smtx_model_eval_dt_tester ((x1 String) (x2 SmtDatatypeDecl) (x3 Nat) (x4 vsm.Value)) vsm.Value
-    (vsm.Boolean (veq ($vsm_apply_head x4) (vsm.DtCons x1 x2 x3)))
+    (vsm.Boolean (veq ($smtx_apply_head_value x4) (vsm.DtCons x1 x2 x3)))
 )
 
 ; program: $smtx_model_eval
@@ -1127,14 +1127,14 @@
 ; whether two map values are extensionally equal
 (assert (! (forall ((v1 msm.Map) (v2 msm.Map))
   (! (= (veq_ext v1 v2)
-        (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))
+        (forall ((i vsm.Value)) (= ($smtx_map_lookup v1 i) ($smtx_map_lookup v2 i))))
   :pattern ((veq_ext v1 v2))))
   :named smtx.veq_ext.def))
 
 ; FIXME
 ;(assert (! (forall ((v1 msm.Map) (v2 msm.Map))
 ;  (! (= (eval_map_diff_msm v1 v2)
-;        (forall ((i vsm.Value)) (= ($smtx_msm_lookup v1 i) ($smtx_msm_lookup v2 i))))
+;        (forall ((i vsm.Value)) (= ($smtx_map_lookup v1 i) ($smtx_map_lookup v2 i))))
 ;  :pattern ((veq_ext v1 v2))))
 ;  :named smtx.veq_ext.def))
 

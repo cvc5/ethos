@@ -380,21 +380,21 @@
 (define $vsm_Apply ((x1 $smt_Value) (x2 $smt_Value)) ($emb_vsm.Apply x1 x2))
 (define $vsm_true () ($vsm_Boolean $native_true))
 (define $vsm_false () ($vsm_Boolean $native_false))
-(program $vsm_apply_head ((f $smt_Value) (a $smt_Value))
+(program $smtx_apply_head_value ((f $smt_Value) (a $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
-  (($vsm_apply_head ($vsm_Apply f a)) ($vsm_apply_head f))
-  (($vsm_apply_head a)                a)
+  (($smtx_apply_head_value ($vsm_Apply f a)) ($smtx_apply_head_value f))
+  (($smtx_apply_head_value a)                a)
   )
 )
-(program $vsm_apply_arg_nth
+(program $smtx_apply_arg_nth_value
   ((f $smt_Value) (a $smt_Value) (n $native_Nat) (npos $native_Nat))
   :signature ($smt_Value $native_Nat $native_Nat) $smt_Value
   (
-  (($vsm_apply_arg_nth ($vsm_Apply f a) n ($native_n_succ npos))
+  (($smtx_apply_arg_nth_value ($vsm_Apply f a) n ($native_n_succ npos))
     ($native_ite ($native_n_= n npos) a
-      ($vsm_apply_arg_nth f n npos)))
-  (($vsm_apply_arg_nth a n npos) $vsm_NotValue)
+      ($smtx_apply_arg_nth_value f n npos)))
+  (($smtx_apply_arg_nth_value a n npos) $vsm_NotValue)
   )
 )
 (declare-const $emb_dtc.unit $smt_DatatypeCons)
@@ -650,12 +650,12 @@
   (($smtx_model_eval_= v1 v2) ($vsm_Boolean ($native_veq v1 v2)))
   )
 )
-(program $smtx_msm_lookup
+(program $smtx_map_lookup
   ((T $smt_Type) (i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
   (
-  (($smtx_msm_lookup ($msm_cons j e m) i)  ($native_ite ($native_veq j i) e ($smtx_msm_lookup m i)))
-  (($smtx_msm_lookup ($msm_default T e) i) e)
+  (($smtx_map_lookup ($msm_cons j e m) i)  ($native_ite ($native_veq j i) e ($smtx_map_lookup m i)))
+  (($smtx_map_lookup ($msm_default T e) i) e)
   )
 )
 (program $smtx_typeof_map_value
@@ -764,8 +764,8 @@
   (
   (($smtx_model_eval_dt_sel M s dd n m v)
 
-    ($native_ite ($native_veq ($vsm_apply_head v) ($vsm_DtCons s dd n))
-      ($vsm_apply_arg_nth v m ($smtx_dt_num_sels ($smtx_dd_lookup s dd) n))
+    ($native_ite ($native_veq ($smtx_apply_head_value v) ($vsm_DtCons s dd n))
+      ($smtx_apply_arg_nth_value v m ($smtx_dt_num_sels ($smtx_dd_lookup s dd) n))
 
 
 
@@ -782,7 +782,7 @@
   (
   (($smtx_model_eval_dt_tester s dd n v1)
 
-    ($vsm_Boolean ($native_veq ($vsm_apply_head v1) ($vsm_DtCons s dd n))))
+    ($vsm_Boolean ($native_veq ($smtx_apply_head_value v1) ($vsm_DtCons s dd n))))
   )
 )
 (program $smtx_model_eval
@@ -992,4 +992,4 @@
   (($eovc_symm F $eoM) (eo::requires ($eo_model_sat $eoM F) true (eo::requires ($eo_model_unsat $eoM ($eo_prog_symm ($eo_pf F))) true true)))
   )
 )
-(echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply $smtx_msm_lookup $eo_model_sat $eo_model_unsat $eo_to_smt $smtx_typeof $smtx_model_eval ")
+(echo "smt-meta $eovc_symm :deps $eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply $smtx_typeof_value $smtx_model_update $smtx_model_eval_apply $smtx_map_lookup $eo_model_sat $eo_model_unsat $eo_to_smt $smtx_typeof $smtx_model_eval ")
