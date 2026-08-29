@@ -36,9 +36,9 @@ LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
 #
 # Every one of them is rendered by the lean-meta stage rather than copied from
 # the plugin source tree, including the ones whose resource carries no
-# generated text: the stage trims the native layer to what the compilation
-# reaches once it has written every file, so a file that did not pass through
-# it would carry the whole layer. See LeanMetaReduce::placeNativeDefs.
+# generated text: the stage emits the part of the native layer the compilation
+# of the input reaches, and SmtEval.lean, Logos.lean and SmtModel.lean are
+# where that part comes out. See LeanMetaReduce::loadNativeDefs.
 #
 # <final out dir>/lean is what a run publishes, not a Lean package that builds
 # on its own: the generated modules import <Calc>.Proofs.CheckerCore and

@@ -172,11 +172,11 @@ configuration names its clauses with `--lean-config`. Without clauses the
 generated Lean simply carries none for those programs, which Lean will reject
 if one was needed.
 
-A clause may not name the native layer, which the compiler checks. It is
-appended to a generated definition rather than written into a resource, so it
-is not one of the blocks of that layer and a name it gave would reach
-nothing; see "The native layer" above. Every native type
-abbreviates a Lean type, which is what a measure writes instead.
+A clause may not name the native layer, which the compiler checks. It is text
+the stage appends rather than text the stage printed, so naming a definition
+of the layer there asks for nothing: the definition may have been dropped as
+unreached, see "The native layer" below. Every native type abbreviates a Lean
+type, which is what a measure writes instead.
 
 ## The native layer
 
@@ -204,26 +204,47 @@ says.
 
 ### Where a definition comes out
 
-Two modules of the generated tree are written with a part of the layer, each
-taking it as an ordinary replacement of `$NATIVE_DEFS$`:
+**Only what the compilation of an input reaches is emitted.** Most of the
+layer is dead for any one input: a signature with no strings in it has no use
+for the regular-expression matcher, and one of Booleans alone has none for
+arithmetic. The layer is 116 definitions and 660 lines; a published `CpcMini`
+carries 46 of them, and the full CPC package all but two.
 
-| module | template | holds |
+Three modules of the generated tree hold a part of it, each taking that part
+as an ordinary replacement of `$NATIVE_DEFS$`:
+
+| module | template | scope |
 | --- | --- | --- |
-| `SmtEval.lean` | `lean_meta_smt_eval.lean` | what is Lean and nothing else |
-| `SmtModel.lean` | `lean_meta_smt_model.lean` | what the SMT-LIB value embedding decides |
+| `SmtEval.lean` | `lean_meta_smt_eval.lean` | `SmtEval`, which every module sees |
+| `Logos.lean` | `lean_meta_checker.lean` | `Eo`, the Eunoia terms and what is written over them |
+| `SmtModel.lean` | `lean_meta_smt_model.lean` | `Smtm`, the SMT-LIB value embedding |
 
-Which of the two a block goes in is what its Lean names: one that names a type
-of that embedding cannot be written above the module declaring them, and one
-that names none of them can go in the module every other has in scope. That is
-read off the text rather than declared beside it, see `native_needs` in
-`tools/eoc/sem_compile.py`, so it cannot drift from the definition it is about.
+Which of them a block comes out in is the demand for it: the module that names
+it, the one they share when two do -- which is `SmtEval`, since `Logos` and
+`SmtModel` see nothing of each other -- and `SmtModel` whatever names it when
+its Lean names a type of the value embedding, since no other module can hold
+it. A block named by a block is named wherever that one comes out, so the
+demand is closed over what each calls.
 
-**The whole layer is emitted**, whatever an input reaches. Emitting only the
-reachable part would mean reading the generated modules back to see what they
-name, taking a closure over what those name in turn, and choosing a module for
-each block that every module reaching it can see. The layer is 116 definitions:
-carrying all of it costs a published `CpcMini` about 400 lines, and costs the
-full CPC package two. That is less than the machinery to carry some of it.
+Neither of the two things this is read off is the generated Lean:
+
+- **What a block names** is read by the compiler, off the block itself, and
+  written on the line that opens it: the scope its Lean cannot be written
+  above, and the rest of the layer it calls. See `native_needs` and
+  `native_deps` in `tools/eoc/sem_compile.py`. Reading it there rather than
+  beside the definition is what keeps it from drifting: an annotation can, and
+  the text cannot drift from itself.
+- **What an input names** is what the stage wrote: a name of the layer reaches
+  a generated module only by being printed into it, so the stage notes each as
+  it prints it, against the module the text it is printing comes out in. See
+  `LeanMetaReduce::useNative`.
+
+What no input reaches is what the Lean resources of the stage name themselves
+-- `native_ite` in the term ITE of `lean_meta_checker.lean`, `native_Bool` in
+the equality of `lean_meta_checker_term.lean`. Such a definition says `:keep`
+in `lean.eos` and comes out in `SmtEval`, which is what every resource that
+names one can see. A resource that names one and does not say so gets Lean
+naming a definition that was never written, which **Lean is what reports**.
 
 See `LeanMetaReduce::loadNativeDefs` in
 `plugins/lean_meta/lean_meta_reduce.cpp`.

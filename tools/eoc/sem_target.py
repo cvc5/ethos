@@ -409,7 +409,9 @@ class Shape:
     # The other way round: a symbol the embedding names itself, whose block is
     # kept whether or not the input declares it. What is written over such a
     # symbol -- a hand-written proof about the generated Lean -- is written
-    # whatever a signature trims away, see DefsBlock::d_keep.
+    # whatever a signature trims away, see DefsBlock::d_keep. A native says it
+    # for the same reason: what the Lean resources of the lean-meta stage name
+    # is emitted whatever an input reaches, see render_native.
     out['keep'] = 0
     # What a symbol is written under, where that is not its own name: a
     # signature may not declare one name twice, so the desugar stage gives an

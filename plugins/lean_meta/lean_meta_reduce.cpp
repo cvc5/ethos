@@ -68,71 +68,167 @@ LeanMetaReduce::LeanMetaReduce(State& s,
   {
     readTerminationClauses(configFile);
   }
+  // The layer is read here rather than at the end, since a module names one
+  // of its blocks while being written and the first module is written before
+  // finalize() runs.
+  loadNativeDefs();
 }
 
 void LeanMetaReduce::loadNativeDefs()
 {
   // The native layer, compiled from plugins/lean_meta/lean.eos by
-  // tools/eoc/sem_compile.py. A block is opened by
-  // `-- $native <name> <needs>` and runs to the next such line; <needs> is the
-  // scope it wants, which is the module it is written into, and what lies
-  // between two blocks is the comment introducing the second, which no module
-  // is written. See render_native in sem_compile.py.
-  //
-  // The whole of the layer is emitted. Which of it a given input can reach is
-  // not asked: answering that would mean reading the generated modules back
-  // to see what they name, and the layer is small enough that carrying all of
-  // it costs less than the machinery to carry some of it.
+  // tools/eoc/sem_compile.py. The line that opens a block says everything
+  // this stage has to know about it -- what it defines, the narrowest scope
+  // it can come out in, and the rest of the layer it calls -- so reading one
+  // is reading that line; what lies under it is the Lean it is and is carried
+  // as it stands.
   std::string libPath = getResourcePath("tools/eoc/out/lean_native.lean");
   std::ifstream in(libPath);
   if (!in.is_open())
   {
     EO_FATAL() << "LeanMetaReduce: could not read " << libPath;
   }
+  std::vector<std::string> keep;
   std::string line;
-  std::stringstream* to = nullptr;
   while (std::getline(in, line))
   {
-    if (line.compare(0, 11, "-- $native ") == 0)
+    if (line.compare(0, 10, "-- $native") != 0)
     {
-      std::vector<std::string> ws;
-      std::stringstream ls(line.substr(11));
-      std::string w;
-      while (ls >> w)
+      // Everything under the line that opens a block is the block, its own
+      // comment included, up to the line that opens the next.
+      if (!d_natives.empty())
       {
-        ws.push_back(w);
-      }
-      if (ws.size() < 2)
-      {
-        EO_FATAL() << "LeanMetaReduce: a native block says its name and the "
-                      "scope it wants, got `"
-                   << line << "`";
-      }
-      if (ws[1] == "SmtEval")
-      {
-        to = &d_nativeSmtEval;
-      }
-      else if (ws[1] == "Smtm")
-      {
-        to = &d_nativeSmtm;
-      }
-      else
-      {
-        EO_FATAL() << "LeanMetaReduce: the native block of `" << ws[0]
-                   << "` wants the " << ws[1]
-                   << " scope, which no module is written for";
+        d_natives.back().d_text += line + "\n";
       }
       continue;
     }
-    if (to != nullptr)
+    // `-- $native <name> <needs> <calls>...` opens a block, and
+    // `-- $native-keep <name>...` names what is kept whatever an input
+    // reaches.
+    bool isKeep = line.compare(0, 16, "-- $native-keep ") == 0;
+    if (!isKeep && line.compare(0, 11, "-- $native ") != 0)
     {
-      *to << line << std::endl;
+      EO_FATAL() << "LeanMetaReduce: `" << line
+                 << "` is not a line the native layer writes";
     }
+    std::vector<std::string> ws;
+    std::stringstream ls(line.substr(isKeep ? 15 : 10));
+    std::string w;
+    while (ls >> w)
+    {
+      ws.push_back(w);
+    }
+    if (isKeep)
+    {
+      keep = ws;
+      continue;
+    }
+    if (ws.size() < 2)
+    {
+      EO_FATAL() << "LeanMetaReduce: a native block says its name and the "
+                    "narrowest scope it can come out in, got `"
+                 << line << "`";
+    }
+    NativeDef d;
+    d.d_name = ws[0];
+    d.d_needs = ws[1];
+    d.d_deps.assign(ws.begin() + 2, ws.end());
+    d_nativeOf[d.d_name] = d_natives.size();
+    d_natives.push_back(d);
   }
-  if (d_nativeSmtEval.str().empty())
+  if (d_natives.empty())
   {
     EO_FATAL() << "LeanMetaReduce: " << libPath << " holds no native block";
   }
+  // What no input asks for, because the Lean resources of this stage are what
+  // name it. They are written above every module that holds a block, so this
+  // is what they all see.
+  for (const std::string& n : keep)
+  {
+    useNative(n, "SmtEval");
+  }
+}
+
+void LeanMetaReduce::useNative(const std::string& n, const std::string& scope)
+{
+  std::map<std::string, size_t>::const_iterator b = d_nativeOf.find(n);
+  if (b == d_nativeOf.end())
+  {
+    return;
+  }
+  const NativeDef& d = d_natives[b->second];
+  std::string at = scope;
+  if (d.d_needs != "SmtEval")
+  {
+    // One module can hold it, so nothing narrower is being asked for; a
+    // module that cannot see that one has named something it cannot reach.
+    if (scope != d.d_needs && scope != "SmtEval")
+    {
+      EO_FATAL() << "LeanMetaReduce: `" << n << "` comes out in " << d.d_needs
+                 << ", which the " << scope << " scope that names it cannot "
+                 << "see";
+    }
+    at = d.d_needs;
+  }
+  std::pair<std::map<std::string, std::string>::iterator, bool> u =
+      d_nativeUse.emplace(n, at);
+  if (!u.second)
+  {
+    if (u.first->second == at)
+    {
+      return;
+    }
+    // Reached from two scopes, so it comes out in the one they share.
+    at = "SmtEval";
+    if (u.first->second == at)
+    {
+      return;
+    }
+    u.first->second = at;
+  }
+  for (const std::string& dep : d.d_deps)
+  {
+    useNative(dep, at);
+  }
+}
+
+std::string LeanMetaReduce::scopeOf(const std::ostream* os) const
+{
+  // Which module a stream is spliced into is what says where a name written
+  // to it is reached from. A stream this run does not know is one whose text
+  // comes out above both modules below, e.g. a datatype of the embedding, so
+  // it counts as the scope every module sees.
+  if (os == &d_defs || os == &d_defsTotal || os == &d_eoChecker)
+  {
+    return "Eo";
+  }
+  if (os == &d_smt || os == &d_smtDefs || os == &d_eoIsObjDefs
+      || os == &d_eoIsObjDefsSimple)
+  {
+    return "Smtm";
+  }
+  return "SmtEval";
+}
+
+std::string LeanMetaReduce::nativeDefs(const std::string& scope) const
+{
+  // The order of the layer is an order in which Lean can read it, so what
+  // comes out in one scope keeps it.
+  std::stringstream out;
+  for (const NativeDef& d : d_natives)
+  {
+    std::map<std::string, std::string>::const_iterator u =
+        d_nativeUse.find(d.d_name);
+    if (u != d_nativeUse.end() && u->second == scope)
+    {
+      out << d.d_text;
+    }
+  }
+  // A block carries the blank line that separates it from the next, which the
+  // last of them has no use for: the module writes its own.
+  std::string text = out.str();
+  text.erase(text.find_last_not_of('\n') + 1);
+  return text;
 }
 
 void LeanMetaReduce::readTerminationClauses(const std::string& path)
@@ -214,7 +310,7 @@ bool LeanMetaReduce::isBuiltinMetaSymbol(const std::string& sname) const
 
 bool LeanMetaReduce::printMetaType(const Expr& t,
                                    std::ostream& os,
-                                   MetaKind tctx) const
+                                   MetaKind tctx)
 {
   MetaKind tk = getTypeMetaKind(t);
   if (tk == MetaKind::SMT_BUILTIN || tk == MetaKind::SMT_BUILTIN_DATATYPE)
@@ -474,6 +570,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
     }
     // native literals
     std::stringstream ss;
+    useNative("native_string_lit", d_scope);
     ss << "(native_string_lit " << smtStr << ")";
     return ss.str();
   }
@@ -483,6 +580,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   }
   std::stringstream ss;
   ss << "native_" << cleanSmtId(smtStr);
+  useNative(ss.str(), d_scope);
   return ss.str();
 }
 
@@ -788,6 +886,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       (*out) << "partial ";
 #endif
     }
+    d_scope = scopeOf(out);
     (*out) << "def " << cleanId(vname) << " : ";
     printMetaType(vt, *out, vctx);
     (*out) << " := ";
@@ -909,6 +1008,9 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     decl << "noncomputable ";
     out = &d_smt;
   }
+  // Which module this program comes out in is settled, so a native it names
+  // is named from there, see useNative.
+  d_scope = scopeOf(out);
   decl << "def " << cleanId(vname);
   size_t macroStartArg = 1;
   bool macroSuccess = true;
@@ -1377,7 +1479,8 @@ void LeanMetaReduce::finalizeChecker()
   const std::string outPath =
       emitResourceFile("plugins/lean_meta/lean_meta_checker.lean",
                        "plugins/lean_meta/lean_meta_checker_gen.lean",
-                       {{"$LEAN_DEFS$", d_defs.str()},
+                       {{"$NATIVE_DEFS$", nativeDefs("Eo")},
+                        {"$LEAN_DEFS$", d_defs.str()},
                         {"$LEAN_DEFS_TOTAL$", d_defsTotal.str()},
                         {"$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str()},
                         {"$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str()},
@@ -1586,6 +1689,9 @@ void LeanMetaReduce::finalizeParseDefs(const std::set<std::string>& opNames,
                                        std::ostream& ops,
                                        std::ostream& macros)
 {
+  // The parser is written over Logos, so a native it names is named from
+  // there rather than from a module of its own.
+  d_scope = "Eo";
   std::set<std::string> seen;
   for (const std::pair<std::string, Expr>& d : d_parseDefs)
   {
@@ -1753,7 +1859,7 @@ void LeanMetaReduce::finalizeSmtModel()
                        "plugins/lean_meta/lean_meta_smt_model_gen.lean",
                        {{"$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str()},
                         {"$LEAN_SMT_EVAL$", d_smt.str()},
-                        {"$NATIVE_DEFS$", d_nativeSmtm.str()}});
+                        {"$NATIVE_DEFS$", nativeDefs("Smtm")}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }
 
@@ -1782,7 +1888,6 @@ void LeanMetaReduce::finalizeLemmas()
 void LeanMetaReduce::finalize()
 {
   finalizePrograms();
-  loadNativeDefs();
   // refutation is if the method returns true
   d_eoIsRef << "  | intro (F : Term) (c : CCmdList) : " << std::endl;
   d_eoIsRef << "    (__eo_checker_is_refutation F c) = true -> "
@@ -1814,17 +1919,19 @@ void LeanMetaReduce::finalize()
       etd << std::endl;
     }
   }
-  // The native layer, which every other generated module is written against.
-  // It carries no generated text of its own, and is emitted here rather than
-  // copied by the driver so that the trimming sees it with the rest.
-  emitResourceFile("plugins/lean_meta/lean_meta_smt_eval.lean",
-                   "plugins/lean_meta/lean_meta_smt_eval_gen.lean",
-                   {{"$NATIVE_DEFS$", d_nativeSmtEval.str()}});
-  finalizeChecker();
   if (d_generateParser)
   {
     finalizeParser();
   }
+  // Every module has now said what of the native layer it names, so where a
+  // block of the layer comes out is settled and the modules that hold one can
+  // be written. SmtEval is the first of them: it carries no generated text of
+  // its own, and is emitted here rather than copied by the driver so that
+  // what it holds of the layer is written with the rest.
+  emitResourceFile("plugins/lean_meta/lean_meta_smt_eval.lean",
+                   "plugins/lean_meta/lean_meta_smt_eval_gen.lean",
+                   {{"$NATIVE_DEFS$", nativeDefs("SmtEval")}});
+  finalizeChecker();
   finalizeSmtModel();
   finalizeSpec();
   finalizeLemmas();

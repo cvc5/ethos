@@ -8,11 +8,18 @@
 ;; says that, by naming a type of the embedding or naming none, see
 ;; native_needs in tools/eoc/sem_compile.py. Compiled by that file; the stage
 ;; that reads what it compiles to is the lean-meta stage of ethos-eoc.
+;;
+;; A block is emitted only if the compilation of an input reaches it, and
+;; comes out in the narrowest module that does. A definition no input reaches,
+;; because the Lean resources of the stage are what name it, says :keep and is
+;; emitted whatever an input reaches.
 
 (define-native-method Bool
+  :keep
   :lean-impl "abbrev native_Bool := Bool")
 
 (define-native-method Int
+  :keep
   :lean-impl "abbrev native_Int := Int")
 
 (define-native-method Rat
@@ -22,9 +29,11 @@
   :lean-impl "abbrev native_Nat := Nat")
 
 (define-native-method Char
+  :keep
   :lean-impl "abbrev native_Char := Nat")
 
 (define-native-method String
+  :keep
   :lean-impl "abbrev native_String := List native_Char")
 
 (define-native-method char_valid
@@ -36,6 +45,7 @@
   s.all native_char_valid")
 
 (define-native-method string_lit
+  :keep
   :lean-impl "def native_string_lit (s : String) : native_String :=
   s.toList.map Char.toNat")
 
@@ -46,14 +56,17 @@
   | c :: cs, d :: ds => decide (c = d) && native_string_prefix_eq cs ds")
 
 (define-native-method ite
+  :keep
   :lean-impl "def native_ite {T : Type} (c : native_Bool) (t e : T) : T :=
   if c then t else e")
 
 (define-native-method not
+  :keep
   :lean-impl "def native_not : native_Bool -> native_Bool
   | x => Bool.not x")
 
 (define-native-method and
+  :keep
   :lean-impl "def native_and : native_Bool -> native_Bool -> native_Bool
   | x, y => x && y")
 
@@ -128,6 +141,7 @@ def native_int_log (b : native_Int) (v : native_Int) : native_Int :=
   | w, x, y => ((BitVec.ofInt (Int.toNat w) x) &&& (BitVec.ofInt (Int.toNat w) y)).toInt")
 
 (define-native-method mk_rational
+  :keep
   :lean-impl "def native_mk_rational : native_Int -> native_Int -> native_Rat
   | x, y => x/y")
 

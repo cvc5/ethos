@@ -14,6 +14,10 @@ namespace Eo
 
 open SmtEval
 
+-- The part of the native layer only what is written over the Eunoia terms
+-- reaches, which is why it comes out here rather than above.
+$NATIVE_DEFS$
+
 /- Eunoia literal evaluation defined -/
 
 /- Term ITE -/
