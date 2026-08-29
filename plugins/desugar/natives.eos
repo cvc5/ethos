@@ -25,7 +25,9 @@
 ;; nine of them. That is also the name a backend implements it under, so an
 ;; entry of plugins/lean_meta/lean.eos or plugins/smt_meta/smt-vc.eos is named
 ;; after this one; a native neither layer implements is one both backends have
-;; of their own.
+;; of their own. It comes out under a different spelling in each place it
+;; reaches; the table is under "What one native is called" in
+;; tools/eoc/README.md.
 ;;
 ;; Two kinds of native cannot be named after what they forward to, and those are
 ;; what :op is for:

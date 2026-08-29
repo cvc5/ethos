@@ -252,6 +252,30 @@ declarations the desugar layer carries, which stand where the
 Nothing writes one by hand: a declaration says only the name, what each
 argument is and the operator it forwards to, and the set says all three.
 
+### What one native is called
+
+A native is written under one name and comes out under several, one per place
+it reaches. Taking `zplus`, which the embedding calls where a signature adds
+two numerals:
+
+| Where | Spelling | `zplus` |
+| --- | --- | --- |
+| `desugar/natives.eos`, which declares it | the name | `zplus` |
+| desugared Eunoia, and the `eo-meta` output | `$native_` and the name | `$native_zplus` |
+| `lean_meta/lean.eos`, `smt_meta/smt-vc.eos`, which implement it | the name it forwards to, i.e. `:op` where it has one | `zplus` |
+| generated Lean | `native_` and that | `native_zplus` |
+| generated SMT-LIB | that, unchanged | `zplus` |
+
+The `eo-meta` backend is the one that adds no spelling of its own: what it
+writes is Eunoia, and Eunoia already calls it `$native_zplus`.
+
+A definition a Lean block writes for itself, rather than the one it declares,
+is named `impl_native_` instead, which is what says it is private to that
+block: `impl_native_int_log_rec` is nothing a signature may reach.
+
+Where a name is spelled is settled in `LAYERS` in `tools/eoc/sem_compile.py`,
+one entry to a backend.
+
 What is left in `native_embed.eo` is what the embedding *is* rather than what
 it calls -- the `$native_apply_*` and `$native_type_*` constructors, the type
 aliases, and the definitions written over other natives.
