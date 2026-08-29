@@ -172,162 +172,121 @@ configuration names its clauses with `--lean-config`. Without clauses the
 generated Lean simply carries none for those programs, which Lean will reject
 if one was needed.
 
-A clause may not name the native layer, which the compiler checks. It is
-appended to a generated definition rather than written into a resource, so it
-is not one of the blocks that layer is trimmed by and a name it gave would
-keep nothing alive; see "Trimming the native layer" above. Every native type
-abbreviates a Lean type, which is what a measure writes instead.
+A clause may not name the native layer, which the compiler checks. It is text
+the stage appends rather than text the stage printed, so naming a definition
+of the layer there asks for nothing: the definition may have been dropped as
+unreached, see "The native layer" below. Every native type abbreviates a Lean
+type, which is what a measure writes instead.
 
-## Trimming the native layer
+## The native layer
 
-The Lean the compiler generates is written against a layer of definitions
-named `native_`, which is what gives the deep embedding its arithmetic, its
-strings, its regular-expression matcher and the rest. That layer is written
-once for every signature there is, so most of it is dead for any one input: a
-signature of Booleans alone has no use for the matcher, and one with no
-bit-vectors has none for `native_binary_concat`. The `lean-meta` stage
-therefore emits only the part of it the compilation of the input reaches.
+What a backend generates is written against a layer of definitions that gives
+the deep embedding its arithmetic, its strings, its regular expressions and
+the rest -- what the generated text is allowed to call and no compiler writes.
+Each backend has one, and the two are the same thing said twice:
 
-**The layer is a configuration set**, `plugins/lean_meta/lean.eos`, which
-`tools/eoc/sem_compile.py` compiles to `tools/eoc/out/lean_native.lean`; that
-is the file the stage reads. One entry is one definition:
+| backend | set | compiles to | read by |
+| --- | --- | --- | --- |
+| Lean | `plugins/lean_meta/lean.eos` | `tools/eoc/out/lean_native.lean` | the `lean-meta` stage |
+| SMT-LIB | `plugins/smt_meta/smt-vc.eos` | `tools/eoc/out/smt_vc_native.smt2` | the `smt-meta` stage |
+
+**A layer is a configuration set**, which `tools/eoc/sem_compile.py` compiles;
+one entry is one definition, under the attribute that says which language it
+is written in:
 
 ```lisp
 (define-native-method str_to_upper
-  :needs SmtEval
   :lean-impl "def impl_native_char_to_upper (c : native_Char) : native_Char :=
   if 97 <= c && c <= 122 then c - 32 else c
 
 def native_str_to_upper : native_String -> native_String
   | s => s.map impl_native_char_to_upper")
+
+(define-native-method int.to_nat
+  :smt-impl "(declare-fun int.to_nat (Int) Nat)
+(assert (! (forall ((x Int))
+  (! (= (int.to_nat x) (ite (<= x 0) nat.zero (nat.succ (int.to_nat (- x 1)))))
+  :pattern ((int.to_nat x))))
+  :named smtx.int.to_nat.def))")
 ```
 
-The entry names the native **the way a set names one**, without the prefix the
-embedding gives it: `str_to_upper` here is what `"str_to_upper"` names in a
-set, and the compiler answers that with `native_str_to_upper`. The Lean the
-entry is defines the prefixed name, since that is what the generated text
-calls.
+The name is spelled the way the embedding names it: the Lean backend puts the
+`native_` back, and the SMT-LIB one forwards the name as it stands, which is
+why `int.to_nat` is written under that name there and under `int_to_nat` in
+the Lean set. Whatever else an entry defines has no name here and so is
+private to it, which `impl_native_` rather than `native_` is what says on the
+Lean side. A definition that is axiomatised rather than defined -- a
+`declare-fun` and the `assert` that says what it is -- is one entry, since
+neither half is of any use without the other.
 
-**Whatever else the `:lean-impl` defines is private to that entry**, and is
-called `impl_native_` rather than `native_` to say so. The prefix is the whole
-of the rule: no eoc reference can spell one, since the compiler only ever
-answers with `native_X`, and the entry that writes it is free to change it
-without asking what a signature relied on. Such a definition has no name in
-the set either -- only the entry it stands in does -- so it is private twice
-over: `impl_native_char_to_upper` above is text of the one entry that has any
-use for it. Where several entries share a helper it is a `native_` entry of
-its own instead, which is what the regular-expression matcher does: a set
-names `"str_in_re"`, and the derivative step underneath it is
-`native_re_deriv`, reached by seven of them.
-
-What each entry compiles to is a *block* of the generated file, opened by a
-`-- $native` line naming what it defines. Once every module has been written,
-a block is kept when the generated text, or a block already kept, names it,
-and dropped otherwise. Comments and string literals are not read, so a
-definition named only in prose is not thereby kept alive. A `native_`
-definition that its own block does not name is an error rather than one
-quietly emitted for every input; an `impl_native_` one is not, since the block
-it stands in is what it belongs to.
-
-The layer is for what the embedding is written *over*, not for what is written
-*about a model*: the model, its lookups and the quantifier evaluators stand in
-`plugins/lean_meta/lean_meta_smt_model.lean`, and what decides equality of a
-term, a type or a value stands beside the type it decides over. Those are
-written in the templates as ordinary Lean and are emitted whatever an input
-reaches, since the module they stand in is written for every one.
+Everything below holds of both layers: what a stage is given is the same file
+in two languages, and the code that reads it is one class, `ethos::NativeLayer`
+in `plugins/native_layer.cpp`.
 
 ### Where a definition comes out
 
-The entries are one set rather than text of the modules they end up in, so
-that a definition is written once whichever of the generated modules turns out
-to want it. Where a block comes out is the demand for it: a definition that
-more than one module reaches is written into what they share, and one that a
-single module reaches is written into that module.
+**Only what the compilation of an input reaches is emitted.** Most of a layer
+is dead for any one input: a signature with no strings in it has no use for
+the regular-expression matcher, and one of Booleans alone has none for
+arithmetic. The Lean layer is 116 definitions and 660 lines, of which a
+published `CpcMini` carries 46 and the full CPC package all but two; the
+SMT-LIB layer is 67, of which the verification condition of `symm` carries 16
+-- and what it drops includes nine quantified axioms, which is work the solver
+does not do.
 
-What a module has in scope is what bounds this, since the layer is written
-across more than one namespace. Each entry says how much it needs with
-`:needs`, and the compiled file opens a section per scope:
+A backend has one place per module its generated text is read in, each taking
+what comes out there as an ordinary replacement:
 
-```lean
--- $native-needs SmtEval
--- $native-needs Smtm
-```
+| backend | place | tag in | scope |
+| --- | --- | --- | --- |
+| Lean | `SmtEval.lean` | `lean_meta_smt_eval.lean` | `SmtEval`, which every module sees |
+| Lean | `Logos.lean` | `lean_meta_checker.lean` | `Eo`, the Eunoia terms and what is written over them |
+| Lean | `SmtModel.lean` | `lean_meta_smt_model.lean` | `Smtm`, the SMT-LIB value embedding |
+| SMT-LIB | above the datatypes | `smt_meta.smt2` | `Vc`, where SMT-LIB alone is in scope |
+| SMT-LIB | below the datatypes | `smt_meta.smt2` | `Embed`, where the embedding is declared |
 
-`SmtEval` is what a block that is Lean and nothing else needs, `Eo` what a
-block over the Eunoia term embedding needs, and `Smtm` what a block over the
-SMT-LIB value embedding needs. A file that is the home of a scope says so, and
-the blocks that come out in it are written where it says:
+Which of them a block comes out in is the demand for it: the module that names
+it, the one they share when two do -- which is the scope every module sees --
+and the one module that can hold it when its text names what only that module
+declares. A block named by a block is named wherever that one comes out, so
+the demand is closed over what each calls.
 
-```lean
--- $native-place Smtm
-```
+Neither of the two things this is read off is the generated text:
 
-A file that is not the home of a scope but has one in scope says that instead,
-which is what makes it a module a block of that scope can be written for:
+- **What a block names** is read by the compiler, off the block itself, and
+  written on the line that opens it: the scope it cannot be written above, and
+  the rest of the layer it calls. See `lean_needs`, `vc_needs` and
+  `native_deps` in `tools/eoc/sem_compile.py`. Reading it there rather than
+  beside the definition is what keeps it from drifting: an annotation can, and
+  the text cannot drift from itself.
+- **What an input names** is what the stage wrote: a name of the layer reaches
+  generated text only by being printed into it, so the stage notes each as it
+  prints it, against the scope the text it is printing comes out in. See
+  `NativeLayer::use`, and `getEmbedName` in either stage for where a name is
+  printed.
 
-```lean
--- $native-sees Eo Smtm
-```
+What no input reaches is what the resources of a stage name themselves --
+`native_ite` in the term ITE of `lean_meta_checker.lean`, `native_Bool` in the
+equality of `lean_meta_checker_term.lean`. Such a definition says `:keep` in
+its set and comes out in the scope every module sees, which is what every
+resource that names one can see. A resource that names one and does not say
+so gets generated text naming a definition that was never written, which
+**Lean, or cvc5 reading the verification condition, is what reports**.
 
-`SmtEval` is in scope everywhere and is not one a file has to name. A block is
-written into the narrowest home that both has what the block needs in scope
-and is seen by every file that reaches it; `SmtEval` is seen by all of them,
-so a block that needs nothing always has a home. The result is that
-`native_zneg`, which is Lean arithmetic and nothing more, is written into
-`SmtEval.lean` for a signature whose model semantics negates and into
-`Logos.lean` for one where only the checker does.
+### `eo::hash` has no Lean
 
-A block the file it stands in has to be read with is left in that file rather
-than moved to the library, and is only kept or dropped. The definitions inside
-`SmtModel.lean`'s `mutual ... end` are the ones this is of: they are mutually
-recursive with the generated evaluator, so their place is that block and not
-a library section.
+EO leaves what `eo::hash` returns underconstrained, so a signature that
+reasons through it says nothing this backend could prove; the layer used to
+answer with a stub returning `0`, which is a claim about hash the signature
+never made, so the layer defines no `native_thash`.
 
-### Roots
-
-Some of the layer is called by the package the published tree is installed
-into rather than by anything the compiler writes, and that side is not visible
-here. Such a definition is declared a root, which keeps it whatever the
-compilation reaches:
-
-```lean
--- $native-root native_string_lit
-```
-
-The roots are written next to the definitions they are of, with the reason.
-There are two today: `native_string_lit`, which a proof written against the
-published tree names its strings with, and the reference lists, which the
-translation proofs of the destination package use. A definition the *input*
-signature reaches needs no root, since the closure finds it: `eo::cmp`
-desugars to `$native_tcmp`, so a signature that uses it keeps that one on its
-own.
-
-`eo::hash` has no Lean at all. EO leaves what it returns underconstrained, so
-a signature that reasons through it says nothing this backend could prove; the
-layer used to answer with a stub returning `0`, which is a claim about hash
-the signature never made, so the layer defines no `native_thash`.
-
-The `lean-meta` stage therefore refuses to print `$eo_hash`, the program of the
-embedding that would call it, the way it refuses `$eo_ite`; see
-`LeanMetaReduce::finalizeProgram`. A signature with no use for hash never
-misses it, since nothing names the definition. One that *does* use hash gets
-generated Lean naming a definition that was never written, and **Lean is what
-reports it** -- the stage checks nothing further, since the generated file is
-not what says whether a name exists. The other backends are unaffected:
-`$native_thash` reaches SMT-LIB and SyGuS as the uninterpreted function it is.
-
-Adding a root is how to fix a downstream build that a trimmed tree broke. To
-see what was dropped, run the stage with the whole layer emitted:
-
-```bash
-build-eoc/ethos-eoc --plugin.lean-meta --no-trim-natives tools/eoc/out/lean-cpc-final.eo
-```
-
-See `LeanMetaReduce::placeNativeDefs` in
-`plugins/lean_meta/lean_meta_reduce.cpp`. The blocks live in
-`lean_meta_native.lean`, apart from the ones `lean_meta_smt_model.lean` has to
-be read with; the other Lean resources define none, and say only what they see
-and where they are the home of a scope.
+The `lean-meta` stage therefore refuses to print `$eo_hash`, the program of
+the embedding that would call it, the way it refuses `$eo_ite`; see
+`LeanMetaReduce::finalizeProgram`. A signature that uses hash gets generated
+Lean naming a definition that was never written, and **Lean is what reports
+it** -- the stage checks nothing further, since the generated file is not what
+says whether a name exists. The other backends are unaffected: `$native_thash`
+reaches SMT-LIB and SyGuS as the uninterpreted function it is.
 
 ## Building `ethos-eoc`
 
@@ -420,6 +379,8 @@ tools/eoc/out/
   user_defs.eo              tools/eoc/semantics/README.md
   smt_termination.lean
   user_termination.lean
+  lean_native.lean          the native layer of each backend, see above
+  smt_vc_native.smt2
   trim-*.eo
   trim-d-*.eo
   vcm-def-*.eo
@@ -456,6 +417,15 @@ component dropped, uniformly: `RuleLemmas.lean` is installed as
 which is what the `import <Calc>.Proofs.Rules.<Rule>` lines that the former
 carries name. Every other file is installed at the root of the package, where
 its name already is its import.
+
+A published module is read by whoever reads the package, so what the resource
+it was rendered from says to whoever *edits* the resource -- what a tag stands
+for, why something is written there rather than where it belongs -- is written
+as a **note**, a comment whose text opens with a `$`: `-- $` where the resource
+is Lean and `; $` where it is SMT-LIB. A note is dropped when the resource is
+rendered, so it never reaches the package; see `dropResourceNotes` in
+`plugins/utils.cpp`. Everything else a resource writes is published as it
+stands, and is written to the reader of the package.
 
 Plugin-private files:
 
@@ -580,7 +550,7 @@ configuration set; see "Why the generated Lean terminates" above.
 
 The generated modules carry only the `native_` definitions the input reaches,
 so the same signature compiled for fewer rules publishes a smaller native
-layer; see "Trimming the native layer" above.
+layer; see "The native layer" above.
 
 Generated files are written to `tools/eoc/out/lean/` by default, including
 per-rule files in `tools/eoc/out/lean/Rules/`. `Parser.lean` is the minimal
@@ -680,10 +650,6 @@ build-eoc/ethos-eoc --plugin.smt-meta-sygus tools/eoc/out/vcmt-def-booleans-rule
 build-eoc/ethos-eoc tools/eoc/out/lean-booleans-rules-final.eo
 build-eoc/ethos-eoc --plugin.lean-meta tools/eoc/out/lean-booleans-rules-final.eo
 ```
-
-Pass `--no-trim-natives` to the last of those to emit the whole of the native
-layer rather than the part of it the input reaches, which is for reading what
-was dropped; see "Trimming the native layer" above.
 
 ## Solver configuration
 

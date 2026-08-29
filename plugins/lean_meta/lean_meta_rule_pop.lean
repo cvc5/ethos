@@ -10,7 +10,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
--- $native-sees Eo Smtm
 
 public theorem cmd_step_pop_$EO_RULE$_properties
     (A : Term) (root : CState) (args : CArgList) (premises : CIndexList) :

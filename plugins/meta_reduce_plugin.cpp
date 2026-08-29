@@ -342,7 +342,7 @@ std::string MetaReducePlugin::emitResourceFile(
   {
     EO_FATAL() << "MetaReducePlugin: failed to open output " << outPath;
   }
-  out << rtrimLines(rendered);
+  out << rtrimLines(dropResourceNotes(rendered));
   out.close();
   if (!out)
   {

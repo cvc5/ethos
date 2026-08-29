@@ -401,15 +401,19 @@ class Shape:
     # The Lean text that follows the definition the lean-meta stage writes for
     # a method, i.e. what Lean has to be told and no compiler could derive.
     out['lean'] = 1
-    # The Lean a native *is*, which the stage emits as a block of the layer
-    # rather than after a definition it wrote itself, and how much of the
-    # embedding that block needs in scope.
+    # The text a native *is*, which the stage emits as a block of the layer
+    # rather than after a definition it wrote itself: the Lean of one for the
+    # lean-meta stage, the SMT-LIB of one for the smt-meta stage. A layer says
+    # only one of the two, see LAYERS in tools/eoc/sem_compile.py.
     out['lean-impl'] = 1
+    out['smt-impl'] = 1
     out['needs'] = 1
     # The other way round: a symbol the embedding names itself, whose block is
     # kept whether or not the input declares it. What is written over such a
     # symbol -- a hand-written proof about the generated Lean -- is written
-    # whatever a signature trims away, see DefsBlock::d_keep.
+    # whatever a signature trims away, see DefsBlock::d_keep. A native says it
+    # for the same reason: what the Lean resources of the lean-meta stage name
+    # is emitted whatever an input reaches, see render_native.
     out['keep'] = 0
     # What a symbol is written under, where that is not its own name: a
     # signature may not declare one name twice, so the desugar stage gives an

@@ -15,7 +15,7 @@
  *
  *   ethos-eoc --plugin.desugar <file>
  *   ethos-eoc --plugin.model-smt --signature=<file> [--semantics=<file>] <file>
- *   ethos-eoc --plugin.lean-meta --lean-config=<file> [--no-trim-natives] <file>
+ *   ethos-eoc --plugin.lean-meta --lean-config=<file> <file>
  *
  * With no --plugin.* argument, it parses the given file like plain ethos.
  * Unlike the plain ethos binary, it requires a file argument (no stdin mode)
@@ -62,8 +62,7 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
                                      bool generateParser,
                                      const std::string& defsFile,
                                      const std::string& smtDefsFile,
-                                     const std::string& leanConfigFile,
-                                     bool trimNatives)
+                                     const std::string& leanConfigFile)
 {
   if (name == "desugar")
   {
@@ -84,7 +83,7 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
   if (name == "lean-meta")
   {
     return std::make_unique<LeanMetaReduce>(
-        s, generateParser, leanConfigFile, trimNatives);
+        s, generateParser, leanConfigFile);
   }
   if (name == "trim-defs")
   {
@@ -118,7 +117,6 @@ int main(int argc, char* argv[])
   std::string defsFile;
   std::string smtDefsFile;
   std::string leanConfigFile;
-  bool trimNatives = true;
   // the list of includes and whether they were an include or reference
   std::vector<std::pair<std::string, bool>> includes;
   size_t i = 1;
@@ -140,14 +138,6 @@ int main(int argc, char* argv[])
     if (arg == "--no-parser")
     {
       generateParser = false;
-      continue;
-    }
-    if (arg == "--no-trim-natives")
-    {
-      // Emit the whole of the native layer rather than the part of it the
-      // compilation of the input reaches, which is for reading what was
-      // dropped rather than for anything a run publishes.
-      trimNatives = false;
       continue;
     }
     if (arg.compare(0, 12, "--signature=") == 0)
@@ -250,10 +240,6 @@ int main(int argc, char* argv[])
   {
     EO_FATAL() << "Error: --lean-config requires --plugin.lean-meta";
   }
-  if (!trimNatives && pluginName != "lean-meta")
-  {
-    EO_FATAL() << "Error: --no-trim-natives requires --plugin.lean-meta";
-  }
   // options are finalized, now initialize the state and the plugin
   Stats stats;
   State s(opts, stats);
@@ -262,7 +248,7 @@ int main(int argc, char* argv[])
   {
     plugin =
         createPlugin(pluginName, s, generateParser, defsFile, smtDefsFile,
-                     leanConfigFile, trimNatives);
+                     leanConfigFile);
     // note the plugin must be set before any file is included, so that it
     // receives callbacks during parsing
     s.setPlugin(plugin.get());

@@ -14,18 +14,21 @@ open SmtEval
 
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
--- The part of the native layer that the SMT-LIB value embedding is what
--- decides, and so cannot come out above this file, together with whatever of
--- the rest only this file reaches.
--- $native-place Smtm
+-- The primitive operations no module above this one uses, together with those
+-- written over the types of this embedding, which cannot stand above it.
+-- $ The part of the native layer whose Lean names the embedding, and the part
+-- $ no module above this one reaches, see LeanMetaReduce::nativeDefs.
+$NATIVE_DEFS$
 
--- The model itself, and what is asked of one. This is not of the native
--- layer: a model is what this file is about, so what stands over one is
--- written here rather than in a library the compilation trims. What the
--- embedding names keeps its `native_` name, since that is the name a
--- signature reaches it by: the two lookups, the push, and the identifier a
--- default function is given. What only this file names does not, which is
--- why model_key and model_fun_lookup are spelled without it.
+-- The model itself, and what is asked of one: what a symbol is interpreted
+-- as, the two lookups a term is evaluated with, the push a binder makes, and
+-- the identifier a default function is given.
+-- $ Not of the native layer: a model is what this file is about, so what
+-- $ stands over one is written here rather than in lean.eos, which the
+-- $ compilation trims to what an input reaches. What the embedding names
+-- $ keeps its `native_` name, since that is the name a signature reaches it
+-- $ by; what only this file names does not, which is why model_key and
+-- $ model_fun_lookup are spelled without it.
 
 structure SmtModelKey where
   isVar : native_Bool
@@ -83,14 +86,14 @@ end
 
 end
 
--- The quantifier evaluators, which are of the model rather than of the native
--- layer: each takes a model and asks what a body comes to under it, which is
--- what this file is about. They stand after the mutual block above rather
--- than beside what they reach: a macro_rules is neither a definition nor an
--- inductive, so a mutual block holding one is rejected whole. Nothing is lost
--- by standing here, since they reach the evaluator through Lean.mkIdent and
--- their one use site is below. They keep their `native_` names because the
--- embedding names them.
+-- The quantifier evaluators: each takes a model and asks what a body comes to
+-- under it. They stand after the mutual block above rather than beside what
+-- they reach, since a macro_rules is neither a definition nor an inductive
+-- and a mutual block holding one is rejected whole; nothing is lost by
+-- standing here, since they reach the evaluator through Lean.mkIdent and
+-- their one use site is below.
+-- $ They are of the model rather than of the native layer, and keep their
+-- $ `native_` names because the embedding names them.
 
 macro_rules
   | `(native_eval_exists $M $s $T $body) => do
