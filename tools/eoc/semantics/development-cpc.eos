@@ -36,7 +36,7 @@
 ; own constructors have a bare name here. Both are named below, `eo.` for what
 ; the input is embedded as and `smt.` for what the target is, so a body says
 ; which layer it is speaking of and never writes the `$` behind either. See
-; ../smt/embedding.eo, which names the `smt.` half for the other set.
+; smt.eos, which names the `smt.` half for the other set.
 
 ; -- the input, as the desugar stage embeds it
 ; A list the stage gathered, and the terms a pattern reads out of one.

@@ -54,6 +54,9 @@ Useful environment variables:
   then give the lean-meta stage with `--lean-config`. A signature given as a
   configuration set compiles its own clauses, which the driver gives that stage
   of itself, so this is for one given already written out.
+- `EOC_LEAN_CALC=Name` to name what the generated Lean calls the calculus,
+  which is the package it is installed into; the install wrappers set it
+  themselves.
 - `EOC_FINAL_OUT_DIR=/path/to/out` to override the published output tree.
 - `LOGOS_DIR`, `LOGOS_TESTS_DIR`, `LOGOS_REGRESS_DIR` (default
   `$LOGOS_DIR/test/regress`, where the generated `*.cpc.lean` regressions go),
@@ -63,12 +66,12 @@ Useful environment variables:
   `symm contra refl scope trans`) to override the destination package and the
   compiled rule set of `install_logos_mini`.
 
-The install wrappers publish a fixed destination module layout. The generated
-Lean module name comes from the input file name up to its first dot, so the
-default input `Cpc.eo` generates `Cpc`. If you point
-`EOC_CPC_INPUT` at an input that names another calculus, the wrappers detect the
-generated module name and rewrite imports back to `Cpc` or `CpcMini` during
-installation.
+The install wrappers publish a fixed destination module layout, and say which
+by generating the Lean under the name of the package it is installed into:
+`install_logos` compiles as `Cpc` and `install_logos_mini` as `$SUB_DIR`, so
+the imports are right where they are written and nothing rewrites them
+afterwards. `EOC_LEAN_CALC` names one for a wrapper called on its own; a run
+that names none calls the calculus after its input file, up to the first dot.
 
 Examples:
 

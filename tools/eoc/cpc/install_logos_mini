@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 # Generate the reduced CPC Lean package used for CpcMini-style downstream tests.
 # Usage: install_logos_mini
-# Output: reads the generated Lean files from tools/eoc/out/lean/ and installs
-# them under $LOGOS_DIR/$SUB_DIR with the same layout as install_logos: the
-# signature-wide modules listed in EOC_LEAN_OUTPUTS in common.sh, apart from
-# Parser.lean, directly in $LOGOS_DIR/$SUB_DIR (RuleLemmas.lean in its Proofs/)
-# and the per-rule files in $LOGOS_DIR/$SUB_DIR/Proofs/Rules. Any existing rule
-# files are preserved, then imports are rewritten from the generated source
-# module to $SUB_DIR.
+# Output: generates the Lean under the name $SUB_DIR, with no parser, and
+# copies the tree it published in tools/eoc/out/lean/ into $LOGOS_DIR/$SUB_DIR,
+# the same layout install_logos installs. Any existing rule files under
+# Proofs/Rules are preserved.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -15,17 +12,14 @@ source "$SCRIPT_DIR/common.sh"
 
 BUILD_DIR="$(eoc_build_dir)"
 FINAL_OUT_DIR="$(eoc_final_out_dir)"
-SOURCE_INPUT="$(eoc_cpc_input)"
 LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
 SUB_DIR="${SUB_DIR:-CpcMini}"
 read -r -a MINI_TARGETS <<< "${MINI_TARGETS:-symm contra refl scope trans}"
 
 eoc_step "Generating the Mini-Lean signature"
-"$SCRIPT_DIR/run_gen_lean" --no-parser "${MINI_TARGETS[@]}"
+EOC_LEAN_CALC="$SUB_DIR" "$SCRIPT_DIR/run_gen_lean" --no-parser "${MINI_TARGETS[@]}"
 
-eoc_copy_lean_outputs "$LOGOS_DIR/$SUB_DIR" "$FINAL_OUT_DIR" 1 0
-SOURCE_CALC="$(eoc_detect_generated_lean_calc "$FINAL_OUT_DIR" || eoc_lean_calc_name "$SOURCE_INPUT")"
-eoc_rewrite_lean_calc_imports "$LOGOS_DIR/$SUB_DIR" "$SOURCE_CALC" "$SUB_DIR"
+eoc_copy_lean_outputs "$LOGOS_DIR/$SUB_DIR" "$FINAL_OUT_DIR" 1
 
 if [[ -d "$LOGOS_DIR/$SUB_DIR" ]]; then
   (

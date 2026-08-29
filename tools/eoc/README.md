@@ -407,21 +407,25 @@ tools/eoc/out/
     SmtValueOrder.lean
     SmtModel.lean
     Spec.lean
-    RuleLemmas.lean
-    Rules/
-      <Rule>.lean
+    Proofs/
+      RuleLemmas.lean
+      Rules/
+        <Rule>.lean
 ```
 
-`out/lean/` is what a run publishes, not a Lean package that builds on its own:
-the generated modules import `<Calc>.Proofs.CheckerCore` and
-`<Calc>.Proofs.RuleSupport.Support`, which the compiler never writes and which
-belong to the package the files are installed into. That package holds the
-proof-side modules under `Proofs/`, and the published tree is it with that one
-component dropped, uniformly: `RuleLemmas.lean` is installed as
-`Proofs/RuleLemmas.lean` and `Rules/<Rule>.lean` as `Proofs/Rules/<Rule>.lean`,
-which is what the `import <Calc>.Proofs.Rules.<Rule>` lines that the former
-carries name. Every other file is installed at the root of the package, where
-its name already is its import.
+`out/lean/` is the package the files are installed into, not a Lean package
+that builds on its own: the generated modules import `<Calc>.Proofs.CheckerCore`
+and `<Calc>.Proofs.RuleSupport.Support`, which the compiler never writes and
+which belong to that package. The proof-side modules stand under `Proofs/`,
+which is what the `import <Calc>.Proofs.Rules.<Rule>` lines `RuleLemmas.lean`
+carries name; every other file stands at the root, where its name already is
+its import. Installing is therefore a copy of the tree, and a file added to
+`LEAN_OUTPUTS` in `tools/eoc/driver.py` arrives with no change to the install
+wrappers.
+
+`<Calc>` is what `--calc-name` says, which is the name of the package the run
+installs into; a run that names none calls the calculus after its input file,
+up to the first dot.
 
 A published module is read by whoever reads the package, so what the resource
 it was rendered from says to whoever *edits* the resource -- what a tag stands
@@ -546,8 +550,13 @@ python3 tools/eoc/driver.py lean --build-dir build-eoc --all INPUT
 ```
 
 Pass `--no-parser` to omit the signature-specific `Parser.lean` artifact while
-still generating the remaining Lean modules and per-rule files. This also
-removes a stale `Parser.lean` from the selected final output directory.
+still generating the remaining Lean modules and per-rule files.
+
+Pass `--calc-name NAME` to say what the generated Lean calls the calculus,
+which is the name of the package the run installs into, e.g. `Cpc`. Naming it
+here is what makes the imports of the published tree right where they are
+written; a run that names none calls the calculus after its input file, up to
+the first dot.
 
 Pass `--lean-config FILE` to name the termination clauses of the input's own
 programs where the input was given already written out rather than as a
@@ -558,7 +567,9 @@ so the same signature compiled for fewer rules publishes a smaller native
 layer; see "The native layer" above.
 
 Generated files are written to `tools/eoc/out/lean/` by default, including
-per-rule files in `tools/eoc/out/lean/Rules/`. `Parser.lean` is the minimal
+per-rule files in `tools/eoc/out/lean/Proofs/Rules/`. The tree is written
+afresh each run, so it holds the whole of what that run compiled and nothing
+else. `Parser.lean` is the minimal
 calculus-specific instantiation of the generic Logos proof parser: it contains
 only the generated operator/rule tables, indexed-operator constructors, and
 surface desugaring configuration.
@@ -636,10 +647,13 @@ ls tools/eoc/out/lean
 ```
 
 `tools/eoc/cpc/install_logos` and `tools/eoc/cpc/install_logos_mini` run the
-`lean` pipeline through `driver.py`, then copy the generated Lean files from
-`tools/eoc/out/lean`, including `Rules/*.lean`, into a downstream Logos tree.
-The destinations are the ones named in [`cpc/README.md`](cpc/README.md), each
-overridable with an environment variable.
+`lean` pipeline through `driver.py` under the name of the package they install
+into, then copy the tree at `tools/eoc/out/lean` into a downstream Logos tree:
+that tree already has the layout of the package, so installing adds nothing to
+what publishing said. A rule file already in the package is kept, since a
+hand-written proof may stand beside the generated one. The destinations are the
+ones named in [`cpc/README.md`](cpc/README.md), each overridable with an
+environment variable.
 
 ### Manually inspect or debug intermediate files
 

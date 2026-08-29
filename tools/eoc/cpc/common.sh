@@ -37,15 +37,13 @@ EOC_DRIVER="$EOC_TOOLS_DIR/driver.py"
 # compile_signatures in tools/eoc/driver.py.
 EOC_DEFAULT_CPC_INPUT="$EOC_REPO_ROOT/../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
 EOC_DEFAULT_SEMANTICS="$EOC_TOOLS_DIR/semantics/development-cpc.eos"
-# The SMT-LIB semantics it is written against, which is the target of the
-# compilation and so the same whichever input a run compiles.
-EOC_DEFAULT_SMT_SEMANTICS="$EOC_TOOLS_DIR/semantics/smt.eos"
-# Why each of its recursive programs terminates, which the generated Lean has
-# to say and the compiler cannot derive. This is what the configuration named
-# above compiles it to, which the driver gives the lean-meta stage of itself,
-# so nothing here passes --lean-config unless the caller named another; see
-# compile_signatures in tools/eoc/driver.py.
-EOC_DEFAULT_CPC_LEAN_CONFIG="$EOC_TOOLS_DIR/out/user_termination.lean"
+# Two more a run needs are named nowhere here, since nothing here would be the
+# one to say them: the SMT-LIB semantics the above is written against is the
+# target of the compilation, which sem_compile.py holds the set of, and why
+# each of the input's recursive programs terminates is what that same
+# compilation writes and the driver gives the lean-meta stage of itself. A
+# caller that has another of either says so with EOC_SMT_SEMANTICS or
+# EOC_CPC_LEAN_CONFIG; see compile_signatures in tools/eoc/driver.py.
 EOC_DEFAULT_FINAL_OUT_DIR="$EOC_TOOLS_DIR/out"
 
 eoc_default_build_dir() {
@@ -64,10 +62,6 @@ eoc_cpc_input() {
   printf '%s\n' "${EOC_CPC_INPUT:-$EOC_DEFAULT_CPC_INPUT}"
 }
 
-eoc_semantics() {
-  printf '%s\n' "${EOC_SEMANTICS:-$EOC_DEFAULT_SEMANTICS}"
-}
-
 # Append the semantics of the input to ARGS. An input given by the caller has
 # semantics of its own or none at all, so the default is used only for the
 # default input.
@@ -83,18 +77,10 @@ eoc_add_semantics() {
 # every input is compiled through. It is the target of the compilation, so a
 # run leaves it to the one the tool ships with unless it names another; naming
 # one is what says those semantics are a configuration too.
-eoc_smt_semantics() {
-  printf '%s\n' "${EOC_SMT_SEMANTICS:-$EOC_DEFAULT_SMT_SEMANTICS}"
-}
-
 eoc_add_smt_semantics() {
   if [[ -n "${EOC_SMT_SEMANTICS:-}" ]]; then
     ARGS+=("--smt-semantics=${EOC_SMT_SEMANTICS}")
   fi
-}
-
-eoc_cpc_lean_config() {
-  printf '%s\n' "${EOC_CPC_LEAN_CONFIG:-$EOC_DEFAULT_CPC_LEAN_CONFIG}"
 }
 
 # Append the Lean configuration of the input to ARGS. The clauses of semantics
@@ -179,46 +165,13 @@ eoc_exec_driver() {
   exec python3 "$EOC_DRIVER" "$@"
 }
 
-eoc_lean_calc_name() {
-  local input_path="$1"
-  local stem
-  local normalized
-  local calc=""
-  local part
-
-  # The name of the calculus is the file name up to its first dot.
-  # Keep this in sync with input_base_name in tools/eoc/driver.py.
-  stem="$(basename "$input_path")"
-  stem="${stem%%.*}"
-  normalized="$(printf '%s' "$stem" | tr -cs '[:alnum:]' ' ')"
-  for part in $normalized; do
-    calc+="${part^}"
-  done
-  if [[ -z "$calc" ]]; then
-    calc="EoCalc"
+# Append the name the generated Lean is to call the calculus, which is the name
+# of the package it is installed into. A caller that installs says which; a run
+# that names none leaves the driver to call it after the input.
+eoc_add_calc_name() {
+  if [[ -n "${EOC_LEAN_CALC:-}" ]]; then
+    ARGS+=("--calc-name=${EOC_LEAN_CALC}")
   fi
-  if [[ ! "$calc" =~ ^[[:alpha:]] ]]; then
-    calc="Calc$calc"
-  fi
-  printf '%s\n' "$calc"
-}
-
-eoc_detect_generated_lean_calc() {
-  local final_out_dir="$1"
-  local logos_file="$final_out_dir/lean/Logos.lean"
-  local import_line
-
-  if [[ ! -f "$logos_file" ]]; then
-    return 1
-  fi
-  import_line="$(grep -m1 '^import ' "$logos_file" || true)"
-  # Allow an optional `all` modifier (Lean's `import all Foo`) before the module
-  # name so the calc name is detected without swallowing the modifier.
-  if [[ "$import_line" =~ ^import[[:space:]]+(all[[:space:]]+)?([^.]+)\. ]]; then
-    printf '%s\n' "${BASH_REMATCH[2]}"
-    return 0
-  fi
-  return 1
 }
 
 eoc_sed_in_place() {
@@ -226,24 +179,6 @@ eoc_sed_in_place() {
   local file="$2"
   sed -i.bak -e "$expression" "$file"
   rm -f "$file.bak"
-}
-
-eoc_rewrite_lean_calc_imports() {
-  local dest_dir="$1"
-  local src_calc="$2"
-  local dst_calc="$3"
-  local file
-
-  if [[ "$src_calc" == "$dst_calc" ]]; then
-    return
-  fi
-  while IFS= read -r -d '' file; do
-    # Preserve an optional `all` modifier (captured as \1) when rewriting the
-    # calc namespace so `import all ${src_calc}.` stays `import all ${dst_calc}.`.
-    eoc_sed_in_place \
-      "s/import \\(all \\)\\{0,1\\}${src_calc}\\./import \\1${dst_calc}\\./g" \
-      "$file"
-  done < <(find "$dest_dir" -type f -name '*.lean' -print0)
 }
 
 # Compile the configuration of the model-smt signatures, and say what came out.
@@ -266,79 +201,45 @@ eoc_compile_sem_signatures() {
   python3 "$EOC_TOOLS_DIR/sem_compile.py"
 }
 
-# The signature-wide Lean files installed by eoc_copy_lean_outputs, in module
-# dependency order. Each entry is "<source under out/lean> <destination
-# relative to the installed package directory>". This list must cover every
-# file written by the lean subcommand of tools/eoc/driver.py apart from the
-# per-rule files under out/lean/Rules/, which eoc_copy_lean_outputs installs
-# into Proofs/Rules/; a file added there but not here is silently left behind.
-EOC_LEAN_OUTPUTS=(
-  "Logos.lean Logos.lean"
-  "LogosTerm.lean LogosTerm.lean"
-  "Parser.lean Parser.lean"
-  "SmtEval.lean SmtEval.lean"
-  "SmtModelDefs.lean SmtModelDefs.lean"
-  "SmtValueOrder.lean SmtValueOrder.lean"
-  "SmtModel.lean SmtModel.lean"
-  "Spec.lean Spec.lean"
-  "RuleLemmas.lean Proofs/RuleLemmas.lean"
-)
-
+# Install the generated Lean into a package.
+#
+# The driver publishes the tree in the layout of the package it is installed
+# into, see LEAN_OUTPUTS in tools/eoc/driver.py, so this copies the tree as it
+# stands and no list here says what is in it: a file added there arrives with
+# no change on this side. What the run did not generate is what the package is
+# not to keep, so a Parser.lean of an earlier run goes where this one wrote
+# none.
+#
+# A rule file already in the package is kept where the caller says so, since a
+# hand-written proof may stand beside the generated one.
 eoc_copy_lean_outputs() {
   local dest_dir="$1"
   local final_out_dir="$2"
   local preserve_existing_rules="${3:-0}"
-  local include_parser="${4:-1}"
   local lean_dir="$final_out_dir/lean"
-  local rules_dir="$lean_dir/Rules"
-  local entry
-  local src
-  local dest
   local file
-  local rule_dest
-  local copied
-  local preserved
-  local at
+  local rel
+  local dest
+  local copied=0
+  local preserved=0
 
-  mkdir -p "$dest_dir" "$dest_dir/Proofs" "$dest_dir/Proofs/Rules"
+  if [[ ! -f "$lean_dir/Logos.lean" ]]; then
+    eoc_error "$(eoc_rel "$lean_dir") holds no generated Lean"
+    return 1
+  fi
   eoc_step "Installing the generated Lean of $(eoc_rel "$lean_dir") into $(eoc_rel "$dest_dir")"
-  # What each line names the file it copied by, padded so that the files line
-  # up under one another.
-  at=0
-  for entry in "${EOC_LEAN_OUTPUTS[@]}"; do
-    read -r src dest <<< "$entry"
-    [[ "${#src}" -gt "$at" ]] && at="${#src}"
-  done
-  for entry in "${EOC_LEAN_OUTPUTS[@]}"; do
-    read -r src dest <<< "$entry"
-    if [[ "$include_parser" == "0" && "$src" == "Parser.lean" ]]; then
-      rm -f "$dest_dir/$dest"
+  [[ -f "$lean_dir/Parser.lean" ]] || rm -f "$dest_dir/Parser.lean"
+  while IFS= read -r -d '' file; do
+    rel="${file#"$lean_dir"/}"
+    dest="$dest_dir/$rel"
+    if [[ "$preserve_existing_rules" != "0" && "$rel" == Proofs/Rules/* \
+          && -e "$dest" ]]; then
+      preserved=$((preserved + 1))
       continue
     fi
-    if [[ ! -f "$lean_dir/$src" ]]; then
-      eoc_error "$(eoc_rel "$lean_dir/$src") was not generated"
-      return 1
-    fi
-    eoc_item "$(printf '%-*s -> %s' "$at" "$src" "$(basename "$dest_dir")/$dest")"
-    cp "$lean_dir/$src" "$dest_dir/$dest"
-  done
-  if [[ -d "$rules_dir" ]]; then
-    (
-      shopt -s nullglob
-      copied=0
-      preserved=0
-      for file in "$rules_dir"/*.lean; do
-        rule_dest="$dest_dir/Proofs/Rules/$(basename "$file")"
-        if [[ "$preserve_existing_rules" != "0" && -e "$rule_dest" ]]; then
-          preserved=$((preserved + 1))
-          continue
-        fi
-        cp "$file" "$rule_dest"
-        copied=$((copied + 1))
-      done
-      eoc_item "$(printf '%-*s -> %s (%s)' "$at" "Rules/*.lean" \
-        "$(basename "$dest_dir")/Proofs/Rules/" \
-        "$copied copied, $preserved preserved")"
-    )
-  fi
+    mkdir -p "$(dirname "$dest")"
+    cp "$file" "$dest"
+    copied=$((copied + 1))
+  done < <(find "$lean_dir" -type f -name '*.lean' -print0)
+  eoc_item "$(printf '%d copied, %d preserved' "$copied" "$preserved")"
 }

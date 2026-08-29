@@ -44,6 +44,12 @@ jobs:
         cmake --build build-cpp-compiler-test --parallel ${{ env.num_proc }} \
           --target cpp-compiler-roundtrip
 
+    # The build above is what writes the generated signatures, so this says
+    # they hold what compiling the configuration writes and, which nothing
+    # else checks, that each block of one stands after the blocks it names.
+    - name: Check the compiled semantics
+      run: python3 tools/eoc/sem_compile.py --check
+
     # --semantics names the central file of the configuration of the input's
     # semantics, which the driver compiles before the model-smt stage; that
     # stage reads one such file and the plugin has none of its own, so it is
@@ -69,7 +75,7 @@ jobs:
           tests/Booleans-rules.eo and_intro
         test -s "${RUNNER_TEMP}/eoc-smoke/vc/final-booleans-rules-and_intro.smt2"
         test -s "${RUNNER_TEMP}/eoc-smoke/sygus/final-booleans-rules-and_intro.sy"
-        test -s "${RUNNER_TEMP}/eoc-smoke/lean/Rules/And_intro.lean"
+        test -s "${RUNNER_TEMP}/eoc-smoke/lean/Proofs/Rules/And_intro.lean"
 
     - name: Build and run custom auto-parser binary
       run: |

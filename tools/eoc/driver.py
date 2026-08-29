@@ -29,10 +29,9 @@ LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
 
 # The signature-wide Lean files written by the lean subcommand, in module
 # dependency order. Each entry is (source relative to <build dir>/out/plugins,
-# name written under <final out dir>/lean). The per-rule files under
-# lean/Rules/ are published separately, see
-# publish_generated_lean_rule_outputs. Keep this in sync with EOC_LEAN_OUTPUTS
-# in tools/eoc/cpc/common.sh, which installs these files into a Logos package.
+# path written under <final out dir>/lean). The per-rule files under
+# lean/Proofs/Rules/ are published separately, see
+# publish_generated_lean_rule_outputs.
 #
 # Every one of them is rendered by the lean-meta stage rather than copied from
 # the plugin source tree, including the ones whose resource carries no
@@ -40,16 +39,14 @@ LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
 # of the input reaches, and SmtEval.lean, Logos.lean and SmtModel.lean are
 # where that part comes out. See LeanMetaReduce::loadNativeDefs.
 #
-# <final out dir>/lean is what a run publishes, not a Lean package that builds
-# on its own: the generated modules import <Calc>.Proofs.CheckerCore and
-# <Calc>.Proofs.RuleSupport.Support, which the compiler never writes and which
-# belong to the package the files are installed into. That package holds the
-# proof-side modules under Proofs/, and the published tree is it with that one
-# component dropped, uniformly: RuleLemmas.lean is installed as
-# Proofs/RuleLemmas.lean and Rules/<Rule>.lean as Proofs/Rules/<Rule>.lean,
-# which is what the import <Calc>.Proofs.Rules.<Rule> lines that the former
-# carries name. Everything else is installed at the root of the package, where
-# its name already is its import.
+# The path is where the file stands in the package it is installed into, so
+# that publishing is what says the layout and installing is a copy of the tree.
+# It is not a Lean package that builds on its own: the generated modules import
+# <Calc>.Proofs.CheckerCore and <Calc>.Proofs.RuleSupport.Support, which the
+# compiler never writes and which belong to that package. The proof-side
+# modules stand under Proofs/, which is what the import <Calc>.Proofs.Rules.
+# <Rule> lines RuleLemmas.lean carries name; everything else stands at the
+# root, where its name already is its import.
 LEAN_OUTPUTS: tuple[tuple[str, str], ...] = (
     ("lean_meta/lean_meta_checker_gen.lean", "Logos.lean"),
     ("lean_meta/lean_meta_checker_term_gen.lean", "LogosTerm.lean"),
@@ -59,7 +56,7 @@ LEAN_OUTPUTS: tuple[tuple[str, str], ...] = (
     ("lean_meta/lean_meta_smt_value_order_gen.lean", "SmtValueOrder.lean"),
     ("lean_meta/lean_meta_smt_model_gen.lean", "SmtModel.lean"),
     ("lean_meta/lean_meta_spec_gen.lean", "Spec.lean"),
-    ("lean_meta/lean_meta_rule_lemmas_gen.lean", "RuleLemmas.lean"),
+    ("lean_meta/lean_meta_rule_lemmas_gen.lean", "Proofs/RuleLemmas.lean"),
 )
 
 DECLARE_RULE_RE = re.compile(r"^\(declare-rule\s+([^\s(]+)")
@@ -70,8 +67,16 @@ DEFS_DIRECTIVE = re.compile(r'\(echo\s+"[^"]*"\)')
 # The one of those that leaves what it names out of the compilation altogether.
 DEFS_EXCLUDE = re.compile(r'\(echo\s+"eoc-exclude\s+(\S+)\s+(\S+)"\s*\)')
 
+# What has to survive the trimming whatever the rule at hand reaches, said as
+# the deps of the echo the desugar stage writes, see Pipeline.desugar. Nothing
+# in a trimmed signature names these: what asks for them is the template of the
+# stage that reads what this run produces.
+#
+# The embedding's own type language, which every stage is written over.
+EMBED_DEPS = "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply"
+
 DESUGAR_VC_DEPS = (
-    "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply "
+    f"{EMBED_DEPS} "
     "$smtx_typeof_value $smtx_model_update $smtx_model_eval_apply "
     "$smtx_map_lookup "
     # What a verification condition asks of the model is said by the SMT-LIB
@@ -83,18 +88,30 @@ DESUGAR_VC_DEPS = (
     "$eo_to_smt $smtx_typeof $smtx_model_eval"
 )
 
-LEAN_ALL_DEPS = (
-    "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply "
+# The symbols of the *input* the Lean backend reaches for by name, which a run
+# over one rule therefore also trims to, see run_lean: saying it twice is what
+# would let the two drift.
+LEAN_INPUT_DEPS = ("and", "=>")
+
+# What the Lean backend asks of the model beside the type language above.
+LEAN_DEPS = (
+    f"{EMBED_DEPS} "
     "$eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval "
-    "$eo_checker_is_refutation and $eot_UConst $eot_USort "
+    "$eo_checker_is_refutation"
+)
+
+LEAN_ALL_DEPS = (
+    f"{LEAN_DEPS} "
+    # A run over the whole signature names only the first of the two, since it
+    # trims nothing away for the second to be kept from.
+    f"{LEAN_INPUT_DEPS[0]} $eot_UConst $eot_USort "
     "$smtx_typeof $smtx_typeof_value $smtx_value_canonical "
     "$smtx_map_lookup $emb_UOp"
 )
 
 LEAN_SINGLE_DEPS = (
-    "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply "
-    "$eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval "
-    "$eo_checker_is_refutation and => $eot_UConst $eot_USort "
+    f"{LEAN_DEPS} "
+    f"{' '.join(LEAN_INPUT_DEPS)} $eot_UConst $eot_USort "
     "$smtx_model_eval_apply $smtx_typeof $smtx_typeof_value "
     "$smtx_value_canonical $smtx_map_lookup $emb_UOp"
 )
@@ -126,13 +143,18 @@ def input_base_name(input_file: Path) -> str:
     """The name of the calculus an input file compiles.
 
     This is the file name up to its first dot, so that a qualifier may be
-    appended to the name of a calculus without renaming what it produces. Keep
-    this in sync with eoc_lean_calc_name in tools/eoc/cpc/common.sh.
+    appended to the name of a calculus without renaming what it produces.
     """
     return input_file.name.split(".", 1)[0]
 
 
 def lean_calc_name(input_file: Path) -> str:
+    """What the generated Lean calls the calculus, where a run names nothing.
+
+    A run that installs the Lean into a package says the name of that package
+    with --calc-name, since that is what the imports of the installed tree have
+    to say; this is what an input alone gives.
+    """
     parts = re.findall(r"[A-Za-z0-9]+", input_base_name(input_file))
     if not parts:
         return "EoCalc"
@@ -334,14 +356,12 @@ class Pipeline:
     def publish_generated_lean_rule_outputs(self, lean_dir: Path) -> None:
         """Publish the file of each rule the run compiled.
 
-        These go under lean/Rules, which is Proofs/Rules of the package they
-        are installed into with the leading component dropped, as the rest of
-        the published tree is; see LEAN_OUTPUTS.
+        These go under lean/Proofs/Rules, where they stand in the package they
+        are installed into, as the rest of the published tree does; see
+        LEAN_OUTPUTS.
         """
         plugin_rule_dir = self.plugin_out_dir / "lean_meta" / "rules"
-        final_rule_dir = lean_dir / "Rules"
-        if final_rule_dir.exists():
-            shutil.rmtree(final_rule_dir)
+        final_rule_dir = lean_dir / "Proofs" / "Rules"
         if not plugin_rule_dir.exists():
             return
         rule_files = sorted(plugin_rule_dir.glob("lean_meta_rule_*_gen.lean"))
@@ -562,17 +582,17 @@ class Pipeline:
         calc_name: str,
         generate_parser: bool,
     ) -> Path:
+        # What the run publishes is the whole of what it compiled, so the tree
+        # is written afresh: a file an earlier run left there is no part of
+        # this signature, and installing is a copy of the tree.
         out_lean = self.final_out_dir / "lean"
-        out_lean.mkdir(parents=True, exist_ok=True)
+        if out_lean.exists():
+            shutil.rmtree(out_lean)
+        out_lean.mkdir(parents=True)
         self.clean_generated_lean_rule_outputs()
-        parser_outputs = (
-            self.plugin_generated("lean_meta/lean_meta_parser_gen.lean"),
-            out_lean / "Parser.lean",
-        )
-        if not generate_parser:
-            for parser_output in parser_outputs:
-                if parser_output.exists():
-                    parser_output.unlink()
+        stale_parser = self.plugin_generated("lean_meta/lean_meta_parser_gen.lean")
+        if not generate_parser and stale_parser.exists():
+            stale_parser.unlink()
         args = ["--plugin.lean-meta"]
         if not generate_parser:
             args.append("--no-parser")
@@ -589,7 +609,9 @@ class Pipeline:
         for source, name in LEAN_OUTPUTS:
             if not generate_parser and name == "Parser.lean":
                 continue
-            shutil.copyfile(self.plugin_generated(source), out_lean / name)
+            published = out_lean / name
+            published.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(self.plugin_generated(source), published)
         self.publish_generated_lean_rule_outputs(out_lean)
         self.materialize_lean_calc(out_lean, calc_name)
         return out_lean
@@ -661,6 +683,7 @@ class Pipeline:
         all_targets: bool,
         build_first: bool,
         generate_parser: bool,
+        calc_name: Optional[str] = None,
     ) -> Path:
         if build_first:
             self.build()
@@ -670,7 +693,7 @@ class Pipeline:
                 f"{' '.join(left_out)} is left out of the compilation by "
                 f"{self.defs_file}, so there is no Lean to generate for it"
             )
-        calc_name = lean_calc_name(Path(input_name))
+        calc_name = calc_name or lean_calc_name(Path(input_name))
         stem = self.stage_name(input_name)
         report.step(
             "Generating Lean for "
@@ -704,7 +727,8 @@ class Pipeline:
         vcm_defs = self.stage_out_dir / f"lean-{stem}-defs.eo"
         final_defs = self.stage_out_dir / f"lean-{stem}-final.eo"
         report.stage(1, 6, "trim-defs", init_trim)
-        self.trim_defs(input_name, list(targets) + ["and", "=>"], init_trim)
+        self.trim_defs(input_name, list(targets) + list(LEAN_INPUT_DEPS),
+                       init_trim)
         report.stage(2, 6, "desugar", init_desugar)
         self.desugar(
             self.binary_path_arg(init_trim),
@@ -931,6 +955,15 @@ def main(argv: list[str]) -> int:
         action="store_true",
         help="Do not generate or publish the signature-specific Logos parser.",
     )
+    lean.add_argument(
+        "--calc-name",
+        default=None,
+        help=(
+            "What the generated Lean calls the calculus, which is the name of "
+            "the package it is installed into, e.g. Cpc. Defaults to the name "
+            "of the input file up to its first dot."
+        ),
+    )
 
     desugar = subparsers.add_parser("desugar", help="Generate a desugared EO file.")
     add_common_args(desugar)
@@ -1069,6 +1102,7 @@ def main(argv: list[str]) -> int:
                 all_targets=args.all,
                 build_first=build_first,
                 generate_parser=not args.no_parser,
+                calc_name=args.calc_name,
             )
         elif args.command == "desugar":
             pipeline.run_desugar(args.input, build_first=build_first)

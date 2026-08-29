@@ -16,5 +16,6 @@ ARGS=(lean --build-dir "$BUILD_DIR" "$INPUT")
 eoc_add_semantics
 eoc_add_smt_semantics
 eoc_add_lean_config
+eoc_add_calc_name
 ARGS+=("$@")
 eoc_exec_driver "${ARGS[@]}"
