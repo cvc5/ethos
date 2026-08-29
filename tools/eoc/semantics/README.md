@@ -304,11 +304,19 @@ Naming the same block twice is an error.
 
 What the generated files look like -- which programs there are, what each
 declares and matches, and which aggregate its cases are spliced into -- is
-settled by the stage that reads them: `DefsFile::read` in
-`plugins/model_smt/defs_reader.cpp` takes a definitions file apart by the name
-of each program. That is a contract between the compiler and that stage, so it
-lives in the compiler, in `tools/eoc/sem_target.py`, and a signature says only
-what its symbols mean.
+settled outside any signature, and a signature says only what its symbols mean.
+
+It is settled in two places, which is what the two halves of it are. Which
+aggregates there are, what a case of one is named and where the stage writes
+them is a contract between the compiler and that stage, so it is written where
+both can read it, in `plugins/model_smt/model_smt.eos`; the compiler writes it
+into the head of each generated signature, and `DefsFile::read` in
+`plugins/model_smt/defs_reader.cpp` takes the file apart by what it says, so
+that stage knows no aggregate by name. How a case is *written* -- what its
+program declares, what an argument stands for in it, what it gives back -- is
+read by nothing but the compiler, so it stays there, in
+`tools/eoc/sem_target.py`. An aggregate written in one and not the other is an
+error rather than a half a run would carry.
 
 A set holds one **kind** of entity or several, each with a shape of its own:
 the SMT-LIB signature declares its symbols and the types they are of, and the
@@ -324,10 +332,11 @@ two are read apart by the form that declares one.
 | a definition of a **native layer**, `plugins/lean_meta/lean.eos` and `plugins/smt_meta/smt-vc.eos` | `define-native-method` | one block of the layer a backend's generated text is written over: the text it is, under `:lean-impl` for the Lean backend and `:smt-impl` for the SMT-LIB one. Where the block can come out is read off that text rather than declared beside it, see `lean_needs` and `vc_needs` in `tools/eoc/sem_compile.py`, and it is emitted only where the compilation of an input reaches it, or when it says `:keep`. It names the native the way the backend spells it; whatever else it defines is private to the entry, which `impl_native_` rather than `native_` is what says on the Lean side |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |
 | a rule of an **input**, `semantics/development-cpc.eos` | `define-rule` | the same, for a proof rule, which says only that it is left out |
+| an **aggregate**, `plugins/model_smt/model_smt.eos` | `declare-aggregate-method` | nothing of any signature: it declares one of the programs a symbol contributes a case to, saying under `:case` what the compiler names a symbol's case and under `:into` the marker of `plugins/model_smt/model_smt.eo` the cases are written at. `:helper` and `:forward` name the programs written over values that the cases hand their work to, and where those are declared ahead of the aggregate; `:whole` says the program is emitted under the name declared here rather than its cases being spliced into it, as the nil of an n-ary symbol is |
 
 So the attribute names an entity may carry -- `:typeof`, `:value`, `:eval`,
 `:wf`, `:bounded`, `:default`, `:term`, `:type`, `:is-list-nil` -- come from
-there, and so does what an
+`sem_target.py`, and so does what an
 argument stands for in each, which the sections below refer to as the
 aggregate's `:stands-for`.
 
@@ -1177,9 +1186,13 @@ has one. It goes at the end for the same reason a value does.
 
 ### Add an attribute a symbol may carry
 
-Not a change to a signature: add it to the shape in `tools/eoc/sem_target.py`,
-and teach `DefsFile::read` in `plugins/model_smt/defs_reader.cpp` the prefix of
-the program it writes, so the stage knows what to do with its cases.
+Not a change to a signature. Write a `declare-aggregate-method` in
+`plugins/model_smt/model_smt.eos` for the program the cases are to be spliced
+into, saying what a case of it is named and the marker they are written at; put
+that marker in `plugins/model_smt/model_smt.eo` where the cases belong; and say
+how a case is written in the shape in `tools/eoc/sem_target.py`. The stage that
+reads the generated file knows no aggregate by name, so it needs no change and
+nothing has to be rebuilt.
 
 ### Add the semantics of another input
 

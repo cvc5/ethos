@@ -9,10 +9,13 @@
 
 #include "defs_reader.h"
 
+#include <algorithm>
 #include <cctype>
 #include <fstream>
 #include <functional>
 #include <sstream>
+
+#include "base/check.h"
 
 namespace ethos {
 
@@ -196,6 +199,21 @@ std::vector<std::string> casesOf(const std::string& prog,
   return ret;
 }
 
+/** The text with every occurrence of from replaced by to. */
+std::string replaceAll(const std::string& text,
+                       const std::string& from,
+                       const std::string& to)
+{
+  std::string out = text;
+  size_t pos = out.find(from);
+  while (pos != std::string::npos)
+  {
+    out = out.substr(0, pos) + to + out.substr(pos + from.size());
+    pos = out.find(from, pos + to.size());
+  }
+  return out;
+}
+
 /** The forward declaration of the program prog, which is named name. */
 std::string fwdOf(const std::string& prog, const std::string& name)
 {
@@ -285,117 +303,147 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
   d_blocks.push_back(b);
 }
 
+const DefsAggregate* DefsFile::aggregateOf(const std::string& name) const
+{
+  // The aggregates stand longest case first, so the first that matches is the
+  // longest that does.
+  for (const DefsAggregate& a : d_aggregates)
+  {
+    if (name.size() > a.d_case.size()
+        && name.compare(0, a.d_case.size(), a.d_case) == 0)
+    {
+      return &a;
+    }
+  }
+  return nullptr;
+}
+
+const DefsHelper* DefsFile::helperOf(const std::string& name) const
+{
+  for (const DefsHelper& h : d_helpers)
+  {
+    if (name.size() > h.d_case.size()
+        && name.compare(0, h.d_case.size(), h.d_case) == 0)
+    {
+      return &h;
+    }
+  }
+  return nullptr;
+}
+
 void DefsFile::classifyProgram(DefsBlock& b,
                                const std::string& f,
                                const std::string& name)
 {
   // A program is either one of the per-symbol programs, whose cases the
   // aggregate it feeds takes, or an auxiliary one the cases call, which is
-  // copied as it stands.
-  auto isPre = [&name](const char* p) {
-    const std::string pre(p);
-    return name.size() > pre.size() && name.compare(0, pre.size(), pre) == 0;
-  };
-  if (isPre("$eoc_is_list_nil_"))
+  // copied as it stands. Which aggregate a per-symbol program belongs to, and
+  // where what is taken from it goes, is what the head of the file says.
+  const DefsAggregate* a = aggregateOf(name);
+  if (a != nullptr)
   {
-    // The nil of an n-ary symbol, which the desugar stage looks up by name.
-    // It is written here as $eoc_ and emitted as $eo_, since it is the
-    // program that stage calls rather than a case of an aggregate.
-    const std::string from = "$eoc_is_list_nil_";
-    const std::string to = "$eo_is_list_nil_";
-    std::string out = f;
-    size_t pos = out.find(from);
-    while (pos != std::string::npos)
+    if (a->d_whole)
     {
-      out = out.substr(0, pos) + to + out.substr(pos + from.size());
-      pos = out.find(from, pos + to.size());
+      // Emitted whole rather than as cases of an aggregate, under the name
+      // the head declares: what asks for it, the desugar stage, asks by name.
+      b.d_at[a->d_into].push_back(replaceAll(f, a->d_case, a->d_name));
+      return;
     }
-    b.d_desugarAux.push_back(out);
+    std::vector<std::string> cases = casesOf(f, name, a->d_name);
+    std::vector<std::string>& out = b.d_at[a->d_into];
+    out.insert(out.end(), cases.begin(), cases.end());
+    return;
   }
-  else if (isPre("$eoc_eval_"))
-  {
-    std::vector<std::string> cases = casesOf(f, name, "$smtx_model_eval");
-    b.d_evalCases.insert(b.d_evalCases.end(), cases.begin(), cases.end());
-  }
-  else if (isPre("$eoc_typeof_"))
-  {
-    std::vector<std::string> cases = casesOf(f, name, "$smtx_typeof");
-    b.d_typeofCases.insert(b.d_typeofCases.end(), cases.begin(), cases.end());
-  }
-  else if (isPre("$eoc_transform_type_"))
-  {
-    std::vector<std::string> cases = casesOf(f, name, "$eo_to_smt_type");
-    b.d_transTypeCases.insert(
-        b.d_transTypeCases.end(), cases.begin(), cases.end());
-  }
-  else if (isPre("$eoc_transform_"))
-  {
-    std::vector<std::string> cases = casesOf(f, name, "$eo_to_smt");
-    b.d_transCases.insert(b.d_transCases.end(), cases.begin(), cases.end());
-  }
-  else if (isPre("$eoc_value_typeof_"))
-  {
-    std::vector<std::string> cases = casesOf(f, name, "$smtx_typeof_value");
-    b.d_valueTypeofCases.insert(
-        b.d_valueTypeofCases.end(), cases.begin(), cases.end());
-  }
-  else if (isPre("$eoc_value_canonical_"))
-  {
-    std::vector<std::string> cases =
-        casesOf(f, name, "$smtx_value_canonical");
-    b.d_valueCanonicalCases.insert(
-        b.d_valueCanonicalCases.end(), cases.begin(), cases.end());
-  }
-  else if (isPre("$eoc_type_wf_"))
-  {
-    std::vector<std::string> cases = casesOf(f, name, "$smtx_type_wf_rec");
-    b.d_typeWfCases.insert(b.d_typeWfCases.end(), cases.begin(), cases.end());
-  }
-  else if (isPre("$eoc_type_bounded_"))
-  {
-    std::vector<std::string> cases = casesOf(f, name, "$smtx_type_bounded");
-    b.d_typeBoundedCases.insert(
-        b.d_typeBoundedCases.end(), cases.begin(), cases.end());
-  }
-  else if (isPre("$eoc_type_default_"))
-  {
-    std::vector<std::string> cases = casesOf(f, name, "$smtx_type_default");
-    b.d_typeDefaultCases.insert(
-        b.d_typeDefaultCases.end(), cases.begin(), cases.end());
-  }
-  else if (name.size() > 10
-           && name.compare(name.size() - 10, 10, "_canonical") == 0)
+  if (name.size() > 10
+      && name.compare(name.size() - 10, 10, "_canonical") == 0)
   {
     // Whether a value of a shape is canonical, which is asked after the
     // programs over types that it calls, see DefsBlock::d_canonicalAux.
     b.d_canonicalAux.push_back(f);
+    return;
   }
-  else if (isPre("$smtx_model_eval_"))
+  const DefsHelper* h = helperOf(name);
+  if (h != nullptr)
   {
     b.d_helperProgs.push_back(f);
     std::string fwd = fwdOf(f, name);
     if (!fwd.empty())
     {
-      b.d_evalFwd.push_back(fwd);
+      b.d_at[h->d_forward].push_back(fwd);
     }
+    return;
   }
-  else if (isPre("$eo_to_smt"))
+  if (name.size() > 10 && name.compare(0, 10, "$eo_to_smt") == 0)
   {
     b.d_eoAux.push_back(f);
+    return;
   }
-  else
+  // Any other helper of the symbol, e.g. the one that reads a sequence at an
+  // index or the one that types a map value. It stands with the rest, in the
+  // order the signature wrote them.
+  b.d_helperProgs.push_back(f);
+}
+
+void DefsFile::readHead(const std::string& head)
+{
+  std::istringstream lines(head);
+  std::string line;
+  while (std::getline(lines, line))
   {
-    // Any other helper of the symbol, e.g. the one that reads a sequence at
-    // an index or the one that types a map value. It stands with the rest,
-    // in the order the signature wrote them.
-    b.d_helperProgs.push_back(f);
+    std::istringstream words(line);
+    std::string semi, kind;
+    if (!(words >> semi >> kind) || semi != ";")
+    {
+      continue;
+    }
+    if (kind == "$eoc-aggregate")
+    {
+      DefsAggregate a;
+      std::string whole;
+      if (!(words >> a.d_name >> a.d_case >> a.d_into))
+      {
+        EO_FATAL() << "DefsFile: an aggregate is written `; $eoc-aggregate "
+                      "<name> <case> <into> [whole]`, got: "
+                   << line;
+      }
+      if (words >> whole)
+      {
+        if (whole != "whole")
+        {
+          EO_FATAL() << "DefsFile: an aggregate says `whole` or says nothing "
+                        "after the marker, got: "
+                     << line;
+        }
+        a.d_whole = true;
+      }
+      d_aggregates.push_back(a);
+    }
+    else if (kind == "$eoc-helper")
+    {
+      DefsHelper h;
+      if (!(words >> h.d_case >> h.d_forward))
+      {
+        EO_FATAL() << "DefsFile: a helper is written `; $eoc-helper <case> "
+                      "<forward>`, got: "
+                   << line;
+      }
+      d_helpers.push_back(h);
+    }
   }
+  // Longest case first, which is what aggregateOf takes the first match of.
+  std::stable_sort(d_aggregates.begin(),
+                   d_aggregates.end(),
+                   [](const DefsAggregate& x, const DefsAggregate& y) {
+                     return x.d_case.size() > y.d_case.size();
+                   });
 }
 
 bool DefsFile::read(const std::string& path)
 {
   d_blocks.clear();
   d_owner.clear();
+  d_aggregates.clear();
+  d_helpers.clear();
   std::ifstream in(path);
   if (!in.is_open())
   {
@@ -412,6 +460,15 @@ bool DefsFile::read(const std::string& path)
   // A block runs from the line that names its symbol to the next one.
   const std::string mark = "\n; -- ";
   size_t i = text.find(mark);
+  // Everything above the first block is the head, which is what says how the
+  // blocks are to be taken apart, see DefsAggregate.
+  readHead(text.substr(0, i == std::string::npos ? text.size() : i));
+  if (d_aggregates.empty())
+  {
+    EO_FATAL() << "DefsFile: " << path
+               << " declares no aggregates; it was written by an older "
+                  "compiler, run tools/eoc/sem_compile.py";
+  }
   while (i != std::string::npos)
   {
     size_t ns = i + mark.size();

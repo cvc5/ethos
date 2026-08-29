@@ -1,0 +1,85 @@
+;; The aggregates of the deep embedding: the programs a symbol contributes a
+;; case to, and how the model-smt stage takes the generated file apart again.
+;;
+;; One entry is one aggregate. It is declared rather than defined: the program
+;; itself stands in plugins/model_smt/model_smt.eo, and what is said here is
+;; what more than one program has to agree on about it -- the name the compiler
+;; writes a symbol's case under, and the marker of the template the cases are
+;; written at. Compiled by tools/eoc/sem_compile.py, which writes it into the
+;; head of each generated signature; the stage that reads it is the model-smt
+;; stage of ethos-eoc, see DefsFile::read.
+;;
+;; This is the shape of what is written rather than what anything means, so it
+;; is fixed by the tool: no option names another set of it, and a set that says
+;; what symbols mean -- semantics/smt.eos, semantics/development-cpc.eos --
+;; says nothing here. How a case is *written* is fixed too and is no part of
+;; this: what a case declares, what its arguments stand for and what it gives
+;; back are said in tools/eoc/sem_target.py, which is the only thing that reads
+;; them. An entry there and an entry here are joined by this name, and one
+;; without the other is an error rather than an aggregate half the run knows.
+;;
+;; The longest :case that a name begins with is the aggregate it belongs to, so
+;; the order the entries stand in says nothing.
+
+(section "The SMT-LIB signature")
+
+; The type of a term.
+(declare-aggregate-method $smtx_typeof
+  :case $eoc_typeof_
+  :into $SMT_TYPEOF_CASES$)
+
+; The value of a term in a model. A symbol that says no case of its own hands
+; its work to a program written over values rather than over terms, which is
+; the one helper family there is; those are forward declared above the
+; aggregate, since a case of one may name another whichever comes first.
+(declare-aggregate-method $smtx_model_eval
+  :case    $eoc_eval_
+  :into    $SMT_EVAL_CASES$
+  :helper  $smtx_model_eval_
+  :forward $SMT_EVAL_PROGS_FWD_DECL$)
+
+; The type a value is of, and whether it is the one spelling of what it
+; denotes.
+(declare-aggregate-method $smtx_typeof_value
+  :case $eoc_value_typeof_
+  :into $SMT_VALUE_TYPEOF_CASES$)
+
+(declare-aggregate-method $smtx_value_canonical
+  :case $eoc_value_canonical_
+  :into $SMT_VALUE_CANONICAL_CASES$)
+
+; What a type answers for: whether the values of it are a set at all, what
+; bounds it, and the value a model reaches for where it has to name one.
+(declare-aggregate-method $smtx_type_wf_rec
+  :case $eoc_type_wf_
+  :into $SMT_TYPE_WF_CASES$)
+
+(declare-aggregate-method $smtx_type_bounded
+  :case $eoc_type_bounded_
+  :into $SMT_TYPE_BOUNDED_CASES$)
+
+(declare-aggregate-method $smtx_type_default
+  :case $eoc_type_default_
+  :into $SMT_TYPE_DEFAULT_CASES$)
+
+(section "The signature of an input")
+
+; What a symbol of the input becomes, and what a type constructor of it
+; becomes. The second is the longer name, and so the one a case of it belongs
+; to.
+(declare-aggregate-method $eo_to_smt
+  :case $eoc_transform_
+  :into $EO_TO_SMT_CASES$)
+
+(declare-aggregate-method $eo_to_smt_type
+  :case $eoc_transform_type_
+  :into $EO_TO_SMT_TYPE_CASES$)
+
+; Whether a term is the nil of an n-ary symbol, which the desugar stage asks
+; by name rather than by taking a case. So the program is emitted whole, under
+; the name declared here, rather than its cases being spliced into an
+; aggregate; that name is the whole of what :whole says.
+(declare-aggregate-method $eo_is_list_nil_
+  :case  $eoc_is_list_nil_
+  :into  $EO_DESUGAR_AUX$
+  :whole)

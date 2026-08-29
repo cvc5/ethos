@@ -127,6 +127,34 @@ void ModelSmt::loadDefs()
   }
   std::vector<const DefsBlock*> byDecl =
       orderByDeclarations(blocks, declarations);
+  // Which markers take the cases of an aggregate, so are written under the
+  // aggregate they feed and indented by two, and which take whole programs.
+  // Both files declare the same aggregates, since the shape of what is
+  // written is one, so either says it.
+  for (const DefsAggregate& a : d_smtDefs.getAggregates())
+  {
+    if (!a.d_whole)
+    {
+      d_spliced.insert(a.d_into);
+    }
+  }
+  // What a block says about the model, at the markers it is to be written at.
+  auto emitAt = [this](const DefsBlock* b) {
+    for (const std::pair<const std::string, std::vector<std::string>>& at :
+         b->d_at)
+    {
+      for (const std::string& l : at.second)
+      {
+        d_at[at.first] << (d_spliced.count(at.first) != 0 ? "  " : "") << l
+                       << std::endl;
+      }
+    }
+  };
+  // Whether the block is of a type or a value, which are the embedding's own
+  // as a literal is: what declares a constructor of one is of one.
+  auto isOwn = [](const DefsBlock* b) {
+    return !b->d_typeCons.empty() || !b->d_valueCons.empty();
+  };
   // The literals stand before the symbols written over them, and in the order
   // the configuration gives rather than the order a calculus declares its own,
   // for the same reason the types and the values do below: what the generated
@@ -142,27 +170,25 @@ void ModelSmt::loadDefs()
     {
       d_smtLiterals << f << std::endl;
     }
-    for (const std::string& c : b->d_typeofCases)
-    {
-      d_smtTypeof << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_evalCases)
-    {
-      d_eval << "  " << c << std::endl;
-    }
+    emitAt(b);
   }
   for (const DefsBlock* b : byDecl)
   {
-    if (b->d_literal)
+    if (b->d_literal || isOwn(b))
     {
-      // one of the embedding's own, emitted above
+      // one of the embedding's own, emitted above or below
       continue;
     }
     // A block that says nothing about the model, e.g. one that only gives the
     // nil of an n-ary symbol, leaves that symbol to be compiled as any other.
-    if (!b->d_cons.empty() || !b->d_typeofCases.empty()
-        || !b->d_evalCases.empty() || !b->d_transCases.empty()
-        || !b->d_transTypeCases.empty())
+    // What says something is a constructor, or a case of some aggregate.
+    bool saysSomething = !b->d_cons.empty();
+    for (const std::pair<const std::string, std::vector<std::string>>& at :
+         b->d_at)
+    {
+      saysSomething = saysSomething || d_spliced.count(at.first) != 0;
+    }
+    if (saysSomething)
     {
       d_defsCovered.insert(b->d_sym);
     }
@@ -170,22 +196,7 @@ void ModelSmt::loadDefs()
     {
       d_smtTerms << f << std::endl;
     }
-    for (const std::string& c : b->d_typeofCases)
-    {
-      d_smtTypeof << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_evalCases)
-    {
-      d_eval << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_transCases)
-    {
-      d_eoToSmt << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_transTypeCases)
-    {
-      d_eoToSmtType << "  " << c << std::endl;
-    }
+    emitAt(b);
   }
   // The types and the values are the embedding's own -- every block of one is
   // kept, whatever the input declares -- so they stand in the order the
@@ -195,6 +206,10 @@ void ModelSmt::loadDefs()
   // ordered by, see typeKey and valueKey in the generated SmtValueOrder.
   for (const DefsBlock* b : blocks)
   {
+    if (!isOwn(b))
+    {
+      continue;
+    }
     for (const std::string& f : b->d_typeCons)
     {
       d_smtTypes << f << std::endl;
@@ -203,26 +218,7 @@ void ModelSmt::loadDefs()
     {
       d_smtValues << f << std::endl;
     }
-    for (const std::string& c : b->d_typeWfCases)
-    {
-      d_typeWf << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_typeBoundedCases)
-    {
-      d_typeBounded << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_typeDefaultCases)
-    {
-      d_typeDefault << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_valueTypeofCases)
-    {
-      d_valueTypeof << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_valueCanonicalCases)
-    {
-      d_valueCanonical << "  " << c << std::endl;
-    }
+    emitAt(b);
   }
   // The programs follow the same order, which they may because each evaluator
   // is forward declared above; a method that is not, having been written
@@ -230,10 +226,6 @@ void ModelSmt::loadDefs()
   // which is what puts it before whatever calls it.
   for (const DefsBlock* b : byDecl)
   {
-    for (const std::string& f : b->d_evalFwd)
-    {
-      d_modelEvalProgsFwd << f << std::endl;
-    }
     for (const std::string& f : b->d_helperProgs)
     {
       d_helperProgs << f << std::endl;
@@ -245,10 +237,6 @@ void ModelSmt::loadDefs()
     for (const std::string& f : b->d_eoAux)
     {
       d_eoToSmtAux << f << std::endl;
-    }
-    for (const std::string& f : b->d_desugarAux)
-    {
-      d_desugarAux << f << std::endl;
     }
   }
 }
@@ -296,27 +284,27 @@ void ModelSmt::finalize()
     EO_FATAL() << "ModelSmt: failed to read resource " << templatePath;
   }
   std::string finalSmt = sss.str();
-  // plug in the evaluation cases handled by this plugin
-  replacePlaceholder(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
-  replacePlaceholder(
-      finalSmt, "$SMT_EVAL_PROGS_FWD_DECL$", d_modelEvalProgsFwd.str());
+  // What the signatures said about their symbols, each at the marker the
+  // aggregate it belongs to names. A marker no block wrote anything at is
+  // written all the same, since the template has to be left with no
+  // placeholder in it whatever an input reaches.
+  for (const DefsAggregate& a : d_smtDefs.getAggregates())
+  {
+    replacePlaceholder(finalSmt, a.d_into, d_at[a.d_into].str());
+  }
+  for (const DefsHelper& h : d_smtDefs.getHelpers())
+  {
+    replacePlaceholder(finalSmt, h.d_forward, d_at[h.d_forward].str());
+  }
+  // What the stage says for itself, which no aggregate names: the constructors
+  // of each family, and the programs the cases call.
   replacePlaceholder(finalSmt, "$SMT_HELPER_PROGS$", d_helperProgs.str());
   replacePlaceholder(finalSmt, "$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
-  replacePlaceholder(finalSmt, "$EO_DESUGAR_AUX$", d_desugarAux.str());
-  replacePlaceholder(finalSmt, "$EO_TO_SMT_CASES$", d_eoToSmt.str());
-  replacePlaceholder(finalSmt, "$EO_TO_SMT_TYPE_CASES$", d_eoToSmtType.str());
   replacePlaceholder(
       finalSmt, "$SMT_LITERAL_CONSTRUCTORS$", d_smtLiterals.str());
   replacePlaceholder(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
   replacePlaceholder(finalSmt, "$SMT_TYPE_CONSTRUCTORS$", d_smtTypes.str());
   replacePlaceholder(finalSmt, "$SMT_VALUE_CONSTRUCTORS$", d_smtValues.str());
-  replacePlaceholder(finalSmt, "$SMT_VALUE_TYPEOF_CASES$", d_valueTypeof.str());
-  replacePlaceholder(
-      finalSmt, "$SMT_VALUE_CANONICAL_CASES$", d_valueCanonical.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPE_WF_CASES$", d_typeWf.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPE_BOUNDED_CASES$", d_typeBounded.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPE_DEFAULT_CASES$", d_typeDefault.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPEOF_CASES$", d_smtTypeof.str());
   replacePlaceholder(finalSmt, "$SMT_CANONICAL_AUX$", d_smtCanonicalAux.str());
   if (finalSmt.find("$eoc_") != std::string::npos)
   {

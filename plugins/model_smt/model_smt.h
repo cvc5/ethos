@@ -107,17 +107,23 @@ class ModelSmt : public StdPlugin
    * error rather than a term the model would say nothing about.
    */
   void finalizeDecl(const std::string& name);
-  /** Forward declarations for SMT-LIB model-evaluation helper programs. */
-  std::stringstream d_modelEvalProgsFwd;
+  /**
+   * What is written at each marker of the template that an aggregate names,
+   * i.e. everything the signatures said about their symbols, keyed by where it
+   * goes; see DefsBlock::d_at. Which markers there are is what the head of a
+   * signature declares, so an aggregate added there is written here without a
+   * word about it in this file.
+   */
+  std::map<std::string, std::stringstream> d_at;
+  /**
+   * Those of the markers that take the cases of an aggregate rather than
+   * whole programs, which are the ones written under the aggregate they feed
+   * and so indented by two.
+   */
+  std::set<std::string> d_spliced;
   /** Every auxiliary program the signature writes, in the order it gives
    * them; see DefsBlock::d_helperProgs. */
   std::stringstream d_helperProgs;
-  /** SMT-LIB model evaluation cases */
-  std::stringstream d_eval;
-  /** Generated `$eo_to_smt` conversion cases. */
-  std::stringstream d_eoToSmt;
-  /** Generated `$eo_to_smt_type` conversion cases. */
-  std::stringstream d_eoToSmtType;
   /** Auxiliary definitions used by EO-to-SMT conversion. */
   std::stringstream d_eoToSmtAux;
   /** Generated declarations of the constructors of the literals, i.e. of the
@@ -129,20 +135,9 @@ class ModelSmt : public StdPlugin
   std::stringstream d_smtTypes;
   /** Generated SMT value constructor declarations. */
   std::stringstream d_smtValues;
-  /** Generated cases of what the values say about themselves: the type one is
-   * of, and whether one is canonical. */
-  std::stringstream d_valueTypeof, d_valueCanonical;
-  /** Generated cases of what the types of the signature say about themselves:
-   * whether one is well-founded, whether it is bounded, and the value a model
-   * reaches for where it has to name one of it. */
-  std::stringstream d_typeWf, d_typeBounded, d_typeDefault;
-  /** Generated SMT type rules for terms. */
-  std::stringstream d_smtTypeof;
   /** Auxiliary definitions used by the canonicity of values, which stand after
    * the programs over types they call, see DefsBlock::d_canonicalAux. */
   std::stringstream d_smtCanonicalAux;
-  /** Extra desugar helper definitions required by model_smt. */
-  std::stringstream d_desugarAux;
   /** Constant declarations in parser order. */
   std::vector<std::pair<std::string, Expr>> d_declSeen;
 };

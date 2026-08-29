@@ -1574,13 +1574,12 @@ def parse_params(node, name, path):
 def parser(decls):
   """What reads an entity of the kind these declarations describe."""
   known = decls.attrs()
-  # :overload, :exclude, :keep, :lean, :lean-impl, :smt-impl and :needs give
-  # no case, so none is a term to expand macros in; the last four are the text
-  # a backend is written in and the scope it wants, none of them a term at
-  # all.
-  expanded = frozenset(k for k in known
-                       if k not in ('overload', 'exclude', 'keep', 'lean',
-                                    'lean-impl', 'smt-impl', 'needs'))
+  # An attribute that gives a case is the only kind written as a term, so it
+  # is the only kind the macros of a file are rewritten out of and the only
+  # kind an entry may say twice. Everything else -- :overload and :exclude,
+  # the text a backend is written in and the scope it wants, what an aggregate
+  # says to a stage -- is said to a stage and is taken as it stands.
+  expanded = frozenset(decls.case_attrs())
 
   def read(node, path, macros):
     # An entity that writes nothing of its own names no arguments: what is

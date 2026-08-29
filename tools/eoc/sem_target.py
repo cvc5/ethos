@@ -121,22 +121,39 @@ SLOT_BY_TYPE = {
 class Aggregate:
   """One attribute a symbol may carry, and what writing it produces.
 
-  A symbol says one case and the compiler writes the program around it. Most of
-  what follows describes that program; `program` alone says where its cases
-  then go.
+  A symbol says one case and the compiler writes the program around it. What
+  follows describes how that program is written; where its cases then go is
+  said by the entry of the aggregate set it names, see bind.
   """
 
-  def __init__(self, key, case, declares, signature, stands_for, level,
-               program=None, matches=None, context=(), own=(), default=None,
-               primary=False, sole=False, helper=None, helper_attr=None,
+  def __init__(self, key, of, declares, signature, stands_for, level,
+               matches=None, context=(), own=(), default=None,
+               primary=False, sole=False, helper_attr=None,
                helper_arg=None, helper_gives=None, otherwise=None, slots=None):
     self.key = key                  # the attribute a symbol writes
-    self.case = case                # the program written for the symbol
+    # The entry of plugins/model_smt/model_smt.eos this is written by, which
+    # says the three things a stage of the pipeline agrees with this compiler
+    # about: the aggregate the cases are spliced into, the name the case is
+    # written under, and where the stage writes them. Those are filled in by
+    # bind, so what is left here is how a case is written, which nothing but
+    # this file reads.
+    self.of = of
+    self.program = None
+    self.case = None
+    self.into = None
+    # The program a case may hand its work to, i.e. one written over what the
+    # arguments evaluate to rather than over the arguments themselves, and
+    # where those are declared ahead of the aggregate. Filled in by bind, and
+    # only where the entry says the aggregate has one.
+    self.helper = None
+    self.forward = None
+    # Whether the program is emitted whole, under the name of the entry,
+    # rather than its cases being spliced into an aggregate.
+    self.whole = False
     self.declares = declares        # what it declares, once per argument
     self.takes, self.gives = signature
     self.stands = stands_for        # what an argument means in a body, by kind
     self.level = level              # the vocabulary a body is written in
-    self.program = program          # the aggregate its cases are spliced into
     # The prefix a case matches the symbol under where it gives no pattern of
     # its own: $sm_ for the macro of the target, empty for the symbol itself.
     # None where the subject is not the symbol applied to its arguments, and
@@ -149,9 +166,6 @@ class Aggregate:
     self.default = default
     self.primary = primary          # the aggregate a symbol contributes to by
     self.sole = sole                # being one, and one it contributes to alone
-    # The program a case may hand its work to, i.e. one written over what the
-    # arguments evaluate to rather than over the arguments themselves.
-    self.helper = helper
     self.helper_attr = helper_attr
     self.helper_arg = helper_arg
     self.helper_gives = helper_gives
@@ -296,7 +310,8 @@ class Shape:
   stand in and the file they compile to, see Shapes."""
 
   def __init__(self, attributes, constructor=None, keyword='define-symbol',
-               noun='symbol', params=True, keep=False, block='{symbol}'):
+               noun='symbol', params=True, keep=False, block='{symbol}',
+               extra_attrs=None):
     self.aggregates = {a.key: a for a in attributes}
     self.order = [a.key for a in attributes]
     self.constructor = constructor
@@ -320,6 +335,10 @@ class Shape:
     # written over the generated signature names its types whatever a calculus
     # trims away.
     self.keep = keep
+    # What an entity of this kind may say that no other kind may, i.e. what is
+    # asked of one of these and would mean nothing said on anything else. An
+    # attribute every kind may say is written in attrs below instead.
+    self.extra = extra_attrs or {}
 
   @property
   def raw_operators(self):
@@ -420,6 +439,20 @@ class Shape:
     # overload of a symbol a name of its own, and the entry is written under
     # the name the input knows and says what that name is.
     out['overload'] = 1
+    out.update(self.extra)
+    return out
+
+  def case_attrs(self):
+    """The attributes that give a case.
+
+    Those are the only ones written as a term: each occurrence adds a case, and
+    the macros of its file are rewritten out of it before anything else sees
+    it. Everything else an entry says is said to a stage and is taken as it
+    stands.
+    """
+    out = set(self.aggregates)
+    out.update(a.helper_attr for a in self.aggregates.values()
+               if a.helper_attr is not None)
     return out
 
 
@@ -476,6 +509,9 @@ class Shapes:
       out.update(shape.reserved())
     return sorted(out.items(), key=lambda kv: (-len(kv[0]), kv[0]))
 
+  def case_attrs(self):
+    return set().union(*(shape.case_attrs() for shape in self.shapes))
+
 
 # An attribute that gives a case may give what it matches before what it
 # returns, which is what a second value says: a value is never a keyword, so
@@ -505,8 +541,7 @@ CONSTANT = Constructor(
 # for its type, and an index or a type for itself.
 TYPEOF = Aggregate(
     key='typeof',
-    program='$smtx_typeof',
-    case='$eoc_typeof_{symbol}',
+    of='$smtx_typeof',
     matches='$sm_',
     declares=['(x{i} $smt_Term)'],
     signature=('($smt_Term)', '$smt_Type'),
@@ -519,8 +554,7 @@ TYPEOF = Aggregate(
 # over terms and so is what may take one apart.
 VALUE = Aggregate(
     key='value',
-    program='$smtx_model_eval',
-    case='$eoc_eval_{symbol}',
+    of='$smtx_model_eval',
     context=[('M', '$smt_Model')],
     matches='$sm_',
     declares=['(x{i} $smt_Term)'],
@@ -529,7 +563,6 @@ VALUE = Aggregate(
                 'raw': '($smtx_model_eval M %s)', 'type': '%s'},
     level='value',
     default='$smtx_model_eval_',
-    helper='$smtx_model_eval_{symbol}',
     helper_attr='eval',
     helper_arg='$smt_Value',
     helper_gives='$smt_Value',
@@ -546,8 +579,7 @@ VALUE = Aggregate(
 TERM = Aggregate(
     key='term',
     primary=True,
-    program='$eo_to_smt',
-    case='$eoc_transform_{symbol}',
+    of='$eo_to_smt',
     matches='',
     own=[('T', 'Type')],
     declares=['(T{i} Type)', '(x{i} T{i})'],
@@ -563,8 +595,7 @@ TERM = Aggregate(
 TYPE = Aggregate(
     key='type',
     sole=True,
-    program='$eo_to_smt_type',
-    case='$eoc_transform_type_{symbol}',
+    of='$eo_to_smt_type',
     matches='',
     declares=['(T{i} Type)', '(x{i} T{i})'],
     signature=('(Type)', '$smt_Type'),
@@ -578,7 +609,7 @@ TYPE = Aggregate(
 # to its arguments, so every case says what it matches.
 IS_LIST_NIL = Aggregate(
     key='is-list-nil',
-    case='$eoc_is_list_nil_{symbol}',
+    of='$eo_is_list_nil_',
     own=[('T', 'Type'), ('x1', 'T')],
     declares=[],
     signature=('(T)', 'Bool'),
@@ -612,8 +643,7 @@ TYPE_SLOTS = {'plain': 'x%d', 'raw': 'n%d'}
 # another has to answer for, and the rest answer for nothing.
 TYPE_WF = Aggregate(
     key='wf',
-    program='$smtx_type_wf_rec',
-    case='$eoc_type_wf_{symbol}',
+    of='$smtx_type_wf_rec',
     matches='$tsm_',
     declares=TYPE_DECLARES,
     slots=TYPE_SLOTS,
@@ -626,8 +656,7 @@ TYPE_WF = Aggregate(
 # is false. A type that says nothing has neither.
 TYPE_BOUNDED = Aggregate(
     key='bounded',
-    program='$smtx_type_bounded',
-    case='$eoc_type_bounded_{symbol}',
+    of='$smtx_type_bounded',
     context=[('u', '$native_Bool')],
     matches='$tsm_',
     declares=TYPE_DECLARES,
@@ -640,8 +669,7 @@ TYPE_BOUNDED = Aggregate(
 # one of a type it knows nothing else about. A type that says nothing has none.
 TYPE_DEFAULT = Aggregate(
     key='default',
-    program='$smtx_type_default',
-    case='$eoc_type_default_{symbol}',
+    of='$smtx_type_default',
     matches='$tsm_',
     declares=TYPE_DECLARES,
     slots=TYPE_SLOTS,
@@ -672,6 +700,15 @@ RULES = Shape([], keyword='define-rule', noun='rule', params=False)
 NATIVES = Shape([], keyword='define-native-method', noun='native',
                 params=False)
 
+# One aggregate of the deep embedding, i.e. one entry of
+# plugins/model_smt/model_smt.eos. It declares nothing of the model: the
+# program itself stands in the template of the stage, and what the entry says
+# is what this compiler and that stage have to agree on about it. See bind.
+AGGREGATES = Shape([], keyword='declare-aggregate-method', noun='aggregate',
+                   params=False,
+                   extra_attrs={'case': 1, 'into': 1, 'helper': 1,
+                                'forward': 1, 'whole': 0})
+
 # ---------------------------------------------------------------------------
 # The values of the SMT-LIB signature, which stand in the same file
 # ---------------------------------------------------------------------------
@@ -696,8 +733,7 @@ VALUE_STANDS = {'plain': '%s', 'raw': '%s'}
 # value that says nothing is of no type at all.
 VALUE_TYPEOF = Aggregate(
     key='typeof',
-    program='$smtx_typeof_value',
-    case='$eoc_value_typeof_{symbol}',
+    of='$smtx_typeof_value',
     matches='$vsm_',
     declares=['(x{i} $smt_Value)'],
     signature=('($smt_Value)', '$smt_Type'),
@@ -708,8 +744,7 @@ VALUE_TYPEOF = Aggregate(
 # denotes. A value that says nothing is.
 VALUE_CANONICAL = Aggregate(
     key='canonical',
-    program='$smtx_value_canonical',
-    case='$eoc_value_canonical_{symbol}',
+    of='$smtx_value_canonical',
     matches='$vsm_',
     declares=['(x{i} $smt_Value)'],
     signature=('($smt_Value)', '$native_Bool'),
@@ -741,8 +776,7 @@ LITERAL_STANDS = {'plain': '%s'}
 # plugins/model_smt/model_smt.eo.
 LITERAL_TYPEOF = Aggregate(
     key='typeof',
-    program='$smtx_typeof',
-    case='$eoc_typeof_{symbol}',
+    of='$smtx_typeof',
     matches='$sm_',
     declares={},
     signature=('($smt_Term)', '$smt_Type'),
@@ -751,8 +785,7 @@ LITERAL_TYPEOF = Aggregate(
 
 LITERAL_VALUE = Aggregate(
     key='value',
-    program='$smtx_model_eval',
-    case='$eoc_eval_{symbol}',
+    of='$smtx_model_eval',
     context=[('M', '$smt_Model')],
     matches='$sm_',
     declares={},
@@ -782,6 +815,59 @@ INPUT_SYMBOLS = Shape([TERM, TYPE, IS_LIST_NIL])
 TARGET = Shapes(SYMBOLS, LITERALS, TYPES, VALUES, METHODS)
 INPUT_SET = Shapes(INPUT_SYMBOLS, METHODS, RULES)
 NATIVE_SET = Shapes(NATIVES)
+AGGREGATE_SET = Shapes(AGGREGATES)
+
+
+def aggregates():
+  """Every aggregate this file writes, once each.
+
+  Two of them may be written by one entry -- a literal says its type the way a
+  symbol does, and differs in how the case is written rather than in where it
+  goes -- so what comes back is keyed by the entry each names.
+  """
+  out = {}
+  for shapes in (TARGET, INPUT_SET):
+    for shape in shapes.shapes:
+      for a in shape.aggregates.values():
+        out.setdefault(a.of, []).append(a)
+  return out
+
+
+def bind(entries):
+  """Join what the aggregate set says onto the aggregates written here.
+
+  `entries` is what plugins/model_smt/model_smt.eos declared, keyed by name.
+  An aggregate written here that the set does not declare, or an entry the set
+  declares that nothing here writes, is an error: the two are halves of one
+  thing, and a run that carried on would compile a case no stage knows where
+  to put, or leave a stage waiting for cases nothing writes.
+  """
+  mine = aggregates()
+  for name in sorted(set(mine) | set(entries)):
+    if name not in entries:
+      die('%s is written in sem_target.py but no entry of the aggregate set '
+          'declares it; add a declare-aggregate-method for it' % name)
+    if name not in mine:
+      die('%s is declared by the aggregate set but nothing in sem_target.py '
+          'writes it; what a case of it declares and gives back has to be '
+          'said there' % name)
+    e = entries[name]
+    # What the set says about an entry holds of every aggregate written by it,
+    # except the helper: the set says what one is *named*, and which of them
+    # has one is said by whether a case of it may hand its work over at all.
+    # A literal says its value outright and so has none, though it is written
+    # by the same entry as the symbol that does.
+    if (e.helper is not None) != any(a.helper_attr for a in mine[name]):
+      die('%s: the set and sem_target.py disagree about whether the cases of '
+          'this aggregate hand their work to a program written over values'
+          % name)
+    for a in mine[name]:
+      a.program = None if e.whole else name
+      a.case = e.case + '{symbol}'
+      a.into = e.into
+      a.whole = e.whole
+      a.helper = e.helper + '{symbol}' if a.helper_attr else None
+      a.forward = e.forward if a.helper_attr else None
 
 
 def of(target):

@@ -8,6 +8,11 @@ signatures written directly in the deep embedding, i.e.
                       how each symbol of the input transforms into the
                       SMT-LIB one
 
+Beside those it compiles the sets that are fixed rather than named by a run:
+the native layer of each backend, and the aggregates of the deep embedding,
+plugins/model_smt/model_smt.eos, which is written into the head of each of the
+two files above and says how the stage that reads them is to take them apart.
+
 Each set has a central file, the one named above, which declares the shape of
 what the set compiles to -- its aggregates, its constructor and its shapes, see
 sem_decl.py -- and then says what it compiles to and which files it is made of.
@@ -81,6 +86,18 @@ SHIPPED = ((CONFIGS[0], True), (CONFIGS[1], False))
 # layer, not one per input -- so it is compiled beside the two above rather
 # than named by an option. It stands in the plugin that reads what it compiles
 # to, since it is of that backend and of nothing else.
+# The aggregates of the deep embedding: which programs a symbol contributes a
+# case to, and where the model-smt stage writes them. It is one set and a fixed
+# one -- the shape of what is written is not something a run may name another
+# of -- so it stands in the plugin that reads what it compiles to, as a native
+# layer does, and is read whatever a run compiles. What it compiles to is no
+# file of its own: it is written into the head of each generated signature,
+# which is the file it is about.
+AGGREGATE_CONFIG = os.path.join(ROOT, 'plugins', 'model_smt', 'model_smt.eos')
+# The template of that stage, which is where the markers an entry names have
+# to be for the cases to reach the generated file.
+AGGREGATE_TEMPLATE = os.path.join(ROOT, 'plugins', 'model_smt', 'model_smt.eo')
+
 NATIVE_CONFIG = os.path.join(ROOT, 'plugins', 'lean_meta', 'lean.eos')
 NATIVE_TARGET = os.path.join(OUT, 'lean_native.lean')
 VC_CONFIG = os.path.join(ROOT, 'plugins', 'smt_meta', 'smt-vc.eos')
@@ -304,6 +321,105 @@ def role_of(path):
   return None
 
 
+# -----------------------------------------------------------------------------
+# The aggregates of the embedding
+# -----------------------------------------------------------------------------
+
+AGGREGATE_MANIFEST = """\
+; What each name below is, and where the model-smt stage is to put it. The
+; case a symbol says of an aggregate is written under <case>, and the stage
+; writes those cases at <into>, which is a marker of its template. A line that
+; says `whole` is a program emitted under the name of the aggregate rather
+; than a case spliced into it, and a $eoc-helper line names the programs
+; written over values that the cases of an aggregate hand their work to,
+; together with where they are declared ahead of it.
+;
+; Compiled from plugins/model_smt/model_smt.eos, which is where an aggregate
+; is to be changed or added. See DefsFile::read.
+;
+"""
+
+
+class AggregateEntry:
+  """One entry of the aggregate set, i.e. what this compiler and the model-smt
+  stage agree on about one aggregate. How a case of it is *written* is no part
+  of that and is said in sem_target.py, see sem_target.bind."""
+
+  def __init__(self, name, case, into, helper, forward, whole):
+    self.name = name
+    self.case = case            # what a symbol's case is named, up to the symbol
+    self.into = into            # the marker of the template the cases go at
+    self.helper = helper        # the programs written over values, if any
+    self.forward = forward      # where those are declared, ahead of the aggregate
+    self.whole = whole          # emitted whole rather than spliced as cases
+
+  def lines(self):
+    """The entry as the stage reads it."""
+    out = ['; $eoc-aggregate %s %s %s%s'
+           % (self.name, self.case, self.into, ' whole' if self.whole else '')]
+    if self.helper is not None:
+      out.append('; $eoc-helper %s %s' % (self.helper, self.forward))
+    return out
+
+
+def read_aggregates(path=AGGREGATE_CONFIG):
+  """Read the aggregate set, in the order it gives its entries.
+
+  A marker an entry names has to be one the template has, since a case written
+  at a marker that is not there would be compiled and then dropped without a
+  word; and two entries may not share a name or a case, since the longest case
+  a name begins with is what says which aggregate it belongs to.
+  """
+  template = read_text(AGGREGATE_TEMPLATE)
+  out, cases, markers = {}, {}, {}
+  for b in read_config([path], sem_target.AGGREGATE_SET):
+    for e in b.entries():
+      what = 'semantics/' + name_of(path) + ': ' + e.name
+      for a in ('case', 'into'):
+        if not e.has(a):
+          die('%s: an aggregate says :%s' % (what, a))
+      if e.has('helper') != e.has('forward'):
+        die('%s: a program written over values is declared ahead of the '
+            'aggregate, so :helper and :forward are said together' % what)
+      entry = AggregateEntry(e.name, e.get('case').val, e.get('into').val,
+                             e.get('helper').val if e.has('helper') else None,
+                             e.get('forward').val if e.has('forward') else None,
+                             e.has('whole'))
+      for marker in (entry.into, entry.forward):
+        if marker is not None and marker not in template:
+          die('%s: %s names %s, which %s does not have'
+              % (what, e.name, marker, named(AGGREGATE_TEMPLATE)))
+      if e.name in out:
+        die('%s: %s is declared twice' % (what, e.name))
+      if entry.case in cases:
+        die('%s: %s and %s are both written under %s, so a case of one would '
+            'be read as a case of the other'
+            % (what, cases[entry.case], e.name, entry.case))
+      if entry.into in markers:
+        die('%s: %s and %s are both written at %s, which is one place in one '
+            'program: an aggregate is written at a marker of its own'
+            % (what, markers[entry.into], e.name, entry.into))
+      out[e.name], cases[entry.case] = entry, e.name
+      markers[entry.into] = e.name
+  return out
+
+
+_AGGREGATES = None
+
+
+def aggregates():
+  """The aggregate set, read once and joined onto what sem_target.py writes.
+
+  Every shape is read against it, so the two halves of an aggregate are known
+  to be there before a line of a signature is compiled.
+  """
+  global _AGGREGATES
+  if _AGGREGATES is None:
+    _AGGREGATES = read_aggregates()
+    sem_target.bind(_AGGREGATES)
+  return _AGGREGATES
+
+
 def read_config_file(path, is_target):
   """Read the file a set stands in, in the role the run gave it.
 
@@ -316,6 +432,7 @@ def read_config_file(path, is_target):
   # itself: the two describe the same signature.
   doc = list(itertools.takewhile(lambda l: l.startswith(';'),
                                  read_text(path).split('\n')))
+  aggregates()
   return Config(path, sem_target.of(is_target), [path], doc, is_target)
 
 
@@ -475,7 +592,9 @@ def written(blocks, config):
 
 
 def render(blocks, config):
-  return (header(config) + '\n'
+  return (header(config) + AGGREGATE_MANIFEST
+          + '\n'.join(l for e in aggregates().values() for l in e.lines())
+          + '\n\n'
           + '\n\n'.join(t for _, t in blocks) + '\n')
 
 

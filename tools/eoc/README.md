@@ -79,6 +79,22 @@ into the aggregate its family names, so the name itself never reaches the
 generated file. The exception is `$eoc_is_list_nil_X`, which the desugar stage
 calls by name and which is therefore emitted as `$eo_is_list_nil_X`.
 
+Which families there are is not something either side knows by name. The head
+of each generated file declares them, one line to an aggregate:
+
+```text
+; $eoc-aggregate $smtx_typeof $eoc_typeof_ $SMT_TYPEOF_CASES$
+; $eoc-aggregate $eo_is_list_nil_ $eoc_is_list_nil_ $EO_DESUGAR_AUX$ whole
+```
+
+which says the aggregate a case joins, the name the case is written under, and
+the marker of `plugins/model_smt/model_smt.eo` the stage writes them at; the
+longest name a program begins with is the aggregate it belongs to, and `whole`
+is the exception above. The lines are compiled from
+`plugins/model_smt/model_smt.eos`, which is where an aggregate is to be changed
+or added, and the stage reads them rather than knowing any of it, so adding one
+asks nothing of `ethos-eoc`. See `semantics/README.md`.
+
 A block may also be of a helper rather than of a symbol, in which case the
 `; -- X` line names the helper itself, e.g. `; -- $smtx_typeof_bv_op_2` for the
 typing of a bit-vector operator whose two arguments must be of one width. Such
