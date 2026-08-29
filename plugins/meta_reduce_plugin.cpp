@@ -14,6 +14,7 @@
 
 #include "base/output.h"
 #include "literal.h"
+#include "utils.h"
 
 namespace ethos {
 
@@ -341,7 +342,7 @@ std::string MetaReducePlugin::emitResourceFile(
   {
     EO_FATAL() << "MetaReducePlugin: failed to open output " << outPath;
   }
-  out << rendered;
+  out << rtrimLines(rendered);
   out.close();
   if (!out)
   {
