@@ -2060,6 +2060,12 @@ The commands of the form `(check-sat-assuming (F1 ... Fn))` will likewise add `F
 The commands `(reset-assertions)` and `(reset)` discard all reference assertions collected so far.
 Other commands in `file.smt2` (e.g. `set-logic`, `set-option`, and so on) will be ignored.
 
+In reference files only, `(_ f i1 ... in)` is read as an SMT-LIB indexed identifier, that is, it denotes the same term as the application `(f i1 ... in)`.
+This is in contrast to Eunoia inputs, where `_` denotes higher-order application, which does not apply the desugaring policy of `f` (see [opaque arguments](#opaque)).
+The distinction matters for symbols whose arguments are marked `:opaque`, which is how the indexed operators of SMT-LIB are declared.
+For example, in a reference file `((_ extract 63 32) x)` denotes the same term as `(extract 63 32 x)`, which is how a proof must spell it.
+The indexed bit-vector constants `(_ bv<numeral> <width>)` are read as the binary literal of the given width.
+
 If Ethos has read a reference file, then for each command of the form `(assume <symbol> G)`, Ethos will check whether `G` occurs in the set of parsed reference assertions.
 If it does not, then an error is thrown indicating that the proof is assuming a formula that is not a part of the original input.
 

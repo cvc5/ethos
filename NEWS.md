@@ -7,6 +7,9 @@ ethos 0.2.4 prerelease
 - Adds builtin operators `eo::pow` (exponentiation), `eo::log` (integer logarithm), `eo::list_repeat` (repeat a list element a given number of times), and `eo::list_singleton_intro` (turn a term into a singleton list).
 - Reference files now add the assumptions of `check-sat-assuming` commands to the set of reference assertions.
 - Reference files now support `reset-assertions` and `reset`, which discard the reference assertions read so far, and parse and ignore any command whose name begins with `get-`, e.g. `get-model`.
+- In reference files, `(_ f i1 ... in)` is now read as an SMT-LIB indexed identifier, denoting the same term as `(f i1 ... in)`. Previously it was read as a higher-order application, which did not apply the desugaring policy of `f`, and hence gave a distinct term for symbols with `:opaque` arguments.
+- Reference files now support the SMT-LIB indexed bit-vector constants `(_ bv<numeral> <width>)`, which are read as the corresponding binary literal.
+- Applications whose head symbol has a desugaring attribute are now printed using the operator `_`, so that e.g. an application of a symbol to its `:opaque` arguments is no longer printed identically to the curried application of the same symbol.
 
 ethos 0.2.3
 ===========
