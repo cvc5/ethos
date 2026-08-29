@@ -12,33 +12,11 @@ namespace Eo
 
 open SmtEval
 
-/-
-Ordinary user operators.
--/
-inductive UserOp : Type where
-$LEAN_EO_THEORY_OP_DEF$
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-User operators with one index.
--/
-inductive UserOp1 : Type where
-$LEAN_EO_THEORY_OP1_DEF$
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-User operators with two indices.
--/
-inductive UserOp2 : Type where
-$LEAN_EO_THEORY_OP2_DEF$
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-User operators with three indices.
--/
-inductive UserOp3 : Type where
-$LEAN_EO_THEORY_OP3_DEF$
-deriving Repr, DecidableEq, Inhabited, Ord
+-- $ The user operators, one inductive per index arity the signature uses:
+-- $ UserOp for the operators that take no index and UserOp<n> for those that
+-- $ take n. An arity the signature does not use gets no inductive, since Term
+-- $ has no constructor that would name one. See printTheoryOpDefs.
+$LEAN_EO_THEORY_OP_DEFS$
 
 mutual
 
