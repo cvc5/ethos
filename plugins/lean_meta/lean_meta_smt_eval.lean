@@ -15,14 +15,8 @@ instance : Ord Rat where
     -- compare a.num / a.den vs b.num / b.den by cross-multiplication
     compare (a.num * Int.ofNat b.den) (b.num * Int.ofNat a.den)
 
--- The one below is kept whatever a signature reaches: a proof written
--- against the published tree names its strings with it, and a signature with
--- no string of its own to build would not otherwise keep it alive.
--- $native-root native_string_lit
-
--- The part of the native layer that every generated file can see. What comes
--- out here is what more than one of them reaches, since a definition only one
--- reaches is emitted into that file instead.
--- $native-place SmtEval
+-- The part of the native layer that is Lean and nothing else, which every
+-- generated module has in scope.
+$NATIVE_DEFS$
 
 end SmtEval

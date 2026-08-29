@@ -15,9 +15,8 @@ open SmtEval
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
 -- The part of the native layer that the SMT-LIB value embedding is what
--- decides, and so cannot come out above this file, together with whatever of
--- the rest only this file reaches.
--- $native-place Smtm
+-- decides, and so cannot come out above this file.
+$NATIVE_DEFS$
 
 -- The model itself, and what is asked of one. This is not of the native
 -- layer: a model is what this file is about, so what stands over one is

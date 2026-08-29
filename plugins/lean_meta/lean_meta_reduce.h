@@ -45,14 +45,11 @@ class LeanMetaReduce : public MetaReducePlugin
    * Construct the Lean meta reducer and its meta-kind tables.
    *
    * If generateParser is false, omit the signature-specific Logos parser
-   * configuration while still emitting every other Lean artifact. If
-   * trimNatives is false, emit the whole of the native layer rather than the
-   * part of it the compilation reaches, see placeNativeDefs.
+   * configuration while still emitting every other Lean artifact.
    */
   LeanMetaReduce(State& s,
                  bool generateParser = true,
-                 const std::string& configFile = "",
-                 bool trimNatives = true);
+                 const std::string& configFile = "");
   /** Destroy the Lean meta reducer. */
   ~LeanMetaReduce() override;
   /** Remember a program definition for later Lean emission. */
@@ -114,10 +111,6 @@ class LeanMetaReduce : public MetaReducePlugin
  private:
   /** Whether to emit the signature-specific Logos parser configuration. */
   bool d_generateParser;
-  /** Whether the native layer is trimmed, see placeNativeDefs. */
-  bool d_trimNatives;
-  /** The Lean files this run wrote, in the order it wrote them. */
-  std::vector<std::string> d_leanOutputs;
   /** Return true if sname denotes a Lean meta symbol supplied by templates. */
   bool isBuiltinMetaSymbol(const std::string& sname) const override;
   /** Print an atomic EO expression in the Lean embedding. */
@@ -195,131 +188,20 @@ class LeanMetaReduce : public MetaReducePlugin
    * under :lean, see tools/eoc/out/smt_termination.lean.
    */
   void readTerminationClauses(const std::string& path);
-  /** One block of the native layer, as its `-- $native` line describes it. */
-  struct NativeBlock
-  {
-    /** What it defines, and what a signature may reach. */
-    std::string d_name;
-    /**
-     * How much of the embedding it wants in scope, which is the floor on
-     * where it can be emitted, see placeNativeDefs.
-     */
-    std::string d_needs;
-    /**
-     * The rest of the layer its text names, which is what the closure is
-     * taken over. It is worked out by tools/eoc/sem_compile.py rather than
-     * here, see native_deps there: the Lean of a block is text to this stage,
-     * and reading a dependency graph out of text is the compiler's work.
-     */
-    std::vector<std::string> d_deps;
-    /** The Lean it is, carried as it stands. */
-    std::string d_text;
-  };
-  /** The native layer: its blocks, and the block that defines each name. */
-  struct NativeLib
-  {
-    /** Its blocks, in the order the library gives them. */
-    std::vector<NativeBlock> d_blocks;
-    /** The block that defines each name. */
-    std::map<std::string, size_t> d_of;
-  };
   /**
-   * What one generated Lean file says about the native layer. A file holds no
-   * block of its own: it says only what it has in scope, which scope it is
-   * the home of, and what it keeps whatever the compilation reaches.
+   * Read the native layer, i.e. what tools/eoc/sem_compile.py compiled
+   * plugins/lean_meta/lean.eos to, into the two streams below: the whole of
+   * it, split by the scope each block wants. It is read before any module is
+   * written, since a module takes the part of it that belongs there as an
+   * ordinary replacement.
    */
-  struct NativeTopo
-  {
-    /** The file with its directive lines taken out, i.e. as it is written. */
-    std::string d_text;
-    /** The scope it is the home of, empty if it is the home of none. */
-    std::string d_place;
-    /** Where in d_text the blocks of that scope go, npos if it is no home. */
-    size_t d_placeAt = std::string::npos;
-    /** What it keeps whatever the compilation reaches. */
-    std::vector<std::string> d_roots;
-    /**
-     * Whether it said anything at all, which is what tells a file that has to
-     * be written again from one whose text this stage leaves as it found it.
-     */
-    bool d_marked = false;
-  };
-  /**
-   * Read the native layer out of what tools/eoc/sem_compile.py compiled
-   * plugins/lean_meta/lean.eos to.
-   *
-   * A block is opened by `-- $native <name> <needs> <calls>...`, which says
-   * everything this stage has to know about it, and runs to the next such
-   * line; what lies between them is the comment that introduces the next
-   * block, which no file is written. See render_native in sem_compile.py.
-   */
-  static NativeLib readNativeLibrary(const std::string& text);
-  /**
-   * Read what one generated Lean file says about the layer, and give back the
-   * file with those lines taken out.
-   *
-   * `-- $native-place <scope>` says it is the home of that scope and marks
-   * where the blocks of it are written, and `-- $native-root <name>...` says
-   * what it keeps whatever the compilation reaches, which is for a definition
-   * that only the package the published tree is installed into calls, since
-   * this compiler never sees that side.
-   *
-   * A file with no such line is one this stage leaves alone.
-   */
-  static NativeTopo readNativeTopology(const std::string& text);
-  /**
-   * Add to out every key of blocks that the Lean in code mentions. A dotted
-   * name mentions each of its prefixes, so that `X.f` asks for the block that
-   * defines X when no block defines `X.f` itself.
-   *
-   * A mention is a mention wherever it stands, a comment included, so the
-   * Lean resources of this plugin may not spell a name of the native layer
-   * except on a directive line, which readNativeTopology takes out before
-   * this sees the file. Naming one in prose asks for it: harmless where the
-   * file has that scope in scope, since it only widens what is published, and
-   * an error from placeNativeDefs where it does not.
-   */
-  static void collectNativeNames(const std::string& code,
-                                 const std::map<std::string, size_t>& blocks,
-                                 std::set<std::string>& out);
-  /**
-   * Emit a Lean file as emitResourceFile does and remember its path, so that
-   * placeNativeDefs sees every file this run wrote.
-   */
-  std::string emitLeanFile(const std::string& resourcePath,
-                           const std::string& outputPath,
-                           const std::vector<Replacement>& replacements,
-                           bool replAll = false);
-  /**
-   * Write into the files this run wrote the part of the native layer its
-   * compilation of the input reaches, and remove the markers from what
-   * remains.
-   *
-   * The whole native layer is written for every signature there is, so most
-   * of it is dead for any one input: a signature with no strings in it has
-   * no use for the regular-expression matcher, and one of Booleans alone has
-   * none for arithmetic. What is reached is not something this stage can
-   * read off the input, since a definition of the layer is demanded by the
-   * generated text that calls it, so it is computed here instead: the text
-   * around the blocks of every file the run wrote is what the generated
-   * definitions were spliced into, and a block is reached when that text, or
-   * a block it already reaches, names it.
-   *
-   * Most of the layer is one library, compiled from lean.eos, rather than
-   * text of the files it is written into, so that a definition is written
-   * once whichever of them turns out to want it. Where a block of the
-   * library comes out is the demand for it: the narrowest `-- $native-place`
-   * that both has what the block needs in scope and covers every file that
-   * reaches it, which is the module they share when more than one does and
-   * the module itself when one does. A block that the file it stands in has
-   * to be read with, because what that file generates is defined with it, is
-   * left where it is and only kept or dropped.
-   *
-   * This runs once every file has been written rather than filtering each on
-   * the way out, because the demand for a definition comes from all of them
-   * and they are not written at once.
-   */
-  void placeNativeDefs();
+  void loadNativeDefs();
+  /** The native layer that is Lean and nothing else, i.e. $NATIVE_DEFS$ of
+   * plugins/lean_meta/lean_meta_smt_eval.lean. */
+  std::stringstream d_nativeSmtEval;
+  /** The part of it the SMT-LIB value embedding decides, i.e. $NATIVE_DEFS$
+   * of plugins/lean_meta/lean_meta_smt_model.lean. */
+  std::stringstream d_nativeSmtm;
   /** Generated Lean definitions for programs. */
   std::stringstream d_defs;
   /** Generated mutually recursive total Lean definitions. */
