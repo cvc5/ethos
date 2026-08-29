@@ -65,6 +65,7 @@ Useful environment variables:
 - `SUB_DIR` (default `CpcMini`) and `MINI_TARGETS` (default
   `symm contra refl scope trans`) to override the destination package and the
   compiled rule set of `install_logos_mini`.
+- `EOC_LOGOS_BANNER=0` to install the generated modules with no banner.
 
 The install wrappers publish a fixed destination module layout, and say which
 by generating the Lean under the name of the package it is installed into:
@@ -85,6 +86,18 @@ tools/eoc/cpc/run_gen_lean symm contra
 executable on the generated artifact after any parse check. They also accept
 `--solve-args="..."` to pass extra solver options through to that solve step,
 for example `--solve-args="--tlimit=1000 --seed=7"`.
+
+Both install wrappers put a banner ahead of every module they install, which is
+what a reader who opens one in the middle of the package -- or a diff of one --
+is told before anything else. The compiler writes none: what a package says
+about where its files came from is the package's own business rather than the
+compilation's, so it is an install that says it, and the text is
+`EOC_LOGOS_BANNER_TEXT` in `common.sh`. It is the banner the Logos packages
+carry, word for word, since a banner that differs is a diff on every generated
+module; nothing here reads the Logos tree to find that out, so keeping the two
+in step is a matter of editing that one string. The banner goes on every module
+the compiler publishes except the per-rule files under `Proofs/Rules`. A run
+given `EOC_LOGOS_BANNER=0` installs none.
 
 `install_logos` publishes the generated proof parser as
 `$LOGOS_DIR/Cpc/Parser.lean`. The generated module is only a

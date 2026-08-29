@@ -5,7 +5,9 @@
 # user_defs.eo were each compiled from; see eoc_compile_sem_signatures in
 # common.sh. It then generates the Lean under the name Cpc and copies the tree
 # it published in tools/eoc/out/lean/ into $LOGOS_DIR/Cpc, which is the layout
-# the package has. Existing rule files under Proofs/Rules there are preserved.
+# the package has. Existing rule files under Proofs/Rules there are preserved,
+# and every module that is not one is installed with the banner a generated
+# module of a Logos package carries; see eoc_banner_lean_outputs in common.sh.
 # It then optionally regenerates the Lean regressions under
 # $LOGOS_DIR/test/regress from $LOGOS_TESTS_DIR when that directory exists,
 # leaving nothing of its own behind there.
@@ -27,6 +29,7 @@ eoc_compile_sem_signatures
 EOC_LEAN_CALC=Cpc "$SCRIPT_DIR/run_gen_lean_all"
 
 eoc_copy_lean_outputs "$LOGOS_DIR/Cpc" "$FINAL_OUT_DIR" 1
+eoc_banner_lean_outputs "$LOGOS_DIR/Cpc"
 
 "$SCRIPT_DIR/install_logos_mini"
 
