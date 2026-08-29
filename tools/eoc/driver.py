@@ -655,7 +655,7 @@ class Pipeline:
         )
         report.stage(3, 6, "model-smt", vcm_defs)
         self.model_smt(init_desugar, vcm_defs)
-        report.stage(4, 6, "trim-deps", vcmt_defs)
+        report.stage(4, 6, "trim-defs", vcmt_defs)
         self.trim_defs(self.binary_path_arg(vcm_defs), [f"$eovc_{target}"], vcmt_defs)
         report.stage(5, 6, "parse", vcmt_defs, gives=False)
         self.parse_file(vcmt_defs)
@@ -739,7 +739,7 @@ class Pipeline:
         # intentionally preserved by trim-defs as well.
         target_progs = [f"$eo_prog_{target}" for target in targets]
         target_progs.extend(["$eo_nil", "$eo_typeof"])
-        report.stage(4, 6, "trim-deps", final_defs)
+        report.stage(4, 6, "trim-defs", final_defs)
         self.trim_defs(self.binary_path_arg(vcm_defs), target_progs, final_defs)
         report.stage(5, 6, "parse", final_defs, gives=False)
         self.parse_file(final_defs)
