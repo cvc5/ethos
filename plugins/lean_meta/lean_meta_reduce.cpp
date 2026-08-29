@@ -1349,9 +1349,6 @@ void LeanMetaReduce::defineProgram(const Expr& v, const Expr& prog)
 
 void LeanMetaReduce::finalizePrograms()
 {
-  std::set<Expr> progProcessed;
-  std::vector<Expr> waiting;
-  std::set<Expr> waitingDef;
   for (size_t i = 0, nprogs = d_progDefs.size(); i < nprogs; i++)
   {
     Expr prog = d_progDefs[i];
@@ -1359,7 +1356,6 @@ void LeanMetaReduce::finalizePrograms()
     Expr def = d_progToDef[prog];
     finalizeProgram(prog, def, isDefine);
   }
-  Assert(waiting.empty());
 }
 
 void LeanMetaReduce::finalizeProgram(const Expr& v,
