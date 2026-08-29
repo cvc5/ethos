@@ -14,7 +14,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
--- $native-sees Smtm
 
 /-
 Definitions for eo_to_smt_type, eo_to_smt

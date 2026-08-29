@@ -17,9 +17,7 @@ instance : Ord Rat where
 
 -- The one below is kept whatever a signature reaches: a proof written
 -- against the published tree names its strings with it, and a signature with
--- no string of its own to build would not otherwise keep it alive. Naming it
--- here rather than on the directive line would be naming it twice, and a
--- comment that names the layer is a demand for what it names.
+-- no string of its own to build would not otherwise keep it alive.
 -- $native-root native_string_lit
 
 -- The part of the native layer that every generated file can see. What comes

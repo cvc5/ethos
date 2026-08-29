@@ -16,12 +16,6 @@ open SmtEval
 
 /- Eunoia literal evaluation defined -/
 
--- The part of the native layer that the Eunoia term embedding is what decides,
--- and so cannot come out above this file, together with whatever of the rest
--- only this file reaches. Since equality and ordering of terms stand beside
--- the Term inductive itself, the second is all that comes out here today.
--- $native-place Eo
-
 /- Term ITE -/
 abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
   (native_ite (native_teq x1 (Term.Boolean true))

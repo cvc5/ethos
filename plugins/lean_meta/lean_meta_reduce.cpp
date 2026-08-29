@@ -261,16 +261,6 @@ LeanMetaReduce::NativeTopo LeanMetaReduce::readNativeTopology(
       nt.d_roots.insert(nt.d_roots.end(), ws.begin(), ws.end());
       continue;
     }
-    if (line.compare(0, 16, "-- $native-sees ") == 0)
-    {
-      std::vector<std::string> ws = words(line, 16);
-      if (ws.empty())
-      {
-        EO_FATAL() << "LeanMetaReduce: `-- $native-sees` names no scope";
-      }
-      nt.d_sees.insert(ws.begin(), ws.end());
-      continue;
-    }
     if (line.compare(0, 17, "-- $native-place ") == 0)
     {
       std::vector<std::string> ws = words(line, 17);
@@ -284,7 +274,6 @@ LeanMetaReduce::NativeTopo LeanMetaReduce::readNativeTopology(
                       "scope of the native layer";
       }
       nt.d_place = ws[0];
-      nt.d_sees.insert(ws[0]);
       nt.d_placeAt = out.str().size();
       continue;
     }
@@ -387,45 +376,23 @@ void LeanMetaReduce::placeNativeDefs()
       keep.insert(b.d_name);
     }
   }
-  // Where a block of the library can come out. A file that is the home of a
-  // scope covers itself and every file that has that scope in scope, which
-  // is the set of files a block written there is of use to.
-  struct NativePlace
-  {
-    size_t d_file;
-    std::string d_scope;
-    std::set<size_t> d_cover;
-  };
-  std::vector<NativePlace> places;
+  // Where the blocks of each scope are written, which is the file that says
+  // it is the home of that scope. A block comes out at the home of the scope
+  // it needs and nowhere else: every file has SmtEval in scope, and a file
+  // that reaches a block of a deeper scope has that scope in scope already,
+  // or naming the block was an error before this stage saw it.
+  std::map<std::string, size_t> home;
   for (size_t i = 0; i < nfiles; i++)
   {
     if (files[i].d_place.empty())
     {
       continue;
     }
-    NativePlace p;
-    p.d_file = i;
-    p.d_scope = files[i].d_place;
-    p.d_cover.insert(i);
-    for (size_t j = 0; j < nfiles; j++)
+    if (!home.emplace(files[i].d_place, i).second)
     {
-      // Every file has the scope of the library that needs nothing of the
-      // embeddings in scope, so it is not one a file has to name.
-      if (p.d_scope == "SmtEval"
-          || files[j].d_sees.find(p.d_scope) != files[j].d_sees.end())
-      {
-        p.d_cover.insert(j);
-      }
+      EO_FATAL() << "LeanMetaReduce: more than one file is the home of the "
+                 << files[i].d_place << " scope of the native layer";
     }
-    for (const NativePlace& q : places)
-    {
-      if (q.d_scope == p.d_scope)
-      {
-        EO_FATAL() << "LeanMetaReduce: more than one file is the home of the "
-                   << p.d_scope << " scope of the native layer";
-      }
-    }
-    places.push_back(p);
   }
   // What each file is written with, in the order the library gives.
   std::vector<std::vector<size_t>> hosted(nfiles);
@@ -437,55 +404,14 @@ void LeanMetaReduce::placeNativeDefs()
     {
       continue;
     }
-    // The files that reach it, which the file it comes out in has to cover.
-    std::set<size_t> demand;
-    if (d_trimNatives)
-    {
-      for (size_t i = 0; i < nfiles; i++)
-      {
-        if (reach[i].find(blk.d_name) != reach[i].end())
-        {
-          demand.insert(i);
-        }
-      }
-    }
-    const NativePlace* best = nullptr;
-    for (const NativePlace& p : places)
-    {
-      // A block goes no higher than what it needs in scope, and when it
-      // needs nothing of the embeddings it can go anywhere.
-      if (blk.d_needs != "SmtEval" && blk.d_needs != p.d_scope)
-      {
-        continue;
-      }
-      // Emitting the whole layer is asking for the library as it is written,
-      // so each block comes out where its own scope is at home.
-      if (!d_trimNatives && blk.d_needs != p.d_scope)
-      {
-        continue;
-      }
-      if (!std::includes(p.d_cover.begin(),
-                         p.d_cover.end(),
-                         demand.begin(),
-                         demand.end()))
-      {
-        continue;
-      }
-      // The narrowest home that will do, so that a definition one module
-      // reaches is written in that module rather than in what they share.
-      if (best == nullptr || p.d_cover.size() < best->d_cover.size())
-      {
-        best = &p;
-      }
-    }
-    if (best == nullptr)
+    std::map<std::string, size_t>::const_iterator it = home.find(blk.d_needs);
+    if (it == home.end())
     {
       EO_FATAL() << "LeanMetaReduce: the native block of `" << blk.d_name
                  << "` needs " << blk.d_needs
-                 << " in scope but no file that is the home of a scope it "
-                    "can go in covers what reaches it";
+                 << " in scope but no file is the home of that scope";
     }
-    hosted[best->d_file].push_back(b);
+    hosted[it->second].push_back(b);
     nplaced++;
   }
   for (size_t i = 0; i < nfiles; i++)

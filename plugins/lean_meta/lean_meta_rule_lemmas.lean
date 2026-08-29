@@ -14,7 +14,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
--- $native-sees Eo Smtm
 
 /- Central expansion point for plain `step` rules.
 

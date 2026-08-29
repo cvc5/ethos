@@ -27,9 +27,6 @@ lowercased and Key appended, e.g. datatypeDeclKey orders SmtDatatypeDecl
 and intKey orders the native integer type. Every type that can occur as an
 argument of a value or type constructor must therefore have a method of that
 name, either generated below or given here.
-
-A comment here may not spell a name of the native layer, since what a file
-mentions is what it is taken to reach; see LeanMetaReduce::placeNativeDefs.
 -/
 namespace SmtValueOrder
 

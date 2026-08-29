@@ -232,12 +232,6 @@ class LeanMetaReduce : public MetaReducePlugin
   {
     /** The file with its directive lines taken out, i.e. as it is written. */
     std::string d_text;
-    /**
-     * The scopes of the layer it has in scope. `SmtEval` is in every file, so
-     * it is not listed; the rest is what its imports and `open` lines amount
-     * to, which only the file itself knows.
-     */
-    std::set<std::string> d_sees;
     /** The scope it is the home of, empty if it is the home of none. */
     std::string d_place;
     /** Where in d_text the blocks of that scope go, npos if it is no home. */
@@ -264,7 +258,6 @@ class LeanMetaReduce : public MetaReducePlugin
    * Read what one generated Lean file says about the layer, and give back the
    * file with those lines taken out.
    *
-   * `-- $native-sees <scope>...` says what it has in scope,
    * `-- $native-place <scope>` says it is the home of that scope and marks
    * where the blocks of it are written, and `-- $native-root <name>...` says
    * what it keeps whatever the compilation reaches, which is for a definition
