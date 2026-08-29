@@ -14,13 +14,12 @@ namespace Eo
 
 open SmtEval
 
-/- Eunoia literal evaluation defined -/
+-- The primitive operations that only what is written over Eunoia terms uses.
+-- $ The part of the native layer no other module reaches, which is why it
+-- $ comes out here rather than in SmtEval, see LeanMetaReduce::nativeDefs.
+$NATIVE_DEFS$
 
--- The part of the native layer that the Eunoia term embedding is what decides,
--- and so cannot come out above this file, together with whatever of the rest
--- only this file reaches. Since equality and ordering of terms stand beside
--- the Term inductive itself, the second is all that comes out here today.
--- $native-place Eo
+/- Eunoia literal evaluation defined -/
 
 /- Term ITE -/
 abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=

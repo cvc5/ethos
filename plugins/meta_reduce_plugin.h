@@ -123,7 +123,9 @@ class MetaReducePlugin : public StdPlugin
    * replacements and write the result to outputPath. If replAll is true,
    * every occurrence of each tag is replaced, otherwise only the first. A tag
    * that does not occur in the template is a no-op, which we warn about since
-   * it is always a mistake. Returns the full path of the written file.
+   * it is always a mistake. What the resource says to whoever edits it is
+   * dropped, see dropResourceNotes. Returns the full path of the written
+   * file.
    */
   std::string emitResourceFile(const std::string& resourcePath,
                                const std::string& outputPath,

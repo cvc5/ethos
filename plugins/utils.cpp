@@ -87,6 +87,33 @@ const std::string& getParseDefPrefix()
   static const std::string prefix = "$parse_";
   return prefix;
 }
+
+std::string dropResourceNotes(const std::string& text)
+{
+  std::string out;
+  out.reserve(text.size());
+  size_t line = 0;
+  while (line <= text.size())
+  {
+    size_t end = text.find('\n', line);
+    size_t next = end == std::string::npos ? text.size() : end + 1;
+    // A blank line ends at its newline, which is not a blank, so a note is
+    // never read off the line below an empty one.
+    size_t at = text.find_first_not_of(" \t", line);
+    if (at == std::string::npos || (text.compare(at, 4, "-- $") != 0
+                                    && text.compare(at, 3, "; $") != 0))
+    {
+      out.append(text, line, next - line);
+    }
+    if (end == std::string::npos)
+    {
+      break;
+    }
+    line = end + 1;
+  }
+  return out;
+}
+
 std::string rtrimLines(const std::string& text)
 {
   std::string out;

@@ -83,6 +83,8 @@ SHIPPED = ((CONFIGS[0], True), (CONFIGS[1], False))
 # to, since it is of that backend and of nothing else.
 NATIVE_CONFIG = os.path.join(ROOT, 'plugins', 'lean_meta', 'lean.eos')
 NATIVE_TARGET = os.path.join(OUT, 'lean_native.lean')
+VC_CONFIG = os.path.join(ROOT, 'plugins', 'smt_meta', 'smt-vc.eos')
+VC_TARGET = os.path.join(OUT, 'smt_vc_native.smt2')
 
 # Where the vocabulary of the embedding is defined. A file of the configuration
 # names a native in quotes and a type of the embedding without its $smt_, and
@@ -135,7 +137,7 @@ LEAN_GENERATED = """\
 -- definition rather than written into a resource, so it is not one of the
 -- blocks that layer is trimmed by and a name it gave would keep nothing
 -- alive. Every native type abbreviates a Lean type, which is what a clause
--- writes instead. See LeanMetaReduce::placeNativeDefs.
+-- writes instead. See LeanMetaReduce::useNative.
 --
 %s"""
 
@@ -493,53 +495,180 @@ def write_if_changed(text, path):
 
 
 NATIVE_GENERATED = """\
--- GENERATED FILE -- do not edit.
---
--- Compiled from %s by tools/eoc/sem_compile.py, which is where a
--- definition of the layer is to be changed or added.
---
--- The layer is what the generated Lean is allowed to call that the compiler
--- does not write itself. A block runs from `-- $native <name> ...` to the
--- next marker and is the unit the lean-meta stage keeps or drops; the names
--- are what it defines and what a signature may reach, and whatever else its
--- text defines has no name here and so is private to it. A
--- `-- $native-needs <scope>` line opens the section of blocks that need that
--- much of the embedding in scope. See LeanMetaReduce::placeNativeDefs.
+GENERATED FILE -- do not edit.
+
+Compiled from %s by tools/eoc/sem_compile.py, which is where a
+definition of the layer is to be changed or added.
+
+The layer is what the generated %s is allowed to call that the compiler
+does not write itself. A block runs from its `$native` line to the next one
+and is the unit the %s stage keeps or drops.
+
+The line says everything the stage has to know about the block:
+
+  $native <name> <needs> <calls>...
+
+<name> is what the block defines and what a signature may reach; whatever
+else its text defines has no name here and so is private to it. <needs> is
+the narrowest scope the block can come out in, which is the one its own text
+names. <calls> is the rest of the layer its text names, which is what the
+stage takes the closure over, so that it is given the edges rather than the
+text to find them in.
+
+One further line, `$native-keep <name>...`, names the blocks kept whatever an
+input reaches, which are the ones the resources of the stage name themselves.
+See ethos::NativeLayer.
 """
 
 
-def render_native(config):
-  """The native layer as the file the lean-meta stage reads.
+def render_native(layer, config):
+  """The native layer as the file its stage reads.
 
-  A block is what one entry says under :lean-impl, under the names it
-  declares; the sections are what :needs says, opened where the scope changes,
-  which is the order the set gives them.
+  A block is what one entry says under the layer's implementation attribute,
+  under the name it declares, opened by a line that carries what the stage has
+  to know about it: the name, the scope it needs, and what it calls. What is
+  kept whatever an input reaches is a line of its own, since it is about the
+  layer rather than about a block. See NATIVE_GENERATED.
   """
-  out = [NATIVE_GENERATED % named(config.path)]
-  scope = None
+  say = lambda text: '\n'.join((layer.comment + ' ' + l).rstrip()
+                               for l in text.split('\n'))
+  out = [say(NATIVE_GENERATED % (named(config.path), layer.lang, layer.stage))]
+  kept = [n for e in config.natives if e.keep for n in e.names]
+  if kept:
+    out.append('%s $native-keep %s' % (layer.comment, ' '.join(kept)))
   for e in config.natives:
-    if e.needs != scope:
-      scope = e.needs
-      out.append('-- $native-needs %s' % scope)
-    doc = '\n'.join(('-- ' + d).rstrip() for d in e.doc)
-    out.append('%s-- $native %s\n%s'
-               % (doc + '\n' if doc else '', ' '.join(e.names), e.text))
+    doc = '\n'.join((layer.comment + ' ' + d).rstrip() for d in e.doc)
+    # The comment an entry carries stands under the line that opens the block
+    # rather than over it, so that everything under that line is the block and
+    # a block that is dropped takes what is said about it with it.
+    out.append('%s $native %s %s%s\n%s%s'
+               % (layer.comment,
+                  ' '.join(e.names),
+                  e.needs,
+                  ''.join(' ' + d for d in e.deps),
+                  doc + '\n' if doc else '',
+                  e.text))
   return '\n\n'.join(out) + '\n'
 
 
 class Native:
   """One entry of the native layer: what it defines, what it needs in scope,
-  and the Lean it is."""
+  the Lean it is, and whether it is kept whatever an input reaches."""
 
-  def __init__(self, names, needs, text, doc):
+  def __init__(self, names, needs, text, doc, keep):
     self.names = names
     self.needs = needs
     self.text = text
     self.doc = doc
+    self.keep = keep
+    # What this entry calls, which native_deps fills in once every name is
+    # known: an entry is written before what it calls is read.
+    self.deps = []
 
 
-def compile_native(path=NATIVE_CONFIG):
-  """Read the native layer, which compiles to Lean and to nothing else."""
+# A type of the SMT-LIB value embedding as the Lean backend spells it, which
+# is the only part of the embedding that layer names today.
+SMTM_NAME = re.compile(r"\bSmt[A-Z][A-Za-z0-9_]*")
+
+# A datatype of the embedding as the SMT-LIB backend spells one: the sorts
+# that plugins/smt_meta/smt_meta.smt2 declares together, under the prefix each
+# level of the embedding is written with.
+EMBED_NAME = re.compile(r"\b(eo|sm|tsm|vsm|msm|ssm)\.")
+
+# A name as Lean writes one. The trailing characters are the ones that layer
+# uses -- native_re_prefix_match_len? -- so a name cut short here would be an
+# edge the stage never hears about.
+LEAN_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_'?!]*")
+
+# A symbol as SMT-LIB writes one, which is what the names of that layer are
+# spelled with: int.to_nat, nat.+, /_by_zero_id.
+SMT_NAME = re.compile(r"[A-Za-z0-9~!@%^&*_+=<>.?/-]+")
+
+
+def lean_needs(text):
+  """The narrowest scope a block of the Lean layer can come out in.
+
+  A block that names a type of the SMT-LIB value embedding cannot be written
+  above the module that declares them, and one that names none of them wants
+  nothing but Lean itself. That is what its Lean says, so it is read off the
+  text rather than declared beside it: an annotation can drift from the text
+  it is about, and the text cannot drift from itself.
+  """
+  return 'Smtm' if SMTM_NAME.search(text) else 'SmtEval'
+
+
+def vc_needs(text):
+  """The narrowest scope a block of the SMT-LIB layer can come out in.
+
+  A verification condition is one file rather than a tree of modules, but it
+  declares the datatypes of the embedding partway down it, so a block that
+  names one of them cannot stand above that point and a block that names none
+  of them can stand where SMT-LIB alone is what is in scope. Read off the
+  text for the same reason as above.
+  """
+  return 'Embed' if EMBED_NAME.search(text) else 'Vc'
+
+
+def native_deps(layer, natives):
+  """Fill in what each entry of the layer calls.
+
+  The text an entry is says what it calls by naming it, so the edges are read
+  off that text -- there is nowhere else they are written -- and reading them
+  here is what leaves the stage the closure rather than the text. A name the
+  layer does not declare is one of the language's own and is no edge.
+  """
+  declared = {n for e in natives for n in e.names}
+  for e in natives:
+    named = declared.intersection(layer.token.findall(e.text))
+    e.deps = sorted(named.difference(e.names))
+
+
+class Layer:
+  """One native layer: the set that says what a backend's generated text is
+  allowed to call and no compiler writes, and how the file its stage reads is
+  written.
+
+  The two are the same thing said twice, in Lean and in SMT-LIB, so what is
+  said about a block -- the scope it needs, what it calls, whether it is kept
+  -- is worked out the same way for both and only the language differs. What
+  differs is here: which attribute the text stands under, how a comment and a
+  name are spelled, and where a block can come out.
+  """
+
+  def __init__(self, path, target, attr, comment, lang, stage, spell, needs,
+               token):
+    # The set, and what it compiles to.
+    self.path, self.target = path, target
+    # The attribute the text of a block stands under, and the language it is.
+    self.attr, self.lang, self.stage = attr, lang, stage
+    # What opens a comment in that language, which is what a line the stage
+    # reads is written behind.
+    self.comment = comment
+    # How the generated text spells the name an entry declares.
+    self.spell = spell
+    # The narrowest scope a block can come out in, read off its text.
+    self.needs = needs
+    # What a name looks like in that language, see native_deps.
+    self.token = token
+
+
+LAYERS = (
+    # The Lean backend names a native with the prefix the embedding gives it,
+    # which an entry is written without: `ite` here is what `"ite"` names in a
+    # set and what the compiler answers with native_ite.
+    Layer(NATIVE_CONFIG, NATIVE_TARGET, 'lean-impl', '--', 'Lean',
+          'lean-meta', lambda n: 'native_' + n, lean_needs, LEAN_NAME),
+    # The SMT-LIB backend forwards the name itself, so an entry is written
+    # under the name a set names it by.
+    Layer(VC_CONFIG, VC_TARGET, 'smt-impl', ';', 'SMT-LIB', 'smt-meta',
+          lambda n: n, vc_needs, SMT_NAME),
+)
+
+
+def compile_native(layer):
+  """Read a native layer, which compiles to its own language and nothing
+  else."""
+  path = layer.path
   config = Config(path, sem_target.NATIVE_SET, [path],
                   list(itertools.takewhile(lambda l: l.startswith(';'),
                                            read_text(path).split('\n'))),
@@ -547,17 +676,22 @@ def compile_native(path=NATIVE_CONFIG):
   config.natives = []
   for b in read_config([path], config.decls):
     for e in b.entries():
-      if not e.has('lean-impl'):
-        die('%s: a native says what it is under :lean-impl' % e.name)
-      # An entry names the native the way a set does, without the prefix the
-      # embedding gives it: `ite` here is what `"ite"` names in a set and what
-      # the compiler answers with native_ite. The Lean it is defines the
-      # prefixed name, since that is what the generated text calls.
-      config.natives.append(Native(
-          ['native_' + e.name],
-          e.get('needs').val if e.has('needs') else 'SmtEval',
-          e.get('lean-impl').val,
-          [d[1:].strip() for d in e.doc]))
+      if not e.has(layer.attr):
+        die('%s: a native says what it is under :%s' % (path, layer.attr))
+      text = e.get(layer.attr).val
+      # Where a block comes out is what an input reaches, so its text is read
+      # by whoever reads the SMT-LIB side as readily as by whoever reads the
+      # Eunoia one and may not name either side.
+      if 'Eunoia' in text:
+        die('%s: the native %s names Eunoia, which a block may not: it comes '
+            'out wherever the compilation of an input reaches it'
+            % (path, e.name))
+      config.natives.append(Native([layer.spell(e.name)],
+                                   layer.needs(text),
+                                   text,
+                                   [d[1:].strip() for d in e.doc],
+                                   e.has('keep')))
+  native_deps(layer, config.natives)
   return config
 
 
@@ -570,12 +704,13 @@ def compile_to_files(sets=SHIPPED, out_dir=None):
   clauses, in that order -- so the caller need not know the layout.
   """
   out = {}
-  # The native layer is one set and a fixed one, so it is compiled whatever a
-  # run names, see NATIVE_CONFIG.
-  native_target = NATIVE_TARGET
-  if out_dir is not None:
-    native_target = os.path.join(out_dir, os.path.basename(native_target))
-  write_if_changed(render_native(compile_native()), native_target)
+  # A native layer is one set and a fixed one, so both are compiled whatever a
+  # run names, see LAYERS.
+  for layer in LAYERS:
+    target = layer.target
+    if out_dir is not None:
+      target = os.path.join(out_dir, os.path.basename(target))
+    write_if_changed(render_native(layer, compile_native(layer)), target)
   for config, blocks in compile_all(sets):
     target, lean_target = config.target, config.lean_target
     if out_dir is not None:
@@ -637,11 +772,12 @@ def main():
         state, wrong = check_current(text, target)
         done.append((report.rel(target), state, None if wrong else what))
         bad += wrong
-    ncfg = compile_native()
-    state, wrong = check_current(render_native(ncfg), NATIVE_TARGET)
-    done.append((report.rel(NATIVE_TARGET), state,
-                 None if wrong else '%d natives' % len(ncfg.natives)))
-    bad += wrong
+    for layer in LAYERS:
+      ncfg = compile_native(layer)
+      state, wrong = check_current(render_native(layer, ncfg), layer.target)
+      done.append((report.rel(layer.target), state,
+                   None if wrong else '%d natives' % len(ncfg.natives)))
+      bad += wrong
     at = max(len(n) for n, _, _ in done)
     for name, state, what in done:
       report.state(name, state, what, width=at)
@@ -650,14 +786,15 @@ def main():
                      % (name, state, report.rel(__file__)))
     sys.exit(1 if bad else 0)
   report.step('Compiling semantics under %s' % report.rel(home))
-  ncfg = compile_native()
-  ntarget = (os.path.join(a.out_dir, os.path.basename(NATIVE_TARGET))
-             if a.out_dir is not None else NATIVE_TARGET)
-  nchanged = write_if_changed(render_native(ncfg), ntarget)
-  report.item(report.rel(NATIVE_CONFIG), report.rel(ntarget),
-              '%d natives%s' % (len(ncfg.natives),
-                                '' if nchanged else ', unchanged'),
-              width=width)
+  for layer in LAYERS:
+    ncfg = compile_native(layer)
+    ntarget = (os.path.join(a.out_dir, os.path.basename(layer.target))
+               if a.out_dir is not None else layer.target)
+    nchanged = write_if_changed(render_native(layer, ncfg), ntarget)
+    report.item(report.rel(layer.path), report.rel(ntarget),
+                '%d natives%s' % (len(ncfg.natives),
+                                  '' if nchanged else ', unchanged'),
+                width=width)
   for (config, blocks), name in zip(compile_all(sets), named_sets):
     for text, target, what in written(blocks, config):
       if a.out_dir is not None:

@@ -114,6 +114,18 @@ std::string mkParseDefName(const std::string& name);
 std::string getParseDefSurfaceName(const std::string& name);
 
 /**
+ * The text with the lines that are notes of the resource taken out, i.e.
+ * those whose comment opens with a `$`: `-- $` where the resource is Lean and
+ * `; $` where it is SMT-LIB.
+ *
+ * What a resource says about the tags it carries, or about why what it holds
+ * is written there rather than where it belongs, is said to whoever edits the
+ * resource. What it renders is read by someone else, who is owed the
+ * definitions and not the reasons a compiler had for putting them there.
+ */
+std::string dropResourceNotes(const std::string& text);
+
+/**
  * The text with no line ending in a blank.
  *
  * What a stage writes is compared byte for byte with what is checked in, so
