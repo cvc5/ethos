@@ -5,6 +5,8 @@ ethos 0.2.4 prerelease
 
 - Adds the optional `--require-proof-of-false` check, which requires the last proof step to prove `false` at assumption level zero.
 - Adds builtin operators `eo::pow` (exponentiation), `eo::log` (integer logarithm), `eo::list_repeat` (repeat a list element a given number of times), and `eo::list_singleton_intro` (turn a term into a singleton list).
+- Reference files now add the assumptions of `check-sat-assuming` commands to the set of reference assertions.
+- Reference files now support `reset-assertions` and `reset`, which discard the reference assertions read so far, and parse and ignore any command whose name begins with `get-`, e.g. `get-model`.
 
 ethos 0.2.3
 ===========
