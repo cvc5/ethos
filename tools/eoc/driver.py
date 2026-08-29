@@ -471,6 +471,7 @@ class Pipeline:
         use_vc_plugin: bool,
         deps: Optional[str],
         plugin_label: Optional[str],
+        natives: str = "embed",
     ) -> Path:
         option = "--plugin.desugar-vc" if use_vc_plugin else "--plugin.desugar"
         args = [option]
@@ -516,10 +517,17 @@ class Pipeline:
         # The natives themselves, which that file names rather than declaring:
         # they are compiled from plugins/desugar/natives.eos, so the include it
         # carries is answered here, once its own text is in.
+        #
+        # Which of the two the natives are answered with is what the eo-meta
+        # backend is: `embed` gives each the operator it forwards to, and `eo`
+        # gives it the Eunoia it is, so that what comes out is a signature
+        # stated over the Eunoia primitives plugins/desugar/eo.eos names and no
+        # others. See render_natives in tools/eoc/sem_compile.py.
         inline_include(
             output_file,
             "native_defs.eo",
-            Path(sem_compile.NATIVE_DEFS_TARGET),
+            Path(sem_compile.EO_DEFS_TARGET if natives == "eo"
+                 else sem_compile.NATIVE_DEFS_TARGET),
         )
         return output_file
 
@@ -750,13 +758,19 @@ class Pipeline:
             generate_parser=generate_parser,
         )
 
-    def run_desugar(self, input_name: str, *, build_first: bool) -> Path:
+    def run_desugar(self, input_name: str, *, build_first: bool,
+                    natives: str = "embed") -> Path:
         if build_first:
             self.build()
-        output = self.final_out_dir / "desugar.eo"
-        report.step(f"Desugaring {report.rel(input_name)}")
-        report.stage(1, 2, "desugar", output)
-        self.desugar(input_name, output, use_vc_plugin=False, deps=None, plugin_label=None)
+        # The eo-meta backend writes a file of its own, since what it says is a
+        # signature over the Eunoia primitives rather than over the embedding.
+        eo = natives == "eo"
+        output = self.final_out_dir / ("eo.eo" if eo else "desugar.eo")
+        report.step(("Compiling %s to Eunoia" if eo else "Desugaring %s")
+                    % report.rel(input_name))
+        report.stage(1, 2, "eo-meta" if eo else "desugar", output)
+        self.desugar(input_name, output, use_vc_plugin=False, deps=None,
+                     plugin_label=None, natives=natives)
         report.stage(2, 2, "parse", output, gives=False)
         self.parse_file(output)
         return output
@@ -962,6 +976,17 @@ def main(argv: list[str]) -> int:
     desugar = subparsers.add_parser("desugar", help="Generate a desugared EO file.")
     add_common_args(desugar)
     desugar.add_argument("input")
+    desugar.add_argument(
+        "--natives",
+        choices=["embed", "eo"],
+        default="embed",
+        help=(
+            "What the natives of the embedding are written as. `embed` is the "
+            "operator each forwards to, which the other backends read. `eo` is "
+            "the Eunoia each is, which makes what comes out a signature over "
+            "the Eunoia primitives plugins/desugar/eo.eos names and no others."
+        ),
+    )
 
     trim = subparsers.add_parser("trim-defs", help="Run the trim-defs plugin only.")
     add_common_args(trim)
@@ -1099,7 +1124,8 @@ def main(argv: list[str]) -> int:
                 calc_name=args.calc_name,
             )
         elif args.command == "desugar":
-            pipeline.run_desugar(args.input, build_first=build_first)
+            pipeline.run_desugar(args.input, build_first=build_first,
+                                 natives=args.natives)
         elif args.command == "trim-defs":
             pipeline.run_trim_only(
                 args.input,

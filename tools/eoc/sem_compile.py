@@ -96,6 +96,12 @@ SHIPPED = ((CONFIGS[0], True), (CONFIGS[1], False))
 # its own language.
 NATIVES_CONFIG = os.path.join(ROOT, 'plugins', 'desugar', 'natives.eos')
 NATIVE_DEFS_TARGET = os.path.join(OUT, 'native_defs.eo')
+# The same natives written as Eunoia, which is the native layer of the eo-meta
+# backend: a signature desugared and then written back this way is stated over
+# the primitives that set names and no others. A native it does not name keeps
+# the body every other backend gives it, which no Eunoia evaluates.
+EO_CONFIG = os.path.join(ROOT, 'plugins', 'eo_meta', 'eo.eos')
+EO_DEFS_TARGET = os.path.join(OUT, 'native_eo_defs.eo')
 
 # The aggregates of the deep embedding: which programs a symbol contributes a
 # case to, and where the model-smt stage writes them. It is one set and a fixed
@@ -379,20 +385,34 @@ def read_natives(vocab, path=NATIVES_CONFIG):
   return out
 
 
-def render_natives(natives):
-  """The natives as the file the desugar stage reads.
+def read_eo_impls(path=EO_CONFIG):
+  """What each native is, said as Eunoia, keyed by the native it is of."""
+  out = {}
+  for b in read_config([path], sem_target.NATIVE_SET):
+    for e in b.entries():
+      if not e.has('eo-impl'):
+        die('%s: %s says what it is under :eo-impl' % (named(path), e.name))
+      out[e.name] = e.get('eo-impl').val
+  return out
+
+
+def render_natives(natives, impls=None):
+  """The natives as the file a stage reads.
 
   A native is declared as the operator it forwards to, which is its own name
   unless :op says another: the embedding names the numeral zero $native_z_zero
-  and forwards it as "0".
+  and forwards it as "0". Where `impls` gives one a body of its own, that body
+  stands there instead, which is what the eo-meta backend is: the same
+  declarations, written as Eunoia.
   """
-  out = [NATIVES_GENERATED % named(NATIVES_CONFIG)]
+  out = [(EO_GENERATED if impls is not None else NATIVES_GENERATED)
+         % named(EO_CONFIG if impls is not None else NATIVES_CONFIG)]
   for e, types in natives:
     name = '$native_' + e.name
     op = e.get('op').val if e.has('op') else e.name
     doc = '\n'.join(e.doc) + '\n' if e.doc else ''
     ps = ' '.join('(%s %s)' % (v, t) for v, t in zip(e.params, types))
-    body = '($native_apply_%d "%s"%s)' % (
+    body = (impls or {}).get(e.name) or '($native_apply_%d "%s"%s)' % (
         len(types), op, ''.join(' ' + v for v in e.params))
     if not types:
       out.append('%s(define %s () %s)' % (doc, name, body))
@@ -482,6 +502,21 @@ def head_lines(config, blocks):
   return out
 
 
+EO_GENERATED = """\
+; GENERATED FILE -- do not edit.
+;
+; The natives of the embedding written as Eunoia, compiled from %s
+; by tools/eoc/sem_compile.py. This is the native layer of the eo-meta
+; backend: a signature desugared with this in place of native_defs.eo is
+; stated over the Eunoia primitives that set names and no others, which is a
+; smaller proof language than the one that went in.
+;
+; A native that set does not name keeps the body it has for every other
+; backend, an application of $native_apply_N, which no Eunoia evaluates.
+;
+"""
+
+
 class AggregateEntry:
   """One entry of the aggregate set, i.e. what this compiler and the model-smt
   stage agree on about one aggregate. How a case of it is *written* is no part
@@ -560,7 +595,11 @@ def natives():
   global _NATIVES
   if _NATIVES is None:
     read = read_natives(read_vocabulary(VOCAB_FILES))
-    _NATIVES = (read, render_natives(read))
+    # The same declarations twice: as the operator each forwards to, which is
+    # what every backend but one reads, and as Eunoia, which is what the
+    # eo-meta backend reads. See render_natives.
+    _NATIVES = (read, render_natives(read),
+                render_natives(read, read_eo_impls()))
   return _NATIVES
 
 
@@ -991,10 +1030,10 @@ def compile_to_files(sets=SHIPPED, out_dir=None):
   out = {}
   # The natives of the embedding, which every set is compiled against and no
   # option names another of.
-  target = NATIVE_DEFS_TARGET
-  if out_dir is not None:
-    target = os.path.join(out_dir, os.path.basename(target))
-  write_if_changed(natives()[1], target)
+  for text, target in zip(natives()[1:], (NATIVE_DEFS_TARGET, EO_DEFS_TARGET)):
+    if out_dir is not None:
+      target = os.path.join(out_dir, os.path.basename(target))
+    write_if_changed(text, target)
   # A native layer is one set and a fixed one, so both are compiled whatever a
   # run names, see LAYERS.
   for layer in LAYERS:
@@ -1063,11 +1102,12 @@ def main():
         state, wrong = check_current(text, target)
         done.append((report.rel(target), state, None if wrong else what))
         bad += wrong
-    entries, text = natives()
-    state, wrong = check_current(text, NATIVE_DEFS_TARGET)
-    done.append((report.rel(NATIVE_DEFS_TARGET), state,
-                 None if wrong else '%d natives' % len(entries)))
-    bad += wrong
+    entries, text, eo_text = natives()
+    for what, target in ((text, NATIVE_DEFS_TARGET), (eo_text, EO_DEFS_TARGET)):
+      state, wrong = check_current(what, target)
+      done.append((report.rel(target), state,
+                   None if wrong else '%d natives' % len(entries)))
+      bad += wrong
     for layer in LAYERS:
       ncfg = compile_native(layer)
       state, wrong = check_current(render_native(layer, ncfg), layer.target)
@@ -1082,13 +1122,16 @@ def main():
                      % (name, state, report.rel(__file__)))
     sys.exit(1 if bad else 0)
   report.step('Compiling semantics under %s' % report.rel(home))
-  entries, text = natives()
-  ntarget = (os.path.join(a.out_dir, os.path.basename(NATIVE_DEFS_TARGET))
-             if a.out_dir is not None else NATIVE_DEFS_TARGET)
-  changed = write_if_changed(text, ntarget)
-  report.item(named(NATIVES_CONFIG), report.rel(ntarget),
-              '%d natives%s' % (len(entries), '' if changed else ', unchanged'),
-              width=width)
+  entries, text, eo_text = natives()
+  for what, target, src in ((text, NATIVE_DEFS_TARGET, NATIVES_CONFIG),
+                            (eo_text, EO_DEFS_TARGET, EO_CONFIG)):
+    ntarget = (os.path.join(a.out_dir, os.path.basename(target))
+               if a.out_dir is not None else target)
+    changed = write_if_changed(what, ntarget)
+    report.item(named(src), report.rel(ntarget),
+                '%d natives%s' % (len(entries),
+                                  '' if changed else ', unchanged'),
+                width=width)
   for layer in LAYERS:
     ncfg = compile_native(layer)
     ntarget = (os.path.join(a.out_dir, os.path.basename(layer.target))

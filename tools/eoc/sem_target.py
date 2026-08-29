@@ -426,6 +426,7 @@ class Shape:
     # only one of the two, see LAYERS in tools/eoc/sem_compile.py.
     out['lean-impl'] = 1
     out['smt-impl'] = 1
+    out['eo-impl'] = 1
     out['needs'] = 1
     # The other way round: a symbol the embedding names itself, whose block is
     # kept whether or not the input declares it. What is written over such a

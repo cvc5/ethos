@@ -1,0 +1,67 @@
+;; The natives of the embedding, as Eunoia.
+;;
+;; This is the native layer of the eo-meta backend, which compiles a desugared
+;; signature back to ordinary Eunoia. Where the other backends say what a
+;; native is in Lean or in SMT-LIB -- see plugins/lean_meta/lean.eos and
+;; plugins/smt_meta/smt-vc.eos -- this one says it in Eunoia itself, as a term
+;; over the arguments plugins/desugar/natives.eos declares the native with.
+;;
+;; The point is not to say the same thing the input said. Desugaring a
+;; signature and writing it back this way states it over a *small* set of
+;; Eunoia primitives -- the ones named below and no others -- which is a
+;; different proof language from the one that went in, and deliberately so.
+;;
+;; A native no entry here names keeps the body it has for every other backend,
+;; i.e. an application of $native_apply_N, which no Eunoia evaluates. So the
+;; part of a signature this backend accounts for is the part written over the
+;; natives named here, and adding one is adding a line.
+
+(section "Whole numbers the embedding names")
+
+(define-native-method z_zero  :eo-impl "0")
+(define-native-method z_one   :eo-impl "1")
+(define-native-method z_two   :eo-impl "2")
+(define-native-method z_max_code  :eo-impl "196608")
+(define-native-method z_max_width :eo-impl "4294967296")
+
+(section "Booleans")
+
+(define-native-method not :eo-impl "(eo::not b)")
+(define-native-method and :eo-impl "(eo::and b1 b2)")
+(define-native-method or  :eo-impl "(eo::or b1 b2)")
+; Eunoia has exclusive or rather than equivalence, and one is the other negated.
+(define-native-method iff :eo-impl "(eo::not (eo::xor b1 b2))")
+
+(section "Integer arithmetic")
+
+(define-native-method zplus :eo-impl "(eo::add x1 x2)")
+(define-native-method zmult :eo-impl "(eo::mul x1 x2)")
+(define-native-method zexp_total :eo-impl "(eo::pow x1 x2)")
+(define-native-method div_total :eo-impl "(eo::zdiv x1 x2)")
+(define-native-method mod_total :eo-impl "(eo::zmod x1 x2)")
+(define-native-method int_log :eo-impl "(eo::log x1 x2)")
+; Eunoia orders one way, so the other is that one with its arguments turned
+; around, and the reflexive one is its negation.
+(define-native-method zeq  :eo-impl "(eo::eq x1 x2)")
+(define-native-method zlt  :eo-impl "(eo::gt x2 x1)")
+(define-native-method zleq :eo-impl "(eo::not (eo::gt x1 x2))")
+(define-native-method zabs :eo-impl "(eo::ite (eo::is_neg x1) (eo::neg x1) x1)")
+
+(section "Rational arithmetic")
+
+(define-native-method qplus :eo-impl "(eo::add x1 x2)")
+(define-native-method qmult :eo-impl "(eo::mul x1 x2)")
+(define-native-method qneg  :eo-impl "(eo::neg x1)")
+(define-native-method qexp_total :eo-impl "(eo::pow x1 x2)")
+(define-native-method qdiv_total :eo-impl "(eo::qdiv x1 x2)")
+(define-native-method qeq  :eo-impl "(eo::eq x1 x2)")
+(define-native-method qlt  :eo-impl "(eo::gt x2 x1)")
+(define-native-method qleq :eo-impl "(eo::not (eo::gt x1 x2))")
+(define-native-method qabs :eo-impl "(eo::ite (eo::is_neg x1) (eo::neg x1) x1)")
+(define-native-method to_real :eo-impl "(eo::to_q x1)")
+(define-native-method mk_rational :eo-impl "(eo::qdiv (eo::to_q x1) (eo::to_q x2))")
+
+(section "Strings and naturals")
+
+(define-native-method streq :eo-impl "(eo::eq x1 x2)")
+(define-native-method nateq :eo-impl "(eo::eq x1 x2)")
