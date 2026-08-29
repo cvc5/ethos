@@ -250,7 +250,7 @@
   :signature ($native_Int $native_Int) $eo_Term
   (
   (($eo_mk_binary w n)
-    ($native_ite ($native_z_<= $native_z_zero w)
+    ($native_ite ($native_zleq $native_z_zero w)
       ($eo_binary_mod_w w n)  ; ensure that n is legal
       $eot_stuck))
   )
@@ -363,12 +363,12 @@
   :signature (T T) T
   (
   (($eo_add ($eot_numeral n1) ($eot_numeral n2))
-    ($eot_numeral ($native_z_+ n1 n2)))
+    ($eot_numeral ($native_zplus n1 n2)))
   (($eo_add ($eot_rational r1) ($eot_rational r2))
-    ($eot_rational ($native_q_+ r1 r2)))
+    ($eot_rational ($native_qplus r1 r2)))
   (($eo_add ($eot_binary w1 n1) ($eot_binary w2 n2))
     (eo::requires ($eot_numeral w1) ($eot_numeral w2)
-      ($eo_binary_mod_w w1 ($native_z_+ n1 n2))))  ; don't need to recheck bitwidth
+      ($eo_binary_mod_w w1 ($native_zplus n1 n2))))  ; don't need to recheck bitwidth
   )
 )
 
@@ -380,12 +380,12 @@
   :signature (T T) T
   (
   (($eo_mul ($eot_numeral n1) ($eot_numeral n2))
-    ($eot_numeral ($native_z_* n1 n2)))
+    ($eot_numeral ($native_zmult n1 n2)))
   (($eo_mul ($eot_rational r1) ($eot_rational r2))
-    ($eot_rational ($native_q_* r1 r2)))
+    ($eot_rational ($native_qmult r1 r2)))
   (($eo_mul ($eot_binary w1 n1) ($eot_binary w2 n2))
     (eo::requires ($eot_numeral w1) ($eot_numeral w2)
-      ($eo_binary_mod_w w1 ($native_z_* n1 n2))))
+      ($eo_binary_mod_w w1 ($native_zmult n1 n2))))
   )
 )
 
@@ -396,9 +396,9 @@
   :signature (T $eo_Numeral) T
   (
   (($eo_pow ($eot_numeral n1) ($eot_numeral n2))
-    ($eot_numeral ($native_z_**_total n1 n2)))
+    ($eot_numeral ($native_zexp_total n1 n2)))
   (($eo_pow ($eot_rational r1) ($eot_numeral n2))
-    ($eot_rational ($native_q_**_total r1 n2)))
+    ($eot_rational ($native_qexp_total r1 n2)))
   )
 )
 
@@ -414,9 +414,9 @@
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_log ($eot_numeral n1) ($eot_numeral n2))
-    ($eot_numeral ($native_z_log n1 n2)))
+    ($eot_numeral ($native_int_log n1 n2)))
   (($eo_log ($eot_numeral n1) ($eot_rational r2))
-    ($eot_numeral ($native_z_log n1 ($native_apply_1 "to_int" r2))))
+    ($eot_numeral ($native_int_log n1 ($native_apply_1 "to_int" r2))))
   )
 )
 
@@ -426,13 +426,13 @@
   :signature (T T) $eo_Term
   (
   (($eo_qdiv ($eot_numeral n1) ($eot_numeral n2))
-    ($native_ite ($native_z_= $native_z_zero n2)
+    ($native_ite ($native_zeq $native_z_zero n2)
       $eot_stuck
-      ($eot_rational ($native_z_/_total n1 n2))))
+      ($eot_rational ($native_mk_rational n1 n2))))
   (($eo_qdiv ($eot_rational r1) ($eot_rational r2))
-    ($native_ite ($native_q_= $native_q_zero r2)
+    ($native_ite ($native_qeq $native_q_zero r2)
       $eot_stuck
-      ($eot_rational ($native_q_/_total r1 r2))))
+      ($eot_rational ($native_qdiv_total r1 r2))))
   )
 )
 
@@ -443,12 +443,12 @@
   :signature (T T) T
   (
   (($eo_zdiv ($eot_numeral n1) ($eot_numeral n2))
-    ($native_ite ($native_z_= $native_z_zero n2)
+    ($native_ite ($native_zeq $native_z_zero n2)
       $eot_stuck
       ($eot_numeral ($native_div_total n1 n2))))
   (($eo_zdiv ($eot_binary w1 n1) ($eot_binary w2 n2))
     (eo::requires ($eot_numeral w1) ($eot_numeral w2)
-      ($native_ite ($native_z_= $native_z_zero n2)
+      ($native_ite ($native_zeq $native_z_zero n2)
         ($eot_binary w1 ($native_binary_max w1))
         ($eo_binary_mod_w w1 ($native_div_total n1 n2)))))
   )
@@ -460,12 +460,12 @@
   :signature (T T) T
   (
   (($eo_zmod ($eot_numeral n1) ($eot_numeral n2))
-    ($native_ite ($native_z_= $native_z_zero n2)
+    ($native_ite ($native_zeq $native_z_zero n2)
       $eot_stuck
       ($eot_numeral ($native_mod_total n1 n2))))
   (($eo_zmod ($eot_binary w1 n1) ($eot_binary w2 n2))
     (eo::requires ($eot_numeral w1) ($eot_numeral w2)
-      ($native_ite ($native_z_= $native_z_zero n2)
+      ($native_ite ($native_zeq $native_z_zero n2)
         ($eot_binary w1 n1)
         ($eo_binary_mod_w w1 ($native_mod_total n1 n2)))))
   )
@@ -474,8 +474,8 @@
 (program $eo_is_neg ((T Type) (n1 $native_Int) (r1 $native_Rat))
   :signature (T) Bool
   (
-  (($eo_is_neg ($eot_numeral n1))   ($eot_bool ($native_z_< n1 $native_z_zero)))
-  (($eo_is_neg ($eot_rational r1))  ($eot_bool ($native_q_< r1 $native_q_zero)))
+  (($eo_is_neg ($eot_numeral n1))   ($eot_bool ($native_zlt n1 $native_z_zero)))
+  (($eo_is_neg ($eot_rational r1))  ($eot_bool ($native_qlt r1 $native_q_zero)))
   )
 )
 
@@ -485,7 +485,7 @@
   :signature (T) T
   (
   (($eo_neg ($eot_numeral n1))  ($eot_numeral ($native_z_uneg n1)))
-  (($eo_neg ($eot_rational r1)) ($eot_rational ($native_q_uneg r1)))
+  (($eo_neg ($eot_rational r1)) ($eot_rational ($native_qneg r1)))
   (($eo_neg ($eot_binary w n1)) ($eo_binary_mod_w w ($native_z_uneg n1)))
   )
 )
@@ -513,7 +513,7 @@
   (($eo_concat ($eot_string s1) ($eot_string s2))
      ($eot_string ($native_apply_2 "str.++" s1 s2)))
   (($eo_concat ($eot_binary w1 n1) ($eot_binary w2 n2))
-     ($eo_mk_binary ($native_z_+ w1 w2) ($native_binary_concat w1 n1 w2 n2)))
+     ($eo_mk_binary ($native_zplus w1 w2) ($native_binary_concat w1 n1 w2 n2)))
   )
 )
 
@@ -527,7 +527,7 @@
      ($eot_string ($native_apply_3 "str.substr" s1 n2 ($native_z_inc ($native_z_- n3 n2)))))
   (($eo_extract ($eot_binary w n1) ($eot_numeral n2) ($eot_numeral n3))
     (eo::define ((nw ($native_z_- n3 n2)))
-    ($native_ite ($native_or ($native_z_< n2 $native_z_zero) ($native_z_< nw $native_z_zero))
+    ($native_ite ($native_or ($native_zlt n2 $native_z_zero) ($native_zlt nw $native_z_zero))
       $eo_empty_binary
       ($eo_mk_binary
         ($native_z_inc nw)
@@ -556,7 +556,7 @@
   (($eo_to_z ($eot_rational r1))  ($eot_numeral ($native_apply_1 "to_int" r1)))
   (($eo_to_z ($eot_string s1))
     ($native_ite
-      ($native_z_= $native_z_one ($native_apply_1 "str.len" s1))
+      ($native_zeq $native_z_one ($native_apply_1 "str.len" s1))
       ($eot_numeral ($native_apply_1 "str.to_code" s1))
       $eot_stuck))
   (($eo_to_z ($eot_binary w n1))     ($eot_numeral n1))
@@ -580,12 +580,12 @@
   (
   (($eo_to_bin ($eot_numeral w) ($eot_numeral n1))
     ; the upper bound is enforced here
-    ($native_ite ($native_z_<= w $native_z_max_width)
+    ($native_ite ($native_zleq w $native_z_max_width)
       ($eo_mk_binary w n1)
       $eot_stuck))
   (($eo_to_bin ($eot_numeral w) ($eot_binary w1 n1))
     ; the upper bound is enforced here
-    ($native_ite ($native_z_<= w $native_z_max_width)
+    ($native_ite ($native_zleq w $native_z_max_width)
       ($eo_mk_binary w n1)
       $eot_stuck))
   )
@@ -598,7 +598,7 @@
   (
   (($eo_to_str ($eot_numeral n1))
     ($native_ite
-      ($native_and ($native_z_<= $native_z_zero n1) ($native_z_< n1 $native_z_max_code))
+      ($native_and ($native_zleq $native_z_zero n1) ($native_zlt n1 $native_z_max_code))
       ($eot_string ($native_apply_1 "str.from_code" n1))
       $eot_stuck))
   (($eo_to_str ($eot_string s1)) ($eot_string s1))
@@ -742,7 +742,7 @@
 
 ; The SMT-LIB comparison of two Eunoia or SMT-LIB terms.
 (define $smtx_cmp ((T Type :implicit) (a T) (b T))
-  ($native_z_<= ($smtx_hash a) ($smtx_hash b)))
+  ($native_zleq ($smtx_hash a) ($smtx_hash b)))
 
 
 ;;; $eo_gt
@@ -756,11 +756,11 @@
    (n1 $native_Int) (n2 $native_Int) (r1 $native_Rat) (r2 $native_Rat))
   :signature (T T) Bool
   (
-  (($eo_gt ($eot_numeral n1) ($eot_numeral n2)) ($eot_bool ($native_z_< n2 n1)))
-  (($eo_gt ($eot_rational r1) ($eot_rational r2)) ($eot_bool ($native_q_< r2 r1)))
+  (($eo_gt ($eot_numeral n1) ($eot_numeral n2)) ($eot_bool ($native_zlt n2 n1)))
+  (($eo_gt ($eot_rational r1) ($eot_rational r2)) ($eot_bool ($native_qlt r2 r1)))
   (($eo_gt ($eot_binary w1 n1) ($eot_binary w2 n2))
     (eo::requires ($eot_numeral w1) ($eot_numeral w2)
-      ($eot_bool ($native_z_< n2 n1))))
+      ($eot_bool ($native_zlt n2 n1))))
   )
 )
 
@@ -836,7 +836,7 @@
   :signature ($native_String $eo_DatatypeDecl) $eo_Datatype
   (
   (($eo_dd_lookup s ($edd_cons s2 d dd))
-    ($native_ite ($native_str_= s s2) d ($eo_dd_lookup s dd)))
+    ($native_ite ($native_streq s s2) d ($eo_dd_lookup s dd)))
   (($eo_dd_lookup s $edd_nil) $edt_null)
   )
 )

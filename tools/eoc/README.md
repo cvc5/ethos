@@ -199,6 +199,31 @@ of the layer there asks for nothing: the definition may have been dropped as
 unreached, see "The native layer" below. Every native type abbreviates a Lean
 type, which is what a measure writes instead.
 
+## The natives of the embedding
+
+What a signature written in the embedding may call that no compiler writes is
+declared in `plugins/desugar/natives.eos`, one entry to a native:
+
+```lisp
+(declare-native binary_and ((w "Int") (n1 "Int") (n2 "Int")))
+(declare-native z_zero () :op "0")
+```
+
+`sem_compile.py` compiles that set into `tools/eoc/out/native_defs.eo`, the
+declarations the desugar layer carries, which stand where the
+`(include "native_defs.eo")` of `plugins/desugar/native_embed.eo` names them.
+Nothing writes one by hand: a declaration says only the name, what each
+argument is and the operator it forwards to, and the set says all three.
+
+What is left in `native_embed.eo` is what the embedding *is* rather than what
+it calls -- the `$native_apply_*` and `$native_type_*` constructors, the type
+aliases, and the definitions written over other natives.
+
+What a native **does** is a separate thing, said by each backend in a native
+layer of its own; see below. The two are apart because neither implies the
+other: a backend may define what the embedding never calls, and the embedding
+may call what a backend gets from its own language.
+
 ## The native layer
 
 What a backend generates is written against a layer of definitions that gives

@@ -329,6 +329,7 @@ two are read apart by the form that declares one.
 | a value of the **target**, `semantics/smt.eos` | `define-value` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical` under `:canonical` |
 | a literal of the **target**, `semantics/smt.eos` | `define-literal` | a constant of the embedding and the macro that applies it; the two cases a symbol writes, `:typeof` and `:value`, over what it carries rather than over terms |
 | a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
+| a **native** of the embedding, `plugins/desugar/natives.eos` | `declare-native` | nothing of any signature: it declares a name a signature written in the embedding may call, saying what each argument of it is and, under `:op`, the operator it forwards to where that is not its own name. The declaration the desugar layer carries is written from it, so nothing states one by hand; see `render_natives` in `tools/eoc/sem_compile.py` |
 | a definition of a **native layer**, `plugins/lean_meta/lean.eos` and `plugins/smt_meta/smt-vc.eos` | `define-native-method` | one block of the layer a backend's generated text is written over: the text it is, under `:lean-impl` for the Lean backend and `:smt-impl` for the SMT-LIB one. Where the block can come out is read off that text rather than declared beside it, see `lean_needs` and `vc_needs` in `tools/eoc/sem_compile.py`, and it is emitted only where the compilation of an input reaches it, or when it says `:keep`. It names the native the way the backend spells it; whatever else it defines is private to the entry, which `impl_native_` rather than `native_` is what says on the Lean side |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |
 | a rule of an **input**, `semantics/development-cpc.eos` | `define-rule` | the same, for a proof rule, which says only that it is left out |
@@ -1183,6 +1184,25 @@ Write a `define-literal` at the end of the literals, saying the type of what it
 carries, the type a term of it is of, and its value in a model. Write the
 constructor of the value it evaluates to as well, unless the embedding already
 has one. It goes at the end for the same reason a value does.
+
+### Add a native
+
+Write a `declare-native` in `plugins/desugar/natives.eos`, saying what each
+argument of it is and, where the operator it forwards to is not its own name,
+what that operator is:
+
+```lisp
+(declare-native binary_nand ((w "Int") (n1 "Int") (n2 "Int")))
+(declare-native z_lt ((x "Int") (y "Int")) :op "<")
+```
+
+That is the whole of what the embedding has to be told: the declaration the
+desugar layer carries is written from it. What the native *does* is said once
+per backend that needs to say it, as a `define-native-method` in
+`plugins/lean_meta/lean.eos` under `:lean-impl` and in
+`plugins/smt_meta/smt-vc.eos` under `:smt-impl`. Neither is required: a backend
+whose own language has the operator says nothing, which is why those two sets
+and this one are apart.
 
 ### Add an attribute a symbol may carry
 

@@ -86,6 +86,17 @@ SHIPPED = ((CONFIGS[0], True), (CONFIGS[1], False))
 # layer, not one per input -- so it is compiled beside the two above rather
 # than named by an option. It stands in the plugin that reads what it compiles
 # to, since it is of that backend and of nothing else.
+# The natives of the embedding: what a signature written in it may call that no
+# compiler writes, and what each argument of one is. The desugar layer carries a
+# declaration of each, which is what says one exists and what it takes; that
+# declaration is written from this set rather than by hand, see render_natives.
+# What a native *does* is said by a backend, in a native layer of its own, see
+# LAYERS; the two are apart because a backend may implement a native the
+# embedding does not have, and the embedding may have one a backend gets from
+# its own language.
+NATIVES_CONFIG = os.path.join(ROOT, 'plugins', 'desugar', 'natives.eos')
+NATIVE_DEFS_TARGET = os.path.join(OUT, 'native_defs.eo')
+
 # The aggregates of the deep embedding: which programs a symbol contributes a
 # case to, and where the model-smt stage writes them. It is one set and a fixed
 # one -- the shape of what is written is not something a run may name another
@@ -324,6 +335,73 @@ def role_of(path):
 
 
 # -----------------------------------------------------------------------------
+# The natives of the embedding
+# -----------------------------------------------------------------------------
+
+NATIVES_GENERATED = """\
+; GENERATED FILE -- do not edit.
+;
+; The natives of the embedding, compiled from %s by
+; tools/eoc/sem_compile.py, which is where one is to be changed or added. Each
+; is a name a signature written in the embedding may call, declared as the
+; operator it forwards to; what one *does* is said by a backend, see
+; plugins/lean_meta/lean.eos and plugins/smt_meta/smt-vc.eos.
+;
+; The desugar stage puts this file where the `(include "native_defs.eo")` of
+; plugins/desugar/native_embed.eo stands, see Pipeline.desugar in
+; tools/eoc/driver.py.
+;
+"""
+
+
+def read_natives(vocab, path=NATIVES_CONFIG):
+  """Read the natives set, in the order it gives its entries.
+
+  The type of each argument is named the way a type is named everywhere in the
+  configuration, i.e. a native in quotes, and is checked against the vocabulary
+  the hand-written files declare: those are what the aliases stand in, so a
+  native may be written over them and none of them over a native.
+  """
+  out = []
+  for b in read_config([path], sem_target.NATIVE_DECL_SET):
+    for e in b.entries():
+      what = 'natives: ' + e.name
+      types = []
+      for v, node in zip(e.params, e.types):
+        if node is None or node.kind != 'str':
+          die('%s: %s says the type it is of, written the way a native is, '
+              'e.g. (%s "Int")' % (what, v, v))
+        full = '$native_' + node.val
+        if full not in vocab:
+          die('%s: there is no type called %s' % (what, full))
+        types.append(full)
+      out.append((e, types))
+  return out
+
+
+def render_natives(natives):
+  """The natives as the file the desugar stage reads.
+
+  A native is declared as the operator it forwards to, which is its own name
+  unless :op says another: the embedding names the numeral zero $native_z_zero
+  and forwards it as "0".
+  """
+  out = [NATIVES_GENERATED % named(NATIVES_CONFIG)]
+  for e, types in natives:
+    name = '$native_' + e.name
+    op = e.get('op').val if e.has('op') else e.name
+    doc = '\n'.join(e.doc) + '\n' if e.doc else ''
+    ps = ' '.join('(%s %s)' % (v, t) for v, t in zip(e.params, types))
+    body = '($native_apply_%d "%s"%s)' % (
+        len(types), op, ''.join(' ' + v for v in e.params))
+    if not types:
+      out.append('%s(define %s () %s)' % (doc, name, body))
+    else:
+      out.append('%s(define %s (%s)\n  %s)' % (doc, name, ps, body))
+  return '\n\n'.join(out) + '\n'
+
+
+# -----------------------------------------------------------------------------
 # The aggregates of the embedding
 # -----------------------------------------------------------------------------
 
@@ -468,6 +546,24 @@ def read_aggregates(path=AGGREGATE_CONFIG):
   return out
 
 
+_NATIVES = None
+
+
+def natives():
+  """The natives set, read once, and what it compiles to.
+
+  The types an entry names are the aliases the hand-written files declare, so
+  the vocabulary is read from those first and the natives are checked against
+  it; what they compile to then joins it, which is what puts them in reach of
+  every set the run compiles.
+  """
+  global _NATIVES
+  if _NATIVES is None:
+    read = read_natives(read_vocabulary(VOCAB_FILES))
+    _NATIVES = (read, render_natives(read))
+  return _NATIVES
+
+
 _AGGREGATES = None
 
 
@@ -579,7 +675,9 @@ def compile_all(sets):
   is compiled against the target's own blocks as well as the vocabulary of the
   embedding, see target_blocks.
   """
-  vocab, macros = read_vocabulary(VOCAB_FILES), read_macros(MACRO_FILES)
+  vocab = read_vocabulary(VOCAB_FILES,
+                          [(NATIVE_DEFS_TARGET, natives()[1])])
+  macros = read_macros(MACRO_FILES)
   configs = [read_config_file(p, t) for p, t in sets]
   check_distinct(configs)
   target = target_blocks(sets)
@@ -891,6 +989,12 @@ def compile_to_files(sets=SHIPPED, out_dir=None):
   clauses, in that order -- so the caller need not know the layout.
   """
   out = {}
+  # The natives of the embedding, which every set is compiled against and no
+  # option names another of.
+  target = NATIVE_DEFS_TARGET
+  if out_dir is not None:
+    target = os.path.join(out_dir, os.path.basename(target))
+  write_if_changed(natives()[1], target)
   # A native layer is one set and a fixed one, so both are compiled whatever a
   # run names, see LAYERS.
   for layer in LAYERS:
@@ -959,6 +1063,11 @@ def main():
         state, wrong = check_current(text, target)
         done.append((report.rel(target), state, None if wrong else what))
         bad += wrong
+    entries, text = natives()
+    state, wrong = check_current(text, NATIVE_DEFS_TARGET)
+    done.append((report.rel(NATIVE_DEFS_TARGET), state,
+                 None if wrong else '%d natives' % len(entries)))
+    bad += wrong
     for layer in LAYERS:
       ncfg = compile_native(layer)
       state, wrong = check_current(render_native(layer, ncfg), layer.target)
@@ -973,6 +1082,13 @@ def main():
                      % (name, state, report.rel(__file__)))
     sys.exit(1 if bad else 0)
   report.step('Compiling semantics under %s' % report.rel(home))
+  entries, text = natives()
+  ntarget = (os.path.join(a.out_dir, os.path.basename(NATIVE_DEFS_TARGET))
+             if a.out_dir is not None else NATIVE_DEFS_TARGET)
+  changed = write_if_changed(text, ntarget)
+  report.item(named(NATIVES_CONFIG), report.rel(ntarget),
+              '%d natives%s' % (len(entries), '' if changed else ', unchanged'),
+              width=width)
   for layer in LAYERS:
     ncfg = compile_native(layer)
     ntarget = (os.path.join(a.out_dir, os.path.basename(layer.target))

@@ -626,11 +626,18 @@ class Vocab:
     return out
 
 
-def read_vocabulary(paths):
-  """Read the vocabulary of the embedding out of the files that define it."""
+def read_vocabulary(paths, extra=()):
+  """Read the vocabulary of the embedding out of the files that define it.
+
+  `extra` is what a file the compiler writes rather than reads would say, as
+  (name, text) pairs: the natives are compiled from a set of their own, and
+  what they compile to is read here the same way, so nothing turns on whether
+  that file has been written out yet.
+  """
   out = Vocab()
-  for path in paths:
-    for _doc, node in read_file(path):
+  for path, forms in ([(p, read_file(p)) for p in paths]
+                      + [(n, Reader(x, n).read_all()) for n, x in extra]):
+    for _doc, node in forms:
       if node.kind != 'list' or len(node.items) < 2 \
               or node.items[0].kind != 'sym' or node.items[1].kind != 'sym' \
               or not node.items[1].val.startswith('$'):

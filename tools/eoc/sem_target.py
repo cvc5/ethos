@@ -700,6 +700,15 @@ RULES = Shape([], keyword='define-rule', noun='rule', params=False)
 NATIVES = Shape([], keyword='define-native-method', noun='native',
                 params=False)
 
+# One native of the embedding, i.e. one entry of
+# plugins/desugar/natives.eos. It says what a signature written in the
+# embedding may call and what each argument of it is, which is the whole of
+# what the declaration the desugar layer carries says; the compiler writes that
+# declaration, so nothing states it by hand. What a native *does* is said by a
+# backend, in a set of its own, see NATIVES.
+NATIVE_DECLS = Shape([], keyword='declare-native', noun='native',
+                     extra_attrs={'op': 1})
+
 # One aggregate of the deep embedding, i.e. one entry of
 # plugins/model_smt/model_smt.eos. It declares nothing of the model: the
 # program itself stands in the template of the stage, and what the entry says
@@ -815,6 +824,7 @@ INPUT_SYMBOLS = Shape([TERM, TYPE, IS_LIST_NIL])
 TARGET = Shapes(SYMBOLS, LITERALS, TYPES, VALUES, METHODS)
 INPUT_SET = Shapes(INPUT_SYMBOLS, METHODS, RULES)
 NATIVE_SET = Shapes(NATIVES)
+NATIVE_DECL_SET = Shapes(NATIVE_DECLS)
 AGGREGATE_SET = Shapes(AGGREGATES)
 
 

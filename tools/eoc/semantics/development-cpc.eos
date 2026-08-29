@@ -226,7 +226,7 @@
 
 ; -- @div_by_zero
 (define-symbol @div_by_zero (x)
-  :term (/ x (Rational ("z_/_total" 0 1))))
+  :term (/ x (Rational ("mk_rational" 0 1))))
 
 ; The second symbol the input overloads - with, which is unary minus. No
 ; signature declares the name the desugar stage gives that overload, so this
@@ -400,7 +400,7 @@
 ; eliminated on the way to the SMT-LIB signature, so each gives a
 ; transformation and no block of the SMT-LIB half.
 (define-symbol @bvsize (x)
-  :term (eo::define ((n (width x))) ("ite" ("z_<=" 0 n) (@purify (Numeral n)) none)))
+  :term (eo::define ((n (width x))) ("ite" ("zleq" 0 n) (@purify (Numeral n)) none)))
 
 (define-symbol bvite (c x y)
   :term (ite (= c (bv 1 1)) x y))
@@ -558,7 +558,7 @@
 (program $eo_to_smt_nat_is_valid ((n "Int") (t $eo_Term))
   :signature ($eo_Term) "Bool"
   (
-  (($eo_to_smt_nat_is_valid (eo.numeral n)) ("z_<=" 0 n))
+  (($eo_to_smt_nat_is_valid (eo.numeral n)) ("zleq" 0 n))
   (($eo_to_smt_nat_is_valid t) "false")
   )
 )
@@ -750,7 +750,7 @@
   (
   (($eo_to_smt_updater_rec (DtSel s dd n m) "n_zero" t u acc) acc)
   (($eo_to_smt_updater_rec (DtSel s dd n m) ("n_succ" k) t u acc)
-    (eo::define ((arg ("ite" ("n_=" m k) u (apply (DtSel s dd n k) t))))
+    (eo::define ((arg ("ite" ("nateq" m k) u (apply (DtSel s dd n k) t))))
       (apply ($eo_to_smt_updater_rec (DtSel s dd n m) k t u acc) arg)))
   (($eo_to_smt_updater_rec v k t u acc) none)
   )
@@ -763,7 +763,7 @@
   (
   (($eo_to_smt_updater (DtSel s dd n m) t u)
     (eo::define ((nargs (smt.num_selectors (smt.decl_lookup s dd) n)))
-    ("ite" ("z_<" ("n_to_z" m) ("n_to_z" nargs))
+    ("ite" ("zlt" ("n_to_z" m) ("n_to_z" nargs))
       (ite (apply (DtTester s dd n) t)
         ($eo_to_smt_updater_rec (DtSel s dd n m) nargs t u (DtCons s dd n))
         t)
@@ -825,8 +825,8 @@
       ("ite"
         ("and"
           ("and"
-            ("str_=" s "str_tuple_name")
-            ("str_=" s2 "str_tuple_name"))
+            ("streq" s "str_tuple_name")
+            ("streq" s2 "str_tuple_name"))
           (smt.type_wf (Datatype "str_tuple_name" dd2)))
         ($eo_to_smt_tuple_prepend_rec dd d tail (smt.num_selectors d "n_zero")
           (apply (DtCons "str_tuple_name" dd2 "n_zero") h))
@@ -857,9 +857,9 @@
     ("ite"
       ("and"
         ("and"
-          ("str_=" s "str_tuple_name")
-          ("str_=" s2 "str_tuple_name"))
-        ("z_<=" 0 n))
+          ("streq" s "str_tuple_name")
+          ("streq" s2 "str_tuple_name"))
+        ("zleq" 0 n))
       (apply
         (DtSel "str_tuple_name" ($eo_to_smt_tuple_decl d) "n_zero" ("z_to_n" n))
         t)
@@ -881,9 +881,9 @@
     ("ite"
       ("and"
         ("and"
-          ("str_=" s "str_tuple_name")
-          ("str_=" s2 "str_tuple_name"))
-        ("z_<=" 0 n))
+          ("streq" s "str_tuple_name")
+          ("streq" s2 "str_tuple_name"))
+        ("zleq" 0 n))
       ($eo_to_smt_updater
         (DtSel "str_tuple_name" ($eo_to_smt_tuple_decl d) "n_zero" ("z_to_n" n))
         t
@@ -943,7 +943,7 @@
 
 ; -- @const
 (define-symbol @const ((! i :raw) (! u :type))
-  :term ("ite" ($eo_to_smt_nat_is_valid i) (UConst ("to_const_id" ($eo_to_smt_nat i)) u) none))
+  :term ("ite" ($eo_to_smt_nat_is_valid i) (UConst ("const_id" ($eo_to_smt_nat i)) u) none))
 
 ; The proof-level binder of CPC, together with the methods and the rule that
 ; reduce an application of one. SMT-LIB gives these no meaning at all, so
@@ -1018,7 +1018,7 @@
 
 ; -- BitVec
 (define-symbol BitVec ((! n :raw))
-  :type (BitVec (eo.numeral n)) ("ite" ("z_<=" 0 n) (BitVec ("z_to_n" n)) none))
+  :type (BitVec (eo.numeral n)) ("ite" ("zleq" 0 n) (BitVec ("z_to_n" n)) none))
 
 (define-symbol Seq (T)
   :type (guard T (Seq T)))
@@ -1042,7 +1042,7 @@
   (($eo_to_smt_type_tuple U (Datatype s (smt.decl_cons s2 (smt.datatype_cons c smt.datatype_nil) smt.decl_nil)))
     (eo::define ((d (smt.datatype_cons (smt.cons_field U c) smt.datatype_nil)))
       ("ite"
-        ("and" ("and" ("str_=" s "str_tuple_name") ("str_=" s2 "str_tuple_name")) (smt.type_wf_component U))
+        ("and" ("and" ("streq" s "str_tuple_name") ("streq" s2 "str_tuple_name")) (smt.type_wf_component U))
         (Datatype "str_tuple_name" ($eo_to_smt_tuple_decl d))
         none)))
   (($eo_to_smt_type_tuple U T) none)

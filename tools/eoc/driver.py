@@ -20,6 +20,7 @@ from typing import Iterable, Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import report  # noqa: E402
+import sem_compile  # noqa: E402
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -511,6 +512,14 @@ class Pipeline:
             output_file,
             "native_embed.eo",
             self.plugin_generated("desugar/native_embed.eo"),
+        )
+        # The natives themselves, which that file names rather than declaring:
+        # they are compiled from plugins/desugar/natives.eos, so the include it
+        # carries is answered here, once its own text is in.
+        inline_include(
+            output_file,
+            "native_defs.eo",
+            Path(sem_compile.NATIVE_DEFS_TARGET),
         )
         return output_file
 

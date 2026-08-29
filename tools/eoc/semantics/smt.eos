@@ -150,7 +150,7 @@
 ; A bit-vector is built over its width rather than over a type. It has one
 ; value when that width is zero, and finitely many at any width.
 (define-sort BitVec ((! w :raw))
-  :bounded ("or" ("not" u) ("n_=" w "n_zero"))
+  :bounded ("or" ("not" u) ("nateq" w "n_zero"))
   :default (smt.binary ("n_to_z" w) 0))
 
 ; -- $smtx_map_get_default
@@ -356,11 +356,11 @@
 ; A bit-vector is of the width it carries, and is the one spelling of what it
 ; denotes when its value is that width's remainder.
 (define-value Binary ((w "Int") (v "Int"))
-  :typeof ("ite" ("and" ("z_<=" 0 w) ("z_=" v ("mod_total" v ("z_pow2" w))))
+  :typeof ("ite" ("and" ("zleq" 0 w) ("zeq" v ("mod_total" v ("z_pow2" w))))
             (BitVec ("z_to_n" w))
             none)
-  :canonical ("ite" ("z_<=" 0 w)
-               ("z_=" v ("mod_total" v ("z_pow2" w)))
+  :canonical ("ite" ("zleq" 0 w)
+               ("zeq" v ("mod_total" v ("z_pow2" w)))
                "true"))
 
 (define-value Map ((m SmtMap))
@@ -499,7 +499,7 @@
 ; A bit-vector carries its width and its value, and is of that width when the
 ; value is one the width can hold.
 (define-literal Binary ((w "Int") (v "Int"))
-  :typeof ("ite" ("and" ("z_<=" 0 w) ("z_=" v ("mod_total" v ("z_pow2" w))))
+  :typeof ("ite" ("and" ("zleq" 0 w) ("zeq" v ("mod_total" v ("z_pow2" w))))
             (BitVec ("z_to_n" w))
             none)
   :value (smt.binary w v))
@@ -645,7 +645,7 @@
 (program $smtx_to_real_coerce ((x1 "Int") (x2 "Rat") (v SmtValue))
   :signature (SmtValue) SmtValue
   (
-  (($smtx_to_real_coerce (smt.numeral x1)) (smt.rational ("z_to_real" x1)))
+  (($smtx_to_real_coerce (smt.numeral x1)) (smt.rational ("to_real" x1)))
   (($smtx_to_real_coerce (smt.rational x2)) (smt.rational x2))
   (($smtx_to_real_coerce v) smt.not_value)
   )
@@ -653,8 +653,8 @@
 
 (define-symbol + (x y)
   :typeof ($smtx_typeof_arith_overload_op_2 x y)
-  :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("z_+" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("q_+" qx qy)))
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("zplus" x y))
+  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("qplus" qx qy)))
 
 (define-symbol - (x y)
   :typeof ($smtx_typeof_arith_overload_op_2 x y)
@@ -663,18 +663,18 @@
 
 (define-symbol * (x y)
   :typeof ($smtx_typeof_arith_overload_op_2 x y)
-  :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("z_*" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("q_*" qx qy)))
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("zmult" x y))
+  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("qmult" qx qy)))
 
 (define-symbol < (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
-  :eval ((smt.numeral x) (smt.numeral y)) (smt.bool ("z_<" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.bool ("q_<" qx qy)))
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.bool ("zlt" x y))
+  :eval ((smt.rational qx) (smt.rational qy)) (smt.bool ("qlt" qx qy)))
 
 (define-symbol <= (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
-  :eval ((smt.numeral x) (smt.numeral y)) (smt.bool ("z_<=" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.bool ("q_<=" qx qy)))
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.bool ("zleq" x y))
+  :eval ((smt.rational qx) (smt.rational qy)) (smt.bool ("qleq" qx qy)))
 
 (define-symbol > (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
@@ -686,7 +686,7 @@
 
 (define-symbol to_real (x)
   :typeof (of1 Int Real x)
-  :eval ((smt.numeral x)) (smt.rational ("z_to_real" x)))
+  :eval ((smt.numeral x)) (smt.rational ("to_real" x)))
 
 (define-symbol to_int (x)
   :typeof (of1 Real Int x)
@@ -698,8 +698,8 @@
 
 (define-symbol abs (x)
   :typeof ($smtx_typeof_arith_overload_op_1 x)
-  :eval ((smt.numeral x)) (smt.numeral ("z_abs" x))
-  :eval ((smt.rational qx)) (smt.rational ("q_abs" qx)))
+  :eval ((smt.numeral x)) (smt.numeral ("zabs" x))
+  :eval ((smt.rational qx)) (smt.rational ("qabs" qx)))
 
 ; Unary minus is what the input overloads - with, and the desugar stage gives
 ; that overload the name $eoo_-.2, so nothing transforms into uneg by its own
@@ -707,7 +707,7 @@
 (define-symbol uneg (x)
   :typeof ($smtx_typeof_arith_overload_op_1 x)
   :eval ((smt.numeral x)) (smt.numeral ("z_uneg" x))
-  :eval ((smt.rational qx)) (smt.rational ("q_uneg" qx)))
+  :eval ((smt.rational qx)) (smt.rational ("qneg" qx)))
 
 (define-symbol div_total (x y)
   :typeof (of2 Int Int Int x y)
@@ -748,8 +748,8 @@
 
 (define-symbol /_total (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Real)
-  :eval ((smt.numeral x) (smt.numeral y)) (smt.rational ("z_/_total" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("q_/_total" qx qy)))
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.rational ("mk_rational" x y))
+  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("qdiv_total" qx qy)))
 
 (define-symbol / (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Real)
@@ -878,7 +878,7 @@
   :signature (SmtType SmtType) SmtType
   (
   (($smtx_typeof_bv_op_2 (BitVec n1) (BitVec n2))
-    ("ite" ("n_=" n1 n2) (BitVec n1) none))
+    ("ite" ("nateq" n1 n2) (BitVec n1) none))
   (($smtx_typeof_bv_op_2 T U) none)
   )
 )
@@ -889,7 +889,7 @@
   :signature (SmtType SmtType SmtType) SmtType
   (
   (($smtx_typeof_bv_op_2_ret (BitVec n1) (BitVec n2) U)
-    ("ite" ("n_=" n1 n2) U none))
+    ("ite" ("nateq" n1 n2) U none))
   (($smtx_typeof_bv_op_2_ret T U V) none)
   )
 )
@@ -916,7 +916,7 @@
 (program $smtx_typeof_concat ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtType SmtType) SmtType
   (
-  (($smtx_typeof_concat (BitVec x1) (BitVec x2)) (BitVec ("z_to_n" ("z_+" ("n_to_z" x1) ("n_to_z" x2)))))
+  (($smtx_typeof_concat (BitVec x1) (BitVec x2)) (BitVec ("z_to_n" ("zplus" ("n_to_z" x1) ("n_to_z" x2)))))
   (($smtx_typeof_concat x3 x4) none)
   )
 )
@@ -924,7 +924,7 @@
 (program $smtx_typeof_extract ( (x1 "Int") (x2 "Int")  (x3 "Int")  (x4 SmtType)  (x5 SmtType)  (x6 SmtType))
   :signature (SmtTerm SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_extract (Numeral x1) (Numeral x2) (BitVec x3)) ("ite" ("z_<=" 0 x2) ("ite" ("z_<" x1 ("n_to_z" x3)) ("ite" ("z_<" 0 ("z_+" ("z_+" x1 1) ("z_uneg" x2))) (BitVec ("z_to_n" ("z_+" ("z_+" x1 1) ("z_uneg" x2)))) none) none) none))
+  (($smtx_typeof_extract (Numeral x1) (Numeral x2) (BitVec x3)) ("ite" ("zleq" 0 x2) ("ite" ("zlt" x1 ("n_to_z" x3)) ("ite" ("zlt" 0 ("zplus" ("zplus" x1 1) ("z_uneg" x2))) (BitVec ("z_to_n" ("zplus" ("zplus" x1 1) ("z_uneg" x2)))) none) none) none))
   (($smtx_typeof_extract x4 x5 x6) none)
   )
 )
@@ -932,7 +932,7 @@
 (program $smtx_typeof_repeat ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_repeat (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 1 x1) (BitVec ("z_to_n" ("z_*" x1 ("n_to_z" x2)))) none))
+  (($smtx_typeof_repeat (Numeral x1) (BitVec x2)) ("ite" ("zleq" 1 x1) (BitVec ("z_to_n" ("zmult" x1 ("n_to_z" x2)))) none))
   (($smtx_typeof_repeat x3 x4) none)
   )
 )
@@ -940,7 +940,7 @@
 (program $smtx_typeof_zero_extend ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_zero_extend (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" ("z_+" x1 ("n_to_z" x2)))) none))
+  (($smtx_typeof_zero_extend (Numeral x1) (BitVec x2)) ("ite" ("zleq" 0 x1) (BitVec ("z_to_n" ("zplus" x1 ("n_to_z" x2)))) none))
   (($smtx_typeof_zero_extend x3 x4) none)
   )
 )
@@ -948,7 +948,7 @@
 (program $smtx_typeof_sign_extend ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_sign_extend (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" ("z_+" x1 ("n_to_z" x2)))) none))
+  (($smtx_typeof_sign_extend (Numeral x1) (BitVec x2)) ("ite" ("zleq" 0 x1) (BitVec ("z_to_n" ("zplus" x1 ("n_to_z" x2)))) none))
   (($smtx_typeof_sign_extend x3 x4) none)
   )
 )
@@ -956,7 +956,7 @@
 (program $smtx_typeof_rotate_left ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_rotate_left (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec x2) none))
+  (($smtx_typeof_rotate_left (Numeral x1) (BitVec x2)) ("ite" ("zleq" 0 x1) (BitVec x2) none))
   (($smtx_typeof_rotate_left x3 x4) none)
   )
 )
@@ -964,7 +964,7 @@
 (program $smtx_typeof_rotate_right ( (x1 "Int") (x2 "Int")  (x3 SmtType)  (x4 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_rotate_right (Numeral x1) (BitVec x2)) ("ite" ("z_<=" 0 x1) (BitVec x2) none))
+  (($smtx_typeof_rotate_right (Numeral x1) (BitVec x2)) ("ite" ("zleq" 0 x1) (BitVec x2) none))
   (($smtx_typeof_rotate_right x3 x4) none)
   )
 )
@@ -972,7 +972,7 @@
 (program $smtx_typeof_int_to_bv ( (x1 "Int") (x2 SmtType)  (x3 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_int_to_bv (Numeral x1) Int) ("ite" ("z_<=" 0 x1) (BitVec ("z_to_n" x1)) none))
+  (($smtx_typeof_int_to_bv (Numeral x1) Int) ("ite" ("zleq" 0 x1) (BitVec ("z_to_n" x1)) none))
   (($smtx_typeof_int_to_bv x2 x3) none)
   )
 )
@@ -1029,11 +1029,11 @@
 
 (define-symbol concat (x y)
   :typeof ($smtx_typeof_concat x y)
-  :eval ((smt.binary n x) (smt.binary m y)) (of_width ("z_+" n m) ("binary_concat" n x m y)))
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width ("zplus" n m) ("binary_concat" n x m y)))
 
 (define-symbol extract ((! i :raw) (! j :raw) x)
   :typeof ($smtx_typeof_extract i j x)
-  :eval ((smt.numeral i) (smt.numeral j) (smt.binary n x)) (of_width ("z_+" ("z_+" i 1) ("z_uneg" j)) ("binary_extract" n x i j)))
+  :eval ((smt.numeral i) (smt.numeral j) (smt.binary n x)) (of_width ("zplus" ("zplus" i 1) ("z_uneg" j)) ("binary_extract" n x i j)))
 
 (define-symbol repeat ((! k :raw) x)
   :typeof ($smtx_typeof_repeat k x)
@@ -1077,19 +1077,19 @@
 
 (define-symbol bvadd (x y)
   :typeof ($smtx_typeof_bv_op_2 x y)
-  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("z_+" x y)))
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("zplus" x y)))
 
 (define-symbol bvmul (x y)
   :typeof ($smtx_typeof_bv_op_2 x y)
-  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("z_*" x y)))
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("zmult" x y)))
 
 (define-symbol bvudiv (x y)
   :typeof ($smtx_typeof_bv_op_2 x y)
-  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("ite" ("z_=" y 0) ("binary_max" n) ("div_total" x y))))
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("ite" ("zeq" y 0) ("binary_max" n) ("div_total" x y))))
 
 (define-symbol bvurem (x y)
   :typeof ($smtx_typeof_bv_op_2 x y)
-  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("ite" ("z_=" y 0) x ("mod_total" x y))))
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("ite" ("zeq" y 0) x ("mod_total" x y))))
 
 (define-symbol bvsub (x y)
   :typeof ($smtx_typeof_bv_op_2 x y)
@@ -1122,7 +1122,7 @@
 
 (define-symbol bvugt (x y)
   :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
-  :eval ((smt.binary n x) (smt.binary m y)) (smt.bool ("z_<" y x)))
+  :eval ((smt.binary n x) (smt.binary m y)) (smt.bool ("zlt" y x)))
 
 (define-symbol bvult (x y)
   :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
@@ -1156,7 +1156,7 @@
 
 (define-symbol bvshl (x y)
   :typeof ($smtx_typeof_bv_op_2 x y)
-  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("z_*" x ("z_pow2" y))))
+  :eval ((smt.binary n x) (smt.binary m y)) (of_width n ("zmult" x ("z_pow2" y))))
 
 (define-symbol bvlshr (x y)
   :typeof ($smtx_typeof_bv_op_2 x y)
@@ -1171,11 +1171,11 @@
 
 (define-symbol zero_extend ((! k :raw) x)
   :typeof ($smtx_typeof_zero_extend k x)
-  :eval ((smt.numeral k) (smt.binary n x)) (smt.binary ("z_+" k n) x))
+  :eval ((smt.numeral k) (smt.binary n x)) (smt.binary ("zplus" k n) x))
 
 (define-symbol sign_extend ((! k :raw) x)
   :typeof ($smtx_typeof_sign_extend k x)
-  :eval ((smt.numeral k) (smt.binary n x)) (of_width ("z_+" k n) ("binary_uts" n x)))
+  :eval ((smt.numeral k) (smt.binary n x)) (of_width ("zplus" k n) ("binary_uts" n x)))
 
 (define-symbol rotate_left ((! k :raw) x)
   :typeof ($smtx_typeof_rotate_left k x)
@@ -1187,29 +1187,29 @@
 
 (define-symbol bvuaddo (x y)
   :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
-  :eval ((smt.binary n x) (smt.binary m y)) (smt.bool ("z_<=" ("z_pow2" n) ("z_+" x y))))
+  :eval ((smt.binary n x) (smt.binary m y)) (smt.bool ("zleq" ("z_pow2" n) ("zplus" x y))))
 
 (define-symbol bvnego (x)
   :typeof ($smtx_typeof_bv_op_1_ret x Bool)
-  :eval ((smt.binary n x)) (smt.bool ("z_=" x ("z_pow2" ("z_+" n ("z_uneg" 1))))))
+  :eval ((smt.binary n x)) (smt.bool ("zeq" x ("z_pow2" ("zplus" n ("z_uneg" 1))))))
 
 (define-symbol bvsaddo (x y)
   :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
   :eval ((smt.binary n x) (smt.binary m y))
     (smt.bool
-      ("or" ("z_<=" ("z_pow2" ("z_+" n ("z_uneg" 1))) ("z_+" ("binary_uts" n x) ("binary_uts" m y)))
-            ("z_<" ("z_+" ("binary_uts" n x) ("binary_uts" m y)) ("z_uneg" ("z_pow2" ("z_+" n ("z_uneg" 1))))))))
+      ("or" ("zleq" ("z_pow2" ("zplus" n ("z_uneg" 1))) ("zplus" ("binary_uts" n x) ("binary_uts" m y)))
+            ("zlt" ("zplus" ("binary_uts" n x) ("binary_uts" m y)) ("z_uneg" ("z_pow2" ("zplus" n ("z_uneg" 1))))))))
 
 (define-symbol bvumulo (x y)
   :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
-  :eval ((smt.binary n x) (smt.binary m y)) (smt.bool ("z_<=" ("z_pow2" n) ("z_*" x y))))
+  :eval ((smt.binary n x) (smt.binary m y)) (smt.bool ("zleq" ("z_pow2" n) ("zmult" x y))))
 
 (define-symbol bvsmulo (x y)
   :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
   :eval ((smt.binary n x) (smt.binary m y))
     (smt.bool
-      ("or" ("z_<=" ("z_pow2" ("z_+" n ("z_uneg" 1))) ("z_*" ("binary_uts" n x) ("binary_uts" m y)))
-            ("z_<" ("z_*" ("binary_uts" n x) ("binary_uts" m y)) ("z_uneg" ("z_pow2" ("z_+" n ("z_uneg" 1))))))))
+      ("or" ("zleq" ("z_pow2" ("zplus" n ("z_uneg" 1))) ("zmult" ("binary_uts" n x) ("binary_uts" m y)))
+            ("zlt" ("zmult" ("binary_uts" n x) ("binary_uts" m y)) ("z_uneg" ("z_pow2" ("zplus" n ("z_uneg" 1))))))))
 
 (define-symbol bvusubo (x y)
   :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
@@ -1352,7 +1352,7 @@
 (program $smtx_typeof_re.^ ( (x1 "Int") (x2 SmtType)  (x3 SmtType))
   :signature (SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_re.^ (Numeral x1) RegLan) ("ite" ("z_<=" 0 x1) RegLan none))
+  (($smtx_typeof_re.^ (Numeral x1) RegLan) ("ite" ("zleq" 0 x1) RegLan none))
   (($smtx_typeof_re.^ x2 x3) none)
   )
 )
@@ -1360,7 +1360,7 @@
 (program $smtx_typeof_re.loop ( (x1 "Int") (x2 "Int")   (x3 SmtType)  (x4 SmtType)  (x5 SmtType))
   :signature (SmtTerm SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_re.loop (Numeral x1) (Numeral x2) RegLan) ("ite" ("z_<=" 0 x1) ("ite" ("z_<=" 0 x2) RegLan none) none))
+  (($smtx_typeof_re.loop (Numeral x1) (Numeral x2) RegLan) ("ite" ("zleq" 0 x1) ("ite" ("zleq" 0 x2) RegLan none) none))
   (($smtx_typeof_re.loop x3 x4 x5) none)
   )
 )

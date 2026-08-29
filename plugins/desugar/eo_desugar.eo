@@ -450,7 +450,7 @@ $EO_LITERAL_TYPE_DECL$
   :signature ((-> T U V) T $eo_Numeral) V
   (
   (($eo_list_repeat f a ($eot_numeral i))
-    ($native_ite ($native_z_< i $native_z_zero)
+    ($native_ite ($native_zlt i $native_z_zero)
       $eot_stuck
       ($eo_list_repeat_rec f a ($native_z_to_n i))))
   )

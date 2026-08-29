@@ -70,83 +70,39 @@
 (define $native_Rat () ($native_type_0 "Rat"))
 (define $native_String () ($native_type_0 "String"))
 (define $native_Char () ($native_type_0 "Char"))
-(define $native_true () ($native_apply_0 "true"))
-(define $native_false () ($native_apply_0 "false"))
+; a natural number, which is a datatype of the embedding rather than a sort
+; the backend has of its own
+(define $native_Nat () ($native_datatype "Nat"))
+
+; The natives themselves, which are compiled from plugins/desugar/natives.eos
+; rather than written here: a declaration of one says its name, what each of
+; its arguments is, and the operator it forwards to, and the compiler knows all
+; three. They stand here, after the types they are written over and before the
+; definitions written over them. See render_natives in
+; tools/eoc/sem_compile.py.
+(include "native_defs.eo")
+
 (define $native_ite ((W Type :implicit) (b $native_Bool) (x1 W) (x2 W)) ($native_apply_3 "ite" b x1 x2))
-(define $native_z_zero () ($native_apply_0 "0"))
-(define $native_z_one () ($native_apply_0 "1"))
-(define $native_z_two () ($native_apply_0 "2"))
-; strings
-(define $native_z_max_code () ($native_apply_0 "196608"))
-(define $native_z_max_width () ($native_apply_0 "4294967296"))
 (define $native_str_empty () ($native_apply_0 """"""))
 (define $native_str_tuple_name () ($native_apply_0 """@Tuple"""))
 (define $native_str_vname () ($native_apply_0 """@x"""))
 (define $native_str_c0 () ($native_apply_0 """0"""))
 (define $native_str_c9 () ($native_apply_0 """9"""))
-(define $native_str_= ((x1 $native_String) (x2 $native_String)) ($native_apply_2 "streq" x1 x2))
-(define $native_not ((b $native_Bool)) ($native_apply_1 "not" b))
-(define $native_and ((b1 $native_Bool) (b2 $native_Bool)) ($native_apply_2 "and" b1 b2))
-(define $native_or ((b1 $native_Bool) (b2 $native_Bool)) ($native_apply_2 "or" b1 b2))
-(define $native_iff ((b1 $native_Bool) (b2 $native_Bool)) ($native_apply_2 "iff" b1 b2))
-; Integer operators
-; These assume zeq, zleq, zlt, zplus, zmult, zneg are defined as =, <=, <, +, *, -
-(define $native_z_= ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zeq" x1 x2))
-(define $native_z_<= ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zleq" x1 x2))
-(define $native_z_< ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zlt" x1 x2))
-(define $native_z_+ ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zplus" x1 x2))
-(define $native_z_* ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zmult" x1 x2))
 (define $native_z_uneg ((W Type :implicit) (x1 W)) ($native_apply_1 "zneg" x1))
-(define $native_z_- ((W Type :implicit) (x1 W) (x2 W)) ($native_z_+ x1 ($native_z_uneg x2)))
-(define $native_z_abs ((x1 $native_Int)) ($native_apply_1 "zabs" x1))
+(define $native_z_- ((W Type :implicit) (x1 W) (x2 W)) ($native_zplus x1 ($native_z_uneg x2)))
 (define $native_z_pow2 ((W Type :implicit) (x1 W)) ($native_apply_1 "int.pow2" x1))
 (define $native_z_piand ((W Type :implicit) (x1 W) (x2 W) (x3 W)) ($native_apply_3 "piand" x1 x2 x3))
-; Real operators
-; These assume qleq, qlt, qplus, qmult, qneg are defined as <=, <, +, *, -
-(define $native_q_= ((x1 $native_Real) (x2 $native_Real)) ($native_apply_2 "qeq" x1 x2))
-(define $native_q_<= ((x1 $native_Real) (x2 $native_Real)) ($native_apply_2 "qleq" x1 x2))
-(define $native_q_< ((x1 $native_Real) (x2 $native_Real)) ($native_apply_2 "qlt" x1 x2))
-(define $native_q_+ ((x1 $native_Real) (x2 $native_Real)) ($native_apply_2 "qplus" x1 x2))
-(define $native_q_* ((x1 $native_Real) (x2 $native_Real)) ($native_apply_2 "qmult" x1 x2))
-(define $native_q_uneg ((x1 $native_Real)) ($native_apply_1 "qneg" x1))
-(define $native_q_- ((x1 $native_Real) (x2 $native_Real)) ($native_q_+ x1 ($native_q_uneg x2)))
-(define $native_q_abs ((x1 $native_Real)) ($native_apply_1 "qabs" x1))
-; other arithmetic
-(define $native_z_to_real ((x1 $native_Int)) ($native_apply_1 "to_real" x1))
+(define $native_q_- ((x1 $native_Real) (x2 $native_Real)) ($native_qplus x1 ($native_qneg x2)))
 (define $native_q_to_real ((x1 $native_Real)) x1)
-(define $native_z_/_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "mk_rational" x1 x2))
-(define $native_q_/_total ((x1 $native_Real) (x2 $native_Real)) ($native_apply_2 "qdiv_total" x1 x2))
-(define $native_q_zero () ($native_z_/_total $native_z_zero $native_z_one))
-(define $native_div_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "div_total" x1 x2))
-(define $native_mod_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "mod_total" x1 x2))
-(define $native_z_**_total ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "zexp_total" x1 x2))
-(define $native_q_**_total ((x1 $native_Real) (x2 $native_Int)) ($native_apply_2 "qexp_total" x1 x2))
-; The (rounded-down) integer logarithm of x2 in base x1. This is the inverse of
-; $native_z_**_total: it returns the greatest m>=0 such that x1^m <= x2, and 0
-; when x1 <= 1 or x2 <= 0.
-(define $native_z_log ((x1 $native_Int) (x2 $native_Int)) ($native_apply_2 "int_log" x1 x2))
+(define $native_q_zero () ($native_mk_rational $native_z_zero $native_z_one))
 (define $native_z_neg_one () ($native_z_uneg $native_z_one))
-(define $native_z_inc ((x1 $native_Int)) ($native_z_+ x1 $native_z_one))
-(define $native_z_dec ((x1 $native_Int)) ($native_z_+ x1 $native_z_neg_one))
-; natural numbers
-(define $native_Nat () ($native_datatype "Nat"))
-(define $native_n_zero () ($native_apply_0 "nat.zero"))
-(define $native_n_succ ((x1 $native_Nat)) ($native_apply_1 "nat.succ" x1))
+(define $native_z_inc ((x1 $native_Int)) ($native_zplus x1 $native_z_one))
+(define $native_z_dec ((x1 $native_Int)) ($native_zplus x1 $native_z_neg_one))
 (define $native_n_one () ($native_n_succ $native_n_zero))
-(define $native_n_= ((x1 $native_Nat) (x2 $native_Nat)) ($native_apply_2 "nateq" x1 x2))
-(define $native_z_to_n ((x1 $native_Int)) ($native_apply_1 "int.to_nat" x1))
-(define $native_n_to_z ((x1 $native_Nat)) ($native_apply_1 "nat.to_int" x1))
 (define $native_n_+ ((x1 $native_Nat) (x2 $native_Nat))
-  ($native_z_to_n ($native_z_+ ($native_n_to_z x1) ($native_n_to_z x2))))
+  ($native_z_to_n ($native_zplus ($native_n_to_z x1) ($native_n_to_z x2))))
 ; nat to char, currently a no-op
 (define $native_n_to_char ((n $native_Nat)) n)
-; uconst utility
-(define $native_to_uconst_id ((x1 $native_Nat)) ($native_apply_1 "uconst_id" x1))
-; abstract constant utility, note this namespace is distinct from the one used
-; by $native_to_uconst_id, so that an abstract constant is never identified
-; with an uninterpreted constant of the input problem.
-(define $native_to_const_id ((x1 $native_Nat)) ($native_apply_1 "const_id" x1))
-
 ; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
 (define $native_apply_nary_3
   (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
@@ -159,105 +115,8 @@
 ; tools/eoc/semantics/development-cpc.eos.
 (define $native_str_at_sign () ($native_apply_0 """@"""))
 
-; Whether s begins with the string p.
-(define $native_string_prefix_eq ((p $native_String) (s $native_String))
-  ($native_apply_2 "string_prefix_eq" p s))
-
 ;;; Defining parametric bitvector operators
 
 ; The operators in this section are needed to reason about the parametric
 ; operations on the Eunoia binary literal type.
 
-; define: $native_bit
-; return: >
-;   true iff the i^th bit of a binary with integer value x is set. Note this
-;   method is agnostic to bitwidth.
-(define $native_bit ((x $native_Int) (i $native_Int))
-  ($native_apply_2 "bit" x i))
-
-; define: $native_msb
-; return: >
-;   true iff the most significant bit of the binary of width w and value n is
-;   set.
-(define $native_msb ((w $native_Int) (n $native_Int))
-  ($native_apply_2 "msb" w n))
-
-; define: $native_binary_and
-; return: >
-;   The integer value of the binary value obtained by taking the bitwise and of
-;   binary literals ($eo_binary w n1) and ($eo_binary w n2). This value will be
-;   taken modulo 2^w.
-; note: >
-;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
-(define $native_binary_and
-  ((w $native_Int) (n1 $native_Int) (n2 $native_Int))
-  ($native_apply_3 "binary_and" w n1 n2))
-
-; define: $native_binary_or
-; return: >
-;   The integer value of the binary value obtained by taking the bitwise or of
-;   binary literals ($eo_binary w n1) and ($eo_binary w n2). This is equal to
-;   n1+n2-($native_binary_and w n1 n2). This value will be taken modulo 2^w.
-; note: >
-;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
-(define $native_binary_or
-  ((w $native_Int) (n1 $native_Int) (n2 $native_Int))
-  ($native_apply_3 "binary_or" w n1 n2))
-
-; define: $native_binary_xor
-; return: >
-;   The integer value of the binary value obtained by taking the bitwise xor of
-;   binary literals ($eo_binary w n1) and ($eo_binary w n2). This is equal to
-;   n1+n2-(2*($native_binary_and w n1 n2)). This value will be taken modulo 2^w.
-; note: >
-;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
-(define $native_binary_xor
-  ((w $native_Int) (n1 $native_Int) (n2 $native_Int))
-  ($native_apply_3 "binary_xor" w n1 n2))
-
-; define: $native_binary_not
-; return: >
-;   The integer value of the binary value obtained by taking bitwise not of
-;   the binary literal ($eo_binary w n). This is equal to 2^w-(1+n). This value
-;   will be taken modulo 2^w.
-; note: >
-;   Assumes that 0 <= n < 2^w, 0 <= w.
-(define $native_binary_not ((w $native_Int) (n $native_Int))
-  ($native_apply_2 "binary_not" w n))
-
-; define: $native_binary_max
-; return: >
-;   The integer value of the maximum unsigned binary value of width w. This is
-;   equal to 2^w-1.
-(define $native_binary_max ((w $native_Int))
-  ($native_apply_1 "binary_max" w))
-
-; define: $native_binary_uts
-; return: >
-;   The conversion of n from unsigned to signed integer, which is
-;   2*(n mod 2^w-1) - n.
-(define $native_binary_uts ((w $native_Int) (n $native_Int))
-  ($native_apply_2 "binary_uts" w n))
-
-; define: $native_binary_concat
-; return: >
-;   The integer value of the binary value obtained by concatenating binary
-;   literals ($eo_binary w1 n1) and ($eo_binary w2 n2). This is equal to
-;   n1*2^w2 + n2. Note the return value does not depend on w1. This value will
-;   be taken modulo 2^(w1+w2).
-; note: >
-;   Assumes that 0 <= n1 < 2^w1, 0 <= n2 < 2^w2, 0 <= w1, 0 <= w2.
-(define $native_binary_concat
-  ((w1 $native_Int) (n1 $native_Int) (w2 $native_Int) (n2 $native_Int))
-  ($native_apply_4 "binary_concat" w1 n1 w2 n2))
-
-; define: $native_binary_extract
-; return: >
-;   The integer value of the binary value obtained by extracting bits x1
-;   through x2 (inclusive) of binary literal ($eo_binary w n). This is equal
-;   to (div n 2^x1). This value will be taken modulo 2^(1+x2-x1).
-; note: >
-;   Assumes that 0 <= n < 2^w, 0 <= x1 <= x2 < w.
-(define $native_binary_extract
-  ((w $native_Int) (n $native_Int) (x1 $native_Int) (x2 $native_Int))
-  ($native_apply_4 "binary_extract" w n x1 x2))

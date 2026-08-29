@@ -369,7 +369,7 @@
   :signature ($smt_Value $native_Nat $native_Nat) $smt_Value
   (
   (($smtx_apply_arg_nth_value ($vsm_Apply f a) n ($native_n_succ npos))
-    ($native_ite ($native_n_= n npos) a
+    ($native_ite ($native_nateq n npos) a
       ($smtx_apply_arg_nth_value f n npos)))
   (($smtx_apply_arg_nth_value a n npos) $vsm_NotValue)
   )
@@ -448,7 +448,7 @@
   :signature ($native_String $smt_DatatypeDecl) $smt_Datatype
   (
   (($smtx_dd_lookup s ($dd_cons s2 d dd))
-    ($native_ite ($native_str_= s s2) d ($smtx_dd_lookup s dd)))
+    ($native_ite ($native_streq s s2) d ($smtx_dd_lookup s dd)))
   (($smtx_dd_lookup s $dd_nil) $dt_null)
   )
 )
@@ -459,7 +459,7 @@
   :signature ($native_String $smt_DatatypeDecl) $native_Bool
   (
   (($smtx_dd_has_dt s ($dd_cons s2 d dd))
-    ($native_or ($native_str_= s s2) ($smtx_dd_has_dt s dd)))
+    ($native_or ($native_streq s s2) ($smtx_dd_has_dt s dd)))
   (($smtx_dd_has_dt s $dd_nil) $native_false)
   )
 )
@@ -931,7 +931,7 @@
   (($eo_to_smt ($eot_DtSel s dd i j))
     ($native_ite ($eo_to_smt_reserved_datatype_name s) $sm_none
       ($sm_DtSel s ($eo_to_smt_datatype_decl dd) i j)))
-  (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($native_to_uconst_id i) ($eo_to_smt_type T)))
+  (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($native_uconst_id i) ($eo_to_smt_type T)))
 ;$EO_TO_SMT_CASES$
   (($eo_to_smt (f y))               ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
   (($eo_to_smt y)                   $sm_none)
@@ -1097,7 +1097,7 @@
   :signature ($native_String $smt_DatatypeDecl $smt_DatatypeDecl) $smt_Value
   (
   (($smtx_datatype_decl_default s dd ($dd_cons sF dF ddF))
-    ($native_ite ($native_str_= s sF)
+    ($native_ite ($native_streq s sF)
       ($smtx_datatype_default s dd $native_n_zero dF ddF)
       ($smtx_datatype_decl_default s dd ddF)))
   (($smtx_datatype_decl_default s dd ddF) $vsm_NotValue)
