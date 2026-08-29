@@ -501,6 +501,12 @@ void State::addReferenceAssert(const Expr& a)
   d_referenceAssertList.push_back(aa);
 }
 
+void State::clearReferenceAsserts()
+{
+  d_referenceAsserts.clear();
+  d_referenceAssertList.clear();
+}
+
 void State::setLiteralTypeRule(Kind k, const Expr& t)
 {
   d_tc.setLiteralTypeRule(k, t);
