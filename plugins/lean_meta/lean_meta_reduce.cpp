@@ -84,68 +84,6 @@ std::string LeanMetaReduce::emitLeanFile(
   return path;
 }
 
-std::string LeanMetaReduce::stripLeanText(const std::string& text)
-{
-  std::string out;
-  out.reserve(text.size());
-  size_t i = 0;
-  size_t n = text.size();
-  size_t depth = 0;
-  while (i < n)
-  {
-    if (depth > 0)
-    {
-      // a Lean block comment nests, so the depth is counted rather than the
-      // first `-/` taken to close the outermost one
-      if (text.compare(i, 2, "/-") == 0)
-      {
-        depth++;
-        i += 2;
-        continue;
-      }
-      if (text.compare(i, 2, "-/") == 0)
-      {
-        depth--;
-        i += 2;
-        continue;
-      }
-      if (text[i] == '\n')
-      {
-        out.push_back('\n');
-      }
-      i++;
-      continue;
-    }
-    if (text.compare(i, 2, "/-") == 0)
-    {
-      depth = 1;
-      i += 2;
-      continue;
-    }
-    if (text.compare(i, 2, "--") == 0)
-    {
-      while (i < n && text[i] != '\n')
-      {
-        i++;
-      }
-      continue;
-    }
-    if (text[i] == '"')
-    {
-      i++;
-      while (i < n && text[i] != '"')
-      {
-        i += (text[i] == '\\' ? 2 : 1);
-      }
-      i++;
-      continue;
-    }
-    out.push_back(text[i]);
-    i++;
-  }
-  return out;
-}
-
 void LeanMetaReduce::collectNativeNames(
     const std::string& code,
     const std::map<std::string, size_t>& blocks,
@@ -420,7 +358,7 @@ void LeanMetaReduce::placeNativeDefs()
     std::vector<std::string> work(files[i].d_roots.begin(),
                                   files[i].d_roots.end());
     std::set<std::string> ids;
-    collectNativeNames(stripLeanText(files[i].d_text), lib.d_of, ids);
+    collectNativeNames(files[i].d_text, lib.d_of, ids);
     work.insert(work.end(), ids.begin(), ids.end());
     while (!work.empty())
     {

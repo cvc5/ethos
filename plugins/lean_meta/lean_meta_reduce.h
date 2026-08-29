@@ -275,16 +275,16 @@ class LeanMetaReduce : public MetaReducePlugin
    */
   static NativeTopo readNativeTopology(const std::string& text);
   /**
-   * Return text with its comments and the bodies of its string literals
-   * removed, which is what the names a file mentions are read off: a mention
-   * in prose is not a use, and neither is one inside a literal.
-   */
-  static std::string stripLeanText(const std::string& text);
-  /**
-   * Add to out every key of blocks that the Lean in code mentions, where code
-   * has already been through stripLeanText. A dotted name mentions each of
-   * its prefixes, so that `X.f` asks for the block that defines X when no
-   * block defines `X.f` itself.
+   * Add to out every key of blocks that the Lean in code mentions. A dotted
+   * name mentions each of its prefixes, so that `X.f` asks for the block that
+   * defines X when no block defines `X.f` itself.
+   *
+   * A mention is a mention wherever it stands, a comment included, so the
+   * Lean resources of this plugin may not spell a name of the native layer
+   * except on a directive line, which readNativeTopology takes out before
+   * this sees the file. Naming one in prose asks for it: harmless where the
+   * file has that scope in scope, since it only widens what is published, and
+   * an error from placeNativeDefs where it does not.
    */
   static void collectNativeNames(const std::string& code,
                                  const std::map<std::string, size_t>& blocks,
