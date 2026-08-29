@@ -42,8 +42,6 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
   d_table["set-option"] = Token::SET_OPTION;
-  d_table["pop"] = Token::POP;    // undocumented
-  d_table["push"] = Token::PUSH;  // undocumented
   d_table["reset"] = Token::RESET;
 
   if (d_isReference)
@@ -875,6 +873,11 @@ bool CmdParser::parseNextCommand()
       // reset the state of the parser, which is independent of the symbol
       // manager
       d_state.reset();
+      // in reference files, reset subsumes reset-assertions
+      if (d_isReference)
+      {
+        d_state.clearReferenceAsserts();
+      }
     }
     break;
     // (step i F? :rule R :premises (p1 ... pn) :args (t1 ... tm))
@@ -1009,8 +1012,10 @@ bool CmdParser::parseNextCommand()
       // The formulas of a check-sat-assuming are part of the query, thus a
       // proof of unsat is permitted to assume them.
       std::vector<Expr> as = d_eparser.parseExprList();
-      for (const Expr& a : as)
+      for (Expr& a : as)
       {
+        // ensure each assumption has type Bool, as is done for assert
+        d_eparser.typeCheck(a, d_state.mkBoolType());
         d_state.addReferenceAssert(a);
       }
     }
@@ -1020,7 +1025,7 @@ bool CmdParser::parseNextCommand()
     {
       // Discards all assertions and pops all assertion levels, hence the
       // reference assertions accumulated so far are no longer part of the
-      // query.
+      // query. Note that (reset) also clears the reference assertions.
       d_state.clearReferenceAsserts();
     }
     break;
@@ -1038,29 +1043,6 @@ bool CmdParser::parseNextCommand()
         }
         d_eparser.parseSymbolicExpr();
         ptok = d_lex.peekToken();
-      }
-    }
-    break;
-    case Token::POP:
-    case Token::PUSH:
-    {
-      bool isPush = (tok==Token::PUSH);
-      tok = d_lex.peekToken();
-      size_t num = 1;
-      if (tok == Token::INTEGER_LITERAL)
-      {
-        num = d_eparser.parseIntegerNumeral();
-      }
-      for (size_t i=0; i<num; i++)
-      {
-        if (isPush)
-        {
-          d_state.pushScope();
-        }
-        else
-        {
-          d_state.popScope();
-        }
       }
     }
     break;

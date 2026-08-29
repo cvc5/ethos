@@ -119,7 +119,7 @@
   :signature ((-> Bool Bool Bool) $eo_IndexList $eo_State) Bool
   (
   (($eo_mk_premise_list f $emb_indl.nil S)          (eo::nil f Bool))
-  (($eo_mk_premise_list f ($emb_indl.cons n pl) S)  
+  (($eo_mk_premise_list f ($emb_indl.cons n pl) S)
      (eo::cons f ($eo_state_proven_nth S n) ($eo_mk_premise_list f pl S)))
   )
 )
@@ -130,7 +130,7 @@ $EO_RULE_DEFS$
 
 ; Command constructors
 
-; note that assume is not a command, instead formulas are input to 
+; note that assume is not a command, instead formulas are input to
 ; $eo_is_refutation which create a list of assumes as preamble.
 (declare-parameterized-const $emb_cmd.assume_push ((x Bool :opaque)) $eo_Cmd)
 (define $cmd_assume_push ((x Bool)) ($emb_cmd.assume_push x))
@@ -206,7 +206,7 @@ $EO_INVOKE_POP$
   :signature ($eo_State $eo_Cmd) $eo_State
   (
   (($eo_invoke_cmd $s_stuck c) $s_stuck)
-  (($eo_invoke_cmd S ($cmd_assume_push proven))  
+  (($eo_invoke_cmd S ($cmd_assume_push proven))
     ($eo_push_assume_check (eo::and ($eo_is_bool_type proven) ($eo_is_closed proven)) proven S))
   (($eo_invoke_cmd S ($cmd_check_proven proven)) ($eo_invoke_cmd_check_proven S proven))
   (($eo_invoke_cmd S ($cmd_step r args premises))

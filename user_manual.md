@@ -2057,7 +2057,7 @@ By default, `define-fun` commands in reference files are interpreted as referenc
 If the option `reference-define-fun` is enabled, they are instead parsed as Eunoia definitions.
 The commands of the form `(assert F)` will add `F` to a set of formulas we will refer to as the _reference assertions_.
 The commands of the form `(check-sat-assuming (F1 ... Fn))` will likewise add `F1 ... Fn` to the reference assertions, since these formulas are part of the query that was checked.
-The command `(reset-assertions)` discards all reference assertions collected so far.
+The commands `(reset-assertions)` and `(reset)` discard all reference assertions collected so far.
 Other commands in `file.smt2` (e.g. `set-logic`, `set-option`, and so on) will be ignored.
 
 In reference files only, `(_ f i1 ... in)` is read as an SMT-LIB indexed identifier, that is, it denotes the same term as the application `(f i1 ... in)`.
@@ -2076,9 +2076,9 @@ If it does not, then an error is thrown indicating that the proof is assuming a 
 
 The following aspects of SMT-LIB version 2.6 inputs are *not* supported when used as reference files in the current version of ethos.
 
-- **Recursive function definitions.** The commands `define-fun-rec` and `define-funs-rec` are rejected with an error. Each can be seen equivalently as a `declare-fun` and a quantified assertion, per function. The latter is the recommended way to express recursive functions if you want reference checking supported with ethos.
-- **Incremental inputs.** Reference checking should not be run on benchmarks with multiple queries, or on benchmarks that contain `push` or `pop`. Note that the assumptions of a `check-sat-assuming` command *are* considered for reference checking, but are not scoped to that command.
-- **Other solver-specific commands.** Any command not listed in the grammar below is not recognized and leads to a parse error.
+- **Recursive function definitions.** The commands `define-fun-rec` and `define-funs-rec` are not supported and lead to a parse error. Each can be seen equivalently as a `declare-fun` and a quantified assertion, per function. The latter is the recommended way to express recursive functions if you want reference checking supported with ethos.
+- **Incremental inputs.** The commands `push` and `pop` are not supported and lead to a parse error. Reference checking should not be run on benchmarks with multiple queries. Note that the assumptions of a `check-sat-assuming` command *are* considered for reference checking, but are not scoped to that command.
+- **Other solver-specific commands.** Any command not listed in the grammar below (e.g. solver-specific commands that do not begin with `get-`) leads to a parse error.
 
 Any command whose name begins with `get-` is parsed and ignored, since the only effect of such a command is to produce solver output, which has no impact on the set of reference assertions. As of SMT-LIB version 2.6, the commands of this form are `get-assertions`, `get-assignment`, `get-info`, `get-model`, `get-option`, `get-proof`, `get-unsat-assumptions`, `get-unsat-core` and `get-value`; ethos does not maintain this list.
 

@@ -67,8 +67,8 @@ add_subdirectory(tests)
 #
 #   make plugins-compile-check
 #
-# The standalone project in plugins/ builds the same sources into ethos-eoc,
-# which additionally links them; see plugins/CMakeLists.txt.
+# CI gets the same coverage, plus linking, from the ethos-eoc build of the
+# standalone project in plugins/; see plugins/CMakeLists.txt.
 #
 # cpp_compiler is skipped: it is a snapshot from an earlier version of ethos
 # and is known not to compile (see plugins/cpp_compiler/README.md).
