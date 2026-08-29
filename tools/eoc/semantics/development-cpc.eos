@@ -8,14 +8,14 @@
 ; This one is of CPC and is kept as a test, so that the compiler and every stage
 ; after it have a real signature to run over. The official semantics of CPC
 ; lives in the Logos repository, which is what a run that means to say something
-; about CPC names with --signature; nothing keeps this copy in step with it.
+; about CPC names with --semantics; nothing keeps this copy in step with it.
 
 ; This is a configuration of the eoc pipeline rather than anything a stage of it
 ; reads. tools/eoc/sem_compile.py compiles it, before any stage runs, into
 ; tools/eoc/out/user_defs.eo and tools/eoc/out/user_termination.lean,
 ; both generated in full: what is to be changed is here. A run names another
-; with --signature, and one outside this tree compiles beside itself. See
-; README.md for the language.
+; with --semantics, and that one compiles to these same two files in place of
+; this set. See README.md for the language.
 ;
 ; The whole of the set stands here, one theory to a section, in the order the
 ; blocks are emitted.

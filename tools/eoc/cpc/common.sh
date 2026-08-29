@@ -29,17 +29,17 @@ EOC_REPO_ROOT="$(cd "$EOC_COMPAT_DIR/../../.." && pwd)"
 EOC_DRIVER="$EOC_TOOLS_DIR/driver.py"
 # The input is the CPC signature itself. What its symbols mean to the model is
 # said by a signature of its own, written in the deep embedding, which the
-# model-smt stage is given with --signature.
+# model-smt stage is given with --semantics.
 #
-# What is named here is the *configuration* of that signature rather than the
+# What is named here is the *configuration* of those semantics rather than the
 # signature itself: the driver compiles it before the model-smt stage and gives
 # the stage what it compiled to, so the two are never out of step. See
 # compile_signatures in tools/eoc/driver.py.
 EOC_DEFAULT_CPC_INPUT="$EOC_REPO_ROOT/../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
-EOC_DEFAULT_CPC_SIGNATURE="$EOC_TOOLS_DIR/semantics/development-cpc.eos"
+EOC_DEFAULT_SEMANTICS="$EOC_TOOLS_DIR/semantics/development-cpc.eos"
 # The SMT-LIB semantics it is written against, which is the target of the
 # compilation and so the same whichever input a run compiles.
-EOC_DEFAULT_SEMANTICS="$EOC_TOOLS_DIR/semantics/smt.eos"
+EOC_DEFAULT_SMT_SEMANTICS="$EOC_TOOLS_DIR/semantics/smt.eos"
 # Why each of its recursive programs terminates, which the generated Lean has
 # to say and the compiler cannot derive. This is what the configuration named
 # above compiles it to, which the driver gives the lean-meta stage of itself,
@@ -64,32 +64,32 @@ eoc_cpc_input() {
   printf '%s\n' "${EOC_CPC_INPUT:-$EOC_DEFAULT_CPC_INPUT}"
 }
 
-eoc_cpc_signature() {
-  printf '%s\n' "${EOC_CPC_SIGNATURE:-$EOC_DEFAULT_CPC_SIGNATURE}"
-}
-
-# Append the signature of the input to ARGS. An input given by the caller has a
-# signature of its own or none at all, so the default is used only for the
-# default input.
-eoc_add_signature() {
-  if [[ -n "${EOC_CPC_SIGNATURE:-}" ]]; then
-    ARGS+=("--signature=${EOC_CPC_SIGNATURE}")
-  elif [[ -z "${EOC_CPC_INPUT:-}" ]]; then
-    ARGS+=("--signature=$EOC_DEFAULT_CPC_SIGNATURE")
-  fi
-}
-
-# The SMT-LIB semantics the signature of an input is written against, which
-# every input is compiled through. It is the target of the compilation, so a
-# run leaves it to the one the model-smt stage ships with unless it names
-# another; naming one is what says the semantics are a configuration too.
 eoc_semantics() {
   printf '%s\n' "${EOC_SEMANTICS:-$EOC_DEFAULT_SEMANTICS}"
 }
 
+# Append the semantics of the input to ARGS. An input given by the caller has
+# semantics of its own or none at all, so the default is used only for the
+# default input.
 eoc_add_semantics() {
   if [[ -n "${EOC_SEMANTICS:-}" ]]; then
     ARGS+=("--semantics=${EOC_SEMANTICS}")
+  elif [[ -z "${EOC_CPC_INPUT:-}" ]]; then
+    ARGS+=("--semantics=$EOC_DEFAULT_SEMANTICS")
+  fi
+}
+
+# The SMT-LIB semantics the semantics of an input are written against, which
+# every input is compiled through. It is the target of the compilation, so a
+# run leaves it to the one the tool ships with unless it names another; naming
+# one is what says those semantics are a configuration too.
+eoc_smt_semantics() {
+  printf '%s\n' "${EOC_SMT_SEMANTICS:-$EOC_DEFAULT_SMT_SEMANTICS}"
+}
+
+eoc_add_smt_semantics() {
+  if [[ -n "${EOC_SMT_SEMANTICS:-}" ]]; then
+    ARGS+=("--smt-semantics=${EOC_SMT_SEMANTICS}")
   fi
 }
 
@@ -97,11 +97,10 @@ eoc_cpc_lean_config() {
   printf '%s\n' "${EOC_CPC_LEAN_CONFIG:-$EOC_DEFAULT_CPC_LEAN_CONFIG}"
 }
 
-# Append the Lean configuration of the input to ARGS. The clauses of a
-# signature given as a configuration are compiled with it, and the driver reads
-# them from where that set compiled them, so this names one only where the
-# caller did: naming the default here would be right only for a set of this
-# tree, since any other compiles beside itself.
+# Append the Lean configuration of the input to ARGS. The clauses of semantics
+# given as a configuration are compiled with them, and the driver gives the
+# stage what that set compiled to, so this names one only where the caller
+# did -- which is for a signature given already written out.
 eoc_add_lean_config() {
   if [[ -n "${EOC_CPC_LEAN_CONFIG:-}" ]]; then
     ARGS+=("--lean-config=${EOC_CPC_LEAN_CONFIG}")
@@ -251,7 +250,7 @@ eoc_rewrite_lean_calc_imports() {
 #
 # The stage reads two signatures written in the deep embedding: the SMT-LIB one,
 # smt_defs.eo, which it finds for itself since it is the target, and the input's,
-# user_defs.eo, which --signature names. Both are generated from the
+# user_defs.eo, which --semantics names. Both are generated from the
 # configuration under tools/eoc/semantics. The driver compiles them before any
 # stage runs (see compile_signatures in tools/eoc/driver.py) but does so
 # silently, so a run never says where user_defs.eo came from; this compiles them
@@ -260,7 +259,7 @@ eoc_rewrite_lean_calc_imports() {
 # changed.
 #
 # Which sets are compiled is sem_compile's own business rather than something
-# listed here, so the two cannot drift. One named with EOC_CPC_SIGNATURE that is
+# listed here, so the two cannot drift. One named with EOC_SEMANTICS that is
 # not among the sets the tool ships with is compiled by the driver during the
 # run rather than reported here.
 eoc_compile_sem_signatures() {

@@ -15,7 +15,7 @@ ARGS=(batch --build-dir "$BUILD_DIR")
 eoc_add_skip_cvc5
 eoc_extract_solve_options "$@"
 
-eoc_add_signature
 eoc_add_semantics
+eoc_add_smt_semantics
 ARGS+=(vc "$INPUT" "${EOC_FILTERED_ARGS[@]}")
 eoc_exec_driver "${ARGS[@]}"

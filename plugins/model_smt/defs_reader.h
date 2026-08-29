@@ -21,7 +21,7 @@ namespace ethos {
  * What one symbol of a signature contributes to the generated file, i.e. the
  * block a `; -- X` line opens in a definitions file, see
  * tools/eoc/out/smt_defs.eo and the signature of the input given with
- * --signature, e.g. tools/eoc/out/user_defs.eo.
+ * --semantics, e.g. tools/eoc/out/user_defs.eo.
  *
  * A block is read as *text* rather than as terms. What it says is copied into
  * the generated file as it stands, which is what keeps the definitions of the

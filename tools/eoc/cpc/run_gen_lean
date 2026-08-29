@@ -13,8 +13,8 @@ BUILD_DIR="$(eoc_build_dir)"
 INPUT="$(eoc_cpc_input)"
 ARGS=(lean --build-dir "$BUILD_DIR" "$INPUT")
 
-eoc_add_signature
 eoc_add_semantics
+eoc_add_smt_semantics
 eoc_add_lean_config
 ARGS+=("$@")
 eoc_exec_driver "${ARGS[@]}"

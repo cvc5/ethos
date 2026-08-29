@@ -19,8 +19,8 @@ naming conventions of the embedding; everything about what a set compiles to is
 said by the set. The language the sets are written in is documented in full in
 semantics/README.md.
 
-  usage: sem_compile.py [--out-dir DIR] [--check] [--signature CONFIG]
-                        [--semantics CONFIG] [CONFIG...]
+  usage: sem_compile.py [--out-dir DIR] [--check] [--semantics CONFIG]
+                        [--smt-semantics CONFIG] [CONFIG...]
 
 The eoc pipeline runs this before the model-smt stage, see
 compile_signatures in tools/eoc/driver.py, so the generated files are current
@@ -72,8 +72,8 @@ CONFIGS = (os.path.join(SEM, 'smt.eos'), os.path.join(SEM, 'development-cpc.eos'
 # of an input. The two compile to different things, so a run has to know which
 # a set is before it reads a line, and the role is what says so: for these two
 # it is fixed here, and for any other set it is said by the option that names
-# it, --semantics for a target and --signature for an input -- never by what a
-# file is called.
+# it, --smt-semantics for a target and --semantics for an input -- never by
+# what a file is called.
 SHIPPED = ((CONFIGS[0], True), (CONFIGS[1], False))
 
 # The native layer of the Lean backend: what the generated Lean is written over
@@ -261,30 +261,22 @@ class Config:
   def name(self):
     return name_of(self.path)
 
-  def _beside(self, target):
-    """Where one of the files it compiles to is written.
-
-    The sets the tool ships with compile into tools/eoc/out, which is where the
-    stages read them from and which nothing checks in: what is kept is the
-    configuration. Any other set compiles *beside itself*, since where it
-    stands is the only place the tool knows of, so one that lives in another
-    tree writes what it compiles to into that tree.
-    """
-    if any(same_file(self.path, c) for c in CONFIGS):
-      return target
-    return os.path.join(os.path.dirname(self.path), os.path.basename(target))
-
   @property
   def target(self):
-    """The signature in the deep embedding it compiles to."""
-    return self._beside(SMT_TARGET if self.is_target else INPUT_TARGET)
+    """The signature in the deep embedding it compiles to.
+
+    Where a set compiles to is said by its role and by nothing else, so the
+    file has one name whatever the set is called and wherever it stands: a run
+    compiles one set of each role, and the stages read the two files those
+    wrote. Nothing checks them in; what is kept is the configuration.
+    """
+    return SMT_TARGET if self.is_target else INPUT_TARGET
 
   @property
   def lean_target(self):
     """Where what its methods say the generated Lean is to be told is written,
     on the same terms."""
-    return self._beside(
-        SMT_LEAN_TARGET if self.is_target else INPUT_LEAN_TARGET)
+    return SMT_LEAN_TARGET if self.is_target else INPUT_LEAN_TARGET
 
 
 def same_file(a, b):
@@ -357,19 +349,21 @@ def compile_config(config, vocab, macros):
 
 
 def check_distinct(configs):
-  """No two sets of one run may write one file.
+  """A run compiles one set of each role, and no more.
 
-  Two sets of one role standing in one directory would, since a set outside
-  the tool compiles beside itself, see Config._beside; what is written first
-  would be read as what was written last, so the run refuses instead.
+  Where a set compiles to is said by its role, see Config.target, so two of
+  one role would write one file and what was written first would be read as
+  what was written last. The run refuses instead.
   """
   seen = {}
   for config in configs:
-    t = os.path.realpath(config.target)
+    t = config.target
     if t in seen:
-      die('%s and %s both compile to %s; a set compiles beside itself, so '
-          'two of one role cannot stand in one directory'
-          % (seen[t], config.name, config.target))
+      die('%s and %s are both the %s, and a run compiles one of each: they '
+          'would both write %s'
+          % (seen[t], config.name,
+             'SMT-LIB semantics' if config.is_target else 'input semantics',
+             report.rel(t)))
     seen[t] = config.name
 
 
@@ -733,10 +727,10 @@ def main():
       description='Compile the configuration of the model-smt signatures.')
   ap.add_argument('configs', nargs='*', metavar='CONFIG',
                   help='a set the tool ships with; both by default')
-  ap.add_argument('--signature', action='append', default=[],
-                  metavar='CONFIG',
-                  help='the central file of the signature of an input')
   ap.add_argument('--semantics', action='append', default=[],
+                  metavar='CONFIG',
+                  help='the central file of the semantics of an input')
+  ap.add_argument('--smt-semantics', action='append', default=[],
                   metavar='CONFIG',
                   help='the central file of an SMT-LIB semantics, i.e. of a '
                        'set that is the target of the compilation')
@@ -754,10 +748,10 @@ def main():
     role = role_of(p)
     if role is None:
       die('%s is not a set the tool ships with, so which shape it compiles to '
-          'has to be said: name it with --signature or --semantics' % p)
+          'has to be said: name it with --semantics or --smt-semantics' % p)
     sets.append((p, role))
-  sets += [(p, False) for p in a.signature]
-  sets += [(p, True) for p in a.semantics]
+  sets += [(p, False) for p in a.semantics]
+  sets += [(p, True) for p in a.smt_semantics]
   sets = sets or list(SHIPPED)
   # What the sets are named by in a line of the log: the directory they share
   # where they share one, so that a line names the file rather than the way to
