@@ -517,10 +517,10 @@ class Pipeline:
         # tools/eoc/README.md.
         args = ["--plugin.model-smt"]
         if self.defs_file is not None:
-            args.append(f"--signature={self.binary_path_arg(self.defs_file)}")
+            args.append(f"--semantics={self.binary_path_arg(self.defs_file)}")
         if self.smt_defs_file is not None:
             args.append(
-                f"--semantics={self.binary_path_arg(self.smt_defs_file)}")
+                f"--smt-semantics={self.binary_path_arg(self.smt_defs_file)}")
         args.append(self.binary_path_arg(input_file))
         self.ethos(args, quiet=True)
         output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -774,59 +774,66 @@ def resolve_cvc5(path_arg: Optional[str], *, cwd: Path) -> Optional[Path]:
 
 
 def compile_signatures(
-    signature: Optional[Path], semantics: Optional[Path] = None
+    semantics: Optional[Path], smt_semantics: Optional[Path] = None
 ) -> tuple[Optional[Path], Optional[Path], Optional[Path]]:
     """Compile the configuration of the model-smt signatures, and say where
     each of the two the stage reads came out, together with where the
     termination clauses of the input's programs did.
 
     That stage reads two files written in the deep embedding: the SMT-LIB
-    semantics the compilation is the target of, and the signature of the input,
+    semantics the compilation is the target of, and the semantics of the input,
     which is written against it. Both are generated from a configuration under
     tools/eoc/semantics, so both are compiled here, before any stage runs; a
     file is written only where its text changed. A set also compiles the Lean
     its methods say under :lean, and the third of what comes back is where the
     input's came out, which is what the lean-meta stage is given where
-    --lean-config names nothing; the deep embedding's own is read by that
-    stage itself, see LeanMetaReduce.
+    --lean-config names nothing.
 
-    Each option names the *central file* of a configuration set, and what comes
-    back is what that set compiled to. The option a set is named with is what
-    gives it its role -- --semantics names the SMT-LIB semantics, the target of
-    the compilation, and --signature the signature of an input -- and the role
-    is what says which shape the set compiles to, see sem_compile.role_of. A
-    file that is not a central file is taken to be a signature already written
-    out and is passed through, which is what lets one that has no configuration
-    still be given directly. Naming neither leaves the stage the sets the tool
-    ships with.
+    A run compiles **one set of each role**, and each option names which. The
+    option a set is named with is what gives it its role -- --smt-semantics
+    names the SMT-LIB semantics, the target of the compilation, and --semantics
+    the semantics of an input -- and the role is what says both which shape the
+    set compiles to and which file it writes, see sem_compile.role_of and
+    sem_compile.Config.target. So a set named here stands in for the one the
+    tool ships with rather than compiling beside it: there is one
+    smt_termination.lean and one user_termination.lean whatever a run names,
+    which is what lets the lean-meta stage read the first without being told
+    where it is.
+
+    Each option names the *central file* of a set. A file that is not a central
+    file is taken to be a signature already written out and is passed through,
+    which is what lets one that has no configuration still be given directly.
+    Naming neither leaves the sets the tool ships with.
     """
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import sem_compile
 
-    sets = {os.path.realpath(c): (c, t) for c, t in sem_compile.SHIPPED}
+    # One set of each role, the shipped one until an option names another.
+    chosen = {is_target: path for path, is_target in sem_compile.SHIPPED}
     named = []
-    for given, is_target in ((signature, False), (semantics, True)):
+    for given, is_target in ((semantics, False), (smt_semantics, True)):
         mine = str(given.resolve()) if given is not None else None
         if mine is not None and not sem_compile.is_config(mine):
             mine = None
         if mine is not None:
-            key = os.path.realpath(mine)
-            if key in sets and sets[key][1] != is_target:
+            role = sem_compile.role_of(mine)
+            if role is not None and role != is_target:
                 raise RuntimeError(
-                    f"{mine} is given two roles; --semantics names the "
-                    "SMT-LIB semantics and --signature the signature of an "
+                    f"{mine} is given two roles; --smt-semantics names the "
+                    "SMT-LIB semantics and --semantics the semantics of an "
                     "input, and a set is one or the other"
                 )
-            sets[key] = (mine, is_target)
+            chosen[is_target] = mine
         named.append(mine)
-    written = sem_compile.compile_to_files(list(sets.values()))
+    written = sem_compile.compile_to_files(
+        [(path, is_target) for is_target, path in chosen.items()])
 
     def compiled(mine):
         return next(v for k, v in written.items()
                     if sem_compile.same_file(k, mine))
 
     out: list[Optional[Path]] = []
-    for given, mine in zip((signature, semantics), named):
+    for given, mine in zip((semantics, smt_semantics), named):
         if mine is None:
             out.append(given)
         else:
@@ -863,10 +870,10 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         help="Do not rebuild ethos-eoc before running the pipeline.",
     )
     parser.add_argument(
-        "--signature",
+        "--semantics",
         default=None,
         help=(
-            "The central file of the configuration of the input's signature, "
+            "The central file of the configuration of the input's semantics, "
             "e.g. tools/eoc/semantics/development-cpc.eos. It is compiled "
             "before the model-smt stage reads what it compiles to. A file "
             "that is not a central file is taken to be a signature already "
@@ -874,12 +881,12 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         ),
     )
     parser.add_argument(
-        "--semantics",
+        "--smt-semantics",
         default=None,
         help=(
-            "The same, for the SMT-LIB semantics the input's signature is "
-            "written against, e.g. tools/eoc/semantics/smt.eos. The model-smt "
-            "stage reads the one it ships with where this names none."
+            "The same, for the SMT-LIB semantics the input's semantics is "
+            "written against, e.g. tools/eoc/semantics/smt.eos. The one the "
+            "tool ships with is compiled where this names none."
         ),
     )
     parser.add_argument(
@@ -994,7 +1001,7 @@ def main(argv: list[str]) -> int:
     def resolve_file_arg(name: str, flag: str) -> Optional[Path]:
         """The file the given option names, resolved as the input is.
 
-        It has to exist: read as empty, a mistyped --signature would quietly
+        It has to exist: read as empty, a mistyped --semantics would quietly
         compile a signature with no exclusions and no dependencies instead of
         saying that the file it was pointed at is not there.
         """
@@ -1012,9 +1019,15 @@ def main(argv: list[str]) -> int:
     # compiled to. The termination clauses of the input come out of the same
     # compilation, so --lean-config names another only where the generated
     # ones will not do.
-    defs_file, smt_defs_file, lean_config_file = compile_signatures(
-        resolve_file_arg("signature", "--signature"),
-        resolve_file_arg("semantics", "--semantics"))
+    # A set given the wrong role is the one mistake the options invite, since
+    # the two read alike, so it is said the way every other error of a run is.
+    try:
+        defs_file, smt_defs_file, lean_config_file = compile_signatures(
+            resolve_file_arg("semantics", "--semantics"),
+            resolve_file_arg("smt_semantics", "--smt-semantics"))
+    except RuntimeError as err:
+        report.error(str(err))
+        return 1
     pipeline = Pipeline(
         resolve_path_arg(build_dir_arg, cwd=invocation_cwd),
         final_out_dir,

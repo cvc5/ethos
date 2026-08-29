@@ -27,8 +27,8 @@ reduces.
 ## The signatures written in the deep embedding
 
 What a symbol means to the model is said by two files, and a run may name
-either: the signature of the input with `--signature`, and the SMT-LIB
-semantics it is written against with `--semantics`.
+either: the semantics of the input with `--semantics`, and the SMT-LIB
+semantics it is written against with `--smt-semantics`.
 
 ```text
 tools/eoc/out/smt_defs.eo   the SMT-LIB semantics, written in the embedding
@@ -42,7 +42,7 @@ configuration set* rather than what it compiles to:
 
 ```text
 python3 tools/eoc/driver.py lean --all \
-  --signature tools/eoc/semantics/development-cpc.eos \
+  --semantics tools/eoc/semantics/development-cpc.eos \
   <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
@@ -51,14 +51,19 @@ out and is passed through, which is what lets one that has no configuration
 still be given directly. See `tools/eoc/semantics/README.md` for what the
 configuration is and the language it is written in.
 
+A run compiles **one set of each role**, and the set an option names stands in
+for the one the tool ships with rather than compiling beside it. Where a set
+compiles to is said by its role and by nothing else, so the four generated
+files have the names above whatever a run names and wherever the sets stand.
+
 Only the `model-smt` stage reads them; no stage before it sees either. A symbol
 the input declares that the file says nothing about is an error rather than a
 term the model would silently say nothing about. The plugin ships with the
 SMT-LIB semantics but with no signature of an input, so a run that names none
 is an error once that stage runs.
 
-The examples below leave `--signature` out because the wrappers in
-`tools/eoc/cpc` pass it, see `EOC_DEFAULT_CPC_SIGNATURE` in `common.sh`; the
+The examples below leave `--semantics` out because the wrappers in
+`tools/eoc/cpc` pass it, see `EOC_DEFAULT_SEMANTICS` in `common.sh`; the
 driver on its own requires it.
 
 Each is a sequence of blocks, one per symbol, opened by a `; -- X` line. For a

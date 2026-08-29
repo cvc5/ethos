@@ -55,14 +55,14 @@ signature by the directory it stands in and by nothing else.
 **`smt.eos` is the target**: what an SMT-LIB symbol means to a model, the type
 of a term and the value of one. Every input is compiled through it, so what it
 says is what a model of any input means, and nothing about an input is asked of
-it. A run names another with `--semantics`.
+it. A run names another with `--smt-semantics`.
 
 **`development-cpc.eos` is a test**, kept so that the compiler and every stage
 after it have a real signature to run over; CI compiles it on every push. **The
 official semantics of CPC lives in the Logos repository**, which is what a run
-that means to say something about CPC names with `--signature`. Nothing keeps
-the copy here in step with it, and a set named that way compiles beside itself,
-so running against the official one leaves this tree alone.
+that means to say something about CPC names with `--semantics`. Nothing keeps
+the copy here in step with it: a set named that way stands in for this one for
+the run, so running against the official one leaves this file alone.
 
 Compiling one set is four steps:
 
@@ -83,12 +83,12 @@ python3 tools/eoc/sem_compile.py                    # write what each set compil
 python3 tools/eoc/sem_compile.py --check            # say whether the generated files are current
 python3 tools/eoc/sem_compile.py --out-dir D        # write elsewhere
 python3 tools/eoc/sem_compile.py CONFIG...          # one shipped set rather than both
-python3 tools/eoc/sem_compile.py --signature CONFIG # a set of another tree, as an input
-python3 tools/eoc/sem_compile.py --semantics CONFIG # ... as an SMT-LIB semantics
+python3 tools/eoc/sem_compile.py --semantics CONFIG     # a set of another tree, as an input
+python3 tools/eoc/sem_compile.py --smt-semantics CONFIG # ... as an SMT-LIB semantics
 ```
 
 The eoc driver runs the compiler before the model-smt stage, so the generated
-files are current whenever that stage reads them; `--signature` names the
+files are current whenever that stage reads them; `--semantics` names the
 central file rather than what it compiles to. A file is written only where its
 text changed.
 
@@ -259,18 +259,22 @@ files: the SMT-LIB semantics, which is the target of the compilation, and one
 signature of the input whichever input a run compiles. Which of the two a set
 is is said by the role a run gives it -- the two the tool ships with have
 theirs fixed, and any other is given one by the option that names it,
-`--semantics` for a target and `--signature` for an input, never by what its
-file is called -- and where what it compiles to is written is the tool's to
+`--smt-semantics` for a target and `--semantics` for an input, never by what
+its file is called -- and where what it compiles to is written is the tool's to
 say, in `SMT_TARGET` and `INPUT_TARGET` in `tools/eoc/sem_compile.py`.
 
-Those are where the sets the tool ships with compile to, `tools/eoc/out`, which
-nothing checks in: what is kept is the configuration. **Any other set compiles
-beside itself**:
-where it stands is the only place the tool knows of, so a set that lives in
-another tree writes what it compiles to into that tree. That is what lets a
-run name one: `--signature` for the signature of the input and `--semantics`
-for the SMT-LIB semantics it is written against, either of which may be a set
-or a signature already written out.
+**Where a set compiles to is said by its role and by nothing else.** A run
+compiles one set of each role, and the set an option names *stands in for* the
+one the tool ships with rather than compiling beside it, so the four generated
+files stand at those paths under `tools/eoc/out` whatever a run names and
+wherever the sets themselves live. Nothing checks them in: what is kept is the
+configuration. Two sets of one role in one run are refused, since they would
+both write one file.
+
+That fixed layout is what lets a stage read a file without being told where it
+is: `tools/eoc/out/smt_termination.lean` holds the termination clauses of the
+deep embedding's programs for whichever SMT-LIB semantics the run compiled, so
+the lean-meta stage never needs an option for it.
 
 A set is recognised by holding a `define-symbol`, which a signature written out
 never does; that is also how the two options tell one from the other.
@@ -1177,12 +1181,13 @@ Not a change to a signature: add it to the shape in `tools/eoc/sem_target.py`,
 and teach `DefsFile::read` in `plugins/model_smt/defs_reader.cpp` the prefix of
 the program it writes, so the stage knows what to do with its cases.
 
-### Add a signature of another input
+### Add the semantics of another input
 
 Write a file beside `semantics/development-cpc.eos`: a heading, then its
-theories in sections. Name it with `--signature`, which is what gives it the
-shape of an input, and it compiles beside itself unless it is one of the two
-the tool ships with. Nothing in the compiler names either existing set.
+theories in sections. Name it with `--semantics`, which is what gives it the
+shape of an input, and it compiles to `tools/eoc/out/user_defs.eo` in place of
+the set the tool ships with. Nothing in the compiler names either existing
+set.
 
 ---
 

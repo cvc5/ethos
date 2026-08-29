@@ -25,7 +25,8 @@
 ; reads. tools/eoc/sem_compile.py compiles it, before any stage runs, into
 ; tools/eoc/out/smt_defs.eo and tools/eoc/out/smt_termination.lean, both
 ; generated in full: what is to be changed is here. A run names another with
-; --semantics. See README.md for the language.
+; --smt-semantics, and that one compiles to these same two files in place of
+; this set. See README.md for the language.
 ;
 ; The whole of the set stands here, one theory to a section, in the order the
 ; blocks are emitted.

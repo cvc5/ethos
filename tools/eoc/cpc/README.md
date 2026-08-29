@@ -18,11 +18,11 @@ input: <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
 What its symbols mean to the model is said by a signature of its own, which
-the wrappers give with `--signature`. What they name there is the central file of
+the wrappers give with `--semantics`. What they name there is the central file of
 its configuration, `semantics/development-cpc.eos`: the driver compiles that
 before the model-smt stage and gives the stage what it compiled to,
 `tools/eoc/out/user_defs.eo`, so the two are never out of step. Override it
-with `EOC_CPC_SIGNATURE`.
+with `EOC_SEMANTICS`.
 
 That configuration is also where CPC says what the compilation has no place for
 at all,
@@ -39,14 +39,16 @@ Useful environment variables:
   so `install_logos` does.
 - `EOC_SKIP_CVC5=1` to skip solver parse checks.
 - `EOC_CPC_INPUT=/path/to/signature.eo` to override the default CPC input. A
-  signature given this way has no model definitions unless `EOC_CPC_SIGNATURE`
+  signature given this way has no model definitions unless `EOC_SEMANTICS`
   names them.
-- `EOC_CPC_SIGNATURE=/path/to/defs.eo` to override the signature of the input
-  written in the deep embedding.
-- `EOC_SEMANTICS=/path/to/smt.eos` to override the SMT-LIB semantics the
-  signature of the input is written against, which every input is compiled
-  through. Unset, a run leaves the stage the one it ships with; a set named
-  here compiles beside itself and is given to the stage with `--semantics`.
+- `EOC_SEMANTICS=/path/to/defs.eos` to override the semantics of the input,
+  which say what its symbols mean to the model.
+- `EOC_SMT_SEMANTICS=/path/to/smt.eos` to override the SMT-LIB semantics the
+  input's semantics are written against, which every input is compiled through.
+  Unset, a run compiles the set the tool ships with; a set named here stands in
+  for it, compiling to the same `tools/eoc/out/smt_defs.eo` and
+  `smt_termination.lean`, so no stage can read one semantics' file while
+  another is in use.
 - `EOC_CPC_LEAN_CONFIG=/path/to/user_termination.lean` to name the termination
   clauses of the input's programs, which `run_gen_lean` and `run_gen_lean_all`
   then give the lean-meta stage with `--lean-config`. A signature given as a

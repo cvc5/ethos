@@ -26,7 +26,7 @@ ModelSmt::ModelSmt(State& s) : ModelSmt(s, "")
 {
   // The plugin has no signature of its own to fall back on: which input is
   // being compiled is not its business, so the signature of that input is
-  // given to it with --signature and loadDefs is what says so when it is not. The
+  // given to it with --semantics and loadDefs is what says so when it is not. The
   // SMT-LIB signature is the one exception, since it is the target.
 }
 
@@ -74,8 +74,8 @@ void ModelSmt::finalizeDecl(const std::string& name)
 void ModelSmt::loadDefs()
 {
   // The SMT-LIB signature is the target of the compilation, so the plugin
-  // ships with one and reads that where it was given no other; --semantics is
-  // what gives it another, the way --signature gives it the input's. The one
+  // ships with one and reads that where it was given no other; --smt-semantics
+  // is what gives it another, the way --semantics gives it the input's. The one
   // it ships with is generated from tools/eoc/semantics/smt.eos when
   // ethos-eoc is built, see plugins/CMakeLists.txt, and again before every
   // run of the pipeline, see compile_signatures in tools/eoc/driver.py.
@@ -90,7 +90,7 @@ void ModelSmt::loadDefs()
   }
   if (d_defsFile.empty())
   {
-    EO_FATAL() << "ModelSmt: no signature of the input was given; pass --signature,"
+    EO_FATAL() << "ModelSmt: no semantics of the input was given; pass --semantics,"
                   " see tools/eoc/driver.py";
   }
   if (!d_inputDefs.read(d_defsFile))
