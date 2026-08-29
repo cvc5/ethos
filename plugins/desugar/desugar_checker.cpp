@@ -90,6 +90,22 @@ void DesugarChecker::finalizeRule(const Expr& v)
   {
     // combine the premises if :premise-list
     Assert(npremises == 1);
+    // The rule gathers its premises by folding plCons over them and closing
+    // with plCons' nil, which is what $eo_mk_premise_list does. A nil is what
+    // :(left|right)-assoc-(ns-)nil declares, and only that: an operator
+    // without one gets no arm of $eo_nil, so the fold has nothing to close
+    // with and every step of this rule is stuck. Both halves are in hand
+    // here -- the rule asked for the operator, the operator says whether it
+    // has a nil -- so say so rather than emit the call and let a backend
+    // discover it.
+    if (!isListNilAttr(d_state.getAttributeKind(plCons.getValue())))
+    {
+      EO_FATAL() << "DesugarChecker: proof rule " << v
+                 << " gathers its premises with " << plCons
+                 << ", which declares no nil; mark " << plCons
+                 << " :right-assoc-nil or :left-assoc-nil, or give the rule "
+                    "its premises individually";
+    }
     invokePat << " premises";
     invokeRet << " ($eo_pf ($eo_mk_premise_list " << plCons << " premises S))";
   }
