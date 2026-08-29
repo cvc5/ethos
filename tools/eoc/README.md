@@ -180,13 +180,19 @@ type, which is what a measure writes instead.
 
 ## The native layer
 
-The Lean the compiler generates is written against a layer of definitions
-named `native_`, which is what gives the deep embedding its arithmetic, its
-strings, its regular-expression matcher and the rest.
+What a backend generates is written against a layer of definitions that gives
+the deep embedding its arithmetic, its strings, its regular expressions and
+the rest -- what the generated text is allowed to call and no compiler writes.
+Each backend has one, and the two are the same thing said twice:
 
-**The layer is a configuration set**, `plugins/lean_meta/lean.eos`, which
-`tools/eoc/sem_compile.py` compiles to `tools/eoc/out/lean_native.lean`; that
-is the file the stage reads. One entry is one definition:
+| backend | set | compiles to | read by |
+| --- | --- | --- | --- |
+| Lean | `plugins/lean_meta/lean.eos` | `tools/eoc/out/lean_native.lean` | the `lean-meta` stage |
+| SMT-LIB | `plugins/smt_meta/smt-vc.eos` | `tools/eoc/out/smt_vc_native.smt2` | the `smt-meta` stage |
+
+**A layer is a configuration set**, which `tools/eoc/sem_compile.py` compiles;
+one entry is one definition, under the attribute that says which language it
+is written in:
 
 ```lisp
 (define-native-method str_to_upper
@@ -195,59 +201,77 @@ is the file the stage reads. One entry is one definition:
 
 def native_str_to_upper : native_String -> native_String
   | s => s.map impl_native_char_to_upper")
+
+(define-native-method int.to_nat
+  :smt-impl "(declare-fun int.to_nat (Int) Nat)
+(assert (! (forall ((x Int))
+  (! (= (int.to_nat x) (ite (<= x 0) nat.zero (nat.succ (int.to_nat (- x 1)))))
+  :pattern ((int.to_nat x))))
+  :named smtx.int.to_nat.def))")
 ```
 
-The name is spelled the way the embedding names it, without the `native_` the
-compiler puts back. Whatever else the entry's Lean defines has no name here
-and so is private to it, which `impl_native_` rather than `native_` is what
-says.
+The name is spelled the way the embedding names it: the Lean backend puts the
+`native_` back, and the SMT-LIB one forwards the name as it stands, which is
+why `int.to_nat` is written under that name there and under `int_to_nat` in
+the Lean set. Whatever else an entry defines has no name here and so is
+private to it, which `impl_native_` rather than `native_` is what says on the
+Lean side. A definition that is axiomatised rather than defined -- a
+`declare-fun` and the `assert` that says what it is -- is one entry, since
+neither half is of any use without the other.
+
+Everything below holds of both layers: what a stage is given is the same file
+in two languages, and the code that reads it is one class, `ethos::NativeLayer`
+in `plugins/native_layer.cpp`.
 
 ### Where a definition comes out
 
-**Only what the compilation of an input reaches is emitted.** Most of the
-layer is dead for any one input: a signature with no strings in it has no use
-for the regular-expression matcher, and one of Booleans alone has none for
-arithmetic. The layer is 116 definitions and 660 lines; a published `CpcMini`
-carries 46 of them, and the full CPC package all but two.
+**Only what the compilation of an input reaches is emitted.** Most of a layer
+is dead for any one input: a signature with no strings in it has no use for
+the regular-expression matcher, and one of Booleans alone has none for
+arithmetic. The Lean layer is 116 definitions and 660 lines, of which a
+published `CpcMini` carries 46 and the full CPC package all but two; the
+SMT-LIB layer is 67, of which the verification condition of `symm` carries 16
+-- and what it drops includes nine quantified axioms, which is work the solver
+does not do.
 
-Three modules of the generated tree hold a part of it, each taking that part
-as an ordinary replacement of `$NATIVE_DEFS$`:
+A backend has one place per module its generated text is read in, each taking
+what comes out there as an ordinary replacement:
 
-| module | template | scope |
-| --- | --- | --- |
-| `SmtEval.lean` | `lean_meta_smt_eval.lean` | `SmtEval`, which every module sees |
-| `Logos.lean` | `lean_meta_checker.lean` | `Eo`, the Eunoia terms and what is written over them |
-| `SmtModel.lean` | `lean_meta_smt_model.lean` | `Smtm`, the SMT-LIB value embedding |
+| backend | place | tag in | scope |
+| --- | --- | --- | --- |
+| Lean | `SmtEval.lean` | `lean_meta_smt_eval.lean` | `SmtEval`, which every module sees |
+| Lean | `Logos.lean` | `lean_meta_checker.lean` | `Eo`, the Eunoia terms and what is written over them |
+| Lean | `SmtModel.lean` | `lean_meta_smt_model.lean` | `Smtm`, the SMT-LIB value embedding |
+| SMT-LIB | above the datatypes | `smt_meta.smt2` | `Vc`, where SMT-LIB alone is in scope |
+| SMT-LIB | below the datatypes | `smt_meta.smt2` | `Embed`, where the embedding is declared |
 
 Which of them a block comes out in is the demand for it: the module that names
-it, the one they share when two do -- which is `SmtEval`, since `Logos` and
-`SmtModel` see nothing of each other -- and `SmtModel` whatever names it when
-its Lean names a type of the value embedding, since no other module can hold
-it. A block named by a block is named wherever that one comes out, so the
-demand is closed over what each calls.
+it, the one they share when two do -- which is the scope every module sees --
+and the one module that can hold it when its text names what only that module
+declares. A block named by a block is named wherever that one comes out, so
+the demand is closed over what each calls.
 
-Neither of the two things this is read off is the generated Lean:
+Neither of the two things this is read off is the generated text:
 
 - **What a block names** is read by the compiler, off the block itself, and
-  written on the line that opens it: the scope its Lean cannot be written
-  above, and the rest of the layer it calls. See `native_needs` and
+  written on the line that opens it: the scope it cannot be written above, and
+  the rest of the layer it calls. See `lean_needs`, `vc_needs` and
   `native_deps` in `tools/eoc/sem_compile.py`. Reading it there rather than
   beside the definition is what keeps it from drifting: an annotation can, and
   the text cannot drift from itself.
 - **What an input names** is what the stage wrote: a name of the layer reaches
-  a generated module only by being printed into it, so the stage notes each as
-  it prints it, against the module the text it is printing comes out in. See
-  `LeanMetaReduce::useNative`.
+  generated text only by being printed into it, so the stage notes each as it
+  prints it, against the scope the text it is printing comes out in. See
+  `NativeLayer::use`, and `getEmbedName` in either stage for where a name is
+  printed.
 
-What no input reaches is what the Lean resources of the stage name themselves
--- `native_ite` in the term ITE of `lean_meta_checker.lean`, `native_Bool` in
-the equality of `lean_meta_checker_term.lean`. Such a definition says `:keep`
-in `lean.eos` and comes out in `SmtEval`, which is what every resource that
-names one can see. A resource that names one and does not say so gets Lean
-naming a definition that was never written, which **Lean is what reports**.
-
-See `LeanMetaReduce::loadNativeDefs` in
-`plugins/lean_meta/lean_meta_reduce.cpp`.
+What no input reaches is what the resources of a stage name themselves --
+`native_ite` in the term ITE of `lean_meta_checker.lean`, `native_Bool` in the
+equality of `lean_meta_checker_term.lean`. Such a definition says `:keep` in
+its set and comes out in the scope every module sees, which is what every
+resource that names one can see. A resource that names one and does not say
+so gets generated text naming a definition that was never written, which
+**Lean, or cvc5 reading the verification condition, is what reports**.
 
 ### `eo::hash` has no Lean
 
@@ -355,6 +379,8 @@ tools/eoc/out/
   user_defs.eo              tools/eoc/semantics/README.md
   smt_termination.lean
   user_termination.lean
+  lean_native.lean          the native layer of each backend, see above
+  smt_vc_native.smt2
   trim-*.eo
   trim-d-*.eo
   vcm-def-*.eo

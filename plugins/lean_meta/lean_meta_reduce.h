@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "../meta_reduce_plugin.h"
+#include "../native_layer.h"
 
 namespace ethos {
 
@@ -167,7 +168,7 @@ class LeanMetaReduce : public MetaReducePlugin
   void finalizeLemmas();
   /**
    * Return the Lean symbol name for an embedded SMT operator, and note that
-   * the module now being written names it, see useNative.
+   * the module now being written names it, see NativeLayer::use.
    */
   std::string getEmbedName(const Expr& oApp, MetaKind ctx = MetaKind::EUNOIA);
   /** Print one checker step include case. */
@@ -188,48 +189,15 @@ class LeanMetaReduce : public MetaReducePlugin
    * under :lean, see tools/eoc/out/smt_termination.lean.
    */
   void readTerminationClauses(const std::string& path);
-  /**
-   * Read the native layer, i.e. what tools/eoc/sem_compile.py compiled
-   * plugins/lean_meta/lean.eos to, and note the blocks it keeps whatever an
-   * input reaches. A block is opened by
-   * `-- $native <name> <needs> <calls>...` and is everything up to the line
-   * that opens the next. See render_native in sem_compile.py.
-   */
-  void loadNativeDefs();
-  /** One block of the native layer, as the line that opens it says it. */
-  struct NativeDef
-  {
-    /** What it defines, and what a signature may reach. */
-    std::string d_name;
-    /** The narrowest scope it can come out in, i.e. the one its Lean names. */
-    std::string d_needs;
-    /** The rest of the layer it calls, which the closure is taken over. */
-    std::vector<std::string> d_deps;
-    /** The Lean it is, carried as it stands. */
-    std::string d_text;
-  };
-  /**
-   * Note that the module of scope `scope` names n, which is what asks for the
-   * block defining n and for everything that block calls. A name the layer
-   * does not define is one a module writes for itself and is nothing to
-   * place.
-   *
-   * Where a block comes out is the demand for it: a block two modules reach
-   * comes out in the scope they share, which is SmtEval, and one whose Lean
-   * names the value embedding comes out in Smtm whatever reaches it, since
-   * that is the only module that can hold it.
-   */
-  void useNative(const std::string& n, const std::string& scope);
   /** The scope of the module the text written to os comes out in. */
   std::string scopeOf(const std::ostream* os) const;
-  /** The part of the layer that comes out in scope, in the layer's order. */
-  std::string nativeDefs(const std::string& scope) const;
-  /** The layer, in the order it gives its blocks. */
-  std::vector<NativeDef> d_natives;
-  /** The block that defines each name. */
-  std::map<std::string, size_t> d_nativeOf;
-  /** The blocks the compilation reached, and the scope each comes out in. */
-  std::map<std::string, std::string> d_nativeUse;
+  /**
+   * The native layer of this backend, i.e. what tools/eoc/sem_compile.py
+   * compiled plugins/lean_meta/lean.eos to. Its three homes are the modules
+   * that carry a $NATIVE_DEFS$: SmtEval, which every module sees, Logos and
+   * SmtModel.
+   */
+  NativeLayer d_natives;
   /**
    * The scope of the module now being written, which is where a native named
    * while writing it has to be seen from: `Eo` for Logos, `Smtm` for SmtModel

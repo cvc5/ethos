@@ -1574,12 +1574,13 @@ def parse_params(node, name, path):
 def parser(decls):
   """What reads an entity of the kind these declarations describe."""
   known = decls.attrs()
-  # :overload, :exclude, :keep, :lean, :lean-impl and :needs give no case, so
-  # none is a term to expand macros in; the last three are Lean text and the
-  # scope it wants, neither of them a term at all.
+  # :overload, :exclude, :keep, :lean, :lean-impl, :smt-impl and :needs give
+  # no case, so none is a term to expand macros in; the last four are the text
+  # a backend is written in and the scope it wants, none of them a term at
+  # all.
   expanded = frozenset(k for k in known
                        if k not in ('overload', 'exclude', 'keep', 'lean',
-                                    'lean-impl', 'needs'))
+                                    'lean-impl', 'smt-impl', 'needs'))
 
   def read(node, path, macros):
     # An entity that writes nothing of its own names no arguments: what is

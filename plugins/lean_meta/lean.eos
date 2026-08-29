@@ -6,8 +6,10 @@
 ;; its :lean-impl defines has no name here and so is private to it. How much
 ;; of the embedding a block wants in scope is not said here: its Lean is what
 ;; says that, by naming a type of the embedding or naming none, see
-;; native_needs in tools/eoc/sem_compile.py. Compiled by that file; the stage
-;; that reads what it compiles to is the lean-meta stage of ethos-eoc.
+;; lean_needs in tools/eoc/sem_compile.py. Compiled by that file; the stage
+;; that reads what it compiles to is the lean-meta stage of ethos-eoc. The
+;; SMT-LIB backend says the same thing in SMT-LIB, see
+;; plugins/smt_meta/smt-vc.eos.
 ;;
 ;; A block is emitted only if the compilation of an input reaches it, and
 ;; comes out in the narrowest module that does, which is a module of the
