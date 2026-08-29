@@ -40,17 +40,17 @@ cmake --build build-eoc --target ethos-eoc -j8
 
 # a verification condition for one rule
 python3 tools/eoc/driver.py vc --build-dir build-eoc \
-  --signature tools/eoc/semantics/development-cpc.eos \
+  --semantics tools/eoc/semantics/development-cpc.eos \
   <input.eo> <proof-rule>
 
 # the whole CPC signature, compiled to Lean
 python3 tools/eoc/driver.py lean --build-dir build-eoc --all \
-  --signature tools/eoc/semantics/development-cpc.eos \
+  --semantics tools/eoc/semantics/development-cpc.eos \
   <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
-`--signature` names what the *input's* symbols mean to a model and
-`--semantics` the SMT-LIB semantics they are written against; both name a
+`--semantics` names what the *input's* symbols mean to a model and
+`--smt-semantics` the SMT-LIB semantics they are written against; both name a
 configuration the driver compiles before any stage runs, see stage 6. The
 wrappers in [`tools/eoc/cpc/`](tools/eoc/cpc/) pass them for the default CPC
 input, so `run_gen_vc <rule>` and `run_gen_lean_all` are the same two commands
@@ -130,9 +130,10 @@ calls `$eo_model_sat` and `$eo_prog_X` and evaluates successfully exactly when
 the rule is unsound. `$eovc_X` is what stage 7a verifies.
 
 The pass is `plugins/desugar/`: `desugar.{h,cpp}`, the `eo_desugar.eo`
-template, `native_embed.eo` (the natives the whole embedding is written over --
-references to native SMT types, integer-pair encodings that mimic parametric
-bitvector operations, SMT datatypes and constructors), and
+template, `native_embed.eo` (what the natives are written over -- the `$native_apply_*`
+and `$native_type_*` constructors, the type aliases, and the definitions
+written over other natives; the natives themselves are compiled into it from
+`plugins/desugar/natives.eos`, one line to a native), and
 `eo_desugar_native.eo` (the SMT-like builtins of Eunoia, and the declarations
 of the *Eunoia* deep embedding, `eo.Term` and the `$emb_X` constructor of each
 symbol). Two parts are optional: `plugins/trim_defs/`, which slices the
@@ -200,14 +201,21 @@ stage, so the two are never out of step with what the stage reads.
 
 | Configuration | Compiles to |
 | --- | --- |
-| `smt.eos`, named by `--semantics` | `smt_defs.eo`, `smt_termination.lean` |
-| `development-cpc.eos`, named by `--signature` | `user_defs.eo`, `user_termination.lean` |
+| `semantics/smt.eos`, named by `--smt-semantics` | `smt_defs.eo`, `smt_termination.lean` |
+| `semantics/development-cpc.eos`, named by `--semantics` | `user_defs.eo`, `user_termination.lean` |
+| `plugins/desugar/natives.eos` | `native_defs.eo`, the natives the embedding calls |
+| `plugins/model_smt/model_smt.eos` | the head of each signature above, which says how the stage takes it apart |
+| `plugins/lean_meta/lean.eos` | `lean_native.lean`, the native layer of stage 7b |
+| `plugins/smt_meta/smt-vc.eos` | `smt_vc_native.smt2`, the native layer of stage 7a |
+
+The first two a run may name another of; the rest are fixed, since they say
+what the embedding is rather than what a signature means.
 
 `smt.eos` is the target, so every input is compiled through it and nothing
 about an input is asked of it. `development-cpc.eos` is a *test*, kept so that
 the compiler and the stages after it have a real signature to run over; **the
 official semantics of CPC lives in the Logos repository**, and that is what a
-run meaning to say something about CPC names with `--signature`. A set that
+run meaning to say something about CPC names with `--semantics`. A set that
 lives in another tree compiles beside itself, so running against the official
 one leaves this tree alone.
 
@@ -243,7 +251,12 @@ what each says where it belongs in the template, and check that no declared
 symbol was left without a meaning. Where each form goes is settled by the name
 it defines -- a constructor with the terms, the types or the values of its
 family, and every auxiliary program together in one stream before the first
-aggregate whose cases may call one.
+aggregate whose cases may call one. Which aggregates there are the stage does
+not know: the head of each generated file declares them, one line to an
+aggregate, saying what a symbol's case is named and the marker of the template
+its cases are written at. Those lines are compiled from
+`plugins/model_smt/model_smt.eos`, so an aggregate is added there and in
+`tools/eoc/sem_target.py`, and this stage needs no change and no rebuild.
 
 A block may also say that the compilation has no place for its symbol. The
 configuration writes `:exclude` on the symbol, the method or the rule; the
@@ -381,8 +394,8 @@ hypotheses `TranslatableAssumptionList` and `CmdListTranslationOk` are stated
 in the Logos development, not generated from this repository.
 
 The trusted computing base is the import closure of the specification module:
-everything except the checker, the parser and the rule lemmas. That is 2,696
-lines of Lean out of 27,158 generated, as the appendix breaks down.
+everything except the checker, the parser and the rule lemmas. That is 2,680
+lines of Lean out of 27,139 generated, as the appendix breaks down.
 
 ### What Logos does not cover
 
@@ -425,8 +438,8 @@ not necessarily one Logos accepts.
 
 ## Appendix: component sizes
 
-Code lines, excluding blank and comment lines, measured 2026-08-27 with cloc
-2.11:
+Code lines, excluding blank and comment lines, measured 2026-08-29 with cloc
+2.06:
 
 ```bash
 cloc --force-lang=Lisp,eo --force-lang=Lisp,eos --force-lang=Lisp,smt2 <files>
@@ -438,12 +451,13 @@ A count for a C++ component is its implementation plus its header.
 
 | Component | LOC |
 | --- | --- |
-| ethos core, `src/` | 10,261 C++ |
+| ethos core, `src/` | 10,278 C++ |
 | `src/plugin.h`, the callback interface | 64 C++ |
-| `plugins/std_plugin`, `meta_reduce_plugin`, `utils` | 808 C++ |
-| `plugins/main_eoc.cpp` | 218 C++ |
-| `tools/eoc/driver.py` | 932 Python |
-| `tools/eoc/sem_{lang,target,compile}.py`, the signature compiler | 2,111 Python |
+| `plugins/std_plugin`, `meta_reduce_plugin`, `native_layer`, `utils` | 988 C++ |
+| `plugins/main_eoc.cpp` | 220 C++ |
+| `tools/eoc/driver.py` | 894 Python |
+| `tools/eoc/sem_{lang,target,compile}.py`, the configuration compiler | 1,849 Python |
+| `tools/eoc/report.py`, `test/regress.py` | 146 Python |
 
 ### Stages 5, 6 and 7b: Eunoia to Lean
 
@@ -451,28 +465,19 @@ A count for a C++ component is its implementation plus its header.
 | --- | --- |
 | `desugar.{h,cpp}` | 1,279 C++ |
 | `desugar_checker.{h,cpp}` | 153 C++ |
-| `model_smt.{h,cpp}` | 305 C++ |
-| `defs_reader.{h,cpp}` | 519 C++ |
+| `model_smt.{h,cpp}` | 274 C++ |
+| `defs_reader.{h,cpp}` | 581 C++ |
 | `linear_patterns.{h,cpp}` | 176 C++ |
-| `lean_meta_reduce.{h,cpp}` | 1,815 C++ |
-| shared | 808 C++ |
-| **C++ total** | **5,055** |
-| `native_embed.eo` | 142 EO |
+| `lean_meta_reduce.{h,cpp}` | 1,849 C++ |
+| shared | 988 C++ |
+| **C++ total** | **5,300** |
+| `native_embed.eo` | 76 EO |
 | `eo_desugar.eo` | 394 EO |
 | `eo_desugar_native.eo` | 592 EO |
 | `eo_desugar_checker.eo` | 204 EO |
-| `model_smt.eo`, the embedding | 673 EO |
-| **Eunoia total** | **2,005** |
-| Lean templates, `plugins/lean_meta/*.lean` | 1,065 Lean |
-
-The two signatures the model-smt stage reads are generated from the
-configuration, so what is written by hand is the configuration and what the
-stage reads is derived from it:
-
-| Written by hand | LOC | Generated | LOC |
-| --- | --- | --- | --- |
-| `semantics/smt.eos` | 1,198 | `out/smt_defs.eo` | 4,079 EO |
-| `semantics/development-cpc.eos` | 608 | `out/user_defs.eo` | 1,602 EO |
+| `model_smt.eo`, the embedding | 697 EO |
+| **Eunoia total** | **1,963** |
+| Lean templates, `plugins/lean_meta/*.lean` | 561 Lean |
 
 ### Stage 7a: Eunoia to SMT-LIB and SyGuS
 
@@ -480,11 +485,38 @@ Stages 5 and 6 above are shared; this backend adds:
 
 | Component | LOC |
 | --- | --- |
-| `smt_meta_reduce.{h,cpp}` | 945 C++ |
+| `smt_meta_reduce.{h,cpp}` | 957 C++ |
 | `smt_meta_sygus.{h,cpp}` | 497 C++ |
 | `smt_meta/utils.{h,cpp}` | 62 C++ |
 | `trim_defs.{h,cpp}` | 757 C++ |
-| `smt_meta.smt2` template | 293 SMT2 |
+| `smt_meta.smt2` template | 145 SMT2 |
+
+### The configuration
+
+What the pipeline knows about a theory, a native or the shape of what it
+writes is stated once, in a configuration set, and compiled. This is the
+measure worth watching: a line here is a line someone writes, and a line in the
+right-hand column is one nobody maintains.
+
+| Written by hand | LOC | Compiles to | LOC |
+| --- | --- | --- | --- |
+| `semantics/smt.eos`, the SMT-LIB semantics | 1,218 | `smt_defs.eo`, `smt_termination.lean` | 4,118 |
+| `semantics/development-cpc.eos`, the semantics of an input | 615 | `user_defs.eo`, `user_termination.lean` | 1,624 |
+| `desugar/natives.eos`, the natives of the embedding | 51 | `native_defs.eo` | 94 |
+| `model_smt/model_smt.eos`, the aggregates | 35 | the head of the two signatures | — |
+| `lean_meta/lean.eos`, the native layer of stage 7b | 649 | `lean_native.lean` | 482 |
+| `smt_meta/smt-vc.eos`, the native layer of stage 7a | 227 | `smt_vc_native.smt2` | 152 |
+| **Total** | **2,795** | | **6,470** |
+
+Against the declarative material that is still written out by hand -- 1,963
+lines of Eunoia, 561 of Lean template and 145 of SMT-LIB template, 2,669 in all
+-- a little over half of what the pipeline is told is now configuration rather
+than something maintained in the form the stages read.
+
+None of the right-hand column is checked in; see the `tools/eoc/out/` line of
+`.gitignore`. `sem_compile.py --check` says it holds what compiling writes, and
+`tools/eoc/test/regress.py` says the pipeline still writes the same bytes for a
+signature of this tree.
 
 ### Generated Logos
 
@@ -492,17 +524,17 @@ The Lean package compiled from `Cpc.eo` by the `lean --all` command above.
 
 | Module | LOC | In TCB |
 | --- | --- | --- |
-| `SmtEval.lean`, evaluation utilities | 140 | yes |
-| `LogosTerm.lean`, term datatype | 247 | yes |
-| `SmtModel.lean` | 1,598 | yes |
-| `SmtModelDefs.lean` | 226 | yes |
-| `SmtValueOrder.lean` | 98 | yes |
-| `Spec.lean`, Eunoia to SMT correspondence | 396 | yes |
-| `Logos.lean`, the checker | 8,215 | no |
+| `SmtEval.lean`, evaluation utilities | 108 | yes |
+| `LogosTerm.lean`, term datatype | 253 | yes |
+| `SmtModel.lean` | 1,602 | yes |
+| `SmtModelDefs.lean` | 230 | yes |
+| `SmtValueOrder.lean` | 100 | yes |
+| `Spec.lean`, Eunoia to SMT correspondence | 387 | yes |
+| `Logos.lean`, the checker | 8,212 | no |
 | `Parser.lean`, proof parser configuration | 1,999 | no |
-| `RuleLemmas.lean`, rule lemma statements | 3,607 | no |
-| `Rules/*.lean`, 591 per-rule files | 10,641 | no |
-| **Total** | **27,167** | |
+| `Proofs/RuleLemmas.lean`, rule lemma statements | 3,607 | no |
+| `Proofs/Rules/*.lean`, 591 per-rule files | 10,641 | no |
+| **Total** | **27,139** | |
 
-Trusted computing base: 140 + 247 + 1,598 + 226 + 98 + 396 = 2,705 lines of
+Trusted computing base: 108 + 253 + 1,602 + 230 + 100 + 387 = 2,680 lines of
 Lean.

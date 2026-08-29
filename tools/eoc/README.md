@@ -1,12 +1,48 @@
-# EOC Workflow
+# The Eunoia compiler
 
-`tools/eoc/driver.py` is the canonical entrypoint for the optional
-`ethos-eoc` workflow, which it exposes as one documented interface.
+`ethos-eoc` takes a proof calculus written in Eunoia and compiles it: into a
+proof checker for that calculus, and into the obligations that say the calculus
+is sound.
 
-## What `ethos-eoc` is for
+It is the compiler behind **Logos**, the Lean development for the CPC proof
+calculus. The Lean package Logos is built on is not written by hand; it is
+generated from the calculus by this tool, and regenerated whenever the calculus
+changes.
 
-`ethos-eoc` is the optional Eunoia compiler target that drives the
-non-standard EOC plugins:
+## Any calculus, several targets
+
+Nothing in the compiler is specific to one calculus. A run names the signature
+to compile and, separately, what its symbols mean, so a second calculus is a
+second pair of those rather than a change here: the tests in this tree compile
+`tests/Booleans-rules.eo`, the wrappers in [`cpc/`](cpc/) compile CPC, and the
+semantics CPC is compiled under lives in the Logos repository rather than in
+this one.
+
+Whichever calculus it is, it compiles to each of these targets, from one
+description of what its symbols mean:
+
+| Target | What it produces | Command |
+| --- | --- | --- |
+| **Lean** | a proof checker for the calculus, its term language, and one lemma per proof rule | `driver.py lean` |
+| **SMT-LIB** | a verification condition per proof rule; a solver that refutes it has shown the rule sound | `driver.py vc` |
+| **SyGuS** | a synthesis query per proof rule, which searches for a counterexample to it | `driver.py vc --sygus` |
+
+The two are independent, and that is the point of the tool: a target is a
+backend rather than a restatement of the calculus, and a calculus is a
+description rather than another compiler. What a symbol means is written once,
+as configuration, and every target is compiled from it; a new theory, a new
+proof rule or a new operator is added to the calculus and reaches every target
+with no compiler change at all.
+
+`tools/eoc/driver.py` is the entrypoint for all of them, and exposes them as
+one documented interface. See [Quick start](#quick-start) to run one, and
+[`proof_pipeline.md`](../../proof_pipeline.md) for where this sits in the wider
+cvc5 proof pipeline.
+
+## What `ethos-eoc` is
+
+`ethos-eoc` is the Eunoia binary built with the compiler plugins, one to a
+stage:
 
 - `desugar`
 - `trim-defs`
@@ -14,8 +50,9 @@ non-standard EOC plugins:
 - `smt-meta`
 - `lean-meta`
 
-The default `ethos` build does not include these plugins. Use `ethos-eoc`
-only when you want the Eunoia-to-SMT2 or Eunoia-to-Lean pipeline.
+The default `ethos` build does not include them: it checks proofs, and this one
+compiles the calculus the proofs are written in. Build it with the two commands
+under [Building `ethos-eoc`](#building-ethos-eoc).
 
 `model-smt` gives every symbol of the signature its SMT-LIB semantics. A symbol
 that instead has no semantics of its own is *eliminated* on the way to the
