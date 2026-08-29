@@ -14,8 +14,9 @@ namespace Eo
 
 open SmtEval
 
--- The part of the native layer only what is written over the Eunoia terms
--- reaches, which is why it comes out here rather than above.
+-- The primitive operations that only what is written over Eunoia terms uses.
+-- $ The part of the native layer no other module reaches, which is why it
+-- $ comes out here rather than in SmtEval, see LeanMetaReduce::nativeDefs.
 $NATIVE_DEFS$
 
 /- Eunoia literal evaluation defined -/

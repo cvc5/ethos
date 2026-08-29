@@ -392,6 +392,15 @@ which is what the `import <Calc>.Proofs.Rules.<Rule>` lines that the former
 carries name. Every other file is installed at the root of the package, where
 its name already is its import.
 
+A published module is read by whoever reads the package, so what the resource
+it was rendered from says to whoever *edits* the resource -- what a tag stands
+for, why something is written there rather than where it belongs -- is written
+as a **note**, a comment whose text opens with a `$`: `-- $` where the resource
+is Lean and `; $` where it is SMT-LIB. A note is dropped when the resource is
+rendered, so it never reaches the package; see `dropResourceNotes` in
+`plugins/utils.cpp`. Everything else a resource writes is published as it
+stands, and is written to the reader of the package.
+
 Plugin-private files:
 
 ```text

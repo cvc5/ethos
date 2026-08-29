@@ -619,6 +619,13 @@ def compile_native(path=NATIVE_CONFIG):
       # embedding gives it: `ite` here is what `"ite"` names in a set and what
       # the compiler answers with native_ite. The Lean it is defines the
       # prefixed name, since that is what the generated text calls.
+      # Where a block comes out is what an input reaches, so its Lean is read
+      # by whoever reads the SMT-LIB modules as readily as by whoever reads
+      # the Eunoia ones and may not name either side.
+      if 'Eunoia' in e.get('lean-impl').val:
+        die('%s: the native %s names Eunoia, which a block may not: it comes '
+            'out wherever the compilation of an input reaches it' % (path,
+                                                                     e.name))
       config.natives.append(Native(
           ['native_' + e.name],
           native_needs(e.get('lean-impl').val),

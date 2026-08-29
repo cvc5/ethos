@@ -10,7 +10,9 @@
 ;; that reads what it compiles to is the lean-meta stage of ethos-eoc.
 ;;
 ;; A block is emitted only if the compilation of an input reaches it, and
-;; comes out in the narrowest module that does. A definition no input reaches,
+;; comes out in the narrowest module that does, which is a module of the
+;; SMT-LIB embedding as readily as one of Eunoia. Its Lean is written for
+;; either, so it may not name Eunoia, which the compiler checks. A definition no input reaches,
 ;; because the Lean resources of the stage are what name it, says :keep and is
 ;; emitted whatever an input reaches.
 
@@ -249,7 +251,7 @@ def native_binary_xor : native_Int -> native_Int -> native_Int -> native_Int
 (define-native-method binary_extract
   :lean-impl "def native_binary_extract : native_Int -> native_Int -> native_Int -> native_Int -> native_Int
   -- The caller masks this quotient to width x1 - x2 + 1; w and x1 are carried
-  -- here only to match the native EO operation's signature.
+  -- here only to match the signature of the operation this stands for.
   | w, n, x1, x2 => (native_div_total n (native_int_pow2 x2))")
 
 (define-native-method int_to_nat
