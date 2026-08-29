@@ -48,8 +48,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import report  # noqa: E402
 import sem_target  # noqa: E402
 from sem_lang import (counts, defined_names, die,  # noqa: E402
-                      lean_clauses, read_config, read_macros, read_text,
-                      read_vocabulary, write_text)
+                      excludes, lean_clauses, read_config, read_macros,
+                      read_text, read_vocabulary, write_text)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -270,8 +270,10 @@ class Config:
     # run gave the set, see SHIPPED.
     self.is_target = is_target
     # What compiling it came to beside its blocks: what its methods say the
-    # generated Lean is to be told, and how much of each thing it holds.
+    # generated Lean is to be told, what the compilation has no place for, and
+    # how much of each thing it holds.
     self.clauses = []
+    self.excludes = []
     self.counts = {}
 
   @property
@@ -338,6 +340,68 @@ AGGREGATE_MANIFEST = """\
 ; is to be changed or added. See DefsFile::read.
 ;
 """
+
+
+# What a block of a signature says to a stage rather than to the model, which
+# the head of the generated file is what carries: the compiler knows both, and
+# a stage that had to read them out of the blocks would be taking the file
+# apart a second way. See Pipeline.defs_head in tools/eoc/driver.py.
+#
+# The parameters a program of a block declares, and a name in head position.
+# What is left when the second has the first taken out of it is what the block
+# names, which over-approximates the symbols of the input it depends on: a name
+# that is of no symbol has no definition to keep alive and is discarded by the
+# stage, see resolveDependencies in plugins/trim_defs/trim_defs.cpp.
+DEPENDS_PARAMS = re.compile(r'\(\((?:[^()]|\([^()]*\))*\)\)')
+DEPENDS_HEAD = re.compile(r'\(([A-Za-z@_][^\s()]*)')
+# A directive the block gives to a stage, which says nothing about the model
+# and so names nothing.
+DEPENDS_DIRECTIVE = re.compile(r'\(echo\s+"[^"]*"\)')
+
+
+def depends(sym, text):
+  """The symbols of the input one block names.
+
+  A block may name a symbol of the input, as the transformation of
+  @quantifiers_skolemize names forall in the pattern it matches. Trimming the
+  input to one proof rule has to keep such a symbol, or the case the model-smt
+  stage emits for the block would name something the trimmed signature no
+  longer declares.
+
+  One is a name in head position that no program of the block binds and that is
+  neither of the embedding, which is written with a leading dollar, nor of
+  Eunoia, which is written eo::.
+  """
+  body = DEPENDS_DIRECTIVE.sub('', text)
+  body = re.sub(r';[^\n]*', '', body)
+  bound = {sym, 'program', 'define', 'declare-const',
+           'declare-parameterized-const'}
+  for params in DEPENDS_PARAMS.findall(body):
+    bound.update(DEPENDS_HEAD.findall(params))
+  heads = set(DEPENDS_HEAD.findall(body))
+  return sorted(h for h in heads - bound if not h.startswith('eo::'))
+
+
+def head_lines(config, blocks):
+  """What the head of a generated signature says to the stages beside the
+  aggregates: what the compilation has no place for, and what each block names
+  of the input.
+
+  A set says the first on the entity itself -- a symbol, a method or a proof
+  rule that says :exclude -- so it is taken from there rather than read back
+  out of what was written for it. The second is of a signature of an input
+  alone: the symbols of the target are the embedding's own and are trimmed by
+  nothing.
+  """
+  out = []
+  for name, kind in config.excludes:
+    out.append('; $eoc-exclude %s %s' % (kind, name))
+  if not config.is_target:
+    for sym, text in blocks:
+      named = depends(sym, text)
+      if named:
+        out.append('; $eoc-depends %s %s' % (sym, ' '.join(named)))
+  return out
 
 
 class AggregateEntry:
@@ -461,6 +525,7 @@ def compile_config(config, vocab, macros):
   out = [(b.name, t) for b, t in ((b, b.render(ctx)) for b in blocks) if t]
   ctx.check()
   config.clauses = lean_clauses(blocks)
+  config.excludes = excludes(blocks)
   config.counts = counts(blocks)
   return out
 
@@ -592,8 +657,11 @@ def written(blocks, config):
 
 
 def render(blocks, config):
-  return (header(config) + AGGREGATE_MANIFEST
-          + '\n'.join(l for e in aggregates().values() for l in e.lines())
+  head = ['\n'.join(l for e in aggregates().values() for l in e.lines())]
+  said = head_lines(config, blocks)
+  if said:
+    head.append('\n'.join(said))
+  return (header(config) + AGGREGATE_MANIFEST + '\n;\n'.join(head)
           + '\n\n'
           + '\n\n'.join(t for _, t in blocks) + '\n')
 

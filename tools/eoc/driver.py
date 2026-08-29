@@ -61,11 +61,13 @@ LEAN_OUTPUTS: tuple[tuple[str, str], ...] = (
 
 DECLARE_RULE_RE = re.compile(r"^\(declare-rule\s+([^\s(]+)")
 INCLUDE_RE = re.compile(r'^\(include\s+"([^"]+)"\s*\)')
-# Any directive a block of a signature written in the deep embedding gives to a
-# stage of the compiler, rather than something it says about the model.
-DEFS_DIRECTIVE = re.compile(r'\(echo\s+"[^"]*"\)')
-# The one of those that leaves what it names out of the compilation altogether.
-DEFS_EXCLUDE = re.compile(r'\(echo\s+"eoc-exclude\s+(\S+)\s+(\S+)"\s*\)')
+# What the head of a signature written in the deep embedding says to a stage,
+# as against what its blocks say about the model. A line is `; $eoc-<what>`
+# and then its words; see head_lines in tools/eoc/sem_compile.py, which is
+# what writes them, and DefsFile::read, which reads the ones about the shape
+# of the file.
+DEFS_HEAD = "; $eoc-"
+DEFS_BLOCK = "; -- "
 
 # What has to survive the trimming whatever the rule at hand reaches, said as
 # the deps of the echo the desugar stage writes, see Pipeline.desugar. Nothing
@@ -257,6 +259,8 @@ class Pipeline:
         self.smt_defs_file = (smt_defs_file.resolve() if smt_defs_file
                               else None)
         self.lean_config = lean_config.resolve() if lean_config else None
+        # What the head of that file said, read once; see defs_head.
+        self._head: Optional[list[list[str]]] = None
         self.binary = self.build_dir / "ethos-eoc"
         self.stage_out_dir = self.final_out_dir
         self.plugin_out_dir = self.build_dir / "out" / "plugins"
@@ -399,44 +403,42 @@ class Pipeline:
             if temp_trim.exists():
                 temp_trim.unlink()
 
-    def defs_blocks(self) -> list[tuple[str, str]]:
-        """The blocks of the signature of the input, as (symbol, body) pairs.
+    def defs_head(self) -> list[list[str]]:
+        """What the head of the signature of the input says, one line to a
+        thing, each as the words it is written with.
 
-        A block runs from the `; -- X` line naming the symbol it is of to the
-        next such line, which is the same split the model-smt stage makes, see
-        DefsFile::read in plugins/model_smt/defs_reader.cpp.
+        The compiler knows what a stage has to be told about a signature it
+        wrote -- what the compilation has no place for, and what each block
+        names of the input -- so it says it above the first block rather than
+        leaving it to be read back out of the blocks, which would be taking the
+        file apart a second way. See head_lines in tools/eoc/sem_compile.py.
         """
         if self.defs_file is None:
             return []
-        out: list[tuple[str, str]] = []
-        # Prepending a newline lets the same marker recognize a block on line
-        # one, which is what DefsFile::read does for the same reason. Without
-        # it this side and the model-smt stage would read the same file
-        # differently.
-        text = "\n" + self.defs_file.read_text()
-        for block in re.split(r"\n; -- ", text)[1:]:
-            sym, _, body = block.partition("\n")
-            out.append((sym.strip(), body))
-        return out
+        if self._head is None:
+            said: list[list[str]] = []
+            for line in self.defs_file.read_text().splitlines():
+                if line.startswith(DEFS_BLOCK):
+                    break
+                if line.startswith(DEFS_HEAD):
+                    said.append(line[2:].split())
+            self._head = said
+        return self._head
 
     def defs_excludes(self) -> list[tuple[str, str]]:
         """What the signature of the input leaves out of the compilation.
 
-        A block may say that the compilation has no place for the symbol it is
-        of, as the one for lambda does: SMT-LIB gives a proof-level binder no
-        meaning, so rather than a model the block gives eoc-exclude directives.
-        The desugar stage is what reads those and drops what they name, see
-        Desugar::echo, so they are collected here and given to it. Saying it in
-        the signature is what keeps a symbol left out of the compilation from
-        also having to be listed apart from it.
+        A set may say that the compilation has no place for one of its
+        entities, as it does for lambda: SMT-LIB gives a proof-level binder no
+        meaning, so rather than a model the set says :exclude. The desugar
+        stage is what drops what they name, see Desugar::echo, so they are
+        collected here and given to it.
 
         Each is returned as the kind it excludes, one of rule, method or
         symbol, and the name of what it excludes.
         """
-        out: list[tuple[str, str]] = []
-        for _sym, body in self.defs_blocks():
-            out.extend((m.group(1), m.group(2)) for m in DEFS_EXCLUDE.finditer(body))
-        return out
+        return [(w[1], w[2]) for w in self.defs_head()
+                if w[0] == "$eoc-exclude"]
 
     def defs_excluded_rules(self) -> set[str]:
         """Those of the exclusions that are proof rules.
@@ -455,27 +457,10 @@ class Pipeline:
         as the transformation of @quantifiers_skolemize names forall in the
         pattern it matches. Trimming the input to one proof rule has to keep
         such a symbol, or the case the model-smt stage emits for the block
-        would name something the trimmed signature no longer declares. The
-        dependency is read off the block itself, so nothing states it twice.
-
-        A symbol of the input is a name in head position that no program of the
-        block binds and that is neither of the embedding, which is written with
-        a leading dollar, nor of Eunoia, which is written eo::.
+        would name something the trimmed signature no longer declares.
         """
-        out: list[str] = []
-        for sym, body in self.defs_blocks():
-            body = DEFS_DIRECTIVE.sub("", body)
-            body = re.sub(r";[^\n]*", "", body)
-            bound = {sym, "program", "define", "declare-const",
-                     "declare-parameterized-const"}
-            for params in re.findall(r"\(\((?:[^()]|\([^()]*\))*\)\)", body):
-                bound.update(re.findall(r"\(([^\s()]+)", params))
-            heads = set(re.findall(r"\(([A-Za-z@_][^\s()]*)", body))
-            names = {h for h in heads - bound if not h.startswith("eo::")}
-            if names:
-                out.append('(echo "trim-defs-cmd (depends %s %s)")\n'
-                           % (sym, " ".join(sorted(names))))
-        return out
+        return ['(echo "trim-defs-cmd (depends %s)")\n' % " ".join(w[1:])
+                for w in self.defs_head() if w[0] == "$eoc-depends"]
 
     def desugar(
         self,

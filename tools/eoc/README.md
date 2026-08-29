@@ -328,6 +328,37 @@ automatically if it does not exist yet.
 whenever you invoke the driver from somewhere other than the build tree. The
 examples below all use `build-eoc`.
 
+## Checking a change left the output alone
+
+```bash
+python3 tools/eoc/test/regress.py            # say whether the bytes moved
+python3 tools/eoc/test/regress.py --update   # take this run as what is written
+```
+
+The compiler is refactored more often than it is extended, and what a
+refactor has to be is output-preserving. `regress.py` compiles a signature of
+this tree, `tests/Booleans-rules.eo`, for one rule, and compares the digest of
+every file the run leaves behind -- stage files and published artifacts alike
+-- with what is checked in beside it. A run that changed something says which
+files it changed. CI runs it on every push.
+
+What is checked in is the digest of each file rather than the file, since the
+tree checks in no generated artifact at all; see the `tools/eoc/out/` line of
+`.gitignore`. The digests are of what the pipeline wrote *under these
+semantics*, so a change to `semantics/smt.eos` or to
+`semantics/development-cpc.eos` moves them, and rightly: `--update` is how a
+run that meant to change the model says so, and the diff of `expected.txt`
+then shows how much of the output that change reached.
+
+The whole-signature path is not covered. No signature in this tree is one the
+semantics the tool ships with covers entirely, so `lean --all` over one stops
+at the first symbol the semantics says nothing about; what covers it is a
+calculus of another tree, e.g. the CPC wrappers in `tools/eoc/cpc`.
+
+`python3 tools/eoc/sem_compile.py --check` is the other half: it says the
+generated signatures hold what compiling the configuration writes, and that
+each block of one stands after the blocks it names.
+
 ## One important path rule
 
 The driver resolves input paths relative to the directory where you invoke

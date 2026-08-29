@@ -774,6 +774,20 @@ def lean_clauses(blocks):
   return out
 
 
+def excludes(blocks):
+  """What the compilation has no place for, as its name and the kind of thing
+  it is.
+
+  A set says so on the entity itself -- a symbol, a method or a proof rule that
+  says :exclude -- and the kind is what the form that declared it says one is.
+  The block of one carries the directive the desugar stage reads, see
+  Symbol.render; this is the same thing said to whoever has to know it before
+  that stage runs.
+  """
+  return [(e.name, e.decls.noun) for b in blocks for e in b.entries()
+          if isinstance(e, Symbol) and e.has('exclude')]
+
+
 def counts(blocks):
   """How much of each thing a set holds, for a run to say what it compiled."""
   out = collections.Counter()
