@@ -476,9 +476,9 @@ $EO_UOP_DECLS$
 (program $eo_neg ((T Type) (w $native_Int) (n1 $native_Int) (r1 $native_Rat))
   :signature (T) T
   (
-  (($eo_neg ($eot_numeral n1))  ($eot_numeral ($native_z_uneg n1)))
+  (($eo_neg ($eot_numeral n1))  ($eot_numeral ($native_zneg n1)))
   (($eo_neg ($eot_rational r1)) ($eot_rational ($native_qneg r1)))
-  (($eo_neg ($eot_binary w n1)) ($eo_binary_mod_w w ($native_z_uneg n1)))
+  (($eo_neg ($eot_binary w n1)) ($eo_binary_mod_w w ($native_zneg n1)))
   )
 )
 

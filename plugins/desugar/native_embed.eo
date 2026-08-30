@@ -83,24 +83,16 @@
 (include "native_defs.eo")
 
 (define $native_ite ((W Type :implicit) (b $native_Bool) (x1 W) (x2 W)) ($native_apply_3 "ite" b x1 x2))
-(define $native_str_empty () ($native_apply_0 """"""))
 (define $native_str_tuple_name () ($native_apply_0 """@Tuple"""))
 (define $native_str_vname () ($native_apply_0 """@x"""))
 (define $native_str_c0 () ($native_apply_0 """0"""))
 (define $native_str_c9 () ($native_apply_0 """9"""))
-(define $native_z_uneg ((W Type :implicit) (x1 W)) ($native_apply_1 "zneg" x1))
-(define $native_z_- ((W Type :implicit) (x1 W) (x2 W)) ($native_zplus x1 ($native_z_uneg x2)))
-(define $native_z_pow2 ((W Type :implicit) (x1 W)) ($native_apply_1 "int.pow2" x1))
-(define $native_z_piand ((W Type :implicit) (x1 W) (x2 W) (x3 W)) ($native_apply_3 "piand" x1 x2 x3))
+(define $native_z_- ((W Type :implicit) (x1 W) (x2 W)) ($native_zplus x1 ($native_zneg x2)))
 (define $native_q_- ((x1 $native_Real) (x2 $native_Real)) ($native_qplus x1 ($native_qneg x2)))
-(define $native_q_to_real ((x1 $native_Real)) x1)
 (define $native_q_zero () ($native_mk_rational $native_z_zero $native_z_one))
-(define $native_z_neg_one () ($native_z_uneg $native_z_one))
+(define $native_z_neg_one () ($native_zneg $native_z_one))
 (define $native_z_inc ((x1 $native_Int)) ($native_zplus x1 $native_z_one))
 (define $native_z_dec ((x1 $native_Int)) ($native_zplus x1 $native_z_neg_one))
-(define $native_n_one () ($native_n_succ $native_n_zero))
-(define $native_n_+ ((x1 $native_Nat) (x2 $native_Nat))
-  ($native_z_to_n ($native_zplus ($native_n_to_z x1) ($native_n_to_z x2))))
 ; nat to char, currently a no-op
 (define $native_n_to_char ((n $native_Nat)) n)
 ; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
@@ -114,9 +106,3 @@
 ; itself, see $eo_to_smt_reserved_datatype_name in
 ; tools/eoc/semantics/development-cpc.eos.
 (define $native_str_at_sign () ($native_apply_0 """@"""))
-
-;;; Defining parametric bitvector operators
-
-; The operators in this section are needed to reason about the parametric
-; operations on the Eunoia binary literal type.
-

@@ -77,6 +77,8 @@
 
 (declare-native zmult ((x1 "Int") (x2 "Int")))
 
+(declare-native zneg ((x1 "Int")))
+
 (declare-native zabs ((x1 "Int")))
 
 ; Real operators
@@ -114,6 +116,10 @@
 ; $native_z_**_total: it returns the greatest m>=0 such that x1^m <= x2, and 0
 ; when x1 <= 1 or x2 <= 0.
 (declare-native int_log ((x1 "Int") (x2 "Int")))
+
+; Two to the power of x1, which the width arithmetic of the binary literal
+; type is written over.
+(declare-native z_pow2 ((x1 "Int")) :op "int.pow2")
 
 (declare-native n_zero () :op "nat.zero")
 

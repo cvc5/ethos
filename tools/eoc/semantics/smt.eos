@@ -706,7 +706,7 @@
 ; name; see the block of $eoo_-.2 below.
 (define-symbol uneg (x)
   :typeof ($smtx_typeof_arith_overload_op_1 x)
-  :eval ((smt.numeral x)) (smt.numeral ("z_uneg" x))
+  :eval ((smt.numeral x)) (smt.numeral ("zneg" x))
   :eval ((smt.rational qx)) (smt.rational ("qneg" qx)))
 
 (define-symbol div_total (x y)
@@ -924,7 +924,7 @@
 (program $smtx_typeof_extract ( (x1 "Int") (x2 "Int")  (x3 "Int")  (x4 SmtType)  (x5 SmtType)  (x6 SmtType))
   :signature (SmtTerm SmtTerm SmtType) SmtType
   (
-  (($smtx_typeof_extract (Numeral x1) (Numeral x2) (BitVec x3)) ("ite" ("zleq" 0 x2) ("ite" ("zlt" x1 ("n_to_z" x3)) ("ite" ("zlt" 0 ("zplus" ("zplus" x1 1) ("z_uneg" x2))) (BitVec ("z_to_n" ("zplus" ("zplus" x1 1) ("z_uneg" x2)))) none) none) none))
+  (($smtx_typeof_extract (Numeral x1) (Numeral x2) (BitVec x3)) ("ite" ("zleq" 0 x2) ("ite" ("zlt" x1 ("n_to_z" x3)) ("ite" ("zlt" 0 ("zplus" ("zplus" x1 1) ("zneg" x2))) (BitVec ("z_to_n" ("zplus" ("zplus" x1 1) ("zneg" x2)))) none) none) none))
   (($smtx_typeof_extract x4 x5 x6) none)
   )
 )
@@ -1033,7 +1033,7 @@
 
 (define-symbol extract ((! i :raw) (! j :raw) x)
   :typeof ($smtx_typeof_extract i j x)
-  :eval ((smt.numeral i) (smt.numeral j) (smt.binary n x)) (of_width ("zplus" ("zplus" i 1) ("z_uneg" j)) ("binary_extract" n x i j)))
+  :eval ((smt.numeral i) (smt.numeral j) (smt.binary n x)) (of_width ("zplus" ("zplus" i 1) ("zneg" j)) ("binary_extract" n x i j)))
 
 (define-symbol repeat ((! k :raw) x)
   :typeof ($smtx_typeof_repeat k x)
@@ -1073,7 +1073,7 @@
 
 (define-symbol bvneg (x)
   :typeof ($smtx_typeof_bv_op_1 x)
-  :eval ((smt.binary n x)) (of_width n ("z_uneg" x)))
+  :eval ((smt.binary n x)) (of_width n ("zneg" x)))
 
 (define-symbol bvadd (x y)
   :typeof ($smtx_typeof_bv_op_2 x y)
@@ -1191,14 +1191,14 @@
 
 (define-symbol bvnego (x)
   :typeof ($smtx_typeof_bv_op_1_ret x Bool)
-  :eval ((smt.binary n x)) (smt.bool ("zeq" x ("z_pow2" ("zplus" n ("z_uneg" 1))))))
+  :eval ((smt.binary n x)) (smt.bool ("zeq" x ("z_pow2" ("zplus" n ("zneg" 1))))))
 
 (define-symbol bvsaddo (x y)
   :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
   :eval ((smt.binary n x) (smt.binary m y))
     (smt.bool
-      ("or" ("zleq" ("z_pow2" ("zplus" n ("z_uneg" 1))) ("zplus" ("binary_uts" n x) ("binary_uts" m y)))
-            ("zlt" ("zplus" ("binary_uts" n x) ("binary_uts" m y)) ("z_uneg" ("z_pow2" ("zplus" n ("z_uneg" 1))))))))
+      ("or" ("zleq" ("z_pow2" ("zplus" n ("zneg" 1))) ("zplus" ("binary_uts" n x) ("binary_uts" m y)))
+            ("zlt" ("zplus" ("binary_uts" n x) ("binary_uts" m y)) ("zneg" ("z_pow2" ("zplus" n ("zneg" 1))))))))
 
 (define-symbol bvumulo (x y)
   :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
@@ -1208,8 +1208,8 @@
   :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
   :eval ((smt.binary n x) (smt.binary m y))
     (smt.bool
-      ("or" ("zleq" ("z_pow2" ("zplus" n ("z_uneg" 1))) ("zmult" ("binary_uts" n x) ("binary_uts" m y)))
-            ("zlt" ("zmult" ("binary_uts" n x) ("binary_uts" m y)) ("z_uneg" ("z_pow2" ("zplus" n ("z_uneg" 1))))))))
+      ("or" ("zleq" ("z_pow2" ("zplus" n ("zneg" 1))) ("zmult" ("binary_uts" n x) ("binary_uts" m y)))
+            ("zlt" ("zmult" ("binary_uts" n x) ("binary_uts" m y)) ("zneg" ("z_pow2" ("zplus" n ("zneg" 1))))))))
 
 (define-symbol bvusubo (x y)
   :typeof ($smtx_typeof_bv_op_2_ret x y Bool)
