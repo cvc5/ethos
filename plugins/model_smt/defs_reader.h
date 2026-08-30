@@ -69,6 +69,23 @@ struct DefsHelper
 };
 
 /**
+ * One datatype of the embedding, i.e. one of the things a value is built over
+ * rather than one of the values: a regular language is one. What a constructor
+ * of it is called and where its declarations are written is what the head of
+ * the file says, so this stage knows none of them by name and adding one asks
+ * nothing of it. Declared in plugins/model_smt/model_smt.eos.
+ */
+struct DefsEmbedDatatype
+{
+  /** The constant a constructor of it is declared as, up to the name. */
+  std::string d_cons;
+  /** The macro that applies it, up to the name. */
+  std::string d_macro;
+  /** The marker of the template the declarations are written at. */
+  std::string d_into;
+};
+
+/**
  * What one symbol of a signature contributes to the generated file, i.e. the
  * block a `; -- X` line opens in a definitions file, see
  * tools/eoc/out/smt_defs.eo and the signature of the input given with
@@ -165,6 +182,11 @@ class DefsFile
   {
     return d_aggregates;
   }
+  /** The datatypes the head of the file declares, see DefsEmbedDatatype. */
+  const std::vector<DefsEmbedDatatype>& getEmbedDatatypes() const
+  {
+    return d_embedDatatypes;
+  }
   /** The programs written over values it declares, see DefsHelper. */
   const std::vector<DefsHelper>& getHelpers() const { return d_helpers; }
   /**
@@ -206,12 +228,16 @@ class DefsFile
    * than as a program is classified by too, since neither is a constructor of
    * any family.
    */
+  /** The datatype a name is a constructor of, or nullptr. */
+  const DefsEmbedDatatype* embedDatatypeOf(const std::string& name) const;
   void classifyProgram(DefsBlock& b,
                        const std::string& f,
                        const std::string& name);
   std::vector<DefsBlock> d_blocks;
   /** What the head declares, longest case first, see aggregateOf. */
   std::vector<DefsAggregate> d_aggregates;
+  /** The datatypes the head declares, see DefsEmbedDatatype. */
+  std::vector<DefsEmbedDatatype> d_embedDatatypes;
   /** The same, for the programs written over values. */
   std::vector<DefsHelper> d_helpers;
   /** The block that defines each name. */

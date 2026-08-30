@@ -375,6 +375,32 @@ class Shape:
     return [a.helper.split('{symbol}')[0]
             for a in self.aggregates.values() if a.helper is not None]
 
+  def constructor_for(self, entry):
+    """What this entry declares, which is the kind's constructor unless the
+    entry says it builds a datatype of the embedding instead.
+
+    Such a datatype is at no level, so nothing is asked of what builds one: an
+    entry that says :builds is a constructor and no case, and saying an
+    aggregate as well is refused rather than quietly dropped.
+    """
+    if not entry.has('builds'):
+      return self.constructor
+    said = [k for k in self.order if entry.has(k)]
+    if said:
+      die('%s: %s builds a datatype of the embedding, and nothing is asked '
+          'of what builds one, so it says no %s'
+          % (entry.name, entry.name, ' or '.join(':' + k for k in said)))
+    return embed_constructor(entry.get('builds').val, entry)
+
+  def block_for(self, entry):
+    """What the block this entry opens is called, which is the constant it
+    declares: an entry that builds a datatype of the embedding declares one of
+    that datatype's."""
+    cons = self.constructor_for(entry)
+    if entry.has('builds'):
+      return cons.name.format(symbol=entry.name)
+    return self.block.format(symbol=entry.name)
+
   def reserved(self):
     """Every prefix the compiler gives a name under, and what a name under it
     is, longest first.
@@ -508,6 +534,8 @@ class Shapes:
     out = {}
     for shape in self.shapes:
       out.update(shape.reserved())
+    for name, dt in _EMBED_DATATYPES.items():
+      out[dt.cons] = 'the constant a constructor of %s is declared as' % name
     return sorted(out.items(), key=lambda kv: (-len(kv[0]), kv[0]))
 
   def case_attrs(self):
@@ -726,6 +754,22 @@ NATIVE_TYPE_DECLS = Shape([], keyword='declare-native-type', noun='native type',
 # plugins/model_smt/model_smt.eos. It declares nothing of the model: the
 # program itself stands in the template of the stage, and what the entry says
 # is what this compiler and that stage have to agree on about it. See bind.
+# One datatype of the embedding, i.e. one of the things a value is built over
+# rather than one of the values: a regular language is one, and so are the map
+# a set and an array both are and the sequence a string is. It is at no level
+# of a set, so nothing is written *at* one; what a set does is declare the
+# constructors that build one, which say so with :builds.
+#
+# The entry says the three things the compiler and the stage that reads the
+# generated file have to agree on: the constant a constructor of it is declared
+# as, the macro that applies it, and the marker of the template those are
+# written at. What a constructor returns is the datatype itself, so nothing
+# states that twice -- the entry is named as the type is named everywhere, i.e.
+# SmtRegLan for $smt_RegLan.
+EMBED_DATATYPES = Shape([], keyword='declare-embed-datatype',
+                        noun='datatype of the embedding', params=False,
+               extra_attrs={'cons': 1, 'macro': 1, 'into': 1})
+
 AGGREGATES = Shape([], keyword='declare-aggregate-method', noun='aggregate',
                    params=False,
                    extra_attrs={'case': 1, 'into': 1, 'helper': 1,
@@ -825,8 +869,8 @@ LITERALS = Shape([LITERAL_TYPEOF, LITERAL_VALUE], constructor=LITERAL_CONSTANT,
                  block='$emb_sm.{symbol}')
 # A value of the embedding is the embedding's own, as its types are.
 VALUES = Shape([VALUE_TYPEOF, VALUE_CANONICAL], constructor=VALUE_CONSTANT,
-               keyword='define-value', noun='value', keep=True,
-               block='$emb_vsm.{symbol}')
+               keyword='declare-constructor', noun='value', keep=True,
+               block='$emb_vsm.{symbol}', extra_attrs={'builds': 1})
 # A type of the embedding is the embedding's own whatever a calculus declares,
 # so its block is kept the way a symbol that says :keep is.
 TYPES = Shape([TYPE_WF, TYPE_BOUNDED, TYPE_DEFAULT], constructor=TYPE_CONSTANT,
@@ -838,7 +882,7 @@ TARGET = Shapes(SYMBOLS, LITERALS, TYPES, VALUES, METHODS)
 INPUT_SET = Shapes(INPUT_SYMBOLS, METHODS, RULES)
 NATIVE_SET = Shapes(NATIVES)
 NATIVE_DECL_SET = Shapes(NATIVE_DECLS, NATIVE_TYPE_DECLS)
-AGGREGATE_SET = Shapes(AGGREGATES)
+AGGREGATE_SET = Shapes(AGGREGATES, EMBED_DATATYPES)
 
 
 def aggregates():
@@ -854,6 +898,43 @@ def aggregates():
       for a in shape.aggregates.values():
         out.setdefault(a.of, []).append(a)
   return out
+
+
+# What the set declared, keyed by name; bind_embed_datatypes puts it here.
+# These are read from a set rather than written here because nothing about one
+# is this file's to say: an entry names the constant, the macro and the marker,
+# and what a constructor of one *is* follows from those.
+_EMBED_DATATYPES = {}
+
+
+def bind_embed_datatypes(entries):
+  """Join what the set declared onto the constructors written here."""
+  _EMBED_DATATYPES.clear()
+  _EMBED_DATATYPES.update(entries)
+
+
+def embed_constructor(name, entry):
+  """What a constructor of the embedding's datatype `name` is declared as.
+
+  Such a datatype has no aggregates, so an entry that builds one declares the
+  constant and the macro and no more. Its arguments are of the datatype unless
+  they say otherwise, most of them holding another of it, and the macro is not
+  the compiler's name alone because the datatype is at no level: a body writes
+  the macro itself, there being no bare name for one. See
+  Constructor.macro_reserved.
+  """
+  dt = _EMBED_DATATYPES.get(name)
+  if dt is None:
+    die('%s: the embedding has no datatype called %s; it declares %s'
+        % (entry.name, name,
+           ', '.join(sorted(_EMBED_DATATYPES)) if _EMBED_DATATYPES
+           else 'none'))
+  return Constructor(name=dt.cons + '{symbol}',
+                     macro=dt.macro + '{symbol}',
+                     argument={'plain': dt.type},
+                     opaque=True,
+                     macro_reserved=False,
+                     returns=dt.type)
 
 
 def bind(entries):

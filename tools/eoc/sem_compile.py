@@ -50,7 +50,7 @@ import report  # noqa: E402
 import sem_target  # noqa: E402
 from sem_lang import (counts, defined_names, die,  # noqa: E402
                       excludes, lean_clauses, read_config, read_macros,
-                      read_text, read_vocabulary, write_text)
+                      read_text, read_vocabulary, smt_type, write_text)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -640,6 +640,62 @@ class AggregateEntry:
     return out
 
 
+class EmbedDatatype:
+  """One datatype of the embedding, as the stage reads it.
+
+  It is not an aggregate -- nothing is spliced into it -- so what it says is
+  only where the constructors that build one are written and what they are
+  called. See the declare-embed-datatype entries of
+  plugins/model_smt/model_smt.eos.
+  """
+
+  def __init__(self, name, cons, macro, into):
+    self.name = name            # named as a type is, e.g. SmtRegLan
+    self.cons = cons            # the constant a constructor is declared as
+    self.macro = macro          # the macro that applies it
+    self.into = into            # the marker its constructors are written at
+
+  @property
+  def type(self):
+    """The type a constructor of it returns, which is the datatype itself."""
+    return smt_type(self.name)
+
+  def lines(self):
+    return ['; $eoc-embed-datatype %s %s %s'
+            % (self.cons, self.macro, self.into)]
+
+
+def read_embed_datatypes(path=AGGREGATE_CONFIG):
+  """The datatypes the embedding declares, keyed by name.
+
+  Read from the same set as the aggregates and checked the same way: a marker
+  has to be one the template has, and a name has to be a type of the embedding,
+  since that is what a constructor of one returns.
+  """
+  template = read_text(AGGREGATE_TEMPLATE)
+  out = {}
+  for b in read_config([path], sem_target.AGGREGATE_SET):
+    for e in b.entries():
+      if e.decls is not sem_target.EMBED_DATATYPES:
+        continue
+      what = 'semantics/' + name_of(path) + ': ' + e.name
+      for a in ('cons', 'macro', 'into'):
+        if not e.has(a):
+          die('%s: a datatype of the embedding says :%s' % (what, a))
+      entry = EmbedDatatype(e.name, e.get('cons').val, e.get('macro').val,
+                         e.get('into').val)
+      if entry.type is None:
+        die('%s: a datatype of the embedding is named as a type of it is, '
+            'e.g. SmtRegLan for $smt_RegLan' % what)
+      if entry.into not in template:
+        die('%s: %s names %s, which %s does not have'
+            % (what, e.name, entry.into, named(AGGREGATE_TEMPLATE)))
+      if e.name in out:
+        die('%s: %s is declared twice' % (what, e.name))
+      out[e.name] = entry
+  return out
+
+
 def read_aggregates(path=AGGREGATE_CONFIG):
   """Read the aggregate set, in the order it gives its entries.
 
@@ -652,6 +708,8 @@ def read_aggregates(path=AGGREGATE_CONFIG):
   out, cases, markers = {}, {}, {}
   for b in read_config([path], sem_target.AGGREGATE_SET):
     for e in b.entries():
+      if e.decls is sem_target.EMBED_DATATYPES:
+        continue
       what = 'semantics/' + name_of(path) + ': ' + e.name
       for a in ('case', 'into'):
         if not e.has(a):
@@ -732,6 +790,9 @@ def aggregates():
   """
   global _AGGREGATES
   if _AGGREGATES is None:
+    # The datatypes first: a constructor that says which it builds is read
+    # against them, so they have to be known before a line is compiled.
+    sem_target.bind_embed_datatypes(read_embed_datatypes())
     _AGGREGATES = read_aggregates()
     sem_target.bind(_AGGREGATES)
   return _AGGREGATES
@@ -913,7 +974,12 @@ def written(blocks, config):
 
 
 def render(blocks, config):
-  head = ['\n'.join(l for e in aggregates().values() for l in e.lines())]
+  # The aggregates first and the datatypes after, which is the order the
+  # stage asks about a name in: a constructor is not a case of anything.
+  aggregates()
+  head = ['\n'.join(l for e in aggregates().values() for l in e.lines())
+          + '\n' + '\n'.join(l for e in read_embed_datatypes().values()
+                              for l in e.lines())]
   said = head_lines(config, blocks)
   if said:
     head.append('\n'.join(said))

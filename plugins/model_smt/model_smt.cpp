@@ -297,15 +297,21 @@ void ModelSmt::finalize()
     replacePlaceholder(finalSmt, h.d_forward, d_at[h.d_forward].str());
   }
   // What the stage says for itself, which no aggregate names: the constructors
-  // of each family, and the programs the cases call.
-  replacePlaceholder(finalSmt, "$SMT_HELPER_PROGS$", d_helperProgs.str());
-  replacePlaceholder(finalSmt, "$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
-  replacePlaceholder(
-      finalSmt, "$SMT_LITERAL_CONSTRUCTORS$", d_smtLiterals.str());
-  replacePlaceholder(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPE_CONSTRUCTORS$", d_smtTypes.str());
-  replacePlaceholder(finalSmt, "$SMT_VALUE_CONSTRUCTORS$", d_smtValues.str());
-  replacePlaceholder(finalSmt, "$SMT_CANONICAL_AUX$", d_smtCanonicalAux.str());
+  // of each family, and the programs the cases call. A datatype of the
+  // embedding may name one of these as where what builds it goes -- a regular
+  // language is written with the values -- so what a block wrote at the marker
+  // follows what the family itself wrote there. A marker none names adds
+  // nothing.
+  auto family = [&](const char* marker, const std::string& own) {
+    replacePlaceholder(finalSmt, marker, own + d_at[marker].str());
+  };
+  family("$SMT_HELPER_PROGS$", d_helperProgs.str());
+  family("$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
+  family("$SMT_LITERAL_CONSTRUCTORS$", d_smtLiterals.str());
+  family("$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
+  family("$SMT_TYPE_CONSTRUCTORS$", d_smtTypes.str());
+  family("$SMT_VALUE_CONSTRUCTORS$", d_smtValues.str());
+  family("$SMT_CANONICAL_AUX$", d_smtCanonicalAux.str());
   if (finalSmt.find("$eoc_") != std::string::npos)
   {
     EO_FATAL() << "ModelSmt: generated output contains an unexpanded $eoc_ "

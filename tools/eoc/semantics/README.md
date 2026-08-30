@@ -163,6 +163,31 @@ type     ::=  NAME  |  NATIVE  |  (type*)
 
 ### Forms
 
+**The set of forms is closed.** What follows is the whole of the language, and
+a form is not to be added to it without a reason that survives being written
+down. The pressure to add one is constant and almost always misplaced: a new
+form arrives whenever something in a template looks as though it wants to be
+configuration, and taking it says the two are different kinds of thing when
+usually one is a case of the other. The costs are not local -- a form is a
+shape in `sem_target.py`, a section here, a row in each of the tables below,
+and something the reader of a set has to recognise before reading anything --
+and they are paid once per form and never recovered, while the thing it was
+added for is read once.
+
+What to reach for first, in order:
+
+1. **An entry of a form that already exists.** Most of what looks like a new
+   kind is a symbol, a type or a value with something unusual about it.
+2. **An attribute of one.** What an entity *says* is the extensible axis, and
+   adding one is three edits and no rebuild; see the aggregate table.
+3. **Leaving it in the template.** A template says what the embedding *is*, and
+   something with exactly one instance, that no calculus varies, and that no
+   configuration would ever write differently is what the embedding is. Not
+   everything hardcoded is hardcoded by mistake.
+
+Only when none of the three fits is a form the answer, and then the entry here
+says why it was.
+
 A file is a sequence of these.
 
 ```text
@@ -172,7 +197,7 @@ A file is a sequence of these.
 (program NAME (declaration*) [:keep] :signature (type*) type (case*))
 (define-symbol NAME (parameter*) attribute*)
 (define-sort NAME (parameter*) attribute*)          the target only
-(define-value NAME (parameter*) attribute*)         the target only
+(declare-constructor NAME (parameter*) attribute*)         the target only
 (define-literal NAME (parameter*) attribute*)       the target only
 (define-method NAME attribute*)                     an input only
 (define-native-method NAME attribute*)              the native layer only
@@ -326,7 +351,7 @@ two are read apart by the form that declares one.
 | --- | --- | --- |
 | a symbol of the **target**, `semantics/smt.eos` | `define-symbol` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof` under `:typeof`; a case of `$smtx_model_eval` under `:value`, or the program it hands its work to under `:eval` |
 | a type of the **target**, `semantics/smt.eos` | `define-sort` | a constant of the embedding and the macro that applies it; a case of `$smtx_type_wf_rec` under `:wf`, of `$smtx_type_bounded` under `:bounded`, of `$smtx_type_default` under `:default` |
-| a value of the **target**, `semantics/smt.eos` | `define-value` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical` under `:canonical` |
+| a value of the **target**, `semantics/smt.eos` | `declare-constructor` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical` under `:canonical` |
 | a literal of the **target**, `semantics/smt.eos` | `define-literal` | a constant of the embedding and the macro that applies it; the two cases a symbol writes, `:typeof` and `:value`, over what it carries rather than over terms |
 | a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
 | a **native** of the embedding, `plugins/desugar/natives.eos` | `declare-native` | nothing of any signature: it declares a name a signature written in the embedding may call, saying what each argument of it is and, under `:op`, the operator it forwards to where that is not its own name. The declaration the desugar layer carries is written from it, so nothing states one by hand; see `render_natives` in `tools/eoc/sem_compile.py` |
@@ -396,7 +421,7 @@ their helper attributes. For the two sets in the tree:
 | `semantics/smt.eos`, a `define-symbol` | `:typeof`, `:value`, `:eval`, `:overload`, `:exclude`, `:keep` |
 | `semantics/smt.eos`, a `define-sort` | `:wf`, `:bounded`, `:default`, `:overload`, `:exclude`, `:keep` |
 | `semantics/development-cpc.eos`, a `define-symbol` | `:term`, `:type`, `:is-list-nil`, `:overload`, `:exclude`, `:keep` |
-| `semantics/smt.eos`, a `define-value` | `:typeof`, `:canonical`, `:overload`, `:exclude`, `:keep` |
+| `semantics/smt.eos`, a `declare-constructor` | `:typeof`, `:canonical`, `:builds`, `:overload`, `:exclude`, `:keep` |
 | `semantics/smt.eos`, a `define-literal` | `:typeof`, `:value`, `:overload`, `:exclude`, `:keep` |
 | a `define-method`, either set | `:lean`, `:exclude` |
 | a `define-rule`, `semantics/development-cpc.eos` | `:exclude` |
@@ -607,7 +632,7 @@ here because a bare name at type level is `$tsm_X` whichever signature writes
 it, so an input that names an array is written against the embedding's `Array`;
 a macro would carry only across the files of the set that declared it.
 
-### `(define-value NAME (param...) attr...)` -- the target
+### `(declare-constructor NAME (param...) attr...)` -- the target
 
 One value of the signature, i.e. what a term of it evaluates to in a model. It
 writes the constructor of the embedding for the value and the macro that
@@ -615,7 +640,7 @@ applies it, the way a type does, and one case of each of the two programs
 written over the values.
 
 ```lisp
-(define-value Set ((m SmtMap))
+(declare-constructor Set ((m SmtMap))
   :typeof ($smtx_map_to_set_type (smt.typeof_map_value m))
   :canonical ("and" ($smtx_map_canonical m)
                ("veq" ($smtx_map_get_default m) smt.false)))
@@ -632,6 +657,33 @@ it stands for in a body is itself.
 
 A value that says nothing about an attribute is answered for by the program its
 cases are spliced into: it is of no type, and it is canonical.
+
+#### `:builds` -- a datatype of the embedding rather than a value
+
+A **datatype of the embedding** is one of the things a value is built *over*
+rather than one of the values: a regular language is one, and so are the map an
+array and a set both are and the sequence a string is. A value holds one and it
+is built by constructors of its own, which are declared here too -- as entries
+that say which datatype they build:
+
+```lisp
+(declare-constructor char ((c SmtValue)) :builds SmtRegLan)
+(declare-constructor star (r) :builds SmtRegLan)
+```
+
+Such an entry declares a constructor of that datatype and nothing else. Nothing
+is asked of it -- what is asked of a value is asked of the `RegLan` value that
+*holds* one -- so saying `:typeof` or `:canonical` as well is refused. A
+parameter that says no type is of the datatype, most of them holding another of
+it, and one that holds something else says so.
+
+Which datatypes there are is not this file's to say: each is declared once with
+`declare-embed-datatype` in
+[`plugins/model_smt/model_smt.eos`](../../../plugins/model_smt/model_smt.eos),
+beside the aggregates, and that declaration is what says what a constructor of
+it is called and where the declarations are written. **One has no bare name and
+no macro of the set**: it is at no level, so what a body writes is the macro
+itself, `($rsm_star r)`.
 
 An entity is named after the constructor it declares -- `Boolean`, not `bool` --
 so `$emb_vsm.Boolean` and `$vsm_Boolean` are what it writes. **A value has no
@@ -1172,7 +1224,7 @@ the sort.
 
 ### Add a value
 
-Write a `define-value` at the end of the values, saying each parameter's type,
+Write a `declare-constructor` at the end of the values, saying each parameter's type,
 the type a term of it would be of, and what makes it canonical; a value that
 has nothing to say about one of those says nothing. Name the macro that applies
 it in the vocabulary block, since a value has no bare name. It goes at the end

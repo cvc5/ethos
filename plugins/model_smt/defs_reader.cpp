@@ -272,6 +272,13 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
       {
         b.d_valueCons.push_back(f);
       }
+      else if (const DefsEmbedDatatype* dt = embedDatatypeOf(name))
+      {
+        // A constructor of a datatype of the embedding, written where that
+        // datatype says rather than where this stage says: what one is called
+        // and where what builds it goes is declared, see DefsEmbedDatatype.
+        b.d_at[dt->d_into].push_back(f);
+      }
       else if (name.compare(0, 8, "$emb_sm.") == 0
                || name.compare(0, 4, "$sm_") == 0)
       {
@@ -326,6 +333,20 @@ const DefsHelper* DefsFile::helperOf(const std::string& name) const
         && name.compare(0, h.d_case.size(), h.d_case) == 0)
     {
       return &h;
+    }
+  }
+  return nullptr;
+}
+
+const DefsEmbedDatatype* DefsFile::embedDatatypeOf(
+    const std::string& name) const
+{
+  for (const DefsEmbedDatatype& dt : d_embedDatatypes)
+  {
+    if (name.compare(0, dt.d_cons.size(), dt.d_cons) == 0
+        || name.compare(0, dt.d_macro.size(), dt.d_macro) == 0)
+    {
+      return &dt;
     }
   }
   return nullptr;
@@ -417,6 +438,17 @@ void DefsFile::readHead(const std::string& head)
         a.d_whole = true;
       }
       d_aggregates.push_back(a);
+    }
+    else if (kind == "$eoc-embed-datatype")
+    {
+      DefsEmbedDatatype dt;
+      if (!(words >> dt.d_cons >> dt.d_macro >> dt.d_into))
+      {
+        EO_FATAL() << "DefsFile: a datatype of the embedding is written `; "
+                      "$eoc-embed-datatype <cons> <macro> <into>`, got: "
+                   << line;
+      }
+      d_embedDatatypes.push_back(dt);
     }
     else if (kind == "$eoc-helper")
     {

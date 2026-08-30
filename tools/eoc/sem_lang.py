@@ -627,8 +627,8 @@ class Vocab:
       for p in b.entries():
         if isinstance(p, Program):
           out.args[p.name] = [sig_level(t) for t in p.sig.items]
-        elif isinstance(p, Symbol) and p.decls.constructor is not None:
-          macro = p.decls.constructor.macro.format(symbol=p.name)
+        elif isinstance(p, Symbol) and p.decls.constructor_for(p) is not None:
+          macro = p.decls.constructor_for(p).macro.format(symbol=p.name)
           out.args[macro] = [level_of(t) if t else None for t in p.types]
           out.types[macro] = list(p.types)
     return out
@@ -1345,9 +1345,10 @@ class Symbol(Entry):
     self.kinds = kinds
     # The type each parameter says it is of, where its kind does not say.
     self.types = types
-    self.block_name = decls.block.format(symbol=self.name)
     self.attrs = attrs
     self.decls = decls
+    # after attrs, since what the block is called follows what the entry says
+    self.block_name = decls.block_for(self)
     self.params_declared = set(params)
 
   def cases_of(self, key):
@@ -1363,7 +1364,7 @@ class Symbol(Entry):
 
   def defines(self):
     out = set()
-    c = self.decls.constructor
+    c = self.decls.constructor_for(self)
     if c is not None:
       out.add(c.name.format(symbol=self.name))
       out.add(c.macro.format(symbol=self.name))
@@ -1418,8 +1419,9 @@ class Symbol(Entry):
       # kind of entity may be the embedding's own throughout, as its types
       # are, and then every entry of it says this without writing it.
       out.append('(echo "eoc-keep symbol %s")' % self.name)
-    if self.decls.constructor is not None:
-      out.extend(self.decls.constructor.render(self, ctx))
+    cons = self.decls.constructor_for(self)
+    if cons is not None:
+      out.extend(cons.render(self, ctx))
     for key in self.decls.order:
       agg = self.decls.aggregates[key]
       if agg.helper is not None and self.has(agg.helper_attr):
