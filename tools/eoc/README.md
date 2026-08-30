@@ -277,8 +277,9 @@ Where a name is spelled is settled in `LAYERS` in `tools/eoc/sem_compile.py`,
 one entry to a backend.
 
 What is left in `native_embed.eo` is what the embedding *is* rather than what
-it calls: the `$native_apply_*`, `$native_type_*` and `$native_embed_*`
-constructors, and one macro written over them.
+it calls, and nothing else: the `$native_apply_*`, `$native_type_*` and
+`$native_embed_*` constructors, declared and never written over. It holds no
+definition at all.
 
 Everything else the set says. It declares the primitive types the natives are
 written over as well as the natives themselves -- `<numeral>` is what a

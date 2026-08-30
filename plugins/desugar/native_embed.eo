@@ -66,14 +66,9 @@
 
 ; The natives themselves, which are compiled from plugins/desugar/natives.eos
 ; rather than written here: a declaration of one says its name, what each of
-; its arguments is, and the operator it forwards to, and the compiler knows all
-; three. They stand here, after the types they are written over and before the
-; definitions written over them. See render_natives in
+; its arguments is, and either the operator it forwards to or what it is
+; defined as, and the compiler knows all of that. That set declares the
+; primitive types too, so what stands below is the whole of the layer and this
+; file declares only what the layer is written over. See render_natives in
 ; tools/eoc/sem_compile.py.
 (include "native_defs.eo")
-
-; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
-(define $native_apply_nary_3
-  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
-   (op $smt_id) (x1 W1) (x2 W2) (x3 W3))
-  ($native_apply_2 op x1 ($native_apply_2 op x2 x3)))

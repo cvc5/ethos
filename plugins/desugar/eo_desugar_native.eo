@@ -616,10 +616,8 @@ $EO_UOP_DECLS$
 ; define: $eo_is_eq
 ; implements: eo::is_eq
 (define $eo_is_eq ((t $eo_Term) (s $eo_Term))
-  ($eot_bool ($native_apply_nary_3 "and"
-    ($native_is_ok t)
-    ($native_is_ok s)
-    ($native_teq s t))))
+  ($eot_bool ($native_and ($native_is_ok t)
+                          ($native_and ($native_is_ok s) ($native_teq s t)))))
 
 ;;; $eo_is_bool
 
