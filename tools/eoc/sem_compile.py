@@ -649,11 +649,18 @@ class EmbedDatatype:
   plugins/model_smt/model_smt.eos.
   """
 
-  def __init__(self, name, cons, macro, into):
+  def __init__(self, name, cons, macro, own_into, into):
     self.name = name            # named as a type is, e.g. SmtRegLan
     self.cons = cons            # the constant a constructor is declared as
     self.macro = macro          # the macro that applies it
-    self.into = into            # the marker its constructors are written at
+    self.own_into = own_into    # where the embedding's own are written
+    self.into = into            # where a signature's are, or None
+
+  @property
+  def own(self):
+    """Whether every constructor of it is the embedding's own, which is what
+    saying where a signature's go and nothing else amounts to."""
+    return self.into is None
 
   @property
   def type(self):
@@ -661,8 +668,9 @@ class EmbedDatatype:
     return smt_type(self.name)
 
   def lines(self):
-    return ['; $eoc-embed-datatype %s %s %s'
-            % (self.cons, self.macro, self.into)]
+    return ['; $eoc-embed-datatype %s %s %s%s'
+            % (self.cons, self.macro, self.own_into,
+               '' if self.own else ' ' + self.into)]
 
 
 def read_embed_datatypes(path=AGGREGATE_CONFIG):
@@ -679,17 +687,19 @@ def read_embed_datatypes(path=AGGREGATE_CONFIG):
       if e.decls is not sem_target.EMBED_DATATYPES:
         continue
       what = 'semantics/' + name_of(path) + ': ' + e.name
-      for a in ('cons', 'macro', 'into'):
+      for a in ('cons', 'macro', 'own-into'):
         if not e.has(a):
           die('%s: a datatype of the embedding says :%s' % (what, a))
       entry = EmbedDatatype(e.name, e.get('cons').val, e.get('macro').val,
-                         e.get('into').val)
+                            e.get('own-into').val,
+                            e.get('into').val if e.has('into') else None)
       if entry.type is None:
         die('%s: a datatype of the embedding is named as a type of it is, '
             'e.g. SmtRegLan for $smt_RegLan' % what)
-      if entry.into not in template:
-        die('%s: %s names %s, which %s does not have'
-            % (what, e.name, entry.into, named(AGGREGATE_TEMPLATE)))
+      for marker in (entry.own_into, entry.into):
+        if marker is not None and marker not in template:
+          die('%s: %s names %s, which %s does not have'
+              % (what, e.name, marker, named(AGGREGATE_TEMPLATE)))
       if e.name in out:
         die('%s: %s is declared twice' % (what, e.name))
       out[e.name] = entry

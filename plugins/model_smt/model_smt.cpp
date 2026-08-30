@@ -10,6 +10,7 @@
 #include "model_smt.h"
 
 #include <fstream>
+#include <set>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -150,10 +151,12 @@ void ModelSmt::loadDefs()
       }
     }
   };
-  // Whether the block is of a type or a value, which are the embedding's own
-  // as a literal is: what declares a constructor of one is of one.
+  // Whether every constructor of what the block builds is the embedding's
+  // own, which is what the datatype says of itself: those stand in the order
+  // the configuration gives rather than the order a calculus declares its
+  // symbols in. See DefsEmbedDatatype::d_own.
   auto isOwn = [](const DefsBlock* b) {
-    return !b->d_typeCons.empty() || !b->d_valueCons.empty();
+    return b->d_builds != nullptr && b->d_builds->own();
   };
   // The literals stand before the symbols written over them, and in the order
   // the configuration gives rather than the order a calculus declares its own,
@@ -165,10 +168,6 @@ void ModelSmt::loadDefs()
     if (!b->d_literal)
     {
       continue;
-    }
-    for (const std::string& f : b->d_cons)
-    {
-      d_smtLiterals << f << std::endl;
     }
     emitAt(b);
   }
@@ -182,7 +181,7 @@ void ModelSmt::loadDefs()
     // A block that says nothing about the model, e.g. one that only gives the
     // nil of an n-ary symbol, leaves that symbol to be compiled as any other.
     // What says something is a constructor, or a case of some aggregate.
-    bool saysSomething = !b->d_cons.empty();
+    bool saysSomething = b->d_builds != nullptr;
     for (const std::pair<const std::string, std::vector<std::string>>& at :
          b->d_at)
     {
@@ -191,10 +190,6 @@ void ModelSmt::loadDefs()
     if (saysSomething)
     {
       d_defsCovered.insert(b->d_sym);
-    }
-    for (const std::string& f : b->d_cons)
-    {
-      d_smtTerms << f << std::endl;
     }
     emitAt(b);
   }
@@ -209,14 +204,6 @@ void ModelSmt::loadDefs()
     if (!isOwn(b))
     {
       continue;
-    }
-    for (const std::string& f : b->d_typeCons)
-    {
-      d_smtTypes << f << std::endl;
-    }
-    for (const std::string& f : b->d_valueCons)
-    {
-      d_smtValues << f << std::endl;
     }
     emitAt(b);
   }
@@ -296,22 +283,29 @@ void ModelSmt::finalize()
   {
     replacePlaceholder(finalSmt, h.d_forward, d_at[h.d_forward].str());
   }
-  // What the stage says for itself, which no aggregate names: the constructors
-  // of each family, and the programs the cases call. A datatype of the
-  // embedding may name one of these as where what builds it goes -- a regular
-  // language is written with the values -- so what a block wrote at the marker
-  // follows what the family itself wrote there. A marker none names adds
-  // nothing.
-  auto family = [&](const char* marker, const std::string& own) {
-    replacePlaceholder(finalSmt, marker, own + d_at[marker].str());
+  // What the stage says for itself, which no aggregate names: the programs the
+  // cases call, and the constructors, which are written where the datatype
+  // each builds says. A marker nothing wrote at is written all the same, the
+  // template being left with no placeholder in it whatever an input reaches.
+  auto marker = [&](const char* at, const std::string& own) {
+    replacePlaceholder(finalSmt, at, own + d_at[at].str());
   };
-  family("$SMT_HELPER_PROGS$", d_helperProgs.str());
-  family("$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
-  family("$SMT_LITERAL_CONSTRUCTORS$", d_smtLiterals.str());
-  family("$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
-  family("$SMT_TYPE_CONSTRUCTORS$", d_smtTypes.str());
-  family("$SMT_VALUE_CONSTRUCTORS$", d_smtValues.str());
-  family("$SMT_CANONICAL_AUX$", d_smtCanonicalAux.str());
+  marker("$SMT_HELPER_PROGS$", d_helperProgs.str());
+  marker("$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
+  marker("$SMT_CANONICAL_AUX$", d_smtCanonicalAux.str());
+  // Each marker once: two datatypes may be written at one, a regular language
+  // standing with the values.
+  std::set<std::string> written;
+  for (const DefsEmbedDatatype& dt : d_smtDefs.getEmbedDatatypes())
+  {
+    for (const std::string& at : {dt.d_ownInto, dt.d_into})
+    {
+      if (!at.empty() && written.insert(at).second)
+      {
+        marker(at.c_str(), "");
+      }
+    }
+  }
   if (finalSmt.find("$eoc_") != std::string::npos)
   {
     EO_FATAL() << "ModelSmt: generated output contains an unexpanded $eoc_ "

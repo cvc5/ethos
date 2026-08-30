@@ -99,10 +99,41 @@
 ;; returns is the datatype, and the entry is named as a type is named
 ;; everywhere, so nothing states that twice.
 
+;; A datatype is built by the embedding itself, by a signature written over it,
+;; or by both. :own-into is where the embedding's own go and :into is where a
+;; signature's go, and a datatype that says only the first is the embedding's
+;; throughout. The two are apart because they stand in different orders: what
+;; the embedding builds stands in the order this configuration gives it, so
+;; that what the generated Lean derives from the order of a datatype's
+;; constructors is the same in every generated package however few rules it was
+;; compiled for; what a signature builds stands in the order it declares them.
+;; Which of the two a block is is read off the block, a block of the first
+;; being named after the constant it declares.
+
+; A term, which the embedding builds as a literal and a signature builds as a
+; symbol: the only datatype both write.
+(declare-embed-datatype SmtTerm
+  :cons      $emb_sm.
+  :macro     $sm_
+  :own-into  $SMT_LITERAL_CONSTRUCTORS$
+  :into      $SMT_TERM_CONSTRUCTORS$)
+
+; A type.
+(declare-embed-datatype SmtType
+  :cons      $emb_tsm.
+  :macro     $tsm_
+  :own-into  $SMT_TYPE_CONSTRUCTORS$)
+
+; A value, i.e. what a term of a signature evaluates to in a model.
+(declare-embed-datatype SmtValue
+  :cons      $emb_vsm.
+  :macro     $vsm_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
 ; A regular language, which a RegLan value holds. Its base elements are
 ; values, so the constructors that hold one say SmtValue and the rest are of
 ; the datatype itself.
 (declare-embed-datatype SmtRegLan
-  :cons  $emb_rsm.
-  :macro $rsm_
-  :into  $SMT_VALUE_CONSTRUCTORS$)
+  :cons      $emb_rsm.
+  :macro     $rsm_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)

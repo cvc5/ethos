@@ -658,32 +658,38 @@ it stands for in a body is itself.
 A value that says nothing about an attribute is answered for by the program its
 cases are spliced into: it is of no type, and it is canonical.
 
-#### `:builds` -- a datatype of the embedding rather than a value
+#### `:builds` -- which datatype of the embedding
 
-A **datatype of the embedding** is one of the things a value is built *over*
-rather than one of the values: a regular language is one, and so are the map an
-array and a set both are and the sequence a string is. A value holds one and it
-is built by constructors of its own, which are declared here too -- as entries
-that say which datatype they build:
+**Every entry says it, and there is no default.** A `declare-constructor`
+declares a constructor of one of the embedding's datatypes, and which one is
+what tells a value from a regular language:
 
 ```lisp
+(declare-constructor Boolean ((b "<bool>")) :builds SmtValue :typeof Bool)
 (declare-constructor char ((c SmtValue)) :builds SmtRegLan)
 (declare-constructor star (r) :builds SmtRegLan)
 ```
 
-Such an entry declares a constructor of that datatype and nothing else. Nothing
-is asked of it -- what is asked of a value is asked of the `RegLan` value that
-*holds* one -- so saying `:typeof` or `:canonical` as well is refused. A
-parameter that says no type is of the datatype, most of them holding another of
-it, and one that holds something else says so.
+A **datatype of the embedding** is one of the things a value is built *over*
+rather than one of the values: a regular language is one, and so are the map an
+array and a set both are and the sequence a string is. A value holds one and it
+is built by constructors of its own.
+
+`:typeof` and `:canonical` are questions about a **value**, so an entry that
+builds anything else is asked neither, and saying one is refused: what is asked
+of a regular language is asked of the `RegLan` value that *holds* one. A
+parameter that says no type is of the datatype being built, most of them
+holding another of it, and one that holds something else says so.
 
 Which datatypes there are is not this file's to say: each is declared once with
 `declare-embed-datatype` in
 [`plugins/model_smt/model_smt.eos`](../../../plugins/model_smt/model_smt.eos),
 beside the aggregates, and that declaration is what says what a constructor of
-it is called and where the declarations are written. **One has no bare name and
-no macro of the set**: it is at no level, so what a body writes is the macro
-itself, `($rsm_star r)`.
+it is called and where the declarations are written. Nothing else holds those
+names -- not this file, and not the stage that reads what it compiles to.
+
+**A datatype other than `SmtValue` has no bare name and no macro of the set**:
+it is at no level, so what a body writes is the macro itself, `($rsm_star r)`.
 
 An entity is named after the constructor it declares -- `Boolean`, not `bool` --
 so `$emb_vsm.Boolean` and `$vsm_Boolean` are what it writes. **A value has no

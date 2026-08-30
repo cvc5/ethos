@@ -126,15 +126,6 @@ class ModelSmt : public StdPlugin
   std::stringstream d_helperProgs;
   /** Auxiliary definitions used by EO-to-SMT conversion. */
   std::stringstream d_eoToSmtAux;
-  /** Generated declarations of the constructors of the literals, i.e. of the
-   * terms the embedding builds over a native rather than over terms. */
-  std::stringstream d_smtLiterals;
-  /** Generated SMT term constructor declarations. */
-  std::stringstream d_smtTerms;
-  /** Generated SMT type constructor declarations. */
-  std::stringstream d_smtTypes;
-  /** Generated SMT value constructor declarations. */
-  std::stringstream d_smtValues;
   /** Auxiliary definitions used by the canonicity of values, which stand after
    * the programs over types they call, see DefsBlock::d_canonicalAux. */
   std::stringstream d_smtCanonicalAux;

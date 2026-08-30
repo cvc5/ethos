@@ -234,10 +234,17 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
 {
   DefsBlock b;
   b.d_sym = sym;
-  // A block named after the constructor it declares is of a term the embedding
-  // builds itself rather than of a symbol written over them, see
-  // DefsBlock::d_literal.
-  b.d_literal = sym.compare(0, 8, "$emb_sm.") == 0;
+  // A block named after the constructor it declares is of something the
+  // embedding builds itself rather than of a symbol written over it, see
+  // DefsBlock::d_literal. A datatype whose constructors are the embedding's
+  // own throughout says so instead, and those stand later; what is left is a
+  // literal, i.e. one of the embedding's own among a datatype whose others
+  // are the input's.
+  // A block named after the constant it declares is one of the embedding's
+  // own among a datatype a signature also builds, i.e. a literal; a type
+  // names its block after the symbol instead, and is the embedding's own by
+  // the datatype being so. See DefsBlock::d_own and DefsBlock::d_literal.
+  const bool namedAfterConstant = embedDatatypeOf(sym) != nullptr;
   for (const std::string& f : forms(text))
   {
     const std::string kind = formKind(f);
@@ -259,36 +266,24 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
     if (kind == "declare-const" || kind == "declare-parameterized-const"
         || kind == "define")
     {
-      // the constructor of the embedding for the symbol, and its macro; a
-      // block of a type declares the constructor of a type, which the
-      // generated file has before the terms written over it
-      if (name.compare(0, 9, "$emb_tsm.") == 0
-          || name.compare(0, 5, "$tsm_") == 0)
+      // The constructor of the embedding for the symbol, and the macro that
+      // applies it. Which datatype it builds is what says where it is written
+      // and whether it stands in the order the configuration gives, so this
+      // stage holds the name of no datatype and adding one asks nothing of
+      // it; see DefsEmbedDatatype.
+      if (const DefsEmbedDatatype* dt = embedDatatypeOf(name))
       {
-        b.d_typeCons.push_back(f);
-      }
-      else if (name.compare(0, 9, "$emb_vsm.") == 0
-               || name.compare(0, 5, "$vsm_") == 0)
-      {
-        b.d_valueCons.push_back(f);
-      }
-      else if (const DefsEmbedDatatype* dt = embedDatatypeOf(name))
-      {
-        // A constructor of a datatype of the embedding, written where that
-        // datatype says rather than where this stage says: what one is called
-        // and where what builds it goes is declared, see DefsEmbedDatatype.
-        b.d_at[dt->d_into].push_back(f);
-      }
-      else if (name.compare(0, 8, "$emb_sm.") == 0
-               || name.compare(0, 4, "$sm_") == 0)
-      {
-        b.d_cons.push_back(f);
+        b.d_own = dt->own() || namedAfterConstant;
+        b.d_literal = namedAfterConstant && !dt->own();
+        b.d_at[b.d_own ? dt->d_ownInto : dt->d_into].push_back(f);
+        b.d_builds = dt;
       }
       else
       {
-        // Not a constructor of any family, so it is a helper that happens to
-        // be written as a define rather than as a program -- $smtx_map_update
-        // is one -- and belongs to whichever stream its name says.
+        // Not a constructor of any datatype, so it is a helper that happens
+        // to be written as a define rather than as a program --
+        // $smtx_map_update is one -- and belongs to whichever stream its name
+        // says.
         classifyProgram(b, f, name);
       }
       continue;
@@ -442,12 +437,16 @@ void DefsFile::readHead(const std::string& head)
     else if (kind == "$eoc-embed-datatype")
     {
       DefsEmbedDatatype dt;
-      if (!(words >> dt.d_cons >> dt.d_macro >> dt.d_into))
+      if (!(words >> dt.d_cons >> dt.d_macro >> dt.d_ownInto))
       {
         EO_FATAL() << "DefsFile: a datatype of the embedding is written `; "
-                      "$eoc-embed-datatype <cons> <macro> <into>`, got: "
+                      "$eoc-embed-datatype <cons> <macro> <own-into> "
+                      "[<into>]`, got: "
                    << line;
       }
+      // A datatype a signature writes constructors of says where those go as
+      // well; one that says nothing more is the embedding's throughout.
+      words >> dt.d_into;
       d_embedDatatypes.push_back(dt);
     }
     else if (kind == "$eoc-helper")
