@@ -320,6 +320,79 @@
   :default (smt.char ("n_to_char" "n_zero")))
 
 ;-----------------------------------------------------------------------------
+(section "The datatypes a value is built over")
+;-----------------------------------------------------------------------------
+
+; What a value holds where it holds something built rather than a native: a
+; map, a sequence, a regular language, or the three a datatype declaration is
+; made of. Each is a datatype of the embedding, declared in
+; plugins/model_smt/model_smt.eos, and what follows are the ways of building
+; one. They are constructors like any other and say which datatype they build;
+; the name of one is the datatype's to scope, so the `cons` of a map and the
+; `cons` of a sequence are two constructors and not a clash.
+;
+; Nothing is asked of them. What is asked of a value is asked of the value
+; that *holds* one -- Map, Seq, RegLan and DtCons below -- so these say a
+; constructor and no case.
+
+; A map value, i.e. i mapped to e over the rest, or every index mapped to e.
+(declare-constructor cons ((i SmtValue) (e SmtValue) (m SmtMap)) :builds SmtMap)
+
+(declare-constructor default ((T SmtType) (e SmtValue)) :builds SmtMap)
+
+; A sequence value, i.e. a list of values ending in the empty one of a type.
+(declare-constructor cons ((i SmtValue) (s SmtSeq)) :builds SmtSeq)
+
+(declare-constructor empty ((T SmtType)) :builds SmtSeq)
+
+; The ways a regular language is built. An entry that says :builds declares a
+; constructor of that datatype of the embedding rather than a value, so nothing
+; is asked of these: what is asked of the value that holds one is asked of
+; RegLan below. A parameter that says no type is of the datatype itself, and
+; the two that hold a base element say SmtValue.
+;
+; They stand in the order the Lean inductive gives them, see SmtRegLan in
+; plugins/lean_meta/lean_meta_smt_model_defs.lean.
+
+(declare-constructor empty () :builds SmtRegLan)
+
+(declare-constructor epsilon () :builds SmtRegLan)
+
+(declare-constructor char ((c SmtValue)) :builds SmtRegLan)
+
+(declare-constructor range ((lo SmtValue) (hi SmtValue)) :builds SmtRegLan)
+
+(declare-constructor allchar () :builds SmtRegLan)
+
+(declare-constructor concat (r1 r2) :builds SmtRegLan)
+
+(declare-constructor union (r1 r2) :builds SmtRegLan)
+
+(declare-constructor inter (r1 r2) :builds SmtRegLan)
+
+(declare-constructor star (r) :builds SmtRegLan)
+
+(declare-constructor comp (r) :builds SmtRegLan)
+
+; The arguments of one datatype constructor: none, or the type of one argument
+; over the rest.
+(declare-constructor unit () :builds SmtDatatypeCons)
+
+(declare-constructor cons ((T SmtType) (c SmtDatatypeCons)) :builds SmtDatatypeCons)
+
+; The constructors of one datatype: none, or one over the rest.
+(declare-constructor null () :builds SmtDatatype)
+
+(declare-constructor sum ((c SmtDatatypeCons) (d SmtDatatype)) :builds SmtDatatype)
+
+; The datatypes of one declare-datatypes block: none, or one named datatype
+; over the rest.
+(declare-constructor nil () :builds SmtDatatypeDecl)
+
+(declare-constructor cons ((s "<string>") (d SmtDatatype) (dd SmtDatatypeDecl))
+  :builds SmtDatatypeDecl)
+
+;-----------------------------------------------------------------------------
 (section "The values")
 ;-----------------------------------------------------------------------------
 
@@ -390,34 +463,6 @@
 (declare-constructor UValue ((i "<nat>") (e "<nat>")) :builds SmtValue
   :typeof (USort i))
 
-; The ways a regular language is built. An entry that says :builds declares a
-; constructor of that datatype of the embedding rather than a value, so nothing
-; is asked of these: what is asked of the value that holds one is asked of
-; RegLan below. A parameter that says no type is of the datatype itself, and
-; the two that hold a base element say SmtValue.
-;
-; They stand in the order the Lean inductive gives them, see SmtRegLan in
-; plugins/lean_meta/lean_meta_smt_model_defs.lean.
-
-(declare-constructor empty () :builds SmtRegLan)
-
-(declare-constructor epsilon () :builds SmtRegLan)
-
-(declare-constructor char ((c SmtValue)) :builds SmtRegLan)
-
-(declare-constructor range ((lo SmtValue) (hi SmtValue)) :builds SmtRegLan)
-
-(declare-constructor allchar () :builds SmtRegLan)
-
-(declare-constructor concat (r1 r2) :builds SmtRegLan)
-
-(declare-constructor union (r1 r2) :builds SmtRegLan)
-
-(declare-constructor inter (r1 r2) :builds SmtRegLan)
-
-(declare-constructor star (r) :builds SmtRegLan)
-
-(declare-constructor comp (r) :builds SmtRegLan)
 
 ; -- $smtx_re_canonical
 ; A regular language is written the one way when every base element it holds

@@ -438,7 +438,7 @@ not necessarily one Logos accepts.
 
 ## Appendix: component sizes
 
-Code lines, excluding blank and comment lines, measured 2026-08-29 with cloc
+Code lines, excluding blank and comment lines, measured 2026-08-30 with cloc
 2.06:
 
 ```bash
@@ -453,31 +453,31 @@ A count for a C++ component is its implementation plus its header.
 | --- | --- |
 | ethos core, `src/` | 10,278 C++ |
 | `src/plugin.h`, the callback interface | 64 C++ |
-| `plugins/std_plugin`, `meta_reduce_plugin`, `native_layer`, `utils` | 988 C++ |
+| `plugins/std_plugin`, `meta_reduce_plugin`, `native_layer`, `utils` | 992 C++ |
 | `plugins/main_eoc.cpp` | 220 C++ |
-| `tools/eoc/driver.py` | 894 Python |
-| `tools/eoc/sem_{lang,target,compile}.py`, the configuration compiler | 1,849 Python |
-| `tools/eoc/report.py`, `test/regress.py` | 146 Python |
+| `tools/eoc/driver.py` | 912 Python |
+| `tools/eoc/sem_{lang,target,compile}.py`, the configuration compiler | 2,023 Python |
+| `tools/eoc/report.py`, `test/regress.py` | 148 Python |
 
 ### Stages 5, 6 and 7b: Eunoia to Lean
 
 | Component | LOC |
 | --- | --- |
-| `desugar.{h,cpp}` | 1,279 C++ |
-| `desugar_checker.{h,cpp}` | 153 C++ |
-| `model_smt.{h,cpp}` | 274 C++ |
-| `defs_reader.{h,cpp}` | 581 C++ |
+| `desugar.{h,cpp}` | 1,347 C++ |
+| `desugar_checker.{h,cpp}` | 161 C++ |
+| `model_smt.{h,cpp}` | 264 C++ |
+| `defs_reader.{h,cpp}` | 612 C++ |
 | `linear_patterns.{h,cpp}` | 176 C++ |
-| `lean_meta_reduce.{h,cpp}` | 1,849 C++ |
-| shared | 988 C++ |
-| **C++ total** | **5,300** |
-| `native_embed.eo` | 76 EO |
-| `eo_desugar.eo` | 394 EO |
-| `eo_desugar_native.eo` | 592 EO |
+| `lean_meta_reduce.{h,cpp}` | 1,878 C++ |
+| shared | 992 C++ |
+| **C++ total** | **5,430** |
+| `native_embed.eo` | 44 EO |
+| `eo_desugar.eo` | 391 EO |
+| `eo_desugar_native.eo` | 576 EO |
 | `eo_desugar_checker.eo` | 204 EO |
-| `model_smt.eo`, the embedding | 697 EO |
-| **Eunoia total** | **1,963** |
-| Lean templates, `plugins/lean_meta/*.lean` | 561 Lean |
+| `model_smt.eo`, the embedding | 637 EO |
+| **Eunoia total** | **1,852** |
+| Lean templates, `plugins/lean_meta/*.lean` | 550 Lean |
 
 ### Stage 7a: Eunoia to SMT-LIB and SyGuS
 
@@ -486,7 +486,7 @@ Stages 5 and 6 above are shared; this backend adds:
 | Component | LOC |
 | --- | --- |
 | `smt_meta_reduce.{h,cpp}` | 957 C++ |
-| `smt_meta_sygus.{h,cpp}` | 497 C++ |
+| `smt_meta_sygus.{h,cpp}` | 487 C++ |
 | `smt_meta/utils.{h,cpp}` | 62 C++ |
 | `trim_defs.{h,cpp}` | 757 C++ |
 | `smt_meta.smt2` template | 145 SMT2 |
@@ -500,16 +500,16 @@ right-hand column is one nobody maintains.
 
 | Written by hand | LOC | Compiles to | LOC |
 | --- | --- | --- | --- |
-| `semantics/smt.eos`, the SMT-LIB semantics | 1,218 | `smt_defs.eo`, `smt_termination.lean` | 4,118 |
+| `semantics/smt.eos`, the SMT-LIB semantics | 1,240 | `smt_defs.eo`, `smt_termination.lean` | 4,178 |
 | `semantics/development-cpc.eos`, the semantics of an input | 615 | `user_defs.eo`, `user_termination.lean` | 1,624 |
-| `desugar/natives.eos`, the natives of the embedding | 51 | `native_defs.eo` | 94 |
-| `model_smt/model_smt.eos`, the aggregates | 35 | the head of the two signatures | — |
+| `desugar/natives.eos`, the natives and the primitive types | 74 | `native_defs.eo` | 123 |
+| `model_smt/model_smt.eos`, the aggregates and the datatypes | 73 | the head of the two signatures | — |
 | `lean_meta/lean.eos`, the native layer of stage 7b | 649 | `lean_native.lean` | 482 |
 | `smt_meta/smt-vc.eos`, the native layer of stage 7a | 227 | `smt_vc_native.smt2` | 152 |
-| **Total** | **2,795** | | **6,470** |
+| **Total** | **2,878** | | **6,559** |
 
-Against the declarative material that is still written out by hand -- 1,963
-lines of Eunoia, 561 of Lean template and 145 of SMT-LIB template, 2,669 in all
+Against the declarative material that is still written out by hand -- 1,852
+lines of Eunoia, 550 of Lean template and 145 of SMT-LIB template, 2,547 in all
 -- a little over half of what the pipeline is told is now configuration rather
 than something maintained in the form the stages read.
 
@@ -517,6 +517,56 @@ None of the right-hand column is checked in; see the `tools/eoc/out/` line of
 `.gitignore`. `sem_compile.py --check` says it holds what compiling writes, and
 `tools/eoc/test/regress.py` says the pipeline still writes the same bytes for a
 signature of this tree.
+
+#### What moved, and what it bought
+
+The aggregate moves little -- 51% of what the pipeline is told was
+configuration, 53% is -- and the aggregate is the wrong place to look. What
+moved is *which* things a stage holds a name of:
+
+| | before | after |
+| --- | --: | --: |
+| `native_embed.eo`, the layer's own file | 76 EO | **44 EO** |
+| definitions written by hand in it | 28 | **0** |
+| constructor and marker names hardcoded in the model-smt stage | 11 | **0** |
+| constructors of the embedding's datatypes declared in `model_smt.eo` | 20 | **0** |
+| index arities the embedding can express | exactly 3 | **as many as declared** |
+
+Three changes account for it, and each removed a *kind* of hardcoding rather
+than an instance:
+
+- **The natives say what they are.** `natives.eos` declares the primitive
+  types as well as the natives written over them, and a native that forwards
+  to nothing says what it is under `:is`, so `native_embed.eo` holds
+  declarations and no definitions at all. The rename that went with it --
+  `<numeral>` for what a backend calls `Int` -- caught a live inconsistency:
+  the rational natives were typed `$native_Real` in Eunoia while both backends
+  implement only `Rat`, which nothing had reason to notice because a native's
+  return type is not checked.
+- **The UserOp ladder is as long as the calculus.** `$emb_UOp<n>` is emitted
+  per index arity the signature uses rather than fixed at three, so a
+  calculus that indexes nothing carries no `UserOp<n>` and none of the cases
+  every generated function owed them, and one that indexes four ways compiles
+  for the first time.
+- **The constructor families are declared.** A `declare-embed-datatype` entry
+  in `model_smt.eos` says what a constructor of one of the embedding's
+  datatypes is called and where it is written, and a `declare-constructor`
+  says which datatype it builds. The model-smt stage holds no such name, so a
+  family moves out of the template with configuration alone, and all six have:
+  the term, the type and the value, and beneath them the map an array and a
+  set both are, the sequence a string is, the regular language, and the three
+  a datatype declaration is made of. `model_smt.eo` declares not one
+  constructor now -- it says which datatypes there are and what the embedding
+  *does* with them, and the ways of building one are the target's to write.
+  The name of a constructor is scoped by the datatype, so the `cons` of a map
+  and the `cons` of a sequence are two constructors and not a clash.
+
+What none of this touches is the loop a *calculus author* is in, which is the
+agility this document's sibling
+[`docs/README.md`](docs/README.md) is about: nobody adds a regular language
+constructor, and the shapes above are SMT-LIB's and fixed. What it buys is the
+ability to ask what a second *target* would cost, which was previously welded
+into C++ and is now data.
 
 ### Generated Logos
 

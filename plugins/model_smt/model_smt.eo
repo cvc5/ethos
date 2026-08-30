@@ -270,30 +270,11 @@
 ; the default, which is what makes the spelling of a map unique.
 (declare-const $smt_Map Type)
 
-; Constructs a map value where i is mapped to e.
-(declare-parameterized-const $emb_msm.cons
-  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
-  $smt_Map)
-(define $msm_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
-  ($emb_msm.cons i e m))
-
-; Constructs a map value where all indices are mapped to e.
-(declare-parameterized-const $emb_msm.default
-  ((T $smt_Type :opaque) (e $smt_Value :opaque))
-  $smt_Map)
-(define $msm_default ((T $smt_Type) (e $smt_Value)) ($emb_msm.default T e))
 
 ; The type used to define values for sequences in SMT-LIB, i.e. what a string
 ; is built over: a list of values ending in the empty sequence of a type.
 (declare-const $smt_Seq Type)
 
-(declare-parameterized-const $emb_ssm.cons
-  ((i $smt_Value :opaque) (s $smt_Seq :opaque))
-  $smt_Seq)
-(define $ssm_cons ((i $smt_Value) (s $smt_Seq)) ($emb_ssm.cons i s))
-
-(declare-parameterized-const $emb_ssm.empty ((T $smt_Type :opaque)) $smt_Seq)
-(define $ssm_empty ((T $smt_Type)) ($emb_ssm.empty T))
 
 ; The type used to define values for regular languages in SMT-LIB. Its base
 ; elements are $smt_Value, so that the regular expression operators can be
@@ -349,42 +330,6 @@
   )
 )
 
-;;; Constructors for SMT-LIB datatypes and datatype constructors
-
-; A constructor having no arguments
-(declare-const $emb_dtc.unit $smt_DatatypeCons)
-(define $dtc_unit () $emb_dtc.unit)
-
-; A constructor having at least one argument
-; It takes the type of that argument and a constructor specifying the remaining
-; arguments.
-(declare-parameterized-const $emb_dtc.cons
-  ((T $smt_Type :opaque) (c $smt_DatatypeCons :opaque))
-  $smt_DatatypeCons)
-(define $dtc_cons ((T $smt_Type) (c $smt_DatatypeCons))
-  ($emb_dtc.cons T c))
-
-; A datatype having no constructors
-(declare-const $emb_dt.null $smt_Datatype)
-(define $dt_null () $emb_dt.null)
-
-; A datatype having at least one constructor
-(declare-parameterized-const $emb_dt.sum
-  ((c $smt_DatatypeCons :opaque) (d $smt_Datatype :opaque))
-  $smt_Datatype)
-(define $dt_sum ((c $smt_DatatypeCons) (d $smt_Datatype))
-  ($emb_dt.sum c d))
-
-; A datatype declaration having no datatypes
-(declare-const $emb_dd.nil $smt_DatatypeDecl)
-(define $dd_nil () $emb_dd.nil)
-
-; A datatype having at least one constructor
-(declare-parameterized-const $emb_dd.cons
-  ((s $native_String :opaque) (d $smt_Datatype :opaque) (dd $smt_DatatypeDecl :opaque))
-  $smt_DatatypeDecl)
-(define $dd_cons ((s $native_String) (d $smt_Datatype) (dd $smt_DatatypeDecl))
-  ($emb_dd.cons s d dd))
 
 ;;; forward declarations
 

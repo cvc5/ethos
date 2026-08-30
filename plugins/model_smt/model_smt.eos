@@ -137,3 +137,34 @@
   :cons      $emb_rsm.
   :macro     $rsm_
   :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
+; A map, which is what an array and a set both are: entries in the order
+; $native_vcmp gives, none of them repeating the default.
+(declare-embed-datatype SmtMap
+  :cons      $emb_msm.
+  :macro     $msm_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
+; A sequence, which is what a string is.
+(declare-embed-datatype SmtSeq
+  :cons      $emb_ssm.
+  :macro     $ssm_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
+; The three a datatype declaration is built from: the arguments of one
+; constructor, the constructors of one datatype, and the datatypes of one
+; declare-datatypes block.
+(declare-embed-datatype SmtDatatypeCons
+  :cons      $emb_dtc.
+  :macro     $dtc_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
+(declare-embed-datatype SmtDatatype
+  :cons      $emb_dt.
+  :macro     $dt_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
+(declare-embed-datatype SmtDatatypeDecl
+  :cons      $emb_dd.
+  :macro     $dd_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
