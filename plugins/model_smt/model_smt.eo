@@ -55,6 +55,19 @@
 
 ;;;;;; SMT term constructors
 
+; These stay here, where the types moved to tools/eoc/semantics/smt.eos, and
+; the reason is not that nobody has got to them. A define-symbol says what a
+; symbol evaluates to with each argument standing for its *value*, which is
+; what makes a case of $smtx_model_eval compositional; these are exactly the
+; constructors for which it is not. A binder takes its body unevaluated, an
+; application decides what to do by what its head is, and Var, UConst, DtCons
+; and their kin carry a name and a type rather than sub-terms -- an argument a
+; symbol form would evaluate on the way in. So a case of one cannot be written
+; as :value, and writing only its :typeof there would split one constructor
+; across two files, which is the thing that was just taken out of the natives
+; and the datatype programs. They belong together, and here.
+
+
 ; No term at all, which a transformation answers with where what it was given
 ; is not a term of the signature. It is the embedding's own rather than
 ; anything a signature declares, so it is named here.
@@ -229,31 +242,10 @@
 ;        ($dt_sum
 ;           $dtc_unit ; nil
 ;           $dt_null))))
-(declare-parameterized-const $emb_tsm.Datatype
-  ((s $native_String :opaque) (d $smt_DatatypeDecl :opaque)) $smt_Type)
-(define $tsm_Datatype ((s $native_String) (d $smt_DatatypeDecl))
-  ($emb_tsm.Datatype s d))
 
-(declare-parameterized-const $emb_tsm.TypeRef
-  ((s $native_String :opaque)) $smt_Type)
-(define $tsm_TypeRef ((s $native_String)) ($emb_tsm.TypeRef s))
 
-; functions
-; intensional function types
-; uninterpreted sorts
-(declare-parameterized-const $emb_tsm.USort ((n $native_Nat :opaque)) $smt_Type)
-(define $tsm_USort ((n $native_Nat)) ($emb_tsm.USort n))
 
-; functions
-; intensional function types
-(declare-parameterized-const $emb_tsm.FunType
-  ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
-(define $tsm_FunType ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.FunType Ti Te))
 
-; The type of partially applied datatype constructors
-(declare-parameterized-const $emb_tsm.DtcAppType
-  ((Ti $smt_Type :opaque) (Te $smt_Type :opaque)) $smt_Type)
-(define $tsm_DtcAppType ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.DtcAppType Ti Te))
 
 
 ;;;;;; SMT values
@@ -365,31 +357,16 @@
 ; type is built over at n<i>, see the types of tools/eoc/semantics/smt.eos.
 (program $smtx_type_wf_rec
   ((T $smt_Type) (U Type) (s $native_String) (dd $smt_DatatypeDecl)
-   (x1 Type) (x2 Type) (n1 $native_Nat))
+   (x1 Type) (x2 Type) (n1 $native_Nat)
+   (s1 $native_String) (dd2 $smt_DatatypeDecl))
   :signature ($smt_Type) $native_Bool
   (
-  (($smtx_type_wf_rec ($tsm_Datatype s dd))
-    ($native_and ($smtx_dd_has_dt s dd) ($smtx_decl_wf_rec dd dd)))
-  (($smtx_type_wf_rec ($tsm_TypeRef s)) $native_false)
-  (($smtx_type_wf_rec ($tsm_FunType x1 x2)) $native_false)
-  ; partially applied datatype constructors is not a first class type
-  (($smtx_type_wf_rec ($tsm_DtcAppType x1 x2)) $native_false)
   (($smtx_type_wf_rec $tsm_none) $native_false)
 ;$SMT_TYPE_WF_CASES$
   (($smtx_type_wf_rec U) $native_true)
   )
 )
 
-(program $smtx_type_wf ((T $smt_Type) (U $smt_Type))
-  :signature ($smt_Type) $native_Bool
-  (
-  ; reglan only allowed at top-level
-  (($smtx_type_wf $tsm_RegLan) $native_true)
-  (($smtx_type_wf ($tsm_FunType T U))
-    ($native_and ($smtx_type_wf_component T) ($smtx_type_wf U)))
-  (($smtx_type_wf T) ($smtx_type_wf_component T))
-  )
-)
 
 ;;; utilities
 
@@ -745,11 +722,10 @@
 (program $smtx_type_bounded
   ((u $native_Bool) (w $native_Nat) (T $smt_Type) (U $smt_Type)
    (s $native_String) (dd $smt_DatatypeDecl)
-   (x1 $smt_Type) (x2 $smt_Type) (n1 $native_Nat))
+   (x1 $smt_Type) (x2 $smt_Type) (n1 $native_Nat)
+   (s1 $native_String) (dd2 $smt_DatatypeDecl))
   :signature ($native_Bool $smt_Type) $native_Bool
   (
-  (($smtx_type_bounded u ($tsm_Datatype s dd))
-    ($smtx_dd_has_dt s ($smtx_datatype_decl_bounded u dd dd $dd_nil)))
 ;$SMT_TYPE_BOUNDED_CASES$
   ; note FunType is not extensional, thus assumed to be infinite
   (($smtx_type_bounded u T)                    $native_false)
@@ -764,14 +740,11 @@
 (program $smtx_type_default
   ((w $native_Nat) (V $smt_Type) (T $smt_Type) (U $smt_Type)
    (s $native_String) (dd $smt_DatatypeDecl) (i $native_Nat)
-   (x1 $smt_Type) (x2 $smt_Type) (n1 $native_Nat))
+   (x1 $smt_Type) (x2 $smt_Type) (n1 $native_Nat)
+   (s1 $native_String) (dd2 $smt_DatatypeDecl))
   :signature ($smt_Type) $smt_Value
   (
-  (($smtx_type_default ($tsm_Datatype s dd))
-    ($smtx_datatype_decl_default s dd dd))
 ;$SMT_TYPE_DEFAULT_CASES$
-  (($smtx_type_default ($tsm_USort i))      ($vsm_UValue i $native_n_zero))
-  (($smtx_type_default ($tsm_FunType T U))  ($vsm_Fun ($native_apply_0 "default_fun_id") T U))
   (($smtx_type_default T) $vsm_NotValue)
   )
 )

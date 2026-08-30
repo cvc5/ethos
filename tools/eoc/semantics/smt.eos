@@ -319,6 +319,40 @@
   :bounded ("not" u)
   :default (smt.char ("n_to_char" "n_zero")))
 
+; The types the embedding keeps for the terms it builds itself. They are sorts
+; like any other -- the constructor and its macro are written the same way, and
+; what is asked of a sort is asked of these -- and they stand here rather than
+; in the template because what a type *means* is the target's to say. The one
+; left there is `none`, the type of no type at all, whose macro is spelt
+; lowercase and would have to be renamed to move.
+
+; A datatype, named and carried with the declaration it was declared in. It is
+; well formed when the declaration holds it and is itself well formed.
+(define-sort Datatype ((s <string>) (dd SmtDatatypeDecl))
+  :wf ("and" ($smtx_dd_has_dt s dd) ($smtx_decl_wf_rec dd dd))
+  :bounded ($smtx_dd_has_dt s ($smtx_datatype_decl_bounded u dd dd $dd_nil))
+  :default ($smtx_datatype_decl_default s dd dd))
+
+; A reference to a datatype of the declaration around it, which is not a type
+; on its own: it is well formed only once resolved against that declaration.
+(define-sort TypeRef ((s <string>))
+  :wf "false")
+
+; An uninterpreted sort, whose least value is its first.
+(define-sort USort ((! n :raw))
+  :default ($vsm_UValue n "n_zero"))
+
+; An intensional function type. It is not extensional, so it is assumed to
+; have infinitely many values and is not well founded.
+(define-sort FunType (Ti Te)
+  :wf "false"
+  :default ($vsm_Fun ("default_fun_id") Ti Te))
+
+; The type of a partially applied datatype constructor, which is not a first
+; class type.
+(define-sort DtcAppType (Ti Te)
+  :wf "false")
+
 ;-----------------------------------------------------------------------------
 (section "The datatypes a value is built over")
 ;-----------------------------------------------------------------------------
@@ -436,6 +470,20 @@
   :signature (SmtType SmtType) SmtType
   (
   (($smtx_typeof_guard T U) ("ite" ("Teq" T none) none U))
+  )
+)
+
+; Whether a type is well founded where it stands at the top of a term: a
+; regular language is allowed there and nowhere else, and a function type is
+; when what it takes and what it gives both are.
+(program $smtx_type_wf ((T SmtType) (U SmtType))
+  :keep
+  :signature (SmtType) <bool>
+  (
+  (($smtx_type_wf RegLan) "true")
+  (($smtx_type_wf (FunType T U))
+    ("and" ($smtx_type_wf_component T) ($smtx_type_wf U)))
+  (($smtx_type_wf T) ($smtx_type_wf_component T))
   )
 )
 

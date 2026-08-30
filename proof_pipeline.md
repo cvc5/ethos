@@ -482,8 +482,8 @@ A count for a C++ component is its implementation plus its header.
 | `eo_desugar.eo` | 391 EO |
 | `eo_desugar_native.eo` | 576 EO |
 | `eo_desugar_checker.eo` | 204 EO |
-| `model_smt.eo`, the embedding | 378 EO |
-| **Eunoia total** | **1,593** |
+| `model_smt.eo`, the embedding | 346 EO |
+| **Eunoia total** | **1,561** |
 | Lean templates, `plugins/lean_meta/*.lean` | 550 Lean |
 
 ### Stage 7a: Eunoia to SMT-LIB and SyGuS
@@ -507,18 +507,30 @@ right-hand column is one nobody maintains.
 
 | Written by hand | LOC | Compiles to | LOC |
 | --- | --- | --- | --- |
-| `semantics/smt.eos`, the SMT-LIB semantics | 1,534 | `smt_defs.eo`, `smt_termination.lean` | 4372 |
+| `semantics/smt.eos`, the SMT-LIB semantics | 1,547 | `smt_defs.eo`, `smt_termination.lean` | 4,443 |
 | `semantics/development-cpc.eos`, the semantics of an input | 615 | `user_defs.eo`, `user_termination.lean` | 1,624 |
 | `desugar/natives.eos`, the natives and the primitive types | 74 | `native_defs.eo` | 123 |
 | `model_smt/model_smt.eos`, the aggregates and the datatypes | 73 | the head of the two signatures | — |
 | `lean_meta/lean.eos`, the native layer of stage 7b | 649 | `lean_native.lean` | 482 |
 | `smt_meta/smt-vc.eos`, the native layer of stage 7a | 227 | `smt_vc_native.smt2` | 152 |
-| **Total** | **3,172** | | **6,753** |
+| **Total** | **3,185** | | **6,824** |
 
-Against the declarative material that is still written out by hand -- 1,593
-lines of Eunoia, 550 of Lean template and 145 of SMT-LIB template, 2,288 in all
+Against the declarative material that is still written out by hand -- 1,570
+lines of Eunoia, 550 of Lean template and 145 of SMT-LIB template, 2,265 in all
 -- **58%** of what the pipeline is told is now configuration rather than
 something maintained in the form the stages read.
+
+Of those 1,570 lines of Eunoia, **1,215 are the Eunoia embedding** --
+`eo_desugar*.eo` and `native_embed.eo`, which say what Eunoia *is* and are
+hand-written for the reason a language's own definition is. The remaining 355
+are `model_smt.eo`, the last hand-written Eunoia that describes a *target*
+rather than the language. What is left in it is the ten programs a
+configuration contributes cases to, and the term constructors of the
+embedding -- the binders, the application and the ones carrying a name and a
+type. Those are not left over: a `define-symbol` says what a symbol evaluates
+to with each argument standing for its *value*, and these are exactly the
+constructors whose evaluation is not compositional, so a case of one cannot be
+written that way.
 
 None of the right-hand column is checked in; see the `tools/eoc/out/` line of
 `.gitignore`. `sem_compile.py --check` says it holds what compiling writes, and
@@ -539,7 +551,7 @@ holds a name of:
 | constructors of the embedding's datatypes declared in `model_smt.eo` | 20 | **0** |
 | programs over datatypes written in `model_smt.eo` | 25 | **2** |
 | helper programs in `model_smt.eo` | 37 | **7** |
-| `model_smt.eo` | 697 EO | **378 EO** |
+| `model_smt.eo` | 697 EO | **346 EO** |
 | index arities the embedding can express | exactly 3 | **as many as declared** |
 
 Three changes account for it, and each removed a *kind* of hardcoding rather
