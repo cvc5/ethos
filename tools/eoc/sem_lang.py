@@ -789,7 +789,7 @@ def lean_clauses(blocks):
   out = []
   for b in blocks:
     for e in b.entries():
-      if isinstance(e, Symbol) and e.has('lean'):
+      if isinstance(e, (Symbol, Program)) and e.has('lean'):
         out.append((e.name, [d[1:].strip() for d in e.doc], e.get('lean').val))
   return out
 
@@ -1223,9 +1223,10 @@ class Program(Entry):
   # A program belongs to no symbol, so it belongs to the block it stands in.
   joins_open_block = True
 
-  def __init__(self, node, params, sig, ret, cases, keep=False):
+  def __init__(self, node, params, sig, ret, cases, keep=False, attrs=None):
     self.node = node
     self.name = node.items[1].val
+    self.attrs = attrs or {}
     # Whether the block it stands in is taken whatever the input declares. A
     # program is otherwise taken only where a block already taken names it,
     # which is right for a helper of a symbol and wrong for one the *template*
@@ -1309,7 +1310,15 @@ def parse_program(node, path, macros):
   # A macro is an idiom the bodies of a file would otherwise repeat, and the
   # cases of a program are bodies like any other.
   cases = expand_macros(it[6], macros, it[1].val)
-  return Program(node, params, it[4], it[5], cases, keep)
+  # What the generated Lean is to be told about it, which is why it terminates
+  # where Lean cannot see that for itself. A define-method says the same of a
+  # program the set does *not* write; a program the set writes says it here,
+  # so that the one program is one entry. See lean_clauses.
+  # :keep stands before the signature, so what follows the cases is one
+  # further along where it was said.
+  attrs = parse_attrs(node, 7 + (1 if keep else 0), it[1].val, path,
+                      {'lean': 1}, frozenset(), macros)
+  return Program(node, params, it[4], it[5], cases, keep, attrs)
 
 
 # A program belongs to no symbol and is an entry of either set. It is written

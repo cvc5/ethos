@@ -456,7 +456,7 @@ A count for a C++ component is its implementation plus its header.
 | `plugins/std_plugin`, `meta_reduce_plugin`, `native_layer`, `utils` | 992 C++ |
 | `plugins/main_eoc.cpp` | 220 C++ |
 | `tools/eoc/driver.py` | 912 Python |
-| `tools/eoc/sem_{lang,target,compile}.py`, the configuration compiler | 2,023 Python |
+| `tools/eoc/sem_{lang,target,compile}.py`, the configuration compiler | 2,026 Python |
 | `tools/eoc/report.py`, `test/regress.py` | 148 Python |
 
 ### Stages 5, 6 and 7b: Eunoia to Lean
@@ -475,8 +475,8 @@ A count for a C++ component is its implementation plus its header.
 | `eo_desugar.eo` | 391 EO |
 | `eo_desugar_native.eo` | 576 EO |
 | `eo_desugar_checker.eo` | 204 EO |
-| `model_smt.eo`, the embedding | 637 EO |
-| **Eunoia total** | **1,852** |
+| `model_smt.eo`, the embedding | 446 EO |
+| **Eunoia total** | **1,661** |
 | Lean templates, `plugins/lean_meta/*.lean` | 550 Lean |
 
 ### Stage 7a: Eunoia to SMT-LIB and SyGuS
@@ -500,18 +500,18 @@ right-hand column is one nobody maintains.
 
 | Written by hand | LOC | Compiles to | LOC |
 | --- | --- | --- | --- |
-| `semantics/smt.eos`, the SMT-LIB semantics | 1,240 | `smt_defs.eo`, `smt_termination.lean` | 4,178 |
+| `semantics/smt.eos`, the SMT-LIB semantics | 1,448 | `smt_defs.eo`, `smt_termination.lean` | 4,319 |
 | `semantics/development-cpc.eos`, the semantics of an input | 615 | `user_defs.eo`, `user_termination.lean` | 1,624 |
 | `desugar/natives.eos`, the natives and the primitive types | 74 | `native_defs.eo` | 123 |
 | `model_smt/model_smt.eos`, the aggregates and the datatypes | 73 | the head of the two signatures | — |
 | `lean_meta/lean.eos`, the native layer of stage 7b | 649 | `lean_native.lean` | 482 |
 | `smt_meta/smt-vc.eos`, the native layer of stage 7a | 227 | `smt_vc_native.smt2` | 152 |
-| **Total** | **2,878** | | **6,559** |
+| **Total** | **3,086** | | **6,700** |
 
-Against the declarative material that is still written out by hand -- 1,852
-lines of Eunoia, 550 of Lean template and 145 of SMT-LIB template, 2,547 in all
--- a little over half of what the pipeline is told is now configuration rather
-than something maintained in the form the stages read.
+Against the declarative material that is still written out by hand -- 1,661
+lines of Eunoia, 550 of Lean template and 145 of SMT-LIB template, 2,356 in all
+-- **57%** of what the pipeline is told is now configuration rather than
+something maintained in the form the stages read.
 
 None of the right-hand column is checked in; see the `tools/eoc/out/` line of
 `.gitignore`. `sem_compile.py --check` says it holds what compiling writes, and
@@ -520,9 +520,9 @@ signature of this tree.
 
 #### What moved, and what it bought
 
-The aggregate moves little -- 51% of what the pipeline is told was
-configuration, 53% is -- and the aggregate is the wrong place to look. What
-moved is *which* things a stage holds a name of:
+51% of what the pipeline is told was configuration and 57% is, and where that
+came from matters more than the number. What moved is *which* things a stage
+holds a name of:
 
 | | before | after |
 | --- | --: | --: |
@@ -530,6 +530,8 @@ moved is *which* things a stage holds a name of:
 | definitions written by hand in it | 28 | **0** |
 | constructor and marker names hardcoded in the model-smt stage | 11 | **0** |
 | constructors of the embedding's datatypes declared in `model_smt.eo` | 20 | **0** |
+| programs over datatypes written in `model_smt.eo` | 25 | **2** |
+| `model_smt.eo` | 697 EO | **446 EO** |
 | index arities the embedding can express | exactly 3 | **as many as declared** |
 
 Three changes account for it, and each removed a *kind* of hardcoding rather
@@ -560,13 +562,34 @@ than an instance:
   *does* with them, and the ways of building one are the target's to write.
   The name of a constructor is scoped by the datatype, so the `cons` of a map
   and the `cons` of a sequence are two constructors and not a clash.
+- **A datatype's semantics is where a map's already was.** The map and the
+  sequence had every program over them in the target's set; the datatypes had
+  25 of theirs in the template, so asking what a map's default value is read
+  one file and asking it of a datatype read another, in another vocabulary.
+  Those programs are now beside the constructors they are written over, each
+  carrying its own termination clause rather than having one said about it
+  from a `define-method` elsewhere. Two are left in the template, and for
+  reasons worth recording: `$smtx_model_eval_dt_sel` and its tester are named
+  under the `$smtx_model_eval_` helper prefix, which a set may not write, and
+  the three `$eo_to_smt_datatype*` name `$eo_to_smt_type` outright, which a
+  case may not do -- a name of the input stands for what it transforms into,
+  and those programs are the transformation itself.
 
 What none of this touches is the loop a *calculus author* is in, which is the
 agility this document's sibling
 [`docs/README.md`](docs/README.md) is about: nobody adds a regular language
-constructor, and the shapes above are SMT-LIB's and fixed. What it buys is the
-ability to ask what a second *target* would cost, which was previously welded
-into C++ and is now data.
+constructor, and the datatypes above are SMT-LIB's and fixed. What it buys is
+the ability to ask what a second *target* would cost, which was previously
+welded into C++ and is now data.
+
+One consequence a reader of the generated Lean will meet: moving a program from
+the template to the set moves where it is *written*, so the generated modules
+hold the same definitions in a different order. Every definition of a generated
+CPC package was checked to be present and character-for-character what it was --
+600 modules, nothing missing, added or altered -- and the same of the two
+verification conditions, whose forms are the same multiset. Order is all that
+moved, and Lean and SMT-LIB are both indifferent to it, but a diff of a
+regenerated package is not small.
 
 ### Generated Logos
 

@@ -392,6 +392,266 @@
 (declare-constructor cons ((s "<string>") (d SmtDatatype) (dd SmtDatatypeDecl))
   :builds SmtDatatypeDecl)
 
+
+; What a datatype declaration means: how a reference in one is resolved
+; against the declaration it stands in, whether one is well founded, how many
+; selectors a constructor has, what a selector and a tester evaluate to, and
+; what the least value of one is. The map and the sequence say the same of
+; themselves above; these say it of the three a datatype declaration is made
+; of.
+;
+; They are written over the constructors declared above and over the
+; aggregates, which the embedding forward declares, so nothing here is the
+; embedding's to know: what a datatype *is* is above, what it *means* is here.
+
+(program $smtx_dtc_resolve
+  ((s "<string>") (T SmtType) (c SmtDatatypeCons) (dd SmtDatatypeDecl))
+  :keep
+  :signature (SmtDatatypeCons SmtDatatypeDecl) SmtDatatypeCons
+  (
+  (($smtx_dtc_resolve ($dtc_cons (TypeRef s) c) dd)
+    ($dtc_cons (Datatype s dd) ($smtx_dtc_resolve c dd)))
+  (($smtx_dtc_resolve ($dtc_cons T c) dd)
+    ($dtc_cons T ($smtx_dtc_resolve c dd)))
+  (($smtx_dtc_resolve $dtc_unit dd) $dtc_unit)
+  )
+)
+
+(program $smtx_dt_resolve
+  ((d SmtDatatype) (c SmtDatatypeCons) (dd SmtDatatypeDecl))
+  :keep
+  :signature (SmtDatatype SmtDatatypeDecl) SmtDatatype
+  (
+  (($smtx_dt_resolve ($dt_sum c d) dd)
+    ($dt_sum ($smtx_dtc_resolve c dd) ($smtx_dt_resolve d dd)))
+  (($smtx_dt_resolve $dt_null dd) $dt_null)
+  )
+)
+
+(program $smtx_dd_lookup
+  ((s "<string>") (s2 "<string>") (d SmtDatatype) (c SmtDatatypeCons)
+   (dd SmtDatatypeDecl))
+  :keep
+  :signature ("<string>" SmtDatatypeDecl) SmtDatatype
+  (
+  (($smtx_dd_lookup s ($dd_cons s2 d dd))
+    ("ite" ("streq" s s2) d ($smtx_dd_lookup s dd)))
+  (($smtx_dd_lookup s $dd_nil) $dt_null)
+  )
+)
+
+(program $smtx_dd_has_dt
+  ((s "<string>") (s2 "<string>") (d SmtDatatype) (c SmtDatatypeCons)
+   (dd SmtDatatypeDecl))
+  :keep
+  :signature ("<string>" SmtDatatypeDecl) "<bool>"
+  (
+  (($smtx_dd_has_dt s ($dd_cons s2 d dd))
+    ("or" ("streq" s s2) ($smtx_dd_has_dt s dd)))
+  (($smtx_dd_has_dt s $dd_nil) "false")
+  )
+)
+
+(program $smtx_dt_cons_wf_rec
+  ((c SmtDatatypeCons) (T SmtType) (s "<string>") (dd SmtDatatypeDecl))
+  :keep
+  :signature (SmtDatatypeDecl SmtDatatypeCons) "<bool>"
+  (
+  (($smtx_dt_cons_wf_rec dd ($dtc_cons (TypeRef s) c))
+    ("and" ($smtx_dd_has_dt s dd) ($smtx_dt_cons_wf_rec dd c)))
+  (($smtx_dt_cons_wf_rec dd ($dtc_cons T c))
+    ("and" ($smtx_type_wf_component_rec T)
+      ($smtx_dt_cons_wf_rec dd c)))
+  (($smtx_dt_cons_wf_rec dd $dtc_unit) "true")
+  )
+)
+
+(program $smtx_dt_wf_rec
+  ((dd SmtDatatypeDecl) (dF SmtDatatype) (cF SmtDatatypeCons))
+  :keep
+  :signature (SmtDatatypeDecl SmtDatatype) "<bool>"
+  (
+  (($smtx_dt_wf_rec dd ($dt_sum cF dF))
+    ("and" ($smtx_dt_cons_wf_rec dd cF) ($smtx_dt_wf_rec dd dF)))
+  (($smtx_dt_wf_rec dd $dt_null)  "true")
+  )
+)
+
+(program $smtx_decl_wf_rec
+  ((s "<string>") (dd SmtDatatypeDecl) (d SmtDatatype) (ddF SmtDatatypeDecl))
+  :keep
+  :signature (SmtDatatypeDecl SmtDatatypeDecl) "<bool>"
+  (
+  (($smtx_decl_wf_rec dd ($dd_cons s d ddF))
+    ("and" ($smtx_dt_wf_rec dd d) ; this must be a well formed datatype
+    ("and" ("inhabited_type" (Datatype s dd)) ; must be inhabited
+    ("and" ($smtx_decl_wf_rec dd ddF) ; the tail must be a well formed datatype decl
+      ("not" ($smtx_dd_has_dt s ddF)))))) ; must be a unique reference
+  (($smtx_decl_wf_rec dd $dd_nil)  "true")
+  )
+)
+
+(program $smtx_dtc_num_sels ((U SmtType) (c SmtDatatypeCons))
+  :keep
+  :signature (SmtDatatypeCons) "<nat>"
+  (
+  (($smtx_dtc_num_sels ($dtc_cons U c)) ("n_succ" ($smtx_dtc_num_sels c)))
+  (($smtx_dtc_num_sels $dtc_unit)       "n_zero")
+  )
+)
+
+(program $smtx_dt_num_sels ((c SmtDatatypeCons) (d SmtDatatype) (n "<nat>"))
+  :keep
+  :signature (SmtDatatype "<nat>") "<nat>"
+  (
+  (($smtx_dt_num_sels ($dt_sum c d) "n_zero") ($smtx_dtc_num_sels c))
+  (($smtx_dt_num_sels ($dt_sum c d) ("n_succ" n))
+     ($smtx_dt_num_sels d n))
+  (($smtx_dt_num_sels $dt_null n)                        "n_zero")
+  )
+)
+
+(program $smtx_typeof_dt_cons_rec
+  ((T SmtType) (U SmtType) (d SmtDatatype) (c SmtDatatypeCons) (n "<nat>"))
+  :keep
+  :signature (SmtType SmtDatatype "<nat>") SmtType
+  (
+  (($smtx_typeof_dt_cons_rec T ($dt_sum $dtc_unit d) "n_zero") T)
+  (($smtx_typeof_dt_cons_rec T ($dt_sum ($dtc_cons U c) d) "n_zero")
+    (DtcAppType U ($smtx_typeof_dt_cons_rec T ($dt_sum c d) "n_zero")))
+  (($smtx_typeof_dt_cons_rec T ($dt_sum c d) ("n_succ" n))
+    ($smtx_typeof_dt_cons_rec T d n))
+  (($smtx_typeof_dt_cons_rec T d n) none)
+  )
+)
+
+(program $smtx_field_type_bounded
+  ((u "<bool>") (s "<string>") (T SmtType) (ddB SmtDatatypeDecl))
+  :keep
+  :signature ("<bool>" SmtType SmtDatatypeDecl) "<bool>"
+  (
+  (($smtx_field_type_bounded u (TypeRef s) ddB) ($smtx_dd_has_dt s ddB))
+  (($smtx_field_type_bounded u T ddB)                ($smtx_type_bounded u T))
+  )
+  :lean "termination_by T ddB => (sizeOf T, 1)"
+)
+
+(program $smtx_field_type_default
+  ((s "<string>") (T SmtType) (dd SmtDatatypeDecl) (ddF SmtDatatypeDecl))
+  :keep
+  :signature (SmtDatatypeDecl SmtType SmtDatatypeDecl) SmtValue
+  (
+  (($smtx_field_type_default dd (TypeRef s) ddF) ($smtx_datatype_decl_default s dd ddF))
+  (($smtx_field_type_default dd T ddF) ($smtx_type_default T))
+  )
+  :lean "termination_by T ddF => 2 * (sizeOf T + sizeOf ddF) + 3
+decreasing_by
+  all_goals simp_wf
+  all_goals omega"
+)
+
+(program $smtx_datatype_cons_bounded
+  ((u "<bool>") (T SmtType) (c SmtDatatypeCons) (ddB SmtDatatypeDecl))
+  :keep
+  :signature ("<bool>" SmtDatatypeCons SmtDatatypeDecl) "<bool>"
+  (
+  (($smtx_datatype_cons_bounded u $dtc_unit ddB) "true")
+  (($smtx_datatype_cons_bounded u ($dtc_cons T c) ddB)
+    ("and" ($smtx_field_type_bounded u T ddB)
+      ($smtx_datatype_cons_bounded u c ddB)))
+  )
+  :lean "termination_by c ddB => (sizeOf c, 0)"
+)
+
+(program $smtx_datatype_bounded
+  ((u "<bool>") (c SmtDatatypeCons) (dF SmtDatatype) (ddB SmtDatatypeDecl))
+  :keep
+  :signature ("<bool>" SmtDatatype SmtDatatypeDecl) "<bool>"
+  (
+  (($smtx_datatype_bounded u ($dt_sum c $dt_null) ddB) ($smtx_datatype_cons_bounded u c ddB))
+  (($smtx_datatype_bounded u ($dt_sum c dF) ddB)
+    ("and" ("not" u)
+      ("and" ($smtx_datatype_cons_bounded u c ddB) ($smtx_datatype_bounded u dF ddB))))
+  (($smtx_datatype_bounded u dF ddB) ("not" u))
+  )
+  :lean "termination_by dF ddB => (sizeOf dF, 0)"
+)
+
+(program $smtx_datatype_decl_bounded_step
+  ((u "<bool>") (sF "<string>") (dF SmtDatatype)
+   (ddR SmtDatatypeDecl) (ddB SmtDatatypeDecl))
+  :keep
+  :signature ("<bool>" SmtDatatypeDecl SmtDatatypeDecl) SmtDatatypeDecl
+  (
+  (($smtx_datatype_decl_bounded_step u ($dd_cons sF dF ddR) ddB)
+    ($smtx_datatype_decl_bounded_step u ddR
+      ("ite"
+        ("and" ("not" ($smtx_dd_has_dt sF ddB))
+          ($smtx_datatype_bounded u dF ddB))
+        ($dd_cons sF dF ddB) ddB)))
+  (($smtx_datatype_decl_bounded_step u $dd_nil ddB) ddB)
+  )
+  :lean "termination_by ddR ddB => (sizeOf ddR, 0)"
+)
+
+(program $smtx_datatype_decl_bounded
+  ((u "<bool>") (sC "<string>") (dC SmtDatatype) (ddC SmtDatatypeDecl)
+   (dd SmtDatatypeDecl) (ddB SmtDatatypeDecl))
+  :keep
+  :signature ("<bool>" SmtDatatypeDecl SmtDatatypeDecl SmtDatatypeDecl) SmtDatatypeDecl
+  (
+  (($smtx_datatype_decl_bounded u ($dd_cons sC dC ddC) dd ddB)
+    ($smtx_datatype_decl_bounded u ddC dd ($smtx_datatype_decl_bounded_step u dd ddB)))
+  (($smtx_datatype_decl_bounded u $dd_nil dd ddB) ddB)
+  )
+  :lean "termination_by ddC dd ddB => (sizeOf dd, sizeOf ddC)"
+)
+
+(program $smtx_datatype_cons_default
+  ((v SmtValue) (T SmtType) (c SmtDatatypeCons) (dd SmtDatatypeDecl) (ddF SmtDatatypeDecl))
+  :keep
+  :signature (SmtValue SmtDatatypeDecl SmtDatatypeCons SmtDatatypeDecl) SmtValue
+  (
+  (($smtx_datatype_cons_default v dd $dtc_unit ddF) v)
+  (($smtx_datatype_cons_default v dd ($dtc_cons T c) ddF)
+    (eo::define ((va ($smtx_field_type_default dd T ddF)))
+      ("ite" ("veq" va $vsm_NotValue) $vsm_NotValue
+        ($smtx_datatype_cons_default ($vsm_Apply v va) dd c ddF))))
+  )
+  :lean "termination_by c ddF => 2 * (sizeOf c + sizeOf ddF) + 2"
+)
+
+(program $smtx_datatype_default
+  ((s "<string>") (dd SmtDatatypeDecl) (ddF SmtDatatypeDecl) (dF SmtDatatype)
+   (cF SmtDatatypeCons) (n "<nat>"))
+  :keep
+  :signature ("<string>" SmtDatatypeDecl "<nat>" SmtDatatype SmtDatatypeDecl) SmtValue
+  (
+  (($smtx_datatype_default s dd n ($dt_sum cF dF) ddF)
+    (eo::define ((v1 ($smtx_datatype_cons_default ($vsm_DtCons s dd n) dd cF ddF)))
+      ("ite" ("not" ("veq" v1 $vsm_NotValue))
+        v1
+        ($smtx_datatype_default s dd ("n_succ" n) dF ddF))))
+  (($smtx_datatype_default s dd n dF ddF) $vsm_NotValue)
+  )
+  :lean "termination_by dF ddF => 2 * (sizeOf dF + sizeOf ddF) + 1"
+)
+
+(program $smtx_datatype_decl_default
+  ((s "<string>") (sF "<string>") (sU "<string>")
+   (dd SmtDatatypeDecl) (ddF SmtDatatypeDecl) (dF SmtDatatype))
+  :keep
+  :signature ("<string>" SmtDatatypeDecl SmtDatatypeDecl) SmtValue
+  (
+  (($smtx_datatype_decl_default s dd ($dd_cons sF dF ddF))
+    ("ite" ("streq" s sF)
+      ($smtx_datatype_default s dd "n_zero" dF ddF)
+      ($smtx_datatype_decl_default s dd ddF)))
+  (($smtx_datatype_decl_default s dd ddF) $vsm_NotValue)
+  )
+  :lean "termination_by ddF => 2 * sizeOf ddF"
+)
+
 ;-----------------------------------------------------------------------------
 (section "The values")
 ;-----------------------------------------------------------------------------
@@ -1861,20 +2121,9 @@
 (define-method $smtx_type_default
   :lean "termination_by T => 2 * sizeOf T")
 
-(define-method $smtx_datatype_decl_default
-  :lean "termination_by ddF => 2 * sizeOf ddF")
 
-(define-method $smtx_datatype_default
-  :lean "termination_by dF ddF => 2 * (sizeOf dF + sizeOf ddF) + 1")
 
-(define-method $smtx_datatype_cons_default
-  :lean "termination_by c ddF => 2 * (sizeOf c + sizeOf ddF) + 2")
 
-(define-method $smtx_field_type_default
-  :lean "termination_by T ddF => 2 * (sizeOf T + sizeOf ddF) + 3
-decreasing_by
-  all_goals simp_wf
-  all_goals omega")
 
 ; Type boundedness (unit/finite) computes a fixpoint over datatype
 ; declarations. The lexicographic measures decrease on the structural
@@ -1884,20 +2133,10 @@ decreasing_by
 (define-method $smtx_type_bounded
   :lean "termination_by T => (sizeOf T, 0)")
 
-(define-method $smtx_datatype_decl_bounded
-  :lean "termination_by ddC dd ddB => (sizeOf dd, sizeOf ddC)")
 
-(define-method $smtx_datatype_decl_bounded_step
-  :lean "termination_by ddR ddB => (sizeOf ddR, 0)")
 
-(define-method $smtx_datatype_bounded
-  :lean "termination_by dF ddB => (sizeOf dF, 0)")
 
-(define-method $smtx_datatype_cons_bounded
-  :lean "termination_by c ddB => (sizeOf c, 0)")
 
-(define-method $smtx_field_type_bounded
-  :lean "termination_by T ddB => (sizeOf T, 1)")
 
 ; The evaluator recurses structurally, and the theorem that follows it caches
 ; the equation for a Boolean term, which Lean would otherwise unfold anew at

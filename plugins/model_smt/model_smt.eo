@@ -337,51 +337,23 @@
 (program $smtx_typeof () :signature ($smt_Term) $smt_Type)
 (program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
 
+; The helpers over datatype declarations, whose bodies the target writes: what
+; a datatype *means* is said in tools/eoc/semantics/smt.eos, and what stands
+; here is the little of it this file has to name, the type of a datatype and
+; its well-foundedness being written above where the bodies come out.
+(program $smtx_dt_resolve () :signature ($smt_Datatype $smt_DatatypeDecl) $smt_Datatype)
+(program $smtx_dd_lookup () :signature ($native_String $smt_DatatypeDecl) $smt_Datatype)
+(program $smtx_dd_has_dt () :signature ($native_String $smt_DatatypeDecl) $native_Bool)
+(program $smtx_decl_wf_rec () :signature ($smt_DatatypeDecl $smt_DatatypeDecl) $native_Bool)
+(program $smtx_dt_num_sels () :signature ($smt_Datatype $native_Nat) $native_Nat)
+(program $smtx_typeof_dt_cons_rec () :signature ($smt_Type $smt_Datatype $native_Nat) $smt_Type)
+(program $smtx_datatype_decl_bounded () :signature ($native_Bool $smt_DatatypeDecl $smt_DatatypeDecl $smt_DatatypeDecl) $smt_DatatypeDecl)
+
 ;;; dt resolve
 
-(program $smtx_dtc_resolve
-  ((s $native_String) (T $smt_Type) (c $smt_DatatypeCons) (dd $smt_DatatypeDecl))
-  :signature ($smt_DatatypeCons $smt_DatatypeDecl) $smt_DatatypeCons
-  (
-  (($smtx_dtc_resolve ($dtc_cons ($tsm_TypeRef s) c) dd)
-    ($dtc_cons ($tsm_Datatype s dd) ($smtx_dtc_resolve c dd)))
-  (($smtx_dtc_resolve ($dtc_cons T c) dd)
-    ($dtc_cons T ($smtx_dtc_resolve c dd)))
-  (($smtx_dtc_resolve $dtc_unit dd) $dtc_unit)
-  )
-)
 
-(program $smtx_dt_resolve
-  ((d $smt_Datatype) (c $smt_DatatypeCons) (dd $smt_DatatypeDecl))
-  :signature ($smt_Datatype $smt_DatatypeDecl) $smt_Datatype
-  (
-  (($smtx_dt_resolve ($dt_sum c d) dd)
-    ($dt_sum ($smtx_dtc_resolve c dd) ($smtx_dt_resolve d dd)))
-  (($smtx_dt_resolve $dt_null dd) $dt_null)
-  )
-)
 
-(program $smtx_dd_lookup
-  ((s $native_String) (s2 $native_String) (d $smt_Datatype) (c $smt_DatatypeCons)
-   (dd $smt_DatatypeDecl))
-  :signature ($native_String $smt_DatatypeDecl) $smt_Datatype
-  (
-  (($smtx_dd_lookup s ($dd_cons s2 d dd))
-    ($native_ite ($native_streq s s2) d ($smtx_dd_lookup s dd)))
-  (($smtx_dd_lookup s $dd_nil) $dt_null)
-  )
-)
 
-(program $smtx_dd_has_dt
-  ((s $native_String) (s2 $native_String) (d $smt_Datatype) (c $smt_DatatypeCons)
-   (dd $smt_DatatypeDecl))
-  :signature ($native_String $smt_DatatypeDecl) $native_Bool
-  (
-  (($smtx_dd_has_dt s ($dd_cons s2 d dd))
-    ($native_or ($native_streq s s2) ($smtx_dd_has_dt s dd)))
-  (($smtx_dd_has_dt s $dd_nil) $native_false)
-  )
-)
 
 (define $smtx_dd_resolve ((s $native_String) (dd $smt_DatatypeDecl))
   ($smtx_dt_resolve ($smtx_dd_lookup s dd) dd))
@@ -389,45 +361,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Well-foundedness for types
 
 (program $smtx_type_wf_rec () :signature ($smt_Type) $native_Bool)
+(program $smtx_type_bounded () :signature ($native_Bool $smt_Type) $native_Bool)
+(program $smtx_type_default () :signature ($smt_Type) $smt_Value)
+(program $smtx_datatype_decl_default () :signature ($native_String $smt_DatatypeDecl $smt_DatatypeDecl) $smt_Value)
+(program $smtx_value_canonical () :signature ($smt_Value) $native_Bool)
 
 (define $smtx_type_wf_component_rec ((T $smt_Type))
   ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T)))
 
-(program $smtx_dt_cons_wf_rec
-  ((c $smt_DatatypeCons) (T $smt_Type) (s $native_String) (dd $smt_DatatypeDecl))
-  :signature ($smt_DatatypeDecl $smt_DatatypeCons) $native_Bool
-  (
-  (($smtx_dt_cons_wf_rec dd ($dtc_cons ($tsm_TypeRef s) c))
-    ($native_and ($smtx_dd_has_dt s dd) ($smtx_dt_cons_wf_rec dd c)))
-  (($smtx_dt_cons_wf_rec dd ($dtc_cons T c))
-    ($native_and ($smtx_type_wf_component_rec T)
-      ($smtx_dt_cons_wf_rec dd c)))
-  (($smtx_dt_cons_wf_rec dd $dtc_unit) $native_true)
-  )
-)
 
-(program $smtx_dt_wf_rec
-  ((dd $smt_DatatypeDecl) (dF $smt_Datatype) (cF $smt_DatatypeCons))
-  :signature ($smt_DatatypeDecl $smt_Datatype) $native_Bool
-  (
-  (($smtx_dt_wf_rec dd ($dt_sum cF dF))
-    ($native_and ($smtx_dt_cons_wf_rec dd cF) ($smtx_dt_wf_rec dd dF)))
-  (($smtx_dt_wf_rec dd $dt_null)  $native_true)
-  )
-)
 
-(program $smtx_decl_wf_rec
-  ((s $native_String) (dd $smt_DatatypeDecl) (d $smt_Datatype) (ddF $smt_DatatypeDecl))
-  :signature ($smt_DatatypeDecl $smt_DatatypeDecl) $native_Bool
-  (
-  (($smtx_decl_wf_rec dd ($dd_cons s d ddF))
-    ($native_and ($smtx_dt_wf_rec dd d) ; this must be a well formed datatype
-    ($native_and ($native_inhabited_type ($tsm_Datatype s dd)) ; must be inhabited
-    ($native_and ($smtx_decl_wf_rec dd ddF) ; the tail must be a well formed datatype decl
-      ($native_not ($smtx_dd_has_dt s ddF)))))) ; must be a unique reference
-  (($smtx_decl_wf_rec dd $dd_nil)  $native_true)
-  )
-)
 
 ; The cases the configuration writes are spliced in below, and x1, x2 and n1
 ; are what one of them is written with: a type stands at x<i> and the index a
@@ -499,23 +442,7 @@
 
 ;; datatypes
 
-(program $smtx_dtc_num_sels ((U $smt_Type) (c $smt_DatatypeCons))
-  :signature ($smt_DatatypeCons) $native_Nat
-  (
-  (($smtx_dtc_num_sels ($dtc_cons U c)) ($native_n_succ ($smtx_dtc_num_sels c)))
-  (($smtx_dtc_num_sels $dtc_unit)       $native_n_zero)
-  )
-)
 
-(program $smtx_dt_num_sels ((c $smt_DatatypeCons) (d $smt_Datatype) (n $native_Nat))
-  :signature ($smt_Datatype $native_Nat) $native_Nat
-  (
-  (($smtx_dt_num_sels ($dt_sum c d) $native_n_zero) ($smtx_dtc_num_sels c))
-  (($smtx_dt_num_sels ($dt_sum c d) ($native_n_succ n))
-     ($smtx_dt_num_sels d n))
-  (($smtx_dt_num_sels $dt_null n)                        $native_n_zero)
-  )
-)
 
 ; The type of the ci^th constructor of a datatype, which is the type it builds
 ; behind one $tsm_DtcAppType per argument it takes.
@@ -523,18 +450,6 @@
 ; $smtx_typeof_dt_cons_value_rec of the SMT-LIB set says the same for the
 ; *value*: the hand-written Lean proofs of Logos are stated over both, so
 ; neither stands in for the other.
-(program $smtx_typeof_dt_cons_rec
-  ((T $smt_Type) (U $smt_Type) (d $smt_Datatype) (c $smt_DatatypeCons) (n $native_Nat))
-  :signature ($smt_Type $smt_Datatype $native_Nat) $smt_Type
-  (
-  (($smtx_typeof_dt_cons_rec T ($dt_sum $dtc_unit d) $native_n_zero) T)
-  (($smtx_typeof_dt_cons_rec T ($dt_sum ($dtc_cons U c) d) $native_n_zero)
-    ($tsm_DtcAppType U ($smtx_typeof_dt_cons_rec T ($dt_sum c d) $native_n_zero)))
-  (($smtx_typeof_dt_cons_rec T ($dt_sum c d) ($native_n_succ n))
-    ($smtx_typeof_dt_cons_rec T d n))
-  (($smtx_typeof_dt_cons_rec T d n) $tsm_none)
-  )
-)
 
 ; returns the return type of the selector n,m of datatype d.
 (program $smtx_ret_typeof_sel_rec
@@ -628,6 +543,14 @@
 
 ;;; Datatypes
 
+
+
+; An evaluator for all terms that we can reason about models.
+; This is a recursive call.
+; invariant: this must be a total function
+; invariant: unless this method returns $vsm_NotValue, it must be such that
+;            it represents a unique SMT-LIB value, i.e. ($vsm_term t) is
+;            forbidden unless t denotes a value.
 (program $smtx_model_eval_dt_sel
   ((M $smt_Model) (n $native_Nat) (m $native_Nat) (v $smt_Value)
    (s $native_String) (dd $smt_DatatypeDecl))
@@ -658,12 +581,6 @@
   )
 )
 
-; An evaluator for all terms that we can reason about models.
-; This is a recursive call.
-; invariant: this must be a total function
-; invariant: unless this method returns $vsm_NotValue, it must be such that
-;            it represents a unique SMT-LIB value, i.e. ($vsm_term t) is
-;            forbidden unless t denotes a value.
 (program $smtx_model_eval
   ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (dd $smt_DatatypeDecl)
    (i $native_Nat) (j $native_Nat)
@@ -771,10 +688,6 @@
 (program $eo_to_smt ((T Type)) :signature (T) $smt_Term)
 (program $eo_to_smt_type () :signature (Type) $smt_Type)
 
-; auxiliary definitions for defining $eo_to_smt / $eo_to_smt_type
-;$EO_TO_SMT_AUX$
-
-
 (program $eo_to_smt_datatype_cons ((U $eo_Term) (c $eo_DatatypeCons))
   :signature ($eo_DatatypeCons) $smt_DatatypeCons
   (
@@ -801,6 +714,13 @@
   (($eo_to_smt_datatype_decl $edd_nil) $dd_nil)
   )
 )
+
+; auxiliary definitions for defining $eo_to_smt / $eo_to_smt_type
+;$EO_TO_SMT_AUX$
+
+
+
+
 
 (program $eo_to_smt_type
   ((T Type) (n1 $native_Int) (i $native_Nat) (s $native_String) (dd $eo_DatatypeDecl)
@@ -870,7 +790,6 @@
 ; reached after (at most) one pass per datatype in dd. Datatypes on reference
 ; cycles never enter ddB, hence are correctly deemed infinite, while acyclic
 ; references are resolved regardless of their order in the declaration.
-(program $smtx_type_bounded () :signature ($native_Bool $smt_Type) $native_Bool)
 
 
 ; Whether a type has exactly one value. Nothing in the model calls it: it
@@ -893,69 +812,14 @@
   )
 )
 
-(program $smtx_field_type_bounded
-  ((u $native_Bool) (s $native_String) (T $smt_Type) (ddB $smt_DatatypeDecl))
-  :signature ($native_Bool $smt_Type $smt_DatatypeDecl) $native_Bool
-  (
-  (($smtx_field_type_bounded u ($tsm_TypeRef s) ddB) ($smtx_dd_has_dt s ddB))
-  (($smtx_field_type_bounded u T ddB)                ($smtx_type_bounded u T))
-  )
-)
-
-(program $smtx_datatype_cons_bounded
-  ((u $native_Bool) (T $smt_Type) (c $smt_DatatypeCons) (ddB $smt_DatatypeDecl))
-  :signature ($native_Bool $smt_DatatypeCons $smt_DatatypeDecl) $native_Bool
-  (
-  (($smtx_datatype_cons_bounded u $dtc_unit ddB) $native_true)
-  (($smtx_datatype_cons_bounded u ($dtc_cons T c) ddB)
-    ($native_and ($smtx_field_type_bounded u T ddB)
-      ($smtx_datatype_cons_bounded u c ddB)))
-  )
-)
-
 ; A unit datatype must have exactly one constructor, a finite datatype may
 ; have any number of constructors.
-(program $smtx_datatype_bounded
-  ((u $native_Bool) (c $smt_DatatypeCons) (dF $smt_Datatype) (ddB $smt_DatatypeDecl))
-  :signature ($native_Bool $smt_Datatype $smt_DatatypeDecl) $native_Bool
-  (
-  (($smtx_datatype_bounded u ($dt_sum c $dt_null) ddB) ($smtx_datatype_cons_bounded u c ddB))
-  (($smtx_datatype_bounded u ($dt_sum c dF) ddB)
-    ($native_and ($native_not u)
-      ($native_and ($smtx_datatype_cons_bounded u c ddB) ($smtx_datatype_bounded u dF ddB))))
-  (($smtx_datatype_bounded u dF ddB) ($native_not u))
-  )
-)
 
 ; One pass over the datatypes in the declaration being scanned, extending the
 ; bounded set ddB with those datatypes that are bounded relative to ddB.
-(program $smtx_datatype_decl_bounded_step
-  ((u $native_Bool) (sF $native_String) (dF $smt_Datatype)
-   (ddR $smt_DatatypeDecl) (ddB $smt_DatatypeDecl))
-  :signature ($native_Bool $smt_DatatypeDecl $smt_DatatypeDecl) $smt_DatatypeDecl
-  (
-  (($smtx_datatype_decl_bounded_step u ($dd_cons sF dF ddR) ddB)
-    ($smtx_datatype_decl_bounded_step u ddR
-      ($native_ite
-        ($native_and ($native_not ($smtx_dd_has_dt sF ddB))
-          ($smtx_datatype_bounded u dF ddB))
-        ($dd_cons sF dF ddB) ddB)))
-  (($smtx_datatype_decl_bounded_step u $dd_nil ddB) ddB)
-  )
-)
 
 ; Computes the set of bounded datatypes in dd, where ddC is the countdown of
 ; remaining passes, initially dd itself.
-(program $smtx_datatype_decl_bounded
-  ((u $native_Bool) (sC $native_String) (dC $smt_Datatype) (ddC $smt_DatatypeDecl)
-   (dd $smt_DatatypeDecl) (ddB $smt_DatatypeDecl))
-  :signature ($native_Bool $smt_DatatypeDecl $smt_DatatypeDecl $smt_DatatypeDecl) $smt_DatatypeDecl
-  (
-  (($smtx_datatype_decl_bounded u ($dd_cons sC dC ddC) dd ddB)
-    ($smtx_datatype_decl_bounded u ddC dd ($smtx_datatype_decl_bounded_step u dd ddB)))
-  (($smtx_datatype_decl_bounded u $dd_nil dd ddB) ddB)
-  )
-)
 
 ; x1, x2 and n1 are what a case the configuration writes is written with.
 (program $smtx_type_bounded
@@ -972,56 +836,6 @@
   )
 )
 
-(program $smtx_type_default () :signature ($smt_Type) $smt_Value)
-(program $smtx_datatype_decl_default () :signature ($native_String $smt_DatatypeDecl $smt_DatatypeDecl) $smt_Value)
-
-(program $smtx_field_type_default
-  ((s $native_String) (T $smt_Type) (dd $smt_DatatypeDecl) (ddF $smt_DatatypeDecl))
-  :signature ($smt_DatatypeDecl $smt_Type $smt_DatatypeDecl) $smt_Value
-  (
-  (($smtx_field_type_default dd ($tsm_TypeRef s) ddF) ($smtx_datatype_decl_default s dd ddF))
-  (($smtx_field_type_default dd T ddF) ($smtx_type_default T))
-  )
-)
-
-(program $smtx_datatype_cons_default
-  ((v $smt_Value) (T $smt_Type) (c $smt_DatatypeCons) (dd $smt_DatatypeDecl) (ddF $smt_DatatypeDecl))
-  :signature ($smt_Value $smt_DatatypeDecl $smt_DatatypeCons $smt_DatatypeDecl) $smt_Value
-  (
-  (($smtx_datatype_cons_default v dd $dtc_unit ddF) v)
-  (($smtx_datatype_cons_default v dd ($dtc_cons T c) ddF)
-    (eo::define ((va ($smtx_field_type_default dd T ddF)))
-      ($native_ite ($native_veq va $vsm_NotValue) $vsm_NotValue
-        ($smtx_datatype_cons_default ($vsm_Apply v va) dd c ddF))))
-  )
-)
-
-(program $smtx_datatype_default
-  ((s $native_String) (dd $smt_DatatypeDecl) (ddF $smt_DatatypeDecl) (dF $smt_Datatype)
-   (cF $smt_DatatypeCons) (n $native_Nat))
-  :signature ($native_String $smt_DatatypeDecl $native_Nat $smt_Datatype $smt_DatatypeDecl) $smt_Value
-  (
-  (($smtx_datatype_default s dd n ($dt_sum cF dF) ddF)
-    (eo::define ((v1 ($smtx_datatype_cons_default ($vsm_DtCons s dd n) dd cF ddF)))
-      ($native_ite ($native_not ($native_veq v1 $vsm_NotValue))
-        v1
-        ($smtx_datatype_default s dd ($native_n_succ n) dF ddF))))
-  (($smtx_datatype_default s dd n dF ddF) $vsm_NotValue)
-  )
-)
-
-(program $smtx_datatype_decl_default
-  ((s $native_String) (sF $native_String) (sU $native_String)
-   (dd $smt_DatatypeDecl) (ddF $smt_DatatypeDecl) (dF $smt_Datatype))
-  :signature ($native_String $smt_DatatypeDecl $smt_DatatypeDecl) $smt_Value
-  (
-  (($smtx_datatype_decl_default s dd ($dd_cons sF dF ddF))
-    ($native_ite ($native_streq s sF)
-      ($smtx_datatype_default s dd $native_n_zero dF ddF)
-      ($smtx_datatype_decl_default s dd ddF)))
-  (($smtx_datatype_decl_default s dd ddF) $vsm_NotValue)
-  )
-)
 
 ; Returns the first term in an enumeration, assumes the type is finite.
 ; Datatype constructors return the first that does not involve recursion.
@@ -1047,7 +861,6 @@
 ; Whether a value is canonical, which answers with a native Bool. A proof
 ; reads the same question as a Prop, which is a definition of its own and so
 ; needs a name of its own: this one is taken.
-(program $smtx_value_canonical () :signature ($smt_Value) $native_Bool)
 
 ; Whether a value of a shape is canonical, which the configuration writes with
 ; the shape it is of: a map value is canonical when its entries are ordered and
