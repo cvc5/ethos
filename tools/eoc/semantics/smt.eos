@@ -82,24 +82,11 @@
 (define-macro smt.bit_true ()       $vsm_binary_bit_true)
 (define-macro smt.bit_false ()      $vsm_binary_bit_false)
 
-; -- the map and sequence families
-; What a map and a sequence are built from, which is not a value until one of
-; the two above wraps it.
-(define-macro smt.map_cons (i e m)  ($msm_cons i e m))
-(define-macro smt.map_default (T e) ($msm_default T e))
-(define-macro smt.map_empty_set (T) (smt.map_default T smt.false))
-(define-macro smt.seq_cons (i s)    ($ssm_cons i s))
-(define-macro smt.seq_empty (T)     ($ssm_empty T))
+(define-macro smt.map_empty_set (T) ($msm_default T smt.false))
 
-; -- the programs of the embedding
-; The methods of the map and of the value language that a case reaches for.
-(define-macro smt.map_lookup (m i)        ($smtx_map_lookup m i))
 (define-macro smt.map_update (m i e)
   ($smtx_map_update_aux ($smtx_map_get_default m) m i e))
 (define-macro smt.typeof_value (v)        ($smtx_typeof_value v))
-(define-macro smt.typeof_map_value (m)    ($smtx_typeof_map_value m))
-(define-macro smt.typeof_seq_value (s)    ($smtx_typeof_seq_value s))
-(define-macro smt.typeof_guard_wf (T U)   ($smtx_typeof_guard_wf T U))
 
 ; The type of the ci^th constructor of a datatype declared under s. Substitutes
 ; (TypeRef s) for (Datatype s dd), which is what makes the datatype closed.
@@ -267,7 +254,7 @@
   :default (eo::define ((d ($smtx_type_default E)))
              ("ite" ("veq" d smt.not_value)
                smt.not_value
-               (smt.map (smt.map_default I d)))))
+               (smt.map ($msm_default I d)))))
 
 ; -- $smtx_map_to_set_type
 ; A set is a mapping to Bool, so the type of one is read off the map it is.
@@ -313,7 +300,7 @@
 
 (define-sort Seq (T)
   :wf ($smtx_type_wf_component_rec T)
-  :default (smt.seq (smt.seq_empty T)))
+  :default (smt.seq ($ssm_empty T)))
 
 (define-sort Char ()
   :bounded ("not" u)
@@ -528,7 +515,7 @@
   (($smtx_apply_arg_nth_value ($vsm_Apply f a) n ("n_succ" npos))
     ("ite" ("nateq" n npos) a
       ($smtx_apply_arg_nth_value f n npos)))
-  (($smtx_apply_arg_nth_value a n npos) $vsm_NotValue)
+  (($smtx_apply_arg_nth_value a n npos) smt.not_value)
   )
 )
 
@@ -766,7 +753,7 @@ decreasing_by
   (($smtx_datatype_cons_default v dd $dtc_unit ddF) v)
   (($smtx_datatype_cons_default v dd ($dtc_cons T c) ddF)
     (eo::define ((va ($smtx_field_type_default dd T ddF)))
-      ("ite" ("veq" va $vsm_NotValue) $vsm_NotValue
+      ("ite" ("veq" va smt.not_value) smt.not_value
         ($smtx_datatype_cons_default ($vsm_Apply v va) dd c ddF))))
   )
   :lean "termination_by c ddF => 2 * (sizeOf c + sizeOf ddF) + 2"
@@ -780,10 +767,10 @@ decreasing_by
   (
   (($smtx_datatype_default s dd n ($dt_sum cF dF) ddF)
     (eo::define ((v1 ($smtx_datatype_cons_default ($vsm_DtCons s dd n) dd cF ddF)))
-      ("ite" ("not" ("veq" v1 $vsm_NotValue))
+      ("ite" ("not" ("veq" v1 smt.not_value))
         v1
         ($smtx_datatype_default s dd ("n_succ" n) dF ddF))))
-  (($smtx_datatype_default s dd n dF ddF) $vsm_NotValue)
+  (($smtx_datatype_default s dd n dF ddF) smt.not_value)
   )
   :lean "termination_by dF ddF => 2 * (sizeOf dF + sizeOf ddF) + 1"
 )
@@ -798,7 +785,7 @@ decreasing_by
     ("ite" ("streq" s sF)
       ($smtx_datatype_default s dd "n_zero" dF ddF)
       ($smtx_datatype_decl_default s dd ddF)))
-  (($smtx_datatype_decl_default s dd ddF) $vsm_NotValue)
+  (($smtx_datatype_decl_default s dd ddF) smt.not_value)
   )
   :lean "termination_by ddF => 2 * sizeOf ddF"
 )
@@ -848,7 +835,7 @@ decreasing_by
                "true"))
 
 (declare-constructor Map ((m SmtMap)) :builds SmtValue
-  :typeof (smt.typeof_map_value m)
+  :typeof ($smtx_typeof_map_value m)
   :canonical ($smtx_map_canonical m))
 
 ; A function value is named rather than given, so what it is of is what it
@@ -859,12 +846,12 @@ decreasing_by
 ; A set is a map to the Booleans, so it is canonical when the map is and when
 ; what it maps the rest to is false.
 (declare-constructor Set ((m SmtMap)) :builds SmtValue
-  :typeof ($smtx_map_to_set_type (smt.typeof_map_value m))
+  :typeof ($smtx_map_to_set_type ($smtx_typeof_map_value m))
   :canonical ("and" ($smtx_map_canonical m)
                ("veq" ($smtx_map_get_default m) smt.false)))
 
 (declare-constructor Seq ((s SmtSeq)) :builds SmtValue
-  :typeof (smt.typeof_seq_value s)
+  :typeof ($smtx_typeof_seq_value s)
   :canonical ($smtx_seq_canonical s))
 
 (declare-constructor Char ((c <char>)) :builds SmtValue
@@ -1264,8 +1251,8 @@ decreasing_by
   ((v SmtValue) (i SmtValue) (m SmtMap))
   :signature (SmtValue SmtValue) SmtValue
   (
-  (($smtx_map_select (smt.map m) i) (smt.map_lookup m i))
-  (($smtx_map_select (smt.set m) i) (smt.map_lookup m i))
+  (($smtx_map_select (smt.map m) i) ($smtx_map_lookup m i))
+  (($smtx_map_select (smt.set m) i) ($smtx_map_lookup m i))
   (($smtx_map_select v i)            smt.not_value)
   )
 )
@@ -1766,8 +1753,8 @@ decreasing_by
   ((v SmtValue) (vs SmtSeq) (T SmtType))
   :signature (SmtSeq) SmtType
   (
-  (($smtx_elem_typeof_seq_value (smt.seq_cons v vs)) ($smtx_elem_typeof_seq_value vs))
-  (($smtx_elem_typeof_seq_value (smt.seq_empty T)) T)
+  (($smtx_elem_typeof_seq_value ($ssm_cons v vs)) ($smtx_elem_typeof_seq_value vs))
+  (($smtx_elem_typeof_seq_value ($ssm_empty T)) T)
   )
 )
 
@@ -1853,7 +1840,7 @@ decreasing_by
 (program $smtx_typeof_seq.nth ( (x1 SmtType) (x2 SmtType)  (x3 SmtType))
   :signature (SmtType SmtType) SmtType
   (
-  (($smtx_typeof_seq.nth (Seq x1) Int) (smt.typeof_guard_wf x1 x1))
+  (($smtx_typeof_seq.nth (Seq x1) Int) ($smtx_typeof_guard_wf x1 x1))
   (($smtx_typeof_seq.nth x2 x3) none)
   )
 )
@@ -1889,9 +1876,9 @@ decreasing_by
   ((v SmtValue) (vs SmtSeq) (n <numeral>) (T SmtType) (d SmtValue))
   :signature (SmtSeq <numeral> SmtValue) SmtValue
   (
-  (($smtx_seq_value_nth (smt.seq_empty T) n d)                     d)
-  (($smtx_seq_value_nth (smt.seq_cons v vs) 0 d) v)
-  (($smtx_seq_value_nth (smt.seq_cons v vs) n d)
+  (($smtx_seq_value_nth ($ssm_empty T) n d)                     d)
+  (($smtx_seq_value_nth ($ssm_cons v vs) 0 d) v)
+  (($smtx_seq_value_nth ($ssm_cons v vs) n d)
     ($smtx_seq_value_nth vs ("z_dec" n) d))
   )
 )
@@ -1916,14 +1903,14 @@ decreasing_by
   :signature (SmtModel SmtValue SmtValue) SmtValue
   (
   (($smtx_seq_nth M (smt.seq s) (smt.numeral n))
-    ($smtx_seq_value_nth s n ($smtx_seq_nth_wrong M s n (smt.typeof_seq_value s))))
+    ($smtx_seq_value_nth s n ($smtx_seq_nth_wrong M s n ($smtx_typeof_seq_value s))))
   (($smtx_seq_nth M v1 v2) smt.not_value)
   )
 )
 
 (define-symbol seq.empty ((! t :type))
-  :typeof (smt.typeof_guard_wf (Seq t) (Seq t))
-  :value (smt.seq (smt.seq_empty t)))
+  :typeof ($smtx_typeof_guard_wf (Seq t) (Seq t))
+  :value (smt.seq ($ssm_empty t)))
 
 (define-symbol str.len (s)
   :typeof ($smtx_typeof_seq_op_1_ret s Int)
@@ -2098,8 +2085,8 @@ decreasing_by
 
 ; sequences of any element type
 (define-symbol seq.unit (x)
-  :typeof (smt.typeof_guard_wf (Seq x) (Seq x))
-  :value (eo::define ((e1 x)) (smt.seq (smt.seq_cons e1 (smt.seq_empty (smt.typeof_value e1))))))
+  :typeof ($smtx_typeof_guard_wf (Seq x) (Seq x))
+  :value (eo::define ((e1 x)) (smt.seq ($ssm_cons e1 ($ssm_empty (smt.typeof_value e1))))))
 
 (define-symbol seq.nth (s i)
   :typeof ($smtx_typeof_seq.nth s i)
@@ -2155,11 +2142,11 @@ decreasing_by
    (efalse SmtValue) (etrue SmtValue) (isInter <bool>))
   :signature (<bool> SmtMap SmtMap SmtMap) SmtMap
   (
-  (($smtx_set_op_rec isInter (smt.map_default T efalse) m2 acc) acc)
-  (($smtx_set_op_rec isInter (smt.map_cons e etrue m1) m2 acc)
+  (($smtx_set_op_rec isInter ($msm_default T efalse) m2 acc) acc)
+  (($smtx_set_op_rec isInter ($msm_cons e etrue m1) m2 acc)
     ($smtx_set_op_rec isInter m1 m2
       ("ite"
-        ("iff" ("veq" (smt.map_lookup m2 e) smt.true) isInter)
+        ("iff" ("veq" ($smtx_map_lookup m2 e) smt.true) isInter)
         (smt.map_update acc e smt.true)
         acc)))
   )
@@ -2184,7 +2171,7 @@ decreasing_by
   (
   (($smtx_set_union (smt.set m1) (smt.set m2))
     ; m1 minus the empty set starting with m2.
-    (smt.set ($smtx_set_op_rec "false" m1 (smt.map_empty_set ($smtx_index_typeof_map (smt.typeof_map_value m1))) m2)))
+    (smt.set ($smtx_set_op_rec "false" m1 (smt.map_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))) m2)))
   (($smtx_set_union v1 v2)  smt.not_value)
   )
 )
@@ -2197,7 +2184,7 @@ decreasing_by
   (
   (($smtx_set_inter (smt.set m1) (smt.set m2))
     ; m1 intersected m2 starting with empty set.
-    (smt.set ($smtx_set_op_rec "true" m1 m2 (smt.map_empty_set ($smtx_index_typeof_map (smt.typeof_map_value m1))))))
+    (smt.set ($smtx_set_op_rec "true" m1 m2 (smt.map_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))))))
   (($smtx_set_inter v1 v2)  smt.not_value)
   )
 )
@@ -2210,7 +2197,7 @@ decreasing_by
   (
   (($smtx_set_minus (smt.set m1) (smt.set m2))
     ; m1 minus m2 starting with empty set.
-    (smt.set ($smtx_set_op_rec "false" m1 m2 (smt.map_empty_set ($smtx_index_typeof_map (smt.typeof_map_value m1))))))
+    (smt.set ($smtx_set_op_rec "false" m1 m2 (smt.map_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))))))
   (($smtx_set_minus v1 v2)  smt.not_value)
   )
 )
@@ -2224,12 +2211,12 @@ decreasing_by
 )
 
 (define-symbol set.empty ((! t :type))
-  :typeof (smt.typeof_guard_wf (Set t) (Set t))
-  :value (smt.set (smt.map_default t (smt.bool "false"))))
+  :typeof ($smtx_typeof_guard_wf (Set t) (Set t))
+  :value (smt.set ($msm_default t (smt.bool "false"))))
 
 (define-symbol set.singleton (x)
-  :typeof (smt.typeof_guard_wf (Set x) (Set x))
-  :eval (x) (smt.set (smt.map_cons x (smt.bool "true") (smt.map_default (smt.typeof_value x) (smt.bool "false")))))
+  :typeof ($smtx_typeof_guard_wf (Set x) (Set x))
+  :eval (x) (smt.set ($msm_cons x (smt.bool "true") ($msm_default (smt.typeof_value x) (smt.bool "false")))))
 
 (define-symbol set.union (a b)
   :typeof ($smtx_typeof_sets_op_2 a b)
