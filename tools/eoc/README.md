@@ -277,13 +277,28 @@ Where a name is spelled is settled in `LAYERS` in `tools/eoc/sem_compile.py`,
 one entry to a backend.
 
 What is left in `native_embed.eo` is what the embedding *is* rather than what
-it calls -- the `$native_apply_*` and `$native_type_*` constructors, the type
-aliases, and the definitions written over other natives.
+it calls: the `$native_apply_*`, `$native_type_*` and `$native_embed_*`
+constructors, and one macro written over them.
 
-What a native **does** is a separate thing, said by each backend in a native
-layer of its own; see below. The two are apart because neither implies the
-other: a backend may define what the embedding never calls, and the embedding
-may call what a backend gets from its own language.
+Everything else the set says. It declares the primitive types the natives are
+written over as well as the natives themselves -- `<numeral>` is what a
+configuration calls what a backend calls `Int` -- so that a set says the kind
+of thing it means rather than the sort some target happens to have. Three of
+the six name no SMT-LIB sort at all.
+
+A native that forwards to nothing says what it *is* instead, under `:is`,
+written in the vocabulary every body of a configuration is written in:
+
+```lisp
+(declare-native z_dec ((x1 "<numeral>")) :is ("zplus" x1 "z_neg_one"))
+```
+
+What a native that forwards to an operator **does** is a separate thing, said
+by each backend in a native layer of its own; see below. The two are apart
+because neither implies the other: a backend may define what the embedding
+never calls, and the embedding may call what a backend gets from its own
+language. A native written with `:is` needs neither, since what it is has been
+said once already.
 
 ## The native layer
 

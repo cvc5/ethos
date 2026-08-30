@@ -38,6 +38,7 @@ with what compiling would write, which is what says whether it is current.
 """
 
 import argparse
+import collections
 import itertools
 import os
 import re
@@ -360,29 +361,52 @@ NATIVES_GENERATED = """\
 """
 
 
-def read_natives(vocab, path=NATIVES_CONFIG):
+def read_natives(path=NATIVES_CONFIG):
   """Read the natives set, in the order it gives its entries.
 
+  The set declares the primitive types of the embedding and then the natives
+  written over them, so what comes back is the two in that order: the types
+  have to be declared before the natives that name them, both in the file and
+  in what it compiles to.
+
   The type of each argument is named the way a type is named everywhere in the
-  configuration, i.e. a native in quotes, and is checked against the vocabulary
-  the hand-written files declare: those are what the aliases stand in, so a
-  native may be written over them and none of them over a native.
+  configuration, i.e. a native in quotes, and is checked against the types this
+  set declares. Nothing else is a type a native may be of: a native is written
+  over the embedding's own primitives and none of them over a native.
   """
-  out = []
+  types, natives = [], []
   for b in read_config([path], sem_target.NATIVE_DECL_SET):
     for e in b.entries():
-      what = 'natives: ' + e.name
-      types = []
-      for v, node in zip(e.params, e.types):
-        if node is None or node.kind != 'str':
-          die('%s: %s says the type it is of, written the way a native is, '
-              'e.g. (%s "Int")' % (what, v, v))
-        full = '$native_' + node.val
-        if full not in vocab:
-          die('%s: there is no type called %s' % (what, full))
-        types.append(full)
-      out.append((e, types))
-  return out
+      if e.decls is sem_target.NATIVE_TYPE_DECLS:
+        types.append(e)
+      else:
+        natives.append(e)
+  declared = {t.name: native_type_name(t) for t in types}
+  out = []
+  for e in natives:
+    what = 'natives: ' + e.name
+    argtypes = []
+    for v, node in zip(e.params, e.types):
+      if node is None:
+        die('%s: %s says the type it is of, written the way a type is, '
+            'e.g. (%s "<numeral>")' % (what, v, v))
+      if node.kind == 'sym':
+        # A name that is not a type of the embedding is a type variable, and a
+        # native written over one is of every type at once. Only a native the
+        # backends implement polymorphically may say it, since what stands
+        # here is what their implementation is declared as.
+        argtypes.append(node.val)
+        continue
+      if node.kind != 'str':
+        die('%s: %s says the type it is of: a type of the embedding in '
+            'quotes, e.g. (%s "<numeral>"), or a bare name for a variable'
+            % (what, v, v))
+      if node.val not in declared:
+        die('%s: there is no type called "%s"; the set declares %s'
+            % (what, node.val, ', '.join('"%s"' % t for t in sorted(declared))))
+      argtypes.append('$native_' + declared[node.val])
+    out.append((e, argtypes))
+  return types, out
 
 
 def read_eo_impls(path=EO_CONFIG):
@@ -396,7 +420,70 @@ def read_eo_impls(path=EO_CONFIG):
   return out
 
 
-def render_natives(natives, impls=None):
+def escape_eo(text):
+  """A string of a set, written as the signature language writes one.
+
+  The two languages escape a quote differently -- a set writes `\\"`, since a
+  set holds the Lean an implementation is written as, and Eunoia writes `""`,
+  as SMT-LIB does -- so what a set says has to be re-escaped where it is
+  written out. Nothing else differs, and an operator that holds no quote is
+  itself either way, which is all but the ones that forward to a string.
+  """
+  return text.replace('"', '""')
+
+
+def render_native_types(types):
+  """The primitive types of the embedding, as the file a stage reads.
+
+  A type is a name of the embedding standing for a name of the target, which
+  is what :op says: `<numeral>` is what a configuration calls it and `Int` is
+  what a backend implements. The two are apart because neither follows the
+  other -- `<nat>` and `<char>` name no SMT-LIB sort, and `Int` names one that
+  is not what the embedding means by it, since a width and an identifier are
+  of it as much as a numeral is.
+
+  Only a configuration is written in the first of the two names. What the
+  macro is called in Eunoia is the second, since that is also what the
+  generated encodings carry: the backend reads the name off the string this
+  writes rather than off the symbol, see getEmbedName in
+  plugins/lean_meta/lean_meta_reduce.cpp, and a macro called something else
+  than the name it stands for would be one name too many.
+  """
+  out = []
+  for e in types:
+    doc = '\n'.join(e.doc) + '\n' if e.doc else ''
+    cons = '$native_datatype' if e.has('datatype') else '$native_type_0'
+    out.append('%s(define $native_%s () (%s "%s"))'
+               % (doc, native_type_name(e), cons, escape_eo(native_type_name(e))))
+  return out
+
+
+def native_type_name(e):
+  """What a native type is called outside the configuration, i.e. the name
+  :op gives it, which is the Eunoia macro's name and the backend's both."""
+  return e.get('op').val if e.has('op') else e.name
+
+
+def render_native_body(node, spellings, what):
+  """What :is says, as the Eunoia it stands for.
+
+  A body is written in the vocabulary every body of the configuration is
+  written in: a native in quotes and everything else as itself, which here is
+  a parameter of the native being defined. So `("zplus" x1 ("zneg" x2))`
+  is what the embedding writes ($native_zplus x1 ($native_zneg x2)).
+  """
+  if node.kind == 'str':
+    return '$native_' + spellings.get(node.val, node.val)
+  if node.kind in ('sym', 'int'):
+    return node.raw
+  if node.kind != 'list' or not node.items:
+    die('%s: what :is says is a name, a native in quotes, or an application '
+        'of one; got %s' % (what, node.raw))
+  return '(%s)' % ' '.join(
+      render_native_body(i, spellings, what) for i in node.items)
+
+
+def render_natives(natives, types=(), impls=None):
   """The natives as the file a stage reads.
 
   A native is declared as the operator it forwards to, which is its own name
@@ -407,14 +494,28 @@ def render_natives(natives, impls=None):
   """
   out = [(EO_GENERATED if impls is not None else NATIVES_GENERATED)
          % named(EO_CONFIG if impls is not None else NATIVES_CONFIG)]
-  for e, types in natives:
+  out.extend(render_native_types(types))
+  spellings = {t.name: native_type_name(t) for t in types}
+  for e, argtypes in natives:
     name = '$native_' + e.name
     op = e.get('op').val if e.has('op') else e.name
     doc = '\n'.join(e.doc) + '\n' if e.doc else ''
-    ps = ' '.join('(%s %s)' % (v, t) for v, t in zip(e.params, types))
-    body = (impls or {}).get(e.name) or '($native_apply_%d "%s"%s)' % (
-        len(types), op, ''.join(' ' + v for v in e.params))
-    if not types:
+    # A type variable is written before the arguments and worked out from
+    # them, which is what :implicit says, so the variables come first and each
+    # once. See read_natives for what makes one.
+    vs, seen = [], set()
+    for t in argtypes:
+      if not t.startswith('$') and t not in seen:
+        seen.add(t)
+        vs.append('(%s Type :implicit)' % t)
+    ps = ' '.join(vs + ['(%s %s)' % (v, t)
+                        for v, t in zip(e.params, argtypes)])
+    body = ((impls or {}).get(e.name)
+            or (render_native_body(e.get('is'), spellings,
+                                   'natives: ' + e.name) if e.has('is') else None)
+            or '($native_apply_%d "%s"%s)' % (
+                len(argtypes), escape_eo(op), ''.join(' ' + v for v in e.params)))
+    if not argtypes:
       out.append('%s(define %s () %s)' % (doc, name, body))
     else:
       out.append('%s(define %s (%s)\n  %s)' % (doc, name, ps, body))
@@ -581,7 +682,23 @@ def read_aggregates(path=AGGREGATE_CONFIG):
   return out
 
 
+# What reading the natives set gives: the natives with the type of each
+# argument resolved, the two files they compile to, and the primitive types the
+# set declares.
+Natives = collections.namedtuple('Natives', 'entries defs eo_defs types')
+
 _NATIVES = None
+
+
+def native_spellings():
+  """What a set calls each primitive type, and what the embedding calls it.
+
+  A set writes `<numeral>` and the embedding writes $native_Int, so this is
+  what the two readers of a set -- the one that reads the type of a native's
+  argument and the one that reads a name standing in a body -- put between
+  them. See Vocab.spellings.
+  """
+  return [(t.name, native_type_name(t)) for t in natives().types]
 
 
 def natives():
@@ -594,12 +711,13 @@ def natives():
   """
   global _NATIVES
   if _NATIVES is None:
-    read = read_natives(read_vocabulary(VOCAB_FILES))
-    # The same declarations twice: as the operator each forwards to, which is
-    # what every backend but one reads, and as Eunoia, which is what the
-    # eo-meta backend reads. See render_natives.
-    _NATIVES = (read, render_natives(read),
-                render_natives(read, read_eo_impls()))
+    types, read = read_natives()
+    # The types the set declares, the natives written over them, and the two
+    # files those compile to: as the operator each forwards to, which is what
+    # every backend but one reads, and as Eunoia, which is what the eo-meta
+    # backend reads. See render_natives.
+    _NATIVES = Natives(read, render_natives(read, types),
+                       render_natives(read, types, read_eo_impls()), types)
   return _NATIVES
 
 
@@ -715,7 +833,8 @@ def compile_all(sets):
   embedding, see target_blocks.
   """
   vocab = read_vocabulary(VOCAB_FILES,
-                          [(NATIVE_DEFS_TARGET, natives()[1])])
+                          [(NATIVE_DEFS_TARGET, natives().defs)],
+                          native_spellings())
   macros = read_macros(MACRO_FILES)
   configs = [read_config_file(p, t) for p, t in sets]
   check_distinct(configs)
@@ -1030,7 +1149,8 @@ def compile_to_files(sets=SHIPPED, out_dir=None):
   out = {}
   # The natives of the embedding, which every set is compiled against and no
   # option names another of.
-  for text, target in zip(natives()[1:], (NATIVE_DEFS_TARGET, EO_DEFS_TARGET)):
+  for text, target in zip((natives().defs, natives().eo_defs),
+                          (NATIVE_DEFS_TARGET, EO_DEFS_TARGET)):
     if out_dir is not None:
       target = os.path.join(out_dir, os.path.basename(target))
     write_if_changed(text, target)
@@ -1102,7 +1222,7 @@ def main():
         state, wrong = check_current(text, target)
         done.append((report.rel(target), state, None if wrong else what))
         bad += wrong
-    entries, text, eo_text = natives()
+    entries, text, eo_text = natives()[:3]
     for what, target in ((text, NATIVE_DEFS_TARGET), (eo_text, EO_DEFS_TARGET)):
       state, wrong = check_current(what, target)
       done.append((report.rel(target), state,
@@ -1122,7 +1242,7 @@ def main():
                      % (name, state, report.rel(__file__)))
     sys.exit(1 if bad else 0)
   report.step('Compiling semantics under %s' % report.rel(home))
-  entries, text, eo_text = natives()
+  entries, text, eo_text = natives()[:3]
   for what, target, src in ((text, NATIVE_DEFS_TARGET, NATIVES_CONFIG),
                             (eo_text, EO_DEFS_TARGET, EO_CONFIG)):
     ntarget = (os.path.join(a.out_dir, os.path.basename(target))

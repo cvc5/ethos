@@ -708,7 +708,19 @@ NATIVES = Shape([], keyword='define-native-method', noun='native',
 # declaration, so nothing states it by hand. What a native *does* is said by a
 # backend, in a set of its own, see NATIVES.
 NATIVE_DECLS = Shape([], keyword='declare-native', noun='native',
-                     extra_attrs={'op': 1})
+                     extra_attrs={'op': 1, 'is': 1})
+
+# One primitive type of the embedding, i.e. one entry of
+# plugins/desugar/natives.eos. Its name is the embedding's own, written in
+# angle brackets so that it is read as a kind of thing rather than as a sort of
+# some target: three of them name no SMT-LIB sort at all. What a backend calls
+# it is what :op says, and that is the name the backend implements and the name
+# the generated encodings carry, exactly as :op names the operator a native
+# forwards to. A type that says :datatype is one a backend declares rather than
+# one it has.
+NATIVE_TYPE_DECLS = Shape([], keyword='declare-native-type', noun='native type',
+                          params=False,
+                          extra_attrs={'op': 1, 'datatype': 0})
 
 # One aggregate of the deep embedding, i.e. one entry of
 # plugins/model_smt/model_smt.eos. It declares nothing of the model: the
@@ -825,7 +837,7 @@ INPUT_SYMBOLS = Shape([TERM, TYPE, IS_LIST_NIL])
 TARGET = Shapes(SYMBOLS, LITERALS, TYPES, VALUES, METHODS)
 INPUT_SET = Shapes(INPUT_SYMBOLS, METHODS, RULES)
 NATIVE_SET = Shapes(NATIVES)
-NATIVE_DECL_SET = Shapes(NATIVE_DECLS)
+NATIVE_DECL_SET = Shapes(NATIVE_DECLS, NATIVE_TYPE_DECLS)
 AGGREGATE_SET = Shapes(AGGREGATES)
 
 

@@ -45,6 +45,7 @@
 (define-native-method zeq  :eo-impl "(eo::eq x1 x2)")
 (define-native-method zlt  :eo-impl "(eo::gt x2 x1)")
 (define-native-method zleq :eo-impl "(eo::not (eo::gt x1 x2))")
+(define-native-method zneg :eo-impl "(eo::neg x1)")
 (define-native-method zabs :eo-impl "(eo::ite (eo::is_neg x1) (eo::neg x1) x1)")
 
 (section "Rational arithmetic")

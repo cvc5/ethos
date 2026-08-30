@@ -570,6 +570,13 @@ class Vocab:
     self.args = {}            # $name -> the level of each argument
     self.types = {}           # $name -> the type each argument is declared as
     self.ops = {}             # the operator a native is defined as -> it
+    # What a name of a *configuration* means, where the embedding calls it
+    # something else: a primitive type is written `<numeral>` in a set and
+    # $native_Int outside one, so that a set says the kind of thing it means
+    # rather than the sort some target happens to have. Nothing else is spelt
+    # two ways -- a native is named as itself -- so a name that is not in here
+    # is its own.
+    self.spellings = {}
     self.ints = {}            # (level, value) -> what the embedding calls it
     self.aliases = []         # the apply each native is defined as, and it
 
@@ -615,6 +622,7 @@ class Vocab:
     out = Vocab()
     out.args, out.ops = dict(self.args), self.ops
     out.types, out.ints, out.aliases = dict(self.types), self.ints, self.aliases
+    out.spellings = self.spellings
     for b in blocks:
       for p in b.entries():
         if isinstance(p, Program):
@@ -626,15 +634,20 @@ class Vocab:
     return out
 
 
-def read_vocabulary(paths, extra=()):
+def read_vocabulary(paths, extra=(), spellings=()):
   """Read the vocabulary of the embedding out of the files that define it.
 
   `extra` is what a file the compiler writes rather than reads would say, as
   (name, text) pairs: the natives are compiled from a set of their own, and
   what they compile to is read here the same way, so nothing turns on whether
   that file has been written out yet.
+
+  `spellings` is what a set calls a name the embedding calls something else,
+  as (in a set, in the embedding) pairs. Only the primitive types are, and the
+  set that declares them is the one that says so; see Vocab.spellings.
   """
   out = Vocab()
+  out.spellings.update(spellings)
   for path, forms in ([(p, read_file(p)) for p in paths]
                       + [(n, Reader(x, n).read_all()) for n, x in extra]):
     for _doc, node in forms:
@@ -913,7 +926,7 @@ def apply_native(node, name, args, scope, entry, ctx, level):
   the signature of an input builds terms, so a name it gives that the embedding
   does not have is a misspelling rather than an operator.
   """
-  full = '$native_' + name
+  full = '$native_' + ctx.vocab.spellings.get(name, name)
   if full in ctx.vocab:
     if ctx.vocab.arity(full) != len(args):
       die('%s: %s takes %d argument%s, not %d'
@@ -927,6 +940,10 @@ def apply_native(node, name, args, scope, entry, ctx, level):
   if name in ctx.vocab.ops:
     die('%s: write "%s", the native, rather than the operator %s it is '
         'defined as' % (entry.name, ctx.vocab.ops[name][8:], name))
+  for spelt, means in ctx.vocab.spellings.items():
+    if means == name:
+      die('%s: write "%s", which is what a set calls it, rather than "%s", '
+          'which is what a backend does' % (entry.name, spelt, name))
   if not ctx.raw_operators:
     die('%s: there is no native called %s' % (entry.name, full))
   # The raw operator of the value layer, which has no name of its own.

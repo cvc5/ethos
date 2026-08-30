@@ -64,16 +64,6 @@
    (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $native_BuiltinType)
 
-(define $native_Bool () ($native_type_0 "Bool"))
-(define $native_Int () ($native_type_0 "Int"))
-(define $native_Real () ($native_type_0 "Real"))
-(define $native_Rat () ($native_type_0 "Rat"))
-(define $native_String () ($native_type_0 "String"))
-(define $native_Char () ($native_type_0 "Char"))
-; a natural number, which is a datatype of the embedding rather than a sort
-; the backend has of its own
-(define $native_Nat () ($native_datatype "Nat"))
-
 ; The natives themselves, which are compiled from plugins/desugar/natives.eos
 ; rather than written here: a declaration of one says its name, what each of
 ; its arguments is, and the operator it forwards to, and the compiler knows all
@@ -82,27 +72,8 @@
 ; tools/eoc/sem_compile.py.
 (include "native_defs.eo")
 
-(define $native_ite ((W Type :implicit) (b $native_Bool) (x1 W) (x2 W)) ($native_apply_3 "ite" b x1 x2))
-(define $native_str_tuple_name () ($native_apply_0 """@Tuple"""))
-(define $native_str_vname () ($native_apply_0 """@x"""))
-(define $native_str_c0 () ($native_apply_0 """0"""))
-(define $native_str_c9 () ($native_apply_0 """9"""))
-(define $native_z_- ((W Type :implicit) (x1 W) (x2 W)) ($native_zplus x1 ($native_zneg x2)))
-(define $native_q_- ((x1 $native_Real) (x2 $native_Real)) ($native_qplus x1 ($native_qneg x2)))
-(define $native_q_zero () ($native_mk_rational $native_z_zero $native_z_one))
-(define $native_z_neg_one () ($native_zneg $native_z_one))
-(define $native_z_inc ((x1 $native_Int)) ($native_zplus x1 $native_z_one))
-(define $native_z_dec ((x1 $native_Int)) ($native_zplus x1 $native_z_neg_one))
-; nat to char, currently a no-op
-(define $native_n_to_char ((n $native_Nat)) n)
 ; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
 (define $native_apply_nary_3
   (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
    (op $smt_id) (x1 W1) (x2 W2) (x3 W3))
   ($native_apply_2 op x1 ($native_apply_2 op x2 x3)))
-
-; The at sign on its own. What a name beginning with one means is no business
-; of the embedding: a signature that reserves names by a prefix says so for
-; itself, see $eo_to_smt_reserved_datatype_name in
-; tools/eoc/semantics/development-cpc.eos.
-(define $native_str_at_sign () ($native_apply_0 """@"""))
