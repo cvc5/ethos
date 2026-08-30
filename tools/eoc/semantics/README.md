@@ -665,7 +665,7 @@ declares a constructor of one of the embedding's datatypes, and which one is
 what tells a value from a regular language:
 
 ```lisp
-(declare-constructor Boolean ((b "<bool>")) :builds SmtValue :typeof Bool)
+(declare-constructor Boolean ((b <bool>)) :builds SmtValue :typeof Bool)
 (declare-constructor char ((c SmtValue)) :builds SmtRegLan)
 (declare-constructor star (r) :builds SmtRegLan)
 ```

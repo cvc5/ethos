@@ -390,20 +390,20 @@ def read_natives(path=NATIVES_CONFIG):
       if node is None:
         die('%s: %s says the type it is of, written the way a type is, '
             'e.g. (%s "<numeral>")' % (what, v, v))
-      if node.kind == 'sym':
-        # A name that is not a type of the embedding is a type variable, and a
-        # native written over one is of every type at once. Only a native the
-        # backends implement polymorphically may say it, since what stands
-        # here is what their implementation is declared as.
+      if node.kind == 'sym' and not node.val.startswith('<'):
+        # A name that is not in angle brackets is a type variable, and a native
+        # written over one is of every type at once. Only a native the backends
+        # implement polymorphically may say it, since what stands here is what
+        # their implementation is declared as.
         argtypes.append(node.val)
         continue
-      if node.kind != 'str':
-        die('%s: %s says the type it is of: a type of the embedding in '
-            'quotes, e.g. (%s "<numeral>"), or a bare name for a variable'
-            % (what, v, v))
+      if node.kind != 'sym':
+        die('%s: %s says the type it is of: a primitive of the embedding in '
+            'angle brackets, e.g. (%s <numeral>), or a bare name for a '
+            'variable' % (what, v, v))
       if node.val not in declared:
-        die('%s: there is no type called "%s"; the set declares %s'
-            % (what, node.val, ', '.join('"%s"' % t for t in sorted(declared))))
+        die('%s: there is no type called %s; the set declares %s'
+            % (what, node.val, ', '.join(sorted(declared))))
       argtypes.append('$native_' + declared[node.val])
     out.append((e, argtypes))
   return types, out

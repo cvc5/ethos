@@ -309,28 +309,8 @@
 
 ; The two programs over an applied value, which stand with the constructors
 ; they are written over rather than with the rest of the helpers.
-(program $smtx_apply_head_value ((f $smt_Value) (a $smt_Value))
-  :signature ($smt_Value) $smt_Value
-  (
-  (($smtx_apply_head_value ($vsm_Apply f a)) ($smtx_apply_head_value f))
-  (($smtx_apply_head_value a)                a)
-  )
-)
-
 ; ($smtx_apply_arg_nth_value v n npos), where we are getting the n^th argument,
 ; npos is the current position we are at + 1.
-(program $smtx_apply_arg_nth_value
-  ((f $smt_Value) (a $smt_Value) (n $native_Nat) (npos $native_Nat))
-  :signature ($smt_Value $native_Nat $native_Nat) $smt_Value
-  (
-  (($smtx_apply_arg_nth_value ($vsm_Apply f a) n ($native_n_succ npos))
-    ($native_ite ($native_nateq n npos) a
-      ($smtx_apply_arg_nth_value f n npos)))
-  (($smtx_apply_arg_nth_value a n npos) $vsm_NotValue)
-  )
-)
-
-
 ;;; forward declarations
 
 (program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
@@ -348,6 +328,14 @@
 (program $smtx_dt_num_sels () :signature ($smt_Datatype $native_Nat) $native_Nat)
 (program $smtx_typeof_dt_cons_rec () :signature ($smt_Type $smt_Datatype $native_Nat) $smt_Type)
 (program $smtx_datatype_decl_bounded () :signature ($native_Bool $smt_DatatypeDecl $smt_DatatypeDecl $smt_DatatypeDecl) $smt_DatatypeDecl)
+(program $smtx_type_wf_component () :signature ($smt_Type) $native_Bool)
+(program $smtx_typeof_apply () :signature ($smt_Type $smt_Type) $smt_Type)
+(program $smtx_typeof_guard () :signature ($smt_Type $smt_Type) $smt_Type)
+(program $smtx_typeof_guard_wf () :signature ($smt_Type $smt_Type) $smt_Type)
+(program $smtx_is_finite_type () :signature ($smt_Type) $native_Bool)
+(program $smtx_apply_head_value () :signature ($smt_Value) $smt_Value)
+(program $smtx_apply_arg_nth_value () :signature ($smt_Value $native_Nat $native_Nat) $smt_Value)
+(program $smtx_ret_typeof_sel () :signature ($native_String $smt_DatatypeDecl $native_Nat $native_Nat) $smt_Type)
 
 ;;; dt resolve
 
@@ -392,13 +380,6 @@
   )
 )
 
-(program $smtx_type_wf_component ((T $smt_Type))
-  :signature ($smt_Type) $native_Bool
-  (
-  (($smtx_type_wf_component T) ($smtx_type_wf_component_rec T))
-  )
-)
-
 (program $smtx_type_wf ((T $smt_Type) (U $smt_Type))
   :signature ($smt_Type) $native_Bool
   (
@@ -413,33 +394,7 @@
 ;;; utilities
 
 ; returns U if T is not none
-(program $smtx_typeof_guard ((T $smt_Type) (U $smt_Type))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_guard T U) ($native_ite ($native_Teq T $tsm_none) $tsm_none U))
-  )
-)
-
 ; returns U if T is well-formed and inhabited
-(program $smtx_typeof_guard_wf ((T $smt_Type) (U $smt_Type))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  (($smtx_typeof_guard_wf T U) ($native_ite ($smtx_type_wf T) U $tsm_none))
-  )
-)
-
-(program $smtx_typeof_apply ((T $smt_Type) (U $smt_Type) (V $smt_Type))
-  :signature ($smt_Type $smt_Type) $smt_Type
-  (
-  ; only allowed to apply funs and datatype constructors
-  (($smtx_typeof_apply ($tsm_FunType T U) V)
-    ($smtx_typeof_guard T ($native_ite ($native_Teq T V) U $tsm_none)))
-  (($smtx_typeof_apply ($tsm_DtcAppType T U) V)
-    ($smtx_typeof_guard T ($native_ite ($native_Teq T V) U $tsm_none)))
-  (($smtx_typeof_apply T U)               $tsm_none)
-  )
-)
-
 ;; datatypes
 
 
@@ -452,27 +407,6 @@
 ; neither stands in for the other.
 
 ; returns the return type of the selector n,m of datatype d.
-(program $smtx_ret_typeof_sel_rec
-  ((T $smt_Type) (n $native_Nat) (m $native_Nat) (c $smt_DatatypeCons) (d $smt_Datatype))
-  :signature ($smt_Datatype $native_Nat $native_Nat) $smt_Type
-  (
-  (($smtx_ret_typeof_sel_rec ($dt_sum ($dtc_cons T c) d) $native_n_zero $native_n_zero) T)
-  (($smtx_ret_typeof_sel_rec ($dt_sum ($dtc_cons T c) d) $native_n_zero ($native_n_succ m))
-    ($smtx_ret_typeof_sel_rec ($dt_sum c d) $native_n_zero m))
-  (($smtx_ret_typeof_sel_rec ($dt_sum c d) ($native_n_succ n) m)
-    ($smtx_ret_typeof_sel_rec d n m))
-  (($smtx_ret_typeof_sel_rec d n m) $tsm_none)
-  )
-)
-
-(program $smtx_ret_typeof_sel
-  ((s $native_String) (n $native_Nat) (m $native_Nat) (dd $smt_DatatypeDecl))
-  :signature ($native_String $smt_DatatypeDecl $native_Nat $native_Nat) $smt_Type
-  (
-  (($smtx_ret_typeof_sel s dd n m) ($smtx_ret_typeof_sel_rec ($smtx_dd_resolve s dd) n m))
-  )
-)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; The helpers the signature writes
 
 ; Every auxiliary program a signature written in the embedding holds, i.e. what
@@ -798,20 +732,6 @@
 ; theorems in Cpc/Proofs/Canonical/FiniteSoundness.lean of Logos. It is
 ; therefore kept whatever an input declares, and $smtx_is_finite_type beside it
 ; is the one the model itself calls.
-(program $smtx_is_unit_type ((T $smt_Type))
-  :signature ($smt_Type) $native_Bool
-  (
-  (($smtx_is_unit_type T) ($smtx_type_bounded $native_true T))
-  )
-)
-
-(program $smtx_is_finite_type ((T $smt_Type))
-  :signature ($smt_Type) $native_Bool
-  (
-  (($smtx_is_finite_type T) ($smtx_type_bounded $native_false T))
-  )
-)
-
 ; A unit datatype must have exactly one constructor, a finite datatype may
 ; have any number of constructors.
 

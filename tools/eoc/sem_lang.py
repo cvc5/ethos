@@ -527,6 +527,10 @@ def level_of(node):
   if head.kind == 'str':
     return 'native'             # a native type, named the way a native is
   name = head.val if head.kind == 'sym' else ''
+  if name.startswith('<'):
+    # A primitive of the embedding, which is written in angle brackets and is
+    # of the native level as any other native type is.
+    return 'native'
   # A configuration names a type of the embedding by itself, the file that
   # declares it by the name it is declared under; both are that type.
   name = smt_type(name) or name
@@ -926,6 +930,9 @@ def apply_native(node, name, args, scope, entry, ctx, level):
   the signature of an input builds terms, so a name it gives that the embedding
   does not have is a misspelling rather than an operator.
   """
+  if name.startswith('<'):
+    die('%s: write %s without the quotes: a name in quotes is an operator, '
+        'and %s is a type' % (entry.name, name, name))
   full = '$native_' + ctx.vocab.spellings.get(name, name)
   if full in ctx.vocab:
     if ctx.vocab.arity(full) != len(args):
@@ -1017,15 +1024,38 @@ def embedded(name, entry, ctx):
   return name
 
 
+def native_type(name, entry, ctx):
+  """The primitive of the embedding a name in angle brackets stands for.
+
+  What the embedding calls it is what the set that declares the primitives
+  says, see Vocab.spellings; a name in brackets it does not declare is a
+  misspelling, there being nothing else a name written that way could be.
+  """
+  full = '$native_' + ctx.vocab.spellings.get(name, name)
+  if full not in ctx.vocab:
+    die('%s: there is no primitive of the embedding called %s; it declares %s'
+        % (entry.name, name,
+           ', '.join(sorted(ctx.vocab.spellings)) or 'none'))
+  return full
+
+
 def declared_type(node, entry, ctx):
   """A type as a parameter list or a signature writes one.
 
   Three vocabularies meet here and each is named as it is named everywhere: a
-  native in quotes, a type of the embedding without its `$smt_`, and a type of
-  the *input* as the input writes it, which is what is left.
+  primitive of the embedding in angle brackets, a type of the embedding without
+  its `$smt_`, and a type of the *input* as the input writes it, which is what
+  is left.
+
+  A primitive is written `<numeral>` and not `"<numeral>"`: quotes name an
+  *operator*, and a type is not one. The brackets are what say the name is the
+  embedding's own, so a name in them that the embedding does not declare is an
+  error rather than something taken for a type of the input.
   """
   if node.kind == 'str':
     return apply_native(node, node.val, [], Scope(), entry, ctx, 'native')
+  if node.kind == 'sym' and node.val.startswith('<'):
+    return native_type(node.val, entry, ctx)
   if node.kind == 'sym':
     smt = smt_type(node.val)
     if smt is not None:

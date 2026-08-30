@@ -515,3 +515,74 @@ reader would say the same thing once.
 term/type/value split of §6 is SMT-LIB's shape. Nothing has ever tested whether
 it is *the compiler's* shape or *SMT-LIB's*, because there has only ever been
 one target. That question is answerable and currently unanswered.
+
+**8. Say what a target's language already brings, and check the natives against
+it.** A layer owes the embedding a definition for every native except the ones
+that say `:is`, the ones that forward to a literal, and the ones the target
+*already has* -- `and`, `or`, `not`, `ite` and `to_real` are SMT-LIB's own. The
+third of those is written nowhere, so nothing can tell a native a target gets
+for free from one that is simply missing, in either direction: an unimplemented
+native surfaces as a Lean or cvc5 error two tools downstream, and a layer entry
+for a native no longer declared is dead text nothing reports. One line per
+target naming what its language brings would make both checkable, and only the
+natives a run actually reaches need checking, which the run already knows. The
+measured state is in
+[`tools/eoc/README.md`](../tools/eoc/README.md#what-a-layer-owes-the-embedding).
+
+---
+
+## Stretch: `eo::native` in the front end of ethos
+
+**The natives are a closed vocabulary, and only the compiler may extend it.**
+`plugins/desugar/natives.eos` declares 66, and a signature may name those and
+nothing else. A calculus that wants an operation its target has and Eunoia does
+not -- a Lean method, an SMT-LIB function -- cannot say so: the native has to be
+added to `natives.eos` and to each backend layer, and that is a change to the
+compiler rather than to the signature. It is the one place where "a second
+calculus is a second pair of files" is plainly false.
+
+`eo::native` would be the front end of ethos accepting a target operation named
+directly:
+
+```lisp
+(eo::native "Nat.gcd" x y)
+```
+
+ethos does not know what `Nat.gcd` is and does not need to. It carries the term
+-- opaquely, the way it already carries `$native_apply_N` -- and the backend
+emits `Nat.gcd x y`. What changes is *who may name one*: the natives stop being
+the compiler's closed list and become the signature's open one.
+
+**Why this is the agility item.** Everything else in this document is agility
+for the tool: fewer names welded into C++, more of the embedding stated as
+configuration. None of it shortens the loop a calculus author is in, because
+none of it is something they write. This is. A signature reaching a target
+operation directly is the difference between "add it to the compiler and
+rebuild" and "write it".
+
+**What it makes load-bearing.** Direction 8 above is optional while the natives
+are closed and curated -- a missing one is a mistake in *our* files, caught the
+first time anything compiles. Once a signature may name any operation at all, a
+name that the target does not have is a mistake in a *user's* file, and there is
+nothing left to catch it but the check: what each target's language brings, and
+whether the operation named is in it. Opening the vocabulary is what turns that
+check from a tidy-up into a requirement.
+
+**What it does not get you.**
+
+- **No evaluation.** ethos cannot compute with a term it does not understand, so
+  an `eo::native` term is inert in the front end: usable where a signature
+  builds or transmits a term, not where a program must reduce one. That is the
+  same restriction `$native_apply_N` has today, made visible to the user.
+- **No meaning to a model.** The model-smt stage refuses a symbol the semantics
+  says nothing about, by design and for soundness. An `eo::native` term is a
+  symbol like any other in that respect: naming a Lean method does not say what
+  it denotes, so a verification condition over one is about an uninterpreted
+  function until the semantics says otherwise.
+- **No type.** Eunoia would have to be told what the operation takes and
+  returns, since it cannot read that off a name in someone else's language.
+
+So the shape of it is: a signature names the operation and says its type and its
+meaning; the compiler checks the target has it; the backend emits it. Two of
+those three are things the pipeline already does for a declared symbol. Only the
+middle one is missing, and it is direction 8.

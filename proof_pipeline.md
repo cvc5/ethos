@@ -435,6 +435,13 @@ not necessarily one Logos accepts.
   `*.eo`, formally verified so as to absorb some stages of this pipeline.
 - Telos: an SMT solver API running cvc5 to the proof API to ethos or Logos.
 - Alethe to Eunoia.
+- `eo::native` in the front end of ethos, so that a signature may name an
+  operation its target has and Eunoia does not -- a Lean method, an SMT-LIB
+  function -- rather than the natives being a closed list only the compiler may
+  extend. It is the one direction that shortens the loop a *calculus author* is
+  in, and it is what makes checking a target's native coverage a requirement
+  rather than a tidy-up. See the stretch goal in
+  [`docs/README.md`](docs/README.md).
 
 ## Appendix: component sizes
 
@@ -475,8 +482,8 @@ A count for a C++ component is its implementation plus its header.
 | `eo_desugar.eo` | 391 EO |
 | `eo_desugar_native.eo` | 576 EO |
 | `eo_desugar_checker.eo` | 204 EO |
-| `model_smt.eo`, the embedding | 446 EO |
-| **Eunoia total** | **1,661** |
+| `model_smt.eo`, the embedding | 378 EO |
+| **Eunoia total** | **1,593** |
 | Lean templates, `plugins/lean_meta/*.lean` | 550 Lean |
 
 ### Stage 7a: Eunoia to SMT-LIB and SyGuS
@@ -500,17 +507,17 @@ right-hand column is one nobody maintains.
 
 | Written by hand | LOC | Compiles to | LOC |
 | --- | --- | --- | --- |
-| `semantics/smt.eos`, the SMT-LIB semantics | 1,448 | `smt_defs.eo`, `smt_termination.lean` | 4,319 |
+| `semantics/smt.eos`, the SMT-LIB semantics | 1,534 | `smt_defs.eo`, `smt_termination.lean` | 4372 |
 | `semantics/development-cpc.eos`, the semantics of an input | 615 | `user_defs.eo`, `user_termination.lean` | 1,624 |
 | `desugar/natives.eos`, the natives and the primitive types | 74 | `native_defs.eo` | 123 |
 | `model_smt/model_smt.eos`, the aggregates and the datatypes | 73 | the head of the two signatures | — |
 | `lean_meta/lean.eos`, the native layer of stage 7b | 649 | `lean_native.lean` | 482 |
 | `smt_meta/smt-vc.eos`, the native layer of stage 7a | 227 | `smt_vc_native.smt2` | 152 |
-| **Total** | **3,086** | | **6,700** |
+| **Total** | **3,172** | | **6,753** |
 
-Against the declarative material that is still written out by hand -- 1,661
-lines of Eunoia, 550 of Lean template and 145 of SMT-LIB template, 2,356 in all
--- **57%** of what the pipeline is told is now configuration rather than
+Against the declarative material that is still written out by hand -- 1,593
+lines of Eunoia, 550 of Lean template and 145 of SMT-LIB template, 2,288 in all
+-- **58%** of what the pipeline is told is now configuration rather than
 something maintained in the form the stages read.
 
 None of the right-hand column is checked in; see the `tools/eoc/out/` line of
@@ -520,7 +527,7 @@ signature of this tree.
 
 #### What moved, and what it bought
 
-51% of what the pipeline is told was configuration and 57% is, and where that
+51% of what the pipeline is told was configuration and 58% is, and where that
 came from matters more than the number. What moved is *which* things a stage
 holds a name of:
 
@@ -531,7 +538,8 @@ holds a name of:
 | constructor and marker names hardcoded in the model-smt stage | 11 | **0** |
 | constructors of the embedding's datatypes declared in `model_smt.eo` | 20 | **0** |
 | programs over datatypes written in `model_smt.eo` | 25 | **2** |
-| `model_smt.eo` | 697 EO | **446 EO** |
+| helper programs in `model_smt.eo` | 37 | **7** |
+| `model_smt.eo` | 697 EO | **378 EO** |
 | index arities the embedding can express | exactly 3 | **as many as declared** |
 
 Three changes account for it, and each removed a *kind* of hardcoding rather

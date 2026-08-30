@@ -313,6 +313,47 @@ Each backend has one, and the two are the same thing said twice:
 | Lean | `plugins/lean_meta/lean.eos` | `tools/eoc/out/lean_native.lean` | the `lean-meta` stage |
 | SMT-LIB | `plugins/smt_meta/smt-vc.eos` | `tools/eoc/out/smt_vc_native.smt2` | the `smt-meta` stage |
 
+### What a layer owes the embedding
+
+The embedding declares 66 natives. Which of them a layer *must* implement is
+not "all of them", and the rule has three parts:
+
+| a native that | the layer owes it | how many |
+| --- | --- | --: |
+| says `:is`, being written over the others | nothing -- what it is was said once | 7 |
+| forwards to a **literal**, as `z_zero` does to `0` | nothing -- a literal is itself in every target | 12 |
+| forwards to an operator the **target language already has**, as `and` does in SMT-LIB | nothing | varies |
+| forwards to anything else | a definition | the rest |
+
+Where the layers stand today, counting the 47 primitives that do not forward to
+a literal:
+
+| layer | implements | of |
+| --- | --: | --: |
+| `lean_meta/lean.eos` | 47 | 47 |
+| `smt_meta/smt-vc.eos` | 34 | 47 |
+| `eo_meta/eo.eos` | 28 | 47 |
+
+**The third row of the first table is the hole.** Nothing anywhere says which
+operators a target already has, so nothing can tell a native SMT-LIB gets for
+free -- `and`, `or`, `not`, `ite`, `to_real` -- from one that is simply
+missing. The thirteen `smt-vc.eos` does not implement are all of the first
+kind, and the nineteen `eo.eos` does not are mostly not: a native with no
+`:eo-impl` falls back to an opaque `$native_apply_N`, so the eo-meta output
+names an uninterpreted operator rather than failing.
+
+So the coherence of a layer is **unchecked in both directions**: a native no
+layer implements and no language has surfaces as a Lean or cvc5 error two
+tools downstream, and a layer entry for a native the embedding no longer
+declares is dead text nothing reports. See "What is not checked for you" in
+[`docs/README.md`](../../docs/README.md).
+
+What would close it is one line per target saying what its language brings --
+the operators it has without being told -- against which the compiler could
+check every native the compiled signature actually reaches. That is a smaller
+question than it looks, since only the natives a *run* reaches matter, and the
+run already knows which those are.
+
 **A layer is a configuration set**, which `tools/eoc/sem_compile.py` compiles;
 one entry is one definition, under the attribute that says which language it
 is written in:

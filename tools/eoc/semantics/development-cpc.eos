@@ -278,8 +278,8 @@
 ; type and is what (width x) in such an application calls, comes first.
 
 ; The width a bit-vector type is of, or minus one if the type is not one.
-(program $eo_to_smt_bv_size ((x1 "<nat>") (t1 SmtValue))
-  :signature (SmtType) "<numeral>"
+(program $eo_to_smt_bv_size ((x1 <nat>) (t1 SmtValue))
+  :signature (SmtType) <numeral>
   (
   (($eo_to_smt_bv_size (BitVec x1)) ("n_to_z" x1))
   (($eo_to_smt_bv_size t1) "z_neg_one")
@@ -555,16 +555,16 @@
 ; is still the vocabulary of the embedding.
 
 ; -- $eo_to_smt_nat
-(program $eo_to_smt_nat_is_valid ((n "<numeral>") (t $eo_Term))
-  :signature ($eo_Term) "<bool>"
+(program $eo_to_smt_nat_is_valid ((n <numeral>) (t $eo_Term))
+  :signature ($eo_Term) <bool>
   (
   (($eo_to_smt_nat_is_valid (eo.numeral n)) ("zleq" 0 n))
   (($eo_to_smt_nat_is_valid t) "false")
   )
 )
 
-(program $eo_to_smt_nat ((n "<numeral>") (t $eo_Term))
-  :signature ($eo_Term) "<nat>"
+(program $eo_to_smt_nat ((n <numeral>) (t $eo_Term))
+  :signature ($eo_Term) <nat>
   (
   (($eo_to_smt_nat (eo.numeral n)) ("z_to_n" n))
   (($eo_to_smt_nat t) "n_zero")
@@ -573,8 +573,8 @@
 
 ; -- @re_unfold_pos_component
 (program $eo_to_smt_re_unfold_pos_component
-  ((_y2 SmtTerm) (_y3 "<nat>") (n "<nat>") (r1 SmtTerm) (r2 SmtTerm) (s SmtTerm))
-  :signature (SmtTerm SmtTerm "<nat>") SmtTerm
+  ((_y2 SmtTerm) (_y3 <nat>) (n <nat>) (r1 SmtTerm) (r2 SmtTerm) (s SmtTerm))
+  :signature (SmtTerm SmtTerm <nat>) SmtTerm
   (
   (($eo_to_smt_re_unfold_pos_component s (re.++ r1 r2) "n_zero")
     (str.substr s 0 (str.indexof_re_split s r1 r2)))
@@ -728,7 +728,7 @@
 
 ; -- is
 (program $eo_to_smt_tester
-  ((s "<string>") (dd SmtDatatypeDecl) (n "<nat>") (t SmtTerm))
+  ((s <string>) (dd SmtDatatypeDecl) (n <nat>) (t SmtTerm))
   :signature (SmtTerm) SmtTerm
   (
   (($eo_to_smt_tester (DtCons s dd n))  (DtTester s dd n))
@@ -744,9 +744,9 @@
 ; returns the constructor app that is equivalent to u
 ; but where the selector s field is updated to t.
 (program $eo_to_smt_updater_rec
-  ((s "<string>") (dd SmtDatatypeDecl) (n "<nat>") (m "<nat>")
-   (k "<nat>") (t SmtTerm) (u SmtTerm) (acc SmtTerm) (v SmtTerm))
-  :signature (SmtTerm "<nat>" SmtTerm SmtTerm SmtTerm) SmtTerm
+  ((s <string>) (dd SmtDatatypeDecl) (n <nat>) (m <nat>)
+   (k <nat>) (t SmtTerm) (u SmtTerm) (acc SmtTerm) (v SmtTerm))
+  :signature (SmtTerm <nat> SmtTerm SmtTerm SmtTerm) SmtTerm
   (
   (($eo_to_smt_updater_rec (DtSel s dd n m) "n_zero" t u acc) acc)
   (($eo_to_smt_updater_rec (DtSel s dd n m) ("n_succ" k) t u acc)
@@ -757,8 +757,8 @@
 )
 
 (program $eo_to_smt_updater
-  ((s "<string>") (dd SmtDatatypeDecl)
-   (n "<nat>") (m "<nat>") (sel SmtTerm) (t SmtTerm) (u SmtTerm))
+  ((s <string>) (dd SmtDatatypeDecl)
+   (n <nat>) (m <nat>) (sel SmtTerm) (t SmtTerm) (u SmtTerm))
   :signature (SmtTerm SmtTerm SmtTerm) SmtTerm
   (
   (($eo_to_smt_updater (DtSel s dd n m) t u)
@@ -799,9 +799,9 @@
 ; but where now tuple is the instance of the tuple constructor that expects
 ; another argument of type T.
 (program $eo_to_smt_tuple_prepend_rec
-  ((dd SmtDatatypeDecl) (d SmtDatatype) (tail SmtTerm) (n "<nat>")
+  ((dd SmtDatatypeDecl) (d SmtDatatype) (tail SmtTerm) (n <nat>)
    (acc SmtTerm))
-  :signature (SmtDatatypeDecl SmtDatatype SmtTerm "<nat>" SmtTerm) SmtTerm
+  :signature (SmtDatatypeDecl SmtDatatype SmtTerm <nat> SmtTerm) SmtTerm
   (
   (($eo_to_smt_tuple_prepend_rec dd d tail "n_zero" acc) acc)
   (($eo_to_smt_tuple_prepend_rec dd d tail ("n_succ" n) acc)
@@ -814,7 +814,7 @@
 
 (program $eo_to_smt_tuple_prepend_of_type
   ((T SmtType) (h SmtTerm) (hT SmtType) (tail SmtTerm)
-   (c SmtDatatypeCons) (s "<string>") (s2 "<string>"))
+   (c SmtDatatypeCons) (s <string>) (s2 <string>))
   :signature (SmtType SmtTerm SmtType SmtTerm) SmtTerm
   (
   (($eo_to_smt_tuple_prepend_of_type (Datatype s (smt.decl_cons s2 (smt.datatype_cons c smt.datatype_nil) smt.decl_nil)) h hT tail)
@@ -849,8 +849,8 @@
 
 ; -- tuple.select
 (program $eo_to_smt_tuple_select
-  ((T SmtType) (s "<string>") (s2 "<string>") (d SmtDatatype)
-   (n "<numeral>") (t SmtTerm))
+  ((T SmtType) (s <string>) (s2 <string>) (d SmtDatatype)
+   (n <numeral>) (t SmtTerm))
   :signature (SmtType SmtTerm SmtTerm) SmtTerm
   (
   (($eo_to_smt_tuple_select (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (Numeral n) t)
@@ -873,8 +873,8 @@
 
 ; -- tuple.update
 (program $eo_to_smt_tuple_update
-  ((T SmtType) (d SmtDatatype) (n "<numeral>") (t SmtTerm) (u SmtTerm)
-   (s "<string>") (s2 "<string>"))
+  ((T SmtType) (d SmtDatatype) (n <numeral>) (t SmtTerm) (u SmtTerm)
+   (s <string>) (s2 <string>))
   :signature (SmtType SmtTerm SmtTerm SmtTerm) SmtTerm
   (
   (($eo_to_smt_tuple_update (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (Numeral n) t u)
@@ -905,7 +905,7 @@
 
 ; -- $eo_to_smt_exists
 (program $eo_to_smt_exists
-  ((s "<string>") (T $eo_Term) (vs $eo_List) (F $eo_Term))
+  ((s <string>) (T $eo_Term) (vs $eo_List) (F $eo_Term))
   :signature ($eo_List SmtTerm) SmtTerm
   (
   (($eo_to_smt_exists eo.list_nil F) F)
@@ -927,8 +927,8 @@
 
 ; -- @quantifiers_skolemize
 (program $eo_to_smt_quantifiers_skolemize
-  ((s "<string>") (T $eo_Term) (vs $eo_List) (F SmtTerm) (G SmtTerm) (n "<nat>") (t SmtTerm))
-  :signature ($eo_List SmtTerm "<nat>") SmtTerm
+  ((s <string>) (T $eo_Term) (vs $eo_List) (F SmtTerm) (G SmtTerm) (n <nat>) (t SmtTerm))
+  :signature ($eo_List SmtTerm <nat>) SmtTerm
   (
   (($eo_to_smt_quantifiers_skolemize (eo.list_cons (eo.var (eo.string s) T) vs) G "n_zero")
     (choice s T ($eo_to_smt_exists vs G)))
@@ -981,9 +981,9 @@
 ; names it is that program rather than a symbol of the input.
 
 ; -- $eo_to_smt_reserved_datatype_name
-(program $eo_to_smt_reserved_datatype_name ((s "<string>"))
+(program $eo_to_smt_reserved_datatype_name ((s <string>))
   :keep
-  :signature ("<string>") "<bool>"
+  :signature (<string>) <bool>
   (
   (($eo_to_smt_reserved_datatype_name s) ("string_prefix_eq" "str_at_sign" s))
   )
@@ -1035,7 +1035,7 @@
 
 ; -- Tuple
 (program $eo_to_smt_type_tuple
-  ((U SmtType) (T SmtType) (s "<string>") (s2 "<string>")
+  ((U SmtType) (T SmtType) (s <string>) (s2 <string>)
    (c SmtDatatypeCons))
   :signature (SmtType SmtType) SmtType
   (

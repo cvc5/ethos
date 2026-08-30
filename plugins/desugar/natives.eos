@@ -86,7 +86,7 @@
 
 (declare-native z_max_width () :op "4294967296")
 
-(declare-native streq ((x1 "<string>") (x2 "<string>")))
+(declare-native streq ((x1 <string>) (x2 <string>)))
 
 ; The string constants the embedding is written over. Each forwards to a
 ; string literal rather than to a function, which is what :op says here as it
@@ -110,104 +110,104 @@
 ; The one native that is of every type at once, and so the one whose arguments
 ; name a type variable rather than a type. Both backends implement it that
 ; way, see native_ite in plugins/lean_meta/lean.eos.
-(declare-native ite ((b "<bool>") (x1 W) (x2 W)))
+(declare-native ite ((b <bool>) (x1 W) (x2 W)))
 
-(declare-native not ((b "<bool>")))
+(declare-native not ((b <bool>)))
 
-(declare-native and ((b1 "<bool>") (b2 "<bool>")))
+(declare-native and ((b1 <bool>) (b2 <bool>)))
 
-(declare-native or ((b1 "<bool>") (b2 "<bool>")))
+(declare-native or ((b1 <bool>) (b2 <bool>)))
 
-(declare-native iff ((b1 "<bool>") (b2 "<bool>")))
+(declare-native iff ((b1 <bool>) (b2 <bool>)))
 
 ; Integer operators
 ; These assume zeq, zleq, zlt, zplus, zmult, zneg are defined as =, <=, <, +, *, -
-(declare-native zeq ((x1 "<numeral>") (x2 "<numeral>")))
+(declare-native zeq ((x1 <numeral>) (x2 <numeral>)))
 
-(declare-native zleq ((x1 "<numeral>") (x2 "<numeral>")))
+(declare-native zleq ((x1 <numeral>) (x2 <numeral>)))
 
-(declare-native zlt ((x1 "<numeral>") (x2 "<numeral>")))
+(declare-native zlt ((x1 <numeral>) (x2 <numeral>)))
 
-(declare-native zplus ((x1 "<numeral>") (x2 "<numeral>")))
+(declare-native zplus ((x1 <numeral>) (x2 <numeral>)))
 
-(declare-native zmult ((x1 "<numeral>") (x2 "<numeral>")))
+(declare-native zmult ((x1 <numeral>) (x2 <numeral>)))
 
-(declare-native zneg ((x1 "<numeral>")))
+(declare-native zneg ((x1 <numeral>)))
 
-(declare-native zabs ((x1 "<numeral>")))
+(declare-native zabs ((x1 <numeral>)))
 
 ; Real operators
 ; These assume qleq, qlt, qplus, qmult, qneg are defined as <=, <, +, *, -
-(declare-native qeq ((x1 "<rational>") (x2 "<rational>")))
+(declare-native qeq ((x1 <rational>) (x2 <rational>)))
 
-(declare-native qleq ((x1 "<rational>") (x2 "<rational>")))
+(declare-native qleq ((x1 <rational>) (x2 <rational>)))
 
-(declare-native qlt ((x1 "<rational>") (x2 "<rational>")))
+(declare-native qlt ((x1 <rational>) (x2 <rational>)))
 
-(declare-native qplus ((x1 "<rational>") (x2 "<rational>")))
+(declare-native qplus ((x1 <rational>) (x2 <rational>)))
 
-(declare-native qmult ((x1 "<rational>") (x2 "<rational>")))
+(declare-native qmult ((x1 <rational>) (x2 <rational>)))
 
-(declare-native qneg ((x1 "<rational>")))
+(declare-native qneg ((x1 <rational>)))
 
-(declare-native qabs ((x1 "<rational>")))
+(declare-native qabs ((x1 <rational>)))
 
 ; other arithmetic
-(declare-native to_real ((x1 "<numeral>")))
+(declare-native to_real ((x1 <numeral>)))
 
-(declare-native mk_rational ((x1 "<numeral>") (x2 "<numeral>")))
+(declare-native mk_rational ((x1 <numeral>) (x2 <numeral>)))
 
-(declare-native qdiv_total ((x1 "<rational>") (x2 "<rational>")))
+(declare-native qdiv_total ((x1 <rational>) (x2 <rational>)))
 
-(declare-native div_total ((x1 "<numeral>") (x2 "<numeral>")))
+(declare-native div_total ((x1 <numeral>) (x2 <numeral>)))
 
-(declare-native mod_total ((x1 "<numeral>") (x2 "<numeral>")))
+(declare-native mod_total ((x1 <numeral>) (x2 <numeral>)))
 
-(declare-native zexp_total ((x1 "<numeral>") (x2 "<numeral>")))
+(declare-native zexp_total ((x1 <numeral>) (x2 <numeral>)))
 
-(declare-native qexp_total ((x1 "<rational>") (x2 "<numeral>")))
+(declare-native qexp_total ((x1 <rational>) (x2 <numeral>)))
 
 ; The (rounded-down) integer logarithm of x2 in base x1. This is the inverse of
 ; $native_z_**_total: it returns the greatest m>=0 such that x1^m <= x2, and 0
 ; when x1 <= 1 or x2 <= 0.
-(declare-native int_log ((x1 "<numeral>") (x2 "<numeral>")))
+(declare-native int_log ((x1 <numeral>) (x2 <numeral>)))
 
 ; Two to the power of x1, which the width arithmetic of the binary literal
 ; type is written over.
-(declare-native z_pow2 ((x1 "<numeral>")) :op "int.pow2")
+(declare-native z_pow2 ((x1 <numeral>)) :op "int.pow2")
 
 (declare-native n_zero () :op "nat.zero")
 
-(declare-native n_succ ((x1 "<nat>")) :op "nat.succ")
+(declare-native n_succ ((x1 <nat>)) :op "nat.succ")
 
-(declare-native nateq ((x1 "<nat>") (x2 "<nat>")))
+(declare-native nateq ((x1 <nat>) (x2 <nat>)))
 
-(declare-native z_to_n ((x1 "<numeral>")) :op "int.to_nat")
+(declare-native z_to_n ((x1 <numeral>)) :op "int.to_nat")
 
-(declare-native n_to_z ((x1 "<nat>")) :op "nat.to_int")
+(declare-native n_to_z ((x1 <nat>)) :op "nat.to_int")
 
 ; uconst utility
-(declare-native uconst_id ((x1 "<nat>")))
+(declare-native uconst_id ((x1 <nat>)))
 
 ; abstract constant utility, note this namespace is distinct from the one used
 ; by $native_to_uconst_id, so that an abstract constant is never identified
 ; with an uninterpreted constant of the input problem.
-(declare-native const_id ((x1 "<nat>")))
+(declare-native const_id ((x1 <nat>)))
 
 ; Whether s begins with the string p.
-(declare-native string_prefix_eq ((p "<string>") (s "<string>")))
+(declare-native string_prefix_eq ((p <string>) (s <string>)))
 
 ; define: $native_bit
 ; return: >
 ;   true iff the i^th bit of a binary with integer value x is set. Note this
 ;   method is agnostic to bitwidth.
-(declare-native bit ((x "<numeral>") (i "<numeral>")))
+(declare-native bit ((x <numeral>) (i <numeral>)))
 
 ; define: $native_msb
 ; return: >
 ;   true iff the most significant bit of the binary of width w and value n is
 ;   set.
-(declare-native msb ((w "<numeral>") (n "<numeral>")))
+(declare-native msb ((w <numeral>) (n <numeral>)))
 
 ; define: $native_binary_and
 ; return: >
@@ -216,7 +216,7 @@
 ;   taken modulo 2^w.
 ; note: >
 ;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
-(declare-native binary_and ((w "<numeral>") (n1 "<numeral>") (n2 "<numeral>")))
+(declare-native binary_and ((w <numeral>) (n1 <numeral>) (n2 <numeral>)))
 
 ; define: $native_binary_or
 ; return: >
@@ -225,7 +225,7 @@
 ;   n1+n2-($native_binary_and w n1 n2). This value will be taken modulo 2^w.
 ; note: >
 ;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
-(declare-native binary_or ((w "<numeral>") (n1 "<numeral>") (n2 "<numeral>")))
+(declare-native binary_or ((w <numeral>) (n1 <numeral>) (n2 <numeral>)))
 
 ; define: $native_binary_xor
 ; return: >
@@ -234,7 +234,7 @@
 ;   n1+n2-(2*($native_binary_and w n1 n2)). This value will be taken modulo 2^w.
 ; note: >
 ;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
-(declare-native binary_xor ((w "<numeral>") (n1 "<numeral>") (n2 "<numeral>")))
+(declare-native binary_xor ((w <numeral>) (n1 <numeral>) (n2 <numeral>)))
 
 ; define: $native_binary_not
 ; return: >
@@ -243,19 +243,19 @@
 ;   will be taken modulo 2^w.
 ; note: >
 ;   Assumes that 0 <= n < 2^w, 0 <= w.
-(declare-native binary_not ((w "<numeral>") (n "<numeral>")))
+(declare-native binary_not ((w <numeral>) (n <numeral>)))
 
 ; define: $native_binary_max
 ; return: >
 ;   The integer value of the maximum unsigned binary value of width w. This is
 ;   equal to 2^w-1.
-(declare-native binary_max ((w "<numeral>")))
+(declare-native binary_max ((w <numeral>)))
 
 ; define: $native_binary_uts
 ; return: >
 ;   The conversion of n from unsigned to signed integer, which is
 ;   2*(n mod 2^w-1) - n.
-(declare-native binary_uts ((w "<numeral>") (n "<numeral>")))
+(declare-native binary_uts ((w <numeral>) (n <numeral>)))
 
 ; define: $native_binary_concat
 ; return: >
@@ -265,7 +265,7 @@
 ;   be taken modulo 2^(w1+w2).
 ; note: >
 ;   Assumes that 0 <= n1 < 2^w1, 0 <= n2 < 2^w2, 0 <= w1, 0 <= w2.
-(declare-native binary_concat ((w1 "<numeral>") (n1 "<numeral>") (w2 "<numeral>") (n2 "<numeral>")))
+(declare-native binary_concat ((w1 <numeral>) (n1 <numeral>) (w2 <numeral>) (n2 <numeral>)))
 
 ; define: $native_binary_extract
 ; return: >
@@ -274,7 +274,7 @@
 ;   to (div n 2^x1). This value will be taken modulo 2^(1+x2-x1).
 ; note: >
 ;   Assumes that 0 <= n < 2^w, 0 <= x1 <= x2 < w.
-(declare-native binary_extract ((w "<numeral>") (n "<numeral>") (x1 "<numeral>") (x2 "<numeral>")))
+(declare-native binary_extract ((w <numeral>) (n <numeral>) (x1 <numeral>) (x2 <numeral>)))
 
 ; ---------------------------------------------------------------------------
 ; The natives written over the others
@@ -287,19 +287,19 @@
 
 (declare-native z_neg_one () :is ("zneg" "z_one"))
 
-(declare-native z_- ((x1 "<numeral>") (x2 "<numeral>"))
+(declare-native z_- ((x1 <numeral>) (x2 <numeral>))
   :is ("zplus" x1 ("zneg" x2)))
 
-(declare-native z_inc ((x1 "<numeral>")) :is ("zplus" x1 "z_one"))
+(declare-native z_inc ((x1 <numeral>)) :is ("zplus" x1 "z_one"))
 
-(declare-native z_dec ((x1 "<numeral>")) :is ("zplus" x1 "z_neg_one"))
+(declare-native z_dec ((x1 <numeral>)) :is ("zplus" x1 "z_neg_one"))
 
-(declare-native q_- ((x1 "<rational>") (x2 "<rational>"))
+(declare-native q_- ((x1 <rational>) (x2 <rational>))
   :is ("qplus" x1 ("qneg" x2)))
 
 (declare-native q_zero () :is ("mk_rational" "z_zero" "z_one"))
 
 ; A natural number is what a character is written as, so this is what says
 ; which of the two a place means rather than what it converts.
-(declare-native n_to_char ((n "<nat>")) :is n)
+(declare-native n_to_char ((n <nat>)) :is n)
 
