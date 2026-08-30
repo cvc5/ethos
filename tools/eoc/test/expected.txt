@@ -2,9 +2,9 @@
 # regress.py, which is what says the bytes have not moved. Run
 # that file with --update to write this one.
 d2901ac069d3ffb2c901c86d0abe95a47dc064d35fa0678dcaa81b15eac5be1b  eo.eo
-a7b67e829c51b61bc2d11de02b994df710d3b5d42ed063d7de652b1955845d89  lean-booleans-rules-defs.eo
+7c600d76e46d2e078f1941200f9c8ddc64036233865be8e3975f22cbf3592155  lean-booleans-rules-defs.eo
 b9d1a09d35e3121c55131c8f1fd3346da0f997c19c117496a1086733fcde6ac1  lean-booleans-rules-desugar.eo
-93e7fd085e3c8e49f72325918877eb9944108db7c62401378be5a41039702cd9  lean-booleans-rules-final.eo
+e3cdd29c471e7741f4d08f9712c14c56015b82bcdd03dfdc3697f4232107f5f5  lean-booleans-rules-final.eo
 d63e0890c8c6b9f3c3d3c784de6c80d93c0d188b0b450302e8b4b6cd6a97bf36  lean-booleans-rules-trim.eo
 eebec9cb98bd74cbce52a61c463be3e8f202cb90d40b111db043fe290f28e7ef  lean/Logos.lean
 238960d1051e40e67d97812961d16d7d7b22c26938169b797c248fcd6fead167  lean/LogosTerm.lean
@@ -20,5 +20,5 @@ a58e06918411f6b3f1b17733f21424394dbc1af2f6ea704c3b057e4faf578923  lean/SmtEval.l
 6436b5358d7e033ae2b3e500ebb1925527f85a06ed2bd305f3e5a8e8a1fb4d06  trim-booleans-rules.eo
 6bb78c9eb2ec245991deb986a16da8c909dfda84976340cadd92a082cd76c5e9  trim-d-booleans-rules.eo
 20fdf157f82a42334a07af4b45c67ac4598e18be702bc6e56d6f125cd0d53672  vc/final-booleans-rules-and_intro.smt2
-12ffdd41ea89907341709869357242416e9f8ae21d79939abc68c16ec609ec92  vcm-def-booleans-rules.eo
+a39d7df5c9d910e82a981a017327677013b5d0fd22393e2b51da46ad31115cf4  vcm-def-booleans-rules.eo
 7907dcdd775dd426c85079c3f5621dd71b0a4d8ad374c9cc81ff23746b4fb765  vcmt-def-booleans-rules.eo

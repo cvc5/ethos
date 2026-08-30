@@ -342,20 +342,20 @@
 ; They stand in the order their constructors are given, which what is derived
 ; from that order depends on, so a value is added at the end.
 
-(define-value NotValue ())
+(declare-constructor NotValue () :builds SmtValue)
 
-(define-value Boolean ((b "<bool>"))
+(declare-constructor Boolean ((b "<bool>")) :builds SmtValue
   :typeof Bool)
 
-(define-value Numeral ((n "<numeral>"))
+(declare-constructor Numeral ((n "<numeral>")) :builds SmtValue
   :typeof Int)
 
-(define-value Rational ((r "<rational>"))
+(declare-constructor Rational ((r "<rational>")) :builds SmtValue
   :typeof Real)
 
 ; A bit-vector is of the width it carries, and is the one spelling of what it
 ; denotes when its value is that width's remainder.
-(define-value Binary ((w "<numeral>") (v "<numeral>"))
+(declare-constructor Binary ((w "<numeral>") (v "<numeral>")) :builds SmtValue
   :typeof ("ite" ("and" ("zleq" 0 w) ("zeq" v ("mod_total" v ("z_pow2" w))))
             (BitVec ("z_to_n" w))
             none)
@@ -363,32 +363,61 @@
                ("zeq" v ("mod_total" v ("z_pow2" w)))
                "true"))
 
-(define-value Map ((m SmtMap))
+(declare-constructor Map ((m SmtMap)) :builds SmtValue
   :typeof (smt.typeof_map_value m)
   :canonical ($smtx_map_canonical m))
 
 ; A function value is named rather than given, so what it is of is what it
 ; says it is of.
-(define-value Fun ((s "<string>") (T SmtType) (U SmtType))
+(declare-constructor Fun ((s "<string>") (T SmtType) (U SmtType)) :builds SmtValue
   :typeof (FunType T U))
 
 ; A set is a map to the Booleans, so it is canonical when the map is and when
 ; what it maps the rest to is false.
-(define-value Set ((m SmtMap))
+(declare-constructor Set ((m SmtMap)) :builds SmtValue
   :typeof ($smtx_map_to_set_type (smt.typeof_map_value m))
   :canonical ("and" ($smtx_map_canonical m)
                ("veq" ($smtx_map_get_default m) smt.false)))
 
-(define-value Seq ((s SmtSeq))
+(declare-constructor Seq ((s SmtSeq)) :builds SmtValue
   :typeof (smt.typeof_seq_value s)
   :canonical ($smtx_seq_canonical s))
 
-(define-value Char ((c "<char>"))
+(declare-constructor Char ((c "<char>")) :builds SmtValue
   :typeof ("ite" ("char_valid" c) Char none)
   :canonical ("char_valid" c))
 
-(define-value UValue ((i "<nat>") (e "<nat>"))
+(declare-constructor UValue ((i "<nat>") (e "<nat>")) :builds SmtValue
   :typeof (USort i))
+
+; The ways a regular language is built. An entry that says :builds declares a
+; constructor of that datatype of the embedding rather than a value, so nothing
+; is asked of these: what is asked of the value that holds one is asked of
+; RegLan below. A parameter that says no type is of the datatype itself, and
+; the two that hold a base element say SmtValue.
+;
+; They stand in the order the Lean inductive gives them, see SmtRegLan in
+; plugins/lean_meta/lean_meta_smt_model_defs.lean.
+
+(declare-constructor empty () :builds SmtRegLan)
+
+(declare-constructor epsilon () :builds SmtRegLan)
+
+(declare-constructor char ((c SmtValue)) :builds SmtRegLan)
+
+(declare-constructor range ((lo SmtValue) (hi SmtValue)) :builds SmtRegLan)
+
+(declare-constructor allchar () :builds SmtRegLan)
+
+(declare-constructor concat (r1 r2) :builds SmtRegLan)
+
+(declare-constructor union (r1 r2) :builds SmtRegLan)
+
+(declare-constructor inter (r1 r2) :builds SmtRegLan)
+
+(declare-constructor star (r) :builds SmtRegLan)
+
+(declare-constructor comp (r) :builds SmtRegLan)
 
 ; -- $smtx_re_canonical
 ; A regular language is written the one way when every base element it holds
@@ -417,7 +446,7 @@
   )
 )
 
-(define-value RegLan ((r SmtRegLan))
+(declare-constructor RegLan ((r SmtRegLan)) :builds SmtValue
   :typeof RegLan
   :canonical ($smtx_re_canonical r))
 
@@ -443,7 +472,7 @@
 
 ; A datatype constructor is of the type its declaration gives it. It is not
 ; guarded by well-foundedness, which would be circular.
-(define-value DtCons ((s "<string>") (dd SmtDatatypeDecl) (ci "<nat>"))
+(declare-constructor DtCons ((s "<string>") (dd SmtDatatypeDecl) (ci "<nat>")) :builds SmtValue
   :typeof (smt.typeof_dt_cons_value s dd ci))
 
 ; -- $smtx_typeof_apply_value
@@ -461,7 +490,7 @@
 
 ; An application of one is a value of the type applying it gives, and is
 ; canonical when both halves are.
-(define-value Apply ((f SmtValue) (a SmtValue))
+(declare-constructor Apply ((f SmtValue) (a SmtValue)) :builds SmtValue
   :typeof ($smtx_typeof_apply_value (smt.typeof_value f) (smt.typeof_value a))
   :canonical ("and" ($smtx_value_canonical f)
                ($smtx_value_canonical a)))

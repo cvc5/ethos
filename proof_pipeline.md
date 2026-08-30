@@ -233,9 +233,9 @@ the cases it compiles to:
 for their *types* under `:typeof`, the level being read off the place each
 stands in, so neither is said twice.
 
-Its forms are `define-symbol`, `define-sort`, `define-value`, `define-literal`,
-`define-method`, `define-rule`, `program`, `define-macro` and `section`, and
-**nothing else**: a form the compiler cannot read is refused rather than copied
+Its forms are `define-symbol`, `define-sort`, `declare-constructor`,
+`define-literal`, `define-method`, `define-rule`, `program`, `define-macro` and
+`section`, and **nothing else**: a form the compiler cannot read is refused rather than copied
 into the generated file, so everything a signature names has been checked
 against the vocabulary of the embedding, ordered against the other blocks, and
 can be trimmed with them. A set therefore says what a theory *does* and never

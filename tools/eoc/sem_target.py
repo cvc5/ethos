@@ -44,20 +44,54 @@ class Constructor:
 
   A set whose constants are another's -- the signature of an input, whose
   constants are the target's -- has none.
+
+  What it is *called* is no part of this: a constructor builds one of the
+  embedding's datatypes, and that datatype says what a constructor of it is
+  named, what applies it and where it is written, once and for every form that
+  builds one. So a literal and a symbol are two forms over one datatype rather
+  than two spellings of one name, and the stage that reads the generated file
+  is told the names rather than holding them. See declare-embed-datatype in
+  plugins/model_smt/model_smt.eos and _EMBED_DATATYPES below.
+
+  What is left here is what the *form* says: what an argument that declares no
+  type of its own is of, which differs between forms over one datatype -- a
+  literal carries a native where a symbol carries a term.
   """
 
-  def __init__(self, name, macro, argument, returns, opaque=False,
-               macro_reserved=True):
-    self.name = name            # the constructor, e.g. $emb_sm.{symbol}
-    self.macro = macro          # the macro that applies it
+  def __init__(self, builds, argument, opaque=False, macro_reserved=True):
+    # The datatype of the embedding one of these builds, named as a type is.
+    self.builds = builds
     self.argument = argument    # the type of an argument, by how it was written
-    self.returns = returns
     self.opaque = opaque
     # Whether the macro is the compiler's name to write and no one else's. A
     # value has no bare name of its own -- what a body writes for one is a
     # macro of the set, `smt.bool` -- so the vocabulary block of the set names
     # the macro that applies each value, and the namespace is shared.
     self.macro_reserved = macro_reserved
+
+  @property
+  def datatype(self):
+    """What the embedding declared about the datatype this builds."""
+    dt = _EMBED_DATATYPES.get(self.builds)
+    if dt is None:
+      die('the embedding has no datatype called %s, which is what a '
+          'constructor written in sem_target.py builds; declare it with '
+          'declare-embed-datatype' % self.builds)
+    return dt
+
+  @property
+  def name(self):
+    """The constant, e.g. $emb_sm.{symbol}."""
+    return self.datatype.cons + '{symbol}'
+
+  @property
+  def macro(self):
+    """The macro that applies it, e.g. $sm_{symbol}."""
+    return self.datatype.macro + '{symbol}'
+
+  @property
+  def returns(self):
+    return self.datatype.type
 
   def type_of(self, kind, entry):
     if not self.argument:
@@ -311,7 +345,7 @@ class Shape:
 
   def __init__(self, attributes, constructor=None, keyword='define-symbol',
                noun='symbol', params=True, keep=False, block='{symbol}',
-               extra_attrs=None):
+               extra_attrs=None, asks_of=None):
     self.aggregates = {a.key: a for a in attributes}
     self.order = [a.key for a in attributes]
     self.constructor = constructor
@@ -339,6 +373,12 @@ class Shape:
     # asked of one of these and would mean nothing said on anything else. An
     # attribute every kind may say is written in attrs below instead.
     self.extra = extra_attrs or {}
+    # The datatype of the embedding this kind's aggregates are asked of, where
+    # the kind builds more than one. What builds another is asked nothing:
+    # what a value is of and whether it is canonical are questions about a
+    # value, and a regular language is answered for by the value that holds
+    # one. A kind that builds exactly one datatype leaves this unsaid.
+    self.asks_of = asks_of
 
   @property
   def raw_operators(self):
@@ -374,6 +414,42 @@ class Shape:
     """
     return [a.helper.split('{symbol}')[0]
             for a in self.aggregates.values() if a.helper is not None]
+
+  def constructor_for(self, entry):
+    """What this entry declares, which is the kind's constructor unless the
+    entry says it builds a datatype of the embedding instead.
+
+    Such a datatype is at no level, so nothing is asked of what builds one: an
+    entry that says :builds is a constructor and no case, and saying an
+    aggregate as well is refused rather than quietly dropped.
+    """
+    if not entry.has('builds'):
+      # A kind that may say it is one that has no default: every entry of it
+      # says which datatype it builds, so that a value and a regular language
+      # read alike and nothing is true of one by being left out.
+      if 'builds' in self.extra:
+        die('%s: a %s says which datatype of the embedding it builds, e.g. '
+            ':builds SmtValue' % (entry.name, self.noun))
+      return self.constructor
+    name = entry.get('builds').val
+    # What the kind asks is asked of what it is the kind *of*, see asks_of.
+    if self.asks_of is not None and name != self.asks_of:
+      said = [k for k in self.order if entry.has(k)]
+      if said:
+        die('%s: %s builds %s rather than %s, and nothing is asked of what '
+            'builds one, so it says no %s'
+            % (entry.name, entry.name, name, self.asks_of,
+               ' or '.join(':' + k for k in said)))
+    return embed_constructor(name, entry)
+
+  def block_for(self, entry):
+    """What the block this entry opens is called, which is the constant it
+    declares: an entry that builds a datatype of the embedding declares one of
+    that datatype's."""
+    cons = self.constructor_for(entry)
+    if entry.has('builds'):
+      return cons.name.format(symbol=entry.name)
+    return self.block.format(symbol=entry.name)
 
   def reserved(self):
     """Every prefix the compiler gives a name under, and what a name under it
@@ -508,6 +584,8 @@ class Shapes:
     out = {}
     for shape in self.shapes:
       out.update(shape.reserved())
+    for name, dt in _EMBED_DATATYPES.items():
+      out[dt.cons] = 'the constant a constructor of %s is declared as' % name
     return sorted(out.items(), key=lambda kv: (-len(kv[0]), kv[0]))
 
   def case_attrs(self):
@@ -532,11 +610,9 @@ def _case_arity(rest):
 # Every symbol is a constant of the embedding, applied by a macro of its own.
 # An argument is a term, or a type where the symbol was given one.
 CONSTANT = Constructor(
-    name='$emb_sm.{symbol}',
-    macro='$sm_{symbol}',
+    builds='SmtTerm',
     argument={'plain': '$smt_Term', 'raw': '$smt_Term', 'type': '$smt_Type'},
-    opaque=True,
-    returns='$smt_Term')
+    opaque=True)
 
 # The type of a term. A symbol says one case of it, in which an argument stands
 # for its type, and an index or a type for itself.
@@ -626,11 +702,9 @@ IS_LIST_NIL = Aggregate(
 # own. An argument is a type, or the index a type is built over where the
 # signature wrote one raw, as the width of a bit-vector is.
 TYPE_CONSTANT = Constructor(
-    name='$emb_tsm.{symbol}',
-    macro='$tsm_{symbol}',
+    builds='SmtType',
     argument={'plain': '$smt_Type', 'raw': '$native_Nat'},
-    opaque=True,
-    returns='$smt_Type')
+    opaque=True)
 
 # What every case of a type says about it, i.e. the type applied to what it is
 # built over, and what each argument stands for there: itself, since the whole
@@ -726,6 +800,23 @@ NATIVE_TYPE_DECLS = Shape([], keyword='declare-native-type', noun='native type',
 # plugins/model_smt/model_smt.eos. It declares nothing of the model: the
 # program itself stands in the template of the stage, and what the entry says
 # is what this compiler and that stage have to agree on about it. See bind.
+# One datatype of the embedding, i.e. one of the things a value is built over
+# rather than one of the values: a regular language is one, and so are the map
+# a set and an array both are and the sequence a string is. It is at no level
+# of a set, so nothing is written *at* one; what a set does is declare the
+# constructors that build one, which say so with :builds.
+#
+# The entry says the three things the compiler and the stage that reads the
+# generated file have to agree on: the constant a constructor of it is declared
+# as, the macro that applies it, and the marker of the template those are
+# written at. What a constructor returns is the datatype itself, so nothing
+# states that twice -- the entry is named as the type is named everywhere, i.e.
+# SmtRegLan for $smt_RegLan.
+EMBED_DATATYPES = Shape([], keyword='declare-embed-datatype',
+                        noun='datatype of the embedding', params=False,
+                        extra_attrs={'cons': 1, 'macro': 1, 'into': 1,
+                                     'own-into': 1})
+
 AGGREGATES = Shape([], keyword='declare-aggregate-method', noun='aggregate',
                    params=False,
                    extra_attrs={'case': 1, 'into': 1, 'helper': 1,
@@ -734,18 +825,6 @@ AGGREGATES = Shape([], keyword='declare-aggregate-method', noun='aggregate',
 # ---------------------------------------------------------------------------
 # The values of the SMT-LIB signature, which stand in the same file
 # ---------------------------------------------------------------------------
-
-# Every value is a constructor of the embedding too, applied by a macro of its
-# own. What each is built over its parameters say, one by one: a value is built
-# over natives of several sorts, over types, and over the shapes a map and a
-# sequence are.
-VALUE_CONSTANT = Constructor(
-    name='$emb_vsm.{symbol}',
-    macro='$vsm_{symbol}',
-    argument={'plain': '$smt_Value'},
-    opaque=True,
-    macro_reserved=False,
-    returns='$smt_Value')
 
 # What each argument stands for in a body: itself, since a value is of the
 # embedding already.
@@ -782,11 +861,9 @@ VALUE_CANONICAL = Aggregate(
 # so what its constructor takes is what its parameters say and there is no type
 # of arguments to fall back on.
 LITERAL_CONSTANT = Constructor(
-    name='$emb_sm.{symbol}',
-    macro='$sm_{symbol}',
+    builds='SmtTerm',
     argument={},
-    opaque=True,
-    returns='$smt_Term')
+    opaque=True)
 
 # What an argument stands for in a body: itself, since what a literal carries
 # is a native rather than a term whose type or value is asked for.
@@ -824,9 +901,16 @@ LITERALS = Shape([LITERAL_TYPEOF, LITERAL_VALUE], constructor=LITERAL_CONSTANT,
                  keyword='define-literal', noun='literal', keep=True,
                  block='$emb_sm.{symbol}')
 # A value of the embedding is the embedding's own, as its types are.
-VALUES = Shape([VALUE_TYPEOF, VALUE_CANONICAL], constructor=VALUE_CONSTANT,
-               keyword='define-value', noun='value', keep=True,
-               block='$emb_vsm.{symbol}')
+# A constructor of one of the embedding's datatypes. Which one is what every
+# entry says, there being no default: a value and a regular language are built
+# by the same form, and what tells them apart is the datatype rather than
+# anything about the entry. Two of them are asked something, and an entry that
+# builds a datatype other than SmtValue is asked neither, see
+# Shape.constructor_for.
+VALUES = Shape([VALUE_TYPEOF, VALUE_CANONICAL], constructor=None,
+               keyword='declare-constructor', noun='constructor', keep=True,
+               block='$emb_vsm.{symbol}', extra_attrs={'builds': 1},
+               asks_of='SmtValue')
 # A type of the embedding is the embedding's own whatever a calculus declares,
 # so its block is kept the way a symbol that says :keep is.
 TYPES = Shape([TYPE_WF, TYPE_BOUNDED, TYPE_DEFAULT], constructor=TYPE_CONSTANT,
@@ -838,7 +922,7 @@ TARGET = Shapes(SYMBOLS, LITERALS, TYPES, VALUES, METHODS)
 INPUT_SET = Shapes(INPUT_SYMBOLS, METHODS, RULES)
 NATIVE_SET = Shapes(NATIVES)
 NATIVE_DECL_SET = Shapes(NATIVE_DECLS, NATIVE_TYPE_DECLS)
-AGGREGATE_SET = Shapes(AGGREGATES)
+AGGREGATE_SET = Shapes(AGGREGATES, EMBED_DATATYPES)
 
 
 def aggregates():
@@ -854,6 +938,41 @@ def aggregates():
       for a in shape.aggregates.values():
         out.setdefault(a.of, []).append(a)
   return out
+
+
+# What the set declared, keyed by name; bind_embed_datatypes puts it here.
+# These are read from a set rather than written here because nothing about one
+# is this file's to say: an entry names the constant, the macro and the marker,
+# and what a constructor of one *is* follows from those.
+_EMBED_DATATYPES = {}
+
+
+def bind_embed_datatypes(entries):
+  """Join what the set declared onto the constructors written here."""
+  _EMBED_DATATYPES.clear()
+  _EMBED_DATATYPES.update(entries)
+
+
+def embed_constructor(name, entry):
+  """What a constructor of the embedding's datatype `name` is declared as.
+
+  Such a datatype has no aggregates, so an entry that builds one declares the
+  constant and the macro and no more. Its arguments are of the datatype unless
+  they say otherwise, most of them holding another of it, and the macro is not
+  the compiler's name alone because the datatype is at no level: a body writes
+  the macro itself, there being no bare name for one. See
+  Constructor.macro_reserved.
+  """
+  dt = _EMBED_DATATYPES.get(name)
+  if dt is None:
+    die('%s: the embedding has no datatype called %s; it declares %s'
+        % (entry.name, name,
+           ', '.join(sorted(_EMBED_DATATYPES)) if _EMBED_DATATYPES
+           else 'none'))
+  return Constructor(builds=name,
+                     argument={'plain': dt.type},
+                     opaque=True,
+                     macro_reserved=False)
 
 
 def bind(entries):
