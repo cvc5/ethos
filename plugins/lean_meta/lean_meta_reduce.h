@@ -141,6 +141,19 @@ class LeanMetaReduce : public MetaReducePlugin
   void finalizeDecl(const Expr& e) override;
   /** Return whether t is a program type or program constant. */
   static bool isProgram(const Expr& t);
+  /**
+   * The UserOp inductives, as the text of the $LEAN_EO_THEORY_OP_DEFS$ hole:
+   * one per index arity that got a constructor, and nothing for the arities
+   * that did not. An arity with no operator has no Term.UOp<n> either -- the
+   * embedding constructor it would name is unreachable and the trimming took
+   * it -- so an inductive for it would be a type nothing mentions.
+   *
+   * The exception is UserOp itself, which the checker names whether or not
+   * the signature has an operator of no index, and which therefore carries a
+   * placeholder constructor when it would otherwise be empty: an inductive
+   * with no constructor cannot derive the classes Term asks of it.
+   */
+  std::string printTheoryOpDefs() const;
   /** Emit the Lean checker definitions. */
   void finalizeChecker();
   /** Emit the generated, signature-specific Logos parser configuration. */
@@ -217,8 +230,22 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_eoIsObjDefsSimple;
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
-  /** Eunoia operator embedding */
-  std::stringstream d_embedTOpDt[4];
+  /**
+   * The greatest number of indices an operator may take, i.e. the length of
+   * the UserOp ladder the embedding declares. It is the embedding that fixes
+   * it: $emb_UOp<n> is declared for n up to this in eo_desugar_native.eo, and
+   * a signature whose operator takes more indices than that has nothing to
+   * compile to. What a signature *uses* is a separate and usually smaller
+   * number; see printTheoryOpDefs.
+   */
+  static const size_t s_maxIndexArity = 5;
+  /**
+   * Eunoia operator embedding, one entry per index arity: [0] holds the
+   * operators that take no index and [n] those that take n. An entry left
+   * empty is an arity the signature does not use, and printTheoryOpDefs
+   * writes no inductive for it.
+   */
+  std::stringstream d_embedTOpDt[s_maxIndexArity + 1];
   /** Eunoia is refutation prop */
   std::stringstream d_eoIsRef;
   /** Generated Lean checker body. */

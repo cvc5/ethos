@@ -1213,9 +1213,11 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   }
   else if (tk == MetaKind::EUNOIA && isAtomicEo(c, cnamek, uarity))
   {
-    AlwaysAssert(uarity < 4)
-        << "Lean meta supports at most three opaque operator indices, got "
-        << uarity << " for " << e;
+    AlwaysAssert(uarity <= s_maxIndexArity)
+        << "The embedding declares $emb_UOp up to " << s_maxIndexArity
+        << " indices, and " << e << " takes " << uarity
+        << "; declare the wider constructor in eo_desugar_native.eo and raise "
+           "s_maxIndexArity to match";
     d_emittedUserOps.insert(std::make_pair(cname, uarity));
     std::stringstream& etd = d_embedTOpDt[uarity];
     etd << "  | " << cname << " : UserOp";
@@ -1324,16 +1326,54 @@ void LeanMetaReduce::printOrderKeyCase(const std::string& cname,
   os << " => node " << tag << " [" << keys.str() << "]" << std::endl;
 }
 
+std::string LeanMetaReduce::printTheoryOpDefs() const
+{
+  static const char* const titles[] = {
+      "Ordinary user operators.",
+      "User operators with one index.",
+      "User operators with two indices.",
+      "User operators with three indices.",
+      "User operators with four indices.",
+      "User operators with five indices."};
+  std::stringstream defs;
+  bool first = true;
+  for (size_t n = 0; n <= s_maxIndexArity; n++)
+  {
+    const std::string cons = d_embedTOpDt[n].str();
+    if (cons.empty())
+    {
+      continue;
+    }
+    // the marker stands on a line of its own, so what is written here ends
+    // where its last line does and the blank line between two inductives is
+    // what the one before it carries
+    if (!first)
+    {
+      defs << std::endl << std::endl;
+    }
+    first = false;
+    std::string name = "UserOp";
+    if (n > 0)
+    {
+      name += std::to_string(n);
+    }
+    defs << "/-" << std::endl
+         << titles[n] << std::endl
+         << "-/" << std::endl
+         << "inductive " << name << " : Type where" << std::endl
+         << cons << std::endl
+         << "deriving Repr, DecidableEq, Inhabited, Ord";
+  }
+  return defs.str();
+}
+
 void LeanMetaReduce::finalizeChecker()
 {
   const std::string outPatht =
       emitResourceFile("plugins/lean_meta/lean_meta_checker_term.lean",
                        "plugins/lean_meta/lean_meta_checker_term_gen.lean",
                        {{"$LEAN_TERM_DEF$", d_embedTermDt.str()},
-                        {"$LEAN_EO_THEORY_OP_DEF$", d_embedTOpDt[0].str()},
-                        {"$LEAN_EO_THEORY_OP1_DEF$", d_embedTOpDt[1].str()},
-                        {"$LEAN_EO_THEORY_OP2_DEF$", d_embedTOpDt[2].str()},
-                        {"$LEAN_EO_THEORY_OP3_DEF$", d_embedTOpDt[3].str()}});
+                        {"$LEAN_EO_THEORY_OP_DEFS$", printTheoryOpDefs()}});
   Trace("lean-meta") << "Write lean-defs-term " << outPatht << std::endl;
   const std::string outPath =
       emitResourceFile("plugins/lean_meta/lean_meta_checker.lean",
@@ -1765,18 +1805,15 @@ void LeanMetaReduce::finalize()
   }
 #endif
 
-  for (size_t i=0; i<4; i++)
+  // UserOp is named by the checker whether or not the signature declares an
+  // operator of no index, so it is written even when it would be empty, and
+  // an inductive with no constructor cannot derive what Term asks of it. The
+  // indexed arities are under no such obligation: an arity with no operator
+  // is one Term has no constructor for, so nothing names its inductive and
+  // printTheoryOpDefs writes none.
+  if (d_embedTOpDt[0].str().empty())
   {
-    std::stringstream& etd = d_embedTOpDt[i];
-    if (etd.str().empty())
-    {
-      etd << "  | None : UserOp";
-      if (i>0)
-      {
-        etd << i;
-      }
-      etd << std::endl;
-    }
+    d_embedTOpDt[0] << "  | None : UserOp" << std::endl;
   }
   if (d_generateParser)
   {

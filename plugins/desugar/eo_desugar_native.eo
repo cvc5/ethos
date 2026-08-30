@@ -41,21 +41,13 @@
 (declare-parameterized-const $emb_UOp
   ((u ($native_type_0 "UserOp") :opaque)) $eo_Term)
 (define $eot_uop ((u ($native_type_0 "UserOp"))) ($emb_UOp u))
-(declare-parameterized-const $emb_UOp1
-  ((u ($native_type_0 "UserOp1") :opaque) (t1 $eo_Term :opaque)) $eo_Term)
-(define $eot_uop1 ((u ($native_type_0 "UserOp1")) (t1 $eo_Term))
-  ($emb_UOp1 u t1))
-(declare-parameterized-const $emb_UOp2
-  ((u ($native_type_0 "UserOp2") :opaque) (t1 $eo_Term :opaque)
-   (t2 $eo_Term :opaque)) $eo_Term)
-(define $eot_uop2 ((u ($native_type_0 "UserOp2")) (t1 $eo_Term) (t2 $eo_Term))
-  ($emb_UOp2 u t1 t2))
-(declare-parameterized-const $emb_UOp3
-  ((u ($native_type_0 "UserOp3") :opaque) (t1 $eo_Term :opaque)
-   (t2 $eo_Term :opaque) (t3 $eo_Term :opaque)) $eo_Term)
-(define $eot_uop3
-  ((u ($native_type_0 "UserOp3")) (t1 $eo_Term) (t2 $eo_Term) (t3 $eo_Term))
-  ($emb_UOp3 u t1 t2 t3))
+; $ The constructors of the operators that take indices, one rung per index
+; $ arity the signature uses. They stand here, in the middle of the embedding,
+; $ rather than where the stage that writes them could put them of its own
+; $ accord: what order Term's constructors come in is what orders terms, and
+; $ the rung for n indices belongs after $emb_UOp and before the list. See
+; $ Desugar::printUopDecls.
+$EO_UOP_DECLS$
 
 ; The builtin Eunoia list.
 (declare-const $eo_List Type)

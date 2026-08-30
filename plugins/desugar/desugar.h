@@ -131,6 +131,16 @@ class Desugar : public StdPlugin
   Attr getAttribute(const Expr& e);
   /** Return whether a source symbol should be omitted from generated output. */
   bool isExcluded(const Expr& e, Kind k) const;
+  /**
+   * The `$emb_UOp<n>` constructors for the index arities of d_indexArities,
+   * as the text of the $EO_UOP_DECLS$ hole of the native embedding.
+   */
+  std::string printUopDecls() const;
+  /**
+   * The `$eo_is_closed_rec` cases for the index arities of d_indexArities,
+   * as the text of the $EO_IS_CLOSED_UOP_CASES$ hole of the template.
+   */
+  std::string printIsClosedUopCases() const;
 
   /** Declarations and definitions in the order seen by the plugin. */
   std::vector<std::pair<Expr, Kind>> d_declSeen;
@@ -197,6 +207,22 @@ class Desugar : public StdPlugin
   std::stringstream d_eoTypeof;
   /** Generated `$eo_is_closed` cases. */
   std::stringstream d_eoIsClosed;
+  /**
+   * The index arities the signature uses, i.e. the n for which it declares an
+   * operator with n opaque arguments. The Lean backend represents such an
+   * operator as `UserOp<n>`, so this is the ladder of index arities the
+   * compiled calculus actually has, and $eo_is_closed_rec gets a case for
+   * each and no others: a case names $eot_uop<n>, and naming it is what keeps
+   * $emb_UOp<n> reachable through the trimming, which is what gives Term a
+   * UOp<n> constructor. An arity nothing declares is therefore an arity that
+   * reaches neither the embedding nor Term.
+   *
+   * A declaration the trimming later drops leaves its arity here, so this may
+   * name one more arity than the backend emits a constructor for. That way
+   * round is a dead case; the other way round would be a case that names a
+   * constructor the embedding does not have.
+   */
+  std::set<size_t> d_indexArities;
   /** Generated helper programs for non-ground `$eo_typeof` cases. */
   std::stringstream d_eoTypeofNGround;
   /** Generated parameter binders for datatype-constructor reflection. */
