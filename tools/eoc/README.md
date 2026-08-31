@@ -34,6 +34,20 @@ as configuration, and every target is compiled from it; a new theory, a new
 proof rule or a new operator is added to the calculus and reaches every target
 with no compiler change at all.
 
+### What a symbol means is written in `.eos`, and this is its reference
+
+**[`semantics/README.md`](semantics/README.md) is the reference for the
+configuration language** -- the grammar, every entry with the attributes it
+may carry, the four vocabularies a body may be written in and how one is cast
+between them, what the compiler checks, worked examples, and what every
+diagnostic means.
+
+Almost all work on a calculus is an edit to one of those files rather than a
+change to anything here, and a target is reached by writing configuration
+rather than by writing a compiler, so that is the page to have open. The sets
+are `tools/eoc/semantics/` for what a calculus and SMT-LIB mean, and the
+`.eos` beside each stage under `plugins/` for what that stage is told.
+
 `tools/eoc/driver.py` is the entrypoint for all of them, and exposes them as
 one documented interface. See [Quick start](#quick-start) to run one, and
 [`proof_pipeline.md`](../../proof_pipeline.md) for where this sits in the wider
@@ -242,7 +256,7 @@ What a signature written in the embedding may call that no compiler writes is
 declared in `plugins/desugar/natives.eos`, one entry to a native:
 
 ```lisp
-(declare-native binary_and ((w "Int") (n1 "Int") (n2 "Int")))
+(declare-native binary_and ((w <numeral>) (n1 <numeral>) (n2 <numeral>)))
 (declare-native z_zero () :op "0")
 ```
 
@@ -291,7 +305,7 @@ A native that forwards to nothing says what it *is* instead, under `:is`,
 written in the vocabulary every body of a configuration is written in:
 
 ```lisp
-(declare-native z_dec ((x1 "<numeral>")) :is ("zplus" x1 "z_neg_one"))
+(declare-native z_dec ((x1 <numeral>)) :is ("zplus" x1 "z_neg_one"))
 ```
 
 What a native that forwards to an operator **does** is a separate thing, said

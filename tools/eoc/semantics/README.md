@@ -111,6 +111,15 @@ A file is a sequence of s-expressions.
 | native | `"z_+"` | a double-quoted name; see [The four levels](#7-the-four-levels) |
 | comment | `; ...` | to end of line |
 
+A name in angle brackets, `<numeral>`, is a **native type**. Lexically it is a
+symbol like any other -- nothing here reads the brackets -- and what they say
+is the level of the place it stands in, see
+[The four levels](#7-the-four-levels). Quotes and brackets divide the native
+layer between them: `"zplus"` is something the layer *does*, `<numeral>` is
+something it *is*. Which types there are is configuration too, one
+`declare-native-type` to each in `plugins/desugar/natives.eos`, so this says
+how one is spelt and never which ones exist.
+
 Comment lines written **directly above** a form, with no blank line between,
 are that form's documentation. A blank line ends a comment block, which is what
 lets a file carry a heading of its own without it becoming the first form's
@@ -355,6 +364,7 @@ two are read apart by the form that declares one.
 | a literal of the **target**, `semantics/smt.eos` | `define-literal` | a constant of the embedding and the macro that applies it; the two cases a symbol writes, `:typeof` and `:value`, over what it carries rather than over terms |
 | a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
 | a **native** of the embedding, `plugins/desugar/natives.eos` | `declare-native` | nothing of any signature: it declares a name a signature written in the embedding may call, saying what each argument of it is and, under `:op`, the operator it forwards to where that is not its own name. The declaration the desugar layer carries is written from it, so nothing states one by hand; see `render_natives` in `tools/eoc/sem_compile.py` |
+| a **native type** of the embedding, `plugins/desugar/natives.eos` | `declare-native-type` | nothing of any signature: it declares a type a native may take or give back, written `<numeral>` where one stands, and under `:op` the name SMT-LIB and the backends spell it with. `:datatype` says the backends declare it rather than already having it, as `<nat>` is |
 | a definition of a **native layer**, `plugins/lean_meta/lean.eos` and `plugins/smt_meta/smt-vc.eos` | `define-native-method` | one block of the layer a backend's generated text is written over: the text it is, under `:lean-impl` for the Lean backend and `:smt-impl` for the SMT-LIB one. Where the block can come out is read off that text rather than declared beside it, see `lean_needs` and `vc_needs` in `tools/eoc/sem_compile.py`, and it is emitted only where the compilation of an input reaches it, or when it says `:keep`. It names the native the way the backend spells it; whatever else it defines is private to the entry, which `impl_native_` rather than `native_` is what says on the Lean side |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |
 | a rule of an **input**, `semantics/development-cpc.eos` | `define-rule` | the same, for a proof rule, which says only that it is left out |
@@ -710,7 +720,7 @@ rather than over terms of its own. It writes the constructor and the macro the
 way a value does, and the two cases a symbol writes.
 
 ```lisp
-(define-literal Binary ((w "Int") (v "Int"))
+(define-literal Binary ((w <numeral>) (v <numeral>))
   :typeof ("ite" ("and" ("z_<=" 0 w) ("z_=" v ("mod_total" v ("z_pow2" w))))
             (BitVec ("z_to_n" w))
             none)
@@ -814,10 +824,10 @@ no symbol of the input names one. It compiles to the same `eoc-keep` directive
 a symbol of the embedding writes, see `DefsBlock::d_keep`.
 
 ```lisp
-(program $eo_to_smt_reserved_datatype_name ((s "String"))
+(program $eo_to_smt_reserved_datatype_name ((s <string>))
   :keep
-  :signature ("String") "Bool"
-  ((($eo_to_smt_reserved_datatype_name s) ("string_head_eq" "str_at_sign" s))))
+  :signature (<string>) <bool>
+  ((($eo_to_smt_reserved_datatype_name s) ("string_prefix_eq" "str_at_sign" s))))
 ```
 
 `$eo_to_smt` and `$eo_to_smt_type` in `plugins/model_smt/model_smt.eo` ask an
@@ -877,12 +887,17 @@ could not be checked against the vocabulary, ordered against the other blocks,
 or trimmed with them; and a name it defined would be one more thing that has to
 be kept in step by hand.
 
-So a set says what a theory **does**, and never what the embedding **is**. A
-declaration of the embedding -- the `$smt_Map` a map value is built over, the
-`$emb_msm.` constructors that build one, the `$vsm_` name of a value it spells
-out -- is written in `plugins/model_smt/model_smt.eo`, which is the one place
-that says what the embedding is built from. A set then writes the programs over
-it: `$smtx_map_lookup`, `$smtx_typeof_map_value`, `$smtx_map_canonical`, each a
+So a set says what a theory **does**, and what the embedding **is** is
+declared apart from it. Where that line falls is narrower than it once was.
+The *type* a map value is built over, `$smt_Map`, is declared in
+`plugins/model_smt/model_smt.eo`, with the handful of constants the embedding
+cannot be written without; but the constructors that build one are the set's --
+a `declare-constructor` that says `:builds SmtMap`, see
+[`:builds`](#builds----which-datatype-of-the-embedding) -- and the names they
+come out under, `$emb_msm.` and `$msm_`, are a `declare-embed-datatype` in
+`plugins/model_smt/model_smt.eos`. So a datatype of the embedding is those two
+edits and no compiler change. A set then writes the programs over it as well:
+`$smtx_map_lookup`, `$smtx_typeof_map_value`, `$smtx_map_canonical`, each a
 `program` beside the sort it belongs to.
 
 If what you are reaching for is an idiom rather than a definition, write a
@@ -899,7 +914,7 @@ difference, and it falls on a bare name and a whole number alone:
 
 | level | said by | `f`, a bare name | `0`, a whole number |
 | --- | --- | --- | --- |
-| native | a `"..."` type, e.g. `"Int"` | must be bound | `$native_z_zero` |
+| native | a `<...>` type, e.g. `<numeral>` | must be bound | `$native_z_zero` |
 | value | `SmtValue` | `$smtx_model_eval_f` | `$vsm_z_zero` |
 | term | `SmtTerm` | `$sm_f` | `$sm_z_zero` |
 | type | `SmtType` | `$tsm_f` | -- |
@@ -913,13 +928,15 @@ The level of an **argument** is read off the declaration of what it stands
 under, so `($vsm_numeral 0)` puts a native where `(bvudiv x 0)` puts a value; a
 place the declaration leaves open, as a branch of `ite` is, is of the level
 around it. The vocabulary is read from `plugins/desugar/native_embed.eo`,
-`plugins/desugar/eo_desugar.eo` and `plugins/model_smt/model_smt.eo`, together
-together with the programs the set itself writes out, so a native that does not
-exist or is given the wrong number of arguments is caught by the compiler
-rather than by ethos.
+`plugins/desugar/eo_desugar.eo`, `plugins/desugar/eo_desugar_native.eo` and
+`plugins/model_smt/model_smt.eo`, together with the natives compiled out of
+`plugins/desugar/natives.eos` and the programs the set itself writes out, so a
+native that does not exist or is given the wrong number of arguments is caught
+by the compiler rather than by ethos.
 
-A native in quotes and a `$`-name of the embedding are what they are wherever
-they stand, so the level never has to be said twice.
+A native in quotes, a native type in brackets and a `$`-name of the embedding
+are what they are wherever they stand, so the level never has to be said
+twice.
 
 ---
 
@@ -1250,12 +1267,23 @@ argument of it is and, where the operator it forwards to is not its own name,
 what that operator is:
 
 ```lisp
-(declare-native binary_nand ((w "Int") (n1 "Int") (n2 "Int")))
-(declare-native z_lt ((x "Int") (y "Int")) :op "<")
+(declare-native binary_nand ((w <numeral>) (n1 <numeral>) (n2 <numeral>)))
+(declare-native z_lt ((x <numeral>) (y <numeral>)) :op "<")
 ```
 
-That is the whole of what the embedding has to be told: the declaration the
-desugar layer carries is written from it. What the native *does* is said once
+The types an argument may be are themselves configuration, one
+`declare-native-type` to each in the same file, so a native that wants a kind
+of value the layer has never had is that entry and then this one:
+
+```lisp
+(declare-native-type <numeral> :op "Int")
+(declare-native-type <nat> :op "Nat" :datatype)
+```
+
+`:op` is what the backends spell the type with, and `:datatype` says they have
+to be given it rather than already having it. That is the whole of what the
+embedding has to be told: the declaration the desugar layer carries is written
+from it. What the native *does* is said once
 per backend that needs to say it, as a `define-native-method` in
 `plugins/lean_meta/lean.eos` under `:lean-impl` and in
 `plugins/smt_meta/smt-vc.eos` under `:smt-impl`. Neither is required: a backend
