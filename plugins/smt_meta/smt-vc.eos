@@ -88,9 +88,7 @@
 (define-native-method streq
   :smt-impl "(define-fun streq ((x String) (y String)) Bool (= x y))")
 
-;; Whether the first string is a prefix of the second, which is what a
-;; signature that reserves names by a prefix asks, see
-;; $eo_to_smt_reserved_datatype_name in tools/eoc/semantics/development-cpc.eos.
+;; Whether the first string is a prefix of the second.
 (define-native-method string_prefix_eq
   :smt-impl "(define-fun string_prefix_eq ((x String) (y String)) Bool
   (str.prefixof x y))")

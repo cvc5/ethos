@@ -95,8 +95,13 @@ deriving Repr, Inhabited
 
 $LEAN_CHECKER_DEFS$
 
+-- $ The assumptions arrive as a list of the embedding rather than as a
+-- $ conjunction of the calculus: a calculus need not have one, and naming a
+-- $ symbol of one here would be the checker assuming a signature it is
+-- $ compiled for every signature. See $eo_invoke_assume_list in
+-- $ plugins/desugar/eo_desugar_checker.eo.
 /- Definition of refutation -/
-inductive eo_is_refutation : Term -> CCmdList -> Prop
+inductive eo_is_refutation : CArgList -> CCmdList -> Prop
 $LEAN_EO_IS_REFUTATION_DEF$
 
 end Eo

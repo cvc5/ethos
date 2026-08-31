@@ -1864,7 +1864,7 @@ void LeanMetaReduce::finalize()
 {
   finalizePrograms();
   // refutation is if the method returns true
-  d_eoIsRef << "  | intro (F : Term) (c : CCmdList) : " << std::endl;
+  d_eoIsRef << "  | intro (F : CArgList) (c : CCmdList) : " << std::endl;
   d_eoIsRef << "    (__eo_checker_is_refutation F c) = true -> "
                "(eo_is_refutation F c)"
             << std::endl;
