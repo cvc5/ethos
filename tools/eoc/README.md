@@ -135,7 +135,7 @@ of each generated file declares them, one line to an aggregate:
 
 ```text
 ; $eoc-aggregate $smtx_typeof $eoc_typeof_ $SMT_TYPEOF_CASES$
-; $eoc-aggregate $eo_is_list_nil_ $eoc_is_list_nil_ $EO_DESUGAR_AUX$ whole
+; $eoc-aggregate $smtx_model_eval $eoc_eval_ $SMT_EVAL_CASES$
 ```
 
 which says the aggregate a case joins, the name the case is written under, and

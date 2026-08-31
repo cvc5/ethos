@@ -216,6 +216,31 @@ def replace_all(path: Path, replacements: list[tuple[str, str]]) -> None:
     path.write_text(text)
 
 
+def inline_called_blocks(path: Path, include_name: str,
+                         include_path: Path) -> None:
+    """Answer an include with the blocks of a file that the caller calls.
+
+    A set says the nil predicate of every n-ary symbol it gives semantics to,
+    and a run compiles one signature, which may declare none of them: the
+    signature this stage wrote is what says which are wanted. So a block is put
+    in where the file it is going into applies the program that block defines,
+    and left out otherwise -- a program over a symbol the signature never
+    declared would name what nothing declares and the file would not parse.
+
+    A block is `; -- NAME` and the program under it, blocks being separated by
+    a blank line, which is how every generated signature is laid out; see
+    Block.render in tools/eoc/sem_lang.py.
+    """
+    marker = f'(include "{include_name}")'
+    text = path.read_text()
+    kept = []
+    for block in include_path.read_text().split("\n\n"):
+        found = re.search(r"^\(program (\S+)", block, re.M)
+        if found is not None and f"({found.group(1)} " in text:
+            kept.append(block.strip("\n"))
+    path.write_text(text.replace(marker, "\n\n".join(kept)))
+
+
 def inline_include(path: Path, include_name: str, include_path: Path) -> None:
     marker = f'(include "{include_name}")'
     replacement = include_path.read_text()
@@ -248,6 +273,7 @@ class Pipeline:
         defs_file: Optional[Path],
         smt_defs_file: Optional[Path],
         lean_config: Optional[Path],
+        desugar_defs: Optional[Path] = None,
     ):
         self.build_dir = build_dir.resolve()
         self.final_out_dir = final_out_dir.resolve()
@@ -260,6 +286,11 @@ class Pipeline:
         self.smt_defs_file = (smt_defs_file.resolve() if smt_defs_file
                               else None)
         self.lean_config = lean_config.resolve() if lean_config else None
+        # What the input's semantics say to the desugar stage, which is the
+        # nil predicate of each n-ary symbol whose nil is not ground. The
+        # stage's template names them with an include and this answers it; a
+        # run that names no semantics has none. See plugins/desugar/desugar.eos.
+        self.desugar_defs = desugar_defs.resolve() if desugar_defs else None
         # What the head of that file said, read once; see defs_head.
         self._head: Optional[list[list[str]]] = None
         self.binary = self.build_dir / "ethos-eoc"
@@ -529,6 +560,16 @@ class Pipeline:
             Path(sem_compile.EO_DEFS_TARGET if natives == "eo"
                  else sem_compile.NATIVE_DEFS_TARGET),
         )
+        # The nil predicates the input's semantics say, on the same terms. A
+        # run that names no semantics has none to put here, and the include is
+        # answered with nothing rather than left for ethos to fail on: what
+        # then reaches a case is a call to a program nothing defines, which is
+        # what the stage would have left behind before this file existed.
+        if self.desugar_defs is not None:
+            inline_called_blocks(
+                output_file, "user_desugar.eo", self.desugar_defs)
+        else:
+            replace_all(output_file, [('(include "user_desugar.eo")', "")])
         return output_file
 
     def model_smt(self, input_file: Path, output_file: Path) -> Path:
@@ -807,7 +848,7 @@ def resolve_cvc5(path_arg: Optional[str], *, cwd: Path) -> Optional[Path]:
 
 def compile_signatures(
     semantics: Optional[Path], smt_semantics: Optional[Path] = None
-) -> tuple[Optional[Path], Optional[Path], Optional[Path]]:
+) -> tuple[Optional[Path], Optional[Path], Optional[Path], Optional[Path]]:
     """Compile the configuration of the model-smt signatures, and say where
     each of the two the stage reads came out, together with where the
     termination clauses of the input's programs did.
@@ -819,7 +860,9 @@ def compile_signatures(
     file is written only where its text changed. A set also compiles the Lean
     its methods say under :lean, and the third of what comes back is where the
     input's came out, which is what the lean-meta stage is given where
-    --lean-config names nothing.
+    --lean-config names nothing. The fourth is what the input's set says to the
+    *desugar* stage, a stage earlier than either signature is read by; only an
+    input set says anything to it, see sem_compile.Config.desugar_target.
 
     A run compiles **one set of each role**, and each option names which. The
     option a set is named with is what gives it its role -- --smt-semantics
@@ -871,7 +914,11 @@ def compile_signatures(
         else:
             out.append(Path(compiled(mine)[0]))
     lean_config = Path(compiled(named[0])[1]) if named[0] is not None else None
-    return out[0], out[1], lean_config
+    # What the input's set says to the desugar stage, which only an input set
+    # writes; see sem_compile.Config.desugar_target.
+    made = compiled(named[0]) if named[0] is not None else ()
+    desugar_defs = Path(made[2]) if len(made) > 2 else None
+    return out[0], out[1], lean_config, desugar_defs
 
 
 def add_common_args(parser: argparse.ArgumentParser) -> None:
@@ -1074,7 +1121,8 @@ def main(argv: list[str]) -> int:
     # A set given the wrong role is the one mistake the options invite, since
     # the two read alike, so it is said the way every other error of a run is.
     try:
-        defs_file, smt_defs_file, lean_config_file = compile_signatures(
+        (defs_file, smt_defs_file, lean_config_file,
+         desugar_defs_file) = compile_signatures(
             resolve_file_arg("semantics", "--semantics"),
             resolve_file_arg("smt_semantics", "--smt-semantics"))
     except RuntimeError as err:
@@ -1089,6 +1137,7 @@ def main(argv: list[str]) -> int:
         defs_file,
         smt_defs_file,
         resolve_file_arg("lean_config", "--lean-config") or lean_config_file,
+        desugar_defs_file,
     )
     build_first = not getattr(args, "no_build", False)
     if not build_first and not pipeline.binary.is_file():

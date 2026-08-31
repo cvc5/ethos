@@ -42,12 +42,6 @@ struct DefsAggregate
   std::string d_case;
   /** The marker of the template what is taken from it is written at. */
   std::string d_into;
-  /**
-   * Whether the program is emitted whole under d_name rather than its cases
-   * being spliced into it. The nil of an n-ary symbol is the one such: the
-   * desugar stage asks for it by name rather than taking a case of it.
-   */
-  bool d_whole = false;
 };
 
 /**

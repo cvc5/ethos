@@ -189,8 +189,6 @@ class Desugar : public StdPlugin
   std::stringstream d_litTypeProg;
   /** Generated user declarations and program definitions. */
   std::stringstream d_defs;
-  /** Generated forward declarations for non-ground list-nil tests. */
-  std::stringstream d_eoIsListNilDefs;
   /** Generated `$eo_is_list_nil` cases. */
   std::stringstream d_eoIsListNil;
   /** Generated programs for non-ground `$eo_nil` cases. */

@@ -265,8 +265,15 @@ class Block:
       out.update(getattr(p, 'defines', set)())
     return out
 
-  def render(self, ctx):
-    body = [b for b in (p.render(ctx) for p in self.pieces) if b]
+  def render(self, ctx, stage='model'):
+    """What the block says to one stage.
+
+    A set is compiled once per stage that reads anything of it, and a piece
+    writes at each only what is of that stage: almost everything is of the
+    model, and what a symbol says under an attribute of a desugar aggregate is
+    of the desugar stage instead. See Entry.render_at.
+    """
+    body = [b for b in (p.render_at(ctx, stage) for p in self.pieces) if b]
     # A block whose whole of what it says reaches another file -- the Lean
     # text of a method does -- is no block of this one.
     return '; -- %s\n%s' % (self.name, '\n'.join(body)) if body else ''
@@ -1120,6 +1127,14 @@ def occurrences(node, name):
 # Entries
 # -----------------------------------------------------------------------------
 
+# The stages a set says something to beside the model. A set is compiled once
+# per stage and each writes a file of its own, so an entry that says nothing to
+# the model is not silent if it says something to one of these; which aggregate
+# is of which stage is said by the set that declares it, see
+# sem_compile.AGGREGATE_SETS.
+OTHER_STAGES = ('desugar',)
+
+
 class Entry:
   """What a body is cast against.
 
@@ -1128,6 +1143,15 @@ class Entry:
   `bound_levels`. Every kind of entry gives those three, however it is written,
   and this is where that is said.
   """
+
+  # What an entry writes at one stage. Everything a set holds is of the model
+  # unless it says otherwise, so the default answers at that stage and is
+  # silent at every other; Symbol overrides it, since a symbol may say
+  # something to each. Defined here rather than on Block so that a piece that
+  # is of no stage is dropped by the same test that drops one that says
+  # nothing, see Block.render.
+  def render_at(self, ctx, stage):
+    return self.render(ctx) if stage == 'model' else ''
 
   # A name the entry declares the type of, and so the vocabulary an eo::define
   # binding it is written in. An entry that declares none leaves it to the
@@ -1444,29 +1468,49 @@ class Symbol(Entry):
 
   # -- what it compiles to ----------------------------------------------------
 
-  def render(self, ctx):
+  def render_at(self, ctx, stage):
+    return self.render(ctx, stage)
+
+  def says_at(self, stage):
+    """Whether the entry says anything to one stage, i.e. holds an attribute
+    of an aggregate of it. What a symbol says to a stage other than the model
+    is written into that stage's own file, so a symbol may say nothing to the
+    model and still not be silent."""
+    return any(self.has(key) for key in self.decls.order
+               if self.decls.aggregates[key].stage == stage)
+
+  def render(self, ctx, stage='model'):
+    model = stage == 'model'
     if self.has('exclude'):
       # The compilation has no place for this one, so instead of a model it
       # says so: the desugar stage reads a directive of the generated file and
       # drops what it names, whether that is a symbol, a method or a rule.
-      return '(echo "eoc-exclude %s %s")' % (self.decls.noun, self.name)
+      # It is said once, in the signature the model-smt stage reads, since the
+      # directive is of the entity rather than of an aggregate.
+      return ('(echo "eoc-exclude %s %s")' % (self.decls.noun, self.name)
+              if model else '')
     out = []
-    if self.has('keep') or self.decls.keep:
+    if model and (self.has('keep') or self.decls.keep):
       # The entry is the embedding's own, so its block stands whether or not
       # the input declares it: the stage reads the directive, see
       # DefsBlock::d_keep, the way the desugar stage reads an exclusion. A
       # kind of entity may be the embedding's own throughout, as its types
       # are, and then every entry of it says this without writing it.
       out.append('(echo "eoc-keep symbol %s")' % self.name)
-    cons = self.decls.constructor_for(self)
-    if cons is not None:
-      out.extend(cons.render(self, ctx))
+    if model:
+      cons = self.decls.constructor_for(self)
+      if cons is not None:
+        out.extend(cons.render(self, ctx))
     for key in self.decls.order:
       agg = self.decls.aggregates[key]
+      if agg.stage != stage:
+        continue
       if agg.helper is not None and self.has(agg.helper_attr):
         out.append(self._helper(agg, ctx))
     for key in self.decls.order:
       agg = self.decls.aggregates[key]
+      if agg.stage != stage:
+        continue
       if self.says_nothing(key):
         continue
       if self.has(key):
@@ -1474,9 +1518,12 @@ class Symbol(Entry):
       elif self._defaulted(key):
         out.append(self._default(agg, ctx))
     if not out:
-      # What it says may reach a file other than the definitions one, as the
-      # Lean text of a method does; what says nothing at all is an error.
-      if self.has('lean'):
+      # What it says may reach a file other than the definitions one -- the
+      # Lean text of a method does, and so does what it says to a stage other
+      # than the model; what says nothing at all is an error.
+      if not model:
+        return ''
+      if self.has('lean') or any(self.says_at(st) for st in OTHER_STAGES):
         return ''
       die('%s: says nothing, so nothing is written for it' % self.name)
     return '\n'.join(out)

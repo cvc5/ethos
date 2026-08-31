@@ -325,8 +325,22 @@ every calculus a pair of files. Four things cross it today:
 
 ## 10. The `is_list_nil` hack
 
-This is the worst thing in the compiler. It is worth working through in full,
-because every one of its symptoms is a different structural problem.
+This was the worst thing in the compiler. It is worth working through in full,
+because every one of its symptoms is a different structural problem -- and
+because most of them have since been fixed by doing direction 1 below, which
+is the case for reading the rest of this section carefully.
+
+> **Since fixed.** The desugar stage now has a configuration set of its own,
+> `plugins/desugar/desugar.eos`, and the nil predicates compile to a file that
+> stage reads rather than into a hole in the model template. What went with
+> that: the `;$EO_DESUGAR_AUX$` hole, the `:whole` attribute and its machinery,
+> the per-symbol forward declarations, the `$eoc_` name that used to survive
+> into the output, and `optionFwdDeclIsListNilNground` with its dead branch.
+> What did **not** change is the root cause and the two things that follow from
+> it: the stage still may not call `eo::typeof`, the predicate is still written
+> by hand, and nothing yet checks that a predicate was written for every symbol
+> that needs one. See [`eos-todo.md`](eos-todo.md) for what was done and what
+> is left.
 
 ### What it is for
 
@@ -352,24 +366,17 @@ When the nil is **ground**, the desugar stage just prints it:
 When the nil **depends on the type** — `str.++` whose nil is `""` at strings and
 `(seq.empty T)` at sequences; `bvadd` whose nil is a zero of the operand's
 width; `+` whose nil is `0` or `0.0` — the correct definition needs
-`eo::typeof`, and the compiler declines to call it. `optionFwdDeclIsListNilNground()`
-at [`plugins/desugar/desugar.cpp:33`](../plugins/desugar/desugar.cpp) returns
-`true`, unconditionally. The principled branch is right there at line 419 and
-is dead code:
-
-```cpp
-d_eoIsListNil << "nil) (eo::eq nil ($eo_nil " << cname
-              << " ($eo_typeof nil))))" << std::endl;
-```
-
-So instead the stage emits a **forward declaration with no body** —
+`eo::typeof`, and the compiler declines to call it. For a long while it kept
+both answers in the source -- `optionFwdDeclIsListNilNground()` returned `true`
+unconditionally and the principled `eo::typeof` branch beside it was dead code
+-- and emitted a **forward declaration with no body** instead:
 
 ```lisp
 (program $eo_is_list_nil_str.++ ((T Type)) :signature (T) Bool)
 ```
 
-— and waits for someone else to define it. That someone is the human writing
-the semantics configuration:
+— and waited for someone else to define it. That someone is still the human
+writing the semantics configuration:
 
 ```lisp
 (define-symbol str.++ (s t)
@@ -377,34 +384,38 @@ the semantics configuration:
   :is-list-nil             (eo::eq s ""))
 ```
 
-which `sem_compile.py` renders into `user_defs.eo` and the model-smt stage
-splices in at `;$EO_DESUGAR_AUX$`, the first hole of `model_smt.eo`, above
-everything else in the file.
+which `sem_compile.py` renders into `user_desugar.eo` and the desugar stage
+reads where its own template names it, ahead of the cases that call it.
 
 ### Five things wrong with that
 
-**It inverts the direction of the compiler.** Every other block says what a
-symbol means *to a model*. This one says what a symbol means *to a stage that
-already ran*. `sem_target.py` says so in its own comment: *"the one thing a
-block says to a stage other than the model."*
+The first three of these were what landing direction 1 fixed, and are kept
+because they are what that direction was *for*; the last two stand.
 
-**It is the only aggregate that breaks all three conventions at once.**
-- The only one at `level='input'` — bodies are emitted verbatim in the input's
-  own vocabulary, so none of the level machinery of §3(c) applies to it.
-- The only one marked `:whole` in `model_smt.eos` — its program is emitted
-  under its own name rather than having cases spliced into an aggregate, which
-  required a fourth optional word in the `$eoc-aggregate` line and a
-  `d_whole` branch in `defs_reader.cpp`.
-- The only `$eoc_` name that survives into the generated file: everything else
-  is a compile-time label, this one is renamed `$eoc_is_list_nil_X` →
-  `$eo_is_list_nil_X` and emitted.
+**~~It inverts the direction of the compiler.~~** Every other block said what a
+symbol means *to a model*, and this one said what a symbol means *to a stage
+that already ran*. It now says it to that stage, which has a configuration set
+of its own.
 
-**It lands in the wrong file for the wrong reason.** The only reason a *desugar*
-obligation lives in a *model semantics* file is phase ordering: desugar is
-stage 5, the semantics files are read only by stage 6, and there is no stage-5
-configuration input at all. The `;$EO_DESUGAR_AUX$` hole exists solely so that
-stage 6 can retroactively fill in stage 5's holes. Its comment in the template
-reads, in full: `;;; remaining desugar definitions e.g. is_list_nil`.
+**~~It is the only aggregate that breaks all three conventions at once.~~**
+- `level='input'` — bodies are emitted verbatim in the input's own vocabulary,
+  so none of the level machinery of §3(c) applies. This remains, and should:
+  Eunoia is the vocabulary of the file it now goes to.
+- `:whole` — the program was emitted under its own name rather than having
+  cases spliced into an aggregate, which cost a fourth optional word in the
+  `$eoc-aggregate` line and a `d_whole` branch in `defs_reader.cpp`. Gone: an
+  aggregate declared in the desugar set is written out that way by being one.
+- The only `$eoc_` name that survived into the generated file, renamed
+  `$eoc_is_list_nil_X` → `$eo_is_list_nil_X` on the way. Gone: the programs are
+  written under their real names to begin with.
+
+**~~It lands in the wrong file for the wrong reason.~~** The only reason a
+*desugar* obligation lived in a *model semantics* file was phase ordering:
+desugar is stage 5, the semantics files were read only by stage 6, and there
+was no stage-5 configuration input at all. There is one now,
+`plugins/desugar/desugar.eos`, and the `;$EO_DESUGAR_AUX$` hole -- whose
+comment read, in full, `;;; remaining desugar definitions e.g. is_list_nil` --
+is gone with it.
 
 **Nothing checks it.** The desugar stage decides *whether* to forward-declare by
 looking at the signature — is the nil term non-ground? The configuration decides
@@ -435,10 +446,12 @@ The root cause is one design decision — *the desugar stage may not call
 decision has a defensible motivation: `$eo_typeof` in the desugared output is
 itself an approximation, monomorphised per partial application (`(= x)` has a
 type rule, `=` does not), and making a *soundness-relevant* predicate depend on
-an approximation is worse than making it depend on a human. But the price is a
-hand-written unverified axiom per operator, an aggregate that violates every
-convention the others share, and a hole in the model template whose only job is
-to patch a stage that already finished.
+an approximation is worse than making it depend on a human. The price used to
+be three things: a hand-written unverified axiom per operator, an aggregate
+violating every convention the others share, and a hole in the model template
+whose only job was to patch a stage that already finished. Direction 1 removed
+the second and the third. The first is the root cause's own price and is still
+paid, which is what directions 2 and 3 are about.
 
 ## 11. The others, briefly
 
@@ -484,17 +497,18 @@ that carry a fact the compiler could carry itself, or half of one, with what
 deleting each would take -- is in [`eos-todo.md`](eos-todo.md). Item 1 below is
 what dissolves most of it.
 
-**1. Give the desugar stage a configuration input.** The single change that
-dissolves §10. If stage 5 could read a set of its own, `:is-list-nil` would
-live there, `;$EO_DESUGAR_AUX$` would go away, `:whole` and `level='input'`
-would stop being exceptions, and the aggregate would stop being the one that
-talks backwards. Everything else in this list is smaller.
+**1. Give the desugar stage a configuration input.** *Done.* Stage 5 reads a
+set of its own, `plugins/desugar/desugar.eos`; `:is-list-nil` compiles to a
+file that stage reads, `;$EO_DESUGAR_AUX$` and `:whole` are gone, and the
+aggregate no longer talks backwards. `level='input'` remains and is no longer
+an exception -- Eunoia is the vocabulary of the file it goes to. See
+[`eos-todo.md`](eos-todo.md).
 
-**2. Close the loop on `is_list_nil` specifically.** Independent of (1): the
-desugar stage knows exactly which operators it forward-declared. Emit that list;
-have `sem_compile.py` or the driver diff it against the `:is-list-nil` blocks
-and refuse a mismatch in either direction. This is cheap and removes the silent
-failure, though not the hand-writing.
+**2. Close the loop on `is_list_nil` specifically.** Now the cheapest thing
+here, and the next one to do: since (1) landed, both halves are in one stage.
+The desugar stage knows exactly which operators need a predicate, and the file
+it is given says which have one. Diff them and refuse a mismatch in either
+direction. That removes the silent failure, though not the hand-writing.
 
 **3. Verify the predicate rather than trusting it.** The intended meaning is
 written down — `(eo::eq (eo::nil f (eo::typeof x)) x)`. That is a proof

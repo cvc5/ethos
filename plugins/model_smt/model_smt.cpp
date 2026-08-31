@@ -134,10 +134,7 @@ void ModelSmt::loadDefs()
   // written is one, so either says it.
   for (const DefsAggregate& a : d_smtDefs.getAggregates())
   {
-    if (!a.d_whole)
-    {
-      d_spliced.insert(a.d_into);
-    }
+    d_spliced.insert(a.d_into);
   }
   // What a block says about the model, at the markers it is to be written at.
   auto emitAt = [this](const DefsBlock* b) {

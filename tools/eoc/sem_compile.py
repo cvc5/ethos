@@ -69,6 +69,11 @@ INPUT_TARGET = os.path.join(OUT, 'user_defs.eo')
 # second with --lean-config.
 SMT_LEAN_TARGET = os.path.join(OUT, 'smt_termination.lean')
 INPUT_LEAN_TARGET = os.path.join(OUT, 'user_termination.lean')
+# What a set says to the *desugar* stage, which is a stage earlier than the one
+# the two files above are read by. Only a signature of an input says anything
+# to it, so only an input set writes one; see Config.desugar_target and
+# plugins/desugar/desugar.eos.
+INPUT_DESUGAR_TARGET = os.path.join(OUT, 'user_desugar.eo')
 # The file each set stands in. A set is one file: it holds its theories in the
 # order their blocks are emitted, one to a section.
 CONFIGS = (os.path.join(SEM, 'smt.eos'), os.path.join(SEM, 'development-cpc.eos'))
@@ -112,9 +117,15 @@ EO_DEFS_TARGET = os.path.join(OUT, 'native_eo_defs.eo')
 # file of its own: it is written into the head of each generated signature,
 # which is the file it is about.
 AGGREGATE_CONFIG = os.path.join(ROOT, 'plugins', 'model_smt', 'model_smt.eos')
+# The same, for the desugar stage. An aggregate declared here is written out as
+# one program per symbol into the file above rather than being spliced into a
+# template of the model, which is what makes it a stage-5 obligation rather
+# than a stage-6 one; see plugins/desugar/desugar.eos.
+DESUGAR_CONFIG = os.path.join(ROOT, 'plugins', 'desugar', 'desugar.eos')
 # The template of that stage, which is where the markers an entry names have
 # to be for the cases to reach the generated file.
 AGGREGATE_TEMPLATE = os.path.join(ROOT, 'plugins', 'model_smt', 'model_smt.eo')
+DESUGAR_TEMPLATE = os.path.join(ROOT, 'plugins', 'desugar', 'eo_desugar.eo')
 
 NATIVE_CONFIG = os.path.join(ROOT, 'plugins', 'lean_meta', 'lean.eos')
 NATIVE_TARGET = os.path.join(OUT, 'lean_native.lean')
@@ -145,6 +156,25 @@ GENERATED = """\
 ;
 ;   python3 tools/eoc/sem_compile.py            to write this file
 ;   python3 tools/eoc/sem_compile.py --check    to say whether it is current
+;
+"""
+
+
+DESUGAR_GENERATED = """\
+; GENERATED FILE -- do not edit.
+;
+; Compiled from %s by tools/eoc/sem_compile.py.
+;
+; What a signature of an input says to the *desugar* stage: for each n-ary
+; symbol whose nil depends on the type of what it terminates, the predicate
+; that says whether a term is that nil. The stage cannot write one -- it may
+; not call eo::typeof -- and asks for the program of a symbol by name, so each
+; stands here as a program of its own. See plugins/desugar/desugar.eos.
+;
+; The stage reads this where the `(include "user_desugar.eo")` of
+; plugins/desugar/eo_desugar.eo names it, which the driver answers with this
+; file: after the signature's own declarations, and ahead of the cases that
+; call these.
 ;
 """
 
@@ -293,6 +323,10 @@ class Config:
     self.clauses = []
     self.excludes = []
     self.counts = {}
+    # The blocks it writes for the desugar stage, which are rendered beside the
+    # ones above and kept here because they go to a file of their own; see
+    # desugar_target and compile_config.
+    self.desugar_blocks = []
 
   @property
   def name(self):
@@ -314,6 +348,18 @@ class Config:
     """Where what its methods say the generated Lean is to be told is written,
     on the same terms."""
     return SMT_LEAN_TARGET if self.is_target else INPUT_LEAN_TARGET
+
+  @property
+  def desugar_target(self):
+    """Where what it says to the desugar stage is written, or None where it
+    says nothing to it.
+
+    Only a signature of an input does: what the stage wants is the nil
+    predicate of an n-ary symbol *of the input*, and the symbols of the target
+    are the embedding's own. So the target set writes no such file rather than
+    writing an empty one.
+    """
+    return None if self.is_target else INPUT_DESUGAR_TARGET
 
 
 def same_file(a, b):
@@ -622,18 +668,32 @@ class AggregateEntry:
   stage agree on about one aggregate. How a case of it is *written* is no part
   of that and is said in sem_target.py, see sem_target.bind."""
 
-  def __init__(self, name, case, into, helper, forward, whole):
+  def __init__(self, name, case, into, helper, forward, stage):
     self.name = name
     self.case = case            # what a symbol's case is named, up to the symbol
     self.into = into            # the marker of the template the cases go at
     self.helper = helper        # the programs written over values, if any
     self.forward = forward      # where those are declared, ahead of the aggregate
-    self.whole = whole          # emitted whole rather than spliced as cases
+    # Which stage the aggregate is of, which is said by the set that declares
+    # it. An aggregate of the model has its cases spliced into a marker of
+    # plugins/model_smt/model_smt.eo; one of the desugar stage is written out
+    # as a program per symbol, since that stage asks for the program of a
+    # symbol by name. See DESUGAR_CONFIG.
+    self.stage = stage
+
+  @property
+  def is_model(self):
+    return self.stage == 'model'
 
   def lines(self):
-    """The entry as the stage reads it."""
-    out = ['; $eoc-aggregate %s %s %s%s'
-           % (self.name, self.case, self.into, ' whole' if self.whole else '')]
+    """The entry as the model-smt stage reads it.
+
+    An aggregate of another stage says nothing here: the manifest is what that
+    stage is told, and it is told only about what it splices.
+    """
+    if not self.is_model:
+      return []
+    out = ['; $eoc-aggregate %s %s %s' % (self.name, self.case, self.into)]
     if self.helper is not None:
       out.append('; $eoc-helper %s %s' % (self.helper, self.forward))
     return out
@@ -705,47 +765,73 @@ def read_embed_datatypes(path=AGGREGATE_CONFIG):
   return out
 
 
-def read_aggregates(path=AGGREGATE_CONFIG):
-  """Read the aggregate set, in the order it gives its entries.
+# The aggregate sets, each with the template its markers have to be in and the
+# stage it is of. A stage that takes cases has a template to take them into; the
+# desugar stage writes the programs out whole, so what its template is checked
+# for is nothing, and it is named only so that a message can say which file an
+# entry was read from.
+AGGREGATE_SETS = ((AGGREGATE_CONFIG, AGGREGATE_TEMPLATE, 'model'),
+                  (DESUGAR_CONFIG, DESUGAR_TEMPLATE, 'desugar'))
 
-  A marker an entry names has to be one the template has, since a case written
-  at a marker that is not there would be compiled and then dropped without a
-  word; and two entries may not share a name or a case, since the longest case
-  a name begins with is what says which aggregate it belongs to.
+
+def read_aggregates(sets=AGGREGATE_SETS):
+  """Read the aggregate sets, in the order they give their entries.
+
+  A marker an entry names has to be one the template of its stage has, since a
+  case written at a marker that is not there would be compiled and then
+  dropped without a word; and two entries may not share a name or a case,
+  across the sets as well as within one, since the longest case a name begins
+  with is what says which aggregate it belongs to.
+
+  An aggregate of the desugar stage takes no marker and no case name. Its
+  programs are written out one to a symbol under the name of the entry, since
+  what asks for one asks by that name, so there is nothing for a case name to
+  be and nowhere for a marker to point.
   """
-  template = read_text(AGGREGATE_TEMPLATE)
   out, cases, markers = {}, {}, {}
-  for b in read_config([path], sem_target.AGGREGATE_SET):
-    for e in b.entries():
-      if e.decls is sem_target.EMBED_DATATYPES:
-        continue
-      what = 'semantics/' + name_of(path) + ': ' + e.name
-      for a in ('case', 'into'):
-        if not e.has(a):
-          die('%s: an aggregate says :%s' % (what, a))
-      if e.has('helper') != e.has('forward'):
-        die('%s: a program written over values is declared ahead of the '
-            'aggregate, so :helper and :forward are said together' % what)
-      entry = AggregateEntry(e.name, e.get('case').val, e.get('into').val,
-                             e.get('helper').val if e.has('helper') else None,
-                             e.get('forward').val if e.has('forward') else None,
-                             e.has('whole'))
-      for marker in (entry.into, entry.forward):
-        if marker is not None and marker not in template:
-          die('%s: %s names %s, which %s does not have'
-              % (what, e.name, marker, named(AGGREGATE_TEMPLATE)))
-      if e.name in out:
-        die('%s: %s is declared twice' % (what, e.name))
-      if entry.case in cases:
-        die('%s: %s and %s are both written under %s, so a case of one would '
-            'be read as a case of the other'
-            % (what, cases[entry.case], e.name, entry.case))
-      if entry.into in markers:
-        die('%s: %s and %s are both written at %s, which is one place in one '
-            'program: an aggregate is written at a marker of its own'
-            % (what, markers[entry.into], e.name, entry.into))
-      out[e.name], cases[entry.case] = entry, e.name
-      markers[entry.into] = e.name
+  for path, template_path, stage in sets:
+    template = read_text(template_path)
+    model = stage == 'model'
+    for b in read_config([path], sem_target.AGGREGATE_SET):
+      for e in b.entries():
+        if e.decls is sem_target.EMBED_DATATYPES:
+          continue
+        what = 'semantics/' + name_of(path) + ': ' + e.name
+        for a in ('case', 'into'):
+          if model and not e.has(a):
+            die('%s: an aggregate of the model says :%s' % (what, a))
+          if not model and e.has(a):
+            die('%s: an aggregate of the desugar stage is written out whole, '
+                'one program to a symbol under its own name, so it says '
+                'neither :case nor :into; :%s says where cases go, and it has '
+                'none' % (what, a))
+        if e.has('helper') != e.has('forward'):
+          die('%s: a program written over values is declared ahead of the '
+              'aggregate, so :helper and :forward are said together' % what)
+        entry = AggregateEntry(
+            e.name,
+            e.get('case').val if model else e.name,
+            e.get('into').val if model else None,
+            e.get('helper').val if e.has('helper') else None,
+            e.get('forward').val if e.has('forward') else None,
+            stage)
+        for marker in (entry.into, entry.forward):
+          if marker is not None and marker not in template:
+            die('%s: %s names %s, which %s does not have'
+                % (what, e.name, marker, named(template_path)))
+        if e.name in out:
+          die('%s: %s is declared twice' % (what, e.name))
+        if entry.case in cases:
+          die('%s: %s and %s are both written under %s, so a case of one '
+              'would be read as a case of the other'
+              % (what, cases[entry.case], e.name, entry.case))
+        if entry.into is not None and entry.into in markers:
+          die('%s: %s and %s are both written at %s, which is one place in '
+              'one program: an aggregate is written at a marker of its own'
+              % (what, markers[entry.into], e.name, entry.into))
+        out[e.name], cases[entry.case] = entry, e.name
+        if entry.into is not None:
+          markers[entry.into] = e.name
   return out
 
 
@@ -846,6 +932,12 @@ def compile_config(config, vocab, macros):
   ctx = Ctx(defined_names(blocks), 'semantics/' + config.name,
             vocab.extended(blocks), macros, config.decls)
   out = [(b.name, t) for b, t in ((b, b.render(ctx)) for b in blocks) if t]
+  # The same blocks again, for what they say to the desugar stage. A block says
+  # something to at most one of the two, so this is a partition of what a set
+  # holds rather than a second reading of it.
+  config.desugar_blocks = [
+      (b.name, t) for b, t in ((b, b.render(ctx, 'desugar')) for b in blocks)
+      if t]
   ctx.check()
   config.clauses = lean_clauses(blocks)
   config.excludes = excludes(blocks)
@@ -994,11 +1086,22 @@ def check_current(text, path):
 
 def written(blocks, config):
   """What compiling one set writes, in the order it is written: the signature
-  in the deep embedding that the model-smt stage reads, and the clauses the
-  lean-meta stage appends to the Lean it writes."""
-  return ((render(blocks, config), config.target, '%d blocks' % len(blocks)),
-          (render_lean(config), config.lean_target,
-           '%d clauses' % len(config.clauses)))
+  in the deep embedding that the model-smt stage reads, the clauses the
+  lean-meta stage appends to the Lean it writes, and what the desugar stage is
+  told, where the set tells it anything."""
+  out = [(render(blocks, config), config.target, '%d blocks' % len(blocks)),
+         (render_lean(config), config.lean_target,
+          '%d clauses' % len(config.clauses))]
+  if config.desugar_target is not None:
+    out.append((render_desugar(config), config.desugar_target,
+                '%d programs' % len(config.desugar_blocks)))
+  return tuple(out)
+
+
+def render_desugar(config):
+  """What a set says to the desugar stage, as the file that stage reads."""
+  return (DESUGAR_GENERATED % named(config.path)
+          + '\n' + '\n\n'.join(t for _, t in config.desugar_blocks) + '\n')
 
 
 def render(blocks, config):
@@ -1237,8 +1340,9 @@ def compile_to_files(sets=SHIPPED, out_dir=None):
 
   This is what tools/eoc/driver.py calls before the model-smt stage. `sets` is
   (path, is_target) pairs, see compile_all. It gives back what each set
-  compiled to -- its signature in the deep embedding and its termination
-  clauses, in that order -- so the caller need not know the layout.
+  compiled to, in the order `written` gives them -- its signature in the deep
+  embedding, its termination clauses, and what it says to the desugar stage
+  where it says anything -- so the caller need not know the layout.
   """
   out = {}
   # The natives of the embedding, which every set is compiled against and no
@@ -1256,13 +1360,13 @@ def compile_to_files(sets=SHIPPED, out_dir=None):
       target = os.path.join(out_dir, os.path.basename(target))
     write_if_changed(render_native(layer, compile_native(layer)), target)
   for config, blocks in compile_all(sets):
-    target, lean_target = config.target, config.lean_target
-    if out_dir is not None:
-      target = os.path.join(out_dir, os.path.basename(target))
-      lean_target = os.path.join(out_dir, os.path.basename(lean_target))
-    write_if_changed(render(blocks, config), target)
-    write_if_changed(render_lean(config), lean_target)
-    out[config.path] = (target, lean_target)
+    paths = []
+    for text, target, _what in written(blocks, config):
+      if out_dir is not None:
+        target = os.path.join(out_dir, os.path.basename(target))
+      write_if_changed(text, target)
+      paths.append(target)
+    out[config.path] = tuple(paths)
   return out
 
 
