@@ -380,7 +380,7 @@ Compiling `Cpc.eo` through stage 7b produces the Lean package Logos, whose
 central obligation is stated in the specification module:
 
 ```lean
-theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
+theorem correct___eo_is_refutation (F : CArgList) (pf : CCmdList) :
   TranslatableAssumptionList F ->
   CmdListTranslationOk pf ->
   (eo_is_refutation F pf) ->
@@ -392,6 +392,15 @@ defined through the Eunoia-to-SMT translation and the SMT model semantics:
 `eo_satisfiability t b` is `smt_satisfiability (__eo_to_smt t) b`. The
 hypotheses `TranslatableAssumptionList` and `CmdListTranslationOk` are stated
 in the Logos development, not generated from this repository.
+
+The assumptions arrive as a `CArgList`, the list of the embedding that a rule's
+arguments already arrive in, rather than as a conjunction of the calculus. A
+calculus need not have a conjunction -- the checker used to name `and`, which
+is a symbol a signature declares and not one the embedding has, so a calculus
+without it could not be compiled at all. Nothing in the generated checker now
+names a symbol of any calculus. Logos states `eo_satisfiability` of a single
+term, so what the theorem relates the list to is the Logos development's own
+to say.
 
 The trusted computing base is the import closure of the specification module:
 everything except the checker, the parser and the rule lemmas. That is 2,680
