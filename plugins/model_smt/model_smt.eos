@@ -75,15 +75,6 @@
   :case $eoc_transform_type_
   :into $EO_TO_SMT_TYPE_CASES$)
 
-; Whether a term is the nil of an n-ary symbol, which the desugar stage asks
-; by name rather than by taking a case. So the program is emitted whole, under
-; the name declared here, rather than its cases being spliced into an
-; aggregate; that name is the whole of what :whole says.
-(declare-aggregate-method $eo_is_list_nil_
-  :case  $eoc_is_list_nil_
-  :into  $EO_DESUGAR_AUX$
-  :whole)
-
 ;-----------------------------------------------------------------------------
 (section "The datatypes of the embedding")
 ;-----------------------------------------------------------------------------

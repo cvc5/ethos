@@ -12,9 +12,9 @@ and anything outside it is refused, the attribute vocabulary is defined by
 `declare-embed-datatype` let a datatype of the embedding be added in
 configuration alone. What is below is the residue.
 
-For the wider design context see [`README.md`](README.md) -- §10 is the same
-`is_list_nil` problem from the other end, and Part IV item 1 is the change that
-dissolves most of item 1 here.
+For the wider design context see [`README.md`](README.md) -- §10 is the
+`is_list_nil` problem from the other end, and Part IV is where the changes
+these entries call for are sketched.
 
 ---
 
@@ -44,54 +44,67 @@ Kept as a record so it is not re-argued: the removal took the attribute, the
 
 ---
 
-## 1. `:whole`
+## Done: `:whole`, by moving `is_list_nil` to the desugar stage
 
-**What it does.** An aggregate normally takes the *cases* out of each
-per-symbol program and splices them into one program at `:into`. `:whole` emits
-each program entire instead, with its case prefix rewritten to the aggregate's
-name (`DefsFile::classifyProgram` in `plugins/model_smt/defs_reader.cpp`), and
-keeps the marker out of `d_spliced` so what lands there is not indented as a
-case. One aggregate uses it, `$eo_is_list_nil_`, whose trailing underscore is
-the tell that it names a family rather than a program.
+Deleted, along with the reason it existed. The nil predicate of an n-ary
+symbol is now compiled to a file the desugar stage reads rather than into a
+hole in the model template.
 
-**What holds it in place.** Not the aggregate table -- the desugar stage.
-`plugins/desugar/desugar.cpp` builds the name `$eo_is_list_nil_<symbol>` by
-string concatenation, forward declares it into `$EO_IS_LIST_NIL_DEFS$`, and
-emits a call to it. The configuration has to supply the body under exactly that
-name, so the per-symbol programs cannot be merged into one. `:whole` is the
-configuration's half of a name-level protocol with a C++ stage.
+**What it was.** An aggregate normally has the *cases* taken out of each
+per-symbol program and spliced into one program at `:into`. `:whole` emitted
+each program entire instead, renamed from the case prefix to the aggregate's
+name, because `plugins/desugar/desugar.cpp` builds the name
+`$eo_is_list_nil_<symbol>` and calls it. The bodies could only arrive from the
+model, a later stage, so the desugar stage forward declared each and waited.
 
-**Why the protocol exists at all.** Only for a symbol whose nil is *non-ground*.
-Where the nil is ground the desugar stage writes `(($eo_is_list_nil f <nil>)
-true)` itself and needs nothing. For `+` the nil is any rational equal to zero,
-so what is wanted is a predicate, and only the configuration has it.
+**What replaced it.** `plugins/desugar/desugar.eos` -- a configuration set for
+stage 5, which is what there was none of. An aggregate declared there is
+written out one program to a symbol, named for the symbol, into
+`tools/eoc/out/user_desugar.eo`; the desugar template names that file with an
+`(include "user_desugar.eo")` standing after the signature's own declarations
+and ahead of the cases, and the driver answers it the way it already answered
+`native_defs.eo`. `:is-list-nil` is still written where it was, beside the
+symbol's other attributes; only the file it compiles to changed.
 
-**What deleting it needs.** The `:is-list-nil` cases have to splice into
-`$eo_is_list_nil` as ordinary cases. What stops that today is that two stages
-write that one program -- the desugar stage from the `:right-assoc-nil`
-attributes of a signature, the model-smt stage from the set -- into different
-files at different times. So one of:
+The include is answered with the blocks the signature *calls* rather than with
+the whole file, since a run compiles one signature and it may declare none of
+the nine symbols -- a program over a symbol that was trimmed away would name
+what nothing declares. See `inline_called_blocks` in `tools/eoc/driver.py`.
 
-- give the desugar stage a configuration input of its own, which is Part IV
-  item 1 of [`README.md`](README.md) and dissolves this along with the rest of
-  §10; or
-- move the `:into` marker of `$eo_is_list_nil` into the desugar template, so
-  both writers land in one place. Much the smaller change, and the one to cost
-  first if the larger one is not being taken.
+**What went with it:**
 
-**What not to do.** `:whole` is *nearly* derivable, since the only aggregate
-that has it is the only one whose declared name ends in `_`. That is one data
-point, and a trailing underscore is a poor carrier for semantics. Deleting the
-keyword that way would hide the protocol rather than remove it.
+- `$EO_DESUGAR_AUX$`, the hole in the *model* template whose only job was to
+  let stage 6 fill in stage 5's, and the `d_whole` field, its branch in
+  `defs_reader.cpp`, the fourth optional word of the `$eoc-aggregate` line and
+  the `d_spliced` exception in `model_smt.cpp`;
+- `$EO_IS_LIST_NIL_DEFS$` and the per-symbol forward declarations, the bodies
+  now standing ahead of the cases that call them;
+- the rename `$eoc_is_list_nil_X` to `$eo_is_list_nil_X`, and with it the only
+  `$eoc_` label that survived into a generated file: the programs are written
+  under their real names from the start;
+- `optionFwdDeclIsListNilNground`, which returned `true` unconditionally, and
+  the principled-but-dead `eo::typeof` branch it guarded.
 
-**Nearby, and independent.** `optionFwdDeclIsListNilNground()` in
-`plugins/desugar/desugar.cpp` is `{ return true; }` -- an option that is not
-one -- and the `else` branch it guards is dead. Deleting that branch is pure
-deletion and does not wait on any of the above.
+`level='input'` remains, and should. It is what makes the body come out in the
+input's own vocabulary, which is exactly right for a file the desugar stage
+reads; it was an exception only while it lived in a set of model semantics.
+
+**What did not change.** All 1121 definitions of the CPC `Logos.lean` are
+present with identical bodies -- they moved in the file, since the programs are
+now written in the desugar section rather than the model one, so the file is
+not byte-identical. Every other generated Lean module is, and the verification
+condition and the synthesis query are byte-identical.
+
+**Still open here.** The predicate is hand-written and unverified against its
+stated meaning, `(eo::eq (eo::nil f (eo::typeof x)) x)` -- Part IV item 3 of
+[`README.md`](README.md), a VC per block. And nothing yet compares the symbols
+the stage forward-declared a predicate for against the symbols a set wrote one
+for; that check is now cheap, because both halves are in one stage, and it is
+the next thing to do. See Part IV item 2.
 
 ---
 
-## 2. `:helper` and `:forward`
+## 1. `:helper` and `:forward`
 
 **What they do.** They are a pair; the compiler refuses one without the other.
 A `define-symbol` that writes no `:eval` case of its own hands its work to

@@ -181,9 +181,11 @@ class Aggregate:
     # only where the entry says the aggregate has one.
     self.helper = None
     self.forward = None
-    # Whether the program is emitted whole, under the name of the entry,
-    # rather than its cases being spliced into an aggregate.
-    self.whole = False
+    # Which stage the aggregate is of, which is said by the set that declares
+    # it and filled in by bind. One of the model has its cases spliced into a
+    # template of plugins/model_smt/model_smt.eo; one of the desugar stage is
+    # written out as a program per symbol, into a file of its own.
+    self.stage = 'model'
     self.declares = declares        # what it declares, once per argument
     self.takes, self.gives = signature
     self.stands = stands_for        # what an argument means in a body, by kind
@@ -826,7 +828,7 @@ EMBED_DATATYPES = Shape([], keyword='declare-embed-datatype',
 AGGREGATES = Shape([], keyword='declare-aggregate-method', noun='aggregate',
                    params=False,
                    extra_attrs={'case': 1, 'into': 1, 'helper': 1,
-                                'forward': 1, 'whole': 0})
+                                'forward': 1})
 
 # ---------------------------------------------------------------------------
 # The values of the SMT-LIB signature, which stand in the same file
@@ -1010,10 +1012,10 @@ def bind(entries):
           'this aggregate hand their work to a program written over values'
           % name)
     for a in mine[name]:
-      a.program = None if e.whole else name
+      a.program = name if e.is_model else None
       a.case = e.case + '{symbol}'
       a.into = e.into
-      a.whole = e.whole
+      a.stage = e.stage
       a.helper = e.helper + '{symbol}' if a.helper_attr else None
       a.forward = e.forward if a.helper_attr else None
 

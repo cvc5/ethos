@@ -199,21 +199,6 @@ std::vector<std::string> casesOf(const std::string& prog,
   return ret;
 }
 
-/** The text with every occurrence of from replaced by to. */
-std::string replaceAll(const std::string& text,
-                       const std::string& from,
-                       const std::string& to)
-{
-  std::string out = text;
-  size_t pos = out.find(from);
-  while (pos != std::string::npos)
-  {
-    out = out.substr(0, pos) + to + out.substr(pos + from.size());
-    pos = out.find(from, pos + to.size());
-  }
-  return out;
-}
-
 /** The forward declaration of the program prog, which is named name. */
 std::string fwdOf(const std::string& prog, const std::string& name)
 {
@@ -358,13 +343,6 @@ void DefsFile::classifyProgram(DefsBlock& b,
   const DefsAggregate* a = aggregateOf(name);
   if (a != nullptr)
   {
-    if (a->d_whole)
-    {
-      // Emitted whole rather than as cases of an aggregate, under the name
-      // the head declares: what asks for it, the desugar stage, asks by name.
-      b.d_at[a->d_into].push_back(replaceAll(f, a->d_case, a->d_name));
-      return;
-    }
     std::vector<std::string> cases = casesOf(f, name, a->d_name);
     std::vector<std::string>& out = b.d_at[a->d_into];
     out.insert(out.end(), cases.begin(), cases.end());
@@ -415,22 +393,11 @@ void DefsFile::readHead(const std::string& head)
     if (kind == "$eoc-aggregate")
     {
       DefsAggregate a;
-      std::string whole;
       if (!(words >> a.d_name >> a.d_case >> a.d_into))
       {
         EO_FATAL() << "DefsFile: an aggregate is written `; $eoc-aggregate "
-                      "<name> <case> <into> [whole]`, got: "
+                      "<name> <case> <into>`, got: "
                    << line;
-      }
-      if (words >> whole)
-      {
-        if (whole != "whole")
-        {
-          EO_FATAL() << "DefsFile: an aggregate says `whole` or says nothing "
-                        "after the marker, got: "
-                     << line;
-        }
-        a.d_whole = true;
       }
       d_aggregates.push_back(a);
     }
