@@ -1,10 +1,10 @@
 # The digest of every file the pipeline writes for the run in
 # regress.py, which is what says the bytes have not moved. Run
 # that file with --update to write this one.
-d2901ac069d3ffb2c901c86d0abe95a47dc064d35fa0678dcaa81b15eac5be1b  eo.eo
-6adcce6dc68d4c7444d91c2e7a8fc6565636838b05d71080b44aaf2f9fff9f4b  lean-booleans-rules-defs.eo
-b9d1a09d35e3121c55131c8f1fd3346da0f997c19c117496a1086733fcde6ac1  lean-booleans-rules-desugar.eo
-15329db5dbbfbe59de9a885e9ce0e6f2e9ade5b9b27f0429f3a3d0b9fa89d924  lean-booleans-rules-final.eo
+d1f0bdb9aa6462ef31bf3c4816187212dc3fa3a6d621de2204c1dcea2a551b0d  eo.eo
+fec16087699c5f67e5532a5128cb81aea77df8a44d13b9b749dd0278134580a1  lean-booleans-rules-defs.eo
+ea8fa8349c620a9e4b3b9433d74ca22b480a30b2aea28a798036ad2504f3b09a  lean-booleans-rules-desugar.eo
+f835c2d165b7649c13e3625880cce3b5636f5d248249ae2396b4620d966aa8cc  lean-booleans-rules-final.eo
 d63e0890c8c6b9f3c3d3c784de6c80d93c0d188b0b450302e8b4b6cd6a97bf36  lean-booleans-rules-trim.eo
 eebec9cb98bd74cbce52a61c463be3e8f202cb90d40b111db043fe290f28e7ef  lean/Logos.lean
 238960d1051e40e67d97812961d16d7d7b22c26938169b797c248fcd6fead167  lean/LogosTerm.lean
@@ -18,7 +18,7 @@ d1bf3cb8621d4d9a5f35d35bf04bd3559d45e78b9a1b234a817d2ce2fba78111  lean/SmtModelD
 9337f92ce9bf88a08aded338b441097854b7e4d10b6328ce53f17b4f48c8d048  lean/Spec.lean
 63ddb4d96bd2ab1e1e86f11468ed61db33b04655fe22c3258364bae01f0bb30e  sygus/final-booleans-rules-and_intro.sy
 6436b5358d7e033ae2b3e500ebb1925527f85a06ed2bd305f3e5a8e8a1fb4d06  trim-booleans-rules.eo
-6bb78c9eb2ec245991deb986a16da8c909dfda84976340cadd92a082cd76c5e9  trim-d-booleans-rules.eo
+eeb82f4d373b0d24a416cd7cf36a1d6c61724e6d1cde52dba75e15ceffe54139  trim-d-booleans-rules.eo
 8d478cd144465d1a5e72838be41ca7541ead8e279cb31c9fae3a45520c9fd65e  vc/final-booleans-rules-and_intro.smt2
-8b4be0fdcc124af06a740573f361ebd348919a27def88a6c2b66d783e628c607  vcm-def-booleans-rules.eo
-f5353320ab49ebba138cd9534f8dbdfd70c167f9a497cc2d013c55727297d939  vcmt-def-booleans-rules.eo
+ab52696cf595ceba45aa10c9f4664b205eadc5ad87c78ef84f6d5ef9800f4232  vcm-def-booleans-rules.eo
+03adbd1c4ed35a169f3c59c79df7eeb20499641e31da3b7657f8846e0a6afa5e  vcmt-def-booleans-rules.eo

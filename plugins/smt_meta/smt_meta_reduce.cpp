@@ -73,7 +73,6 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case MetaKind::SMT_TYPE: os << "tsm.Type"; break;
     case MetaKind::SMT_VALUE: os << "vsm.Value"; break;
     case MetaKind::SMT_BUILTIN: os << getEmbedName(t); break;
-    case MetaKind::SMT_BUILTIN_DATATYPE: os << getEmbedName(t); break;
     case MetaKind::SMT_MAP: os << "msm.Map"; break;
     case MetaKind::SMT_SEQ: os << "ssm.Seq"; break;
     // the embedded name is carried by the $native_embed_* application
@@ -446,8 +445,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // operators that print the identifier embedding e.g.
       // `($native_apply_3 "ite"` becomes `(ite`
       if (sname.compare(0, 14, "$native_apply_") == 0
-          || sname.compare(0, 13, "$native_type_") == 0
-          || sname.compare(0, 16, "$native_datatype") == 0)
+          || sname.compare(0, 13, "$native_type_") == 0)
       {
         std::string embName = getEmbedName(recTerm);
         if (recTerm.getNumChildren() > 2)

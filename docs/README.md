@@ -479,6 +479,11 @@ five spellings a user has to recognise when reading a stack trace.
 
 Sketches, in rough order of value-to-cost. None is a plan.
 
+A shorter and more concrete list -- attributes of the configuration language
+that carry a fact the compiler could carry itself, or half of one, with what
+deleting each would take -- is in [`eos-todo.md`](eos-todo.md). Item 1 below is
+what dissolves most of it.
+
 **1. Give the desugar stage a configuration input.** The single change that
 dissolves §10. If stage 5 could read a set of its own, `:is-list-nil` would
 live there, `;$EO_DESUGAR_AUX$` would go away, `:whole` and `level='input'`

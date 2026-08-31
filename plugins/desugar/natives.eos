@@ -67,9 +67,11 @@
 
 (declare-native-type <char> :op "Char")
 
-; A natural number, which is a datatype of the embedding rather than a sort a
-; backend has of its own.
-(declare-native-type <nat> :op "Nat" :datatype)
+; A natural number, which no backend has a sort of its own for: each is given
+; it by its own native layer, `Nat` in plugins/smt_meta/smt-vc.eos being the
+; declare-datatype that gives it to SMT-LIB. Nothing is said here about that,
+; since the text that gives it is the layer's and differs by backend.
+(declare-native-type <nat> :op "Nat")
 
 (declare-native true ())
 

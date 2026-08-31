@@ -115,8 +115,7 @@ bool MetaReducePlugin::isSmtApplyApp(const Expr& oApp)
   }
   std::string sname = getName(oApp[0]);
   return (sname.compare(0, 14, "$native_apply_") == 0
-          || sname.compare(0, 13, "$native_type_") == 0
-          || sname.compare(0, 16, "$native_datatype") == 0);
+          || sname.compare(0, 13, "$native_type_") == 0);
 }
 
 MetaKind MetaReducePlugin::prefixToMetaKind(const std::string& str,
@@ -144,10 +143,6 @@ MetaKind MetaReducePlugin::getTypeMetaKindFor(const Expr& typ,
     if (sname.compare(0, 13, "$native_type_") == 0)
     {
       return MetaKind::SMT_BUILTIN;
-    }
-    if (sname.compare(0, 16, "$native_datatype") == 0)
-    {
-      return MetaKind::SMT_BUILTIN_DATATYPE;
     }
     if (sname == "$native_embed_eo")
     {

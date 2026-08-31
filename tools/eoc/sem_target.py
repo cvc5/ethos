@@ -795,11 +795,12 @@ NATIVE_DECLS = Shape([], keyword='declare-native', noun='native',
 # some target: three of them name no SMT-LIB sort at all. What a backend calls
 # it is what :op says, and that is the name the backend implements and the name
 # the generated encodings carry, exactly as :op names the operator a native
-# forwards to. A type that says :datatype is one a backend declares rather than
-# one it has.
+# forwards to. A backend that does not already have the type is given it by its
+# own native layer, which is the only place the text that gives it can be
+# written, so nothing here says which backends have which.
 NATIVE_TYPE_DECLS = Shape([], keyword='declare-native-type', noun='native type',
                           params=False,
-                          extra_attrs={'op': 1, 'datatype': 0})
+                          extra_attrs={'op': 1})
 
 # One aggregate of the deep embedding, i.e. one entry of
 # plugins/model_smt/model_smt.eos. It declares nothing of the model: the

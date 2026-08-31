@@ -452,9 +452,8 @@ def render_native_types(types):
   out = []
   for e in types:
     doc = '\n'.join(e.doc) + '\n' if e.doc else ''
-    cons = '$native_datatype' if e.has('datatype') else '$native_type_0'
-    out.append('%s(define $native_%s () (%s "%s"))'
-               % (doc, native_type_name(e), cons, escape_eo(native_type_name(e))))
+    out.append('%s(define $native_%s () ($native_type_0 "%s"))'
+               % (doc, native_type_name(e), escape_eo(native_type_name(e))))
   return out
 
 

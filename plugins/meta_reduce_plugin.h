@@ -62,7 +62,7 @@ class MetaReducePlugin : public StdPlugin
   /**
    * Is oApp an (opaque) application of one of the symbols of the native
    * embedding that carry an SMT-LIB identifier as their first argument,
-   * i.e. $native_apply_*, $native_type_* or $native_datatype?
+   * i.e. $native_apply_* or $native_type_*?
    */
   static bool isSmtApplyApp(const Expr& oApp);
   /**

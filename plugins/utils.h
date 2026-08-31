@@ -44,8 +44,6 @@ enum class MetaKind
   SMT_SEQ,
   /** The deep embedding of the term is a builtin SMT-LIB term. */
   SMT_BUILTIN,
-  /** The deep embedding of the term is a builtin SMT-LIB datatype (e.g. Nat). */
-  SMT_BUILTIN_DATATYPE,
   /** The deep embedding of the term is a proof. */
   PROOF,
   /** The deep embedding of the term is a proof-checker rule. */

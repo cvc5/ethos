@@ -176,7 +176,7 @@ bool LeanMetaReduce::printMetaType(const Expr& t,
                                    MetaKind tctx)
 {
   MetaKind tk = getTypeMetaKind(t);
-  if (tk == MetaKind::SMT_BUILTIN || tk == MetaKind::SMT_BUILTIN_DATATYPE)
+  if (tk == MetaKind::SMT_BUILTIN)
   {
     os << getEmbedName(t, tctx);
     return true;
@@ -605,8 +605,7 @@ void LeanMetaReduce::printEmbTermInternal(
       // operators that print the identifier embedding e.g.
       // `($native_apply_3 "ite"` becomes `(ite`
       if (sname.compare(0, 14, "$native_apply_") == 0
-          || sname.compare(0, 13, "$native_type_") == 0
-          || sname.compare(0, 16, "$native_datatype") == 0)
+          || sname.compare(0, 13, "$native_type_") == 0)
       {
         std::string embName = getEmbedName(recTerm, tinit);
         if (recTerm.getNumChildren() > 2)

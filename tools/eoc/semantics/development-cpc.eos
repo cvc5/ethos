@@ -539,8 +539,6 @@
 
 (define-symbol str.in_re (s r))
 
-(define-symbol str.indexof_re_split (s r q))
-
 ; sequences of any element type
 (define-symbol seq.unit (x))
 

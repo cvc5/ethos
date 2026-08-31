@@ -364,7 +364,7 @@ two are read apart by the form that declares one.
 | a literal of the **target**, `semantics/smt.eos` | `define-literal` | a constant of the embedding and the macro that applies it; the two cases a symbol writes, `:typeof` and `:value`, over what it carries rather than over terms |
 | a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
 | a **native** of the embedding, `plugins/desugar/natives.eos` | `declare-native` | nothing of any signature: it declares a name a signature written in the embedding may call, saying what each argument of it is and, under `:op`, the operator it forwards to where that is not its own name. The declaration the desugar layer carries is written from it, so nothing states one by hand; see `render_natives` in `tools/eoc/sem_compile.py` |
-| a **native type** of the embedding, `plugins/desugar/natives.eos` | `declare-native-type` | nothing of any signature: it declares a type a native may take or give back, written `<numeral>` where one stands, and under `:op` the name SMT-LIB and the backends spell it with. `:datatype` says the backends declare it rather than already having it, as `<nat>` is |
+| a **native type** of the embedding, `plugins/desugar/natives.eos` | `declare-native-type` | nothing of any signature: it declares a type a native may take or give back, written `<numeral>` where one stands, and under `:op` the name SMT-LIB and the backends spell it with. A type a backend has to be *given* rather than already having, as `<nat>` is, is given to it by that backend's native layer, which is the only place the text to give it can be written |
 | a definition of a **native layer**, `plugins/lean_meta/lean.eos` and `plugins/smt_meta/smt-vc.eos` | `define-native-method` | one block of the layer a backend's generated text is written over: the text it is, under `:lean-impl` for the Lean backend and `:smt-impl` for the SMT-LIB one. Where the block can come out is read off that text rather than declared beside it, see `lean_needs` and `vc_needs` in `tools/eoc/sem_compile.py`, and it is emitted only where the compilation of an input reaches it, or when it says `:keep`. It names the native the way the backend spells it; whatever else it defines is private to the entry, which `impl_native_` rather than `native_` is what says on the Lean side |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |
 | a rule of an **input**, `semantics/development-cpc.eos` | `define-rule` | the same, for a proof rule, which says only that it is left out |
@@ -1277,12 +1277,14 @@ of value the layer has never had is that entry and then this one:
 
 ```lisp
 (declare-native-type <numeral> :op "Int")
-(declare-native-type <nat> :op "Nat" :datatype)
+(declare-native-type <nat> :op "Nat")
 ```
 
-`:op` is what the backends spell the type with, and `:datatype` says they have
-to be given it rather than already having it. That is the whole of what the
-embedding has to be told: the declaration the desugar layer carries is written
+`:op` is what the backends spell the type with. A backend that does not already
+have the type is given it by its own native layer -- `Nat` is a
+`define-native-method` in `plugins/smt_meta/smt-vc.eos` whose `:smt-impl` is
+the `declare-datatype` -- so nothing here says which backends have which. That
+is the whole of what the embedding has to be told: the declaration the desugar layer carries is written
 from it. What the native *does* is said once
 per backend that needs to say it, as a `define-native-method` in
 `plugins/lean_meta/lean.eos` under `:lean-impl` and in
