@@ -179,9 +179,25 @@ jobs:
           echo "num_proc=$(( $(nproc) + 1 ))" >> $GITHUB_ENV
         fi
 
+    # Run the Linux debug builds under AddressSanitizer. ASan cannot be
+    # combined with --static, but the debug binaries are never uploaded (see
+    # the artifact step below), so the static link is not needed there. This is
+    # Linux-only because the mingw gcc used for windows-x86_64 has no ASan.
+    - name: Set up sanitizer configuration
+      run: |
+        if [ "${{ runner.os }}" = "Linux" ] && [ "${{ matrix.build-type }}" = "debug" ]; then
+          echo "configure_flags=--asan" >> $GITHUB_ENV
+          # ethos deliberately exits via exit(0) without tearing down its State
+          # (see main.cpp), so every run leaks by design and LeakSanitizer would
+          # report all of it. Only the memory errors are of interest here.
+          echo "ASAN_OPTIONS=detect_leaks=0" >> $GITHUB_ENV
+        else
+          echo "configure_flags=--static" >> $GITHUB_ENV
+        fi
+
     - name: Build
       run: |
-        ./configure.sh ${{ matrix.build-type  }} --static --werror
+        ./configure.sh ${{ matrix.build-type  }} ${{ env.configure_flags }} --werror
         cd build
         make -j${{ env.num_proc }}
 
