@@ -50,12 +50,33 @@ jobs:
     - name: Check the compiled semantics
       run: python3 tools/eoc/sem_compile.py --check
 
-    # The three runs the smoke tests made, and then the bytes: what the
-    # pipeline wrote for a signature of this tree is compared with the digests
-    # checked in, which is what says a change to the compiler left the output
-    # where it was. See tools/eoc/test/regress.py.
+    # What reads back the verification conditions the pipeline writes. A digest
+    # says the bytes did not move; only a solver says they are well formed, and
+    # a change to the native layer of plugins/smt_meta/smt-vc.eos can leave a
+    # file that names a sort it never defines and still move only the bytes,
+    # which --update would then bless. The static release binary is downloaded
+    # rather than built -- cvc5 takes longer to build than everything else here
+    # together -- and pinned by version and digest so a run reads back with a
+    # known one.
+    - name: Install cvc5
+      run: |
+        version=1.3.4
+        sha256=dcdbfada0ce493ee98259c0816e0daafc561c223aadb3af298c2968e73ea39c6
+        curl -sSL -o "${RUNNER_TEMP}/cvc5.zip" \
+          "https://github.com/cvc5/cvc5/releases/download/cvc5-${version}/cvc5-Linux-x86_64-static.zip"
+        echo "${sha256}  ${RUNNER_TEMP}/cvc5.zip" | sha256sum --check --strict
+        unzip -q "${RUNNER_TEMP}/cvc5.zip" -d "${RUNNER_TEMP}"
+        echo "${RUNNER_TEMP}/cvc5-Linux-x86_64-static/bin" >> "$GITHUB_PATH"
+
+    # The four runs the pipeline has, and then the bytes: what it wrote for a
+    # signature of this tree is compared with the digests checked in, which is
+    # what says a change to the compiler left the output where it was, and the
+    # two runs that write for a solver have cvc5 read back what they wrote.
+    # --require-cvc5 says a run without one is not a run, so that a step above
+    # that failed to install it cannot quietly leave this checking less. See
+    # tools/eoc/test/regress.py.
     - name: Check the pipeline still writes what it wrote
-      run: python3 tools/eoc/test/regress.py --build-dir build-eoc
+      run: python3 tools/eoc/test/regress.py --build-dir build-eoc --require-cvc5
 
     - name: Build and run custom auto-parser binary
       run: |
