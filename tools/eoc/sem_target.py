@@ -570,14 +570,20 @@ class Shapes:
 
     A block may name the constructor of one that stands after it, as the
     default value of a type names the value it is: the stage writes every
-    constructor before it writes any case or program, so where the block of one
+    constructor into the marker its embedded datatype is declared to go into,
+    and every marker stands ahead of the definitions, so where the block of one
     stands says nothing about when its name may be used.
+
+    This reads the embedded datatypes rather than the shapes because the
+    datatypes are what the stage writes: a shape carries a constructor only
+    where a set builds one under it, whereas every datatype declared with
+    declare-embed-datatype has its constructors hoisted, whichever set they
+    are built in. See reserved, which reads the same registry.
     """
     out = []
-    for shape in self.shapes:
-      if shape.constructor is not None:
-        out.append(shape.constructor.name.split('{symbol}')[0])
-        out.append(shape.constructor.macro.split('{symbol}')[0])
+    for dt in _EMBED_DATATYPES.values():
+      out.append(dt.cons)
+      out.append(dt.macro)
     return out
 
   def reserved(self):

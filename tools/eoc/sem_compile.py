@@ -922,9 +922,25 @@ def compile_all(sets):
 DEF_RE = re.compile(r'\((?:program|define|declare-const|'
                     r'declare-parameterized-const) (\S+)')
 USE_RE = re.compile(r'[\$@][\w.@$+*/<>=^!?-]+|\b[\w.]+\b')
+# A program the target's template declares without a body, which is the whole
+# of the line: a name and what the program takes and gives back.
+FWD_RE = re.compile(r'^\(program (\S+) \(\) :signature \([^)]*\) [^\s()]+\)[ \t]*$',
+                    re.M)
 
 
-def check_order(blocks, name, exempt=()):
+def template_forward_decls(path):
+  """The programs the target's template forward declares.
+
+  The template is what the stage writes the compiled blocks into, and a
+  program it declares without a body stands ahead of every one of them: that
+  is what forward declaring one is for, and it is how the template names a
+  helper whose body the configuration writes. See the forward declarations in
+  plugins/model_smt/model_smt.eo.
+  """
+  return set(FWD_RE.findall(read_text(path)))
+
+
+def check_order(blocks, name, exempt=(), declared=()):
   """Every name a block uses must be defined by that block or an earlier one.
 
   This is what the ordering of a definitions file is for, and the only thing
@@ -936,8 +952,11 @@ def check_order(blocks, name, exempt=()):
   any, see DefsBlock::d_evalFwd; and the constructor of an entity and its
   macro, since the stage writes every constructor before it writes any case, so
   the default of a type may name the value it is whichever block comes first.
+
+  `declared` names what the template forward declares, which stands ahead of
+  every block; see template_forward_decls.
   """
-  owner = {}
+  owner = {d: -1 for d in declared}
   for i, (_sym, text) in enumerate(blocks):
     for d in DEF_RE.findall(text):
       owner.setdefault(d, i)
@@ -1293,7 +1312,8 @@ def main():
     for config, blocks in compile_all(sets):
       bad += check_order(blocks, report.rel(config.target),
                          config.decls.helper_prefixes()
-                         + config.decls.constructor_prefixes())
+                         + config.decls.constructor_prefixes(),
+                         template_forward_decls(AGGREGATE_TEMPLATE))
       for text, target, what in written(blocks, config):
         state, wrong = check_current(text, target)
         done.append((report.rel(target), state, None if wrong else what))

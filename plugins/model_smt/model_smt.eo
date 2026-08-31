@@ -332,8 +332,10 @@
 
 (program $smtx_type_wf_rec () :signature ($smt_Type) $native_Bool)
 (program $smtx_type_bounded () :signature ($native_Bool $smt_Type) $native_Bool)
+(program $smtx_is_finite_type () :signature ($smt_Type) $native_Bool)
 (program $smtx_type_default () :signature ($smt_Type) $smt_Value)
 (program $smtx_datatype_decl_default () :signature ($native_String $smt_DatatypeDecl $smt_DatatypeDecl) $smt_Value)
+(program $smtx_datatype_decl_bounded () :signature ($native_Bool $smt_DatatypeDecl $smt_DatatypeDecl $smt_DatatypeDecl) $smt_DatatypeDecl)
 (program $smtx_value_canonical () :signature ($smt_Value) $native_Bool)
 
 (define $smtx_type_wf_component_rec ((T $smt_Type))
