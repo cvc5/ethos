@@ -1,0 +1,161 @@
+;; The aggregates of the deep embedding: the programs a symbol contributes a
+;; case to, and how the model-smt stage takes the generated file apart again.
+;;
+;; One entry is one aggregate. It is declared rather than defined: the program
+;; itself stands in plugins/model_smt/model_smt.eo, and what is said here is
+;; what more than one program has to agree on about it -- the name the compiler
+;; writes a symbol's case under, and the marker of the template the cases are
+;; written at. Compiled by tools/eoc/sem_compile.py, which writes it into the
+;; head of each generated signature; the stage that reads it is the model-smt
+;; stage of ethos-eoc, see DefsFile::read.
+;;
+;; This is the shape of what is written rather than what anything means, so it
+;; is fixed by the tool: no option names another set of it, and a set that says
+;; what symbols mean -- semantics/smt.eos, semantics/development-cpc.eos --
+;; says nothing here. How a case is *written* is fixed too and is no part of
+;; this: what a case declares, what its arguments stand for and what it gives
+;; back are said in tools/eoc/sem_target.py, which is the only thing that reads
+;; them. An entry there and an entry here are joined by this name, and one
+;; without the other is an error rather than an aggregate half the run knows.
+;;
+;; The longest :case that a name begins with is the aggregate it belongs to, so
+;; the order the entries stand in says nothing.
+
+(section "The SMT-LIB signature")
+
+; The type of a term.
+(declare-aggregate-method $smtx_typeof
+  :case $eoc_typeof_
+  :into $SMT_TYPEOF_CASES$)
+
+; The value of a term in a model. A symbol that says no case of its own hands
+; its work to a program written over values rather than over terms, which is
+; the one helper family there is; those are forward declared above the
+; aggregate, since a case of one may name another whichever comes first.
+(declare-aggregate-method $smtx_model_eval
+  :case    $eoc_eval_
+  :into    $SMT_EVAL_CASES$
+  :helper  $smtx_model_eval_
+  :forward $SMT_EVAL_PROGS_FWD_DECL$)
+
+; The type a value is of, and whether it is the one spelling of what it
+; denotes.
+(declare-aggregate-method $smtx_typeof_value
+  :case $eoc_value_typeof_
+  :into $SMT_VALUE_TYPEOF_CASES$)
+
+(declare-aggregate-method $smtx_value_canonical
+  :case $eoc_value_canonical_
+  :into $SMT_VALUE_CANONICAL_CASES$)
+
+; What a type answers for: whether the values of it are a set at all, what
+; bounds it, and the value a model reaches for where it has to name one.
+(declare-aggregate-method $smtx_type_wf_rec
+  :case $eoc_type_wf_
+  :into $SMT_TYPE_WF_CASES$)
+
+(declare-aggregate-method $smtx_type_bounded
+  :case $eoc_type_bounded_
+  :into $SMT_TYPE_BOUNDED_CASES$)
+
+(declare-aggregate-method $smtx_type_default
+  :case $eoc_type_default_
+  :into $SMT_TYPE_DEFAULT_CASES$)
+
+(section "The signature of an input")
+
+; What a symbol of the input becomes, and what a type constructor of it
+; becomes. The second is the longer name, and so the one a case of it belongs
+; to.
+(declare-aggregate-method $eo_to_smt
+  :case $eoc_transform_
+  :into $EO_TO_SMT_CASES$)
+
+(declare-aggregate-method $eo_to_smt_type
+  :case $eoc_transform_type_
+  :into $EO_TO_SMT_TYPE_CASES$)
+
+;-----------------------------------------------------------------------------
+(section "The datatypes of the embedding")
+;-----------------------------------------------------------------------------
+
+;; A datatype of the embedding is one of the things a value is built *over*
+;; rather than one of the values: a value holds one and it is built by
+;; constructors of its own. Those constructors are the target's to declare --
+;; a declare-constructor entry that says :builds declares one of these rather
+;; than a value, see tools/eoc/semantics/README.md -- and what stands here is
+;; what more than one program has to agree on about them, the way an aggregate
+;; above says it: the constant one is declared as, the macro that applies it,
+;; and the marker of the template they are written at. What a constructor
+;; returns is the datatype, and the entry is named as a type is named
+;; everywhere, so nothing states that twice.
+
+;; A datatype is built by the embedding itself, by a signature written over it,
+;; or by both. :own-into is where the embedding's own go and :into is where a
+;; signature's go, and a datatype that says only the first is the embedding's
+;; throughout. The two are apart because they stand in different orders: what
+;; the embedding builds stands in the order this configuration gives it, so
+;; that what the generated Lean derives from the order of a datatype's
+;; constructors is the same in every generated package however few rules it was
+;; compiled for; what a signature builds stands in the order it declares them.
+;; Which of the two a block is is read off the block, a block of the first
+;; being named after the constant it declares.
+
+; A term, which the embedding builds as a literal and a signature builds as a
+; symbol: the only datatype both write.
+(declare-embed-datatype SmtTerm
+  :cons      $emb_sm.
+  :macro     $sm_
+  :own-into  $SMT_LITERAL_CONSTRUCTORS$
+  :into      $SMT_TERM_CONSTRUCTORS$)
+
+; A type.
+(declare-embed-datatype SmtType
+  :cons      $emb_tsm.
+  :macro     $tsm_
+  :own-into  $SMT_TYPE_CONSTRUCTORS$)
+
+; A value, i.e. what a term of a signature evaluates to in a model.
+(declare-embed-datatype SmtValue
+  :cons      $emb_vsm.
+  :macro     $vsm_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
+; A regular language, which a RegLan value holds. Its base elements are
+; values, so the constructors that hold one say SmtValue and the rest are of
+; the datatype itself.
+(declare-embed-datatype SmtRegLan
+  :cons      $emb_rsm.
+  :macro     $rsm_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
+; A map, which is what an array and a set both are: entries in the order
+; $native_vcmp gives, none of them repeating the default.
+(declare-embed-datatype SmtMap
+  :cons      $emb_msm.
+  :macro     $msm_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
+; A sequence, which is what a string is.
+(declare-embed-datatype SmtSeq
+  :cons      $emb_ssm.
+  :macro     $ssm_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
+; The three a datatype declaration is built from: the arguments of one
+; constructor, the constructors of one datatype, and the datatypes of one
+; declare-datatypes block.
+(declare-embed-datatype SmtDatatypeCons
+  :cons      $emb_dtc.
+  :macro     $dtc_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
+(declare-embed-datatype SmtDatatype
+  :cons      $emb_dt.
+  :macro     $dt_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
+(declare-embed-datatype SmtDatatypeDecl
+  :cons      $emb_dd.
+  :macro     $dd_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)

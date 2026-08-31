@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-datatype List ((cons (head Int) (tail List)) (nil)))
+(declare-fun x () List)
+(assert (not ((_ is cons) x)))
+(assert (not ((_ is nil) x)))
+(check-sat)

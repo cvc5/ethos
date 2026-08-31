@@ -33,12 +33,20 @@ bool optionSmtMetaSygusGrammar() { return true; }
 SmtMetaReduce::SmtMetaReduce(State& s, bool sygus)
     : MetaReducePlugin(s,
                        sygus ? ConjectureType::SYGUS : ConjectureType::VC),
+      // The layer is read as the plugin is constructed, since a name of it is
+      // noted as the text that calls it is printed, which begins before
+      // finalize() runs.
+      d_natives(getResourcePath("tools/eoc/out/smt_vc_native.smt2"), ";", "Vc"),
       d_smSygus(s)
 {
   d_prefixToMetaKind["eo"] = MetaKind::EUNOIA;
 
   if (optionSmtMetaSygusGrammar())
   {
+    // The grammars name the natural numbers by their constructors, which is a
+    // demand for the layer that no input makes and no printing shows, see
+    // SmtMetaSygus::initializeGrammars.
+    d_natives.use("Nat");
     d_smSygus.initializeGrammars();
   }
 }
@@ -53,7 +61,7 @@ bool SmtMetaReduce::isBuiltinMetaSymbol(const std::string& sname) const
 
 bool SmtMetaReduce::printMetaType(const Expr& t,
                                   std::ostream& os,
-                                  MetaKind tctx) const
+                                  MetaKind tctx)
 {
   MetaKind tk = getTypeMetaKind(t, tctx);
   Trace("smt-meta") << "Type meta kind for " << t << " is "
@@ -65,7 +73,6 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case MetaKind::SMT_TYPE: os << "tsm.Type"; break;
     case MetaKind::SMT_VALUE: os << "vsm.Value"; break;
     case MetaKind::SMT_BUILTIN: os << getEmbedName(t); break;
-    case MetaKind::SMT_BUILTIN_DATATYPE: os << getEmbedName(t); break;
     case MetaKind::SMT_MAP: os << "msm.Map"; break;
     case MetaKind::SMT_SEQ: os << "ssm.Seq"; break;
     // the embedded name is carried by the $native_embed_* application
@@ -219,20 +226,19 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       if (isSmtApplyApp(tcur))
       {
         Assert(tcur[1].getKind() == Kind::STRING);
-        const Literal* l = tcur[1].getValue()->asLiteral();
         if (tcur.getNumChildren() == 2)
         {
           // e.g. ($native_apply_0 "0") or ($native_apply_0 "nat.zero") in a
           // pattern.
           std::stringstream eq;
-          eq << "(= " << currTerm << " " << l->d_str.toString() << ")";
+          eq << "(= " << currTerm << " " << getEmbedName(tcur) << ")";
           print.push(eq.str());
           continue;
         }
         // Otherwise it is a builtin non-nullary smt datatype constructor,
         // e.g. nat.succ. The embed name of the apply is the constructor name.
         printArgStart = 2;
-        cname << l->d_str.toString();
+        cname << getEmbedName(tcur);
       }
       else
       {
@@ -324,7 +330,9 @@ std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
                   << oApp;
   }
   const Literal* l = oApp[1].getValue()->asLiteral();
-  return l->d_str.toString();
+  std::string name = l->d_str.toString();
+  d_natives.use(name, d_scope);
+  return name;
 }
 
 bool SmtMetaReduce::printEmbTerm(const Expr& body,
@@ -437,8 +445,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // operators that print the identifier embedding e.g.
       // `($native_apply_3 "ite"` becomes `(ite`
       if (sname.compare(0, 14, "$native_apply_") == 0
-          || sname.compare(0, 13, "$native_type_") == 0
-          || sname.compare(0, 16, "$native_datatype") == 0)
+          || sname.compare(0, 13, "$native_type_") == 0)
       {
         std::string embName = getEmbedName(recTerm);
         if (recTerm.getNumChildren() > 2)
@@ -525,6 +532,9 @@ void SmtMetaReduce::finalizeProgram(const Expr& v,
                                     const Expr& prog,
                                     bool isDefine)
 {
+  // A program is written below the datatypes of the embedding, so a
+  // native it names is named from there.
+  d_scope = "Embed";
   // check for duplicate forward declaration, ignore
   if (prog.isNull() && d_progDeclProcessed.find(v) != d_progDeclProcessed.end())
   {
@@ -665,7 +675,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v,
     else
     {
       // note we can't do this assertion since some programs e.g.
-      // $smtx_msm_lookup have exhaustive cases with no explicit default case
+      // $smtx_map_lookup have exhaustive cases with no explicit default case
       // Assert (print.empty()) << "Non-trivial base case for non-Eunoia program
       // " << v;
     }
@@ -713,6 +723,8 @@ void SmtMetaReduce::finalizeProgram(const Expr& v,
 
 void SmtMetaReduce::define(const std::string& name, const Expr& e)
 {
+  // A definition stands with the programs, below the datatypes.
+  d_scope = "Embed";
   // NOTE: the code here ensures that we preserve definitions for the final vc.
   // This is required since we do not replace e.g. eo::list_concat with
   // $eo_list_concat until the final generation of smt2. This means that this
@@ -752,6 +764,9 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
 
 void SmtMetaReduce::finalizeDecl(const Expr& e)
 {
+  // A declaration is a case of the datatypes of the embedding, so
+  // what it names has to stand above them.
+  d_scope = "Vc";
   if (!beginFinalizeDecl(e))
   {
     return;
@@ -882,7 +897,9 @@ void SmtMetaReduce::finalize()
   const std::string outPath =
       emitResourceFile("plugins/smt_meta/smt_meta.smt2",
                        "plugins/smt_meta/smt_meta_gen.smt2",
-                       {{"$SM_DEFS$", d_defs.str()},
+                       {{"$NATIVE_DEFS$", d_natives.defs("Vc")},
+                        {"$NATIVE_EMBED_DEFS$", d_natives.defs("Embed")},
+                        {"$SM_DEFS$", d_defs.str()},
                         {"$SMT_VC$", d_smtVc.str()},
                         {"$SM_TYPE_DECL$", d_embedTypeDt.str()},
                         {"$SM_TERM_DECL$", d_embedTermDt.str()},
@@ -914,6 +931,8 @@ bool SmtMetaReduce::echo(const std::string& msg)
     Assert(!def.isNull());
     Expr patCall = def[0][0];
     Assert(!patCall.isNull());
+    // The conjecture stands at the end of the file, below everything.
+    d_scope = "Embed";
     d_smtVc << ";;;; final verification condition for " << eosc << std::endl;
     // NOTE: this is intentionally quantifying on sm.Term, not eo.Term.
     // In other words, this conjectures that there is an sm.Term, that

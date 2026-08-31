@@ -10,6 +10,7 @@
 #include "model_smt.h"
 
 #include <fstream>
+#include <set>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -26,7 +27,7 @@ ModelSmt::ModelSmt(State& s) : ModelSmt(s, "")
 {
   // The plugin has no signature of its own to fall back on: which input is
   // being compiled is not its business, so the signature of that input is
-  // given to it with --signature and loadDefs is what says so when it is not. The
+  // given to it with --semantics and loadDefs is what says so when it is not. The
   // SMT-LIB signature is the one exception, since it is the target.
 }
 
@@ -74,8 +75,8 @@ void ModelSmt::finalizeDecl(const std::string& name)
 void ModelSmt::loadDefs()
 {
   // The SMT-LIB signature is the target of the compilation, so the plugin
-  // ships with one and reads that where it was given no other; --semantics is
-  // what gives it another, the way --signature gives it the input's. The one
+  // ships with one and reads that where it was given no other; --smt-semantics
+  // is what gives it another, the way --semantics gives it the input's. The one
   // it ships with is generated from tools/eoc/semantics/smt.eos when
   // ethos-eoc is built, see plugins/CMakeLists.txt, and again before every
   // run of the pipeline, see compile_signatures in tools/eoc/driver.py.
@@ -90,7 +91,7 @@ void ModelSmt::loadDefs()
   }
   if (d_defsFile.empty())
   {
-    EO_FATAL() << "ModelSmt: no signature of the input was given; pass --signature,"
+    EO_FATAL() << "ModelSmt: no semantics of the input was given; pass --semantics,"
                   " see tools/eoc/driver.py";
   }
   if (!d_inputDefs.read(d_defsFile))
@@ -127,61 +128,81 @@ void ModelSmt::loadDefs()
   }
   std::vector<const DefsBlock*> byDecl =
       orderByDeclarations(blocks, declarations);
+  // Which markers take the cases of an aggregate, so are written under the
+  // aggregate they feed and indented by two, and which take whole programs.
+  // Both files declare the same aggregates, since the shape of what is
+  // written is one, so either says it.
+  for (const DefsAggregate& a : d_smtDefs.getAggregates())
+  {
+    d_spliced.insert(a.d_into);
+  }
+  // What a block says about the model, at the markers it is to be written at.
+  auto emitAt = [this](const DefsBlock* b) {
+    for (const std::pair<const std::string, std::vector<std::string>>& at :
+         b->d_at)
+    {
+      for (const std::string& l : at.second)
+      {
+        d_at[at.first] << (d_spliced.count(at.first) != 0 ? "  " : "") << l
+                       << std::endl;
+      }
+    }
+  };
+  // Whether every constructor of what the block builds is the embedding's
+  // own, which is what the datatype says of itself: those stand in the order
+  // the configuration gives rather than the order a calculus declares its
+  // symbols in. See DefsEmbedDatatype::d_own.
+  auto isOwn = [](const DefsBlock* b) {
+    return b->d_builds != nullptr && b->d_builds->own();
+  };
+  // The literals stand before the symbols written over them, and in the order
+  // the configuration gives rather than the order a calculus declares its own,
+  // for the same reason the types and the values do below: what the generated
+  // Lean derives from the order of the terms of the embedding is then the same
+  // in every generated package.
+  for (const DefsBlock* b : blocks)
+  {
+    if (!b->d_literal)
+    {
+      continue;
+    }
+    emitAt(b);
+  }
   for (const DefsBlock* b : byDecl)
   {
+    if (b->d_literal || isOwn(b))
+    {
+      // one of the embedding's own, emitted above or below
+      continue;
+    }
     // A block that says nothing about the model, e.g. one that only gives the
     // nil of an n-ary symbol, leaves that symbol to be compiled as any other.
-    if (!b->d_cons.empty() || !b->d_typeofCases.empty()
-        || !b->d_evalCases.empty() || !b->d_transCases.empty()
-        || !b->d_transTypeCases.empty())
+    // What says something is a constructor, or a case of some aggregate.
+    bool saysSomething = b->d_builds != nullptr;
+    for (const std::pair<const std::string, std::vector<std::string>>& at :
+         b->d_at)
+    {
+      saysSomething = saysSomething || d_spliced.count(at.first) != 0;
+    }
+    if (saysSomething)
     {
       d_defsCovered.insert(b->d_sym);
     }
-    for (const std::string& f : b->d_cons)
-    {
-      d_smtTerms << f << std::endl;
-    }
-    for (const std::string& c : b->d_typeofCases)
-    {
-      d_smtTypeof << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_evalCases)
-    {
-      d_eval << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_transCases)
-    {
-      d_eoToSmt << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_transTypeCases)
-    {
-      d_eoToSmtType << "  " << c << std::endl;
-    }
+    emitAt(b);
   }
-  // The types are the embedding's own -- every block of one is kept, whatever
-  // the input declares -- so they stand in the order the configuration gives
-  // them rather than in the order a calculus declares its own. What is derived
-  // from that order is then the same in every generated package however few
-  // rules it was compiled for, e.g. the key a value is ordered by, see
-  // typeKey in the generated SmtValueOrder.
+  // The types and the values are the embedding's own -- every block of one is
+  // kept, whatever the input declares -- so they stand in the order the
+  // configuration gives them rather than in the order a calculus declares its
+  // own. What is derived from that order is then the same in every generated
+  // package however few rules it was compiled for, e.g. the keys a value is
+  // ordered by, see typeKey and valueKey in the generated SmtValueOrder.
   for (const DefsBlock* b : blocks)
   {
-    for (const std::string& f : b->d_typeCons)
+    if (!isOwn(b))
     {
-      d_smtTypes << f << std::endl;
+      continue;
     }
-    for (const std::string& c : b->d_typeWfCases)
-    {
-      d_typeWf << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_typeBoundedCases)
-    {
-      d_typeBounded << "  " << c << std::endl;
-    }
-    for (const std::string& c : b->d_typeDefaultCases)
-    {
-      d_typeDefault << "  " << c << std::endl;
-    }
+    emitAt(b);
   }
   // The programs follow the same order, which they may because each evaluator
   // is forward declared above; a method that is not, having been written
@@ -189,25 +210,17 @@ void ModelSmt::loadDefs()
   // which is what puts it before whatever calls it.
   for (const DefsBlock* b : byDecl)
   {
-    for (const std::string& f : b->d_typeofAux)
+    for (const std::string& f : b->d_helperProgs)
     {
-      d_smtTypeofAux << f << std::endl;
+      d_helperProgs << f << std::endl;
     }
-    for (const std::string& f : b->d_evalFwd)
+    for (const std::string& f : b->d_canonicalAux)
     {
-      d_modelEvalProgsFwd << f << std::endl;
-    }
-    for (const std::string& f : b->d_evalProgs)
-    {
-      d_modelEvalProgs << f << std::endl;
+      d_smtCanonicalAux << f << std::endl;
     }
     for (const std::string& f : b->d_eoAux)
     {
       d_eoToSmtAux << f << std::endl;
-    }
-    for (const std::string& f : b->d_desugarAux)
-    {
-      d_desugarAux << f << std::endl;
     }
   }
 }
@@ -255,22 +268,41 @@ void ModelSmt::finalize()
     EO_FATAL() << "ModelSmt: failed to read resource " << templatePath;
   }
   std::string finalSmt = sss.str();
-  // plug in the evaluation cases handled by this plugin
-  replacePlaceholder(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
-  replacePlaceholder(
-      finalSmt, "$SMT_EVAL_PROGS_FWD_DECL$", d_modelEvalProgsFwd.str());
-  replacePlaceholder(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());
-  replacePlaceholder(finalSmt, "$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
-  replacePlaceholder(finalSmt, "$EO_DESUGAR_AUX$", d_desugarAux.str());
-  replacePlaceholder(finalSmt, "$EO_TO_SMT_CASES$", d_eoToSmt.str());
-  replacePlaceholder(finalSmt, "$EO_TO_SMT_TYPE_CASES$", d_eoToSmtType.str());
-  replacePlaceholder(finalSmt, "$SMT_TERM_CONSTRUCTORS$", d_smtTerms.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPE_CONSTRUCTORS$", d_smtTypes.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPE_WF_CASES$", d_typeWf.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPE_BOUNDED_CASES$", d_typeBounded.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPE_DEFAULT_CASES$", d_typeDefault.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPEOF_CASES$", d_smtTypeof.str());
-  replacePlaceholder(finalSmt, "$SMT_TYPEOF_AUX$", d_smtTypeofAux.str());
+  // What the signatures said about their symbols, each at the marker the
+  // aggregate it belongs to names. A marker no block wrote anything at is
+  // written all the same, since the template has to be left with no
+  // placeholder in it whatever an input reaches.
+  for (const DefsAggregate& a : d_smtDefs.getAggregates())
+  {
+    replacePlaceholder(finalSmt, a.d_into, d_at[a.d_into].str());
+  }
+  for (const DefsHelper& h : d_smtDefs.getHelpers())
+  {
+    replacePlaceholder(finalSmt, h.d_forward, d_at[h.d_forward].str());
+  }
+  // What the stage says for itself, which no aggregate names: the programs the
+  // cases call, and the constructors, which are written where the datatype
+  // each builds says. A marker nothing wrote at is written all the same, the
+  // template being left with no placeholder in it whatever an input reaches.
+  auto marker = [&](const char* at, const std::string& own) {
+    replacePlaceholder(finalSmt, at, own + d_at[at].str());
+  };
+  marker("$SMT_HELPER_PROGS$", d_helperProgs.str());
+  marker("$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
+  marker("$SMT_CANONICAL_AUX$", d_smtCanonicalAux.str());
+  // Each marker once: two datatypes may be written at one, a regular language
+  // standing with the values.
+  std::set<std::string> written;
+  for (const DefsEmbedDatatype& dt : d_smtDefs.getEmbedDatatypes())
+  {
+    for (const std::string& at : {dt.d_ownInto, dt.d_into})
+    {
+      if (!at.empty() && written.insert(at).second)
+      {
+        marker(at.c_str(), "");
+      }
+    }
+  }
   if (finalSmt.find("$eoc_") != std::string::npos)
   {
     EO_FATAL() << "ModelSmt: generated output contains an unexpanded $eoc_ "
