@@ -179,7 +179,6 @@
     :signature (Bool Bool) Bool
     (
         ((isPermutation l1 l1) true)
-        ((isPermutation (or l1 l2) (or l1 l2)) true)
         ((isPermutation (or l1 l2) (or l2 l1)) true)
         ((isPermutation (or ls l1) (or ls2 l2)) (isPermutation ls (removeLeft l1 (or ls2 l2))))
     )

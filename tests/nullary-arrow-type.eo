@@ -1,0 +1,2 @@
+; regression: (->) has no return type, hence is not a function type
+(declare-const f (->))

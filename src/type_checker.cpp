@@ -36,7 +36,7 @@ TypeChecker::~TypeChecker()
 {
 }
 
-void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
+bool TypeChecker::setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out)
 {
   Trace("type_checker") << "**** setLiteralTypeRule " << k << " to " << t
                         << std::endl;
@@ -49,12 +49,15 @@ void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
   }
   else if (!it->second.isNull() && it->second != t)
   {
-    std::stringstream ss;
-    EO_FATAL() << "TypeChecker::setTypeRule: cannot set type rule for kind "
-                 << k << " to " << t << ", since its type was already set to "
-                 << it->second;
+    if (out)
+    {
+      (*out) << "Cannot set type rule for kind " << k << " to " << t
+             << ", since its type was already set to " << it->second;
+    }
+    return false;
   }
   it->second = t;
+  return true;
 }
 
 Expr TypeChecker::getLiteralTypeRuleMaybeInit(Kind k, ExprValue* self)

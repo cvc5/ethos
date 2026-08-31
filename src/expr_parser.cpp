@@ -273,6 +273,11 @@ Expr ExprParser::parseExpr()
           d_lex.unexpectedTokenError(
               tok, "Mismatched parentheses in SMT-LIBv2 term");
         }
+        // A function type requires a return type, i.e. (->) is not a term.
+        if (sf.d_args.size() == 1 && sf.d_args[0] == d_state.getVar("->"))
+        {
+          d_lex.parseError("Expected a return type for ->");
+        }
         // Construct the application term specified by tstack.back()
         ret = d_state.mkExpr(Kind::APPLY, sf.d_args);
         //typeCheck(ret);

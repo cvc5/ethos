@@ -353,10 +353,12 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   if (getAssumptionLevel()!=0)
   {
     Assert(!d_declsSizeCtx.empty() && d_declsSizeCtx.back() < d_decls.size());
-    EO_FATAL() << "Including file " << inputPath.getRawPath()
-               << " did not preserve assumption scope. The most recent open "
-                  "assumption was "
-               << d_decls[d_declsSizeCtx.back()] << ".";
+    // report via the parser, so that this is an ordinary error message
+    std::stringstream ss;
+    ss << "This file did not preserve assumption scope. The most recent open "
+          "assumption was "
+       << d_decls[d_declsSizeCtx.back()] << ".";
+    p.getLexer().parseError(ss.str());
   }
   if (d_plugin != nullptr)
   {
@@ -507,13 +509,17 @@ void State::clearReferenceAsserts()
   d_referenceAssertList.clear();
 }
 
-void State::setLiteralTypeRule(Kind k, const Expr& t)
+bool State::setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out)
 {
-  d_tc.setLiteralTypeRule(k, t);
+  if (!d_tc.setLiteralTypeRule(k, t, out))
+  {
+    return false;
+  }
   if (d_plugin!=nullptr)
   {
     d_plugin->setLiteralTypeRule(k, t);
   }
+  return true;
 }
 
 Expr State::mkType()
