@@ -1182,6 +1182,27 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   {
     out = &d_cmdDt;
   }
+  // A constructor of one of the datatypes the embedding is built over rather
+  // than of a term, a type or a value: the map, the sequence, the regular
+  // language and the three a datatype declaration is made of. Which of them
+  // there are is the target's to declare, so the backend gives an inductive to
+  // whatever it is handed, named as the type the constructor returns.
+  std::string embedName;
+  if (out == nullptr && isEmbedDatatypeKind(tk))
+  {
+    Expr ce = e;
+    Expr dty = d_tc.getType(ce);
+    if (dty.getKind() == Kind::FUNCTION_TYPE)
+    {
+      dty = dty[dty.getNumChildren() - 1];
+    }
+    std::stringstream tn;
+    if (printMetaType(dty, tn, tk))
+    {
+      embedName = tn.str();
+      out = &d_embedDt[embedName];
+    }
+  }
   if (out == nullptr)
   {
     Trace("lean-meta") << "Do not include " << e << std::endl;
@@ -1252,11 +1273,24 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
     // sst.str() << "\" " << termKindToString(tk) << std::endl;
   }
-  printMetaTypeKind(tk, *out);
+  if (!embedName.empty())
+  {
+    (*out) << embedName;
+  }
+  else
+  {
+    printMetaTypeKind(tk, *out);
+  }
   (*out) << std::endl;
   // the ordering key methods are generated in lockstep with the datatypes they
   // order, so that the tag of a constructor is its index in the datatype.
-  if (tk == MetaKind::SMT_TYPE)
+  if (!embedName.empty())
+  {
+    printOrderKeyCase(cname, argTypes, d_embedNcons[embedName],
+                      d_embedKey[embedName]);
+    d_embedNcons[embedName]++;
+  }
+  else if (tk == MetaKind::SMT_TYPE)
   {
     printOrderKeyCase(cname, argTypes, d_smtTypeNcons, d_smtTypeKey);
     d_smtTypeNcons++;
@@ -1266,6 +1300,12 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     printOrderKeyCase(cname, argTypes, d_smtValueNcons, d_smtValueKey);
     d_smtValueNcons++;
   }
+}
+
+bool LeanMetaReduce::isEmbedDatatypeKind(MetaKind k)
+{
+  return k == MetaKind::SMT_MAP || k == MetaKind::SMT_SEQ
+         || k == MetaKind::SMT_EMBED;
 }
 
 std::string LeanMetaReduce::getOrderKeyMethod(const std::string& t)
@@ -1727,6 +1767,41 @@ void LeanMetaReduce::finalizeParseDefs(const std::set<std::string>& opNames,
   }
 }
 
+std::string LeanMetaReduce::printEmbedKeys() const
+{
+  // The ordering key of each, named as getOrderKeyMethod names one and
+  // standing in the mutual block with the keys of the type and the value.
+  std::stringstream keys;
+  for (const std::pair<const std::string, std::stringstream>& dt : d_embedKey)
+  {
+    keys << "@[expose] def " << getOrderKeyMethod(dt.first) << " : "
+         << dt.first << " -> Key" << std::endl
+         << dt.second.str() << std::endl;
+  }
+  return keys.str();
+}
+
+std::string LeanMetaReduce::printEmbedDatatypes() const
+{
+  // One inductive per datatype the target declared the constructors of, in
+  // the order the constructors arrived, which is the order the ordering key
+  // beside it takes their tags from. They stand in the mutual block with the
+  // three the backend writes for itself, so nothing here has to order them
+  // against one another.
+  std::stringstream defs;
+  for (const std::pair<const std::string, std::stringstream>& dt : d_embedDt)
+  {
+    defs << "/-" << std::endl
+         << "The " << dt.first << " of the embedding." << std::endl
+         << "-/" << std::endl
+         << "inductive " << dt.first << " : Type where" << std::endl
+         << dt.second.str()
+         << "deriving Repr, DecidableEq, Inhabited, Ord" << std::endl
+         << std::endl;
+  }
+  return defs.str();
+}
+
 void LeanMetaReduce::finalizeSmtModel()
 {
   std::vector<Replacement> defsRepl{{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
@@ -1742,6 +1817,7 @@ void LeanMetaReduce::finalizeSmtModel()
     // supplied when the option is on, where its absence is reported.
     defsRepl.emplace_back("$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str());
   }
+  defsRepl.emplace_back("$LEAN_SMT_EMBED_DEFS$", printEmbedDatatypes());
   const std::string outPathDefs =
       emitResourceFile("plugins/lean_meta/lean_meta_smt_model_defs.lean",
                        "plugins/lean_meta/lean_meta_smt_model_defs_gen.lean",
@@ -1751,7 +1827,8 @@ void LeanMetaReduce::finalizeSmtModel()
       emitResourceFile("plugins/lean_meta/lean_meta_smt_value_order.lean",
                        "plugins/lean_meta/lean_meta_smt_value_order_gen.lean",
                        {{"$LEAN_SMT_TYPE_KEY$", d_smtTypeKey.str()},
-                        {"$LEAN_SMT_VALUE_KEY$", d_smtValueKey.str()}});
+                        {"$LEAN_SMT_VALUE_KEY$", d_smtValueKey.str()},
+                        {"$LEAN_SMT_EMBED_KEY$", printEmbedKeys()}});
   Trace("lean-meta") << "Write lean-order " << outPathOrder << std::endl;
   const std::string outPath =
       emitResourceFile("plugins/lean_meta/lean_meta_smt_model.lean",

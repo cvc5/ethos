@@ -482,9 +482,9 @@ A count for a C++ component is its implementation plus its header.
 | `eo_desugar.eo` | 391 EO |
 | `eo_desugar_native.eo` | 576 EO |
 | `eo_desugar_checker.eo` | 204 EO |
-| `model_smt.eo`, the embedding | 346 EO |
-| **Eunoia total** | **1,561** |
-| Lean templates, `plugins/lean_meta/*.lean` | 550 Lean |
+| `model_smt.eo`, the embedding | 336 EO |
+| **Eunoia total** | **1,551** |
+| Lean templates, `plugins/lean_meta/*.lean` | 494 Lean |
 
 ### Stage 7a: Eunoia to SMT-LIB and SyGuS
 
@@ -551,7 +551,8 @@ holds a name of:
 | constructors of the embedding's datatypes declared in `model_smt.eo` | 20 | **0** |
 | programs over datatypes written in `model_smt.eo` | 25 | **2** |
 | helper programs in `model_smt.eo` | 37 | **7** |
-| `model_smt.eo` | 697 EO | **346 EO** |
+| `model_smt.eo` | 697 EO | **336 EO** |
+| datatypes of the embedding whose Lean inductive is written by hand | 9 | **3** |
 | index arities the embedding can express | exactly 3 | **as many as declared** |
 
 Three changes account for it, and each removed a *kind* of hardcoding rather
@@ -570,6 +571,13 @@ than an instance:
   calculus that indexes nothing carries no `UserOp<n>` and none of the cases
   every generated function owed them, and one that indexes four ways compiles
   for the first time.
+- **The backend writes no datatype it was told about.** The inductive a
+  datatype of the embedding prints as, and its ordering key, are generated from
+  the constructors the target declares -- the map, the sequence, the regular
+  language and the three a datatype declaration is made of, which were written
+  by hand in `lean_meta_smt_model_defs.lean` and had to be kept in step with
+  `smt.eos` by eye. The three left are the checker's own and the Eunoia-side
+  ones, which mirror the hand-written embedding rather than a configuration.
 - **The constructor families are declared.** A `declare-embed-datatype` entry
   in `model_smt.eos` says what a constructor of one of the embedding's
   datatypes is called and where it is written, and a `declare-constructor`

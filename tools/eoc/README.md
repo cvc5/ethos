@@ -313,6 +313,19 @@ Each backend has one, and the two are the same thing said twice:
 | Lean | `plugins/lean_meta/lean.eos` | `tools/eoc/out/lean_native.lean` | the `lean-meta` stage |
 | SMT-LIB | `plugins/smt_meta/smt-vc.eos` | `tools/eoc/out/smt_vc_native.smt2` | the `smt-meta` stage |
 
+### What the backend writes for itself
+
+The inductive a datatype of the embedding prints as, and the ordering key
+beside it, are generated: a constructor the target declares reaches the backend
+like any other, and the backend gives an inductive to whatever it is handed,
+named as the type the constructor returns. Nine datatypes come out that way --
+the term, the type and the value, and the map, the sequence, the regular
+language and the three a datatype declaration is made of.
+
+A datatype's constructors are therefore said once, in
+`semantics/smt.eos`, and their order there is what the tags of its ordering key
+are taken from.
+
 ### What a layer owes the embedding
 
 The embedding declares 66 natives. Which of them a layer *must* implement is

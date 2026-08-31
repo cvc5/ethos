@@ -35,65 +35,12 @@ inductive SmtValue : Type where
 $LEAN_SMT_VALUE_DEF$
 deriving Repr, DecidableEq, Inhabited, Ord
 
-/-
-Regular languages. Base elements are SmtValue, which allows regular
-expression operations to be defined uniformly over the same (unpacked)
-sequence representation used by the sequence operations. Well-formed
-regular languages carry only valid character values as base elements, which
-is what __smtx_re_canonical decides, in SmtModel.
--/
-inductive SmtRegLan : Type where
-  | empty : SmtRegLan
-  | epsilon : SmtRegLan
-  | char : SmtValue -> SmtRegLan
-  | range : SmtValue -> SmtValue -> SmtRegLan
-  | allchar : SmtRegLan
-  | concat : SmtRegLan -> SmtRegLan -> SmtRegLan
-  | union : SmtRegLan -> SmtRegLan -> SmtRegLan
-  | inter : SmtRegLan -> SmtRegLan -> SmtRegLan
-  | star : SmtRegLan -> SmtRegLan
-  | comp : SmtRegLan -> SmtRegLan
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-SMT-LIB map values.
--/
-inductive SmtMap : Type where
-  | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
-  | default : SmtType -> SmtValue -> SmtMap
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-SMT-LIB sequence values.
--/
-inductive SmtSeq : Type where
-  | cons : SmtValue -> SmtSeq -> SmtSeq
-  | empty : SmtType -> SmtSeq
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-SMT-LIB datatype declarations.
--/
-inductive SmtDatatypeDecl : Type where
-  | nil : SmtDatatypeDecl
-  | cons : native_String -> SmtDatatype -> SmtDatatypeDecl -> SmtDatatypeDecl
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-SMT-LIB datatypes.
--/
-inductive SmtDatatype : Type where
-  | null : SmtDatatype
-  | sum : SmtDatatypeCons -> SmtDatatype -> SmtDatatype
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-SMT-LIB datatype constructors.
--/
-inductive SmtDatatypeCons : Type where
-  | unit : SmtDatatypeCons
-  | cons : SmtType -> SmtDatatypeCons -> SmtDatatypeCons
-deriving Repr, DecidableEq, Inhabited, Ord
+-- $ The datatypes a value is built over -- the map, the sequence, the regular
+-- $ language and the three a datatype declaration is made of. Which of them
+-- $ there are and what builds one is the target's to declare, see
+-- $ declare-embed-datatype in plugins/model_smt/model_smt.eos, so the
+-- $ inductives are generated with the three above rather than written here.
+$LEAN_SMT_EMBED_DEFS$
 
 end
 

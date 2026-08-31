@@ -139,6 +139,12 @@ class LeanMetaReduce : public MetaReducePlugin
   void finalizeProgram(const Expr& v, const Expr& prog, bool isDefine = false);
   /** Emit a declaration into the appropriate Lean embedded datatype. */
   void finalizeDecl(const Expr& e) override;
+  /**
+   * Is a constructor of this meta-kind one of a datatype the embedding is
+   * built over -- the map, the sequence, and the ones declared as an embedded
+   * SMT-LIB datatype -- rather than of a term, a type or a value?
+   */
+  static bool isEmbedDatatypeKind(MetaKind k);
   /** Return whether t is a program type or program constant. */
   static bool isProgram(const Expr& t);
   /**
@@ -154,6 +160,16 @@ class LeanMetaReduce : public MetaReducePlugin
    * with no constructor cannot derive the classes Term asks of it.
    */
   std::string printTheoryOpDefs() const;
+  /**
+   * The inductives of the datatypes the target declared the constructors of,
+   * as the text of the $LEAN_SMT_EMBED_DEFS$ hole, see d_embedDt.
+   */
+  std::string printEmbedDatatypes() const;
+  /**
+   * The ordering keys of the same, as the text of the $LEAN_SMT_EMBED_KEY$
+   * hole, see d_embedKey.
+   */
+  std::string printEmbedKeys() const;
   /** Emit the Lean checker definitions. */
   void finalizeChecker();
   /** Emit the generated, signature-specific Logos parser configuration. */
@@ -230,6 +246,20 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_eoIsObjDefsSimple;
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
+  /**
+   * The datatypes of the embedding the target declares the constructors of,
+   * i.e. what a value is built over rather than a value: the map, the
+   * sequence, the regular language and the three a datatype declaration is
+   * made of. Each gets an inductive of its own, named as the type its
+   * constructors return, and they are kept by that name rather than one to a
+   * member because which of them there are is the target's to say. Their
+   * ordering keys are generated beside them, see d_embedKey.
+   */
+  std::map<std::string, std::stringstream> d_embedDt;
+  /** The ordering key of each, keyed as above. */
+  std::map<std::string, std::stringstream> d_embedKey;
+  /** How many constructors each has so far, which is the tag of the next. */
+  std::map<std::string, size_t> d_embedNcons;
   /**
    * The greatest number of indices an operator may take, i.e. the length of
    * the UserOp ladder the embedding declares. It is the embedding that fixes

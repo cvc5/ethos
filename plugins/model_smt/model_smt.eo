@@ -306,7 +306,6 @@
 ;;; forward declarations
 
 (program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
-(program $smtx_typeof () :signature ($smt_Term) $smt_Type)
 (program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
 
 ; The helpers over datatype declarations, whose bodies the target writes: what
@@ -317,17 +316,8 @@
 (program $smtx_dd_lookup () :signature ($native_String $smt_DatatypeDecl) $smt_Datatype)
 (program $smtx_dd_has_dt () :signature ($native_String $smt_DatatypeDecl) $native_Bool)
 (program $smtx_decl_wf_rec () :signature ($smt_DatatypeDecl $smt_DatatypeDecl) $native_Bool)
-(program $smtx_dt_num_sels () :signature ($smt_Datatype $native_Nat) $native_Nat)
-(program $smtx_typeof_dt_cons_rec () :signature ($smt_Type $smt_Datatype $native_Nat) $smt_Type)
-(program $smtx_datatype_decl_bounded () :signature ($native_Bool $smt_DatatypeDecl $smt_DatatypeDecl $smt_DatatypeDecl) $smt_DatatypeDecl)
-(program $smtx_type_wf_component () :signature ($smt_Type) $native_Bool)
-(program $smtx_typeof_apply () :signature ($smt_Type $smt_Type) $smt_Type)
 (program $smtx_typeof_guard () :signature ($smt_Type $smt_Type) $smt_Type)
-(program $smtx_typeof_guard_wf () :signature ($smt_Type $smt_Type) $smt_Type)
-(program $smtx_is_finite_type () :signature ($smt_Type) $native_Bool)
-(program $smtx_apply_head_value () :signature ($smt_Value) $smt_Value)
 (program $smtx_apply_arg_nth_value () :signature ($smt_Value $native_Nat $native_Nat) $smt_Value)
-(program $smtx_ret_typeof_sel () :signature ($native_String $smt_DatatypeDecl $native_Nat $native_Nat) $smt_Type)
 
 ;;; dt resolve
 
