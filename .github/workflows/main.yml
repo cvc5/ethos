@@ -68,10 +68,11 @@ jobs:
         unzip -q "${RUNNER_TEMP}/cvc5.zip" -d "${RUNNER_TEMP}"
         echo "${RUNNER_TEMP}/cvc5-Linux-x86_64-static/bin" >> "$GITHUB_PATH"
 
-    # The four runs the pipeline has, and then the bytes: what it wrote for a
-    # signature of this tree is compared with the digests checked in, which is
-    # what says a change to the compiler left the output where it was, and the
-    # two runs that write for a solver have cvc5 read back what they wrote.
+    # The four runs the pipeline has, over each signature the regression
+    # compiles, and then the bytes: what it wrote is compared with the digests
+    # checked in, which is what says a change to the compiler left the output
+    # where it was, and the two runs that write for a solver have cvc5 read
+    # back what they wrote.
     # --require-cvc5 says a run without one is not a run, so that a step above
     # that failed to install it cannot quietly leave this checking less. See
     # tools/eoc/test/regress.py.

@@ -192,7 +192,11 @@ A block may name a symbol of the *input* rather than of the embedding, as the
 transformation of `@quantifiers_skolemize` names `forall` in the pattern it
 matches. Trimming a signature to one proof rule has to keep such a symbol, so
 the driver reads those dependencies off the blocks and tells `trim-defs`; see
-`Pipeline.defs_depends` in `tools/eoc/driver.py`.
+`Pipeline.defs_depends` in `tools/eoc/driver.py`. The blocks a set writes for
+the *desugar* stage are read the same way, since they are spliced into a
+trimmed signature too: the nil predicate of `str.++` names `seq.empty`, and a
+run that keeps the one has to keep the other. See `head_lines` in
+`tools/eoc/sem_compile.py`, which writes both.
 
 A block may also say that the compilation has no place for what it is of at
 all: SMT-LIB gives a proof-level binder no meaning, so `lambda` and everything
@@ -505,11 +509,18 @@ python3 tools/eoc/test/regress.py --update   # take this run as what is written
 ```
 
 The compiler is refactored more often than it is extended, and what a
-refactor has to be is output-preserving. `regress.py` compiles a signature of
-this tree, `tests/Booleans-rules.eo`, for one rule, and compares the digest of
-every file the run leaves behind -- stage files and published artifacts alike
--- with what is checked in beside it. A run that changed something says which
-files it changed. CI runs it on every push.
+refactor has to be is output-preserving. `regress.py` compiles two signatures
+of this tree, `tests/Booleans-rules.eo` and `tools/eoc/test/nary-nil.eo`, each
+for one rule, and compares the digest of every file the runs leave behind --
+stage files and published artifacts alike -- with what is checked in beside it.
+A run that changed something says which files it changed. CI runs it on every
+push.
+
+The second signature is there for the one thing the first cannot reach: its
+`str.++` has a nil that is not ground, which is what makes the desugar stage
+ask the input's semantics for a nil predicate and so the only thing that
+exercises `inline_called_blocks` in `tools/eoc/driver.py` on a block it has to
+keep.
 
 What is checked in is the digest of each file rather than the file, since the
 tree checks in no generated artifact at all; see the `tools/eoc/out/` line of

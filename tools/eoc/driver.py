@@ -490,6 +490,12 @@ class Pipeline:
         pattern it matches. Trimming the input to one proof rule has to keep
         such a symbol, or the case the model-smt stage emits for the block
         would name something the trimmed signature no longer declares.
+
+        The blocks the set writes for the *desugar* stage are said here on the
+        same terms, since they are spliced into a trimmed signature too, see
+        inline_called_blocks: the nil predicate of str.++ names seq.empty, and
+        the run that keeps the one has to keep the other. See head_lines in
+        tools/eoc/sem_compile.py, which is what writes both.
         """
         return ['(echo "trim-defs-cmd (depends %s)")\n' % " ".join(w[1:])
                 for w in self.defs_head() if w[0] == "$eoc-depends"]
@@ -625,13 +631,7 @@ class Pipeline:
         calc_name: str,
         generate_parser: bool,
     ) -> Path:
-        # What the run publishes is the whole of what it compiled, so the tree
-        # is written afresh: a file an earlier run left there is no part of
-        # this signature, and installing is a copy of the tree.
         out_lean = self.final_out_dir / "lean"
-        if out_lean.exists():
-            shutil.rmtree(out_lean)
-        out_lean.mkdir(parents=True)
         self.clean_generated_lean_rule_outputs()
         stale_parser = self.plugin_generated("lean_meta/lean_meta_parser_gen.lean")
         if not generate_parser and stale_parser.exists():
@@ -649,6 +649,15 @@ class Pipeline:
             args.append(f"--lean-config={self.binary_path_arg(self.lean_config)}")
         args.append(self.binary_path_arg(input_file))
         self.ethos(args, quiet=True)
+        # What the run publishes is the whole of what it compiled, so the tree
+        # is written afresh: a file an earlier run left there is no part of
+        # this signature, and installing is a copy of the tree. It is wiped
+        # here rather than ahead of the stage, so that the tree the last run
+        # published stands until there is one to put in its place: a stage that
+        # fails leaves what was there, not an empty directory.
+        if out_lean.exists():
+            shutil.rmtree(out_lean)
+        out_lean.mkdir(parents=True)
         for source, name in LEAN_OUTPUTS:
             if not generate_parser and name == "Parser.lean":
                 continue
@@ -886,6 +895,10 @@ def compile_signatures(
     # One set of each role, the shipped one until an option names another.
     chosen = {is_target: path for path, is_target in sem_compile.SHIPPED}
     named = []
+    two_roles = (
+        "is given two roles; --smt-semantics names the SMT-LIB semantics and "
+        "--semantics the semantics of an input, and a set is one or the other"
+    )
     for given, is_target in ((semantics, False), (smt_semantics, True)):
         mine = str(given.resolve()) if given is not None else None
         if mine is not None and not sem_compile.is_config(mine):
@@ -893,13 +906,18 @@ def compile_signatures(
         if mine is not None:
             role = sem_compile.role_of(mine)
             if role is not None and role != is_target:
-                raise RuntimeError(
-                    f"{mine} is given two roles; --smt-semantics names the "
-                    "SMT-LIB semantics and --semantics the semantics of an "
-                    "input, and a set is one or the other"
-                )
+                raise RuntimeError(f"{mine} {two_roles}")
             chosen[is_target] = mine
         named.append(mine)
+    # The same again for a set the tool does not ship with, which has no role
+    # but the one the option that names it gives, so that the check above has
+    # nothing to compare against: one file under both options is one set given
+    # both roles just as much, and would otherwise compile twice, the second
+    # run writing over what the first wrote. A shipped set has its role fixed,
+    # so naming one under the wrong option is caught above whichever it is.
+    if (named[0] is not None and named[1] is not None
+            and sem_compile.same_file(named[0], named[1])):
+        raise RuntimeError(f"{named[0]} {two_roles}")
     written = sem_compile.compile_to_files(
         [(path, is_target) for is_target, path in chosen.items()])
 
