@@ -39,9 +39,6 @@ enum class ConjectureType
 class MetaReducePlugin : public StdPlugin
 {
  public:
-  /** A (tag, replacement) pair used when rendering a resource file. */
-  using Replacement = std::pair<std::string, std::string>;
-
   MetaReducePlugin(State& s, ConjectureType conjType = ConjectureType::VC);
   ~MetaReducePlugin() override;
 
@@ -65,7 +62,7 @@ class MetaReducePlugin : public StdPlugin
   /**
    * Is oApp an (opaque) application of one of the symbols of the native
    * embedding that carry an SMT-LIB identifier as their first argument,
-   * i.e. $native_apply_*, $native_type_* or $native_datatype?
+   * i.e. $native_apply_* or $native_type_*?
    */
   static bool isSmtApplyApp(const Expr& oApp);
   /**
@@ -118,17 +115,6 @@ class MetaReducePlugin : public StdPlugin
   bool beginFinalizeDecl(const Expr& e);
   /** Is app an application of a program constant? */
   static bool isProgramApp(const Expr& app);
-  /**
-   * Render the template resource file resourcePath by applying the given
-   * replacements and write the result to outputPath. If replAll is true,
-   * every occurrence of each tag is replaced, otherwise only the first. A tag
-   * that does not occur in the template is a no-op, which we warn about since
-   * it is always a mistake. Returns the full path of the written file.
-   */
-  std::string emitResourceFile(const std::string& resourcePath,
-                               const std::string& outputPath,
-                               const std::vector<Replacement>& replacements,
-                               bool replAll = false) const;
 
   /**
    * Is sname the name of a symbol supplied by the backend's templates? Such

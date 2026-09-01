@@ -55,14 +55,14 @@ signature by the directory it stands in and by nothing else.
 **`smt.eos` is the target**: what an SMT-LIB symbol means to a model, the type
 of a term and the value of one. Every input is compiled through it, so what it
 says is what a model of any input means, and nothing about an input is asked of
-it. A run names another with `--semantics`.
+it. A run names another with `--smt-semantics`.
 
-**`development-cpc.eos` is a test**, kept so that the compiler and every stage after
-it have a real signature to run over; CI compiles it on every push. **The
+**`development-cpc.eos` is a test**, kept so that the compiler and every stage
+after it have a real signature to run over; CI compiles it on every push. **The
 official semantics of CPC lives in the Logos repository**, which is what a run
-that means to say something about CPC names with `--signature`. Nothing keeps
-the copy here in step with it, and a set named that way compiles beside itself,
-so running against the official one leaves this tree alone.
+that means to say something about CPC names with `--semantics`. Nothing keeps
+the copy here in step with it: a set named that way stands in for this one for
+the run, so running against the official one leaves this file alone.
 
 Compiling one set is four steps:
 
@@ -72,7 +72,7 @@ Compiling one set is four steps:
    or an input.
 3. Render each block: a symbol becomes a constructor and one program per
    aggregate it contributes to; a program becomes itself with the terms of its
-   cases cast; anything else is emitted as the text it is. What reaches the
+   cases cast; anything else is refused. What reaches the
    other file rather than this one -- the Lean a method says -- is gathered as
    it goes, and a block left with nothing is no block at all.
 4. Check that every helper a block came to name is written out by some file of
@@ -83,12 +83,12 @@ python3 tools/eoc/sem_compile.py                    # write what each set compil
 python3 tools/eoc/sem_compile.py --check            # say whether the generated files are current
 python3 tools/eoc/sem_compile.py --out-dir D        # write elsewhere
 python3 tools/eoc/sem_compile.py CONFIG...          # one shipped set rather than both
-python3 tools/eoc/sem_compile.py --signature CONFIG # a set of another tree, as an input
-python3 tools/eoc/sem_compile.py --semantics CONFIG # ... as an SMT-LIB semantics
+python3 tools/eoc/sem_compile.py --semantics CONFIG     # a set of another tree, as an input
+python3 tools/eoc/sem_compile.py --smt-semantics CONFIG # ... as an SMT-LIB semantics
 ```
 
 The eoc driver runs the compiler before the model-smt stage, so the generated
-files are current whenever that stage reads them; `--signature` names the
+files are current whenever that stage reads them; `--semantics` names the
 central file rather than what it compiles to. A file is written only where its
 text changed.
 
@@ -111,6 +111,15 @@ A file is a sequence of s-expressions.
 | native | `"z_+"` | a double-quoted name; see [The four levels](#7-the-four-levels) |
 | comment | `; ...` | to end of line |
 
+A name in angle brackets, `<numeral>`, is a **native type**. Lexically it is a
+symbol like any other -- nothing here reads the brackets -- and what they say
+is the level of the place it stands in, see
+[The four levels](#7-the-four-levels). Quotes and brackets divide the native
+layer between them: `"zplus"` is something the layer *does*, `<numeral>` is
+something it *is*. Which types there are is configuration too, one
+`declare-native-type` to each in `plugins/desugar/natives.eos`, so this says
+how one is spelt and never which ones exist.
+
 Comment lines written **directly above** a form, with no blank line between,
 are that form's documentation. A blank line ends a comment block, which is what
 lets a file carry a heading of its own without it becoming the first form's
@@ -118,8 +127,8 @@ documentation.
 
 Where a comment block reaches a generated file depends on what it is above:
 
-- above a `(program ...)`, or above text of the embedding, it is what that
-  block says for itself and is emitted;
+- above a `(program ...)`, it is what that block says for itself and is
+  emitted, a program being emitted as itself;
 - above a `define-symbol`, it documents the *configuration* and is not emitted,
   the symbol compiling to something other than itself;
 - above a `; -- X` line, it documents the configuration and is not emitted;
@@ -163,20 +172,47 @@ type     ::=  NAME  |  NATIVE  |  (type*)
 
 ### Forms
 
+**The set of forms is closed.** What follows is the whole of the language, and
+a form is not to be added to it without a reason that survives being written
+down. The pressure to add one is constant and almost always misplaced: a new
+form arrives whenever something in a template looks as though it wants to be
+configuration, and taking it says the two are different kinds of thing when
+usually one is a case of the other. The costs are not local -- a form is a
+shape in `sem_target.py`, a section here, a row in each of the tables below,
+and something the reader of a set has to recognise before reading anything --
+and they are paid once per form and never recovered, while the thing it was
+added for is read once.
+
+What to reach for first, in order:
+
+1. **An entry of a form that already exists.** Most of what looks like a new
+   kind is a symbol, a type or a value with something unusual about it.
+2. **An attribute of one.** What an entity *says* is the extensible axis, and
+   adding one is three edits and no rebuild; see the aggregate table.
+3. **Leaving it in the template.** A template says what the embedding *is*, and
+   something with exactly one instance, that no calculus varies, and that no
+   configuration would ever write differently is what the embedding is. Not
+   everything hardcoded is hardcoded by mistake.
+
+Only when none of the three fits is a form the answer, and then the entry here
+says why it was.
+
 A file is a sequence of these.
 
 ```text
 (section STRING)                                    opens one theory
 
 (define-macro NAME (NAME*) term)                    see Entries
-(program NAME (declaration*) :signature (type*) type (case*))
+(program NAME (declaration*) [:keep] :signature (type*) type (case*))
 (define-symbol NAME (parameter*) attribute*)
 (define-sort NAME (parameter*) attribute*)          the target only
+(declare-constructor NAME (parameter*) attribute*)         the target only
+(define-literal NAME (parameter*) attribute*)       the target only
 (define-method NAME attribute*)                     an input only
+(define-native-method NAME attribute*)              the native layer only
 (define-rule NAME attribute*)                       an input only
 
-anything else                                       text of the embedding,
-                                                    emitted as it stands
+anything else                                       refused
 ```
 
 The attributes of a symbol or of a type are:
@@ -234,16 +270,16 @@ emitted:
 ```text
 smt.eos                             development-cpc.eos
 the vocabulary of the embedding     the vocabularies of the two layers
-the core symbols                    the core symbols -- ite, =, distinct
-the types                           the by-zero constants, unary minus
-Int and Real                        the difference of two arrays
-select and store                    the bit-vector symbols eliminated
-bit-vectors                         the string symbols eliminated
-strings, sequences                  the set symbols eliminated
-sets                                datatypes and tuples
-the methods of the embedding        quantifiers, skolems, the binder left out
-                                    the type constructors
-                                    the methods of the signature
+the types                           the core symbols -- ite, =, distinct
+the values                          arithmetic
+the literals                        arrays
+the core symbols                    bit-vectors
+arithmetic                          strings, sequences, regular expressions
+arrays                              sets
+bit-vectors                         datatypes and tuples
+strings, sequences                  quantifiers, skolems, the binder left out
+sets                                the type constructors
+the methods of the embedding        the methods of the signature
 ```
 
 The SMT-LIB semantics has no section of datatypes, quantifiers or type
@@ -257,18 +293,22 @@ files: the SMT-LIB semantics, which is the target of the compilation, and one
 signature of the input whichever input a run compiles. Which of the two a set
 is is said by the role a run gives it -- the two the tool ships with have
 theirs fixed, and any other is given one by the option that names it,
-`--semantics` for a target and `--signature` for an input, never by what its
-file is called -- and where what it compiles to is written is the tool's to
+`--smt-semantics` for a target and `--semantics` for an input, never by what
+its file is called -- and where what it compiles to is written is the tool's to
 say, in `SMT_TARGET` and `INPUT_TARGET` in `tools/eoc/sem_compile.py`.
 
-Those are where the sets the tool ships with compile to, `tools/eoc/out`, which
-nothing checks in: what is kept is the configuration. **Any other set compiles
-beside itself**:
-where it stands is the only place the tool knows of, so a set that lives in
-another tree writes what it compiles to into that tree. That is what lets a
-run name one: `--signature` for the signature of the input and `--semantics`
-for the SMT-LIB semantics it is written against, either of which may be a set
-or a signature already written out.
+**Where a set compiles to is said by its role and by nothing else.** A run
+compiles one set of each role, and the set an option names *stands in for* the
+one the tool ships with rather than compiling beside it, so the four generated
+files stand at those paths under `tools/eoc/out` whatever a run names and
+wherever the sets themselves live. Nothing checks them in: what is kept is the
+configuration. Two sets of one role in one run are refused, since they would
+both write one file.
+
+That fixed layout is what lets a stage read a file without being told where it
+is: `tools/eoc/out/smt_termination.lean` holds the termination clauses of the
+deep embedding's programs for whichever SMT-LIB semantics the run compiled, so
+the lean-meta stage never needs an option for it.
 
 A set is recognised by holding a `define-symbol`, which a signature written out
 never does; that is also how the two options tell one from the other.
@@ -298,11 +338,19 @@ Naming the same block twice is an error.
 
 What the generated files look like -- which programs there are, what each
 declares and matches, and which aggregate its cases are spliced into -- is
-settled by the stage that reads them: `DefsFile::read` in
-`plugins/model_smt/defs_reader.cpp` takes a definitions file apart by the name
-of each program. That is a contract between the compiler and that stage, so it
-lives in the compiler, in `tools/eoc/sem_target.py`, and a signature says only
-what its symbols mean.
+settled outside any signature, and a signature says only what its symbols mean.
+
+It is settled in two places, which is what the two halves of it are. Which
+aggregates there are, what a case of one is named and where the stage writes
+them is a contract between the compiler and that stage, so it is written where
+both can read it, in `plugins/model_smt/model_smt.eos`; the compiler writes it
+into the head of each generated signature, and `DefsFile::read` in
+`plugins/model_smt/defs_reader.cpp` takes the file apart by what it says, so
+that stage knows no aggregate by name. How a case is *written* -- what its
+program declares, what an argument stands for in it, what it gives back -- is
+read by nothing but the compiler, so it stays there, in
+`tools/eoc/sem_target.py`. An aggregate written in one and not the other is an
+error rather than a half a run would carry.
 
 A set holds one **kind** of entity or several, each with a shape of its own:
 the SMT-LIB signature declares its symbols and the types they are of, and the
@@ -312,13 +360,20 @@ two are read apart by the form that declares one.
 | --- | --- | --- |
 | a symbol of the **target**, `semantics/smt.eos` | `define-symbol` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof` under `:typeof`; a case of `$smtx_model_eval` under `:value`, or the program it hands its work to under `:eval` |
 | a type of the **target**, `semantics/smt.eos` | `define-sort` | a constant of the embedding and the macro that applies it; a case of `$smtx_type_wf_rec` under `:wf`, of `$smtx_type_bounded` under `:bounded`, of `$smtx_type_default` under `:default` |
+| a value of the **target**, `semantics/smt.eos` | `declare-constructor` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical` under `:canonical` |
+| a literal of the **target**, `semantics/smt.eos` | `define-literal` | a constant of the embedding and the macro that applies it; the two cases a symbol writes, `:typeof` and `:value`, over what it carries rather than over terms |
 | a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
+| a **native** of the embedding, `plugins/desugar/natives.eos` | `declare-native` | nothing of any signature: it declares a name a signature written in the embedding may call, saying what each argument of it is and, under `:op`, the operator it forwards to where that is not its own name. The declaration the desugar layer carries is written from it, so nothing states one by hand; see `render_natives` in `tools/eoc/sem_compile.py` |
+| a **native type** of the embedding, `plugins/desugar/natives.eos` | `declare-native-type` | nothing of any signature: it declares a type a native may take or give back, written `<numeral>` where one stands, and under `:op` the name SMT-LIB and the backends spell it with. A type a backend has to be *given* rather than already having, as `<nat>` is, is given to it by that backend's native layer, which is the only place the text to give it can be written |
+| a definition of a **native layer**, `plugins/lean_meta/lean.eos` and `plugins/smt_meta/smt-vc.eos` | `define-native-method` | one block of the layer a backend's generated text is written over: the text it is, under `:lean-impl` for the Lean backend and `:smt-impl` for the SMT-LIB one. Where the block can come out is read off that text rather than declared beside it, see `lean_needs` and `vc_needs` in `tools/eoc/sem_compile.py`, and it is emitted only where the compilation of an input reaches it, or when it says `:keep`. It names the native the way the backend spells it; whatever else it defines is private to the entry, which `impl_native_` rather than `native_` is what says on the Lean side |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |
 | a rule of an **input**, `semantics/development-cpc.eos` | `define-rule` | the same, for a proof rule, which says only that it is left out |
+| an **aggregate** of the model, `plugins/model_smt/model_smt.eos` | `declare-aggregate-method` | nothing of any signature: it declares one of the programs a symbol contributes a case to, saying under `:case` what the compiler names a symbol's case and under `:into` the marker of `plugins/model_smt/model_smt.eo` the cases are written at. `:helper` and `:forward` name the programs written over values that the cases hand their work to, and where those are declared ahead of the aggregate |
+| an **aggregate** of the desugar stage, `plugins/desugar/desugar.eos` | `declare-aggregate-method` | the same form, and it says only its name: what a symbol writes under it is not spliced into one program but written out as a program of its own, named for the symbol, into `tools/eoc/out/user_desugar.eo`. The stage asks for one by that name, so there is nothing for `:case` or `:into` to be and saying either is refused. The nil predicate of an n-ary symbol is the one such |
 
 So the attribute names an entity may carry -- `:typeof`, `:value`, `:eval`,
 `:wf`, `:bounded`, `:default`, `:term`, `:type`, `:is-list-nil` -- come from
-there, and so does what an
+`sem_target.py`, and so does what an
 argument stands for in each, which the sections below refer to as the
 aggregate's `:stands-for`.
 
@@ -349,8 +404,18 @@ parameter marker `(! v :type)` alike -- **a type**.
 | `v` | `plain` | an ordinary argument |
 | `(! v :raw)` | `raw` | one that reaches a case as the term was written |
 | `(! v :type)` | `type` | a type rather than a term |
+| `(v T)` | `plain`, of `T` | one of the type named, written the way a program's parameter list writes one |
 
-The two that say something are annotated the way SMT-LIB annotates a term.
+The two marked kinds are annotated the way SMT-LIB annotates a term. The last
+is for a kind of entity whose arguments are not all of one type -- a value of
+the embedding is built over a native of one sort or another -- and it settles
+what a case calls each argument: the program the cases are spliced into
+declares each name once, so an argument is named after the type it is of
+rather than `x1` twice. The name is a letter for that type and the place the
+argument stands at -- `s1` for a native string first, `T2` for a type second,
+`x3` for a term third -- and `SLOT_BY_TYPE` in `tools/eoc/sem_target.py` is
+where a type is given its letter. Two types may not share one, and a type with
+none is an error rather than a guess.
 
 What each stands for in a body is the aggregate's business. In
 `semantics/smt.eos` a `:raw` argument -- an index -- stands for the term itself
@@ -367,6 +432,8 @@ their helper attributes. For the two sets in the tree:
 | `semantics/smt.eos`, a `define-symbol` | `:typeof`, `:value`, `:eval`, `:overload`, `:exclude`, `:keep` |
 | `semantics/smt.eos`, a `define-sort` | `:wf`, `:bounded`, `:default`, `:overload`, `:exclude`, `:keep` |
 | `semantics/development-cpc.eos`, a `define-symbol` | `:term`, `:type`, `:is-list-nil`, `:overload`, `:exclude`, `:keep` |
+| `semantics/smt.eos`, a `declare-constructor` | `:typeof`, `:canonical`, `:builds`, `:overload`, `:exclude`, `:keep` |
+| `semantics/smt.eos`, a `define-literal` | `:typeof`, `:value`, `:overload`, `:exclude`, `:keep` |
 | a `define-method`, either set | `:lean`, `:exclude` |
 | a `define-rule`, `semantics/development-cpc.eos` | `:exclude` |
 
@@ -409,7 +476,7 @@ gives is a term.
       (of_chars s ("seq.extract" (chars s) i n))
 
 :eval ((smt.binary n x) (smt.binary m y))  (of_width n ("z_+" x y))
-:eval ((smt.map m1) (smt.map m2))          ("eval_map_diff_msm" m1 m2)
+:eval ((smt.map m1) (smt.map m2))          ("eval_map_diff" m1 m2)
 ```
 
 **What a pattern binds, the program declares**, and what each name is declared
@@ -520,11 +587,11 @@ A symbol that says nothing about an aggregate takes that aggregate's
 says nothing about any `:sole` aggregate, or the symbol wrote cases for that
 aggregate's helper.
 
-So in `semantics/development-cpc.eos` a symbol that says nothing at all transforms
-pointwise, a symbol that says only `:is-list-nil` still transforms pointwise,
-and one that says `:type` -- a type constructor -- does not, `type` there being
-`:sole`. In `semantics/smt.eos`, a symbol with `:eval` and no `:value` gets a
-`value` case that calls its helper.
+So in `semantics/development-cpc.eos` a symbol that says nothing at all
+transforms pointwise, a symbol that says only `:is-list-nil` still transforms
+pointwise, and one that says `:type` -- a type constructor -- does not, `type`
+there being `:sole`. In `semantics/smt.eos`, a symbol with `:eval` and no
+`:value` gets a `value` case that calls its helper.
 
 A symbol that would emit nothing at all is an error.
 
@@ -570,6 +637,119 @@ The types the embedding keeps for itself -- `none`, `Datatype`, `TypeRef`,
 represents what a calculus declares rather than types of a theory, and stand in
 `plugins/model_smt/model_smt.eo` with the rest of the same three programs.
 
+So is a type that is one of the sorts under a second name -- `Array`, which is
+a `Map`, and `String`, which is a `(Seq Char)`. Those stand there rather than
+here because a bare name at type level is `$tsm_X` whichever signature writes
+it, so an input that names an array is written against the embedding's `Array`;
+a macro would carry only across the files of the set that declared it.
+
+### `(declare-constructor NAME (param...) attr...)` -- the target
+
+One value of the signature, i.e. what a term of it evaluates to in a model. It
+writes the constructor of the embedding for the value and the macro that
+applies it, the way a type does, and one case of each of the two programs
+written over the values.
+
+```lisp
+(declare-constructor Set ((m SmtMap))
+  :typeof ($smtx_map_to_set_type (smt.typeof_map_value m))
+  :canonical ("and" ($smtx_map_canonical m)
+               ("veq" ($smtx_map_get_default m) smt.false)))
+```
+
+Each parameter says the type it is of, since a value is built over natives of
+several sorts, over types, and over the shapes a map and a sequence are; what
+it stands for in a body is itself.
+
+| attribute | says | written at |
+| --- | --- | --- |
+| `:typeof` | the type a term whose value it is would be of | type level |
+| `:canonical` | whether it is the one spelling of what it denotes | native level |
+
+A value that says nothing about an attribute is answered for by the program its
+cases are spliced into: it is of no type, and it is canonical.
+
+#### `:builds` -- which datatype of the embedding
+
+**Every entry says it, and there is no default.** A `declare-constructor`
+declares a constructor of one of the embedding's datatypes, and which one is
+what tells a value from a regular language:
+
+```lisp
+(declare-constructor Boolean ((b <bool>)) :builds SmtValue :typeof Bool)
+(declare-constructor char ((c SmtValue)) :builds SmtRegLan)
+(declare-constructor star (r) :builds SmtRegLan)
+```
+
+A **datatype of the embedding** is one of the things a value is built *over*
+rather than one of the values: a regular language is one, and so are the map an
+array and a set both are and the sequence a string is. A value holds one and it
+is built by constructors of its own.
+
+`:typeof` and `:canonical` are questions about a **value**, so an entry that
+builds anything else is asked neither, and saying one is refused: what is asked
+of a regular language is asked of the `RegLan` value that *holds* one. A
+parameter that says no type is of the datatype being built, most of them
+holding another of it, and one that holds something else says so.
+
+Which datatypes there are is not this file's to say: each is declared once with
+`declare-embed-datatype` in
+[`plugins/model_smt/model_smt.eos`](../../../plugins/model_smt/model_smt.eos),
+beside the aggregates, and that declaration is what says what a constructor of
+it is called and where the declarations are written. Nothing else holds those
+names -- not this file, and not the stage that reads what it compiles to.
+
+**A datatype other than `SmtValue` has no bare name and no macro of the set**:
+it is at no level, so what a body writes is the macro itself, `($rsm_star r)`.
+
+An entity is named after the constructor it declares -- `Boolean`, not `bool` --
+so `$emb_vsm.Boolean` and `$vsm_Boolean` are what it writes. **A value has no
+bare name**: what a body writes is `smt.bool`, a macro of the set, and the
+vocabulary block is the one place the macro of a value is named. The block a
+value opens is named after its constructor for the same reason a type's is not:
+`Seq` is a type and a value both, and a block is named once.
+
+Like the types, the values are the embedding's own, so every block one opens is
+kept whatever a calculus declares, and they stand in the order their
+constructors are given -- `valueKey` in the generated `SmtValueOrder` follows
+it -- so a value is added at the end.
+
+### `(define-literal NAME (param...) attr...)` -- the target
+
+One literal of the signature, i.e. a term the embedding builds over a native
+rather than over terms of its own. It writes the constructor and the macro the
+way a value does, and the two cases a symbol writes.
+
+```lisp
+(define-literal Binary ((w <numeral>) (v <numeral>))
+  :typeof ("ite" ("and" ("z_<=" 0 w) ("z_=" v ("mod_total" v ("z_pow2" w))))
+            (BitVec ("z_to_n" w))
+            none)
+  :value (smt.binary w v))
+```
+
+| attribute | says | written at |
+| --- | --- | --- |
+| `:typeof` | the type a term of it is of | type level |
+| `:value` | what it evaluates to in a model | value level |
+
+Each parameter says the type it is of, and what it stands for in a body is
+itself: it is a native the term carries rather than a term whose type or value
+is asked for. That is the whole of the difference from a `define-symbol`, whose
+arguments are terms and stand for what is asked of them.
+
+The cases go where a symbol's go, into `$smtx_typeof` and `$smtx_model_eval`,
+and stand before them. So do the constructors: a literal is the embedding's own
+and its block is kept whatever a calculus declares, and the order of the
+constructors of the embedding is the order the configuration gives, which the
+generated `SmtTerm` follows. A literal is therefore added at the end.
+
+The block a literal opens is named after the constructor it declares, since
+`String` is a type and a literal both. That is also what tells the stage
+reading the file that the constructor is one of the embedding's own rather than
+one of a symbol written over them, see `DefsBlock::d_literal` in
+`plugins/model_smt/defs_reader.h`.
+
 ### `(define-method NAME attr...)`, `(define-rule NAME attr...)`
 
 One program written out in Eunoia -- of the embedding, in the target, and of
@@ -603,6 +783,13 @@ set gives them, and the comment above a method is prose of that file, since a
 clause holds no comment of its own. Methods that stand together and say the same
 clause come out under one heading.
 
+A clause may not name the native layer: it is appended to a generated definition
+rather than written into a resource, so it is not one of the blocks that layer is
+trimmed by and a name it gave would keep nothing alive. Every native type
+abbreviates a Lean type -- `Bool` for `native_Bool`, `Int` for `native_Int` --
+which is what a clause writes instead. The lean-meta stage rejects one that does
+not.
+
 **`:exclude`** says the compilation has no place for it. What is left out is not
 always a symbol: dropping the binder of CPC drops the methods that reduce an
 application of one and the rule written over them, and each says so where it
@@ -629,6 +816,25 @@ it is named everywhere else:
 
 Naming a type the embedding has no such type for is caught here rather than by
 ethos.
+
+A program is a *helper*: its block is taken only where a block already taken
+names it, which is what a helper of a symbol wants. Writing `:keep` between
+the parameters and the signature says the block stands whatever the input
+declares, which is what a program the **template** names wants instead, since
+no symbol of the input names one. It compiles to the same `eoc-keep` directive
+a symbol of the embedding writes, see `DefsBlock::d_keep`.
+
+```lisp
+(program $eo_to_smt_reserved_datatype_name ((s <string>))
+  :keep
+  :signature (<string>) <bool>
+  ((($eo_to_smt_reserved_datatype_name s) ("string_prefix_eq" "str_at_sign" s))))
+```
+
+`$eo_to_smt` and `$eo_to_smt_type` in `plugins/model_smt/model_smt.eo` ask an
+input's set for that one by name: which datatype names a calculus keeps for
+itself is a convention of the calculus, not of the embedding. **An input set
+has to define it**, and one that does not fails when the stage runs.
 
 **The signature is what says how a case is read**, place by place. A place
 whose declared type is one of the input is taken as the input wrote it, and
@@ -670,12 +876,34 @@ of a bit-vector in hand and the other the term.
 Only `eo::define` is builtin, and only because what it binds is of the level
 the body reads it at.
 
-### Text
+### Nothing else
 
-Any other form is text of the embedding and is emitted as it stands, with the
-comment above it. A form whose head begins with `define-` but is none of the
-above is an error rather than text: emitting it would put a form the target has
-no reading of into the file.
+Every form of a set is one of the entries above, a `program`, a `define-macro`
+or a `section`. **Anything else is refused**, and that includes a bare
+`declare-const`, `declare-parameterized-const` or `define`.
+
+Nothing is carried over as the text it is. A form emitted untouched would put
+into the generated file something the compiler never read, so what it names
+could not be checked against the vocabulary, ordered against the other blocks,
+or trimmed with them; and a name it defined would be one more thing that has to
+be kept in step by hand.
+
+So a set says what a theory **does**, and what the embedding **is** is
+declared apart from it. Where that line falls is narrower than it once was.
+The *type* a map value is built over, `$smt_Map`, is declared in
+`plugins/model_smt/model_smt.eo`, with the handful of constants the embedding
+cannot be written without; but the constructors that build one are the set's --
+a `declare-constructor` that says `:builds SmtMap`, see
+[`:builds`](#builds----which-datatype-of-the-embedding) -- and the names they
+come out under, `$emb_msm.` and `$msm_`, are a `declare-embed-datatype` in
+`plugins/model_smt/model_smt.eos`. So a datatype of the embedding is those two
+edits and no compiler change. A set then writes the programs over it as well:
+`$smtx_map_lookup`, `$smtx_typeof_map_value`, `$smtx_map_canonical`, each a
+`program` beside the sort it belongs to.
+
+If what you are reaching for is an idiom rather than a definition, write a
+`define-macro`: it is expanded before anything else sees it and reaches no
+generated file, which is what an inlined `define` amounted to anyway.
 
 ---
 
@@ -687,7 +915,7 @@ difference, and it falls on a bare name and a whole number alone:
 
 | level | said by | `f`, a bare name | `0`, a whole number |
 | --- | --- | --- | --- |
-| native | a `"..."` type, e.g. `"Int"` | must be bound | `$native_z_zero` |
+| native | a `<...>` type, e.g. `<numeral>` | must be bound | `$native_z_zero` |
 | value | `SmtValue` | `$smtx_model_eval_f` | `$vsm_z_zero` |
 | term | `SmtTerm` | `$sm_f` | `$sm_z_zero` |
 | type | `SmtType` | `$tsm_f` | -- |
@@ -701,13 +929,15 @@ The level of an **argument** is read off the declaration of what it stands
 under, so `($vsm_numeral 0)` puts a native where `(bvudiv x 0)` puts a value; a
 place the declaration leaves open, as a branch of `ite` is, is of the level
 around it. The vocabulary is read from `plugins/desugar/native_embed.eo`,
-`plugins/desugar/eo_desugar.eo` and `plugins/model_smt/model_smt.eo`, together
-with the programs the set itself writes out, so a native that does not exist or
-is given the wrong number of arguments is caught by the compiler rather than by
-ethos.
+`plugins/desugar/eo_desugar.eo`, `plugins/desugar/eo_desugar_native.eo` and
+`plugins/model_smt/model_smt.eo`, together with the natives compiled out of
+`plugins/desugar/natives.eos` and the programs the set itself writes out, so a
+native that does not exist or is given the wrong number of arguments is caught
+by the compiler rather than by ethos.
 
-A native in quotes and a `$`-name of the embedding are what they are wherever
-they stand, so the level never has to be said twice.
+A native in quotes, a native type in brackets and a `$`-name of the embedding
+are what they are wherever they stand, so the level never has to be said
+twice.
 
 ---
 
@@ -769,7 +999,7 @@ uses in an `embedding.eo` of nothing but macros, under one prefix per layer:
 
 ```lisp
 (define-macro smt.binary (w v)      ($vsm_binary w v))
-(define-macro smt.map_lookup (m i)  ($smtx_msm_lookup m i))
+(define-macro smt.map_lookup (m i)  ($smtx_map_lookup m i))
 (define-macro smt.bit_true ()       $vsm_binary_bit_true)
 (define-macro eo.list_cons (x xs)   ($eo_List_cons x xs))
 ```
@@ -796,7 +1026,7 @@ is one of them:
 | kind | example | why a `$` |
 | --- | --- | --- |
 | a program the configuration writes | `$smtx_typeof_bv_op_2`, `$eo_to_smt_exists` | it is a program of this set, named as itself -- never under a name the compiler writes, see [Casting](#8-casting) |
-| either layer, in `embedding.eo` | `$vsm_binary`, `$smtx_msm_lookup`, `$eot_Var` | that file is where the two layers are named; everywhere else writes `smt.` or `eo.` |
+| either layer, in `embedding.eo` | `$vsm_binary`, `$smtx_map_lookup`, `$eot_Var` | that file is where the two layers are named; everywhere else writes `smt.` or `eo.` |
 | either layer, in a **declaration** | `$vsm_seq` in a shape's `:match`, `$smtx_typeof` in an aggregate's `:program` | naming the embedding is what a declaration is for |
 | the name of an **overload** | `$eoo_-.2` in an entry's `:overload` | it is the name the desugar stage gives that symbol, so the entry says it as it is |
 | a **type** of the input, in a signature | `$eo_Term`, `$eo_List` | a signature is not a term, so no macro reaches it; a type of the input is named as the input names it |
@@ -1009,18 +1239,77 @@ of it: a case matches one by writing it, and what the pattern binds is read off
 its declaration. If putting one back together is an idiom, write a macro for it
 in the section of its theory, the way `of_width` and `of_chars` are written.
 
+If a value of it is built over something that is neither a native nor a value
+-- a list of entries, a sequence -- the type of that and the constructors that
+build one are declared in `plugins/model_smt/model_smt.eo`, beside `$smt_Map`
+and `$smt_Seq`; a set may not declare one, see
+[Nothing else](#nothing-else). The programs over it are `program`s here, beside
+the sort.
+
+### Add a value
+
+Write a `declare-constructor` at the end of the values, saying each parameter's type,
+the type a term of it would be of, and what makes it canonical; a value that
+has nothing to say about one of those says nothing. Name the macro that applies
+it in the vocabulary block, since a value has no bare name. It goes at the end
+because the order of the values is what their constructors are numbered by.
+
+### Add a literal
+
+Write a `define-literal` at the end of the literals, saying the type of what it
+carries, the type a term of it is of, and its value in a model. Write the
+constructor of the value it evaluates to as well, unless the embedding already
+has one. It goes at the end for the same reason a value does.
+
+### Add a native
+
+Write a `declare-native` in `plugins/desugar/natives.eos`, saying what each
+argument of it is and, where the operator it forwards to is not its own name,
+what that operator is:
+
+```lisp
+(declare-native binary_nand ((w <numeral>) (n1 <numeral>) (n2 <numeral>)))
+(declare-native z_lt ((x <numeral>) (y <numeral>)) :op "<")
+```
+
+The types an argument may be are themselves configuration, one
+`declare-native-type` to each in the same file, so a native that wants a kind
+of value the layer has never had is that entry and then this one:
+
+```lisp
+(declare-native-type <numeral> :op "Int")
+(declare-native-type <nat> :op "Nat")
+```
+
+`:op` is what the backends spell the type with. A backend that does not already
+have the type is given it by its own native layer -- `Nat` is a
+`define-native-method` in `plugins/smt_meta/smt-vc.eos` whose `:smt-impl` is
+the `declare-datatype` -- so nothing here says which backends have which. That
+is the whole of what the embedding has to be told: the declaration the desugar layer carries is written
+from it. What the native *does* is said once
+per backend that needs to say it, as a `define-native-method` in
+`plugins/lean_meta/lean.eos` under `:lean-impl` and in
+`plugins/smt_meta/smt-vc.eos` under `:smt-impl`. Neither is required: a backend
+whose own language has the operator says nothing, which is why those two sets
+and this one are apart.
+
 ### Add an attribute a symbol may carry
 
-Not a change to a signature: add it to the shape in `tools/eoc/sem_target.py`,
-and teach `DefsFile::read` in `plugins/model_smt/defs_reader.cpp` the prefix of
-the program it writes, so the stage knows what to do with its cases.
+Not a change to a signature. Write a `declare-aggregate-method` in
+`plugins/model_smt/model_smt.eos` for the program the cases are to be spliced
+into, saying what a case of it is named and the marker they are written at; put
+that marker in `plugins/model_smt/model_smt.eo` where the cases belong; and say
+how a case is written in the shape in `tools/eoc/sem_target.py`. The stage that
+reads the generated file knows no aggregate by name, so it needs no change and
+nothing has to be rebuilt.
 
-### Add a signature of another input
+### Add the semantics of another input
 
-Write a file beside `semantics/development-cpc.eos`: a heading, then its theories in
-sections. Name it with `--signature`, which is what gives it the shape of an
-input, and it compiles beside itself unless it is one of the two the tool
-ships with. Nothing in the compiler names either existing set.
+Write a file beside `semantics/development-cpc.eos`: a heading, then its
+theories in sections. Name it with `--semantics`, which is what gives it the
+shape of an input, and it compiles to `tools/eoc/out/user_defs.eo` in place of
+the set the tool ships with. Nothing in the compiler names either existing
+set.
 
 ---
 
@@ -1049,4 +1338,4 @@ Every message is prefixed `sem_compile:`. The ones worth knowing:
 | `X is both a macro and a symbol of this set` | a macro would shadow the symbol, since a macro is matched first |
 | `X is given twice, see F` | two blocks of one name |
 | `cannot tell what block X belongs to` | a form on its own whose name says nothing; open a block with a `; -- name` line |
-| `X is not a form of a configuration set` | a `define-` form that is none of the above |
+| `X is not a form of a configuration set` | a form that is none of the above, e.g. a bare `declare-const` or `define`; a set says what a theory does, never what the embedding is |

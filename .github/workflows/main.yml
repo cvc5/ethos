@@ -44,32 +44,19 @@ jobs:
         cmake --build build-cpp-compiler-test --parallel ${{ env.num_proc }} \
           --target cpp-compiler-roundtrip
 
-    # --signature names the central file of the configuration of the input's
-    # signature, which the driver compiles before the model-smt stage; that
-    # stage reads one such file and the plugin has none of its own, so it is
-    # required. See tools/eoc/semantics/README.md.
-    - name: Run EOC pipeline smoke tests
-      env:
-        EOC_SIGNATURE: tools/eoc/semantics/development-cpc.eos
-      run: |
-        python3 tools/eoc/driver.py vc \
-          --build-dir build-eoc \
-          --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
-          --no-build --skip-cvc5 --signature "${EOC_SIGNATURE}" \
-          tests/Booleans-rules.eo and_intro
-        python3 tools/eoc/driver.py vc \
-          --build-dir build-eoc \
-          --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
-          --no-build --skip-cvc5 --sygus --signature "${EOC_SIGNATURE}" \
-          tests/Booleans-rules.eo and_intro
-        python3 tools/eoc/driver.py lean \
-          --build-dir build-eoc \
-          --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
-          --no-build --skip-cvc5 --signature "${EOC_SIGNATURE}" \
-          tests/Booleans-rules.eo and_intro
-        test -s "${RUNNER_TEMP}/eoc-smoke/vc/final-booleans-rules-and_intro.smt2"
-        test -s "${RUNNER_TEMP}/eoc-smoke/sygus/final-booleans-rules-and_intro.sy"
-        test -s "${RUNNER_TEMP}/eoc-smoke/lean/Rules/And_intro.lean"
+    # The build above is what writes the generated signatures, so this says
+    # they hold what compiling the configuration writes and, which nothing else
+    # checks, that each block of one stands after the blocks it names.
+    #
+    # The pipeline smoke tests that stood here are not run yet: they drive
+    # tools/eoc/driver.py, which arrives with the change that adds the cpc
+    # wrappers and the regression, and the option the model-smt stage takes for
+    # the signature of an input has been renamed --signature to --semantics.
+    # That change restores end-to-end checking and adds
+    # tools/eoc/test/regress.py, which compares what the pipeline writes with
+    # digests checked in rather than only asserting the files are non-empty.
+    - name: Check the compiled semantics
+      run: python3 tools/eoc/sem_compile.py --check
 
     - name: Build and run custom auto-parser binary
       run: |

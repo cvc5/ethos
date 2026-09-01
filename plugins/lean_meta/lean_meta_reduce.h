@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "../meta_reduce_plugin.h"
+#include "../native_layer.h"
 
 namespace ethos {
 
@@ -64,7 +65,7 @@ class LeanMetaReduce : public MetaReducePlugin
   /** Print the Lean type corresponding to EO type t. */
   bool printMetaType(const Expr& t,
                      std::ostream& os,
-                     MetaKind tctx = MetaKind::NONE) const;
+                     MetaKind tctx = MetaKind::NONE);
   /** Print the Lean type name corresponding to a meta-kind. */
   bool printMetaTypeKind(MetaKind k, std::ostream& os) const;
   /**
@@ -138,8 +139,37 @@ class LeanMetaReduce : public MetaReducePlugin
   void finalizeProgram(const Expr& v, const Expr& prog, bool isDefine = false);
   /** Emit a declaration into the appropriate Lean embedded datatype. */
   void finalizeDecl(const Expr& e) override;
+  /**
+   * Is a constructor of this meta-kind one of a datatype the embedding is
+   * built over -- the map, the sequence, and the ones declared as an embedded
+   * SMT-LIB datatype -- rather than of a term, a type or a value?
+   */
+  static bool isEmbedDatatypeKind(MetaKind k);
   /** Return whether t is a program type or program constant. */
   static bool isProgram(const Expr& t);
+  /**
+   * The UserOp inductives, as the text of the $LEAN_EO_THEORY_OP_DEFS$ hole:
+   * one per index arity that got a constructor, and nothing for the arities
+   * that did not. An arity with no operator has no Term.UOp<n> either -- the
+   * embedding constructor it would name is unreachable and the trimming took
+   * it -- so an inductive for it would be a type nothing mentions.
+   *
+   * The exception is UserOp itself, which the checker names whether or not
+   * the signature has an operator of no index, and which therefore carries a
+   * placeholder constructor when it would otherwise be empty: an inductive
+   * with no constructor cannot derive the classes Term asks of it.
+   */
+  std::string printTheoryOpDefs() const;
+  /**
+   * The inductives of the datatypes the target declared the constructors of,
+   * as the text of the $LEAN_SMT_EMBED_DEFS$ hole, see d_embedDt.
+   */
+  std::string printEmbedDatatypes() const;
+  /**
+   * The ordering keys of the same, as the text of the $LEAN_SMT_EMBED_KEY$
+   * hole, see d_embedKey.
+   */
+  std::string printEmbedKeys() const;
   /** Emit the Lean checker definitions. */
   void finalizeChecker();
   /** Emit the generated, signature-specific Logos parser configuration. */
@@ -166,10 +196,10 @@ class LeanMetaReduce : public MetaReducePlugin
   /** Emit Lean lemma scaffolding for generated specifications. */
   void finalizeLemmas();
   /**
-   * Return the Lean symbol name for an embedded SMT operator.
+   * Return the Lean symbol name for an embedded SMT operator, and note that
+   * the module now being written names it, see NativeLayer::use.
    */
-  static std::string getEmbedName(const Expr& oApp,
-                                  MetaKind ctx = MetaKind::EUNOIA);
+  std::string getEmbedName(const Expr& oApp, MetaKind ctx = MetaKind::EUNOIA);
   /** Print one checker step include case. */
   void printStepCase(std::ostream& out, const std::string& str, bool isPop);
   /** Return true if c can be printed as an atomic Eunoia term. */
@@ -188,6 +218,22 @@ class LeanMetaReduce : public MetaReducePlugin
    * under :lean, see tools/eoc/out/smt_termination.lean.
    */
   void readTerminationClauses(const std::string& path);
+  /** The scope of the module the text written to os comes out in. */
+  std::string scopeOf(const std::ostream* os) const;
+  /**
+   * The native layer of this backend, i.e. what tools/eoc/sem_compile.py
+   * compiled plugins/lean_meta/lean.eos to. Its three homes are the modules
+   * that carry a $NATIVE_DEFS$: SmtEval, which every module sees, Logos and
+   * SmtModel.
+   */
+  NativeLayer d_natives;
+  /**
+   * The scope of the module now being written, which is where a native named
+   * while writing it has to be seen from: `Eo` for Logos, `Smtm` for SmtModel
+   * and the modules below it, and SmtEval, which every module sees, for the
+   * rest. See scopeOf.
+   */
+  std::string d_scope = "SmtEval";
   /** Generated Lean definitions for programs. */
   std::stringstream d_defs;
   /** Generated mutually recursive total Lean definitions. */
@@ -200,8 +246,36 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_eoIsObjDefsSimple;
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
-  /** Eunoia operator embedding */
-  std::stringstream d_embedTOpDt[4];
+  /**
+   * The datatypes of the embedding the target declares the constructors of,
+   * i.e. what a value is built over rather than a value: the map, the
+   * sequence, the regular language and the three a datatype declaration is
+   * made of. Each gets an inductive of its own, named as the type its
+   * constructors return, and they are kept by that name rather than one to a
+   * member because which of them there are is the target's to say. Their
+   * ordering keys are generated beside them, see d_embedKey.
+   */
+  std::map<std::string, std::stringstream> d_embedDt;
+  /** The ordering key of each, keyed as above. */
+  std::map<std::string, std::stringstream> d_embedKey;
+  /** How many constructors each has so far, which is the tag of the next. */
+  std::map<std::string, size_t> d_embedNcons;
+  /**
+   * The greatest number of indices an operator may take, i.e. the length of
+   * the UserOp ladder the embedding declares. It is the embedding that fixes
+   * it: $emb_UOp<n> is declared for n up to this in eo_desugar_native.eo, and
+   * a signature whose operator takes more indices than that has nothing to
+   * compile to. What a signature *uses* is a separate and usually smaller
+   * number; see printTheoryOpDefs.
+   */
+  static const size_t s_maxIndexArity = 5;
+  /**
+   * Eunoia operator embedding, one entry per index arity: [0] holds the
+   * operators that take no index and [n] those that take n. An entry left
+   * empty is an arity the signature does not use, and printTheoryOpDefs
+   * writes no inductive for it.
+   */
+  std::stringstream d_embedTOpDt[s_maxIndexArity + 1];
   /** Eunoia is refutation prop */
   std::stringstream d_eoIsRef;
   /** Generated Lean checker body. */

@@ -18,10 +18,81 @@
 namespace ethos {
 
 /**
+ * One aggregate of the deep embedding, as the head of a generated signature
+ * declares it:
+ *
+ *   ; $eoc-aggregate <name> <case> <into> [whole]
+ *
+ * A symbol says one case of an aggregate and the compiler writes a program for
+ * it, named <case> and then the symbol; this says which aggregate that program
+ * feeds and where what is taken from it is written. Nothing here knows any
+ * aggregate by name: the lines are compiled from
+ * plugins/model_smt/model_smt.eos, which is where one is to be changed or
+ * added, and adding one asks nothing of this stage.
+ */
+struct DefsAggregate
+{
+  /**
+   * The aggregate the cases are spliced into, i.e. what the head of a case is
+   * rewritten to; where the program is emitted whole, the name it comes out
+   * under.
+   */
+  std::string d_name;
+  /** What a symbol's case is named, up to the symbol. */
+  std::string d_case;
+  /** The marker of the template what is taken from it is written at. */
+  std::string d_into;
+};
+
+/**
+ * The programs written over values that the cases of an aggregate hand their
+ * work to, as the head declares them:
+ *
+ *   ; $eoc-helper <case> <forward>
+ *
+ * One stands with the other helpers, and is forward declared at <forward>,
+ * ahead of the aggregate, since a case of one may name another whichever of
+ * them the file writes first.
+ */
+struct DefsHelper
+{
+  /** What one is named, up to the symbol. */
+  std::string d_case;
+  /** The marker of the template the forward declarations are written at. */
+  std::string d_forward;
+};
+
+/**
+ * One datatype of the embedding, i.e. one of the things a value is built over
+ * rather than one of the values: a regular language is one. What a constructor
+ * of it is called and where its declarations are written is what the head of
+ * the file says, so this stage knows none of them by name and adding one asks
+ * nothing of it. Declared in plugins/model_smt/model_smt.eos.
+ */
+struct DefsEmbedDatatype
+{
+  /** The constant a constructor of it is declared as, up to the name. */
+  std::string d_cons;
+  /** The macro that applies it, up to the name. */
+  std::string d_macro;
+  /** The marker the embedding's own constructors of it are written at. */
+  std::string d_ownInto;
+  /**
+   * The marker a signature's constructors of it are written at, empty where
+   * the embedding builds every one. The two are apart because they stand in
+   * different orders; see the note on the datatypes in
+   * plugins/model_smt/model_smt.eos.
+   */
+  std::string d_into;
+  /** Whether the embedding builds every constructor of it. */
+  bool own() const { return d_into.empty(); }
+};
+
+/**
  * What one symbol of a signature contributes to the generated file, i.e. the
  * block a `; -- X` line opens in a definitions file, see
  * tools/eoc/out/smt_defs.eo and the signature of the input given with
- * --signature, e.g. tools/eoc/out/user_defs.eo.
+ * --semantics, e.g. tools/eoc/out/user_defs.eo.
  *
  * A block is read as *text* rather than as terms. What it says is copied into
  * the generated file as it stands, which is what keeps the definitions of the
@@ -45,28 +116,62 @@ struct DefsBlock
    * See DefsFile::select.
    */
   bool d_keep = false;
-  /** The constructor of the embedding for the symbol, and the macro. */
-  std::vector<std::string> d_cons;
-  /** The same, where the block is of a type rather than of a symbol. */
-  std::vector<std::string> d_typeCons;
-  /** The auxiliary programs, by the stream each belongs to. */
-  std::vector<std::string> d_typeofAux, d_evalProgs, d_eoAux;
   /**
-   * What the *desugar* stage asks about the symbol rather than the model, i.e.
-   * the program that decides whether a term is the nil of it.
+   * Whether the block is of a term the embedding builds itself -- a literal,
+   * i.e. one built over a native rather than over terms -- rather than of a
+   * symbol of the signature written over them. A block of one is named after
+   * the constructor it declares, which is what says so: `$emb_sm.Binary`
+   * rather than a symbol's own name. Its constructor stands with the terms of
+   * the embedding, before the symbols, so that the order of them is the same
+   * whatever a calculus declares, see ModelSmt::finalize.
    */
-  std::vector<std::string> d_desugarAux;
-  /** A forward declaration of each program of d_evalProgs. */
-  std::vector<std::string> d_evalFwd;
+  bool d_literal = false;
   /**
-   * The cases it contributes, with the head of each rewritten from the name of
-   * the per-symbol program to the name of the aggregate it feeds.
+   * The datatype of the embedding the block declares a constructor of, or
+   * nullptr where it declares none. What it is says where the declarations
+   * are written -- they are in d_at, under the marker the datatype names --
+   * and whether they stand in the order the configuration gives them.
    */
-  std::vector<std::string> d_typeofCases, d_evalCases, d_transCases,
-      d_transTypeCases;
-  /** The same, for what a block of a type says about it. */
-  std::vector<std::string> d_typeWfCases, d_typeBoundedCases,
-      d_typeDefaultCases;
+  const DefsEmbedDatatype* d_builds = nullptr;
+  /**
+   * Whether what the block declares is the embedding's own rather than a
+   * signature's, which is what a block named after the constant it declares
+   * is. It says which of the datatype's two markers the declarations go to
+   * and which order they stand in.
+   */
+  bool d_own = false;
+  /**
+   * The auxiliary programs the block holds, i.e. what its cases call rather
+   * than what they contribute, in the order the block writes them. They are
+   * one stream because they are one dependency graph: the evaluator of a
+   * sequence asks for the type of one, and the type of a sequence value is
+   * worked out over the values it holds, so neither family can be said to come
+   * first. What orders them is the signature itself, which writes a program
+   * after the ones it calls; see $SMT_HELPER_PROGS$ in
+   * plugins/model_smt/model_smt.eo.
+   */
+  std::vector<std::string> d_helperProgs;
+  /** The same, for the programs written over the transformation. */
+  std::vector<std::string> d_eoAux;
+  /**
+   * The programs that say whether a value of a shape is canonical, which stand
+   * with $smtx_value_canonical rather than with the other helpers: they call
+   * $smtx_type_default and $smtx_is_finite_type, which are written after
+   * those. A program whose name ends in `_canonical` is one.
+   */
+  std::vector<std::string> d_canonicalAux;
+  /**
+   * What the block contributes to the aggregates, keyed by the marker of the
+   * template it is written at, see DefsAggregate. A case has its head
+   * rewritten from the name of the per-symbol program to the name of the
+   * aggregate it feeds; a program the head declares whole, and a forward
+   * declaration of a helper, stand as they are.
+   *
+   * Which markers there are is read off the file rather than known here, so a
+   * signature that declares one more aggregate contributes to one more marker
+   * and nothing in this stage says which.
+   */
+  std::map<std::string, std::vector<std::string>> d_at;
 };
 
 /**
@@ -83,6 +188,18 @@ class DefsFile
    * no definition blocks.
    */
   bool read(const std::string& path);
+  /** The aggregates the head of the file declares. */
+  const std::vector<DefsAggregate>& getAggregates() const
+  {
+    return d_aggregates;
+  }
+  /** The datatypes the head of the file declares, see DefsEmbedDatatype. */
+  const std::vector<DefsEmbedDatatype>& getEmbedDatatypes() const
+  {
+    return d_embedDatatypes;
+  }
+  /** The programs written over values it declares, see DefsHelper. */
+  const std::vector<DefsHelper>& getHelpers() const { return d_helpers; }
   /**
    * The blocks whose symbol is in syms or that said `eoc-keep`, together with
    * every block those depend on, in the order the file gives them. A block
@@ -104,7 +221,36 @@ class DefsFile
  private:
   /** Read one block from text, having already taken its symbol. */
   void addBlock(const std::string& sym, const std::string& text);
+  /** Read what the head of the file declares, i.e. everything above the
+   * first block. */
+  void readHead(const std::string& head);
+  /**
+   * The aggregate a per-symbol program belongs to, or nullptr where the name
+   * is of no aggregate. The longest case a name begins with is the one it
+   * belongs to, which is what lets $eoc_transform_type_ stand beside
+   * $eoc_transform_ whatever order the head declares them in.
+   */
+  const DefsAggregate* aggregateOf(const std::string& name) const;
+  /** The same, for a program written over values. */
+  const DefsHelper* helperOf(const std::string& name) const;
+  /**
+   * Put one form of a block into the stream its name says. It is what a
+   * program is classified by, and what a helper written as a define rather
+   * than as a program is classified by too, since neither is a constructor of
+   * any family.
+   */
+  /** The datatype a name is a constructor of, or nullptr. */
+  const DefsEmbedDatatype* embedDatatypeOf(const std::string& name) const;
+  void classifyProgram(DefsBlock& b,
+                       const std::string& f,
+                       const std::string& name);
   std::vector<DefsBlock> d_blocks;
+  /** What the head declares, longest case first, see aggregateOf. */
+  std::vector<DefsAggregate> d_aggregates;
+  /** The datatypes the head declares, see DefsEmbedDatatype. */
+  std::vector<DefsEmbedDatatype> d_embedDatatypes;
+  /** The same, for the programs written over values. */
+  std::vector<DefsHelper> d_helpers;
   /** The block that defines each name. */
   std::map<std::string, size_t> d_owner;
 };

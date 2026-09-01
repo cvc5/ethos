@@ -8,14 +8,14 @@
 ; This one is of CPC and is kept as a test, so that the compiler and every stage
 ; after it have a real signature to run over. The official semantics of CPC
 ; lives in the Logos repository, which is what a run that means to say something
-; about CPC names with --signature; nothing keeps this copy in step with it.
+; about CPC names with --semantics; nothing keeps this copy in step with it.
 
 ; This is a configuration of the eoc pipeline rather than anything a stage of it
 ; reads. tools/eoc/sem_compile.py compiles it, before any stage runs, into
 ; tools/eoc/out/user_defs.eo and tools/eoc/out/user_termination.lean,
 ; both generated in full: what is to be changed is here. A run names another
-; with --signature, and one outside this tree compiles beside itself. See
-; README.md for the language.
+; with --semantics, and that one compiles to these same two files in place of
+; this set. See README.md for the language.
 ;
 ; The whole of the set stands here, one theory to a section, in the order the
 ; blocks are emitted.
@@ -36,7 +36,7 @@
 ; own constructors have a bare name here. Both are named below, `eo.` for what
 ; the input is embedded as and `smt.` for what the target is, so a body says
 ; which layer it is speaking of and never writes the `$` behind either. See
-; ../smt/embedding.eo, which names the `smt.` half for the other set.
+; smt.eos, which names the `smt.` half for the other set.
 
 ; -- the input, as the desugar stage embeds it
 ; A list the stage gathered, and the terms a pattern reads out of one.
@@ -226,7 +226,7 @@
 
 ; -- @div_by_zero
 (define-symbol @div_by_zero (x)
-  :term (/ x (rational ("z_/_total" 0 1))))
+  :term (/ x (Rational ("mk_rational" 0 1))))
 
 ; The second symbol the input overloads - with, which is unary minus. No
 ; signature declares the name the desugar stage gives that overload, so this
@@ -278,8 +278,8 @@
 ; type and is what (width x) in such an application calls, comes first.
 
 ; The width a bit-vector type is of, or minus one if the type is not one.
-(program $eo_to_smt_bv_size ((x1 "Nat") (t1 SmtValue))
-  :signature (SmtType) "Int"
+(program $eo_to_smt_bv_size ((x1 <nat>) (t1 SmtValue))
+  :signature (SmtType) <numeral>
   (
   (($eo_to_smt_bv_size (BitVec x1)) ("n_to_z" x1))
   (($eo_to_smt_bv_size t1) "z_neg_one")
@@ -296,7 +296,7 @@
 ; declaration is what says both its arguments are natives, so nothing here has
 ; to say so.
 (define-macro bv (w v)
-  (binary w v))
+  (Binary w v))
 
 (define-symbol concat (x y))
 
@@ -400,7 +400,7 @@
 ; eliminated on the way to the SMT-LIB signature, so each gives a
 ; transformation and no block of the SMT-LIB half.
 (define-symbol @bvsize (x)
-  :term (eo::define ((n (width x))) ("ite" ("z_<=" 0 n) (@purify (numeral n)) none)))
+  :term (eo::define ((n (width x))) ("ite" ("zleq" 0 n) (@purify (Numeral n)) none)))
 
 (define-symbol bvite (c x y)
   :term (ite (= c (bv 1 1)) x y))
@@ -539,8 +539,6 @@
 
 (define-symbol str.in_re (s r))
 
-(define-symbol str.indexof_re_split (s r q))
-
 ; sequences of any element type
 (define-symbol seq.unit (x))
 
@@ -555,16 +553,16 @@
 ; is still the vocabulary of the embedding.
 
 ; -- $eo_to_smt_nat
-(program $eo_to_smt_nat_is_valid ((n "Int") (t $eo_Term))
-  :signature ($eo_Term) "Bool"
+(program $eo_to_smt_nat_is_valid ((n <numeral>) (t $eo_Term))
+  :signature ($eo_Term) <bool>
   (
-  (($eo_to_smt_nat_is_valid (eo.numeral n)) ("z_<=" 0 n))
+  (($eo_to_smt_nat_is_valid (eo.numeral n)) ("zleq" 0 n))
   (($eo_to_smt_nat_is_valid t) "false")
   )
 )
 
-(program $eo_to_smt_nat ((n "Int") (t $eo_Term))
-  :signature ($eo_Term) "Nat"
+(program $eo_to_smt_nat ((n <numeral>) (t $eo_Term))
+  :signature ($eo_Term) <nat>
   (
   (($eo_to_smt_nat (eo.numeral n)) ("z_to_n" n))
   (($eo_to_smt_nat t) "n_zero")
@@ -573,8 +571,8 @@
 
 ; -- @re_unfold_pos_component
 (program $eo_to_smt_re_unfold_pos_component
-  ((_y2 SmtTerm) (_y3 "Nat") (n "Nat") (r1 SmtTerm) (r2 SmtTerm) (s SmtTerm))
-  :signature (SmtTerm SmtTerm "Nat") SmtTerm
+  ((_y2 SmtTerm) (_y3 <nat>) (n <nat>) (r1 SmtTerm) (r2 SmtTerm) (s SmtTerm))
+  :signature (SmtTerm SmtTerm <nat>) SmtTerm
   (
   (($eo_to_smt_re_unfold_pos_component s (re.++ r1 r2) "n_zero")
     (str.substr s 0 (str.indexof_re_split s r1 r2)))
@@ -599,7 +597,7 @@
 ; -- @strings_stoi_non_digit
 (define-symbol @strings_stoi_non_digit (s)
   :term (str.indexof_re s
-               (re.inter re.allchar (re.comp (re.range (string "str_c0") (string "str_c9"))))
+               (re.inter re.allchar (re.comp (re.range (String "str_c0") (String "str_c9"))))
                0))
 
 ; -- @strings_itos_result
@@ -728,7 +726,7 @@
 
 ; -- is
 (program $eo_to_smt_tester
-  ((s "String") (dd SmtDatatypeDecl) (n "Nat") (t SmtTerm))
+  ((s <string>) (dd SmtDatatypeDecl) (n <nat>) (t SmtTerm))
   :signature (SmtTerm) SmtTerm
   (
   (($eo_to_smt_tester (DtCons s dd n))  (DtTester s dd n))
@@ -744,26 +742,26 @@
 ; returns the constructor app that is equivalent to u
 ; but where the selector s field is updated to t.
 (program $eo_to_smt_updater_rec
-  ((s "String") (dd SmtDatatypeDecl) (n "Nat") (m "Nat")
-   (k "Nat") (t SmtTerm) (u SmtTerm) (acc SmtTerm) (v SmtTerm))
-  :signature (SmtTerm "Nat" SmtTerm SmtTerm SmtTerm) SmtTerm
+  ((s <string>) (dd SmtDatatypeDecl) (n <nat>) (m <nat>)
+   (k <nat>) (t SmtTerm) (u SmtTerm) (acc SmtTerm) (v SmtTerm))
+  :signature (SmtTerm <nat> SmtTerm SmtTerm SmtTerm) SmtTerm
   (
   (($eo_to_smt_updater_rec (DtSel s dd n m) "n_zero" t u acc) acc)
   (($eo_to_smt_updater_rec (DtSel s dd n m) ("n_succ" k) t u acc)
-    (eo::define ((arg ("ite" ("n_=" m k) u (apply (DtSel s dd n k) t))))
+    (eo::define ((arg ("ite" ("nateq" m k) u (apply (DtSel s dd n k) t))))
       (apply ($eo_to_smt_updater_rec (DtSel s dd n m) k t u acc) arg)))
   (($eo_to_smt_updater_rec v k t u acc) none)
   )
 )
 
 (program $eo_to_smt_updater
-  ((s "String") (dd SmtDatatypeDecl)
-   (n "Nat") (m "Nat") (sel SmtTerm) (t SmtTerm) (u SmtTerm))
+  ((s <string>) (dd SmtDatatypeDecl)
+   (n <nat>) (m <nat>) (sel SmtTerm) (t SmtTerm) (u SmtTerm))
   :signature (SmtTerm SmtTerm SmtTerm) SmtTerm
   (
   (($eo_to_smt_updater (DtSel s dd n m) t u)
     (eo::define ((nargs (smt.num_selectors (smt.decl_lookup s dd) n)))
-    ("ite" ("z_<" ("n_to_z" m) ("n_to_z" nargs))
+    ("ite" ("zlt" ("n_to_z" m) ("n_to_z" nargs))
       (ite (apply (DtTester s dd n) t)
         ($eo_to_smt_updater_rec (DtSel s dd n m) nargs t u (DtCons s dd n))
         t)
@@ -799,9 +797,9 @@
 ; but where now tuple is the instance of the tuple constructor that expects
 ; another argument of type T.
 (program $eo_to_smt_tuple_prepend_rec
-  ((dd SmtDatatypeDecl) (d SmtDatatype) (tail SmtTerm) (n "Nat")
+  ((dd SmtDatatypeDecl) (d SmtDatatype) (tail SmtTerm) (n <nat>)
    (acc SmtTerm))
-  :signature (SmtDatatypeDecl SmtDatatype SmtTerm "Nat" SmtTerm) SmtTerm
+  :signature (SmtDatatypeDecl SmtDatatype SmtTerm <nat> SmtTerm) SmtTerm
   (
   (($eo_to_smt_tuple_prepend_rec dd d tail "n_zero" acc) acc)
   (($eo_to_smt_tuple_prepend_rec dd d tail ("n_succ" n) acc)
@@ -814,7 +812,7 @@
 
 (program $eo_to_smt_tuple_prepend_of_type
   ((T SmtType) (h SmtTerm) (hT SmtType) (tail SmtTerm)
-   (c SmtDatatypeCons) (s "String") (s2 "String"))
+   (c SmtDatatypeCons) (s <string>) (s2 <string>))
   :signature (SmtType SmtTerm SmtType SmtTerm) SmtTerm
   (
   (($eo_to_smt_tuple_prepend_of_type (Datatype s (smt.decl_cons s2 (smt.datatype_cons c smt.datatype_nil) smt.decl_nil)) h hT tail)
@@ -825,8 +823,8 @@
       ("ite"
         ("and"
           ("and"
-            ("str_=" s "str_tuple_name")
-            ("str_=" s2 "str_tuple_name"))
+            ("streq" s "str_tuple_name")
+            ("streq" s2 "str_tuple_name"))
           (smt.type_wf (Datatype "str_tuple_name" dd2)))
         ($eo_to_smt_tuple_prepend_rec dd d tail (smt.num_selectors d "n_zero")
           (apply (DtCons "str_tuple_name" dd2 "n_zero") h))
@@ -849,17 +847,17 @@
 
 ; -- tuple.select
 (program $eo_to_smt_tuple_select
-  ((T SmtType) (s "String") (s2 "String") (d SmtDatatype)
-   (n "Int") (t SmtTerm))
+  ((T SmtType) (s <string>) (s2 <string>) (d SmtDatatype)
+   (n <numeral>) (t SmtTerm))
   :signature (SmtType SmtTerm SmtTerm) SmtTerm
   (
-  (($eo_to_smt_tuple_select (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (numeral n) t)
+  (($eo_to_smt_tuple_select (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (Numeral n) t)
     ("ite"
       ("and"
         ("and"
-          ("str_=" s "str_tuple_name")
-          ("str_=" s2 "str_tuple_name"))
-        ("z_<=" 0 n))
+          ("streq" s "str_tuple_name")
+          ("streq" s2 "str_tuple_name"))
+        ("zleq" 0 n))
       (apply
         (DtSel "str_tuple_name" ($eo_to_smt_tuple_decl d) "n_zero" ("z_to_n" n))
         t)
@@ -873,17 +871,17 @@
 
 ; -- tuple.update
 (program $eo_to_smt_tuple_update
-  ((T SmtType) (d SmtDatatype) (n "Int") (t SmtTerm) (u SmtTerm)
-   (s "String") (s2 "String"))
+  ((T SmtType) (d SmtDatatype) (n <numeral>) (t SmtTerm) (u SmtTerm)
+   (s <string>) (s2 <string>))
   :signature (SmtType SmtTerm SmtTerm SmtTerm) SmtTerm
   (
-  (($eo_to_smt_tuple_update (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (numeral n) t u)
+  (($eo_to_smt_tuple_update (Datatype s (smt.decl_cons s2 d smt.decl_nil)) (Numeral n) t u)
     ("ite"
       ("and"
         ("and"
-          ("str_=" s "str_tuple_name")
-          ("str_=" s2 "str_tuple_name"))
-        ("z_<=" 0 n))
+          ("streq" s "str_tuple_name")
+          ("streq" s2 "str_tuple_name"))
+        ("zleq" 0 n))
       ($eo_to_smt_updater
         (DtSel "str_tuple_name" ($eo_to_smt_tuple_decl d) "n_zero" ("z_to_n" n))
         t
@@ -905,7 +903,7 @@
 
 ; -- $eo_to_smt_exists
 (program $eo_to_smt_exists
-  ((s "String") (T $eo_Term) (vs $eo_List) (F $eo_Term))
+  ((s <string>) (T $eo_Term) (vs $eo_List) (F $eo_Term))
   :signature ($eo_List SmtTerm) SmtTerm
   (
   (($eo_to_smt_exists eo.list_nil F) F)
@@ -927,8 +925,8 @@
 
 ; -- @quantifiers_skolemize
 (program $eo_to_smt_quantifiers_skolemize
-  ((s "String") (T $eo_Term) (vs $eo_List) (F SmtTerm) (G SmtTerm) (n "Nat") (t SmtTerm))
-  :signature ($eo_List SmtTerm "Nat") SmtTerm
+  ((s <string>) (T $eo_Term) (vs $eo_List) (F SmtTerm) (G SmtTerm) (n <nat>) (t SmtTerm))
+  :signature ($eo_List SmtTerm <nat>) SmtTerm
   (
   (($eo_to_smt_quantifiers_skolemize (eo.list_cons (eo.var (eo.string s) T) vs) G "n_zero")
     (choice s T ($eo_to_smt_exists vs G)))
@@ -943,7 +941,7 @@
 
 ; -- @const
 (define-symbol @const ((! i :raw) (! u :type))
-  :term ("ite" ($eo_to_smt_nat_is_valid i) (UConst ("to_const_id" ($eo_to_smt_nat i)) u) none))
+  :term ("ite" ($eo_to_smt_nat_is_valid i) (UConst ("const_id" ($eo_to_smt_nat i)) u) none))
 
 ; The proof-level binder of CPC, together with the methods and the rule that
 ; reduce an application of one. SMT-LIB gives these no meaning at all, so
@@ -971,6 +969,23 @@
 ;-----------------------------------------------------------------------------
 (section "The type constructors")
 ;-----------------------------------------------------------------------------
+
+; Which datatype names this calculus keeps for itself. CPC spells an internal
+; name with a leading `@`, and a type of one is no type of the model: the
+; transformation answers $tsm_none for it. That is a convention of this
+; signature rather than of the embedding, so it is said here, and the stage
+; asks for it by name, see $eo_to_smt_type in plugins/model_smt/model_smt.eo.
+; :keep is what says the block stands whatever the input declares, since what
+; names it is that program rather than a symbol of the input.
+
+; -- $eo_to_smt_reserved_datatype_name
+(program $eo_to_smt_reserved_datatype_name ((s <string>))
+  :keep
+  :signature (<string>) <bool>
+  (
+  (($eo_to_smt_reserved_datatype_name s) ("string_prefix_eq" "str_at_sign" s))
+  )
+)
 
 ; The type constructors of the input, i.e. what they contribute to
 ; $eo_to_smt_type rather than to $eo_to_smt.
@@ -1001,7 +1016,7 @@
 
 ; -- BitVec
 (define-symbol BitVec ((! n :raw))
-  :type (BitVec (eo.numeral n)) ("ite" ("z_<=" 0 n) (BitVec ("z_to_n" n)) none))
+  :type (BitVec (eo.numeral n)) ("ite" ("zleq" 0 n) (BitVec ("z_to_n" n)) none))
 
 (define-symbol Seq (T)
   :type (guard T (Seq T)))
@@ -1018,14 +1033,14 @@
 
 ; -- Tuple
 (program $eo_to_smt_type_tuple
-  ((U SmtType) (T SmtType) (s "String") (s2 "String")
+  ((U SmtType) (T SmtType) (s <string>) (s2 <string>)
    (c SmtDatatypeCons))
   :signature (SmtType SmtType) SmtType
   (
   (($eo_to_smt_type_tuple U (Datatype s (smt.decl_cons s2 (smt.datatype_cons c smt.datatype_nil) smt.decl_nil)))
     (eo::define ((d (smt.datatype_cons (smt.cons_field U c) smt.datatype_nil)))
       ("ite"
-        ("and" ("and" ("str_=" s "str_tuple_name") ("str_=" s2 "str_tuple_name")) (smt.type_wf_component U))
+        ("and" ("and" ("streq" s "str_tuple_name") ("streq" s2 "str_tuple_name")) (smt.type_wf_component U))
         (Datatype "str_tuple_name" ($eo_to_smt_tuple_decl d))
         none)))
   (($eo_to_smt_type_tuple U T) none)
@@ -1042,6 +1057,9 @@
 ; What the generated Lean has to be told about the programs this signature
 ; writes out, which no compiler could derive: why each recursion terminates.
 ; The text is Lean and is appended to the definition as it stands.
+;
+; It may not name the native layer, for the reason the same section of
+; semantics/smt.eos gives.
 
 ; Distinctness of a list of values is decided by walking the list and, at each
 ; element, the rest of it, so the measure is the size of the two lists.

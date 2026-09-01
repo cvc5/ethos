@@ -9,6 +9,7 @@
 
 #include "lean_meta_reduce.h"
 
+#include <algorithm>
 #include <cctype>
 #include <fstream>
 #include <sstream>
@@ -34,7 +35,14 @@ bool optionEoUserOp() { return true; }
 LeanMetaReduce::LeanMetaReduce(State& s,
                                bool generateParser,
                                const std::string& configFile)
-    : MetaReducePlugin(s), d_generateParser(generateParser)
+    : MetaReducePlugin(s),
+      d_generateParser(generateParser),
+      // The layer is read as the plugin is constructed rather than at the
+      // end, since a module names one of its blocks while being written and
+      // the first module is written before finalize() runs.
+      d_natives(getResourcePath("tools/eoc/out/lean_native.lean"),
+                "--",
+                "SmtEval")
 {
   d_typeToMetaKind["$eo_Term"] = MetaKind::EUNOIA;
   d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
@@ -68,6 +76,24 @@ LeanMetaReduce::LeanMetaReduce(State& s,
   }
 }
 
+std::string LeanMetaReduce::scopeOf(const std::ostream* os) const
+{
+  // Which module a stream is spliced into is what says where a name written
+  // to it is reached from. A stream this run does not know is one whose text
+  // comes out above both modules below, e.g. a datatype of the embedding, so
+  // it counts as the scope every module sees.
+  if (os == &d_defs || os == &d_defsTotal || os == &d_eoChecker)
+  {
+    return "Eo";
+  }
+  if (os == &d_smt || os == &d_smtDefs || os == &d_eoIsObjDefs
+      || os == &d_eoIsObjDefsSimple)
+  {
+    return "Smtm";
+  }
+  return "SmtEval";
+}
+
 void LeanMetaReduce::readTerminationClauses(const std::string& path)
 {
   std::ifstream in(path);
@@ -87,6 +113,19 @@ void LeanMetaReduce::readTerminationClauses(const std::string& path)
     text = (e == std::string::npos ? "" : text.substr(0, e + 1));
     if (!text.empty())
     {
+      // A clause is appended to a generated definition rather than written
+      // into a resource, so it is not one of the blocks the native layer is
+      // trimmed by and naming the layer here would keep nothing alive. Every
+      // native type is an abbreviation of the Lean type it stands for, which
+      // is what a measure writes instead. See NativeLayer.
+      if (text.find("native_") != std::string::npos)
+      {
+        EO_FATAL() << "LeanMetaReduce: the termination clause of "
+                   << (names.empty() ? std::string("a program") : names[0])
+                   << " in " << path
+                   << " names the native layer, which is trimmed to what the "
+                      "compilation reaches; write the Lean type it abbreviates";
+      }
       for (const std::string& n : names)
       {
         d_terminatingBy[n] = text;
@@ -134,10 +173,10 @@ bool LeanMetaReduce::isBuiltinMetaSymbol(const std::string& sname) const
 
 bool LeanMetaReduce::printMetaType(const Expr& t,
                                    std::ostream& os,
-                                   MetaKind tctx) const
+                                   MetaKind tctx)
 {
   MetaKind tk = getTypeMetaKind(t);
-  if (tk == MetaKind::SMT_BUILTIN || tk == MetaKind::SMT_BUILTIN_DATATYPE)
+  if (tk == MetaKind::SMT_BUILTIN)
   {
     os << getEmbedName(t, tctx);
     return true;
@@ -394,6 +433,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
     }
     // native literals
     std::stringstream ss;
+    d_natives.use("native_string_lit", d_scope);
     ss << "(native_string_lit " << smtStr << ")";
     return ss.str();
   }
@@ -403,6 +443,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   }
   std::stringstream ss;
   ss << "native_" << cleanSmtId(smtStr);
+  d_natives.use(ss.str(), d_scope);
   return ss.str();
 }
 
@@ -564,8 +605,7 @@ void LeanMetaReduce::printEmbTermInternal(
       // operators that print the identifier embedding e.g.
       // `($native_apply_3 "ite"` becomes `(ite`
       if (sname.compare(0, 14, "$native_apply_") == 0
-          || sname.compare(0, 13, "$native_type_") == 0
-          || sname.compare(0, 16, "$native_datatype") == 0)
+          || sname.compare(0, 13, "$native_type_") == 0)
       {
         std::string embName = getEmbedName(recTerm, tinit);
         if (recTerm.getNumChildren() > 2)
@@ -677,7 +717,14 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
                                      bool isDefine)
 {
   std::string vname = getName(v);
-  if (vname == "$eo_ite")
+  // $eo_hash has no Lean: EO leaves what eo::hash returns underconstrained, so
+  // a definition compiled through it says nothing this backend could prove,
+  // and the native layer defines no native_thash for one to call. Refusing to
+  // print it is what leaves a signature with no use for hash unaffected --
+  // nothing names the definition, so nothing misses it -- while one that does
+  // use it gets Lean naming a definition that was never written, which Lean
+  // reports.
+  if (vname == "$eo_ite" || vname == "$eo_hash")
   {
     return;
   }
@@ -697,6 +744,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       (*out) << "partial ";
 #endif
     }
+    d_scope = scopeOf(out);
     (*out) << "def " << cleanId(vname) << " : ";
     printMetaType(vt, *out, vctx);
     (*out) << " := ";
@@ -818,6 +866,9 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     decl << "noncomputable ";
     out = &d_smt;
   }
+  // Which module this program comes out in is settled, so a native it names
+  // is named from there, see NativeLayer::use.
+  d_scope = scopeOf(out);
   decl << "def " << cleanId(vname);
   size_t macroStartArg = 1;
   bool macroSuccess = true;
@@ -1086,6 +1137,11 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
 
 void LeanMetaReduce::finalizeDecl(const Expr& e)
 {
+  // A declaration is a case of the datatypes of the embedding, and those stand
+  // above every module that holds a block of the layer, so a native its type
+  // names has to be seen from all of them. Said here rather than left to what
+  // the last stream set, as SmtMetaReduce::finalizeDecl says it too.
+  d_scope = "SmtEval";
   if (!beginFinalizeDecl(e))
   {
     return;
@@ -1130,6 +1186,27 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   {
     out = &d_cmdDt;
   }
+  // A constructor of one of the datatypes the embedding is built over rather
+  // than of a term, a type or a value: the map, the sequence, the regular
+  // language and the three a datatype declaration is made of. Which of them
+  // there are is the target's to declare, so the backend gives an inductive to
+  // whatever it is handed, named as the type the constructor returns.
+  std::string embedName;
+  if (out == nullptr && isEmbedDatatypeKind(tk))
+  {
+    Expr ce = e;
+    Expr dty = d_tc.getType(ce);
+    if (dty.getKind() == Kind::FUNCTION_TYPE)
+    {
+      dty = dty[dty.getNumChildren() - 1];
+    }
+    std::stringstream tn;
+    if (printMetaType(dty, tn, tk))
+    {
+      embedName = tn.str();
+      out = &d_embedDt[embedName];
+    }
+  }
   if (out == nullptr)
   {
     Trace("lean-meta") << "Do not include " << e << std::endl;
@@ -1161,9 +1238,11 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   }
   else if (tk == MetaKind::EUNOIA && isAtomicEo(c, cnamek, uarity))
   {
-    AlwaysAssert(uarity < 4)
-        << "Lean meta supports at most three opaque operator indices, got "
-        << uarity << " for " << e;
+    AlwaysAssert(uarity <= s_maxIndexArity)
+        << "The embedding declares $emb_UOp up to " << s_maxIndexArity
+        << " indices, and " << e << " takes " << uarity
+        << "; declare the wider constructor in eo_desugar_native.eo and raise "
+           "s_maxIndexArity to match";
     d_emittedUserOps.insert(std::make_pair(cname, uarity));
     std::stringstream& etd = d_embedTOpDt[uarity];
     etd << "  | " << cname << " : UserOp";
@@ -1198,11 +1277,24 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
     // sst.str() << "\" " << termKindToString(tk) << std::endl;
   }
-  printMetaTypeKind(tk, *out);
+  if (!embedName.empty())
+  {
+    (*out) << embedName;
+  }
+  else
+  {
+    printMetaTypeKind(tk, *out);
+  }
   (*out) << std::endl;
   // the ordering key methods are generated in lockstep with the datatypes they
   // order, so that the tag of a constructor is its index in the datatype.
-  if (tk == MetaKind::SMT_TYPE)
+  if (!embedName.empty())
+  {
+    printOrderKeyCase(cname, argTypes, d_embedNcons[embedName],
+                      d_embedKey[embedName]);
+    d_embedNcons[embedName]++;
+  }
+  else if (tk == MetaKind::SMT_TYPE)
   {
     printOrderKeyCase(cname, argTypes, d_smtTypeNcons, d_smtTypeKey);
     d_smtTypeNcons++;
@@ -1212,6 +1304,12 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     printOrderKeyCase(cname, argTypes, d_smtValueNcons, d_smtValueKey);
     d_smtValueNcons++;
   }
+}
+
+bool LeanMetaReduce::isEmbedDatatypeKind(MetaKind k)
+{
+  return k == MetaKind::SMT_MAP || k == MetaKind::SMT_SEQ
+         || k == MetaKind::SMT_EMBED;
 }
 
 std::string LeanMetaReduce::getOrderKeyMethod(const std::string& t)
@@ -1272,21 +1370,60 @@ void LeanMetaReduce::printOrderKeyCase(const std::string& cname,
   os << " => node " << tag << " [" << keys.str() << "]" << std::endl;
 }
 
+std::string LeanMetaReduce::printTheoryOpDefs() const
+{
+  static const char* const titles[] = {
+      "Ordinary user operators.",
+      "User operators with one index.",
+      "User operators with two indices.",
+      "User operators with three indices.",
+      "User operators with four indices.",
+      "User operators with five indices."};
+  std::stringstream defs;
+  bool first = true;
+  for (size_t n = 0; n <= s_maxIndexArity; n++)
+  {
+    const std::string cons = d_embedTOpDt[n].str();
+    if (cons.empty())
+    {
+      continue;
+    }
+    // the marker stands on a line of its own, so what is written here ends
+    // where its last line does and the blank line between two inductives is
+    // what the one before it carries
+    if (!first)
+    {
+      defs << std::endl << std::endl;
+    }
+    first = false;
+    std::string name = "UserOp";
+    if (n > 0)
+    {
+      name += std::to_string(n);
+    }
+    defs << "/-" << std::endl
+         << titles[n] << std::endl
+         << "-/" << std::endl
+         << "inductive " << name << " : Type where" << std::endl
+         << cons << std::endl
+         << "deriving Repr, DecidableEq, Inhabited, Ord";
+  }
+  return defs.str();
+}
+
 void LeanMetaReduce::finalizeChecker()
 {
   const std::string outPatht =
       emitResourceFile("plugins/lean_meta/lean_meta_checker_term.lean",
                        "plugins/lean_meta/lean_meta_checker_term_gen.lean",
                        {{"$LEAN_TERM_DEF$", d_embedTermDt.str()},
-                        {"$LEAN_EO_THEORY_OP_DEF$", d_embedTOpDt[0].str()},
-                        {"$LEAN_EO_THEORY_OP1_DEF$", d_embedTOpDt[1].str()},
-                        {"$LEAN_EO_THEORY_OP2_DEF$", d_embedTOpDt[2].str()},
-                        {"$LEAN_EO_THEORY_OP3_DEF$", d_embedTOpDt[3].str()}});
+                        {"$LEAN_EO_THEORY_OP_DEFS$", printTheoryOpDefs()}});
   Trace("lean-meta") << "Write lean-defs-term " << outPatht << std::endl;
   const std::string outPath =
       emitResourceFile("plugins/lean_meta/lean_meta_checker.lean",
                        "plugins/lean_meta/lean_meta_checker_gen.lean",
-                       {{"$LEAN_DEFS$", d_defs.str()},
+                       {{"$NATIVE_DEFS$", d_natives.defs("Eo")},
+                        {"$LEAN_DEFS$", d_defs.str()},
                         {"$LEAN_DEFS_TOTAL$", d_defsTotal.str()},
                         {"$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str()},
                         {"$LEAN_CHECKER_CMD_DEF$", d_cmdDt.str()},
@@ -1436,8 +1573,7 @@ void LeanMetaReduce::finalizeParser()
   // The operators that the parser template declares itself, which a definition
   // of the same name does not override. Keep in sync with the head of
   // plugins/lean_meta/lean_meta_parser.lean.
-  std::set<std::string> opNames = {"Type", "Bool", "false", "true", "->",
-                                   "@list"};
+  std::set<std::string> opNames = {"Bool", "false", "true", "->", "@list"};
   std::stringstream ops;
   std::set<std::string> seenOps;
   for (const ParserOp& op : d_parserOps)
@@ -1496,6 +1632,9 @@ void LeanMetaReduce::finalizeParseDefs(const std::set<std::string>& opNames,
                                        std::ostream& ops,
                                        std::ostream& macros)
 {
+  // The parser is written over Logos, so a native it names is named from
+  // there rather than from a module of its own.
+  d_scope = "Eo";
   std::set<std::string> seen;
   for (const std::pair<std::string, Expr>& d : d_parseDefs)
   {
@@ -1632,6 +1771,41 @@ void LeanMetaReduce::finalizeParseDefs(const std::set<std::string>& opNames,
   }
 }
 
+std::string LeanMetaReduce::printEmbedKeys() const
+{
+  // The ordering key of each, named as getOrderKeyMethod names one and
+  // standing in the mutual block with the keys of the type and the value.
+  std::stringstream keys;
+  for (const std::pair<const std::string, std::stringstream>& dt : d_embedKey)
+  {
+    keys << "@[expose] def " << getOrderKeyMethod(dt.first) << " : "
+         << dt.first << " -> Key" << std::endl
+         << dt.second.str() << std::endl;
+  }
+  return keys.str();
+}
+
+std::string LeanMetaReduce::printEmbedDatatypes() const
+{
+  // One inductive per datatype the target declared the constructors of, in
+  // the order the constructors arrived, which is the order the ordering key
+  // beside it takes their tags from. They stand in the mutual block with the
+  // three the backend writes for itself, so nothing here has to order them
+  // against one another.
+  std::stringstream defs;
+  for (const std::pair<const std::string, std::stringstream>& dt : d_embedDt)
+  {
+    defs << "/-" << std::endl
+         << "The " << dt.first << " of the embedding." << std::endl
+         << "-/" << std::endl
+         << "inductive " << dt.first << " : Type where" << std::endl
+         << dt.second.str()
+         << "deriving Repr, DecidableEq, Inhabited, Ord" << std::endl
+         << std::endl;
+  }
+  return defs.str();
+}
+
 void LeanMetaReduce::finalizeSmtModel()
 {
   std::vector<Replacement> defsRepl{{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
@@ -1647,6 +1821,7 @@ void LeanMetaReduce::finalizeSmtModel()
     // supplied when the option is on, where its absence is reported.
     defsRepl.emplace_back("$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str());
   }
+  defsRepl.emplace_back("$LEAN_SMT_EMBED_DEFS$", printEmbedDatatypes());
   const std::string outPathDefs =
       emitResourceFile("plugins/lean_meta/lean_meta_smt_model_defs.lean",
                        "plugins/lean_meta/lean_meta_smt_model_defs_gen.lean",
@@ -1656,13 +1831,15 @@ void LeanMetaReduce::finalizeSmtModel()
       emitResourceFile("plugins/lean_meta/lean_meta_smt_value_order.lean",
                        "plugins/lean_meta/lean_meta_smt_value_order_gen.lean",
                        {{"$LEAN_SMT_TYPE_KEY$", d_smtTypeKey.str()},
-                        {"$LEAN_SMT_VALUE_KEY$", d_smtValueKey.str()}});
+                        {"$LEAN_SMT_VALUE_KEY$", d_smtValueKey.str()},
+                        {"$LEAN_SMT_EMBED_KEY$", printEmbedKeys()}});
   Trace("lean-meta") << "Write lean-order " << outPathOrder << std::endl;
   const std::string outPath =
       emitResourceFile("plugins/lean_meta/lean_meta_smt_model.lean",
                        "plugins/lean_meta/lean_meta_smt_model_gen.lean",
                        {{"$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str()},
-                        {"$LEAN_SMT_EVAL$", d_smt.str()}});
+                        {"$LEAN_SMT_EVAL$", d_smt.str()},
+                        {"$NATIVE_DEFS$", d_natives.defs("Smtm")}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }
 
@@ -1692,7 +1869,7 @@ void LeanMetaReduce::finalize()
 {
   finalizePrograms();
   // refutation is if the method returns true
-  d_eoIsRef << "  | intro (F : Term) (c : CCmdList) : " << std::endl;
+  d_eoIsRef << "  | intro (F : CArgList) (c : CCmdList) : " << std::endl;
   d_eoIsRef << "    (__eo_checker_is_refutation F c) = true -> "
                "(eo_is_refutation F c)"
             << std::endl;
@@ -1709,24 +1886,29 @@ void LeanMetaReduce::finalize()
   }
 #endif
 
-  for (size_t i=0; i<4; i++)
+  // UserOp is named by the checker whether or not the signature declares an
+  // operator of no index, so it is written even when it would be empty, and
+  // an inductive with no constructor cannot derive what Term asks of it. The
+  // indexed arities are under no such obligation: an arity with no operator
+  // is one Term has no constructor for, so nothing names its inductive and
+  // printTheoryOpDefs writes none.
+  if (d_embedTOpDt[0].str().empty())
   {
-    std::stringstream& etd = d_embedTOpDt[i];
-    if (etd.str().empty())
-    {
-      etd << "  | None : UserOp";
-      if (i>0)
-      {
-        etd << i;
-      }
-      etd << std::endl;
-    }
+    d_embedTOpDt[0] << "  | None : UserOp" << std::endl;
   }
-  finalizeChecker();
   if (d_generateParser)
   {
     finalizeParser();
   }
+  // Every module has now said what of the native layer it names, so where a
+  // block of the layer comes out is settled and the modules that hold one can
+  // be written. SmtEval is the first of them: it carries no generated text of
+  // its own, and is emitted here rather than copied by the driver so that
+  // what it holds of the layer is written with the rest.
+  emitResourceFile("plugins/lean_meta/lean_meta_smt_eval.lean",
+                   "plugins/lean_meta/lean_meta_smt_eval_gen.lean",
+                   {{"$NATIVE_DEFS$", d_natives.defs("SmtEval")}});
+  finalizeChecker();
   finalizeSmtModel();
   finalizeSpec();
   finalizeLemmas();
