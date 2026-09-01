@@ -1137,6 +1137,11 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
 
 void LeanMetaReduce::finalizeDecl(const Expr& e)
 {
+  // A declaration is a case of the datatypes of the embedding, and those stand
+  // above every module that holds a block of the layer, so a native its type
+  // names has to be seen from all of them. Said here rather than left to what
+  // the last stream set, as SmtMetaReduce::finalizeDecl says it too.
+  d_scope = "SmtEval";
   if (!beginFinalizeDecl(e))
   {
     return;
