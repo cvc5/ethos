@@ -53,3 +53,31 @@ You can also filter tests using regular expressions for example:
 ```
 ctest -R arith
 ```
+
+## Optional `ethos-eoc` pipeline
+
+The experimental Eunoia compiler workflow is built as a separate standalone
+project in [`plugins/`](plugins/), leaving the core ethos build untouched:
+
+```bash
+cmake -S plugins -B build-eoc
+cmake --build build-eoc --target ethos-eoc -j4
+```
+
+The workflow is driven by [`tools/eoc/driver.py`](tools/eoc/driver.py), whose
+usage is documented in [`tools/eoc/README.md`](tools/eoc/README.md).
+
+## How this repository is maintained
+
+The two halves of this repository are held to different standards, and the
+difference matters when you decide what to rely on.
+
+The ethos checker itself -- `src/`, and the tests and signatures around it --
+is maintained by hand. Every line of it is something a maintainer has read and
+understands, and it is reviewed on those terms.
+
+Everything under [`plugins/`](plugins/) is experimental: **do not trust it.**
+It is a research vehicle for the Eunoia compiler workflow, not part of the
+checker. It is not held to the standard above, its interfaces change without
+notice, and what it produces is to be checked rather than believed. Nothing
+that matters should depend on it.
