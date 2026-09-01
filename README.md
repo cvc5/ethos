@@ -62,3 +62,5 @@ developers, and its code is fully understood by humans.
 The `plugins/` and `tools/` directories are experimental and come with no
 guarantees. They are not part of the checker and are not held to the standard
 above.
+
+A pull request must clearly document whether it was AI assisted.
