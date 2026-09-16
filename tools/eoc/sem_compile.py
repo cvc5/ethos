@@ -636,12 +636,21 @@ def head_lines(config, blocks):
   out of what was written for it. The second is of a signature of an input
   alone: the symbols of the target are the embedding's own and are trimmed by
   nothing.
+
+  Every block a set writes is asked, the ones that go to the desugar stage as
+  much as the ones that stay here: a nil predicate names the nil it is about,
+  as the one for str.++ names seq.empty, and the desugar stage splices the
+  block of a symbol the trimmed signature declares, see inline_called_blocks in
+  tools/eoc/driver.py. Its head is the only place the trimming is told, so what
+  the two files say has to be said in the one head; a block that goes elsewhere
+  would otherwise be spliced into a signature that no longer declares what it
+  names.
   """
   out = []
   for name, kind in config.excludes:
     out.append('; $eoc-exclude %s %s' % (kind, name))
   if not config.is_target:
-    for sym, text in blocks:
+    for sym, text in list(blocks) + config.desugar_blocks:
       named = depends(sym, text)
       if named:
         out.append('; $eoc-depends %s %s' % (sym, ' '.join(named)))
@@ -946,13 +955,20 @@ def compile_config(config, vocab, macros):
 
 
 def check_distinct(configs):
-  """A run compiles one set of each role, and no more.
+  """A run compiles one set of each role, and no more, and no set has two.
 
   Where a set compiles to is said by its role, see Config.target, so two of
   one role would write one file and what was written first would be read as
   what was written last. The run refuses instead.
+
+  One set given both roles is the same thing said the other way round: it
+  would compile twice, once to each shape, and what came back for it would be
+  whichever of the two was compiled last. Which role a set has is said by the
+  option that names it and by nothing about the file itself, so this is the
+  only thing that stops one file from being named under both.
   """
   seen = {}
+  roles = set()
   for config in configs:
     t = config.target
     if t in seen:
@@ -962,6 +978,12 @@ def check_distinct(configs):
              'SMT-LIB semantics' if config.is_target else 'input semantics',
              report.rel(t)))
     seen[t] = config.name
+    where = os.path.realpath(config.path)
+    if where in roles:
+      die('%s is both the SMT-LIB semantics and the semantics of an input, '
+          'and a set is one or the other: name it with --smt-semantics or '
+          'with --semantics, not with both' % config.name)
+    roles.add(where)
 
 
 def target_blocks(sets):

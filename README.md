@@ -66,3 +66,14 @@ cmake --build build-eoc --target ethos-eoc -j4
 
 The workflow is driven by [`tools/eoc/driver.py`](tools/eoc/driver.py), whose
 usage is documented in [`tools/eoc/README.md`](tools/eoc/README.md).
+
+## How this repository is maintained
+
+- The core of Ethos, the checker in `src/`, is maintained by human
+developers, and its code is fully understood by humans.
+
+- The `plugins/` and `tools/` directories are experimental and come with no
+guarantees. They are not part of the checker and are not held to the standard
+above.
+
+- A pull request is recommended to document whether it was AI assisted.

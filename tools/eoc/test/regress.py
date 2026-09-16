@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Says whether the pipeline still writes what it wrote.
 
-A run compiles one signature that stands in this tree and takes the digest of
+A run compiles the signatures that stand in this tree and takes the digest of
 every file it leaves behind, stage files and published artifacts alike, and
 compares that with what is checked in. What it guards is the one property a
 refactor of the compiler has to have and nothing else here checks: that the
@@ -25,19 +25,21 @@ which is what CI passes.
 What is checked in is the digest of each file rather than the file, since the
 tree checks in no generated artifact at all -- see the `tools/eoc/out/` line of
 .gitignore, and `88097405`, which took the artifacts out. A digest says the
-same thing in twenty lines, and a run that changed something says which files
+same thing in a line apiece, and a run that changed something says which files
 it changed; what they now hold is a `--final-out-dir` away.
 
-The digests are of what the pipeline wrote *for this signature under these
+The digests are of what the pipeline wrote *for these signatures under these
 semantics*, so a change to `semantics/smt.eos` or to `development-cpc.eos`
 moves them, and rightly: a run that means to change the model is a run that
 means to change these. Say so with --update, and what the diff of expected.txt
 then shows is how much of the output that change reached.
 
-The signature is `tests/Booleans-rules.eo`, compiled for one rule. The
-whole-signature path is not covered: no signature in this tree is one the
-semantics the tool ships with covers entirely, see `lean --all`, which stops
-at the first symbol the semantics says nothing about.
+Two signatures are compiled, each for one rule, and what each wrote stands
+under a directory of its own so that the two do not write over one another; see
+INPUTS for what the second is there for. The whole-signature path is not
+covered: no signature in this tree is one the semantics the tool ships with
+covers entirely, see `lean --all`, which stops at the first symbol the
+semantics says nothing about.
 """
 
 import argparse
@@ -57,13 +59,24 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 DRIVER = os.path.join(ROOT, 'tools', 'eoc', 'driver.py')
 EXPECTED = os.path.join(HERE, 'expected.txt')
 
-# The signature a run compiles, the semantics it is compiled under, and the
-# rule it is compiled for. One rule of one signature is what the trimming
-# leaves the stages the most to do with the least to check in.
-INPUT = os.path.join(ROOT, 'tests', 'Booleans-rules.eo')
+# The semantics every signature here is compiled under.
 SEMANTICS = os.path.join(ROOT, 'tools', 'eoc', 'semantics',
                          'development-cpc.eos')
-TARGET = 'and_intro'
+
+# The signatures a run compiles and the rule each is compiled for. One rule of
+# one signature is what the trimming leaves the stages the most to do with the
+# least to check in.
+#
+# The second is here for the one thing the first cannot reach. The desugar
+# stage writes the nil predicate of an n-ary symbol itself where the nil is
+# ground, and asks the input's semantics for it where it is not; every
+# :right-assoc-nil that tests/Booleans-rules.eo reaches is ground, so a run
+# over that signature alone leaves inline_called_blocks in tools/eoc/driver.py
+# with nothing to keep and says nothing about what it does when there is. The
+# nil of str.++ is the empty sequence of the element type, which is not ground,
+# so a rule that names it is what asks the other branch of that question.
+INPUTS = ((os.path.join(ROOT, 'tests', 'Booleans-rules.eo'), 'and_intro'),
+          (os.path.join(HERE, 'nary-nil.eo'), 'str_concat_lprefix'))
 
 # What a run does: the subcommand, the arguments it takes after the ones they
 # share, and whether it is compiled for one rule or for the whole signature.
@@ -83,19 +96,27 @@ SUBCOMMAND = {'sygus': 'vc', 'eo': 'desugar'}
 SOLVER_RUNS = frozenset(('vc', 'sygus'))
 
 
-def run(what, extra, target, build_dir, out_dir, cvc5):
-  """Compile the signature one way, saying nothing unless it fails.
+def name_of(signature):
+  """What a signature is called, which is what the tree of what it wrote is
+  named after."""
+  return os.path.splitext(os.path.basename(signature))[0]
 
-  `cvc5` is the one to read back what a run wrote, or None to go without. It
-  is named rather than left to the driver to find so that a run says which it
-  used, and it is passed only to the runs that write something for it.
+
+def run(what, extra, signature, target, build_dir, out_dir, cvc5):
+  """Compile one signature one way, saying nothing unless it fails.
+
+  `target` is the rule to compile it for, or None where the run is over the
+  whole of it. `cvc5` is the one to read back what a run wrote, or None to go
+  without. It is named rather than left to the driver to find so that a run
+  says which it used, and it is passed only to the runs that write something
+  for it.
   """
   read_back = (['--cvc5', cvc5] if cvc5 is not None and what in SOLVER_RUNS
                else ['--skip-cvc5'])
   cmd = [sys.executable, DRIVER, SUBCOMMAND.get(what, what),
          '--build-dir', build_dir, '--final-out-dir', out_dir,
          '--no-build', *read_back, '--semantics', SEMANTICS,
-         *extra, INPUT, *( [TARGET] if target else [] )]
+         *extra, signature, *([target] if target is not None else [])]
   done = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
   if done.returncode != 0:
     sys.stdout.write(done.stdout)
@@ -137,9 +158,10 @@ def read_expected():
 
 def write_expected(found):
   with open(EXPECTED, 'w', encoding='utf-8') as fh:
-    fh.write('# The digest of every file the pipeline writes for the run in\n'
-             '# regress.py, which is what says the bytes have not moved. Run\n'
-             '# that file with --update to write this one.\n')
+    fh.write('# The digest of every file the pipeline writes for the runs in\n'
+             '# regress.py, under a directory named for the signature each\n'
+             '# compiled. This is what says the bytes have not moved; run that\n'
+             '# file with --update to write this one.\n')
     for path in sorted(found):
       fh.write('%s  %s\n' % (found[path], path))
 
@@ -179,14 +201,23 @@ def main():
   keep = a.out_dir is not None
   out_dir = os.path.abspath(a.out_dir) if keep else tempfile.mkdtemp()
   try:
-    report.step('Compiling %s for %s' % (report.rel(INPUT), TARGET))
+    report.step('Compiling %s'
+                % ', '.join('%s for %s' % (report.rel(s), t)
+                            for s, t in INPUTS))
     if cvc5 is None:
       report.step('no cvc5 on PATH; the solver files are checked by their '
                   'digest alone', 1)
     else:
       report.step('cvc5 reads back what the solver runs write: %s' % cvc5, 1)
-    for what, extra, target in RUNS:
-      run(what, extra, target, build_dir, out_dir, cvc5)
+    for signature, target in INPUTS:
+      # Each signature writes under a directory of its own: what a run
+      # publishes stands at a fixed place under the output tree -- `lean/`,
+      # `eo.eo` -- so two signatures sharing one would each be checked against
+      # what the other left.
+      where = os.path.join(out_dir, name_of(signature))
+      for what, extra, one_rule in RUNS:
+        run(what, extra, signature, target if one_rule else None,
+            build_dir, where, cvc5)
     found = digests(out_dir)
   finally:
     if not keep:
