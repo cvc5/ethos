@@ -1,0 +1,26 @@
+; The configuration of the desugar stage.
+;
+; The stage rewrites a signature into the Eunoia the later stages are written
+; over, and almost all of what it does is read off the signature itself. This
+; set says the one thing that cannot be: whether a term is the nil of an n-ary
+; symbol, where the nil depends on the type of what it terminates.
+;
+; A symbol declared `:right-assoc-nil` with a *ground* nil needs nothing here
+; -- the stage prints the nil and compares -- but one whose nil is of the
+; operand's type, as `+` is over the rationals and `bvadd` is over a width,
+; needs a predicate, and the stage may not call eo::typeof to write one. So a
+; symbol says the predicate under `:is-list-nil` in the set of its own
+; semantics, and the programs those compile to are written here rather than
+; into the model, which is a later stage than the one that asks.
+;
+; Compiled by tools/eoc/sem_compile.py, which writes the programs of the
+; aggregate below into tools/eoc/out/user_desugar.eo. That file stands where
+; the `(include "user_desugar.eo")` of plugins/desugar/eo_desugar.eo names it,
+; which is after the signature's own declarations and ahead of the cases that
+; call them.
+
+; Whether a term is the nil of an n-ary symbol. Unlike an aggregate of the
+; model, the cases of this one are not spliced into one program: the stage
+; asks for the predicate of a symbol by name, so each is written out as a
+; program of its own, named for the symbol it is of.
+(declare-aggregate-method $eo_is_list_nil_)

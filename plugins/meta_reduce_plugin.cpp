@@ -115,8 +115,7 @@ bool MetaReducePlugin::isSmtApplyApp(const Expr& oApp)
   }
   std::string sname = getName(oApp[0]);
   return (sname.compare(0, 14, "$native_apply_") == 0
-          || sname.compare(0, 13, "$native_type_") == 0
-          || sname.compare(0, 16, "$native_datatype") == 0);
+          || sname.compare(0, 13, "$native_type_") == 0);
 }
 
 MetaKind MetaReducePlugin::prefixToMetaKind(const std::string& str,
@@ -144,10 +143,6 @@ MetaKind MetaReducePlugin::getTypeMetaKindFor(const Expr& typ,
     if (sname.compare(0, 13, "$native_type_") == 0)
     {
       return MetaKind::SMT_BUILTIN;
-    }
-    if (sname.compare(0, 16, "$native_datatype") == 0)
-    {
-      return MetaKind::SMT_BUILTIN_DATATYPE;
     }
     if (sname == "$native_embed_eo")
     {
@@ -299,56 +294,6 @@ bool MetaReducePlugin::isProgramApp(const Expr& app)
 {
   return (app.getKind() == Kind::APPLY
           && app[0].getKind() == Kind::PROGRAM_CONST);
-}
-
-std::string MetaReducePlugin::emitResourceFile(
-    const std::string& resourcePath,
-    const std::string& outputPath,
-    const std::vector<Replacement>& replacements,
-    bool replAll) const
-{
-  std::ifstream in(getResourcePath(resourcePath));
-  if (!in.is_open())
-  {
-    EO_FATAL() << "MetaReducePlugin: failed to open resource " << resourcePath;
-  }
-
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  std::string rendered = ss.str();
-  for (const Replacement& repl : replacements)
-  {
-    // a tag that does not occur in the template is silently ignored by the
-    // methods below, which is always a mistake on the part of the caller
-    if (rendered.find(repl.first) == std::string::npos)
-    {
-      Warning() << "MetaReducePlugin: tag " << repl.first
-                << " does not occur in resource " << resourcePath << std::endl;
-      continue;
-    }
-    if (replAll)
-    {
-      rendered = replace_all(rendered, repl.first, repl.second);
-    }
-    else
-    {
-      replace(rendered, repl.first, repl.second);
-    }
-  }
-
-  std::string outPath = getOutputPath(outputPath);
-  std::ofstream out(outPath);
-  if (!out.is_open())
-  {
-    EO_FATAL() << "MetaReducePlugin: failed to open output " << outPath;
-  }
-  out << rtrimLines(rendered);
-  out.close();
-  if (!out)
-  {
-    EO_FATAL() << "MetaReducePlugin: failed to write output " << outPath;
-  }
-  return outPath;
 }
 
 }  // namespace ethos

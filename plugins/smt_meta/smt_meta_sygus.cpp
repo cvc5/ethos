@@ -74,22 +74,24 @@ void SmtMetaSygus::finalizeGrammars()
 {
   Trace("smt-meta-sygus") << "FINALIZE grammars" << std::endl;
   d_gisFinalized = true;
-  SygusGrammar* sg = getGrammarFor(d_null);
   std::map<Expr, std::set<Expr>> processed;
-  // add reference to unknown to all eo.Term grammars
-  for (std::pair<const Expr, SygusGrammar*>& g : d_grammarTypeAlloc)
-  {
-    Assert(!g.first.isNull());
-    sg->d_rules << g.second->d_gname << " ";
-    processed[d_null].insert(g.first);
-    if (g.first == d_gfun)
-    {
-      // (partial) function applications
-      // g.second->d_rules << "(eo.Apply " << g.second->d_gname << " "
-      //                  << sg->d_gname << ") ";
-    }
-  }
-  // resolve all unique references
+  // Resolve all unique references, the generic eo.Term grammar among them.
+  //
+  // Every grammar a type was allocated for is referenced from that grammar,
+  // and getGrammarFor already records each one in d_grefs[d_null] as it
+  // allocates it, so the loop below reaches them and nothing has to walk
+  // d_grammarTypeAlloc to find them. Walking it is what this used to do, and
+  // it is what a run cannot do and stay reproducible: that map is keyed by
+  // Expr, whose order is the order of the addresses its values happen to have
+  // (see Expr::operator< in src/expr.cpp), so the productions came out in an
+  // order that holds on one machine and not on the next. d_grefs holds the
+  // same references in the order the signature named them, which is the same
+  // order everywhere. See tools/eoc/test/regress.py, which is what says the
+  // bytes have not moved.
+  //
+  // A parked idea went with the old loop: giving the grammar of a
+  // function-typed argument, d_gfun, a production for the (partial)
+  // application (eo.Apply <that grammar> G_eo.Term).
   for (std::pair<const Expr, std::vector<Expr>>& g : d_grefs)
   {
     SygusGrammar* sg = getGrammarFor(g.first);

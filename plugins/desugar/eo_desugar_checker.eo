@@ -238,26 +238,32 @@ $EO_INVOKE_POP$
   )
 )
 
+; The formulas assumed by the input, pushed onto the state in order.
+;
+; They arrive as a list of the embedding rather than as a conjunction of the
+; calculus: a calculus need not have one, and naming a symbol of it here would
+; be this file assuming a signature it is compiled for every signature. So the
+; list is $eo_ArgList, which is what a rule's arguments already arrive in, and
+; nothing here is of any calculus. It also says what a conjunction could not:
+; assuming nothing and assuming a single formula that happens to be the unit
+; are different lists, where they were one term.
 (program $eo_invoke_assume_list
-  ((as Bool) (S $eo_State) (F Bool))
-  :signature ($eo_State Bool) $eo_State
+  ((as $eo_ArgList) (S $eo_State) (F Bool))
+  :signature ($eo_State $eo_ArgList) $eo_State
   (
-  (($eo_invoke_assume_list S (and F as))
+  (($eo_invoke_assume_list S $eot_aln) S)
+  (($eo_invoke_assume_list S ($eot_alc F as))
     ($eo_push_input_assume_check (eo::and ($eo_is_bool_type F) ($eo_is_closed F)) F ($eo_invoke_assume_list S as)))
-  (($eo_invoke_assume_list S true) S)
-  (($eo_invoke_assume_list S as) $s_stuck)
   )
 )
 
 
 ; Main entry point:
-; - as is a conjunction of formulas to assume.
-;   Note that this should always be an and-list, which will be interpreted
-;   as the top-level assertions.
+; - as is the list of formulas to assume, which are the top-level assertions.
 ; - cs is a command list to invoke. Note the indices of premises should take
 ; into account the size of as.
-(program $eo_checker_is_refutation ((as Bool) (cs $eo_CmdList))
-  :signature (Bool $eo_CmdList) $native_Bool
+(program $eo_checker_is_refutation ((as $eo_ArgList) (cs $eo_CmdList))
+  :signature ($eo_ArgList $eo_CmdList) $native_Bool
   (
   (($eo_checker_is_refutation as cs)
     ($eo_state_is_refutation ($eo_invoke_cmd_list ($eo_invoke_assume_list $s_nil as) cs)))

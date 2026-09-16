@@ -44,32 +44,40 @@ jobs:
         cmake --build build-cpp-compiler-test --parallel ${{ env.num_proc }} \
           --target cpp-compiler-roundtrip
 
-    # --signature names the central file of the configuration of the input's
-    # signature, which the driver compiles before the model-smt stage; that
-    # stage reads one such file and the plugin has none of its own, so it is
-    # required. See tools/eoc/semantics/README.md.
-    - name: Run EOC pipeline smoke tests
-      env:
-        EOC_SIGNATURE: tools/eoc/semantics/development-cpc.eos
+    # The build above is what writes the generated signatures, so this says
+    # they hold what compiling the configuration writes and, which nothing
+    # else checks, that each block of one stands after the blocks it names.
+    - name: Check the compiled semantics
+      run: python3 tools/eoc/sem_compile.py --check
+
+    # What reads back the verification conditions the pipeline writes. A digest
+    # says the bytes did not move; only a solver says they are well formed, and
+    # a change to the native layer of plugins/smt_meta/smt-vc.eos can leave a
+    # file that names a sort it never defines and still move only the bytes,
+    # which --update would then bless. The static release binary is downloaded
+    # rather than built -- cvc5 takes longer to build than everything else here
+    # together -- and pinned by version and digest so a run reads back with a
+    # known one.
+    - name: Install cvc5
       run: |
-        python3 tools/eoc/driver.py vc \
-          --build-dir build-eoc \
-          --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
-          --no-build --skip-cvc5 --signature "${EOC_SIGNATURE}" \
-          tests/Booleans-rules.eo and_intro
-        python3 tools/eoc/driver.py vc \
-          --build-dir build-eoc \
-          --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
-          --no-build --skip-cvc5 --sygus --signature "${EOC_SIGNATURE}" \
-          tests/Booleans-rules.eo and_intro
-        python3 tools/eoc/driver.py lean \
-          --build-dir build-eoc \
-          --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
-          --no-build --skip-cvc5 --signature "${EOC_SIGNATURE}" \
-          tests/Booleans-rules.eo and_intro
-        test -s "${RUNNER_TEMP}/eoc-smoke/vc/final-booleans-rules-and_intro.smt2"
-        test -s "${RUNNER_TEMP}/eoc-smoke/sygus/final-booleans-rules-and_intro.sy"
-        test -s "${RUNNER_TEMP}/eoc-smoke/lean/Rules/And_intro.lean"
+        version=1.3.4
+        sha256=dcdbfada0ce493ee98259c0816e0daafc561c223aadb3af298c2968e73ea39c6
+        curl -sSL -o "${RUNNER_TEMP}/cvc5.zip" \
+          "https://github.com/cvc5/cvc5/releases/download/cvc5-${version}/cvc5-Linux-x86_64-static.zip"
+        echo "${sha256}  ${RUNNER_TEMP}/cvc5.zip" | sha256sum --check --strict
+        unzip -q "${RUNNER_TEMP}/cvc5.zip" -d "${RUNNER_TEMP}"
+        echo "${RUNNER_TEMP}/cvc5-Linux-x86_64-static/bin" >> "$GITHUB_PATH"
+
+    # The four runs the pipeline has, over each signature the regression
+    # compiles, and then the bytes: what it wrote is compared with the digests
+    # checked in, which is what says a change to the compiler left the output
+    # where it was, and the two runs that write for a solver have cvc5 read
+    # back what they wrote.
+    # --require-cvc5 says a run without one is not a run, so that a step above
+    # that failed to install it cannot quietly leave this checking less. See
+    # tools/eoc/test/regress.py.
+    - name: Check the pipeline still writes what it wrote
+      run: python3 tools/eoc/test/regress.py --build-dir build-eoc --require-cvc5
 
     - name: Build and run custom auto-parser binary
       run: |

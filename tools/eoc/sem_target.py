@@ -22,7 +22,7 @@ and `%s` in a `stands_for` for the parameter one argument was given. The two
 shapes themselves are at the foot of the file.
 """
 
-from sem_lang import FAMILY, applied, die
+from sem_lang import FAMILY, applied, declared_type, die
 
 
 # What an argument written as the input wrote it stands for: itself where the
@@ -44,24 +44,72 @@ class Constructor:
 
   A set whose constants are another's -- the signature of an input, whose
   constants are the target's -- has none.
+
+  What it is *called* is no part of this: a constructor builds one of the
+  embedding's datatypes, and that datatype says what a constructor of it is
+  named, what applies it and where it is written, once and for every form that
+  builds one. So a literal and a symbol are two forms over one datatype rather
+  than two spellings of one name, and the stage that reads the generated file
+  is told the names rather than holding them. See declare-embed-datatype in
+  plugins/model_smt/model_smt.eos and _EMBED_DATATYPES below.
+
+  What is left here is what the *form* says: what an argument that declares no
+  type of its own is of, which differs between forms over one datatype -- a
+  literal carries a native where a symbol carries a term.
   """
 
-  def __init__(self, name, macro, argument, returns, opaque=False):
-    self.name = name            # the constructor, e.g. $emb_sm.{symbol}
-    self.macro = macro          # the macro that applies it
+  def __init__(self, builds, argument, opaque=False, macro_reserved=True):
+    # The datatype of the embedding one of these builds, named as a type is.
+    self.builds = builds
     self.argument = argument    # the type of an argument, by how it was written
-    self.returns = returns
     self.opaque = opaque
+    # Whether the macro is the compiler's name to write and no one else's. A
+    # value has no bare name of its own -- what a body writes for one is a
+    # macro of the set, `smt.bool` -- so the vocabulary block of the set names
+    # the macro that applies each value, and the namespace is shared.
+    self.macro_reserved = macro_reserved
+
+  @property
+  def datatype(self):
+    """What the embedding declared about the datatype this builds."""
+    dt = _EMBED_DATATYPES.get(self.builds)
+    if dt is None:
+      die('the embedding has no datatype called %s, which is what a '
+          'constructor written in sem_target.py builds; declare it with '
+          'declare-embed-datatype' % self.builds)
+    return dt
+
+  @property
+  def name(self):
+    """The constant, e.g. $emb_sm.{symbol}."""
+    return self.datatype.cons + '{symbol}'
+
+  @property
+  def macro(self):
+    """The macro that applies it, e.g. $sm_{symbol}."""
+    return self.datatype.macro + '{symbol}'
+
+  @property
+  def returns(self):
+    return self.datatype.type
 
   def type_of(self, kind, entry):
+    if not self.argument:
+      die('%s: every argument of a %s says the type it is of'
+          % (entry.name, entry.decls.noun))
     if kind not in self.argument:
       die('%s: no argument of a constructor is %s' % (entry.name, kind))
     return self.argument[kind]
 
-  def render(self, entry):
-    """The constructor of a symbol together with the macro that applies it."""
+  def render(self, entry, ctx=None):
+    """The constructor of a symbol together with the macro that applies it.
+
+    An argument is of the type its parameter says, where it says one, and of
+    what the kind it was written as stands for otherwise.
+    """
     xs = [SLOT % (i + 1) for i in range(len(entry.params))]
-    ts = [self.type_of(k, entry) for k in entry.kinds]
+    ts = [declared_type(t, entry, ctx) if t else self.type_of(k, entry)
+          for k, t in zip(entry.kinds, entry.types)]
     con = self.name.format(symbol=entry.name)
     tail = ' :opaque' if self.opaque else ''
     return ['(declare-parameterized-const %s (%s) %s)'
@@ -80,26 +128,68 @@ class Constructor:
 # What the i'th argument of a symbol is called in the program written for it.
 SLOT = 'x%d'
 
+# What a case calls the parameter of an argument, by the type that argument is
+# declared to be of. A name is that letter and the place the argument stands
+# at, so `s1` is a native string first, `T2` a type second and `x3` a term
+# third. The program a case is spliced into declares each name once, so two
+# types may not share a letter; add a type here to give it one.
+SLOT_BY_TYPE = {
+    '$native_Bool': 'b',
+    '$native_Char': 'c',
+    '$native_Int': 'i',
+    '$native_Nat': 'n',
+    '$native_Rat': 'r',
+    '$native_String': 's',
+    '$smt_Term': 'x',
+    '$smt_Type': 'T',
+    '$smt_Value': 'v',
+    '$smt_Map': 'm',
+    '$smt_Seq': 'q',
+    '$smt_RegLan': 're',
+    '$smt_Datatype': 'd',
+    '$smt_DatatypeCons': 'dc',
+    '$smt_DatatypeDecl': 'dd',
+}
+
 
 class Aggregate:
   """One attribute a symbol may carry, and what writing it produces.
 
-  A symbol says one case and the compiler writes the program around it. Most of
-  what follows describes that program; `program` alone says where its cases
-  then go.
+  A symbol says one case and the compiler writes the program around it. What
+  follows describes how that program is written; where its cases then go is
+  said by the entry of the aggregate set it names, see bind.
   """
 
-  def __init__(self, key, case, declares, signature, stands_for, level,
-               program=None, matches=None, context=(), own=(), default=None,
-               primary=False, sole=False, helper=None, helper_attr=None,
+  def __init__(self, key, of, declares, signature, stands_for, level,
+               matches=None, context=(), own=(), default=None,
+               primary=False, sole=False, helper_attr=None,
                helper_arg=None, helper_gives=None, otherwise=None, slots=None):
     self.key = key                  # the attribute a symbol writes
-    self.case = case                # the program written for the symbol
+    # The entry of plugins/model_smt/model_smt.eos this is written by, which
+    # says the three things a stage of the pipeline agrees with this compiler
+    # about: the aggregate the cases are spliced into, the name the case is
+    # written under, and where the stage writes them. Those are filled in by
+    # bind, so what is left here is how a case is written, which nothing but
+    # this file reads.
+    self.of = of
+    self.program = None
+    self.case = None
+    self.into = None
+    # The program a case may hand its work to, i.e. one written over what the
+    # arguments evaluate to rather than over the arguments themselves, and
+    # where those are declared ahead of the aggregate. Filled in by bind, and
+    # only where the entry says the aggregate has one.
+    self.helper = None
+    self.forward = None
+    # Which stage the aggregate is of, which is said by the set that declares
+    # it and filled in by bind. One of the model has its cases spliced into a
+    # template of plugins/model_smt/model_smt.eo; one of the desugar stage is
+    # written out as a program per symbol, into a file of its own.
+    self.stage = 'model'
     self.declares = declares        # what it declares, once per argument
     self.takes, self.gives = signature
     self.stands = stands_for        # what an argument means in a body, by kind
     self.level = level              # the vocabulary a body is written in
-    self.program = program          # the aggregate its cases are spliced into
     # The prefix a case matches the symbol under where it gives no pattern of
     # its own: $sm_ for the macro of the target, empty for the symbol itself.
     # None where the subject is not the symbol applied to its arguments, and
@@ -112,9 +202,6 @@ class Aggregate:
     self.default = default
     self.primary = primary          # the aggregate a symbol contributes to by
     self.sole = sole                # being one, and one it contributes to alone
-    # The program a case may hand its work to, i.e. one written over what the
-    # arguments evaluate to rather than over the arguments themselves.
-    self.helper = helper
     self.helper_attr = helper_attr
     self.helper_arg = helper_arg
     self.helper_gives = helper_gives
@@ -128,8 +215,20 @@ class Aggregate:
 
   # -- the names a case is written with ---------------------------------------
 
-  def slot(self, i, kind=None):
-    """What a case calls the parameter of its i'th argument."""
+  def slot(self, i, kind=None, declared=None, entry=None):
+    """What a case calls the parameter of its i'th argument.
+
+    A parameter that says the type it is of is called after that type -- the
+    letter SLOT_BY_TYPE gives it and the place it stands at -- so that the
+    program the cases are spliced into can declare each name once; one that
+    does not is called after its kind, or x<i> where the kind says nothing.
+    """
+    if declared is not None:
+      if declared not in SLOT_BY_TYPE:
+        die('%s: %s has no letter to name a parameter of it by; give it one in '
+            'SLOT_BY_TYPE, and one no other type there has'
+            % (entry.name if entry is not None else 'a case', declared))
+      return '%s%d' % (SLOT_BY_TYPE[declared], i + 1)
     fmt = self.slots.get(kind, SLOT) if self.slots else SLOT
     return fmt % (i + 1)
 
@@ -143,7 +242,14 @@ class Aggregate:
     """
     out = ['(%s %s)' % (v, t) for v, t in self.context]
     out += ['(%s %s)' % (v, t) for v, t in self.own]
-    if isinstance(self.declares, dict):
+    if entry.types and any(t is not None for t in entry.types[:n]):
+      # Each argument is of the type it says, and is declared under the name
+      # that type gives it, see Aggregate.slot.
+      for i, t in enumerate(entry.types[:n]):
+        declared = declared_type(t, entry, ctx) if t else None
+        out.append('(%s %s)' % (self.slot(i, entry.kinds[i], declared, entry),
+                                declared))
+    elif isinstance(self.declares, dict):
       for i, kind in enumerate(entry.kinds[:n]):
         if kind not in self.declares:
           die('%s: no argument of %s is %s' % (entry.name, self.key, kind))
@@ -153,14 +259,13 @@ class Aggregate:
         out += spread(line, n)
     return ' '.join(out)
 
-  def head(self, entry, n):
+  def head(self, entry, xs):
     """What a case matches where it gives no pattern of its own."""
     if self.matches is None:
       die('%s: every case of %s says what it matches, since the subject of '
           'one is not this symbol applied to its arguments'
           % (entry.name, self.key))
-    return applied(self.matches + entry.name,
-                   [self.slot(i, entry.kinds[i]) for i in range(n)])
+    return applied(self.matches + entry.name, xs)
 
   def scope(self, entry, xs):
     """What each name the entry declares stands for in a body of this
@@ -241,7 +346,8 @@ class Shape:
   stand in and the file they compile to, see Shapes."""
 
   def __init__(self, attributes, constructor=None, keyword='define-symbol',
-               noun='symbol', params=True, keep=False):
+               noun='symbol', params=True, keep=False, block='{symbol}',
+               extra_attrs=None, asks_of=None):
     self.aggregates = {a.key: a for a in attributes}
     self.order = [a.key for a in attributes]
     self.constructor = constructor
@@ -251,6 +357,10 @@ class Shape:
     # What one of them is, which is what it is counted as and what a directive
     # naming it says: a symbol, a type, a method or a rule.
     self.noun = noun
+    # What the block of one is called, which is the name of the entity unless
+    # a set holds two kinds that would name a block the same: Seq is a type
+    # and a value both, and a block is named once.
+    self.block = block
     # Whether an entity of this kind names the arguments it takes. One that
     # writes nothing of its own does not: what is said about a method or a
     # proof rule of the input is said about the whole of it.
@@ -261,6 +371,16 @@ class Shape:
     # written over the generated signature names its types whatever a calculus
     # trims away.
     self.keep = keep
+    # What an entity of this kind may say that no other kind may, i.e. what is
+    # asked of one of these and would mean nothing said on anything else. An
+    # attribute every kind may say is written in attrs below instead.
+    self.extra = extra_attrs or {}
+    # The datatype of the embedding this kind's aggregates are asked of, where
+    # the kind builds more than one. What builds another is asked nothing:
+    # what a value is of and whether it is canonical are questions about a
+    # value, and a regular language is answered for by the value that holds
+    # one. A kind that builds exactly one datatype leaves this unsaid.
+    self.asks_of = asks_of
 
   @property
   def raw_operators(self):
@@ -297,6 +417,42 @@ class Shape:
     return [a.helper.split('{symbol}')[0]
             for a in self.aggregates.values() if a.helper is not None]
 
+  def constructor_for(self, entry):
+    """What this entry declares, which is the kind's constructor unless the
+    entry says it builds a datatype of the embedding instead.
+
+    Such a datatype is at no level, so nothing is asked of what builds one: an
+    entry that says :builds is a constructor and no case, and saying an
+    aggregate as well is refused rather than quietly dropped.
+    """
+    if not entry.has('builds'):
+      # A kind that may say it is one that has no default: every entry of it
+      # says which datatype it builds, so that a value and a regular language
+      # read alike and nothing is true of one by being left out.
+      if 'builds' in self.extra:
+        die('%s: a %s says which datatype of the embedding it builds, e.g. '
+            ':builds SmtValue' % (entry.name, self.noun))
+      return self.constructor
+    name = entry.get('builds').val
+    # What the kind asks is asked of what it is the kind *of*, see asks_of.
+    if self.asks_of is not None and name != self.asks_of:
+      said = [k for k in self.order if entry.has(k)]
+      if said:
+        die('%s: %s builds %s rather than %s, and nothing is asked of what '
+            'builds one, so it says no %s'
+            % (entry.name, entry.name, name, self.asks_of,
+               ' or '.join(':' + k for k in said)))
+    return embed_constructor(name, entry)
+
+  def block_for(self, entry):
+    """What the block this entry opens is called, which is the constant it
+    declares: an entry that builds a datatype of the embedding declares one of
+    that datatype's."""
+    cons = self.constructor_for(entry)
+    if entry.has('builds'):
+      return cons.name.format(symbol=entry.name)
+    return self.block.format(symbol=entry.name)
+
   def reserved(self):
     """Every prefix the compiler gives a name under, and what a name under it
     is, longest first.
@@ -320,8 +476,9 @@ class Shape:
     if self.constructor is not None:
       out[self.constructor.name.split('{symbol}')[0]] = (
           'the constant a symbol is declared as')
-      out[self.constructor.macro.split('{symbol}')[0]] = (
-          'the macro that applies the constant of a symbol')
+      if self.constructor.macro_reserved:
+        out[self.constructor.macro.split('{symbol}')[0]] = (
+            'the macro that applies the constant of a symbol')
     for level, family in FAMILY.items():
       out.setdefault(family, 'what a bare name at %s level is' % level)
     return sorted(out.items(), key=lambda kv: (-len(kv[0]), kv[0]))
@@ -341,16 +498,39 @@ class Shape:
     # The Lean text that follows the definition the lean-meta stage writes for
     # a method, i.e. what Lean has to be told and no compiler could derive.
     out['lean'] = 1
+    # The text a native *is*, which the stage emits as a block of the layer
+    # rather than after a definition it wrote itself: the Lean of one for the
+    # lean-meta stage, the SMT-LIB of one for the smt-meta stage. A layer says
+    # only one of the two, see LAYERS in tools/eoc/sem_compile.py.
+    out['lean-impl'] = 1
+    out['smt-impl'] = 1
+    out['eo-impl'] = 1
     # The other way round: a symbol the embedding names itself, whose block is
     # kept whether or not the input declares it. What is written over such a
     # symbol -- a hand-written proof about the generated Lean -- is written
-    # whatever a signature trims away, see DefsBlock::d_keep.
+    # whatever a signature trims away, see DefsBlock::d_keep. A native says it
+    # for the same reason: what the Lean resources of the lean-meta stage name
+    # is emitted whatever an input reaches, see render_native.
     out['keep'] = 0
     # What a symbol is written under, where that is not its own name: a
     # signature may not declare one name twice, so the desugar stage gives an
     # overload of a symbol a name of its own, and the entry is written under
     # the name the input knows and says what that name is.
     out['overload'] = 1
+    out.update(self.extra)
+    return out
+
+  def case_attrs(self):
+    """The attributes that give a case.
+
+    Those are the only ones written as a term: each occurrence adds a case, and
+    the macros of its file are rewritten out of it before anything else sees
+    it. Everything else an entry says is said to a stage and is taken as it
+    stands.
+    """
+    out = set(self.aggregates)
+    out.update(a.helper_attr for a in self.aggregates.values()
+               if a.helper_attr is not None)
     return out
 
 
@@ -386,11 +566,37 @@ class Shapes:
   def helper_prefixes(self):
     return [p for shape in self.shapes for p in shape.helper_prefixes()]
 
+  def constructor_prefixes(self):
+    """The name each constructor and its macro is given, up to the entity.
+
+    A block may name the constructor of one that stands after it, as the
+    default value of a type names the value it is: the stage writes every
+    constructor into the marker its embedded datatype is declared to go into,
+    and every marker stands ahead of the definitions, so where the block of one
+    stands says nothing about when its name may be used.
+
+    This reads the embedded datatypes rather than the shapes because the
+    datatypes are what the stage writes: a shape carries a constructor only
+    where a set builds one under it, whereas every datatype declared with
+    declare-embed-datatype has its constructors hoisted, whichever set they
+    are built in. See reserved, which reads the same registry.
+    """
+    out = []
+    for dt in _EMBED_DATATYPES.values():
+      out.append(dt.cons)
+      out.append(dt.macro)
+    return out
+
   def reserved(self):
     out = {}
     for shape in self.shapes:
       out.update(shape.reserved())
+    for name, dt in _EMBED_DATATYPES.items():
+      out[dt.cons] = 'the constant a constructor of %s is declared as' % name
     return sorted(out.items(), key=lambda kv: (-len(kv[0]), kv[0]))
+
+  def case_attrs(self):
+    return set().union(*(shape.case_attrs() for shape in self.shapes))
 
 
 # An attribute that gives a case may give what it matches before what it
@@ -411,18 +617,15 @@ def _case_arity(rest):
 # Every symbol is a constant of the embedding, applied by a macro of its own.
 # An argument is a term, or a type where the symbol was given one.
 CONSTANT = Constructor(
-    name='$emb_sm.{symbol}',
-    macro='$sm_{symbol}',
+    builds='SmtTerm',
     argument={'plain': '$smt_Term', 'raw': '$smt_Term', 'type': '$smt_Type'},
-    opaque=True,
-    returns='$smt_Term')
+    opaque=True)
 
 # The type of a term. A symbol says one case of it, in which an argument stands
 # for its type, and an index or a type for itself.
 TYPEOF = Aggregate(
     key='typeof',
-    program='$smtx_typeof',
-    case='$eoc_typeof_{symbol}',
+    of='$smtx_typeof',
     matches='$sm_',
     declares=['(x{i} $smt_Term)'],
     signature=('($smt_Term)', '$smt_Type'),
@@ -435,8 +638,7 @@ TYPEOF = Aggregate(
 # over terms and so is what may take one apart.
 VALUE = Aggregate(
     key='value',
-    program='$smtx_model_eval',
-    case='$eoc_eval_{symbol}',
+    of='$smtx_model_eval',
     context=[('M', '$smt_Model')],
     matches='$sm_',
     declares=['(x{i} $smt_Term)'],
@@ -445,11 +647,10 @@ VALUE = Aggregate(
                 'raw': '($smtx_model_eval M %s)', 'type': '%s'},
     level='value',
     default='$smtx_model_eval_',
-    helper='$smtx_model_eval_{symbol}',
     helper_attr='eval',
     helper_arg='$smt_Value',
     helper_gives='$smt_Value',
-    otherwise=('t{i}', '$smt_Value', '$vsm_not_value'))
+    otherwise=('t{i}', '$smt_Value', '$vsm_NotValue'))
 
 # ---------------------------------------------------------------------------
 # The signature of an input
@@ -462,8 +663,7 @@ VALUE = Aggregate(
 TERM = Aggregate(
     key='term',
     primary=True,
-    program='$eo_to_smt',
-    case='$eoc_transform_{symbol}',
+    of='$eo_to_smt',
     matches='',
     own=[('T', 'Type')],
     declares=['(T{i} Type)', '(x{i} T{i})'],
@@ -479,8 +679,7 @@ TERM = Aggregate(
 TYPE = Aggregate(
     key='type',
     sole=True,
-    program='$eo_to_smt_type',
-    case='$eoc_transform_type_{symbol}',
+    of='$eo_to_smt_type',
     matches='',
     declares=['(T{i} Type)', '(x{i} T{i})'],
     signature=('(Type)', '$smt_Type'),
@@ -494,7 +693,7 @@ TYPE = Aggregate(
 # to its arguments, so every case says what it matches.
 IS_LIST_NIL = Aggregate(
     key='is-list-nil',
-    case='$eoc_is_list_nil_{symbol}',
+    of='$eo_is_list_nil_',
     own=[('T', 'Type'), ('x1', 'T')],
     declares=[],
     signature=('(T)', 'Bool'),
@@ -510,11 +709,9 @@ IS_LIST_NIL = Aggregate(
 # own. An argument is a type, or the index a type is built over where the
 # signature wrote one raw, as the width of a bit-vector is.
 TYPE_CONSTANT = Constructor(
-    name='$emb_tsm.{symbol}',
-    macro='$tsm_{symbol}',
+    builds='SmtType',
     argument={'plain': '$smt_Type', 'raw': '$native_Nat'},
-    opaque=True,
-    returns='$smt_Type')
+    opaque=True)
 
 # What every case of a type says about it, i.e. the type applied to what it is
 # built over, and what each argument stands for there: itself, since the whole
@@ -528,8 +725,7 @@ TYPE_SLOTS = {'plain': 'x%d', 'raw': 'n%d'}
 # another has to answer for, and the rest answer for nothing.
 TYPE_WF = Aggregate(
     key='wf',
-    program='$smtx_type_wf_rec',
-    case='$eoc_type_wf_{symbol}',
+    of='$smtx_type_wf_rec',
     matches='$tsm_',
     declares=TYPE_DECLARES,
     slots=TYPE_SLOTS,
@@ -542,8 +738,7 @@ TYPE_WF = Aggregate(
 # is false. A type that says nothing has neither.
 TYPE_BOUNDED = Aggregate(
     key='bounded',
-    program='$smtx_type_bounded',
-    case='$eoc_type_bounded_{symbol}',
+    of='$smtx_type_bounded',
     context=[('u', '$native_Bool')],
     matches='$tsm_',
     declares=TYPE_DECLARES,
@@ -556,8 +751,7 @@ TYPE_BOUNDED = Aggregate(
 # one of a type it knows nothing else about. A type that says nothing has none.
 TYPE_DEFAULT = Aggregate(
     key='default',
-    program='$smtx_type_default',
-    case='$eoc_type_default_{symbol}',
+    of='$smtx_type_default',
     matches='$tsm_',
     declares=TYPE_DECLARES,
     slots=TYPE_SLOTS,
@@ -579,7 +773,152 @@ METHODS = Shape([], keyword='define-method', noun='method', params=False)
 # A proof rule of the input, which says only that it is left out.
 RULES = Shape([], keyword='define-rule', noun='rule', params=False)
 
+# One definition of the native layer, i.e. what the generated Lean is written
+# over and no compiler writes. It compiles to nothing of the model: what it
+# says is Lean text, under :lean-impl, which the lean-meta stage is given as a
+# block of the layer. The names it declares are the ones a signature may
+# reach; anything else the text defines is private to it by having no name
+# here at all.
+NATIVES = Shape([], keyword='define-native-method', noun='native',
+                params=False)
+
+# One native of the embedding, i.e. one entry of
+# plugins/desugar/natives.eos. It says what a signature written in the
+# embedding may call and what each argument of it is, which is the whole of
+# what the declaration the desugar layer carries says; the compiler writes that
+# declaration, so nothing states it by hand. What a native *does* is said by a
+# backend, in a set of its own, see NATIVES.
+NATIVE_DECLS = Shape([], keyword='declare-native', noun='native',
+                     extra_attrs={'op': 1, 'is': 1})
+
+# One primitive type of the embedding, i.e. one entry of
+# plugins/desugar/natives.eos. Its name is the embedding's own, written in
+# angle brackets so that it is read as a kind of thing rather than as a sort of
+# some target: three of them name no SMT-LIB sort at all. What a backend calls
+# it is what :op says, and that is the name the backend implements and the name
+# the generated encodings carry, exactly as :op names the operator a native
+# forwards to. A backend that does not already have the type is given it by its
+# own native layer, which is the only place the text that gives it can be
+# written, so nothing here says which backends have which.
+NATIVE_TYPE_DECLS = Shape([], keyword='declare-native-type', noun='native type',
+                          params=False,
+                          extra_attrs={'op': 1})
+
+# One aggregate of the deep embedding, i.e. one entry of
+# plugins/model_smt/model_smt.eos. It declares nothing of the model: the
+# program itself stands in the template of the stage, and what the entry says
+# is what this compiler and that stage have to agree on about it. See bind.
+# One datatype of the embedding, i.e. one of the things a value is built over
+# rather than one of the values: a regular language is one, and so are the map
+# a set and an array both are and the sequence a string is. It is at no level
+# of a set, so nothing is written *at* one; what a set does is declare the
+# constructors that build one, which say so with :builds.
+#
+# The entry says the three things the compiler and the stage that reads the
+# generated file have to agree on: the constant a constructor of it is declared
+# as, the macro that applies it, and the marker of the template those are
+# written at. What a constructor returns is the datatype itself, so nothing
+# states that twice -- the entry is named as the type is named everywhere, i.e.
+# SmtRegLan for $smt_RegLan.
+EMBED_DATATYPES = Shape([], keyword='declare-embed-datatype',
+                        noun='datatype of the embedding', params=False,
+                        extra_attrs={'cons': 1, 'macro': 1, 'into': 1,
+                                     'own-into': 1})
+
+AGGREGATES = Shape([], keyword='declare-aggregate-method', noun='aggregate',
+                   params=False,
+                   extra_attrs={'case': 1, 'into': 1, 'helper': 1,
+                                'forward': 1})
+
+# ---------------------------------------------------------------------------
+# The values of the SMT-LIB signature, which stand in the same file
+# ---------------------------------------------------------------------------
+
+# What each argument stands for in a body: itself, since a value is of the
+# embedding already.
+VALUE_STANDS = {'plain': '%s', 'raw': '%s'}
+
+# The type a value is of, i.e. what a term it is the value of would be of. A
+# value that says nothing is of no type at all.
+VALUE_TYPEOF = Aggregate(
+    key='typeof',
+    of='$smtx_typeof_value',
+    matches='$vsm_',
+    declares=['(x{i} $smt_Value)'],
+    signature=('($smt_Value)', '$smt_Type'),
+    stands_for=VALUE_STANDS,
+    level='type')
+
+# Whether a value is canonical, i.e. whether it is the one spelling of what it
+# denotes. A value that says nothing is.
+VALUE_CANONICAL = Aggregate(
+    key='canonical',
+    of='$smtx_value_canonical',
+    matches='$vsm_',
+    declares=['(x{i} $smt_Value)'],
+    signature=('($smt_Value)', '$native_Bool'),
+    stands_for=VALUE_STANDS,
+    level='native')
+
+# ---------------------------------------------------------------------------
+# The literals of the embedding
+# ---------------------------------------------------------------------------
+
+# A literal is a term the embedding builds over a native -- a Boolean, a
+# numeral, the width and the value of a bit-vector -- rather than over terms,
+# so what its constructor takes is what its parameters say and there is no type
+# of arguments to fall back on.
+LITERAL_CONSTANT = Constructor(
+    builds='SmtTerm',
+    argument={},
+    opaque=True)
+
+# What an argument stands for in a body: itself, since what a literal carries
+# is a native rather than a term whose type or value is asked for.
+LITERAL_STANDS = {'plain': '%s'}
+
+# The type a literal is of, and its value in a model, which are the two the
+# symbols say as well: the cases of a literal are spliced into the same
+# programs, and stand before them, see $SMT_LITERAL_CONSTRUCTORS$ in
+# plugins/model_smt/model_smt.eo.
+LITERAL_TYPEOF = Aggregate(
+    key='typeof',
+    of='$smtx_typeof',
+    matches='$sm_',
+    declares={},
+    signature=('($smt_Term)', '$smt_Type'),
+    stands_for=LITERAL_STANDS,
+    level='type')
+
+LITERAL_VALUE = Aggregate(
+    key='value',
+    of='$smtx_model_eval',
+    context=[('M', '$smt_Model')],
+    matches='$sm_',
+    declares={},
+    signature=('($smt_Model $smt_Term)', '$smt_Value'),
+    stands_for=LITERAL_STANDS,
+    level='value')
+
 SYMBOLS = Shape([TYPEOF, VALUE], constructor=CONSTANT)
+# A literal is the embedding's own, as the types and the values are. Its block
+# is named after the constructor it declares, which is what tells the stage
+# that reads the file that the constructor is one of the embedding's own rather
+# than one of a symbol written over them, see DefsFile::addBlock.
+LITERALS = Shape([LITERAL_TYPEOF, LITERAL_VALUE], constructor=LITERAL_CONSTANT,
+                 keyword='define-literal', noun='literal', keep=True,
+                 block='$emb_sm.{symbol}')
+# A value of the embedding is the embedding's own, as its types are.
+# A constructor of one of the embedding's datatypes. Which one is what every
+# entry says, there being no default: a value and a regular language are built
+# by the same form, and what tells them apart is the datatype rather than
+# anything about the entry. Two of them are asked something, and an entry that
+# builds a datatype other than SmtValue is asked neither, see
+# Shape.constructor_for.
+VALUES = Shape([VALUE_TYPEOF, VALUE_CANONICAL], constructor=None,
+               keyword='declare-constructor', noun='constructor', keep=True,
+               block='$emb_vsm.{symbol}', extra_attrs={'builds': 1},
+               asks_of='SmtValue')
 # A type of the embedding is the embedding's own whatever a calculus declares,
 # so its block is kept the way a symbol that says :keep is.
 TYPES = Shape([TYPE_WF, TYPE_BOUNDED, TYPE_DEFAULT], constructor=TYPE_CONSTANT,
@@ -587,8 +926,98 @@ TYPES = Shape([TYPE_WF, TYPE_BOUNDED, TYPE_DEFAULT], constructor=TYPE_CONSTANT,
 
 INPUT_SYMBOLS = Shape([TERM, TYPE, IS_LIST_NIL])
 
-TARGET = Shapes(SYMBOLS, TYPES, METHODS)
+TARGET = Shapes(SYMBOLS, LITERALS, TYPES, VALUES, METHODS)
 INPUT_SET = Shapes(INPUT_SYMBOLS, METHODS, RULES)
+NATIVE_SET = Shapes(NATIVES)
+NATIVE_DECL_SET = Shapes(NATIVE_DECLS, NATIVE_TYPE_DECLS)
+AGGREGATE_SET = Shapes(AGGREGATES, EMBED_DATATYPES)
+
+
+def aggregates():
+  """Every aggregate this file writes, once each.
+
+  Two of them may be written by one entry -- a literal says its type the way a
+  symbol does, and differs in how the case is written rather than in where it
+  goes -- so what comes back is keyed by the entry each names.
+  """
+  out = {}
+  for shapes in (TARGET, INPUT_SET):
+    for shape in shapes.shapes:
+      for a in shape.aggregates.values():
+        out.setdefault(a.of, []).append(a)
+  return out
+
+
+# What the set declared, keyed by name; bind_embed_datatypes puts it here.
+# These are read from a set rather than written here because nothing about one
+# is this file's to say: an entry names the constant, the macro and the marker,
+# and what a constructor of one *is* follows from those.
+_EMBED_DATATYPES = {}
+
+
+def bind_embed_datatypes(entries):
+  """Join what the set declared onto the constructors written here."""
+  _EMBED_DATATYPES.clear()
+  _EMBED_DATATYPES.update(entries)
+
+
+def embed_constructor(name, entry):
+  """What a constructor of the embedding's datatype `name` is declared as.
+
+  Such a datatype has no aggregates, so an entry that builds one declares the
+  constant and the macro and no more. Its arguments are of the datatype unless
+  they say otherwise, most of them holding another of it, and the macro is not
+  the compiler's name alone because the datatype is at no level: a body writes
+  the macro itself, there being no bare name for one. See
+  Constructor.macro_reserved.
+  """
+  dt = _EMBED_DATATYPES.get(name)
+  if dt is None:
+    die('%s: the embedding has no datatype called %s; it declares %s'
+        % (entry.name, name,
+           ', '.join(sorted(_EMBED_DATATYPES)) if _EMBED_DATATYPES
+           else 'none'))
+  return Constructor(builds=name,
+                     argument={'plain': dt.type},
+                     opaque=True,
+                     macro_reserved=False)
+
+
+def bind(entries):
+  """Join what the aggregate set says onto the aggregates written here.
+
+  `entries` is what plugins/model_smt/model_smt.eos declared, keyed by name.
+  An aggregate written here that the set does not declare, or an entry the set
+  declares that nothing here writes, is an error: the two are halves of one
+  thing, and a run that carried on would compile a case no stage knows where
+  to put, or leave a stage waiting for cases nothing writes.
+  """
+  mine = aggregates()
+  for name in sorted(set(mine) | set(entries)):
+    if name not in entries:
+      die('%s is written in sem_target.py but no entry of the aggregate set '
+          'declares it; add a declare-aggregate-method for it' % name)
+    if name not in mine:
+      die('%s is declared by the aggregate set but nothing in sem_target.py '
+          'writes it; what a case of it declares and gives back has to be '
+          'said there' % name)
+    e = entries[name]
+    # What the set says about an entry holds of every aggregate written by it,
+    # except the helper: the set says what one is *named*, and which of them
+    # has one is said by whether a case of it may hand its work over at all.
+    # A literal says its value outright and so has none, though it is written
+    # by the same entry as the symbol that does.
+    if (e.helper is not None) != any(a.helper_attr for a in mine[name]):
+      die('%s: the set and sem_target.py disagree about whether the cases of '
+          'this aggregate hand their work to a program written over values'
+          % name)
+    for a in mine[name]:
+      a.program = name if e.is_model else None
+      a.case = e.case + '{symbol}'
+      a.into = e.into
+      a.stage = e.stage
+      a.helper = e.helper + '{symbol}' if a.helper_attr else None
+      a.forward = e.forward if a.helper_attr else None
 
 
 def of(target):
