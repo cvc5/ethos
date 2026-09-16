@@ -15,6 +15,7 @@
 #include <string>
 
 #include "../meta_reduce_plugin.h"
+#include "../native_layer.h"
 #include "smt_meta_sygus.h"
 
 namespace ethos {
@@ -54,7 +55,7 @@ class SmtMetaReduce : public MetaReducePlugin
   /** Print the SMT-LIB sort corresponding to EO type t. */
   bool printMetaType(const Expr& t,
                      std::ostream& os,
-                     MetaKind tctx = MetaKind::NONE) const;
+                     MetaKind tctx = MetaKind::NONE);
   using MetaReducePlugin::getName;
   using MetaReducePlugin::isEmbedCons;
   /**
@@ -110,8 +111,25 @@ class SmtMetaReduce : public MetaReducePlugin
   void finalizeProgram(const Expr& v, const Expr& prog, bool isDefine = false);
   /** Emit a declaration into the appropriate SMT-LIB embedded datatype. */
   void finalizeDecl(const Expr& e) override;
-  /** Return the SMT-LIB constructor name for an embedded SMT operator. */
-  static std::string getEmbedName(const Expr& oApp);
+  /**
+   * Return the SMT-LIB constructor name for an embedded SMT operator, and
+   * note that the verification condition names it, see NativeLayer::use.
+   */
+  std::string getEmbedName(const Expr& oApp);
+  /**
+   * The native layer of this backend, i.e. what tools/eoc/sem_compile.py
+   * compiled plugins/smt_meta/smt-vc.eos to. A verification condition is one
+   * file with two places a block can come out: `Vc`, where SMT-LIB alone is
+   * in scope, and `Embed`, below the datatypes of the embedding.
+   */
+  NativeLayer d_natives;
+  /**
+   * Where in the file the text now being printed comes out: `Embed`, below
+   * the datatypes of the embedding, for the definitions and the conjecture,
+   * and `Vc` for the datatypes themselves, which stand above them and so can
+   * name only what stands above them too.
+   */
+  std::string d_scope = "Vc";
   /** Program declarations processed */
   std::set<Expr> d_progDeclProcessed;
   /** Generated SMT-LIB program definitions. */

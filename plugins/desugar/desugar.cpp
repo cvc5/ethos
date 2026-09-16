@@ -29,9 +29,6 @@ bool optionEoTypeofHo() { return false; }
 /** Whether to combine terms of the same type when defining eo::typeof. */
 bool optionEoTypeCanonize() { return true; }
 
-/** Use custom list-nil definitions for non-ground nil terminators. */
-bool optionFwdDeclIsListNilNground() { return true; }
-
 const char* leanParserAttrName(Attr a)
 {
   switch (a)
@@ -360,6 +357,14 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     ++parserIndexArity;
     --parserTermArity;
   }
+  // The index arity is settled here, the ambiguity adjustment included, so
+  // this is where the ladder of arities the signature uses is recorded; see
+  // d_indexArities, and printUopDecls and printIsClosedUopCases for what the
+  // two ends of it are written out as.
+  if (parserIndexArity > 0)
+  {
+    d_indexArities.insert(parserIndexArity);
+  }
   // The attributes that combine an operator's arguments into a term take a
   // constructor as their operand: the operator that chains a chainable one, or
   // the one that builds the list of an `:arg-list`.
@@ -404,21 +409,14 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
       finalizeProgram(prog, progDef, d_eoNilNground);
       d_eoNil << "(" << pname << " T)";
-      if (optionFwdDeclIsListNilNground())
-      {
-        // we do not call eo::typeof here, instead we forward declare
-        // is_list_nil definitions
-        std::stringstream ssil;
-        ssil << "$eo_is_list_nil_" << cname;
-        d_eoIsListNil << "nil) (" << ssil.str() << " nil))" << std::endl;
-        d_eoIsListNilDefs << "(program " << ssil.str()
-                          << " ((T Type)) :signature (T) Bool)" << std::endl;
-      }
-      else
-      {
-        d_eoIsListNil << "nil) (eo::eq nil ($eo_nil " << cname
-                      << " ($eo_typeof nil))))" << std::endl;
-      }
+      // The nil depends on the type of what it terminates, so saying whether
+      // a term is it would need eo::typeof, which this stage does not call.
+      // The predicate is written in the signature's own semantics instead,
+      // under :is-list-nil, and compiled to a program of this name that stands
+      // ahead of the case; what is written here is the call to it. See
+      // plugins/desugar/desugar.eos.
+      d_eoIsListNil << "nil) ($eo_is_list_nil_" << cname << " nil))"
+                    << std::endl;
     }
     else
     {
@@ -921,6 +919,90 @@ void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
   os << ")" << std::endl;
 }
 
+std::string Desugar::printUopDecls() const
+{
+  // An operator of n indices embeds as $emb_UOp<n>, whose n index arguments
+  // are opaque -- an index is not a term -- alongside its n term arguments.
+  // $eot_uop<n> is the way the rest of the embedding writes one.
+  //
+  // Only the arities the signature uses are declared, which is what makes the
+  // ladder as long as the calculus and no longer. It is also what makes it as
+  // long as the calculus needs: nothing here stops at three, so an operator of
+  // four indices costs a rung and no change. What does have a ceiling is the
+  // backend, which has to name a UserOp<n> type for each; see
+  // LeanMetaReduce::s_maxIndexArity.
+  std::stringstream decls;
+  bool first = true;
+  for (size_t n : d_indexArities)
+  {
+    if (!first)
+    {
+      decls << std::endl;
+    }
+    first = false;
+    decls << "(declare-parameterized-const $emb_UOp" << n << std::endl
+          << "  ((u ($native_type_0 \"UserOp" << n << "\") :opaque)";
+    for (size_t i = 1; i <= n; i++)
+    {
+      decls << " (t" << i << " $eo_Term :opaque)";
+    }
+    decls << ") $eo_Term)" << std::endl;
+    decls << "(define $eot_uop" << n << std::endl
+          << "  ((u ($native_type_0 \"UserOp" << n << "\"))";
+    for (size_t i = 1; i <= n; i++)
+    {
+      decls << " (t" << i << " $eo_Term)";
+    }
+    decls << ")" << std::endl << "  ($emb_UOp" << n << " u";
+    for (size_t i = 1; i <= n; i++)
+    {
+      decls << " t" << i;
+    }
+    decls << "))";
+  }
+  return decls.str();
+}
+
+std::string Desugar::printIsClosedUopCases() const
+{
+  // A term is closed when every subterm of it is, and the subterms of an
+  // application of an n-index operator are its n arguments -- the indices are
+  // not terms. So the case for arity n recurses into each argument and
+  // conjoins the answers, which is what the arities the signature does not use
+  // would say about applications it cannot build. They are left unsaid: an
+  // arity with no case names no $eot_uop<n>, so nothing names $emb_UOp<n>,
+  // so the trimming takes it and the backend gives Term no UOp<n>.
+  //
+  // The arguments are named as the program's parameter list names them, which
+  // is x for the first and x<i> after it.
+  std::stringstream cases;
+  bool first = true;
+  for (size_t n : d_indexArities)
+  {
+    // the marker stands on a line of its own, so the last case ends where the
+    // line does and the ones before it are what carry a newline
+    if (!first)
+    {
+      cases << std::endl;
+    }
+    first = false;
+    cases << "  (($eo_is_closed_rec ($eot_uop" << n << " u";
+    std::string body;
+    for (size_t i = 1; i <= n; i++)
+    {
+      std::string arg = i == 1 ? "x" : "x" + std::to_string(i);
+      cases << " " << arg;
+      std::string ic = "($eo_is_closed_rec " + arg + " env)";
+      body = i == 1 ? ic : "(eo::and " + body + " " + ic + ")";
+    }
+    cases << ") env)";
+    // an operator of one index says it on the line it opened, since what it
+    // says fits there; the wider ones are what need a line of their own
+    cases << (n == 1 ? " " : "\n    ") << body << ")";
+  }
+  return cases.str();
+}
+
 void Desugar::finalizeBinder(const Expr& e, const Expr& attrCons)
 {
   d_eoIsClosed << "  (($eo_is_closed_rec (";
@@ -995,13 +1077,13 @@ void Desugar::finalize()
   replace(finalEo, "$EO_LITERAL_TYPE_DECL$", d_litTypeDecl.str());
   replace(finalEo, "$EO_LIT_TYPEOF_DEFS$", d_litTypeProg.str());
   replace(finalEo, "$EO_DEFS$", d_defs.str());
-  replace(finalEo, "$EO_IS_LIST_NIL_DEFS$", d_eoIsListNilDefs.str());
   replace(finalEo, "$EO_IS_LIST_NIL_CASES$", d_eoIsListNil.str());
   replace(finalEo, "$EO_NIL_CASES$", d_eoNil.str());
   replace(finalEo, "$EO_NIL_NGROUND_DEFS$", d_eoNilNground.str());
   replace(finalEo, "$EO_LEAN_PARSER_METADATA$", d_leanParserMetadata.str());
   replace(finalEo, "$EO_TYPEOF_CASES$", d_eoTypeof.str());
   replace(finalEo, "$EO_IS_CLOSED_CASES$", d_eoIsClosed.str());
+  replace(finalEo, "$EO_IS_CLOSED_UOP_CASES$", printIsClosedUopCases());
   replace(finalEo, "$EO_TYPEOF_NGROUND_DEFS$", d_eoTypeofNGround.str());
   replace(finalEo, "$EO_DT_CONSTRUCTORS_PARAM$", d_eoDtConsParam.str());
   replace(finalEo, "$EO_DT_CONSTRUCTORS_CASES$", d_eoDtCons.str());
@@ -1018,8 +1100,13 @@ void Desugar::finalize()
   }
   // Verification conditions for *all* proof rules are ready now
   replace(finalEo, "$EO_VC$", d_eoVc.str());
-  // Make generated desugar files self-contained within the output tree.
-  copyResourceToOutput("plugins/desugar/eo_desugar_native.eo");
+  // Make generated desugar files self-contained within the output tree. The
+  // native embedding is the one file of the three that has something to say
+  // about the signature at hand -- which rungs of the UserOp ladder it uses --
+  // so it is rendered where the others are copied.
+  emitResourceFile("plugins/desugar/eo_desugar_native.eo",
+                   "plugins/desugar/eo_desugar_native.eo",
+                   {{"$EO_UOP_DECLS$", printUopDecls()}});
   copyResourceToOutput("plugins/desugar/native_embed.eo");
   std::string outPath = getOutputPath("plugins/desugar/eo_desugar_gen.eo");
   std::cout << "Write core-defs    " << outPath << std::endl;

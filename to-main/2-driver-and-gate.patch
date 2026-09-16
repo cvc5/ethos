@@ -1,0 +1,2553 @@
+diff --git a/.github/workflows/main.yml b/.github/workflows/main.yml
+index 814609e2..07e5e9f5 100644
+--- a/.github/workflows/main.yml
++++ b/.github/workflows/main.yml
+@@ -44,32 +44,39 @@ jobs:
+         cmake --build build-cpp-compiler-test --parallel ${{ env.num_proc }} \
+           --target cpp-compiler-roundtrip
+ 
+-    # --signature names the central file of the configuration of the input's
+-    # signature, which the driver compiles before the model-smt stage; that
+-    # stage reads one such file and the plugin has none of its own, so it is
+-    # required. See tools/eoc/semantics/README.md.
+-    - name: Run EOC pipeline smoke tests
+-      env:
+-        EOC_SIGNATURE: tools/eoc/semantics/development-cpc.eos
++    # The build above is what writes the generated signatures, so this says
++    # they hold what compiling the configuration writes and, which nothing
++    # else checks, that each block of one stands after the blocks it names.
++    - name: Check the compiled semantics
++      run: python3 tools/eoc/sem_compile.py --check
++
++    # What reads back the verification conditions the pipeline writes. A digest
++    # says the bytes did not move; only a solver says they are well formed, and
++    # a change to the native layer of plugins/smt_meta/smt-vc.eos can leave a
++    # file that names a sort it never defines and still move only the bytes,
++    # which --update would then bless. The static release binary is downloaded
++    # rather than built -- cvc5 takes longer to build than everything else here
++    # together -- and pinned by version and digest so a run reads back with a
++    # known one.
++    - name: Install cvc5
+       run: |
+-        python3 tools/eoc/driver.py vc \
+-          --build-dir build-eoc \
+-          --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
+-          --no-build --skip-cvc5 --signature "${EOC_SIGNATURE}" \
+-          tests/Booleans-rules.eo and_intro
+-        python3 tools/eoc/driver.py vc \
+-          --build-dir build-eoc \
+-          --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
+-          --no-build --skip-cvc5 --sygus --signature "${EOC_SIGNATURE}" \
+-          tests/Booleans-rules.eo and_intro
+-        python3 tools/eoc/driver.py lean \
+-          --build-dir build-eoc \
+-          --final-out-dir "${RUNNER_TEMP}/eoc-smoke" \
+-          --no-build --skip-cvc5 --signature "${EOC_SIGNATURE}" \
+-          tests/Booleans-rules.eo and_intro
+-        test -s "${RUNNER_TEMP}/eoc-smoke/vc/final-booleans-rules-and_intro.smt2"
+-        test -s "${RUNNER_TEMP}/eoc-smoke/sygus/final-booleans-rules-and_intro.sy"
+-        test -s "${RUNNER_TEMP}/eoc-smoke/lean/Rules/And_intro.lean"
++        version=1.3.4
++        sha256=dcdbfada0ce493ee98259c0816e0daafc561c223aadb3af298c2968e73ea39c6
++        curl -sSL -o "${RUNNER_TEMP}/cvc5.zip" \
++          "https://github.com/cvc5/cvc5/releases/download/cvc5-${version}/cvc5-Linux-x86_64-static.zip"
++        echo "${sha256}  ${RUNNER_TEMP}/cvc5.zip" | sha256sum --check --strict
++        unzip -q "${RUNNER_TEMP}/cvc5.zip" -d "${RUNNER_TEMP}"
++        echo "${RUNNER_TEMP}/cvc5-Linux-x86_64-static/bin" >> "$GITHUB_PATH"
++
++    # The four runs the pipeline has, and then the bytes: what it wrote for a
++    # signature of this tree is compared with the digests checked in, which is
++    # what says a change to the compiler left the output where it was, and the
++    # two runs that write for a solver have cvc5 read back what they wrote.
++    # --require-cvc5 says a run without one is not a run, so that a step above
++    # that failed to install it cannot quietly leave this checking less. See
++    # tools/eoc/test/regress.py.
++    - name: Check the pipeline still writes what it wrote
++      run: python3 tools/eoc/test/regress.py --build-dir build-eoc --require-cvc5
+ 
+     - name: Build and run custom auto-parser binary
+       run: |
+diff --git a/tools/eoc/README.md b/tools/eoc/README.md
+index 8aa89f72..ff2bcb86 100644
+--- a/tools/eoc/README.md
++++ b/tools/eoc/README.md
+@@ -1,12 +1,62 @@
+-# EOC Workflow
+-
+-`tools/eoc/driver.py` is the canonical entrypoint for the optional
+-`ethos-eoc` workflow.
+-
+-## What `ethos-eoc` is for
+-
+-`ethos-eoc` is the optional Eunoia compiler target that drives the
+-non-standard EOC plugins:
++# The Eunoia compiler
++
++`ethos-eoc` takes a proof calculus written in Eunoia and compiles it: into a
++proof checker for that calculus, and into the obligations that say the calculus
++is sound.
++
++It is the compiler behind **Logos**, the Lean development for the CPC proof
++calculus. The Lean package Logos is built on is not written by hand; it is
++generated from the calculus by this tool, and regenerated whenever the calculus
++changes.
++
++## Any calculus, several targets
++
++Nothing in the compiler is specific to one calculus. A run names the signature
++to compile and, separately, what its symbols mean, so a second calculus is a
++second pair of those rather than a change here: the tests in this tree compile
++`tests/Booleans-rules.eo`, the wrappers in [`cpc/`](cpc/) compile CPC, and the
++semantics CPC is compiled under lives in the Logos repository rather than in
++this one.
++
++Whichever calculus it is, it compiles to each of these targets, from one
++description of what its symbols mean:
++
++| Target | What it produces | Command |
++| --- | --- | --- |
++| **Lean** | a proof checker for the calculus, its term language, and one lemma per proof rule | `driver.py lean` |
++| **SMT-LIB** | a verification condition per proof rule; a solver that refutes it has shown the rule sound | `driver.py vc` |
++| **SyGuS** | a synthesis query per proof rule, which searches for a counterexample to it | `driver.py vc --sygus` |
++
++The two are independent, and that is the point of the tool: a target is a
++backend rather than a restatement of the calculus, and a calculus is a
++description rather than another compiler. What a symbol means is written once,
++as configuration, and every target is compiled from it; a new theory, a new
++proof rule or a new operator is added to the calculus and reaches every target
++with no compiler change at all.
++
++### What a symbol means is written in `.eos`, and this is its reference
++
++**[`semantics/README.md`](semantics/README.md) is the reference for the
++configuration language** -- the grammar, every entry with the attributes it
++may carry, the four vocabularies a body may be written in and how one is cast
++between them, what the compiler checks, worked examples, and what every
++diagnostic means.
++
++Almost all work on a calculus is an edit to one of those files rather than a
++change to anything here, and a target is reached by writing configuration
++rather than by writing a compiler, so that is the page to have open. The sets
++are `tools/eoc/semantics/` for what a calculus and SMT-LIB mean, and the
++`.eos` beside each stage under `plugins/` for what that stage is told.
++
++`tools/eoc/driver.py` is the entrypoint for all of them, and exposes them as
++one documented interface. See [Quick start](#quick-start) to run one, and
++[`proof_pipeline.md`](../../proof_pipeline.md) for where this sits in the wider
++cvc5 proof pipeline.
++
++## What `ethos-eoc` is
++
++`ethos-eoc` is the Eunoia binary built with the compiler plugins, one to a
++stage:
+ 
+ - `desugar`
+ - `trim-defs`
+@@ -14,8 +64,9 @@ non-standard EOC plugins:
+ - `smt-meta`
+ - `lean-meta`
+ 
+-The default `ethos` build does not include these plugins. Use `ethos-eoc`
+-only when you want the Eunoia-to-SMT2 or Eunoia-to-Lean pipeline.
++The default `ethos` build does not include them: it checks proofs, and this one
++compiles the calculus the proofs are written in. Build it with the two commands
++under [Building `ethos-eoc`](#building-ethos-eoc).
+ 
+ `model-smt` gives every symbol of the signature its SMT-LIB semantics. A symbol
+ that instead has no semantics of its own is *eliminated* on the way to the
+@@ -27,8 +78,8 @@ reduces.
+ ## The signatures written in the deep embedding
+ 
+ What a symbol means to the model is said by two files, and a run may name
+-either: the signature of the input with `--signature`, and the SMT-LIB
+-semantics it is written against with `--semantics`.
++either: the semantics of the input with `--semantics`, and the SMT-LIB
++semantics it is written against with `--smt-semantics`.
+ 
+ ```text
+ tools/eoc/out/smt_defs.eo   the SMT-LIB semantics, written in the embedding
+@@ -42,7 +93,7 @@ configuration set* rather than what it compiles to:
+ 
+ ```text
+ python3 tools/eoc/driver.py lean --all \
+-  --signature tools/eoc/semantics/development-cpc.eos \
++  --semantics tools/eoc/semantics/development-cpc.eos \
+   <cvc5>/proofs/eo/cpc/Cpc.eo
+ ```
+ 
+@@ -51,12 +102,21 @@ out and is passed through, which is what lets one that has no configuration
+ still be given directly. See `tools/eoc/semantics/README.md` for what the
+ configuration is and the language it is written in.
+ 
++A run compiles **one set of each role**, and the set an option names stands in
++for the one the tool ships with rather than compiling beside it. Where a set
++compiles to is said by its role and by nothing else, so the four generated
++files have the names above whatever a run names and wherever the sets stand.
++
+ Only the `model-smt` stage reads them; no stage before it sees either. A symbol
+ the input declares that the file says nothing about is an error rather than a
+ term the model would silently say nothing about. The plugin ships with the
+ SMT-LIB semantics but with no signature of an input, so a run that names none
+ is an error once that stage runs.
+ 
++The examples below leave `--semantics` out because the wrappers in
++`tools/eoc/cpc` pass it, see `EOC_DEFAULT_SEMANTICS` in `common.sh`; the
++driver on its own requires it.
++
+ Each is a sequence of blocks, one per symbol, opened by a `; -- X` line. For a
+ symbol X, `smt_defs.eo` gives the constructor `$emb_sm.X` and the macro
+ `$sm_X`, the cases X contributes to `$smtx_typeof` and to `$smtx_model_eval`
+@@ -70,14 +130,54 @@ into the aggregate its family names, so the name itself never reaches the
+ generated file. The exception is `$eoc_is_list_nil_X`, which the desugar stage
+ calls by name and which is therefore emitted as `$eo_is_list_nil_X`.
+ 
++Which families there are is not something either side knows by name. The head
++of each generated file declares them, one line to an aggregate:
++
++```text
++; $eoc-aggregate $smtx_typeof $eoc_typeof_ $SMT_TYPEOF_CASES$
++; $eoc-aggregate $smtx_model_eval $eoc_eval_ $SMT_EVAL_CASES$
++```
++
++which says the aggregate a case joins, the name the case is written under, and
++the marker of `plugins/model_smt/model_smt.eo` the stage writes them at; the
++longest name a program begins with is the aggregate it belongs to, and `whole`
++is the exception above. The lines are compiled from
++`plugins/model_smt/model_smt.eos`, which is where an aggregate is to be changed
++or added, and the stage reads them rather than knowing any of it, so adding one
++asks nothing of `ethos-eoc`. See `semantics/README.md`.
++
+ A block may also be of a helper rather than of a symbol, in which case the
+ `; -- X` line names the helper itself, e.g. `; -- $smtx_typeof_bv_op_2` for the
+ typing of a bit-vector operator whose two arguments must be of one width. Such
+ a block is taken only when a block that is kept names it, so a signature with
+-no bit-vectors in it compiles to a model that has never heard of them. A helper
+-belongs in the signature when only theory operators call it; what remains in
+-`plugins/model_smt/model_smt.eo` is the type language, the value language and
+-the terms that file declares itself, together with their methods.
++no bit-vectors in it compiles to a model that has never heard of them.
++
++A helper belongs in the signature when only theory operators call it. That is
++the whole of what a signature may hold beside its symbols: a set says what a
++theory **does** and never what the embedding **is**, so it writes programs and
++never a declaration, and a form that is neither is refused rather than carried
++over as the text it is; see `semantics/README.md`. The programs over a map --
++looking an entry up, typing one, saying whether one is written the one way --
++are therefore written in the configuration beside the sort they belong to,
++while the `$smt_Map` they are written over is declared in
++`plugins/model_smt/model_smt.eo` with the rest of the embedding.
++
++What remains in `plugins/model_smt/model_smt.eo` is what says what the
++embedding is, and what no theory is what asks for:
++
++- the term, type and value languages the file declares itself -- the shapes a
++  value is built over among them -- and the aggregates written over them;
++- the datatypes, which an input *declares* rather than a theory naming, and the
++  types the embedding keeps for what an input declares -- `USort`, `FunType`,
++  `DtcAppType`, `TypeRef`;
++- the binders, an application, and the programs over types that everything else
++  is written against -- well-foundedness, boundedness and the default of a
++  type.
++
++Every helper a signature writes is emitted together, before the first aggregate
++whose cases may call one; they are one stream because they are one dependency
++graph, and what orders them is the signature itself, which writes a program
++after the ones it calls. See `$SMT_HELPER_PROGS$` in the template.
+ 
+ The stage takes the blocks of the symbols the input declares, together with
+ every block those name, and puts what each says where it belongs; it knows
+@@ -95,10 +195,10 @@ matches. Trimming a signature to one proof rule has to keep such a symbol, so
+ the driver reads those dependencies off the blocks and tells `trim-defs`; see
+ `Pipeline.defs_depends` in `tools/eoc/driver.py`.
+ 
+-A block may also say that the compilation has no place for its symbol at all:
+-SMT-LIB gives a proof-level binder no meaning, so `lambda` and everything that
+-reduces an application of one are left out rather than modelled. A block says
+-so with directives of the following forms:
++A block may also say that the compilation has no place for what it is of at
++all: SMT-LIB gives a proof-level binder no meaning, so `lambda` and everything
++that reduces an application of one are left out rather than modelled. A block
++says so with directives of the following forms:
+ 
+ ```lisp
+ (echo "eoc-exclude symbol lambda")
+@@ -106,12 +206,17 @@ so with directives of the following forms:
+ (echo "eoc-exclude rule beta-reduce")
+ ```
+ 
++The configuration writes `:exclude` on the symbol, the method or the rule
++itself -- a method with `define-method` and a rule with `define-rule` -- and the
++compiler puts the directive back, the kind being what the form that declared it
++says one is; see `semantics/README.md`.
++
+ `Pipeline.defs_excludes` collects them and gives them to the desugar stage,
+ which is what drops what they name; a rule among them is also left out of
+ `--all-rules`, since there is nothing to verify about it. The names are matched
+ literally: the compiler neither checks that a name exists nor computes a
+-dependency closure, so the block has to name every declaration that goes with
+-the one it omits.
++dependency closure, so every declaration that goes with an omitted one says so
++for itself.
+ 
+ ## Why the generated Lean terminates
+ 
+@@ -139,6 +244,241 @@ configuration names its clauses with `--lean-config`. Without clauses the
+ generated Lean simply carries none for those programs, which Lean will reject
+ if one was needed.
+ 
++A clause may not name the native layer, which the compiler checks. It is text
++the stage appends rather than text the stage printed, so naming a definition
++of the layer there asks for nothing: the definition may have been dropped as
++unreached, see "The native layer" below. Every native type abbreviates a Lean
++type, which is what a measure writes instead.
++
++## The natives of the embedding
++
++What a signature written in the embedding may call that no compiler writes is
++declared in `plugins/desugar/natives.eos`, one entry to a native:
++
++```lisp
++(declare-native binary_and ((w <numeral>) (n1 <numeral>) (n2 <numeral>)))
++(declare-native z_zero () :op "0")
++```
++
++`sem_compile.py` compiles that set into `tools/eoc/out/native_defs.eo`, the
++declarations the desugar layer carries, which stand where the
++`(include "native_defs.eo")` of `plugins/desugar/native_embed.eo` names them.
++Nothing writes one by hand: a declaration says only the name, what each
++argument is and the operator it forwards to, and the set says all three.
++
++### What one native is called
++
++A native is written under one name and comes out under several, one per place
++it reaches. Taking `zplus`, which the embedding calls where a signature adds
++two numerals:
++
++| Where | Spelling | `zplus` |
++| --- | --- | --- |
++| `desugar/natives.eos`, which declares it | the name | `zplus` |
++| desugared Eunoia, and the `eo-meta` output | `$native_` and the name | `$native_zplus` |
++| `lean_meta/lean.eos`, `smt_meta/smt-vc.eos`, which implement it | the name it forwards to, i.e. `:op` where it has one | `zplus` |
++| generated Lean | `native_` and that | `native_zplus` |
++| generated SMT-LIB | that, unchanged | `zplus` |
++
++The `eo-meta` backend is the one that adds no spelling of its own: what it
++writes is Eunoia, and Eunoia already calls it `$native_zplus`.
++
++A definition a Lean block writes for itself, rather than the one it declares,
++is named `impl_native_` instead, which is what says it is private to that
++block: `impl_native_int_log_rec` is nothing a signature may reach.
++
++Where a name is spelled is settled in `LAYERS` in `tools/eoc/sem_compile.py`,
++one entry to a backend.
++
++What is left in `native_embed.eo` is what the embedding *is* rather than what
++it calls, and nothing else: the `$native_apply_*`, `$native_type_*` and
++`$native_embed_*` constructors, declared and never written over. It holds no
++definition at all.
++
++Everything else the set says. It declares the primitive types the natives are
++written over as well as the natives themselves -- `<numeral>` is what a
++configuration calls what a backend calls `Int` -- so that a set says the kind
++of thing it means rather than the sort some target happens to have. Three of
++the six name no SMT-LIB sort at all.
++
++A native that forwards to nothing says what it *is* instead, under `:is`,
++written in the vocabulary every body of a configuration is written in:
++
++```lisp
++(declare-native z_dec ((x1 <numeral>)) :is ("zplus" x1 "z_neg_one"))
++```
++
++What a native that forwards to an operator **does** is a separate thing, said
++by each backend in a native layer of its own; see below. The two are apart
++because neither implies the other: a backend may define what the embedding
++never calls, and the embedding may call what a backend gets from its own
++language. A native written with `:is` needs neither, since what it is has been
++said once already.
++
++## The native layer
++
++What a backend generates is written against a layer of definitions that gives
++the deep embedding its arithmetic, its strings, its regular expressions and
++the rest -- what the generated text is allowed to call and no compiler writes.
++Each backend has one, and the two are the same thing said twice:
++
++| backend | set | compiles to | read by |
++| --- | --- | --- | --- |
++| Lean | `plugins/lean_meta/lean.eos` | `tools/eoc/out/lean_native.lean` | the `lean-meta` stage |
++| SMT-LIB | `plugins/smt_meta/smt-vc.eos` | `tools/eoc/out/smt_vc_native.smt2` | the `smt-meta` stage |
++
++### What the backend writes for itself
++
++The inductive a datatype of the embedding prints as, and the ordering key
++beside it, are generated: a constructor the target declares reaches the backend
++like any other, and the backend gives an inductive to whatever it is handed,
++named as the type the constructor returns. Nine datatypes come out that way --
++the term, the type and the value, and the map, the sequence, the regular
++language and the three a datatype declaration is made of.
++
++A datatype's constructors are therefore said once, in
++`semantics/smt.eos`, and their order there is what the tags of its ordering key
++are taken from.
++
++### What a layer owes the embedding
++
++The embedding declares 66 natives. Which of them a layer *must* implement is
++not "all of them", and the rule has three parts:
++
++| a native that | the layer owes it | how many |
++| --- | --- | --: |
++| says `:is`, being written over the others | nothing -- what it is was said once | 7 |
++| forwards to a **literal**, as `z_zero` does to `0` | nothing -- a literal is itself in every target | 12 |
++| forwards to an operator the **target language already has**, as `and` does in SMT-LIB | nothing | varies |
++| forwards to anything else | a definition | the rest |
++
++Where the layers stand today, counting the 47 primitives that do not forward to
++a literal:
++
++| layer | implements | of |
++| --- | --: | --: |
++| `lean_meta/lean.eos` | 47 | 47 |
++| `smt_meta/smt-vc.eos` | 34 | 47 |
++| `eo_meta/eo.eos` | 28 | 47 |
++
++**The third row of the first table is the hole.** Nothing anywhere says which
++operators a target already has, so nothing can tell a native SMT-LIB gets for
++free -- `and`, `or`, `not`, `ite`, `to_real` -- from one that is simply
++missing. The thirteen `smt-vc.eos` does not implement are all of the first
++kind, and the nineteen `eo.eos` does not are mostly not: a native with no
++`:eo-impl` falls back to an opaque `$native_apply_N`, so the eo-meta output
++names an uninterpreted operator rather than failing.
++
++So the coherence of a layer is **unchecked in both directions**: a native no
++layer implements and no language has surfaces as a Lean or cvc5 error two
++tools downstream, and a layer entry for a native the embedding no longer
++declares is dead text nothing reports. See "What is not checked for you" in
++[`docs/README.md`](../../docs/README.md).
++
++What would close it is one line per target saying what its language brings --
++the operators it has without being told -- against which the compiler could
++check every native the compiled signature actually reaches. That is a smaller
++question than it looks, since only the natives a *run* reaches matter, and the
++run already knows which those are.
++
++**A layer is a configuration set**, which `tools/eoc/sem_compile.py` compiles;
++one entry is one definition, under the attribute that says which language it
++is written in:
++
++```lisp
++(define-native-method str_to_upper
++  :lean-impl "def impl_native_char_to_upper (c : native_Char) : native_Char :=
++  if 97 <= c && c <= 122 then c - 32 else c
++
++def native_str_to_upper : native_String -> native_String
++  | s => s.map impl_native_char_to_upper")
++
++(define-native-method int.to_nat
++  :smt-impl "(declare-fun int.to_nat (Int) Nat)
++(assert (! (forall ((x Int))
++  (! (= (int.to_nat x) (ite (<= x 0) nat.zero (nat.succ (int.to_nat (- x 1)))))
++  :pattern ((int.to_nat x))))
++  :named smtx.int.to_nat.def))")
++```
++
++The name is spelled the way the embedding names it: the Lean backend puts the
++`native_` back, and the SMT-LIB one forwards the name as it stands, which is
++why `int.to_nat` is written under that name there and under `int_to_nat` in
++the Lean set. Whatever else an entry defines has no name here and so is
++private to it, which `impl_native_` rather than `native_` is what says on the
++Lean side. A definition that is axiomatised rather than defined -- a
++`declare-fun` and the `assert` that says what it is -- is one entry, since
++neither half is of any use without the other.
++
++Everything below holds of both layers: what a stage is given is the same file
++in two languages, and the code that reads it is one class, `ethos::NativeLayer`
++in `plugins/native_layer.cpp`.
++
++### Where a definition comes out
++
++**Only what the compilation of an input reaches is emitted.** Most of a layer
++is dead for any one input: a signature with no strings in it has no use for
++the regular-expression matcher, and one of Booleans alone has none for
++arithmetic. The Lean layer is 116 definitions and 660 lines, of which a
++published `CpcMini` carries 46 and the full CPC package all but two; the
++SMT-LIB layer is 67, of which the verification condition of `symm` carries 16
++-- and what it drops includes nine quantified axioms, which is work the solver
++does not do.
++
++A backend has one place per module its generated text is read in, each taking
++what comes out there as an ordinary replacement:
++
++| backend | place | tag in | scope |
++| --- | --- | --- | --- |
++| Lean | `SmtEval.lean` | `lean_meta_smt_eval.lean` | `SmtEval`, which every module sees |
++| Lean | `Logos.lean` | `lean_meta_checker.lean` | `Eo`, the Eunoia terms and what is written over them |
++| Lean | `SmtModel.lean` | `lean_meta_smt_model.lean` | `Smtm`, the SMT-LIB value embedding |
++| SMT-LIB | above the datatypes | `smt_meta.smt2` | `Vc`, where SMT-LIB alone is in scope |
++| SMT-LIB | below the datatypes | `smt_meta.smt2` | `Embed`, where the embedding is declared |
++
++Which of them a block comes out in is the demand for it: the module that names
++it, the one they share when two do -- which is the scope every module sees --
++and the one module that can hold it when its text names what only that module
++declares. A block named by a block is named wherever that one comes out, so
++the demand is closed over what each calls.
++
++Neither of the two things this is read off is the generated text:
++
++- **What a block names** is read by the compiler, off the block itself, and
++  written on the line that opens it: the scope it cannot be written above, and
++  the rest of the layer it calls. See `lean_needs`, `vc_needs` and
++  `native_deps` in `tools/eoc/sem_compile.py`. Reading it there rather than
++  beside the definition is what keeps it from drifting: an annotation can, and
++  the text cannot drift from itself.
++- **What an input names** is what the stage wrote: a name of the layer reaches
++  generated text only by being printed into it, so the stage notes each as it
++  prints it, against the scope the text it is printing comes out in. See
++  `NativeLayer::use`, and `getEmbedName` in either stage for where a name is
++  printed.
++
++What no input reaches is what the resources of a stage name themselves --
++`native_ite` in the term ITE of `lean_meta_checker.lean`, `native_Bool` in the
++equality of `lean_meta_checker_term.lean`. Such a definition says `:keep` in
++its set and comes out in the scope every module sees, which is what every
++resource that names one can see. A resource that names one and does not say
++so gets generated text naming a definition that was never written, which
++**Lean, or cvc5 reading the verification condition, is what reports**.
++
++### `eo::hash` has no Lean
++
++EO leaves what `eo::hash` returns underconstrained, so a signature that
++reasons through it says nothing this backend could prove; the layer used to
++answer with a stub returning `0`, which is a claim about hash the signature
++never made, so the layer defines no `native_thash`.
++
++The `lean-meta` stage therefore refuses to print `$eo_hash`, the program of
++the embedding that would call it, the way it refuses `$eo_ite`; see
++`LeanMetaReduce::finalizeProgram`. A signature that uses hash gets generated
++Lean naming a definition that was never written, and **Lean is what reports
++it** -- the stage checks nothing further, since the generated file is not what
++says whether a name exists. The other backends are unaffected: `$native_thash`
++reaches SMT-LIB and SyGuS as the uninterpreted function it is.
++
+ ## Building `ethos-eoc`
+ 
+ `ethos-eoc` is built by the standalone CMake project in `plugins/`, which
+@@ -158,6 +498,37 @@ automatically if it does not exist yet.
+ whenever you invoke the driver from somewhere other than the build tree. The
+ examples below all use `build-eoc`.
+ 
++## Checking a change left the output alone
++
++```bash
++python3 tools/eoc/test/regress.py            # say whether the bytes moved
++python3 tools/eoc/test/regress.py --update   # take this run as what is written
++```
++
++The compiler is refactored more often than it is extended, and what a
++refactor has to be is output-preserving. `regress.py` compiles a signature of
++this tree, `tests/Booleans-rules.eo`, for one rule, and compares the digest of
++every file the run leaves behind -- stage files and published artifacts alike
++-- with what is checked in beside it. A run that changed something says which
++files it changed. CI runs it on every push.
++
++What is checked in is the digest of each file rather than the file, since the
++tree checks in no generated artifact at all; see the `tools/eoc/out/` line of
++`.gitignore`. The digests are of what the pipeline wrote *under these
++semantics*, so a change to `semantics/smt.eos` or to
++`semantics/development-cpc.eos` moves them, and rightly: `--update` is how a
++run that meant to change the model says so, and the diff of `expected.txt`
++then shows how much of the output that change reached.
++
++The whole-signature path is not covered. No signature in this tree is one the
++semantics the tool ships with covers entirely, so `lean --all` over one stops
++at the first symbol the semantics says nothing about; what covers it is a
++calculus of another tree, e.g. the CPC wrappers in `tools/eoc/cpc`.
++
++`python3 tools/eoc/sem_compile.py --check` is the other half: it says the
++generated signatures hold what compiling the configuration writes, and that
++each block of one stands after the blocks it names.
++
+ ## One important path rule
+ 
+ The driver resolves input paths relative to the directory where you invoke
+@@ -173,12 +544,52 @@ The input path `tests/Booleans-rules.eo` is interpreted relative to the
+ repository root. The driver writes its EO stage files and final published
+ outputs under `tools/eoc/out` by default.
+ 
++## What a run prints
++
++Every tool of the pipeline says what it is doing the same way, which matters
++because the checks that run this compiler live in other repositories -- logos
++and cvc5 -- and read its output there. One step of a run is a line under
++`-- `, what a step is made of is indented two spaces further, and a path is
++written from the root of the repository, so that a log reads the same whichever
++machine wrote it:
++
++```text
++-- Compiling semantics under tools/eoc/semantics
++--   smt.eos             -> tools/eoc/out/smt_defs.eo (219 blocks)
++--   smt.eos             -> tools/eoc/out/smt_termination.lean (12 clauses, unchanged)
++--     132 symbols, 5 literals, 9 types, 14 values, 12 methods, 67 programs
++--   development-cpc.eos -> tools/eoc/out/user_defs.eo (194 blocks, unchanged)
++-- Generating Lean for /home/me/cvc5/proofs/eo/cpc/Cpc.eo
++--   [1/4] desugar   -> tools/eoc/out/lean-cpc-desugar.eo
++--   [2/4] model-smt -> tools/eoc/out/lean-cpc-final.eo
++--   [3/4] parse        tools/eoc/out/lean-cpc-final.eo
++--   [4/4] lean      -> tools/eoc/out/lean
++-- Installing the generated Lean of tools/eoc/out/lean into /home/me/logos/Cpc
++--   Logos.lean         -> Cpc/Logos.lean
++--   Rules/*.lean       -> Cpc/Proofs/Rules/ (591 copied, 0 preserved)
++```
++
++A path outside the repository -- the signature of a calculus, the tree the Lean
++is installed into -- is written as it stands, since nothing else would name it.
++
++What went wrong is *not* a step. It goes to stderr as `error: ...`, which is
++what a caller's CI looks for, and the run exits non-zero; a run that carried on
++regardless says so as `warning: ...`. Anything meant to be read by a program
++rather than a person -- the rule names of `list-rules` -- is written plainly to
++stdout with no prefix at all.
++
++The style is defined in one place per language: `tools/eoc/report.py` for the
++tools, and `eoc_step`, `eoc_item`, `eoc_error` in `tools/eoc/cpc/common.sh` for
++the scripts that call them.
++
+ ## Output layout
+ 
+ The driver uses two output trees:
+ 
+ - `tools/eoc/out/` for stage EO files and final published outputs, unless
+-  overridden with `--final-out-dir` or `EOC_FINAL_OUT_DIR`
++  overridden with `--final-out-dir` or `EOC_FINAL_OUT_DIR`, and for what the
++  configuration compiles to, which stands there whatever a run overrides and is
++  not checked in
+ - `<build-dir>/out/plugins/` for plugin-private generated files consumed by the
+   driver
+ 
+@@ -186,6 +597,12 @@ Published and stage files:
+ 
+ ```text
+ tools/eoc/out/
++  smt_defs.eo               what the configuration compiles to, see
++  user_defs.eo              tools/eoc/semantics/README.md
++  smt_termination.lean
++  user_termination.lean
++  lean_native.lean          the native layer of each backend, see above
++  smt_vc_native.smt2
+   trim-*.eo
+   trim-d-*.eo
+   vcm-def-*.eo
+@@ -207,21 +624,34 @@ tools/eoc/out/
+     SmtValueOrder.lean
+     SmtModel.lean
+     Spec.lean
+-    RuleLemmas.lean
+-    Rules/
+-      <Rule>.lean
+-```
+-
+-`out/lean/` is what a run publishes, not a Lean package that builds on its own:
+-the generated modules import `<Calc>.Proofs.CheckerCore` and
+-`<Calc>.Proofs.RuleSupport.Support`, which the compiler never writes and which
+-belong to the package the files are installed into. That package holds the
+-proof-side modules under `Proofs/`, and the published tree is it with that one
+-component dropped, uniformly: `RuleLemmas.lean` is installed as
+-`Proofs/RuleLemmas.lean` and `Rules/<Rule>.lean` as `Proofs/Rules/<Rule>.lean`,
+-which is what the `import <Calc>.Proofs.Rules.<Rule>` lines that the former
+-carries name. Every other file is installed at the root of the package, where
+-its name already is its import.
++    Proofs/
++      RuleLemmas.lean
++      Rules/
++        <Rule>.lean
++```
++
++`out/lean/` is the package the files are installed into, not a Lean package
++that builds on its own: the generated modules import `<Calc>.Proofs.CheckerCore`
++and `<Calc>.Proofs.RuleSupport.Support`, which the compiler never writes and
++which belong to that package. The proof-side modules stand under `Proofs/`,
++which is what the `import <Calc>.Proofs.Rules.<Rule>` lines `RuleLemmas.lean`
++carries name; every other file stands at the root, where its name already is
++its import. Installing is therefore a copy of the tree, and a file added to
++`LEAN_OUTPUTS` in `tools/eoc/driver.py` arrives with no change to the install
++wrappers.
++
++`<Calc>` is what `--calc-name` says, which is the name of the package the run
++installs into; a run that names none calls the calculus after its input file,
++up to the first dot.
++
++A published module is read by whoever reads the package, so what the resource
++it was rendered from says to whoever *edits* the resource -- what a tag stands
++for, why something is written there rather than where it belongs -- is written
++as a **note**, a comment whose text opens with a `$`: `-- $` where the resource
++is Lean and `; $` where it is SMT-LIB. A note is dropped when the resource is
++rendered, so it never reaches the package; see `dropResourceNotes` in
++`plugins/utils.cpp`. Everything else a resource writes is published as it
++stands, and is written to the reader of the package.
+ 
+ Plugin-private files:
+ 
+@@ -337,15 +767,26 @@ python3 tools/eoc/driver.py lean --build-dir build-eoc --all INPUT
+ ```
+ 
+ Pass `--no-parser` to omit the signature-specific `Parser.lean` artifact while
+-still generating the remaining Lean modules and per-rule files. This also
+-removes a stale `Parser.lean` from the selected final output directory.
++still generating the remaining Lean modules and per-rule files.
++
++Pass `--calc-name NAME` to say what the generated Lean calls the calculus,
++which is the name of the package the run installs into, e.g. `Cpc`. Naming it
++here is what makes the imports of the published tree right where they are
++written; a run that names none calls the calculus after its input file, up to
++the first dot.
+ 
+ Pass `--lean-config FILE` to name the termination clauses of the input's own
+ programs where the input was given already written out rather than as a
+ configuration set; see "Why the generated Lean terminates" above.
+ 
++The generated modules carry only the `native_` definitions the input reaches,
++so the same signature compiled for fewer rules publishes a smaller native
++layer; see "The native layer" above.
++
+ Generated files are written to `tools/eoc/out/lean/` by default, including
+-per-rule files in `tools/eoc/out/lean/Rules/`. `Parser.lean` is the minimal
++per-rule files in `tools/eoc/out/lean/Proofs/Rules/`. The tree is written
++afresh each run, so it holds the whole of what that run compiled and nothing
++else. `Parser.lean` is the minimal
+ calculus-specific instantiation of the generic Logos proof parser: it contains
+ only the generated operator/rule tables, indexed-operator constructors, and
+ surface desugaring configuration.
+@@ -402,6 +843,19 @@ This walks `include` chains and preserves declaration order.
+ 
+ ## Common workflows
+ 
++### Generate a VC for one rule
++
++```bash
++python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE
++```
++
++### Generate VCs for every rule
++
++```bash
++python3 tools/eoc/driver.py batch --build-dir build-eoc vc INPUT --all-rules --clean
++python3 tools/eoc/driver.py batch --build-dir build-eoc sygus INPUT --all-rules --clean
++```
++
+ ### Generate Lean and then copy files elsewhere
+ 
+ ```bash
+@@ -409,6 +863,15 @@ python3 tools/eoc/driver.py lean --build-dir build-eoc --all INPUT
+ ls tools/eoc/out/lean
+ ```
+ 
++`tools/eoc/cpc/install_logos` and `tools/eoc/cpc/install_logos_mini` run the
++`lean` pipeline through `driver.py` under the name of the package they install
++into, then copy the tree at `tools/eoc/out/lean` into a downstream Logos tree:
++that tree already has the layout of the package, so installing adds nothing to
++what publishing said. A rule file already in the package is kept, since a
++hand-written proof may stand beside the generated one. The destinations are the
++ones named in [`cpc/README.md`](cpc/README.md), each overridable with an
++environment variable.
++
+ ### Manually inspect or debug intermediate files
+ 
+ The driver writes the staged EO files into `tools/eoc/out/`. You can pass those
+diff --git a/tools/eoc/cpc/README.md b/tools/eoc/cpc/README.md
+new file mode 100644
+index 00000000..1e32bdcf
+--- /dev/null
++++ b/tools/eoc/cpc/README.md
+@@ -0,0 +1,123 @@
++# CPC Wrappers
++
++What is here installs the generated Lean of the CPC signature into a Logos
++tree: `install_logos` does it for the whole calculus and `install_logos_mini`
++for the handful of rules `CpcMini` holds. The rest of the directory is what
++those two reach -- `run_gen_lean`, `run_gen_lean_all` and `run_clean`, which
++fill in the default CPC signature and options and invoke
++`tools/eoc/driver.py`, and `common.sh`, which they share.
++
++Nothing else has a wrapper. A verification condition, a SyGuS query, a trimmed
++slice of a signature: call the driver, which documents its own options in
++[`../README.md`](../README.md).
++
++The wrappers default to the external CPC signature:
++
++```text
++input: <cvc5>/proofs/eo/cpc/Cpc.eo
++```
++
++What its symbols mean to the model is said by a signature of its own, which
++the wrappers give with `--semantics`. What they name there is the central file of
++its configuration, `semantics/development-cpc.eos`: the driver compiles that
++before the model-smt stage and gives the stage what it compiled to,
++`tools/eoc/out/user_defs.eo`, so the two are never out of step. Override it
++with `EOC_SEMANTICS`.
++
++That configuration is also where CPC says what the compilation has no place for
++at all,
++namely the lambda symbol, its beta-reduction rule, and their private helper
++methods; every wrapper leaves those out, not just the ones that compile the
++whole signature. The list is literal; no dependency analysis is performed.
++
++Useful environment variables:
++
++- `BUILD_DIR=/path/to/build` to override the build tree. If unset, the wrappers
++  use the current directory when it contains an executable `ethos-eoc`,
++  otherwise `<repo>/build-eoc`.
++- `EOC_NO_BUILD=1` to skip the rebuild, which `run_gen_lean_all` supports and
++  so `install_logos` does.
++- `EOC_SKIP_CVC5=1` to skip solver parse checks.
++- `EOC_CPC_INPUT=/path/to/signature.eo` to override the default CPC input. A
++  signature given this way has no model definitions unless `EOC_SEMANTICS`
++  names them.
++- `EOC_SEMANTICS=/path/to/defs.eos` to override the semantics of the input,
++  which say what its symbols mean to the model.
++- `EOC_SMT_SEMANTICS=/path/to/smt.eos` to override the SMT-LIB semantics the
++  input's semantics are written against, which every input is compiled through.
++  Unset, a run compiles the set the tool ships with; a set named here stands in
++  for it, compiling to the same `tools/eoc/out/smt_defs.eo` and
++  `smt_termination.lean`, so no stage can read one semantics' file while
++  another is in use.
++- `EOC_CPC_LEAN_CONFIG=/path/to/user_termination.lean` to name the termination
++  clauses of the input's programs, which `run_gen_lean` and `run_gen_lean_all`
++  then give the lean-meta stage with `--lean-config`. A signature given as a
++  configuration set compiles its own clauses, which the driver gives that stage
++  of itself, so this is for one given already written out.
++- `EOC_LEAN_CALC=Name` to name what the generated Lean calls the calculus,
++  which is the package it is installed into; the install wrappers set it
++  themselves.
++- `EOC_FINAL_OUT_DIR=/path/to/out` to override the published output tree.
++- `LOGOS_DIR`, `LOGOS_TESTS_DIR`, `LOGOS_REGRESS_DIR` (default
++  `$LOGOS_DIR/test/regress`, where the generated `*.cpc.lean` regressions go),
++  `CVC5_LOGOS`, and `CPC_GEN_LOGOS_CMD` to override the `install_logos`
++  destinations and helper command.
++- `SUB_DIR` (default `CpcMini`) and `MINI_TARGETS` (default
++  `symm contra refl scope trans`) to override the destination package and the
++  compiled rule set of `install_logos_mini`.
++- `EOC_LOGOS_BANNER=0` to install the generated modules with no banner.
++
++The install wrappers publish a fixed destination module layout, and say which
++by generating the Lean under the name of the package it is installed into:
++`install_logos` compiles as `Cpc` and `install_logos_mini` as `$SUB_DIR`, so
++the imports are right where they are written and nothing rewrites them
++afterwards. `EOC_LEAN_CALC` names one for a wrapper called on its own; a run
++that names none calls the calculus after its input file, up to the first dot.
++
++Examples:
++
++```bash
++BUILD_DIR=build-eoc EOC_NO_BUILD=1 tools/eoc/cpc/install_logos
++LOGOS_DIR=/tmp/logos tools/eoc/cpc/install_logos_mini
++tools/eoc/cpc/run_gen_lean symm contra
++```
++
++`run_gen_vc` and `run_gen_sygus` accept `--solve` to run the configured `cvc5`
++executable on the generated artifact after any parse check. They also accept
++`--solve-args="..."` to pass extra solver options through to that solve step,
++for example `--solve-args="--tlimit=1000 --seed=7"`.
++
++Both install wrappers put a banner ahead of every module they install, which is
++what a reader who opens one in the middle of the package -- or a diff of one --
++is told before anything else. The compiler writes none: what a package says
++about where its files came from is the package's own business rather than the
++compilation's, so it is an install that says it, and the text is
++`EOC_LOGOS_BANNER_TEXT` in `common.sh`. It is the banner the Logos packages
++carry, word for word, since a banner that differs is a diff on every generated
++module; nothing here reads the Logos tree to find that out, so keeping the two
++in step is a matter of editing that one string. The banner goes on every module
++the compiler publishes except the per-rule files under `Proofs/Rules`. A run
++given `EOC_LOGOS_BANNER=0` installs none.
++
++`install_logos` publishes the generated proof parser as
++`$LOGOS_DIR/Cpc/Parser.lean`. The generated module is only a
++`Logos.Parser.Config`: the operator and proof-rule tables of the calculus, plus
++the mapping of literals, datatype declarations and proof commands into its term
++language. The parser itself is the hand-written, calculus-independent
++`Logos/Parser.lean` in the Logos repository, which is where that module lives
++rather than in a generated calculus package.
++
++`install_logos_mini` passes `--no-parser` to the compiler, skips Parser.lean
++when installing the generated modules, and removes any stale
++`$LOGOS_DIR/CpcMini/Parser.lean` from an earlier installation.
++
++The tables also cover the identifiers the signature introduces with `define`,
++such as `@var` and `@pair`, since proofs use them even though Eunoia inlines
++them; see the `lean` section of `tools/eoc/README.md`.
++
++An operator's arity comes from its Eunoia argument-list attribute, carried
++through the stages as echo metadata because desugaring strips it from the
++emitted declarations. `:arg-list` becomes `.argList`, so `(distinct a b c)`
++gathers into `(distinct (@tlist a b c))`; an operator that merely takes a
++`@@TypedList` without that attribute, such as `set.insert`, is applied to an
++explicit list and stays `.exact`.
+diff --git a/tools/eoc/cpc/common.sh b/tools/eoc/cpc/common.sh
+new file mode 100755
+index 00000000..b84e799b
+--- /dev/null
++++ b/tools/eoc/cpc/common.sh
+@@ -0,0 +1,318 @@
++#!/usr/bin/env bash
++# Shared helper library for the CPC wrappers in this directory.
++# Source this file from the wrapper scripts; it is not meant to be run directly.
++# The wrappers default to publishing stage and final artifacts in tools/eoc/out.
++# shellcheck shell=bash
++
++# How a script says what it is doing, which is how the tools it calls say it
++# too, see tools/eoc/report.py: a step of a run is a line under `-- ', what a
++# step is made of is indented two spaces further under it, and a path is
++# written from the root of the repository. What went wrong is not a step: it
++# goes to stderr as `error: ...', where the CI of a caller looks for it.
++eoc_step() { printf -- '-- %s\n' "$*"; }
++eoc_item() { printf -- '--   %s\n' "$*"; }
++eoc_error() { printf 'error: %s\n' "$*" >&2; }
++eoc_warning() { printf 'warning: %s\n' "$*" >&2; }
++
++# A path as a log names one: from the root of the repository where it is under
++# it, and as it stands otherwise, e.g. a tree the signature is read from.
++eoc_rel() {
++  case "$1" in
++    "$EOC_REPO_ROOT"/*) printf '%s\n' "${1#"$EOC_REPO_ROOT"/}" ;;
++    *) printf '%s\n' "$1" ;;
++  esac
++}
++
++EOC_COMPAT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
++EOC_TOOLS_DIR="$(cd "$EOC_COMPAT_DIR/.." && pwd)"
++EOC_REPO_ROOT="$(cd "$EOC_COMPAT_DIR/../../.." && pwd)"
++EOC_DRIVER="$EOC_TOOLS_DIR/driver.py"
++# The input is the CPC signature itself. What its symbols mean to the model is
++# said by a signature of its own, written in the deep embedding, which the
++# model-smt stage is given with --semantics.
++#
++# What is named here is the *configuration* of those semantics rather than the
++# signature itself: the driver compiles it before the model-smt stage and gives
++# the stage what it compiled to, so the two are never out of step. See
++# compile_signatures in tools/eoc/driver.py.
++EOC_DEFAULT_CPC_INPUT="$EOC_REPO_ROOT/../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
++EOC_DEFAULT_SEMANTICS="$EOC_TOOLS_DIR/semantics/development-cpc.eos"
++# Two more a run needs are named nowhere here, since nothing here would be the
++# one to say them: the SMT-LIB semantics the above is written against is the
++# target of the compilation, which sem_compile.py holds the set of, and why
++# each of the input's recursive programs terminates is what that same
++# compilation writes and the driver gives the lean-meta stage of itself. A
++# caller that has another of either says so with EOC_SMT_SEMANTICS or
++# EOC_CPC_LEAN_CONFIG; see compile_signatures in tools/eoc/driver.py.
++EOC_DEFAULT_FINAL_OUT_DIR="$EOC_TOOLS_DIR/out"
++
++eoc_default_build_dir() {
++  if [[ -x "$PWD/ethos-eoc" ]]; then
++    printf '%s\n' "$PWD"
++    return
++  fi
++  printf '%s\n' "$EOC_REPO_ROOT/build-eoc"
++}
++
++eoc_build_dir() {
++  printf '%s\n' "${BUILD_DIR:-$(eoc_default_build_dir)}"
++}
++
++eoc_cpc_input() {
++  printf '%s\n' "${EOC_CPC_INPUT:-$EOC_DEFAULT_CPC_INPUT}"
++}
++
++# Append the semantics of the input to ARGS. An input given by the caller has
++# semantics of its own or none at all, so the default is used only for the
++# default input.
++eoc_add_semantics() {
++  if [[ -n "${EOC_SEMANTICS:-}" ]]; then
++    ARGS+=("--semantics=${EOC_SEMANTICS}")
++  elif [[ -z "${EOC_CPC_INPUT:-}" ]]; then
++    ARGS+=("--semantics=$EOC_DEFAULT_SEMANTICS")
++  fi
++}
++
++# The SMT-LIB semantics the semantics of an input are written against, which
++# every input is compiled through. It is the target of the compilation, so a
++# run leaves it to the one the tool ships with unless it names another; naming
++# one is what says those semantics are a configuration too.
++eoc_add_smt_semantics() {
++  if [[ -n "${EOC_SMT_SEMANTICS:-}" ]]; then
++    ARGS+=("--smt-semantics=${EOC_SMT_SEMANTICS}")
++  fi
++}
++
++# Append the Lean configuration of the input to ARGS. The clauses of semantics
++# given as a configuration are compiled with them, and the driver gives the
++# stage what that set compiled to, so this names one only where the caller
++# did -- which is for a signature given already written out.
++eoc_add_lean_config() {
++  if [[ -n "${EOC_CPC_LEAN_CONFIG:-}" ]]; then
++    ARGS+=("--lean-config=${EOC_CPC_LEAN_CONFIG}")
++  fi
++}
++
++eoc_final_out_dir() {
++  printf '%s\n' "${EOC_FINAL_OUT_DIR:-$EOC_DEFAULT_FINAL_OUT_DIR}"
++}
++
++eoc_add_no_build() {
++  if [[ "${EOC_NO_BUILD:-0}" != "0" ]]; then
++    ARGS+=(--no-build)
++  fi
++}
++
++eoc_add_skip_cvc5() {
++  if [[ "${EOC_SKIP_CVC5:-0}" != "0" ]]; then
++    ARGS+=(--skip-cvc5)
++  fi
++}
++
++eoc_extract_solve_options() {
++  local saw_solve=0
++  local saw_solve_args=0
++  local need_solve_args_value=0
++  local solve_args_value=""
++  local arg
++  EOC_FILTERED_ARGS=()
++  for arg in "$@"; do
++    if (( need_solve_args_value )); then
++      solve_args_value="$arg"
++      saw_solve_args=1
++      need_solve_args_value=0
++      continue
++    fi
++    case "$arg" in
++      --solve)
++        saw_solve=1
++        ;;
++      --solve-args)
++        need_solve_args_value=1
++        ;;
++      --solve-args=*)
++        solve_args_value="${arg#--solve-args=}"
++        saw_solve_args=1
++        ;;
++      *)
++        EOC_FILTERED_ARGS+=("$arg")
++        ;;
++    esac
++  done
++  if (( need_solve_args_value )); then
++    eoc_error "--solve-args requires a value"
++    exit 2
++  fi
++  if (( saw_solve )); then
++    ARGS+=(--solve)
++  fi
++  if (( saw_solve_args )); then
++    ARGS+=("--solve-args=$solve_args_value")
++  fi
++}
++
++eoc_require_args() {
++  local usage="$1"
++  local expected="$2"
++  local actual="$3"
++  if (( actual < expected )); then
++    echo "usage: $usage" >&2
++    exit 2
++  fi
++}
++
++eoc_exec_driver() {
++  exec python3 "$EOC_DRIVER" "$@"
++}
++
++# Append the name the generated Lean is to call the calculus, which is the name
++# of the package it is installed into. A caller that installs says which; a run
++# that names none leaves the driver to call it after the input.
++eoc_add_calc_name() {
++  if [[ -n "${EOC_LEAN_CALC:-}" ]]; then
++    ARGS+=("--calc-name=${EOC_LEAN_CALC}")
++  fi
++}
++
++eoc_sed_in_place() {
++  local expression="$1"
++  local file="$2"
++  sed -i.bak -e "$expression" "$file"
++  rm -f "$file.bak"
++}
++
++# Compile the configuration of the model-smt signatures, and say what came out.
++#
++# The stage reads two signatures written in the deep embedding: the SMT-LIB one,
++# smt_defs.eo, which it finds for itself since it is the target, and the input's,
++# user_defs.eo, which --semantics names. Both are generated from the
++# configuration under tools/eoc/semantics. The driver compiles them before any
++# stage runs (see compile_signatures in tools/eoc/driver.py) but does so
++# silently, so a run never says where user_defs.eo came from; this compiles them
++# first, where the compiler says it. Doing so costs nothing and leaves the
++# driver's own pass with nothing to do: a file is written only where its text
++# changed.
++#
++# Which sets are compiled is sem_compile's own business rather than something
++# listed here, so the two cannot drift. One named with EOC_SEMANTICS that is
++# not among the sets the tool ships with is compiled by the driver during the
++# run rather than reported here.
++eoc_compile_sem_signatures() {
++  python3 "$EOC_TOOLS_DIR/sem_compile.py"
++}
++
++# Install the generated Lean into a package.
++#
++# The driver publishes the tree in the layout of the package it is installed
++# into, see LEAN_OUTPUTS in tools/eoc/driver.py, so this copies the tree as it
++# stands and no list here says what is in it: a file added there arrives with
++# no change on this side. What the run did not generate is what the package is
++# not to keep, so a Parser.lean of an earlier run goes where this one wrote
++# none.
++#
++# A rule file already in the package is kept where the caller says so, since a
++# hand-written proof may stand beside the generated one.
++eoc_copy_lean_outputs() {
++  local dest_dir="$1"
++  local final_out_dir="$2"
++  local preserve_existing_rules="${3:-0}"
++  local lean_dir="$final_out_dir/lean"
++  local file
++  local rel
++  local dest
++  local copied=0
++  local preserved=0
++
++  if [[ ! -f "$lean_dir/Logos.lean" ]]; then
++    eoc_error "$(eoc_rel "$lean_dir") holds no generated Lean"
++    return 1
++  fi
++  eoc_step "Installing the generated Lean of $(eoc_rel "$lean_dir") into $(eoc_rel "$dest_dir")"
++  [[ -f "$lean_dir/Parser.lean" ]] || rm -f "$dest_dir/Parser.lean"
++  while IFS= read -r -d '' file; do
++    rel="${file#"$lean_dir"/}"
++    dest="$dest_dir/$rel"
++    if [[ "$preserve_existing_rules" != "0" && "$rel" == Proofs/Rules/* \
++          && -e "$dest" ]]; then
++      preserved=$((preserved + 1))
++      continue
++    fi
++    mkdir -p "$(dirname "$dest")"
++    cp "$file" "$dest"
++    copied=$((copied + 1))
++  done < <(find "$lean_dir" -type f -name '*.lean' -print0)
++  eoc_item "$(printf '%d copied, %d preserved' "$copied" "$preserved")"
++}
++
++# The banner a generated module of a Logos package carries, so that a reader
++# who opens one in the middle of the package -- or a diff of one -- is told
++# where it came from before anything else.
++#
++# It is not the compiler's to write: what a package says about where its files
++# came from is the package's own business, and the compiler writes none. It is
++# an install that puts it there, which is what these wrappers are, so it is
++# spelled here.
++#
++# The text is what the Logos packages carry, which is why it names a script of
++# that repository rather than one of this one: the copy of the signature CI
++# compiles is the one Logos keeps, so what a reader of an installed file is
++# sent to is the install there. A banner already carried by a Logos tree that
++# does not match this one, word for word, is a diff on every generated module
++# and this is what to bring back into line.
++EOC_LOGOS_BANNER_TEXT='-- This file is auto-generated by install/install-cpc.sh, which compiles the
++-- Eunoia signature recorded in install/defs/Cpc.cached.eo into Lean.
++-- Do not edit. Change the signature, or the compiler, instead.
++--
++-- The SMT-LIB semantics and the checker specification that these definitions
++-- realize are documented in docs/smt-model-definitions.pdf.'
++
++# The modules the compiler publishes, named as the installed package spells
++# them, which is the second half of each LEAN_OUTPUTS entry in driver.py. Read
++# from there rather than listed here, so a module added to the driver arrives
++# with no change on this side.
++eoc_lean_outputs() {
++  python3 - "$EOC_TOOLS_DIR" <<'PY'
++import sys
++
++sys.path.insert(0, sys.argv[1])
++import driver
++
++for _, dest in driver.LEAN_OUTPUTS:
++    print(dest)
++PY
++}
++
++# Put the banner ahead of every generated module of an installed package.
++#
++# It goes on the LEAN_OUTPUTS set, which is everything the compiler publishes
++# except the per-rule files under Proofs/Rules, where a hand-written proof
++# lives beside the generated statement and an existing file is preserved rather
++# than rewritten. A module a run did not publish -- the Parser.lean a
++# --no-parser package has none of -- is not there to banner.
++#
++# Idempotent: a module that already carries the banner is left alone, so a
++# second pass over an installed tree does not stack banners. The banner goes
++# ahead of `module`, which Lean allows, comments being no command.
++eoc_banner_lean_outputs() {
++  local dest_dir="$1"
++  local first_line dest file
++  local added=0
++  local present=0
++
++  [[ "${EOC_LOGOS_BANNER:-1}" != "0" ]] || return 0
++  [[ -d "$dest_dir" ]] || return 0
++  first_line="${EOC_LOGOS_BANNER_TEXT%%$'\n'*}"
++  eoc_step "Bannering the generated modules of $(eoc_rel "$dest_dir")"
++  while IFS= read -r dest; do
++    file="$dest_dir/$dest"
++    [[ -f "$file" ]] || continue
++    if [[ "$(head -n 1 "$file")" == "$first_line" ]]; then
++      present=$((present + 1))
++      continue
++    fi
++    { printf '%s\n\n' "$EOC_LOGOS_BANNER_TEXT"; cat "$file"; } > "$file.hdr"
++    mv "$file.hdr" "$file"
++    added=$((added + 1))
++  done < <(eoc_lean_outputs)
++  eoc_item "$(printf '%d bannered, %d already carried one' "$added" "$present")"
++}
+diff --git a/tools/eoc/cpc/install_logos b/tools/eoc/cpc/install_logos
+new file mode 100755
+index 00000000..8ad39b0a
+--- /dev/null
++++ b/tools/eoc/cpc/install_logos
+@@ -0,0 +1,61 @@
++#!/usr/bin/env bash
++# Generate the full CPC Lean package and install it into local Logos trees.
++# Usage: install_logos
++# Output: first compiles the model-smt signatures, saying what smt_defs.eo and
++# user_defs.eo were each compiled from; see eoc_compile_sem_signatures in
++# common.sh. It then generates the Lean under the name Cpc and copies the tree
++# it published in tools/eoc/out/lean/ into $LOGOS_DIR/Cpc, which is the layout
++# the package has. Existing rule files under Proofs/Rules there are preserved,
++# and every module that is not one is installed with the banner a generated
++# module of a Logos package carries; see eoc_banner_lean_outputs in common.sh.
++# It then optionally regenerates the Lean regressions under
++# $LOGOS_DIR/test/regress from $LOGOS_TESTS_DIR when that directory exists,
++# leaving nothing of its own behind there.
++set -euo pipefail
++
++SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
++source "$SCRIPT_DIR/common.sh"
++
++BUILD_DIR="$(eoc_build_dir)"
++FINAL_OUT_DIR="$(eoc_final_out_dir)"
++LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
++LOGOS_TESTS_DIR="${LOGOS_TESTS_DIR:-$EOC_REPO_ROOT/smtlibTests/logos-tests}"
++LOGOS_REGRESS_DIR="${LOGOS_REGRESS_DIR:-$LOGOS_DIR/test/regress}"
++CVC5_LOGOS="${CVC5_LOGOS:-$HOME/bin/cvc5-logos}"
++CPC_GEN_LOGOS_CMD="${CPC_GEN_LOGOS_CMD:-cpc_gen_logos.sh}"
++
++eoc_compile_sem_signatures
++
++EOC_LEAN_CALC=Cpc "$SCRIPT_DIR/run_gen_lean_all"
++
++eoc_copy_lean_outputs "$LOGOS_DIR/Cpc" "$FINAL_OUT_DIR" 1
++eoc_banner_lean_outputs "$LOGOS_DIR/Cpc"
++
++"$SCRIPT_DIR/install_logos_mini"
++
++if [[ -d "$LOGOS_TESTS_DIR" ]] \
++  && command -v "$CPC_GEN_LOGOS_CMD" >/dev/null 2>&1 \
++  && [[ -x "$CVC5_LOGOS" ]]; then
++  eoc_step "Generating the Logos regressions into $(eoc_rel "$LOGOS_REGRESS_DIR")"
++  (
++    cd "$LOGOS_TESTS_DIR"
++    shopt -s nullglob
++    # The generator writes what it read and what it wrote beside each input,
++    # as temp.txt and <input>.cpc.lean; what the run wanted is the copy under
++    # $LOGOS_DIR/test/regress, so the rest goes however this ends.
++    trap 'rm -f temp.lean temp.txt ./*.smt2.cpc.lean' EXIT
++    for file in *.smt2; do
++      base_file="$(basename "$file")"
++      base_name="${base_file%.*}"
++      eoc_item "$(printf '%-28s -> %s' "$base_file" "test-$base_name.cpc.lean")"
++      "$CPC_GEN_LOGOS_CMD" "$CVC5_LOGOS" "$file" > temp.lean
++      mkdir -p "$LOGOS_REGRESS_DIR"
++      cp temp.lean "$LOGOS_REGRESS_DIR/test-$base_name.cpc.lean"
++    done
++  )
++elif [[ -d "$LOGOS_TESTS_DIR" ]]; then
++  eoc_warning "skipping the Logos regressions: CPC_GEN_LOGOS_CMD or CVC5_LOGOS is unavailable"
++fi
++
++eoc_step "Cleaning the stage files"
++EOC_SKIP_CVC5="${EOC_SKIP_CVC5:-1}" "$SCRIPT_DIR/run_clean"
+diff --git a/tools/eoc/cpc/install_logos_mini b/tools/eoc/cpc/install_logos_mini
+new file mode 100755
+index 00000000..030f4767
+--- /dev/null
++++ b/tools/eoc/cpc/install_logos_mini
+@@ -0,0 +1,33 @@
++#!/usr/bin/env bash
++# Generate the reduced CPC Lean package used for CpcMini-style downstream tests.
++# Usage: install_logos_mini
++# Output: generates the Lean under the name $SUB_DIR, with no parser, and
++# copies the tree it published in tools/eoc/out/lean/ into $LOGOS_DIR/$SUB_DIR,
++# the same layout install_logos installs, banner and all. Any existing rule
++# files under Proofs/Rules are preserved.
++set -euo pipefail
++
++SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
++source "$SCRIPT_DIR/common.sh"
++
++BUILD_DIR="$(eoc_build_dir)"
++FINAL_OUT_DIR="$(eoc_final_out_dir)"
++LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
++SUB_DIR="${SUB_DIR:-CpcMini}"
++read -r -a MINI_TARGETS <<< "${MINI_TARGETS:-symm contra refl scope trans}"
++
++eoc_step "Generating the Mini-Lean signature"
++EOC_LEAN_CALC="$SUB_DIR" "$SCRIPT_DIR/run_gen_lean" --no-parser "${MINI_TARGETS[@]}"
++
++eoc_copy_lean_outputs "$LOGOS_DIR/$SUB_DIR" "$FINAL_OUT_DIR" 1
++eoc_banner_lean_outputs "$LOGOS_DIR/$SUB_DIR"
++
++if [[ -d "$LOGOS_DIR/$SUB_DIR" ]]; then
++  (
++    cd "$LOGOS_DIR/$SUB_DIR"
++    shopt -s nullglob
++    while IFS= read -r -d '' file; do
++      eoc_sed_in_place 's/partial def /def /g' "$file"
++    done < <(find . -type f -name '*.lean' -print0)
++  )
++fi
+diff --git a/tools/eoc/cpc/run_clean b/tools/eoc/cpc/run_clean
+new file mode 100755
+index 00000000..835b4862
+--- /dev/null
++++ b/tools/eoc/cpc/run_clean
+@@ -0,0 +1,10 @@
++#!/usr/bin/env bash
++
++# runs scripts to match the expected state of temporary added files for debugging
++set -euo pipefail
++
++SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
++
++"$SCRIPT_DIR/run_gen_vc" symm
++"$SCRIPT_DIR/run_gen_lean" symm contra
++"$SCRIPT_DIR/run_gen_sygus" symm
+diff --git a/tools/eoc/cpc/run_gen_lean b/tools/eoc/cpc/run_gen_lean
+new file mode 100755
+index 00000000..747a704d
+--- /dev/null
++++ b/tools/eoc/cpc/run_gen_lean
+@@ -0,0 +1,21 @@
++#!/usr/bin/env bash
++# Generate Lean output for one or more RULE arguments on the default CPC input.
++# Usage: run_gen_lean [LEAN_OPTION ...] RULE [RULE ...]
++# Output: writes stage EO files and final Lean files under tools/eoc/out/.
++set -euo pipefail
++
++SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
++source "$SCRIPT_DIR/common.sh"
++
++eoc_require_args "$0 [LEAN_OPTION ...] RULE [RULE ...]" 1 "$#"
++
++BUILD_DIR="$(eoc_build_dir)"
++INPUT="$(eoc_cpc_input)"
++ARGS=(lean --build-dir "$BUILD_DIR" "$INPUT")
++
++eoc_add_semantics
++eoc_add_smt_semantics
++eoc_add_lean_config
++eoc_add_calc_name
++ARGS+=("$@")
++eoc_exec_driver "${ARGS[@]}"
+diff --git a/tools/eoc/cpc/run_gen_lean_all b/tools/eoc/cpc/run_gen_lean_all
+new file mode 100755
+index 00000000..52c26870
+--- /dev/null
++++ b/tools/eoc/cpc/run_gen_lean_all
+@@ -0,0 +1,21 @@
++#!/usr/bin/env bash
++# Generate Lean output for every declaration in the default or explicit INPUT.
++# Usage: run_gen_lean_all [INPUT]
++# Output: writes stage EO files and final Lean files under tools/eoc/out/.
++set -euo pipefail
++
++SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
++source "$SCRIPT_DIR/common.sh"
++
++BUILD_DIR="$(eoc_build_dir)"
++INPUT="${1:-$(eoc_cpc_input)}"
++ARGS=(lean --build-dir "$BUILD_DIR" --all)
++
++eoc_add_no_build
++
++eoc_add_semantics
++eoc_add_smt_semantics
++eoc_add_lean_config
++eoc_add_calc_name
++ARGS+=("$INPUT")
++eoc_exec_driver "${ARGS[@]}"
+diff --git a/tools/eoc/cpc/run_gen_sygus b/tools/eoc/cpc/run_gen_sygus
+new file mode 100755
+index 00000000..e3b8ed38
+--- /dev/null
++++ b/tools/eoc/cpc/run_gen_sygus
+@@ -0,0 +1,25 @@
++#!/usr/bin/env bash
++# Generate one SyGuS query for RULE on the default CPC input.
++# Usage: run_gen_sygus [--solve] [--solve-args="ARGS"] RULE
++# Output: writes stage EO files under tools/eoc/out/ and, on success, a final
++# query in tools/eoc/out/sygus/final-*.sy.
++set -euo pipefail
++
++SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
++source "$SCRIPT_DIR/common.sh"
++
++BUILD_DIR="$(eoc_build_dir)"
++INPUT="$(eoc_cpc_input)"
++ARGS=(vc --build-dir "$BUILD_DIR" --sygus)
++
++eoc_add_skip_cvc5
++eoc_extract_solve_options "$@"
++if (( ${#EOC_FILTERED_ARGS[@]} != 1 )); then
++  echo "usage: $0 [--solve] [--solve-args=\"ARGS\"] RULE" >&2
++  exit 2
++fi
++eoc_add_semantics
++eoc_add_smt_semantics
++ARGS+=("$INPUT" "${EOC_FILTERED_ARGS[0]}")
++
++eoc_exec_driver "${ARGS[@]}"
+diff --git a/tools/eoc/cpc/run_gen_vc b/tools/eoc/cpc/run_gen_vc
+new file mode 100755
+index 00000000..dbd9f12d
+--- /dev/null
++++ b/tools/eoc/cpc/run_gen_vc
+@@ -0,0 +1,21 @@
++#!/usr/bin/env bash
++# Generate SMT VCs for the supplied rule names on the default CPC input.
++# Usage: run_gen_vc [--solve] [--solve-args="ARGS"] RULE [RULE ...]
++# Output: writes stage EO files under tools/eoc/out/ and final SMT2 files under
++# tools/eoc/out/vc/.
++set -euo pipefail
++
++SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
++source "$SCRIPT_DIR/common.sh"
++
++BUILD_DIR="$(eoc_build_dir)"
++INPUT="$(eoc_cpc_input)"
++ARGS=(batch --build-dir "$BUILD_DIR")
++
++eoc_add_skip_cvc5
++eoc_extract_solve_options "$@"
++
++eoc_add_semantics
++eoc_add_smt_semantics
++ARGS+=(vc "$INPUT" "${EOC_FILTERED_ARGS[@]}")
++eoc_exec_driver "${ARGS[@]}"
+diff --git a/tools/eoc/driver.py b/tools/eoc/driver.py
+index b7c08692..b0964f6a 100755
+--- a/tools/eoc/driver.py
++++ b/tools/eoc/driver.py
+@@ -17,6 +17,11 @@ import sys
+ from pathlib import Path
+ from typing import Iterable, Optional
+ 
++sys.path.insert(0, str(Path(__file__).resolve().parent))
++
++import report  # noqa: E402
++import sem_compile  # noqa: E402
++
+ 
+ SCRIPT_DIR = Path(__file__).resolve().parent
+ REPO_ROOT = SCRIPT_DIR.parent.parent
+@@ -24,46 +29,59 @@ DEFAULT_FINAL_OUT_DIR = SCRIPT_DIR / "out"
+ LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
+ 
+ # The signature-wide Lean files written by the lean subcommand, in module
+-# dependency order. Each entry is (source relative to plugins/, name written
+-# under <final out dir>/lean, whether the source is rendered by the Lean
+-# backend rather than copied verbatim from the plugin source tree). The
+-# per-rule files under lean/Rules/ are published separately, see
++# dependency order. Each entry is (source relative to <build dir>/out/plugins,
++# path written under <final out dir>/lean). The per-rule files under
++# lean/Proofs/Rules/ are published separately, see
+ # publish_generated_lean_rule_outputs.
+ #
+-# <final out dir>/lean is what a run publishes, not a Lean package that builds
+-# on its own: the generated modules import <Calc>.Proofs.CheckerCore and
+-# <Calc>.Proofs.RuleSupport.Support, which the compiler never writes and which
+-# belong to the package the files are installed into. That package holds the
+-# proof-side modules under Proofs/, and the published tree is it with that one
+-# component dropped, uniformly: RuleLemmas.lean is installed as
+-# Proofs/RuleLemmas.lean and Rules/<Rule>.lean as Proofs/Rules/<Rule>.lean,
+-# which is what the import <Calc>.Proofs.Rules.<Rule> lines that the former
+-# carries name. Everything else is installed at the root of the package, where
+-# its name already is its import.
+-LEAN_OUTPUTS: tuple[tuple[str, str, bool], ...] = (
+-    ("lean_meta/lean_meta_checker_gen.lean", "Logos.lean", True),
+-    ("lean_meta/lean_meta_checker_term_gen.lean", "LogosTerm.lean", True),
+-    ("lean_meta/lean_meta_parser_gen.lean", "Parser.lean", True),
+-    ("lean_meta/lean_meta_smt_eval.lean", "SmtEval.lean", False),
+-    ("lean_meta/lean_meta_smt_model_defs_gen.lean", "SmtModelDefs.lean", True),
+-    ("lean_meta/lean_meta_smt_value_order_gen.lean", "SmtValueOrder.lean", True),
+-    ("lean_meta/lean_meta_smt_model_gen.lean", "SmtModel.lean", True),
+-    ("lean_meta/lean_meta_spec_gen.lean", "Spec.lean", True),
+-    ("lean_meta/lean_meta_rule_lemmas_gen.lean", "RuleLemmas.lean", True),
++# Every one of them is rendered by the lean-meta stage rather than copied from
++# the plugin source tree, including the ones whose resource carries no
++# generated text: the stage emits the part of the native layer the compilation
++# of the input reaches, and SmtEval.lean, Logos.lean and SmtModel.lean are
++# where that part comes out. See LeanMetaReduce::loadNativeDefs.
++#
++# The path is where the file stands in the package it is installed into, so
++# that publishing is what says the layout and installing is a copy of the tree.
++# It is not a Lean package that builds on its own: the generated modules import
++# <Calc>.Proofs.CheckerCore and <Calc>.Proofs.RuleSupport.Support, which the
++# compiler never writes and which belong to that package. The proof-side
++# modules stand under Proofs/, which is what the import <Calc>.Proofs.Rules.
++# <Rule> lines RuleLemmas.lean carries name; everything else stands at the
++# root, where its name already is its import.
++LEAN_OUTPUTS: tuple[tuple[str, str], ...] = (
++    ("lean_meta/lean_meta_checker_gen.lean", "Logos.lean"),
++    ("lean_meta/lean_meta_checker_term_gen.lean", "LogosTerm.lean"),
++    ("lean_meta/lean_meta_parser_gen.lean", "Parser.lean"),
++    ("lean_meta/lean_meta_smt_eval_gen.lean", "SmtEval.lean"),
++    ("lean_meta/lean_meta_smt_model_defs_gen.lean", "SmtModelDefs.lean"),
++    ("lean_meta/lean_meta_smt_value_order_gen.lean", "SmtValueOrder.lean"),
++    ("lean_meta/lean_meta_smt_model_gen.lean", "SmtModel.lean"),
++    ("lean_meta/lean_meta_spec_gen.lean", "Spec.lean"),
++    ("lean_meta/lean_meta_rule_lemmas_gen.lean", "Proofs/RuleLemmas.lean"),
+ )
+ 
+ DECLARE_RULE_RE = re.compile(r"^\(declare-rule\s+([^\s(]+)")
+ INCLUDE_RE = re.compile(r'^\(include\s+"([^"]+)"\s*\)')
+-# Any directive a block of a signature written in the deep embedding gives to a
+-# stage of the compiler, rather than something it says about the model.
+-DEFS_DIRECTIVE = re.compile(r'\(echo\s+"[^"]*"\)')
+-# The one of those that leaves what it names out of the compilation altogether.
+-DEFS_EXCLUDE = re.compile(r'\(echo\s+"eoc-exclude\s+(\S+)\s+(\S+)"\s*\)')
++# What the head of a signature written in the deep embedding says to a stage,
++# as against what its blocks say about the model. A line is `; $eoc-<what>`
++# and then its words; see head_lines in tools/eoc/sem_compile.py, which is
++# what writes them, and DefsFile::read, which reads the ones about the shape
++# of the file.
++DEFS_HEAD = "; $eoc-"
++DEFS_BLOCK = "; -- "
++
++# What has to survive the trimming whatever the rule at hand reaches, said as
++# the deps of the echo the desugar stage writes, see Pipeline.desugar. Nothing
++# in a trimmed signature names these: what asks for them is the template of the
++# stage that reads what this run produces.
++#
++# The embedding's own type language, which every stage is written over.
++EMBED_DEPS = "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply"
+ 
+ DESUGAR_VC_DEPS = (
+-    "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply "
++    f"{EMBED_DEPS} "
+     "$smtx_typeof_value $smtx_model_update $smtx_model_eval_apply "
+-    "$smtx_msm_lookup "
++    "$smtx_map_lookup "
+     # What a verification condition asks of the model is said by the SMT-LIB
+     # template rather than by the EO layer, see plugins/smt_meta/smt_meta.smt2.
+     # The two it says it of have to survive whether or not the rule at hand
+@@ -73,20 +91,32 @@ DESUGAR_VC_DEPS = (
+     "$eo_to_smt $smtx_typeof $smtx_model_eval"
+ )
+ 
+-LEAN_ALL_DEPS = (
+-    "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply "
++# The symbols of the *input* the Lean backend reaches for by name, which a run
++# over one rule therefore also trims to, see run_lean: saying it twice is what
++# would let the two drift.
++LEAN_INPUT_DEPS = ("and", "=>")
++
++# What the Lean backend asks of the model beside the type language above.
++LEAN_DEPS = (
++    f"{EMBED_DEPS} "
+     "$eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval "
+-    "$eo_checker_is_refutation and $eot_UConst $eot_USort "
+-    "$smtx_typeof $smtx_typeof_value $smtx_value_canonical_bool "
+-    "$smtx_msm_lookup $emb_UOp"
++    "$eo_checker_is_refutation"
++)
++
++LEAN_ALL_DEPS = (
++    f"{LEAN_DEPS} "
++    # A run over the whole signature names only the first of the two, since it
++    # trims nothing away for the second to be kept from.
++    f"{LEAN_INPUT_DEPS[0]} $eot_UConst $eot_USort "
++    "$smtx_typeof $smtx_typeof_value $smtx_value_canonical "
++    "$smtx_map_lookup $emb_UOp"
+ )
+ 
+ LEAN_SINGLE_DEPS = (
+-    "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply "
+-    "$eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval "
+-    "$eo_checker_is_refutation and => $eot_UConst $eot_USort "
++    f"{LEAN_DEPS} "
++    f"{' '.join(LEAN_INPUT_DEPS)} $eot_UConst $eot_USort "
+     "$smtx_model_eval_apply $smtx_typeof $smtx_typeof_value "
+-    "$smtx_value_canonical_bool $smtx_msm_lookup $emb_UOp"
++    "$smtx_value_canonical $smtx_map_lookup $emb_UOp"
+ )
+ 
+ 
+@@ -122,6 +152,12 @@ def input_base_name(input_file: Path) -> str:
+ 
+ 
+ def lean_calc_name(input_file: Path) -> str:
++    """What the generated Lean calls the calculus, where a run names nothing.
++
++    A run that installs the Lean into a package says the name of that package
++    with --calc-name, since that is what the imports of the installed tree have
++    to say; this is what an input alone gives.
++    """
+     parts = re.findall(r"[A-Za-z0-9]+", input_base_name(input_file))
+     if not parts:
+         return "EoCalc"
+@@ -180,6 +216,31 @@ def replace_all(path: Path, replacements: list[tuple[str, str]]) -> None:
+     path.write_text(text)
+ 
+ 
++def inline_called_blocks(path: Path, include_name: str,
++                         include_path: Path) -> None:
++    """Answer an include with the blocks of a file that the caller calls.
++
++    A set says the nil predicate of every n-ary symbol it gives semantics to,
++    and a run compiles one signature, which may declare none of them: the
++    signature this stage wrote is what says which are wanted. So a block is put
++    in where the file it is going into applies the program that block defines,
++    and left out otherwise -- a program over a symbol the signature never
++    declared would name what nothing declares and the file would not parse.
++
++    A block is `; -- NAME` and the program under it, blocks being separated by
++    a blank line, which is how every generated signature is laid out; see
++    Block.render in tools/eoc/sem_lang.py.
++    """
++    marker = f'(include "{include_name}")'
++    text = path.read_text()
++    kept = []
++    for block in include_path.read_text().split("\n\n"):
++        found = re.search(r"^\(program (\S+)", block, re.M)
++        if found is not None and f"({found.group(1)} " in text:
++            kept.append(block.strip("\n"))
++    path.write_text(text.replace(marker, "\n\n".join(kept)))
++
++
+ def inline_include(path: Path, include_name: str, include_path: Path) -> None:
+     marker = f'(include "{include_name}")'
+     replacement = include_path.read_text()
+@@ -212,6 +273,7 @@ class Pipeline:
+         defs_file: Optional[Path],
+         smt_defs_file: Optional[Path],
+         lean_config: Optional[Path],
++        desugar_defs: Optional[Path] = None,
+     ):
+         self.build_dir = build_dir.resolve()
+         self.final_out_dir = final_out_dir.resolve()
+@@ -224,6 +286,13 @@ class Pipeline:
+         self.smt_defs_file = (smt_defs_file.resolve() if smt_defs_file
+                               else None)
+         self.lean_config = lean_config.resolve() if lean_config else None
++        # What the input's semantics say to the desugar stage, which is the
++        # nil predicate of each n-ary symbol whose nil is not ground. The
++        # stage's template names them with an include and this answers it; a
++        # run that names no semantics has none. See plugins/desugar/desugar.eos.
++        self.desugar_defs = desugar_defs.resolve() if desugar_defs else None
++        # What the head of that file said, read once; see defs_head.
++        self._head: Optional[list[list[str]]] = None
+         self.binary = self.build_dir / "ethos-eoc"
+         self.stage_out_dir = self.final_out_dir
+         self.plugin_out_dir = self.build_dir / "out" / "plugins"
+@@ -323,14 +392,12 @@ class Pipeline:
+     def publish_generated_lean_rule_outputs(self, lean_dir: Path) -> None:
+         """Publish the file of each rule the run compiled.
+ 
+-        These go under lean/Rules, which is Proofs/Rules of the package they
+-        are installed into with the leading component dropped, as the rest of
+-        the published tree is; see LEAN_OUTPUTS.
++        These go under lean/Proofs/Rules, where they stand in the package they
++        are installed into, as the rest of the published tree does; see
++        LEAN_OUTPUTS.
+         """
+         plugin_rule_dir = self.plugin_out_dir / "lean_meta" / "rules"
+-        final_rule_dir = lean_dir / "Rules"
+-        if final_rule_dir.exists():
+-            shutil.rmtree(final_rule_dir)
++        final_rule_dir = lean_dir / "Proofs" / "Rules"
+         if not plugin_rule_dir.exists():
+             return
+         rule_files = sorted(plugin_rule_dir.glob("lean_meta_rule_*_gen.lean"))
+@@ -368,44 +435,42 @@ class Pipeline:
+             if temp_trim.exists():
+                 temp_trim.unlink()
+ 
+-    def defs_blocks(self) -> list[tuple[str, str]]:
+-        """The blocks of the signature of the input, as (symbol, body) pairs.
++    def defs_head(self) -> list[list[str]]:
++        """What the head of the signature of the input says, one line to a
++        thing, each as the words it is written with.
+ 
+-        A block runs from the `; -- X` line naming the symbol it is of to the
+-        next such line, which is the same split the model-smt stage makes, see
+-        DefsFile::read in plugins/model_smt/defs_reader.cpp.
++        The compiler knows what a stage has to be told about a signature it
++        wrote -- what the compilation has no place for, and what each block
++        names of the input -- so it says it above the first block rather than
++        leaving it to be read back out of the blocks, which would be taking the
++        file apart a second way. See head_lines in tools/eoc/sem_compile.py.
+         """
+         if self.defs_file is None:
+             return []
+-        out: list[tuple[str, str]] = []
+-        # Prepending a newline lets the same marker recognize a block on line
+-        # one, which is what DefsFile::read does for the same reason. Without
+-        # it this side and the model-smt stage would read the same file
+-        # differently.
+-        text = "\n" + self.defs_file.read_text()
+-        for block in re.split(r"\n; -- ", text)[1:]:
+-            sym, _, body = block.partition("\n")
+-            out.append((sym.strip(), body))
+-        return out
++        if self._head is None:
++            said: list[list[str]] = []
++            for line in self.defs_file.read_text().splitlines():
++                if line.startswith(DEFS_BLOCK):
++                    break
++                if line.startswith(DEFS_HEAD):
++                    said.append(line[2:].split())
++            self._head = said
++        return self._head
+ 
+     def defs_excludes(self) -> list[tuple[str, str]]:
+         """What the signature of the input leaves out of the compilation.
+ 
+-        A block may say that the compilation has no place for the symbol it is
+-        of, as the one for lambda does: SMT-LIB gives a proof-level binder no
+-        meaning, so rather than a model the block gives eoc-exclude directives.
+-        The desugar stage is what reads those and drops what they name, see
+-        Desugar::echo, so they are collected here and given to it. Saying it in
+-        the signature is what keeps a symbol left out of the compilation from
+-        also having to be listed apart from it.
++        A set may say that the compilation has no place for one of its
++        entities, as it does for lambda: SMT-LIB gives a proof-level binder no
++        meaning, so rather than a model the set says :exclude. The desugar
++        stage is what drops what they name, see Desugar::echo, so they are
++        collected here and given to it.
+ 
+         Each is returned as the kind it excludes, one of rule, method or
+         symbol, and the name of what it excludes.
+         """
+-        out: list[tuple[str, str]] = []
+-        for _sym, body in self.defs_blocks():
+-            out.extend((m.group(1), m.group(2)) for m in DEFS_EXCLUDE.finditer(body))
+-        return out
++        return [(w[1], w[2]) for w in self.defs_head()
++                if w[0] == "$eoc-exclude"]
+ 
+     def defs_excluded_rules(self) -> set[str]:
+         """Those of the exclusions that are proof rules.
+@@ -424,27 +489,10 @@ class Pipeline:
+         as the transformation of @quantifiers_skolemize names forall in the
+         pattern it matches. Trimming the input to one proof rule has to keep
+         such a symbol, or the case the model-smt stage emits for the block
+-        would name something the trimmed signature no longer declares. The
+-        dependency is read off the block itself, so nothing states it twice.
+-
+-        A symbol of the input is a name in head position that no program of the
+-        block binds and that is neither of the embedding, which is written with
+-        a leading dollar, nor of Eunoia, which is written eo::.
++        would name something the trimmed signature no longer declares.
+         """
+-        out: list[str] = []
+-        for sym, body in self.defs_blocks():
+-            body = DEFS_DIRECTIVE.sub("", body)
+-            body = re.sub(r";[^\n]*", "", body)
+-            bound = {sym, "program", "define", "declare-const",
+-                     "declare-parameterized-const"}
+-            for params in re.findall(r"\(\((?:[^()]|\([^()]*\))*\)\)", body):
+-                bound.update(re.findall(r"\(([^\s()]+)", params))
+-            heads = set(re.findall(r"\(([A-Za-z@_][^\s()]*)", body))
+-            names = {h for h in heads - bound if not h.startswith("eo::")}
+-            if names:
+-                out.append('(echo "trim-defs-cmd (depends %s %s)")\n'
+-                           % (sym, " ".join(sorted(names))))
+-        return out
++        return ['(echo "trim-defs-cmd (depends %s)")\n' % " ".join(w[1:])
++                for w in self.defs_head() if w[0] == "$eoc-depends"]
+ 
+     def desugar(
+         self,
+@@ -454,6 +502,7 @@ class Pipeline:
+         use_vc_plugin: bool,
+         deps: Optional[str],
+         plugin_label: Optional[str],
++        natives: str = "embed",
+     ) -> Path:
+         option = "--plugin.desugar-vc" if use_vc_plugin else "--plugin.desugar"
+         args = [option]
+@@ -496,6 +545,31 @@ class Pipeline:
+             "native_embed.eo",
+             self.plugin_generated("desugar/native_embed.eo"),
+         )
++        # The natives themselves, which that file names rather than declaring:
++        # they are compiled from plugins/desugar/natives.eos, so the include it
++        # carries is answered here, once its own text is in.
++        #
++        # Which of the two the natives are answered with is what the eo-meta
++        # backend is: `embed` gives each the operator it forwards to, and `eo`
++        # gives it the Eunoia it is, so that what comes out is a signature
++        # stated over the Eunoia primitives plugins/desugar/eo.eos names and no
++        # others. See render_natives in tools/eoc/sem_compile.py.
++        inline_include(
++            output_file,
++            "native_defs.eo",
++            Path(sem_compile.EO_DEFS_TARGET if natives == "eo"
++                 else sem_compile.NATIVE_DEFS_TARGET),
++        )
++        # The nil predicates the input's semantics say, on the same terms. A
++        # run that names no semantics has none to put here, and the include is
++        # answered with nothing rather than left for ethos to fail on: what
++        # then reaches a case is a call to a program nothing defines, which is
++        # what the stage would have left behind before this file existed.
++        if self.desugar_defs is not None:
++            inline_called_blocks(
++                output_file, "user_desugar.eo", self.desugar_defs)
++        else:
++            replace_all(output_file, [('(include "user_desugar.eo")', "")])
+         return output_file
+ 
+     def model_smt(self, input_file: Path, output_file: Path) -> Path:
+@@ -506,10 +580,10 @@ class Pipeline:
+         # tools/eoc/README.md.
+         args = ["--plugin.model-smt"]
+         if self.defs_file is not None:
+-            args.append(f"--signature={self.binary_path_arg(self.defs_file)}")
++            args.append(f"--semantics={self.binary_path_arg(self.defs_file)}")
+         if self.smt_defs_file is not None:
+             args.append(
+-                f"--semantics={self.binary_path_arg(self.smt_defs_file)}")
++                f"--smt-semantics={self.binary_path_arg(self.smt_defs_file)}")
+         args.append(self.binary_path_arg(input_file))
+         self.ethos(args, quiet=True)
+         output_file.parent.mkdir(parents=True, exist_ok=True)
+@@ -536,11 +610,11 @@ class Pipeline:
+         shutil.copyfile(self.plugin_generated("smt_meta/smt_meta_gen.smt2"), output_file)
+         if validate_with_cvc5:
+             cmd = self.cvc5_validate_cmd(output_file, sygus=sygus)
+-            print(f"**** smt_meta: Verify cvc5 parses via {self.format_cmd(cmd)}")
++            report.step(f"cvc5 parses it: {self.format_cmd(cmd)}", 2)
+             self.validate_smt(output_file, sygus=sygus)
+         if solve_with_cvc5:
+             cmd = self.cvc5_solve_cmd(output_file, sygus=sygus)
+-            print(f"**** smt_meta: Run cvc5 via {self.format_cmd(cmd)}")
++            report.step(f"cvc5 solves it: {self.format_cmd(cmd)}", 2)
+             self.solve_smt(output_file, sygus=sygus)
+         return output_file
+ 
+@@ -551,17 +625,17 @@ class Pipeline:
+         calc_name: str,
+         generate_parser: bool,
+     ) -> Path:
++        # What the run publishes is the whole of what it compiled, so the tree
++        # is written afresh: a file an earlier run left there is no part of
++        # this signature, and installing is a copy of the tree.
+         out_lean = self.final_out_dir / "lean"
+-        out_lean.mkdir(parents=True, exist_ok=True)
++        if out_lean.exists():
++            shutil.rmtree(out_lean)
++        out_lean.mkdir(parents=True)
+         self.clean_generated_lean_rule_outputs()
+-        parser_outputs = (
+-            self.plugin_generated("lean_meta/lean_meta_parser_gen.lean"),
+-            out_lean / "Parser.lean",
+-        )
+-        if not generate_parser:
+-            for parser_output in parser_outputs:
+-                if parser_output.exists():
+-                    parser_output.unlink()
++        stale_parser = self.plugin_generated("lean_meta/lean_meta_parser_gen.lean")
++        if not generate_parser and stale_parser.exists():
++            stale_parser.unlink()
+         args = ["--plugin.lean-meta"]
+         if not generate_parser:
+             args.append("--no-parser")
+@@ -575,15 +649,12 @@ class Pipeline:
+             args.append(f"--lean-config={self.binary_path_arg(self.lean_config)}")
+         args.append(self.binary_path_arg(input_file))
+         self.ethos(args, quiet=True)
+-        for source, name, generated in LEAN_OUTPUTS:
++        for source, name in LEAN_OUTPUTS:
+             if not generate_parser and name == "Parser.lean":
+                 continue
+-            source_path = (
+-                self.plugin_generated(source)
+-                if generated
+-                else REPO_ROOT / "plugins" / source
+-            )
+-            shutil.copyfile(source_path, out_lean / name)
++            published = out_lean / name
++            published.parent.mkdir(parents=True, exist_ok=True)
++            shutil.copyfile(self.plugin_generated(source), published)
+         self.publish_generated_lean_rule_outputs(out_lean)
+         self.materialize_lean_calc(out_lean, calc_name)
+         return out_lean
+@@ -616,12 +687,14 @@ class Pipeline:
+         suffix = "sy" if sygus else "smt2"
+         final_out = self.final_out_dir / ("sygus" if sygus else "vc") / f"final-{stem}-{target}.{suffix}"
+ 
+-        print(
+-            f"********* {'Searching for counterexamples of' if sygus else 'Verifying the correctness of'} {target} {'via sygus' if sygus else 'via smt2'} *********"
++        report.step(
++            f"{'Searching for counterexamples of' if sygus else 'Verifying'} "
++            f"{target} in {report.rel(input_name)} "
++            f"{'via sygus' if sygus else 'via smt2'}"
+         )
+-        print(f"**** smt_meta: Run ethos + trim-defs on {input_name} and {target} to {init_trim}")
++        report.stage(1, 6, "trim-defs", init_trim)
+         self.trim_defs(input_name, [target], init_trim)
+-        print(f"**** smt_meta: Run ethos + desugar on {init_trim} to generate {init_desugar}")
++        report.stage(2, 6, "desugar", init_desugar)
+         self.desugar(
+             self.binary_path_arg(init_trim),
+             init_desugar,
+@@ -629,16 +702,13 @@ class Pipeline:
+             deps=DESUGAR_VC_DEPS,
+             plugin_label="smt-meta",
+         )
+-        print(f"**** smt_meta: Run ethos + model-smt on {init_desugar} to generate {vcm_defs}")
++        report.stage(3, 6, "model-smt", vcm_defs)
+         self.model_smt(init_desugar, vcm_defs)
+-        print(f"**** smt_meta: Run ethos + trim-deps on {vcm_defs} to generate {vcmt_defs}")
++        report.stage(4, 6, "trim-defs", vcmt_defs)
+         self.trim_defs(self.binary_path_arg(vcm_defs), [f"$eovc_{target}"], vcmt_defs)
+-        print(f"**** smt_meta: Verify ethos parses {vcmt_defs}")
++        report.stage(5, 6, "parse", vcmt_defs, gives=False)
+         self.parse_file(vcmt_defs)
+-        if sygus:
+-            print(f"**** smt_meta: Generate sygus from {vcmt_defs} to {final_out}")
+-        else:
+-            print(f"**** smt_meta: Generate SMT2 from {vcmt_defs} to {final_out}")
++        report.stage(6, 6, "sygus" if sygus else "smt2", final_out)
+         self.smt_meta(
+             vcmt_defs,
+             final_out,
+@@ -656,6 +726,7 @@ class Pipeline:
+         all_targets: bool,
+         build_first: bool,
+         generate_parser: bool,
++        calc_name: Optional[str] = None,
+     ) -> Path:
+         if build_first:
+             self.build()
+@@ -665,15 +736,17 @@ class Pipeline:
+                 f"{' '.join(left_out)} is left out of the compilation by "
+                 f"{self.defs_file}, so there is no Lean to generate for it"
+             )
+-        calc_name = lean_calc_name(Path(input_name))
++        calc_name = calc_name or lean_calc_name(Path(input_name))
+         stem = self.stage_name(input_name)
+-        print(
+-            f"********* Generating Lean for {input_name if all_targets else ' '.join(targets) + ' in ' + input_name} *********"
++        report.step(
++            "Generating Lean for "
++            + (report.rel(input_name) if all_targets
++               else f"{' '.join(targets)} in {report.rel(input_name)}")
+         )
+         if all_targets:
+             init_desugar = self.stage_out_dir / f"lean-{stem}-desugar.eo"
+             final_defs = self.stage_out_dir / f"lean-{stem}-final.eo"
+-            print(f"**** lean_meta: Run ethos + desugar on {input_name} to generate {init_desugar}")
++            report.stage(1, 4, "desugar", init_desugar)
+             self.desugar(
+                 input_name,
+                 init_desugar,
+@@ -681,11 +754,11 @@ class Pipeline:
+                 deps=LEAN_ALL_DEPS,
+                 plugin_label="lean-meta",
+             )
+-            print(f"**** lean_meta: Run ethos + model-smt on {init_desugar} to generate {final_defs}")
++            report.stage(2, 4, "model-smt", final_defs)
+             self.model_smt(init_desugar, final_defs)
+-            print(f"**** lean_meta: Verify ethos parses {final_defs}")
++            report.stage(3, 4, "parse", final_defs, gives=False)
+             self.parse_file(final_defs)
+-            print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
++            report.stage(4, 4, "lean", self.final_out_dir / 'lean')
+             return self.lean(
+                 final_defs,
+                 calc_name=calc_name,
+@@ -696,11 +769,10 @@ class Pipeline:
+         init_desugar = self.stage_out_dir / f"lean-{stem}-desugar.eo"
+         vcm_defs = self.stage_out_dir / f"lean-{stem}-defs.eo"
+         final_defs = self.stage_out_dir / f"lean-{stem}-final.eo"
+-        print(
+-            f'**** lean_meta: Run ethos + trim-defs on {input_name} and "{" ".join(targets)}" to {init_trim}'
+-        )
+-        self.trim_defs(input_name, list(targets) + ["and", "=>"], init_trim)
+-        print(f"**** lean_meta: Run ethos + desugar on {init_trim} to generate {init_desugar}")
++        report.stage(1, 6, "trim-defs", init_trim)
++        self.trim_defs(input_name, list(targets) + list(LEAN_INPUT_DEPS),
++                       init_trim)
++        report.stage(2, 6, "desugar", init_desugar)
+         self.desugar(
+             self.binary_path_arg(init_trim),
+             init_desugar,
+@@ -708,7 +780,7 @@ class Pipeline:
+             deps=LEAN_SINGLE_DEPS,
+             plugin_label="lean-meta",
+         )
+-        print(f"**** lean_meta: Run ethos + model-smt on {init_desugar} to generate {vcm_defs}")
++        report.stage(3, 6, "model-smt", vcm_defs)
+         self.model_smt(init_desugar, vcm_defs)
+         # The generated proof parser expands parameterized n-ary syntax with
+         # the calculus' own nil/type utilities. Keep those utilities even when
+@@ -716,24 +788,31 @@ class Pipeline:
+         # intentionally preserved by trim-defs as well.
+         target_progs = [f"$eo_prog_{target}" for target in targets]
+         target_progs.extend(["$eo_nil", "$eo_typeof"])
+-        print(f"**** lean_meta: Run ethos + trim-deps on {vcm_defs} to generate {final_defs}")
++        report.stage(4, 6, "trim-defs", final_defs)
+         self.trim_defs(self.binary_path_arg(vcm_defs), target_progs, final_defs)
+-        print(f"**** lean_meta: Verify ethos parses {final_defs}")
++        report.stage(5, 6, "parse", final_defs, gives=False)
+         self.parse_file(final_defs)
+-        print(f"**** lean_meta: Generate Lean from {final_defs} to {self.final_out_dir / 'lean'}")
++        report.stage(6, 6, "lean", self.final_out_dir / 'lean')
+         return self.lean(
+             final_defs,
+             calc_name=calc_name,
+             generate_parser=generate_parser,
+         )
+ 
+-    def run_desugar(self, input_name: str, *, build_first: bool) -> Path:
++    def run_desugar(self, input_name: str, *, build_first: bool,
++                    natives: str = "embed") -> Path:
+         if build_first:
+             self.build()
+-        output = self.final_out_dir / "desugar.eo"
+-        print(f"**** desugar: Run ethos + desugar on {input_name} to generate {output}")
+-        self.desugar(input_name, output, use_vc_plugin=False, deps=None, plugin_label=None)
+-        print("**** desugar: Verify it parses")
++        # The eo-meta backend writes a file of its own, since what it says is a
++        # signature over the Eunoia primitives rather than over the embedding.
++        eo = natives == "eo"
++        output = self.final_out_dir / ("eo.eo" if eo else "desugar.eo")
++        report.step(("Compiling %s to Eunoia" if eo else "Desugaring %s")
++                    % report.rel(input_name))
++        report.stage(1, 2, "eo-meta" if eo else "desugar", output)
++        self.desugar(input_name, output, use_vc_plugin=False, deps=None,
++                     plugin_label=None, natives=natives)
++        report.stage(2, 2, "parse", output, gives=False)
+         self.parse_file(output)
+         return output
+ 
+@@ -741,7 +820,8 @@ class Pipeline:
+         if build_first:
+             self.build()
+         output = self.final_out_dir / "trim_defs" / "trim_gen.eo"
+-        print(f"**** run_trim_defs: Run ethos + trim-defs on {input_name}")
++        report.step(f"Trimming {report.rel(input_name)}")
++        report.stage(1, 1, "trim-defs", output)
+         self.trim_defs(input_name, targets, output)
+         return output
+ 
+@@ -767,65 +847,78 @@ def resolve_cvc5(path_arg: Optional[str], *, cwd: Path) -> Optional[Path]:
+ 
+ 
+ def compile_signatures(
+-    signature: Optional[Path], semantics: Optional[Path] = None
+-) -> tuple[Optional[Path], Optional[Path], Optional[Path]]:
++    semantics: Optional[Path], smt_semantics: Optional[Path] = None
++) -> tuple[Optional[Path], Optional[Path], Optional[Path], Optional[Path]]:
+     """Compile the configuration of the model-smt signatures, and say where
+     each of the two the stage reads came out, together with where the
+     termination clauses of the input's programs did.
+ 
+     That stage reads two files written in the deep embedding: the SMT-LIB
+-    semantics the compilation is the target of, and the signature of the input,
++    semantics the compilation is the target of, and the semantics of the input,
+     which is written against it. Both are generated from a configuration under
+     tools/eoc/semantics, so both are compiled here, before any stage runs; a
+     file is written only where its text changed. A set also compiles the Lean
+     its methods say under :lean, and the third of what comes back is where the
+     input's came out, which is what the lean-meta stage is given where
+-    --lean-config names nothing; the deep embedding's own is read by that
+-    stage itself, see LeanMetaReduce.
+-
+-    Each option names the *central file* of a configuration set, and what comes
+-    back is what that set compiled to. The option a set is named with is what
+-    gives it its role -- --semantics names the SMT-LIB semantics, the target of
+-    the compilation, and --signature the signature of an input -- and the role
+-    is what says which shape the set compiles to, see sem_compile.role_of. A
+-    file that is not a central file is taken to be a signature already written
+-    out and is passed through, which is what lets one that has no configuration
+-    still be given directly. Naming neither leaves the stage the sets the tool
+-    ships with.
++    --lean-config names nothing. The fourth is what the input's set says to the
++    *desugar* stage, a stage earlier than either signature is read by; only an
++    input set says anything to it, see sem_compile.Config.desugar_target.
++
++    A run compiles **one set of each role**, and each option names which. The
++    option a set is named with is what gives it its role -- --smt-semantics
++    names the SMT-LIB semantics, the target of the compilation, and --semantics
++    the semantics of an input -- and the role is what says both which shape the
++    set compiles to and which file it writes, see sem_compile.role_of and
++    sem_compile.Config.target. So a set named here stands in for the one the
++    tool ships with rather than compiling beside it: there is one
++    smt_termination.lean and one user_termination.lean whatever a run names,
++    which is what lets the lean-meta stage read the first without being told
++    where it is.
++
++    Each option names the *central file* of a set. A file that is not a central
++    file is taken to be a signature already written out and is passed through,
++    which is what lets one that has no configuration still be given directly.
++    Naming neither leaves the sets the tool ships with.
+     """
+     sys.path.insert(0, str(Path(__file__).resolve().parent))
+     import sem_compile
+ 
+-    sets = {os.path.realpath(c): (c, t) for c, t in sem_compile.SHIPPED}
++    # One set of each role, the shipped one until an option names another.
++    chosen = {is_target: path for path, is_target in sem_compile.SHIPPED}
+     named = []
+-    for given, is_target in ((signature, False), (semantics, True)):
++    for given, is_target in ((semantics, False), (smt_semantics, True)):
+         mine = str(given.resolve()) if given is not None else None
+         if mine is not None and not sem_compile.is_config(mine):
+             mine = None
+         if mine is not None:
+-            key = os.path.realpath(mine)
+-            if key in sets and sets[key][1] != is_target:
++            role = sem_compile.role_of(mine)
++            if role is not None and role != is_target:
+                 raise RuntimeError(
+-                    f"{mine} is given two roles; --semantics names the "
+-                    "SMT-LIB semantics and --signature the signature of an "
++                    f"{mine} is given two roles; --smt-semantics names the "
++                    "SMT-LIB semantics and --semantics the semantics of an "
+                     "input, and a set is one or the other"
+                 )
+-            sets[key] = (mine, is_target)
++            chosen[is_target] = mine
+         named.append(mine)
+-    written = sem_compile.compile_to_files(list(sets.values()))
++    written = sem_compile.compile_to_files(
++        [(path, is_target) for is_target, path in chosen.items()])
+ 
+     def compiled(mine):
+         return next(v for k, v in written.items()
+                     if sem_compile.same_file(k, mine))
+ 
+     out: list[Optional[Path]] = []
+-    for given, mine in zip((signature, semantics), named):
++    for given, mine in zip((semantics, smt_semantics), named):
+         if mine is None:
+             out.append(given)
+         else:
+             out.append(Path(compiled(mine)[0]))
+     lean_config = Path(compiled(named[0])[1]) if named[0] is not None else None
+-    return out[0], out[1], lean_config
++    # What the input's set says to the desugar stage, which only an input set
++    # writes; see sem_compile.Config.desugar_target.
++    made = compiled(named[0]) if named[0] is not None else ()
++    desugar_defs = Path(made[2]) if len(made) > 2 else None
++    return out[0], out[1], lean_config, desugar_defs
+ 
+ 
+ def add_common_args(parser: argparse.ArgumentParser) -> None:
+@@ -856,10 +949,10 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
+         help="Do not rebuild ethos-eoc before running the pipeline.",
+     )
+     parser.add_argument(
+-        "--signature",
++        "--semantics",
+         default=None,
+         help=(
+-            "The central file of the configuration of the input's signature, "
++            "The central file of the configuration of the input's semantics, "
+             "e.g. tools/eoc/semantics/development-cpc.eos. It is compiled "
+             "before the model-smt stage reads what it compiles to. A file "
+             "that is not a central file is taken to be a signature already "
+@@ -867,12 +960,12 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
+         ),
+     )
+     parser.add_argument(
+-        "--semantics",
++        "--smt-semantics",
+         default=None,
+         help=(
+-            "The same, for the SMT-LIB semantics the input's signature is "
+-            "written against, e.g. tools/eoc/semantics/smt.eos. The model-smt "
+-            "stage reads the one it ships with where this names none."
++            "The same, for the SMT-LIB semantics the input's semantics is "
++            "written against, e.g. tools/eoc/semantics/smt.eos. The one the "
++            "tool ships with is compiled where this names none."
+         ),
+     )
+     parser.add_argument(
+@@ -917,10 +1010,30 @@ def main(argv: list[str]) -> int:
+         action="store_true",
+         help="Do not generate or publish the signature-specific Logos parser.",
+     )
++    lean.add_argument(
++        "--calc-name",
++        default=None,
++        help=(
++            "What the generated Lean calls the calculus, which is the name of "
++            "the package it is installed into, e.g. Cpc. Defaults to the name "
++            "of the input file up to its first dot."
++        ),
++    )
+ 
+     desugar = subparsers.add_parser("desugar", help="Generate a desugared EO file.")
+     add_common_args(desugar)
+     desugar.add_argument("input")
++    desugar.add_argument(
++        "--natives",
++        choices=["embed", "eo"],
++        default="embed",
++        help=(
++            "What the natives of the embedding are written as. `embed` is the "
++            "operator each forwards to, which the other backends read. `eo` is "
++            "the Eunoia each is, which makes what comes out a signature over "
++            "the Eunoia primitives plugins/desugar/eo.eos names and no others."
++        ),
++    )
+ 
+     trim = subparsers.add_parser("trim-defs", help="Run the trim-defs plugin only.")
+     add_common_args(trim)
+@@ -987,7 +1100,7 @@ def main(argv: list[str]) -> int:
+     def resolve_file_arg(name: str, flag: str) -> Optional[Path]:
+         """The file the given option names, resolved as the input is.
+ 
+-        It has to exist: read as empty, a mistyped --signature would quietly
++        It has to exist: read as empty, a mistyped --semantics would quietly
+         compile a signature with no exclusions and no dependencies instead of
+         saying that the file it was pointed at is not there.
+         """
+@@ -1005,9 +1118,16 @@ def main(argv: list[str]) -> int:
+     # compiled to. The termination clauses of the input come out of the same
+     # compilation, so --lean-config names another only where the generated
+     # ones will not do.
+-    defs_file, smt_defs_file, lean_config_file = compile_signatures(
+-        resolve_file_arg("signature", "--signature"),
+-        resolve_file_arg("semantics", "--semantics"))
++    # A set given the wrong role is the one mistake the options invite, since
++    # the two read alike, so it is said the way every other error of a run is.
++    try:
++        (defs_file, smt_defs_file, lean_config_file,
++         desugar_defs_file) = compile_signatures(
++            resolve_file_arg("semantics", "--semantics"),
++            resolve_file_arg("smt_semantics", "--smt-semantics"))
++    except RuntimeError as err:
++        report.error(str(err))
++        return 1
+     pipeline = Pipeline(
+         resolve_path_arg(build_dir_arg, cwd=invocation_cwd),
+         final_out_dir,
+@@ -1017,6 +1137,7 @@ def main(argv: list[str]) -> int:
+         defs_file,
+         smt_defs_file,
+         resolve_file_arg("lean_config", "--lean-config") or lean_config_file,
++        desugar_defs_file,
+     )
+     build_first = not getattr(args, "no_build", False)
+     if not build_first and not pipeline.binary.is_file():
+@@ -1049,9 +1170,11 @@ def main(argv: list[str]) -> int:
+                 all_targets=args.all,
+                 build_first=build_first,
+                 generate_parser=not args.no_parser,
++                calc_name=args.calc_name,
+             )
+         elif args.command == "desugar":
+-            pipeline.run_desugar(args.input, build_first=build_first)
++            pipeline.run_desugar(args.input, build_first=build_first,
++                                 natives=args.natives)
+         elif args.command == "trim-defs":
+             pipeline.run_trim_only(
+                 args.input,
+@@ -1080,7 +1203,6 @@ def main(argv: list[str]) -> int:
+                 pipeline.clean_final_dir("sygus" if args.mode == "sygus" else "vc")
+             failures: list[str] = []
+             for rule in rules:
+-                print(f"==== {rule}")
+                 try:
+                     pipeline.run_vc(
+                         args.input,
+@@ -1094,16 +1216,19 @@ def main(argv: list[str]) -> int:
+                     failures.append(rule)
+                     if not args.keep_going:
+                         raise
++            report.step(
++                f"{len(rules) - len(failures)} of {len(rules)} rules "
++                f"{'verified' if args.mode != 'sygus' else 'searched'}"
++            )
+             if failures:
+-                print("Failed rules:")
+                 for rule in failures:
+-                    print(f"  {rule}")
++                    report.error(f"{rule} failed")
+                 return 1
+         return 0
+     except subprocess.CalledProcessError as err:
+         return err.returncode
+     except RuntimeError as err:
+-        print(err, file=sys.stderr)
++        report.error(str(err))
+         return 1
+ 
+ 
+diff --git a/tools/eoc/test/expected.txt b/tools/eoc/test/expected.txt
+new file mode 100644
+index 00000000..7c44a9d0
+--- /dev/null
++++ b/tools/eoc/test/expected.txt
+@@ -0,0 +1,24 @@
++# The digest of every file the pipeline writes for the run in
++# regress.py, which is what says the bytes have not moved. Run
++# that file with --update to write this one.
++8d770193fea365b065866ca3eb6ea99728fd7eadb31a577ba49eb2635974417d  eo.eo
++06b862ef055b22b2c3ac1ef70bca3f0162cce97ddf3e853e89183fb6e15fb14c  lean-booleans-rules-defs.eo
++b69a604edb4a10611dc46ad0d65f2f756df38d29e18ad23efc89f47824cf402e  lean-booleans-rules-desugar.eo
++aef0ce9ba76cfeb9367960eadac5762615aa0297029c86d7aef29cbb92b43c67  lean-booleans-rules-final.eo
++d63e0890c8c6b9f3c3d3c784de6c80d93c0d188b0b450302e8b4b6cd6a97bf36  lean-booleans-rules-trim.eo
++a0af0dd112d82a8f41cebd2c02320ca63012b05fdc56e7670db07475e8df56b0  lean/Logos.lean
++238960d1051e40e67d97812961d16d7d7b22c26938169b797c248fcd6fead167  lean/LogosTerm.lean
++bed06e9049d6aff933f7a5a8bc6920143c0b88fe0b74d7a9403cfc671fa08e5b  lean/Parser.lean
++82aa5a0cd813a2f49b255a0041be38c2c1a87e9c6b6b0018d82f01355d933e02  lean/Proofs/RuleLemmas.lean
++a03c5739e994ec8512d62bc166939b907fc10988b95db23946f6ab217e5b3e24  lean/Proofs/Rules/And_intro.lean
++a58e06918411f6b3f1b17733f21424394dbc1af2f6ea704c3b057e4faf578923  lean/SmtEval.lean
++631e3b7fb77d1933d5d11cb8294c16fe98a83133a12a4a9ab5f871b67910f978  lean/SmtModel.lean
++d1bf3cb8621d4d9a5f35d35bf04bd3559d45e78b9a1b234a817d2ce2fba78111  lean/SmtModelDefs.lean
++7fbb9e9ea99bef06592a335a9165fdec7d63d9ac75f72c378012d50b6a3856cf  lean/SmtValueOrder.lean
++9337f92ce9bf88a08aded338b441097854b7e4d10b6328ce53f17b4f48c8d048  lean/Spec.lean
++f68ced3924384c5da579070d81f6bf1259633d6675ec5ece19743e4729d2fe60  sygus/final-booleans-rules-and_intro.sy
++6436b5358d7e033ae2b3e500ebb1925527f85a06ed2bd305f3e5a8e8a1fb4d06  trim-booleans-rules.eo
++68dc4aa8f7b23372d2ec07631a1f4cfeec17779bed7a72309092011fd8deda77  trim-d-booleans-rules.eo
++1c84181f0cecb1d224cd11e755043bda24e6858d446697a9034b1125d41d566f  vc/final-booleans-rules-and_intro.smt2
++6b3ab5309037f5b283e69b70825a03104efa675f2c6fd3ee26d261622bb73f3a  vcm-def-booleans-rules.eo
++03adbd1c4ed35a169f3c59c79df7eeb20499641e31da3b7657f8846e0a6afa5e  vcmt-def-booleans-rules.eo
+diff --git a/tools/eoc/test/regress.py b/tools/eoc/test/regress.py
+new file mode 100755
+index 00000000..1843b5db
+--- /dev/null
++++ b/tools/eoc/test/regress.py
+@@ -0,0 +1,219 @@
++#!/usr/bin/env python3
++"""Says whether the pipeline still writes what it wrote.
++
++A run compiles one signature that stands in this tree and takes the digest of
++every file it leaves behind, stage files and published artifacts alike, and
++compares that with what is checked in. What it guards is the one property a
++refactor of the compiler has to have and nothing else here checks: that the
++bytes did not move. `sem_compile.py --check` says the configuration is
++compiled; the smoke tests of CI say a run finishes; this says it finished the
++same way.
++
++  python3 tools/eoc/test/regress.py            say whether the bytes moved
++  python3 tools/eoc/test/regress.py --update   take what this run wrote as what
++                                               is to be written from now on
++
++A digest says the bytes did not move; it does not say they are well formed.
++For the two runs that write a file for a solver, cvc5 reads back what they
++wrote -- `--parse-only`, and `--lang=sygus` for the synthesis query -- which is
++what catches a verification condition that names a symbol it never declares,
++and the only check there is on one. A run uses whatever cvc5 is on PATH and
++goes without if there is none, so that a checkout without one still says
++whether the bytes moved; --require-cvc5 says a run without it is not a run,
++which is what CI passes.
++
++What is checked in is the digest of each file rather than the file, since the
++tree checks in no generated artifact at all -- see the `tools/eoc/out/` line of
++.gitignore, and `88097405`, which took the artifacts out. A digest says the
++same thing in twenty lines, and a run that changed something says which files
++it changed; what they now hold is a `--final-out-dir` away.
++
++The digests are of what the pipeline wrote *for this signature under these
++semantics*, so a change to `semantics/smt.eos` or to `development-cpc.eos`
++moves them, and rightly: a run that means to change the model is a run that
++means to change these. Say so with --update, and what the diff of expected.txt
++then shows is how much of the output that change reached.
++
++The signature is `tests/Booleans-rules.eo`, compiled for one rule. The
++whole-signature path is not covered: no signature in this tree is one the
++semantics the tool ships with covers entirely, see `lean --all`, which stops
++at the first symbol the semantics says nothing about.
++"""
++
++import argparse
++import hashlib
++import os
++import shutil
++import subprocess
++import sys
++import tempfile
++
++sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
++
++import report  # noqa: E402
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++ROOT = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
++DRIVER = os.path.join(ROOT, 'tools', 'eoc', 'driver.py')
++EXPECTED = os.path.join(HERE, 'expected.txt')
++
++# The signature a run compiles, the semantics it is compiled under, and the
++# rule it is compiled for. One rule of one signature is what the trimming
++# leaves the stages the most to do with the least to check in.
++INPUT = os.path.join(ROOT, 'tests', 'Booleans-rules.eo')
++SEMANTICS = os.path.join(ROOT, 'tools', 'eoc', 'semantics',
++                         'development-cpc.eos')
++TARGET = 'and_intro'
++
++# What a run does: the subcommand, the arguments it takes after the ones they
++# share, and whether it is compiled for one rule or for the whole signature.
++RUNS = (('vc', (), True),
++        ('sygus', ('--sygus',), True),
++        ('lean', (), True),
++        ('eo', ('--natives=eo',), False))
++
++
++# What the driver calls each of them, where that is not the name above: the
++# eo-meta backend is the desugar stage answering the natives another way, and
++# sygus is the same verification condition asked as a synthesis query.
++SUBCOMMAND = {'sygus': 'vc', 'eo': 'desugar'}
++
++# The runs that write a file for a solver, which is what there is for cvc5 to
++# read: the other two write Eunoia and Lean, which it has nothing to say about.
++SOLVER_RUNS = frozenset(('vc', 'sygus'))
++
++
++def run(what, extra, target, build_dir, out_dir, cvc5):
++  """Compile the signature one way, saying nothing unless it fails.
++
++  `cvc5` is the one to read back what a run wrote, or None to go without. It
++  is named rather than left to the driver to find so that a run says which it
++  used, and it is passed only to the runs that write something for it.
++  """
++  read_back = (['--cvc5', cvc5] if cvc5 is not None and what in SOLVER_RUNS
++               else ['--skip-cvc5'])
++  cmd = [sys.executable, DRIVER, SUBCOMMAND.get(what, what),
++         '--build-dir', build_dir, '--final-out-dir', out_dir,
++         '--no-build', *read_back, '--semantics', SEMANTICS,
++         *extra, INPUT, *( [TARGET] if target else [] )]
++  done = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
++  if done.returncode != 0:
++    sys.stdout.write(done.stdout)
++    sys.stderr.write(done.stderr)
++    report.error('%s failed; the digests say nothing about a run that did not '
++                 'finish' % what)
++    sys.exit(1)
++
++
++def digests(out_dir):
++  """What every file the run left behind holds, keyed by its path under the
++  output tree and named the way a log names one, i.e. with the one separator
++  whatever the machine underneath spells one with."""
++  out = {}
++  for path, _dirs, files in os.walk(out_dir):
++    for f in files:
++      full = os.path.join(path, f)
++      with open(full, 'rb') as fh:
++        out[os.path.relpath(full, out_dir).replace(os.sep, '/')] = \
++            hashlib.sha256(fh.read()).hexdigest()
++  return out
++
++
++def read_expected():
++  """What is checked in, written the way sha256sum writes one so that a line
++  can be checked by hand."""
++  out = {}
++  if not os.path.exists(EXPECTED):
++    return out
++  with open(EXPECTED, encoding='utf-8') as fh:
++    for line in fh:
++      line = line.strip()
++      if not line or line.startswith('#'):
++        continue
++      digest, _, path = line.partition('  ')
++      out[path] = digest
++  return out
++
++
++def write_expected(found):
++  with open(EXPECTED, 'w', encoding='utf-8') as fh:
++    fh.write('# The digest of every file the pipeline writes for the run in\n'
++             '# regress.py, which is what says the bytes have not moved. Run\n'
++             '# that file with --update to write this one.\n')
++    for path in sorted(found):
++      fh.write('%s  %s\n' % (found[path], path))
++
++
++def compare(found, want):
++  """What moved, as three lists: what the run no longer writes, what it writes
++  that it did not, and what it writes differently."""
++  gone = sorted(p for p in want if p not in found)
++  new = sorted(p for p in found if p not in want)
++  changed = sorted(p for p in found if p in want and found[p] != want[p])
++  return gone, new, changed
++
++
++def main():
++  ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
++  ap.add_argument('--build-dir', default=os.path.join(ROOT, 'build-eoc'),
++                  help='the build directory ethos-eoc stands in')
++  ap.add_argument('--out-dir', default=None,
++                  help='write the run here instead of in a temporary tree, '
++                       'to look at what it wrote')
++  ap.add_argument('--update', action='store_true',
++                  help='take what this run wrote as what is to be written')
++  ap.add_argument('--require-cvc5', action='store_true',
++                  help='a run without cvc5 is not a run, rather than one that '
++                       'checks the solver files by their digest alone')
++  a = ap.parse_args()
++  build_dir = os.path.abspath(a.build_dir)
++  if not os.path.isfile(os.path.join(build_dir, 'ethos-eoc')):
++    report.error('ethos-eoc is not in %s; build it, or name the directory it '
++                 'is in with --build-dir' % report.rel(build_dir))
++    return 1
++  cvc5 = shutil.which('cvc5')
++  if cvc5 is None and a.require_cvc5:
++    report.error('cvc5 is not on PATH, and --require-cvc5 says a run without '
++                 'it is not a run: put one there, or drop the option')
++    return 1
++  keep = a.out_dir is not None
++  out_dir = os.path.abspath(a.out_dir) if keep else tempfile.mkdtemp()
++  try:
++    report.step('Compiling %s for %s' % (report.rel(INPUT), TARGET))
++    if cvc5 is None:
++      report.step('no cvc5 on PATH; the solver files are checked by their '
++                  'digest alone', 1)
++    else:
++      report.step('cvc5 reads back what the solver runs write: %s' % cvc5, 1)
++    for what, extra, target in RUNS:
++      run(what, extra, target, build_dir, out_dir, cvc5)
++    found = digests(out_dir)
++  finally:
++    if not keep:
++      subprocess.run(['rm', '-rf', out_dir], check=False)
++  if a.update:
++    write_expected(found)
++    report.item(report.rel(EXPECTED), None, '%d files' % len(found))
++    return 0
++  want = read_expected()
++  if not want:
++    report.error('%s holds nothing; run with --update to write it'
++                 % report.rel(EXPECTED))
++    return 1
++  gone, new, changed = compare(found, want)
++  for paths, said in ((changed, 'differs'), (new, 'is new'),
++                      (gone, 'was not written')):
++    for path in paths:
++      report.state(path, said, width=max(len(p) for p in want))
++  if gone or new or changed:
++    report.error('the pipeline no longer writes what it wrote: %d file(s) '
++                 'differ, %d new, %d missing; run with --update if that is '
++                 'the change you meant to make'
++                 % (len(changed), len(new), len(gone)))
++    return 1
++  report.step('%d files, all as checked in' % len(found), 1)
++  return 0
++
++
++if __name__ == '__main__':
++  raise SystemExit(main())

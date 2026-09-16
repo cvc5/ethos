@@ -84,6 +84,11 @@ class State
   bool addAssumption(const Expr& a);
   /** add reference assert */
   void addReferenceAssert(const Expr& a);
+  /**
+   * Discard all reference assertions, as e.g. done by the smt2 command
+   * reset-assertions.
+   */
+  void clearReferenceAsserts();
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t);
   /** */

@@ -138,7 +138,7 @@ int main( int argc, char* argv[] )
   if (showConfig)
   {
     std::stringstream out;
-    out << "This is ethos version 0.2.3." << std::endl;
+    out << "This is ethos version 0.2.4." << std::endl;
     out << std::endl;
     size_t w = 15;
     out << std::setw(w) << "tracing : ";

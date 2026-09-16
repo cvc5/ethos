@@ -14,7 +14,7 @@
  * e.g.:
  *
  *   ethos-eoc --plugin.desugar <file>
- *   ethos-eoc --plugin.model-smt --signature=<file> [--semantics=<file>] <file>
+ *   ethos-eoc --plugin.model-smt --semantics=<file> [--smt-semantics=<file>] <file>
  *   ethos-eoc --plugin.lean-meta --lean-config=<file> <file>
  *
  * With no --plugin.* argument, it parses the given file like plain ethos.
@@ -51,8 +51,10 @@ bool isUnsupportedOption(const std::string& key)
   // This binary compiles a signature rather than checking a proof, so an
   // option about what a proof has to look like has nothing here to act on.
   // Setting it would quietly do nothing, which is worse than saying it is not
-  // an option this binary takes.
-  return key == "require-proof-of-false";
+  // an option this binary takes. The usage and build information of ethos are
+  // likewise its own and not wired into this binary.
+  return key == "require-proof-of-false" || key == "help"
+         || key == "show-config";
 }
 
 std::unique_ptr<Plugin> createPlugin(const std::string& name,
@@ -80,7 +82,8 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
   }
   if (name == "lean-meta")
   {
-    return std::make_unique<LeanMetaReduce>(s, generateParser, leanConfigFile);
+    return std::make_unique<LeanMetaReduce>(
+        s, generateParser, leanConfigFile);
   }
   if (name == "trim-defs")
   {
@@ -137,19 +140,21 @@ int main(int argc, char* argv[])
       generateParser = false;
       continue;
     }
-    if (arg.compare(0, 12, "--signature=") == 0)
+    if (arg.compare(0, 16, "--smt-semantics=") == 0)
     {
-      // The signature of the input written in the deep embedding, which says
-      // what each of its symbols means to the model. It is read by the
-      // model-smt plugin alone; no stage before that one sees it.
-      defsFile = arg.substr(12);
+      // The SMT-LIB semantics the input is written against, which the plugin
+      // ships with; this is what names another. It is read by the model-smt
+      // plugin alone. Tested before --semantics=, which it does not begin
+      // with but is easily read as.
+      smtDefsFile = arg.substr(16);
       continue;
     }
     if (arg.compare(0, 12, "--semantics=") == 0)
     {
-      // The SMT-LIB semantics it is written against, which the plugin ships
-      // with; this is what names another. It is read by the same plugin alone.
-      smtDefsFile = arg.substr(12);
+      // The semantics of the input written in the deep embedding, which says
+      // what each of its symbols means to the model. It is read by the
+      // model-smt plugin alone; no stage before that one sees it.
+      defsFile = arg.substr(12);
       continue;
     }
     if (arg.compare(0, 14, "--lean-config=") == 0)
@@ -227,11 +232,11 @@ int main(int argc, char* argv[])
   }
   if (!defsFile.empty() && pluginName != "model-smt")
   {
-    EO_FATAL() << "Error: --signature requires --plugin.model-smt";
+    EO_FATAL() << "Error: --semantics requires --plugin.model-smt";
   }
   if (!smtDefsFile.empty() && pluginName != "model-smt")
   {
-    EO_FATAL() << "Error: --semantics requires --plugin.model-smt";
+    EO_FATAL() << "Error: --smt-semantics requires --plugin.model-smt";
   }
   if (!leanConfigFile.empty() && pluginName != "lean-meta")
   {

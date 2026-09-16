@@ -165,13 +165,16 @@ class Reader:
                  'written as an s-expression')
     if c == '"':
       self.i += 1
+      # A backslash escapes the character after it, which is what lets a
+      # string hold a quote: the Lean an implementation is written as holds
+      # its own strings, see :lean-impl.
       while self.i < self.n and self.t[self.i] != '"':
-        self.i += 1
+        self.i += 2 if self.t[self.i] == '\\' else 1
       if self.i >= self.n:
         self.error('unterminated string')
       self.i += 1
       raw = self.t[start:self.i]
-      return Node('str', val=raw[1:-1], raw=raw)
+      return Node('str', val=unescape(raw[1:-1]), raw=raw)
     while self.i < self.n and self.t[self.i] not in _DELIM:
       self.i += 1
     raw = self.t[start:self.i]
@@ -180,6 +183,23 @@ class Reader:
     if raw.isdigit():
       return Node('int', val=int(raw), raw=raw)
     return Node('sym', val=raw, raw=raw)
+
+
+def unescape(text):
+  """What a string literal stands for: a backslash takes the character after
+  it as it is written. Only the two that have to be escaped are given a
+  meaning, so a backslash before anything else is that backslash.
+  """
+  out = []
+  i, n = 0, len(text)
+  while i < n:
+    if text[i] == '\\' and i + 1 < n and text[i + 1] in '\\"':
+      out.append(text[i + 1])
+      i += 2
+    else:
+      out.append(text[i])
+      i += 1
+  return ''.join(out)
 
 
 def read_text(path):
@@ -245,8 +265,15 @@ class Block:
       out.update(getattr(p, 'defines', set)())
     return out
 
-  def render(self, ctx):
-    body = [b for b in (p.render(ctx) for p in self.pieces) if b]
+  def render(self, ctx, stage='model'):
+    """What the block says to one stage.
+
+    A set is compiled once per stage that reads anything of it, and a piece
+    writes at each only what is of that stage: almost everything is of the
+    model, and what a symbol says under an attribute of a desugar aggregate is
+    of the desugar stage instead. See Entry.render_at.
+    """
+    body = [b for b in (p.render_at(ctx, stage) for p in self.pieces) if b]
     # A block whose whole of what it says reaches another file -- the Lean
     # text of a method does -- is no block of this one.
     return '; -- %s\n%s' % (self.name, '\n'.join(body)) if body else ''
@@ -507,6 +534,10 @@ def level_of(node):
   if head.kind == 'str':
     return 'native'             # a native type, named the way a native is
   name = head.val if head.kind == 'sym' else ''
+  if name.startswith('<'):
+    # A primitive of the embedding, which is written in angle brackets and is
+    # of the native level as any other native type is.
+    return 'native'
   # A configuration names a type of the embedding by itself, the file that
   # declares it by the name it is declared under; both are that type.
   name = smt_type(name) or name
@@ -550,6 +581,13 @@ class Vocab:
     self.args = {}            # $name -> the level of each argument
     self.types = {}           # $name -> the type each argument is declared as
     self.ops = {}             # the operator a native is defined as -> it
+    # What a name of a *configuration* means, where the embedding calls it
+    # something else: a primitive type is written `<numeral>` in a set and
+    # $native_Int outside one, so that a set says the kind of thing it means
+    # rather than the sort some target happens to have. Nothing else is spelt
+    # two ways -- a native is named as itself -- so a name that is not in here
+    # is its own.
+    self.spellings = {}
     self.ints = {}            # (level, value) -> what the embedding calls it
     self.aliases = []         # the apply each native is defined as, and it
 
@@ -595,22 +633,35 @@ class Vocab:
     out = Vocab()
     out.args, out.ops = dict(self.args), self.ops
     out.types, out.ints, out.aliases = dict(self.types), self.ints, self.aliases
+    out.spellings = self.spellings
     for b in blocks:
       for p in b.entries():
         if isinstance(p, Program):
           out.args[p.name] = [sig_level(t) for t in p.sig.items]
-        elif isinstance(p, Symbol) and p.decls.constructor is not None:
-          macro = p.decls.constructor.macro.format(symbol=p.name)
+        elif isinstance(p, Symbol) and p.decls.constructor_for(p) is not None:
+          macro = p.decls.constructor_for(p).macro.format(symbol=p.name)
           out.args[macro] = [level_of(t) if t else None for t in p.types]
           out.types[macro] = list(p.types)
     return out
 
 
-def read_vocabulary(paths):
-  """Read the vocabulary of the embedding out of the files that define it."""
+def read_vocabulary(paths, extra=(), spellings=()):
+  """Read the vocabulary of the embedding out of the files that define it.
+
+  `extra` is what a file the compiler writes rather than reads would say, as
+  (name, text) pairs: the natives are compiled from a set of their own, and
+  what they compile to is read here the same way, so nothing turns on whether
+  that file has been written out yet.
+
+  `spellings` is what a set calls a name the embedding calls something else,
+  as (in a set, in the embedding) pairs. Only the primitive types are, and the
+  set that declares them is the one that says so; see Vocab.spellings.
+  """
   out = Vocab()
-  for path in paths:
-    for _doc, node in read_file(path):
+  out.spellings.update(spellings)
+  for path, forms in ([(p, read_file(p)) for p in paths]
+                      + [(n, Reader(x, n).read_all()) for n, x in extra]):
+    for _doc, node in forms:
       if node.kind != 'list' or len(node.items) < 2 \
               or node.items[0].kind != 'sym' or node.items[1].kind != 'sym' \
               or not node.items[1].val.startswith('$'):
@@ -749,9 +800,23 @@ def lean_clauses(blocks):
   out = []
   for b in blocks:
     for e in b.entries():
-      if isinstance(e, Symbol) and e.has('lean'):
+      if isinstance(e, (Symbol, Program)) and e.has('lean'):
         out.append((e.name, [d[1:].strip() for d in e.doc], e.get('lean').val))
   return out
+
+
+def excludes(blocks):
+  """What the compilation has no place for, as its name and the kind of thing
+  it is.
+
+  A set says so on the entity itself -- a symbol, a method or a proof rule that
+  says :exclude -- and the kind is what the form that declared it says one is.
+  The block of one carries the directive the desugar stage reads, see
+  Symbol.render; this is the same thing said to whoever has to know it before
+  that stage runs.
+  """
+  return [(e.name, e.decls.noun) for b in blocks for e in b.entries()
+          if isinstance(e, Symbol) and e.has('exclude')]
 
 
 def counts(blocks):
@@ -872,7 +937,10 @@ def apply_native(node, name, args, scope, entry, ctx, level):
   the signature of an input builds terms, so a name it gives that the embedding
   does not have is a misspelling rather than an operator.
   """
-  full = '$native_' + name
+  if name.startswith('<'):
+    die('%s: write %s without the quotes: a name in quotes is an operator, '
+        'and %s is a type' % (entry.name, name, name))
+  full = '$native_' + ctx.vocab.spellings.get(name, name)
   if full in ctx.vocab:
     if ctx.vocab.arity(full) != len(args):
       die('%s: %s takes %d argument%s, not %d'
@@ -886,6 +954,10 @@ def apply_native(node, name, args, scope, entry, ctx, level):
   if name in ctx.vocab.ops:
     die('%s: write "%s", the native, rather than the operator %s it is '
         'defined as' % (entry.name, ctx.vocab.ops[name][8:], name))
+  for spelt, means in ctx.vocab.spellings.items():
+    if means == name:
+      die('%s: write "%s", which is what a set calls it, rather than "%s", '
+          'which is what a backend does' % (entry.name, spelt, name))
   if not ctx.raw_operators:
     die('%s: there is no native called %s' % (entry.name, full))
   # The raw operator of the value layer, which has no name of its own.
@@ -959,15 +1031,38 @@ def embedded(name, entry, ctx):
   return name
 
 
+def native_type(name, entry, ctx):
+  """The primitive of the embedding a name in angle brackets stands for.
+
+  What the embedding calls it is what the set that declares the primitives
+  says, see Vocab.spellings; a name in brackets it does not declare is a
+  misspelling, there being nothing else a name written that way could be.
+  """
+  full = '$native_' + ctx.vocab.spellings.get(name, name)
+  if full not in ctx.vocab:
+    die('%s: there is no primitive of the embedding called %s; it declares %s'
+        % (entry.name, name,
+           ', '.join(sorted(ctx.vocab.spellings)) or 'none'))
+  return full
+
+
 def declared_type(node, entry, ctx):
   """A type as a parameter list or a signature writes one.
 
   Three vocabularies meet here and each is named as it is named everywhere: a
-  native in quotes, a type of the embedding without its `$smt_`, and a type of
-  the *input* as the input writes it, which is what is left.
+  primitive of the embedding in angle brackets, a type of the embedding without
+  its `$smt_`, and a type of the *input* as the input writes it, which is what
+  is left.
+
+  A primitive is written `<numeral>` and not `"<numeral>"`: quotes name an
+  *operator*, and a type is not one. The brackets are what say the name is the
+  embedding's own, so a name in them that the embedding does not declare is an
+  error rather than something taken for a type of the input.
   """
   if node.kind == 'str':
     return apply_native(node, node.val, [], Scope(), entry, ctx, 'native')
+  if node.kind == 'sym' and node.val.startswith('<'):
+    return native_type(node.val, entry, ctx)
   if node.kind == 'sym':
     smt = smt_type(node.val)
     if smt is not None:
@@ -1032,6 +1127,14 @@ def occurrences(node, name):
 # Entries
 # -----------------------------------------------------------------------------
 
+# The stages a set says something to beside the model. A set is compiled once
+# per stage and each writes a file of its own, so an entry that says nothing to
+# the model is not silent if it says something to one of these; which aggregate
+# is of which stage is said by the set that declares it, see
+# sem_compile.AGGREGATE_SETS.
+OTHER_STAGES = ('desugar',)
+
+
 class Entry:
   """What a body is cast against.
 
@@ -1040,6 +1143,15 @@ class Entry:
   `bound_levels`. Every kind of entry gives those three, however it is written,
   and this is where that is said.
   """
+
+  # What an entry writes at one stage. Everything a set holds is of the model
+  # unless it says otherwise, so the default answers at that stage and is
+  # silent at every other; Symbol overrides it, since a symbol may say
+  # something to each. Defined here rather than on Block so that a piece that
+  # is of no stage is dropped by the same test that drops one that says
+  # nothing, see Block.render.
+  def render_at(self, ctx, stage):
+    return self.render(ctx) if stage == 'model' else ''
 
   # A name the entry declares the type of, and so the vocabulary an eo::define
   # binding it is written in. An entry that declares none leaves it to the
@@ -1165,9 +1277,15 @@ class Program(Entry):
   # A program belongs to no symbol, so it belongs to the block it stands in.
   joins_open_block = True
 
-  def __init__(self, node, params, sig, ret, cases):
+  def __init__(self, node, params, sig, ret, cases, keep=False, attrs=None):
     self.node = node
     self.name = node.items[1].val
+    self.attrs = attrs or {}
+    # Whether the block it stands in is taken whatever the input declares. A
+    # program is otherwise taken only where a block already taken names it,
+    # which is right for a helper of a symbol and wrong for one the *template*
+    # names, see $EO_TO_SMT_AUX$ in plugins/model_smt/model_smt.eo.
+    self.keep = keep
     self.params = params        # what each parameter is called
     self.sig = sig              # the type of each argument, as written
     self.ret = ret              # the type of the result, as written
@@ -1218,15 +1336,26 @@ class Program(Entry):
              declared_type(self.ret, self, ctx),
              self.cases.laid_out([self.case(c, ctx)
                                   for c in self.cases.items])]
-    return '\n'.join(list(self.doc) + [self.node.laid_out(parts)])
+    out = list(self.doc)
+    if self.keep:
+      # The same directive a symbol of the embedding writes, see
+      # DefsBlock::d_keep: the stage reads it and takes the block whatever the
+      # input declares.
+      out.append('(echo "eoc-keep symbol %s")' % self.name)
+    return '\n'.join(out + [self.node.laid_out(parts)])
 
 
 def parse_program(node, path, macros):
   it = node.items
+  # :keep may stand between the parameters and the signature, and says the
+  # block is taken whatever the input declares.
+  keep = len(it) > 3 and it[3].kind == 'kw' and it[3].val == ':keep'
+  if keep:
+    it = it[:3] + it[4:]
   if len(it) < 7 or it[2].kind != 'list' or it[3].kind != 'kw' \
           or it[3].val != ':signature' or it[4].kind != 'list':
-    die('%s: a program is written (program NAME (param...) :signature (T...) '
-        'R (case...))' % path)
+    die('%s: a program is written (program NAME (param...) [:keep] '
+        ':signature (T...) R (case...))' % path)
   params = [p.items[0].val for p in it[2].items
             if p.kind == 'list' and p.items]
   if len(it) < 7 or it[6].kind != 'list':
@@ -1235,7 +1364,15 @@ def parse_program(node, path, macros):
   # A macro is an idiom the bodies of a file would otherwise repeat, and the
   # cases of a program are bodies like any other.
   cases = expand_macros(it[6], macros, it[1].val)
-  return Program(node, params, it[4], it[5], cases)
+  # What the generated Lean is to be told about it, which is why it terminates
+  # where Lean cannot see that for itself. A define-method says the same of a
+  # program the set does *not* write; a program the set writes says it here,
+  # so that the one program is one entry. See lean_clauses.
+  # :keep stands before the signature, so what follows the cases is one
+  # further along where it was said.
+  attrs = parse_attrs(node, 7 + (1 if keep else 0), it[1].val, path,
+                      {'lean': 1}, frozenset(), macros)
+  return Program(node, params, it[4], it[5], cases, keep, attrs)
 
 
 # A program belongs to no symbol and is an entry of either set. It is written
@@ -1271,9 +1408,10 @@ class Symbol(Entry):
     self.kinds = kinds
     # The type each parameter says it is of, where its kind does not say.
     self.types = types
-    self.block_name = decls.block.format(symbol=self.name)
     self.attrs = attrs
     self.decls = decls
+    # after attrs, since what the block is called follows what the entry says
+    self.block_name = decls.block_for(self)
     self.params_declared = set(params)
 
   def cases_of(self, key):
@@ -1289,7 +1427,7 @@ class Symbol(Entry):
 
   def defines(self):
     out = set()
-    c = self.decls.constructor
+    c = self.decls.constructor_for(self)
     if c is not None:
       out.add(c.name.format(symbol=self.name))
       out.add(c.macro.format(symbol=self.name))
@@ -1330,28 +1468,49 @@ class Symbol(Entry):
 
   # -- what it compiles to ----------------------------------------------------
 
-  def render(self, ctx):
+  def render_at(self, ctx, stage):
+    return self.render(ctx, stage)
+
+  def says_at(self, stage):
+    """Whether the entry says anything to one stage, i.e. holds an attribute
+    of an aggregate of it. What a symbol says to a stage other than the model
+    is written into that stage's own file, so a symbol may say nothing to the
+    model and still not be silent."""
+    return any(self.has(key) for key in self.decls.order
+               if self.decls.aggregates[key].stage == stage)
+
+  def render(self, ctx, stage='model'):
+    model = stage == 'model'
     if self.has('exclude'):
       # The compilation has no place for this one, so instead of a model it
       # says so: the desugar stage reads a directive of the generated file and
       # drops what it names, whether that is a symbol, a method or a rule.
-      return '(echo "eoc-exclude %s %s")' % (self.decls.noun, self.name)
+      # It is said once, in the signature the model-smt stage reads, since the
+      # directive is of the entity rather than of an aggregate.
+      return ('(echo "eoc-exclude %s %s")' % (self.decls.noun, self.name)
+              if model else '')
     out = []
-    if self.has('keep') or self.decls.keep:
+    if model and (self.has('keep') or self.decls.keep):
       # The entry is the embedding's own, so its block stands whether or not
       # the input declares it: the stage reads the directive, see
       # DefsBlock::d_keep, the way the desugar stage reads an exclusion. A
       # kind of entity may be the embedding's own throughout, as its types
       # are, and then every entry of it says this without writing it.
       out.append('(echo "eoc-keep symbol %s")' % self.name)
-    if self.decls.constructor is not None:
-      out.extend(self.decls.constructor.render(self, ctx))
+    if model:
+      cons = self.decls.constructor_for(self)
+      if cons is not None:
+        out.extend(cons.render(self, ctx))
     for key in self.decls.order:
       agg = self.decls.aggregates[key]
+      if agg.stage != stage:
+        continue
       if agg.helper is not None and self.has(agg.helper_attr):
         out.append(self._helper(agg, ctx))
     for key in self.decls.order:
       agg = self.decls.aggregates[key]
+      if agg.stage != stage:
+        continue
       if self.says_nothing(key):
         continue
       if self.has(key):
@@ -1359,9 +1518,12 @@ class Symbol(Entry):
       elif self._defaulted(key):
         out.append(self._default(agg, ctx))
     if not out:
-      # What it says may reach a file other than the definitions one, as the
-      # Lean text of a method does; what says nothing at all is an error.
-      if self.has('lean'):
+      # What it says may reach a file other than the definitions one -- the
+      # Lean text of a method does, and so does what it says to a stage other
+      # than the model; what says nothing at all is an error.
+      if not model:
+        return ''
+      if self.has('lean') or any(self.says_at(st) for st in OTHER_STAGES):
         return ''
       die('%s: says nothing, so nothing is written for it' % self.name)
     return '\n'.join(out)
@@ -1538,10 +1700,12 @@ def parse_params(node, name, path):
 def parser(decls):
   """What reads an entity of the kind these declarations describe."""
   known = decls.attrs()
-  # :overload, :exclude, :keep and :lean give no case, so none is a term to
-  # expand macros in; the last is Lean text and no term at all.
-  expanded = frozenset(k for k in known
-                       if k not in ('overload', 'exclude', 'keep', 'lean'))
+  # An attribute that gives a case is the only kind written as a term, so it
+  # is the only kind the macros of a file are rewritten out of and the only
+  # kind an entry may say twice. Everything else -- :overload and :exclude,
+  # the text a backend is written in and the scope it wants, what an aggregate
+  # says to a stage -- is said to a stage and is taken as it stands.
+  expanded = frozenset(decls.case_attrs())
 
   def read(node, path, macros):
     # An entity that writes nothing of its own names no arguments: what is

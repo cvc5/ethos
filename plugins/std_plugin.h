@@ -13,6 +13,8 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "plugin.h"
 #include "state.h"
@@ -30,6 +32,9 @@ class TypeChecker;
 class StdPlugin : public Plugin
 {
  public:
+  /** A (tag, replacement) pair used when rendering a resource file. */
+  using Replacement = std::pair<std::string, std::string>;
+
   StdPlugin(State& s);
   ~StdPlugin();
 
@@ -80,6 +85,20 @@ class StdPlugin : public Plugin
   static std::string getOutputPath(const std::string& relativePath);
   /** Copy a static resource into the generated output tree */
   static void copyResourceToOutput(const std::string& relativePath);
+
+  /**
+   * Render the template resource file resourcePath by applying the given
+   * replacements and write the result to outputPath. If replAll is true,
+   * every occurrence of each tag is replaced, otherwise only the first. A tag
+   * that does not occur in the template is a no-op, which we warn about since
+   * it is always a mistake. What the resource says to whoever edits it is
+   * dropped, see dropResourceNotes. Returns the full path of the written
+   * file.
+   */
+  std::string emitResourceFile(const std::string& resourcePath,
+                               const std::string& outputPath,
+                               const std::vector<Replacement>& replacements,
+                               bool replAll = false) const;
 };
 
 }  // namespace ethos
