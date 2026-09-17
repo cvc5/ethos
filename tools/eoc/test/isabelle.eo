@@ -34,13 +34,36 @@
 (declare-const Stuck Bool)
 (declare-const |a-b| Bool)
 (declare-const |a_x2db| Bool)
+(declare-const a_b Bool)
+(declare-const |a.b| Bool)
+(declare-const a_b_2 Bool)
+(declare-const eq Bool)
+(declare-const |a b| Bool)
+(declare-const a_x20b Bool)
 (program choose_name ((x Bool)) :signature (Bool) Bool
   (
     ((choose_name |a-b|) Boolean)
     ((choose_name |a_x2db|) Stuck)
+    ((choose_name a_b) true)
+    ((choose_name |a.b|) |a-b|)
+    ((choose_name a_b_2) |a_x2db|)
+    ((choose_name eq) eq)
+    ((choose_name |a b|) Boolean)
+    ((choose_name a_x20b) Stuck)
     ((choose_name x) false)
   ))
 (declare-rule distinct_names ((x Bool)) :args (x) :conclusion (choose_name x))
+(declare-rule operator_names ((x Bool)) :args (x) :conclusion (= x x))
+
+; Readable rule names may collide with each other and with checker helpers.
+(declare-rule arith-elim-int-gt () :conclusion true)
+(declare-rule arith_elim_int_gt () :conclusion false)
+(declare-rule arith_elim_int_gt_2 () :conclusion Boolean)
+(declare-rule checker_is_refutation () :conclusion true)
+
+; Cleaning a binder's spelling must not merge distinct arguments.
+(declare-rule parameter_names ((a-b Bool) (a_b Bool))
+  :args (a-b a_b) :conclusion (eo::ite a-b a_b false))
 
 ; Indexed operators use the embedding's generic UOp constructors.
 (declare-parameterized-const indexed ((i Int :opaque)) Bool)

@@ -47,7 +47,7 @@ $PROGRAMS$
 
 definition check_refutation :: "nat => CArgList => CCmdList => bool" where
   "check_refutation fuel assumptions commands =
-    (p__x24eo_x5fchecker_x5fis_x5frefutation fuel assumptions commands = Some True)"
+    ($CHECK_REFUTATION$ fuel assumptions commands = Some True)"
 
 lemma zero_budget_rejects [simp]:
   "\<not> check_refutation 0 assumptions commands"

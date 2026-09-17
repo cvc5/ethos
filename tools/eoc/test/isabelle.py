@@ -10,6 +10,7 @@ Isabelle installation an error (appropriate for a job claiming HOL coverage).
 import argparse
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -43,9 +44,31 @@ def main():
                  ["contra", "and_intro", "truth", "selection", "zero", "diverge", "lazy", "scope",
                   "distinct_names", "indexed_rule", "native_arith", "native_compare",
                   "native_strings", "native_extract", "native_convert", "native_bits",
-                  "mutual_rule"],
+                  "mutual_rule", "arith-elim-int-gt", "arith_elim_int_gt",
+                  "arith_elim_int_gt_2", "checker_is_refutation", "parameter_names",
+                  "operator_names"],
                  out / "selected", "EocTest")
         session = out / "selected" / "isabelle"
+        checker = (session / "EocTest_Checker.thy").read_text()
+        spec = (session / "EocTest_Spec.thy").read_text()
+        for name in ("arith_elim_int_gt", "arith_elim_int_gt_2",
+                     "arith_elim_int_gt_2_2", "and_intro", "parameter_names"):
+            assert f"primrec p_{name} ::" in checker, name
+            assert f"definition obligation_{name} where" in spec, name
+            assert f"p_{name} fuel" in spec, name
+        assert "CCmd_assume_push" in checker
+        assert "Term_Op_implies" in checker
+        assert "p__x24eo" not in checker and "_x5f" not in checker
+        programs = re.findall(r"^(?:primrec|abbreviation) (p_\w+) ", checker, re.M)
+        assert len(programs) == len(set(programs)), "duplicate program names"
+        # Catch stale or missing public names even on generation-only CI jobs.
+        symbol = r"\b(?:p_|Term_Op_|CRule_|CCmd_|UserOp\d*_Op_)\w+"
+        referenced = set(re.findall(symbol, (HERE / "isabelle_smoke.thy").read_text()))
+        generated = set(re.findall(symbol, checker))
+        assert referenced <= generated, sorted(referenced - generated)
+        # The rule took the helper's preferred name: the public checker must
+        # still call the actual helper, using its allocated suffix.
+        assert "(p_checker_is_refutation_2 fuel assumptions commands = Some True)" in checker
         shutil.copyfile(HERE / "isabelle_smoke.thy", session / "Isabelle_Smoke.thy")
         with (session / "ROOT").open("a") as root:
             root.write("    Isabelle_Smoke\n")

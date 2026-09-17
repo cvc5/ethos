@@ -115,8 +115,16 @@ and a `checker_sound_for` predicate. These are the starting point for an iogos
 soundness development; they do not prove logical soundness. The full SMT model,
 parser generation, and the remaining native operations are future work.
 Unsupported reachable natives produce a compiler error, naming the native and
-the enclosing program. Names are encoded injectively: non-alphanumeric bytes,
-including underscores, become `_xhh`, with a `p_` prefix for programs.
+the enclosing program. Generated names preserve underscores and replace hyphens,
+dots, and colons with underscores. Programs omit the compiler's `$eo_prog_`,
+`$eo_`, or leading `$` wrapper and use a `p_` prefix: for example,
+`$eo_prog_arith-elim-int-gt` becomes `p_arith_elim_int_gt`, with the obligation
+`obligation_arith_elim_int_gt`. Common symbolic operators get word names such as
+`eq` and `implies`; `@` and `$` become `at_` and `dollar_`, and other punctuation
+uses `_xhh` byte escapes. When names collide, numeric suffixes (`_2`, `_3`, ...)
+keep the symbols distinct, including literal names containing escapes or suffixes.
+Rule programs receive names before helpers, in source-name order. All references
+reuse the allocated names.
 Constructors and their abbreviations carry their datatype's name, for example
 `CRule_contra` and `Term_Apply`. Signature symbols have `Term_Op_`
 abbreviations, so a user operator named `Stuck` remains distinct from

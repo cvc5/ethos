@@ -38,12 +38,12 @@ class IsabelleMetaReduce : public MetaReducePlugin
   };
   bool isBuiltinMetaSymbol(const std::string& name) const override;
   void finalizeDecl(const Expr& e) override;
-  static std::string identifier(const std::string& name);
+  std::string identifier(const std::string& name, const std::string& prefix);
   std::string type(const Expr& t) const;
-  std::string constructor(const Expr& e) const;
+  std::string constructor(const Expr& e);
   size_t indexedArity(const Expr& e) const;
   bool isUserOperator(const Expr& e) const;
-  std::string atom(const Expr& e) const;
+  std::string atom(const Expr& e);
   std::string native(const std::string& name,
                      const std::vector<std::string>& args) const;
   std::string call(const std::string& name,
@@ -59,6 +59,10 @@ class IsabelleMetaReduce : public MetaReducePlugin
   std::map<std::string, std::set<std::string>> d_calls;
   std::set<std::string> d_rules;
   std::map<std::string, std::string> d_operatorAliases;
+  // Allocate names separately for programs, variables, and each constructor
+  // prefix. References reuse the allocation even when readable stems collide.
+  std::map<std::string, std::map<std::string, std::string>> d_identifiers;
+  std::map<std::string, std::set<std::string>> d_usedIdentifiers;
   std::string d_current;
   size_t d_fresh = 0;
 };

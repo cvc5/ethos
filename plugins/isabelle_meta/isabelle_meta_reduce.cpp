@@ -108,23 +108,52 @@ IsabelleMetaReduce::IsabelleMetaReduce(State& s) : MetaReducePlugin(s)
   d_datatypeDeps["Proof"].insert("Term");
 }
 
-std::string IsabelleMetaReduce::identifier(const std::string& name)
+std::string IsabelleMetaReduce::identifier(const std::string& name,
+                                          const std::string& prefix)
 {
-  // Escape underscores too, so the encoding is injective, including quoted
-  // EO names and overloaded operators. Prefixes at call sites ensure that
-  // identifiers cannot start with a digit or be an Isabelle keyword.
-  if (name.empty()) return "_empty";
+  auto& names = d_identifiers[prefix];
+  auto it = names.find(name);
+  if (it != names.end()) return it->second;
+  std::string stem = name;
+  if (prefix == "p_")
+  {
+    // These wrappers are compiler bookkeeping, not part of the rule name.
+    if (stem.compare(0, 9, "$eo_prog_") == 0) stem.erase(0, 9);
+    else if (stem.compare(0, 4, "$eo_") == 0) stem.erase(0, 4);
+    else if (!stem.empty() && stem[0] == '$') stem.erase(0, 1);
+  }
+  static const std::map<std::string, std::string> operators = {
+      {"=", "eq"}, {"=>", "implies"}, {"+", "add"}, {"-", "sub"},
+      {"*", "mul"}, {"/", "div"}, {"<", "lt"}, {"<=", "le"},
+      {">", "gt"}, {">=", "ge"}};
+  auto op = operators.find(stem);
+  if (op != operators.end()) stem = op->second;
   std::ostringstream out;
-  for (unsigned char c : name)
+  for (unsigned char c : stem)
   {
     if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-        || (c >= '0' && c <= '9'))
+        || (c >= '0' && c <= '9') || c == '_')
       out << c;
+    else if (c == '-' || c == '.' || c == ':')
+      out << '_';
+    else if (c == '@')
+      out << "at_";
+    else if (c == '$')
+      out << "dollar_";
     else
       out << "_x" << std::hex << std::setw(2) << std::setfill('0')
           << static_cast<unsigned>(c);
   }
-  return out.str();
+  // Prefixes keep numeric names and Isabelle keywords legal. Allocate instead
+  // of relying on escaping being injective: a-b, a.b and a_b must stay distinct,
+  // as must a literal name that already ends in a disambiguating suffix.
+  const std::string base = prefix + (stem.empty() ? "empty" : out.str());
+  std::string result = base;
+  auto& used = d_usedIdentifiers[prefix];
+  for (size_t suffix = 2; !used.insert(result).second; ++suffix)
+    result = base + "_" + std::to_string(suffix);
+  names[name] = result;
+  return result;
 }
 
 bool IsabelleMetaReduce::isBuiltinMetaSymbol(const std::string& name) const
@@ -167,7 +196,7 @@ std::string IsabelleMetaReduce::type(const Expr& t) const
   return "";
 }
 
-std::string IsabelleMetaReduce::constructor(const Expr& e) const
+std::string IsabelleMetaReduce::constructor(const Expr& e)
 {
   if (getName(e) == "$eo_pf") return "Proof_pf";
   std::string name;
@@ -176,12 +205,12 @@ std::string IsabelleMetaReduce::constructor(const Expr& e) const
   if (arity > 0)
   {
     std::string n = std::to_string(arity);
-    return "Term_UOp" + n + " UserOp" + n + "_Op_" + identifier(name);
+    return "Term_UOp" + n + " " + identifier(name, "UserOp" + n + "_Op_");
   }
-  if (isUserOperator(e)) return "(Term_UOp UserOp_Op_" + identifier(name) + ")";
+  if (isUserOperator(e)) return "(Term_UOp " + identifier(name, "UserOp_Op_") + ")";
   // Ordinary function symbols are nullary Term constructors. Only opaque
   // arguments become fields, exactly as in lean-meta.
-  return type(e.getType()) + (isEmbedCons(e) ? "_" : "_Op_") + identifier(name);
+  return identifier(name, type(e.getType()) + (isEmbedCons(e) ? "_" : "_Op_"));
 }
 
 size_t IsabelleMetaReduce::indexedArity(const Expr& e) const
@@ -217,15 +246,15 @@ void IsabelleMetaReduce::finalizeDecl(const Expr& e)
       d_datatypes["Term"].push_back("Term_UOp \"UserOp\"");
       d_datatypeDeps["Term"].insert("UserOp");
     }
-    d_datatypes["UserOp"].push_back("UserOp_Op_" + identifier(name));
-    d_operatorAliases["Term_Op_" + identifier(name)] = constructor(e);
+    d_datatypes["UserOp"].push_back(identifier(name, "UserOp_Op_"));
+    d_operatorAliases[identifier(name, "Term_Op_")] = constructor(e);
     return;
   }
   size_t arity = indexedArity(e);
   if (arity > 0)
   {
     std::string n = std::to_string(arity);
-    d_datatypes["UserOp" + n].push_back("UserOp" + n + "_Op_" + identifier(name));
+    d_datatypes["UserOp" + n].push_back(identifier(name, "UserOp" + n + "_Op_"));
     // The generic traversal may have been trimmed away for a small input.
     // Ensure its constructor still exists for any indexed operator we emit.
     std::string cons = "Term_UOp" + n + " \"UserOp" + n + "\"";
@@ -288,11 +317,11 @@ bool IsabelleMetaReduce::echo(const std::string& msg)
   return msg.compare(0, 12, "lean-parser-") != 0;
 }
 
-std::string IsabelleMetaReduce::atom(const Expr& e) const
+std::string IsabelleMetaReduce::atom(const Expr& e)
 {
   switch (e.getKind())
   {
-    case Kind::PARAM: return "v_" + identifier(getName(e));
+    case Kind::PARAM: return identifier(getName(e), "v_");
     case Kind::CONST: return constructor(e);
     case Kind::TYPE: return "Term_Type";
     case Kind::BOOL_TYPE: return "Term_Bool";
@@ -448,7 +477,7 @@ std::string IsabelleMetaReduce::call(const std::string& name,
     EO_FATAL() << "IsabelleMetaReduce: undefined program " << name
                << " called by " << d_current;
   d_calls[d_current].insert(name);
-  return application("p_" + identifier(name) + " fuel", args);
+  return application(identifier(name, "p_") + " fuel", args);
 }
 
 std::string IsabelleMetaReduce::term(const Expr& e)
@@ -684,6 +713,10 @@ std::string IsabelleMetaReduce::programBody(const Program& p)
 void IsabelleMetaReduce::finalize()
 {
   std::ostringstream datatypes, keys, defs, spec;
+  // Give rule programs their readable names before helpers with the same stem.
+  // Sorted source names make program allocation independent of call order.
+  for (const auto& rule : d_rules) identifier(rule, "p_");
+  for (const auto& entry : d_programs) identifier(entry.first, "p_");
   if (d_datatypes["CRule"].empty())
     d_datatypes["CRule"].push_back("CRule_unused");
   // Isabelle generates quadratic constructor facts for a flat enumeration.
@@ -802,7 +835,7 @@ void IsabelleMetaReduce::finalize()
       const Expr& t = p.symbol.getType();
       bool cases = p.body.getKind() == Kind::PROGRAM;
       size_t arity = cases ? t.getNumChildren() - 1 : 0;
-      names.push_back("p_" + identifier(group[i]));
+      names.push_back(identifier(group[i], "p_"));
       std::string typ;
       args.emplace_back();
       for (size_t j = 0; j < arity; ++j)
@@ -882,10 +915,12 @@ void IsabelleMetaReduce::finalize()
       args.push_back("arg" + std::to_string(i));
     // An explicit obligation over an interpretation supplied by iogos. This
     // is a definition, not an unproved claim of logical soundness.
-    spec << "definition obligation_" << identifier(rule) << " where\n  \""
-         << application("obligation_" + identifier(rule) + " valid fuel", args)
+    const std::string program = identifier(rule, "p_");
+    const std::string obligation = "obligation_" + program.substr(2);
+    spec << "definition " << obligation << " where\n  \""
+         << application(obligation + " valid fuel", args)
          << " = (\\<forall>result. "
-         << application("p_" + identifier(rule) + " fuel", args)
+         << application(program + " fuel", args)
          << " = Some result \\<longrightarrow> result \\<noteq> Term_Stuck"
          << " \\<longrightarrow> valid result)\"\n\n";
   }
@@ -893,7 +928,8 @@ void IsabelleMetaReduce::finalize()
       "plugins/isabelle_meta/isabelle_meta.thy",
       "plugins/isabelle_meta/isabelle_meta_gen.thy",
       {{"$DATATYPES$", datatypes.str()}, {"$ORDER_KEYS$", keys.str()},
-       {"$PROGRAMS$", defs.str()}});
+       {"$PROGRAMS$", defs.str()},
+       {"$CHECK_REFUTATION$", identifier("$eo_checker_is_refutation", "p_")}});
   emitResourceFile("plugins/isabelle_meta/isabelle_meta_spec.thy",
                    "plugins/isabelle_meta/isabelle_meta_spec_gen.thy",
                    {{"$OBLIGATIONS$", spec.str()}});
