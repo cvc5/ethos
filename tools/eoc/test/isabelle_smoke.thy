@@ -86,4 +86,62 @@ lemma escaped_name_and_stuck:
     \<and> Term_Op_Stuck \<noteq> Term_Stuck"
   by eval
 
+lemma indexed_operator:
+  "p__x24eo_x5fprog_x5findexed_x5frule 100
+      (Term_UOp1 UserOp1_Op_indexed (Term_Numeral 0)) = Some (Term_Boolean True)
+   \<and> p__x24eo_x5fprog_x5findexed_x5frule 100
+      (Term_UOp1 UserOp1_Op_indexed (Term_Numeral 1)) = Some (Term_Boolean False)"
+  by eval
+
+lemma powers_and_logarithms:
+  "p__x24eo_x5fpow 100 (Term_Numeral 3) (Term_Numeral 4) = Some (Term_Numeral 81)
+   \<and> p__x24eo_x5fpow 100 (Term_Rational (3 / 2)) (Term_Numeral 2)
+      = Some (Term_Rational (9 / 4))
+   \<and> p__x24eo_x5fpow 100 (Term_Numeral 3) (Term_Numeral (-1)) = Some (Term_Numeral 0)
+   \<and> p__x24eo_x5flog 100 (Term_Numeral 2) (Term_Numeral 1025) = Some (Term_Numeral 10)
+   \<and> p__x24eo_x5flog 100 (Term_Numeral 1) (Term_Numeral 10) = Some (Term_Numeral 0)"
+  by eval
+
+lemma rational_floor_and_unicode:
+  "p__x24eo_x5fto_x5fz 100 (Term_Rational (-3 / 2)) = Some (Term_Numeral (-2))
+   \<and> p__x24eo_x5fto_x5fz 100 (Term_String [128512]) = Some (Term_Numeral 128512)
+   \<and> p__x24eo_x5fto_x5fstr 100 (Term_Numeral 128512) = Some (Term_String [128512])
+   \<and> p__x24eo_x5fto_x5fstr 100 (Term_Numeral 196608) = Some Term_Stuck"
+  by eval
+
+lemma string_operations:
+  "p__x24eo_x5fextract 100 (Term_String [97, 98, 99]) (Term_Numeral 1) (Term_Numeral 2)
+      = Some (Term_String [98, 99])
+   \<and> p__x24eo_x5fextract 100 (Term_String [97]) (Term_Numeral (-1)) (Term_Numeral 2)
+      = Some (Term_String [])
+   \<and> p__x24eo_x5ffind 100 (Term_String [97, 98, 99]) (Term_String [98, 99])
+      = Some (Term_Numeral 1)
+   \<and> eoc_str_indexof [97] [] 1 = 1
+   \<and> eoc_str_indexof [97] [] 2 = -1
+   \<and> eoc_str_indexof [97] [98] 0 = -1"
+  by eval
+
+lemma binary_operations:
+  "p__x24eo_x5for 100 (Term_Binary 3 5) (Term_Binary 3 2) = Some (Term_Binary 3 7)
+   \<and> p__x24eo_x5fxor 100 (Term_Binary 3 5) (Term_Binary 3 3) = Some (Term_Binary 3 6)
+   \<and> p__x24eo_x5fnot 100 (Term_Binary 3 5) = Some (Term_Binary 3 2)
+   \<and> p__x24eo_x5fextract 100 (Term_Binary 4 13) (Term_Numeral 1) (Term_Numeral 2)
+      = Some (Term_Binary 2 2)
+   \<and> p__x24eo_x5fconcat 100 (Term_Binary 3 5) (Term_Binary 2 2)
+      = Some (Term_Binary 5 22)"
+  by eval
+
+lemma structural_comparison:
+  "p__x24eo_x5fcmp 100 (Term_Numeral 1) (Term_Numeral 2) = Some (Term_Boolean True)
+   \<and> p__x24eo_x5fcmp 100 (Term_Numeral 2) (Term_Numeral 1) = Some (Term_Boolean False)
+   \<and> p__x24eo_x5fcmp 100 (Term_String [97]) (Term_String [97]) = Some (Term_Boolean False)
+   \<and> key_Term (Term_String [0, 1]) \<noteq> key_Term (Term_String [1, 0])"
+  by eval
+
+lemma mutual_recursion:
+  "p__x24eo_x5fprog_x5fmutual_x5frule 100 (Term_Numeral 4) = Some (Term_Boolean True)
+   \<and> p__x24eo_x5fprog_x5fmutual_x5frule 100 (Term_Numeral 3) = Some (Term_Boolean False)
+   \<and> p__x24eo_x5fprog_x5fmutual_x5frule 2 (Term_Numeral 4) = None"
+  by eval
+
 end

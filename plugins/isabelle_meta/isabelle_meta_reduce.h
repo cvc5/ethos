@@ -41,6 +41,8 @@ class IsabelleMetaReduce : public MetaReducePlugin
   static std::string identifier(const std::string& name);
   std::string type(const Expr& t) const;
   std::string constructor(const Expr& e) const;
+  size_t indexedArity(const Expr& e) const;
+  bool isUserOperator(const Expr& e) const;
   std::string atom(const Expr& e) const;
   std::string native(const std::string& name,
                      const std::vector<std::string>& args) const;
@@ -50,12 +52,13 @@ class IsabelleMetaReduce : public MetaReducePlugin
   std::string pattern(const Expr& e,
                       std::set<Expr>& bound,
                       std::vector<std::string>& guards);
-  std::string equations(const Program& p);
+  std::string programBody(const Program& p);
   std::map<std::string, std::vector<std::string>> d_datatypes;
   std::map<std::string, std::set<std::string>> d_datatypeDeps;
   std::map<std::string, Program> d_programs;
   std::map<std::string, std::set<std::string>> d_calls;
   std::set<std::string> d_rules;
+  std::map<std::string, std::string> d_operatorAliases;
   std::string d_current;
   size_t d_fresh = 0;
 };

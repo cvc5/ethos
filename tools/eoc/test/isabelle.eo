@@ -41,3 +41,40 @@
     ((choose_name x) false)
   ))
 (declare-rule distinct_names ((x Bool)) :args (x) :conclusion (choose_name x))
+
+; Indexed operators use the embedding's generic UOp constructors.
+(declare-parameterized-const indexed ((i Int :opaque)) Bool)
+(program index_is_zero ((i Int) (x Bool)) :signature (Bool) Bool
+  (
+    ((index_is_zero (indexed i)) (eo::eq i 0))
+    ((index_is_zero x) false)
+  ))
+(declare-rule indexed_rule ((x Bool)) :args (x) :conclusion (index_is_zero x))
+
+; Keep the native operations used by the full CPC signature in a small fixture.
+(declare-rule native_arith ((x Int) (y Int)) :args (x y)
+  :conclusion (eo::eq (eo::pow x y) (eo::log x y)))
+(declare-rule native_compare ((x Bool) (y Bool)) :args (x y)
+  :conclusion (eo::cmp x y))
+(declare-const String Type)
+(declare-consts <string> String)
+(declare-rule native_strings ((x String) (y String)) :args (x y)
+  :conclusion (eo::eq (eo::len (eo::concat x y)) (eo::find x y)))
+(declare-rule native_extract ((x String) (i Int) (j Int)) :args (x i j)
+  :conclusion (eo::eq (eo::extract x i j) x))
+(declare-rule native_convert ((x String)) :args (x)
+  :conclusion (eo::eq (eo::to_str (eo::to_z x)) x))
+(declare-rule native_bits ((x Int) (y Int)) :args (x y)
+  :conclusion (eo::eq (eo::xor (eo::and x y) (eo::or x y)) (eo::not x)))
+
+; Mutual recursion, including a recursive result controlling another call.
+(program mutual_left ((n Int)) :signature (Int) Bool)
+(program mutual_right ((n Int)) :signature (Int) Bool
+  (((mutual_right n)
+    (eo::ite (eo::eq n 0) false (mutual_left (eo::add n -1))))))
+(program mutual_left ((n Int)) :signature (Int) Bool
+  (((mutual_left n)
+    (eo::ite (eo::eq n 0) true
+      (eo::ite (mutual_right (eo::add n -1))
+        (mutual_right (eo::add n -1)) false)))))
+(declare-rule mutual_rule ((n Int)) :args (n) :conclusion (mutual_left n))

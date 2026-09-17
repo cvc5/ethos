@@ -59,7 +59,15 @@ eoc_build_dir() {
 }
 
 eoc_cpc_input() {
-  printf '%s\n' "${EOC_CPC_INPUT:-$EOC_DEFAULT_CPC_INPUT}"
+  if [[ -n "${EOC_CPC_INPUT:-}" ]]; then
+    printf '%s\n' "$EOC_CPC_INPUT"
+  elif [[ -f "$EOC_DEFAULT_CPC_INPUT" ]]; then
+    printf '%s\n' "$EOC_DEFAULT_CPC_INPUT"
+  elif [[ -f "$HOME/cvc5/proofs/eo/cpc/Cpc.eo" ]]; then
+    printf '%s\n' "$HOME/cvc5/proofs/eo/cpc/Cpc.eo"
+  else
+    printf '%s\n' "$EOC_DEFAULT_CPC_INPUT"
+  fi
 }
 
 # Append the semantics of the input to ARGS. An input given by the caller has

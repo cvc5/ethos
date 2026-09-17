@@ -117,9 +117,12 @@ parser generation, and the remaining native operations are future work.
 Unsupported reachable natives produce a compiler error, naming the native and
 the enclosing program. Names are encoded injectively: non-alphanumeric bytes,
 including underscores, become `_xhh`, with a `p_` prefix for programs.
-Constructors carry their datatype's name, for example `CRule_contra` and
-`Term_Apply`. Signature symbols use `Term_Op_`, so a user operator named
-`Stuck` remains distinct from the embedding's `Term_Stuck`.
+Constructors and their abbreviations carry their datatype's name, for example
+`CRule_contra` and `Term_Apply`. Signature symbols have `Term_Op_`
+abbreviations, so a user operator named `Stuck` remains distinct from
+`Term_Stuck`. Internally, user operators are grouped by index arity, as in
+Lean; large enumerations are split into small datatypes to keep Isabelle's
+constructor proofs manageable. `eo::cmp` uses a deterministic structural order.
 
 Run the integration tests against an installed Isabelle with:
 
@@ -943,6 +946,11 @@ what publishing said. A rule file already in the package is kept, since a
 hand-written proof may stand beside the generated one. The destinations are the
 ones named in [`cpc/README.md`](cpc/README.md), each overridable with an
 environment variable.
+
+`tools/eoc/cpc/install_iogos` is the Isabelle counterpart. It generates the full
+CPC checker as the `Cpc` session, installs it into `$IOGOS_DIR/Cpc` (default
+`~/iogos/Cpc`), and registers it in the destination's `ROOTS`. See
+[`cpc/README.md`](cpc/README.md) for generation settings and the build command.
 
 ### Manually inspect or debug intermediate files
 

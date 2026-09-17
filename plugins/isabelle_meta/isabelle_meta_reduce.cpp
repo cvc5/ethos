@@ -155,6 +155,9 @@ std::string IsabelleMetaReduce::type(const Expr& t) const
         if (n == "Rat") return "rat";
         if (n == "String") return "nat list";
         if (n == "Char") return "nat";
+        if (n.compare(0, 6, "UserOp") == 0
+            && n.find_first_not_of("0123456789", 6) == std::string::npos)
+          return n;
       }
       break;
     }
@@ -169,9 +172,32 @@ std::string IsabelleMetaReduce::constructor(const Expr& e) const
   if (getName(e) == "$eo_pf") return "Proof_pf";
   std::string name;
   getMetaKindFor(e, name);
+  size_t arity = indexedArity(e);
+  if (arity > 0)
+  {
+    std::string n = std::to_string(arity);
+    return "Term_UOp" + n + " UserOp" + n + "_Op_" + identifier(name);
+  }
+  if (isUserOperator(e)) return "(Term_UOp UserOp_Op_" + identifier(name) + ")";
   // Ordinary function symbols are nullary Term constructors. Only opaque
   // arguments become fields, exactly as in lean-meta.
   return type(e.getType()) + (isEmbedCons(e) ? "_" : "_Op_") + identifier(name);
+}
+
+size_t IsabelleMetaReduce::indexedArity(const Expr& e) const
+{
+  // Indexed signature operators must use the same UOp constructors as the
+  // embedding's generic closedness traversal, just as they do in lean-meta.
+  return !isEmbedCons(e) && type(e.getType()) == "Term"
+                 && d_state.getAttributeKind(e.getValue()) == Attr::OPAQUE
+             ? e.getType().getNumChildren() - 1
+             : 0;
+}
+
+bool IsabelleMetaReduce::isUserOperator(const Expr& e) const
+{
+  return !isEmbedCons(e) && type(e.getType()) == "Term"
+         && d_state.getAttributeKind(e.getValue()) != Attr::OPAQUE;
 }
 
 void IsabelleMetaReduce::finalizeDecl(const Expr& e)
@@ -184,6 +210,32 @@ void IsabelleMetaReduce::finalizeDecl(const Expr& e)
       || name == "$emb_Apply")
     return;
   Expr t = e.getType();
+  if (isUserOperator(e))
+  {
+    if (!d_datatypes.count("UserOp"))
+    {
+      d_datatypes["Term"].push_back("Term_UOp \"UserOp\"");
+      d_datatypeDeps["Term"].insert("UserOp");
+    }
+    d_datatypes["UserOp"].push_back("UserOp_Op_" + identifier(name));
+    d_operatorAliases["Term_Op_" + identifier(name)] = constructor(e);
+    return;
+  }
+  size_t arity = indexedArity(e);
+  if (arity > 0)
+  {
+    std::string n = std::to_string(arity);
+    d_datatypes["UserOp" + n].push_back("UserOp" + n + "_Op_" + identifier(name));
+    // The generic traversal may have been trimmed away for a small input.
+    // Ensure its constructor still exists for any indexed operator we emit.
+    std::string cons = "Term_UOp" + n + " \"UserOp" + n + "\"";
+    for (size_t i = 0; i < arity; ++i) cons += " \"Term\"";
+    auto& terms = d_datatypes["Term"];
+    if (std::find(terms.begin(), terms.end(), cons) == terms.end())
+      terms.push_back(cons);
+    d_datatypeDeps["Term"].insert("UserOp" + n);
+    return;
+  }
   std::string decl = constructor(e);
   if (d_state.getAttributeKind(e.getValue()) == Attr::OPAQUE)
   {
@@ -199,7 +251,9 @@ void IsabelleMetaReduce::finalizeDecl(const Expr& e)
       d_datatypeDeps[type(t)].insert(type(arg));
     }
   }
-  d_datatypes[type(t)].push_back(decl);
+  auto& constructors = d_datatypes[type(t)];
+  if (std::find(constructors.begin(), constructors.end(), decl) == constructors.end())
+    constructors.push_back(decl);
 }
 
 void IsabelleMetaReduce::defineProgram(const Expr& v, const Expr& prog)
@@ -332,17 +386,54 @@ std::string IsabelleMetaReduce::native(
   auto u = unary.find(name);
   if (u != unary.end() && args.size() == 1) return application(u->second, args);
   if (name == "int.pow2" && args.size() == 1)
-    return "(if " + args[0] + " < 0 then 0 else (2::int) ^ nat " + args[0]
-           + ")";
+    return application("eoc_pow2", args);
+  if ((name == "zexp_total" || name == "qexp_total") && args.size() == 2)
+    return "(if " + args[1] + " < 0 then 0 else " + args[0] + " ^ nat "
+           + args[1] + ")";
+  if (name == "int_log" && args.size() == 2)
+    return application("eoc_int_log", args);
+  if (name == "to_int" && args.size() == 1)
+    return "(fst (quotient_of " + args[0] + ") div snd (quotient_of "
+           + args[0] + "))";
+  if (name == "str.len" && args.size() == 1)
+    return "(int (length " + args[0] + "))";
+  if (name == "str.++" && args.size() == 2)
+    return "(" + args[0] + " @ " + args[1] + ")";
+  if (name == "str.substr" && args.size() == 3)
+    return "(if " + args[1] + " < 0 then [] else take (nat " + args[2]
+           + ") (drop (nat " + args[1] + ") " + args[0] + "))";
+  if (name == "str.indexof" && args.size() == 3)
+    return application("eoc_str_indexof", args);
+  if (name == "str.to_code" && args.size() == 1)
+    return "(case " + args[0] + " of [c] => (if c < 196608 then int c else -1)"
+           " | _ => -1)";
+  if (name == "str.from_code" && args.size() == 1)
+    return "(if 0 <= " + args[0] + " \\<and> " + args[0]
+           + " < 196608 then [nat " + args[0] + "] else [])";
+  if (name == "tcmp" && args.size() == 2)
+    return "(eoc_key_less (key_Term " + args[0] + ") (key_Term " + args[1] + "))";
   // EO/Lean use Euclidean division, including with a negative divisor.
   if (name == "div_total" && args.size() == 2)
     return "(if " + args[1] + " < 0 then - (" + args[0] + " div (- " + args[1]
            + ")) else " + args[0] + " div " + args[1] + ")";
   if (name == "mod_total" && args.size() == 2)
     return "(" + args[0] + " mod abs " + args[1] + ")";
-  if (name == "binary_and" && args.size() == 3)
-    return "((" + args[1] + " AND " + args[2] + ") mod (2 ^ nat " + args[0]
-           + "))";
+  if ((name == "binary_and" || name == "binary_or" || name == "binary_xor")
+      && args.size() == 3)
+  {
+    const std::string op = name == "binary_and" ? "AND"
+                          : name == "binary_or" ? "OR" : "XOR";
+    return "((" + args[1] + " " + op + " " + args[2] + ") mod (2 ^ nat "
+           + args[0] + "))";
+  }
+  if (name == "binary_not" && args.size() == 2)
+    return "(eoc_pow2 " + args[0] + " - (1 + " + args[1] + "))";
+  if (name == "binary_max" && args.size() == 1)
+    return "(eoc_pow2 " + args[0] + " - 1)";
+  if (name == "binary_concat" && args.size() == 4)
+    return "(" + args[1] + " * eoc_pow2 " + args[2] + " + " + args[3] + ")";
+  if (name == "binary_extract" && args.size() == 4)
+    return "(" + args[1] + " div eoc_pow2 " + args[3] + ")";
   if (name == "ite" && args.size() == 3)
     return "(if " + args[0] + " then " + args[1] + " else " + args[2] + ")";
   EO_FATAL() << "IsabelleMetaReduce: unsupported native " << name << " in "
@@ -427,8 +518,20 @@ std::string IsabelleMetaReduce::term(const Expr& e)
   std::vector<std::string> args, values;
   for (size_t i = start; i < e.getNumChildren(); ++i)
   {
-    args.push_back("tmp" + std::to_string(++d_fresh));
-    values.push_back(term(e[i]));
+    std::string value = term(e[i]);
+    if (value.compare(0, 6, "(Some ") == 0)
+    {
+      // Pure constructors, variables, and native applications cannot exhaust
+      // fuel. Eliminating their option binds keeps large CPC rules tractable
+      // for Isabelle's simplifier without changing the budget of any call.
+      args.push_back(value.substr(6, value.size() - 7));
+      values.emplace_back();
+    }
+    else
+    {
+      args.push_back("tmp" + std::to_string(++d_fresh));
+      values.push_back(value);
+    }
   }
   std::string result;
   if (nativeApp)
@@ -443,8 +546,9 @@ std::string IsabelleMetaReduce::term(const Expr& e)
   else
     result = prog ? call(head, args) : some(application(head, args));
   for (size_t i = args.size(); i-- > 0;)
-    result = "(case " + values[i] + " of None => None | Some " + args[i]
-             + " => " + result + ")";
+    if (!values[i].empty())
+      result = "(case " + values[i] + " of None => None | Some " + args[i]
+               + " => " + result + ")";
   return result;
 }
 
@@ -508,7 +612,7 @@ std::string IsabelleMetaReduce::pattern(const Expr& e,
   return application(head, args);
 }
 
-std::string IsabelleMetaReduce::equations(const Program& p)
+std::string IsabelleMetaReduce::programBody(const Program& p)
 {
   const Expr& body = p.body;
   const Expr& t = p.symbol.getType();
@@ -574,17 +678,50 @@ std::string IsabelleMetaReduce::equations(const Program& p)
     if (!guard.empty())
       result = "(if " + guard + " then Some Term_Stuck else " + result + ")";
   }
-  std::string name = "p_" + identifier(d_current);
-  return "  \"" + application(name + " 0", args) + " = None\"\n| \""
-         + application(name + " (Suc fuel)", args) + " = " + result + "\"\n";
+  return result;
 }
 
 void IsabelleMetaReduce::finalize()
 {
-  std::ostringstream datatypes, defs, spec;
+  std::ostringstream datatypes, keys, defs, spec;
   if (d_datatypes["CRule"].empty())
     d_datatypes["CRule"].push_back("CRule_unused");
+  // Isabelle generates quadratic constructor facts for a flat enumeration.
+  // CPC has hundreds of rules and operators: use small finite chunks, with
+  // abbreviations preserving the public names (also in generated patterns).
+  std::map<std::string, std::string> enumAliases;
+  std::vector<std::string> enums;
+  constexpr size_t chunkSize = 24;
+  for (const auto& entry : d_datatypes)
+    if (entry.second.size() > chunkSize
+        && std::all_of(entry.second.begin(), entry.second.end(),
+                       [](const std::string& c) { return c.find(' ') == std::string::npos; }))
+      enums.push_back(entry.first);
+  for (const auto& t : enums)
+  {
+    auto old = d_datatypes[t];
+    d_datatypes[t].clear();
+    for (size_t i = 0; i < old.size(); ++i)
+    {
+      std::string chunk = t + "_chunk" + std::to_string(i / chunkSize);
+      std::string branch = t + "_part" + std::to_string(i / chunkSize);
+      std::string leaf = t + "_leaf" + std::to_string(i);
+      if (i % chunkSize == 0)
+      {
+        d_datatypes[t].push_back(branch + " \"" + chunk + "\"");
+        d_datatypeDeps[t].insert(chunk);
+      }
+      d_datatypes[chunk].push_back(leaf);
+      enumAliases[old[i]] = "(" + branch + " " + leaf + ")";
+    }
+  }
   for (const auto& entry : d_datatypes) d_datatypeDeps[entry.first];
+  std::set<std::string> orderedTypes;
+  std::function<void(const std::string&)> orderType = [&](const std::string& t) {
+    if (!d_datatypes.count(t) || !orderedTypes.insert(t).second) return;
+    for (const auto& dep : d_datatypeDeps[t]) orderType(dep);
+  };
+  orderType("Term");
   for (const auto& group : components(d_datatypeDeps))
   {
     for (size_t i = 0; i < group.size(); ++i)
@@ -596,7 +733,54 @@ void IsabelleMetaReduce::finalize()
       datatypes << "\n";
     }
     datatypes << "\n";
+    if (!orderedTypes.count(group.front())) continue;
+    // Prefix encodings are injective: the constructor determines its fields,
+    // and variable-length native strings carry their length. This gives cmp
+    // a deterministic structural order independent of the recursion budget.
+    for (size_t i = 0; i < group.size(); ++i)
+      keys << (i == 0 ? "primrec " : "and ") << "key_" << group[i]
+           << " :: \"" << group[i] << " => int list\"\n";
+    keys << "where\n";
+    bool first = true;
+    for (const auto& t : group)
+    {
+      size_t tag = 0;
+      for (const auto& decl : d_datatypes.at(t))
+      {
+        std::istringstream in(decl);
+        std::string cons, field;
+        in >> cons;
+        std::vector<std::string> args, fields;
+        while (in >> std::quoted(field))
+        {
+          std::string arg = "x" + std::to_string(args.size());
+          args.push_back(arg);
+          if (field == "int") fields.push_back("[" + arg + "]");
+          else if (field == "nat") fields.push_back("[int " + arg + "]");
+          else if (field == "bool")
+            fields.push_back("[if " + arg + " then 1 else 0]");
+          else if (field == "rat")
+            fields.push_back("[fst (quotient_of " + arg
+                             + "), snd (quotient_of " + arg + ")]");
+          else if (field == "nat list")
+            fields.push_back("(int (length " + arg + ") # map int " + arg + ")");
+          else fields.push_back("key_" + field + " " + arg);
+        }
+        keys << (first ? "  " : "| ") << "\"key_" << t << " "
+             << application(cons, args) << " = [" << tag++ << "]";
+        for (const auto& f : fields) keys << " @ " << f;
+        keys << "\"\n";
+        first = false;
+      }
+    }
+    keys << "\n";
   }
+  for (const auto& alias : enumAliases)
+    datatypes << "abbreviation " << alias.first << " where\n  \""
+              << alias.first << " \\<equiv> " << alias.second << "\"\n\n";
+  for (const auto& alias : d_operatorAliases)
+    datatypes << "abbreviation " << alias.first << " where\n  \""
+              << alias.first << " \\<equiv> " << alias.second << "\"\n\n";
   // Render first to collect *all* calls, including eo:: primitives which are
   // not represented as PROGRAM_CONST nodes. Emit strongly connected groups
   // in dependency order so Isabelle only sees genuinely mutual recursion.
@@ -605,27 +789,80 @@ void IsabelleMetaReduce::finalize()
   {
     d_current = entry.first;
     d_calls[d_current];
-    bodies[d_current] = equations(entry.second);
+    bodies[d_current] = programBody(entry.second);
   }
+  size_t groupId = 0;
   for (const auto& group : components(d_calls))
   {
+    std::vector<std::string> types, names;
+    std::vector<std::vector<std::string>> args;
     for (size_t i = 0; i < group.size(); ++i)
     {
       const Program& p = d_programs.at(group[i]);
       const Expr& t = p.symbol.getType();
       bool cases = p.body.getKind() == Kind::PROGRAM;
       size_t arity = cases ? t.getNumChildren() - 1 : 0;
-      // A single program is primitive recursion on fuel, even when its EO
-      // recursion is not structural. Avoid the function package's expensive
-      // domain analysis of large pattern dispatchers in this common case.
-      defs << (i == 0 ? (group.size() == 1 ? "primrec " : "fun ") : "and ")
-           << "p_" << identifier(group[i]) << " :: \"nat => ";
-      for (size_t j = 0; j < arity; ++j) defs << "(" << type(t[j]) << ") => ";
-      defs << "(" << type(cases ? t[arity] : t) << ") option\"\n";
+      names.push_back("p_" + identifier(group[i]));
+      std::string typ;
+      args.emplace_back();
+      for (size_t j = 0; j < arity; ++j)
+      {
+        typ += "(" + type(t[j]) + ") => ";
+        args.back().push_back("arg" + std::to_string(j));
+      }
+      types.push_back(typ + "(" + type(cases ? t[arity] : t) + ") option");
     }
-    defs << "where\n";
-    for (size_t i = 0; i < group.size(); ++i)
-      defs << (i == 0 ? "" : "| ") << bodies.at(group[i]);
+    if (group.size() == 1)
+      defs << "primrec " << names[0] << " :: \"nat => " << types[0] << "\"\nwhere\n"
+           << "  \"" << application(names[0] + " 0", args[0]) << " = None\"\n| \""
+           << application(names[0] + " (Suc fuel)", args[0]) << " = "
+           << bodies.at(group[0]) << "\"\n";
+    else
+    {
+      // Mutual recursion is primitive recursion on a tuple of functions.
+      // Every recursive call projects from the preceding fuel's tuple. This
+      // avoids the function package's domain/termination analysis of nested
+      // option matches, which is both costly and fragile for CPC programs.
+      const std::string mutual = "mutual_" + std::to_string(groupId++);
+      std::vector<std::string> projections, zero, succ;
+      for (size_t i = 0; i < group.size(); ++i)
+      {
+        std::string proj = "(" + mutual + " fuel)";
+        for (size_t j = 0; j < i; ++j) proj = "(snd " + proj + ")";
+        if (i + 1 < group.size()) proj = "(fst " + proj + ")";
+        projections.push_back(proj);
+      }
+      defs << "primrec " << mutual << " :: \"nat => (";
+      for (size_t i = 0; i < group.size(); ++i)
+      {
+        defs << (i == 0 ? "" : " * ") << "(" << types[i] << ")";
+        std::string body = bodies.at(group[i]);
+        for (size_t j = 0; j < group.size(); ++j)
+        {
+          std::string from = names[j] + " fuel";
+          size_t pos = 0;
+          while ((pos = body.find(from, pos)) != std::string::npos)
+          {
+            body.replace(pos, from.size(), projections[j]);
+            pos += projections[j].size();
+          }
+        }
+        std::string lambda;
+        if (!args[i].empty())
+        {
+          lambda = "(\\<lambda>";
+          for (const auto& arg : args[i]) lambda += " " + arg;
+          lambda += ". ";
+        }
+        zero.push_back(lambda + "None" + (lambda.empty() ? "" : ")"));
+        succ.push_back(lambda + body + (lambda.empty() ? "" : ")"));
+      }
+      defs << ")\"\nwhere\n  \"" << mutual << " 0 = " << tuple(zero)
+           << "\"\n| \"" << mutual << " (Suc fuel) = " << tuple(succ) << "\"\n\n";
+      for (size_t i = 0; i < group.size(); ++i)
+        defs << "abbreviation " << names[i] << " where\n  \"" << names[i]
+             << " fuel \\<equiv> " << projections[i] << "\"\n";
+    }
     defs << "\n";
   }
   if (!d_programs.count("$eo_checker_is_refutation"))
@@ -655,7 +892,8 @@ void IsabelleMetaReduce::finalize()
   emitResourceFile(
       "plugins/isabelle_meta/isabelle_meta.thy",
       "plugins/isabelle_meta/isabelle_meta_gen.thy",
-      {{"$DATATYPES$", datatypes.str()}, {"$PROGRAMS$", defs.str()}});
+      {{"$DATATYPES$", datatypes.str()}, {"$ORDER_KEYS$", keys.str()},
+       {"$PROGRAMS$", defs.str()}});
   emitResourceFile("plugins/isabelle_meta/isabelle_meta_spec.thy",
                    "plugins/isabelle_meta/isabelle_meta_spec_gen.thy",
                    {{"$OBLIGATIONS$", spec.str()}});
