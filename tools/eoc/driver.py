@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unified driver for the optional Eunoia-to-SMT2/Lean compilation pipeline.
+Unified driver for the optional Eunoia-to-SMT2/Lean/Isabelle compilation pipeline.
 
 This is the canonical source-tree entrypoint for the EOC workflow.
 """
@@ -118,6 +118,10 @@ LEAN_SINGLE_DEPS = (
     "$smtx_model_eval_apply $smtx_typeof $smtx_typeof_value "
     "$smtx_value_canonical $smtx_map_lookup $emb_UOp"
 )
+
+# Isabelle initially compiles the executable checker without the SMT model.
+# Keep the EO primitives that can remain as literal operators after trimming.
+ISABELLE_DEPS = "$eo_checker_is_refutation $eo_mk_apply $eo_eq $eo_ite $eo_requires"
 
 
 def resolve_path_arg(path_arg: str, *, cwd: Path) -> Path:
@@ -808,6 +812,56 @@ class Pipeline:
             generate_parser=generate_parser,
         )
 
+    def run_isabelle(
+        self, input_name: str, targets: list[str], *, all_targets: bool,
+        build_first: bool, calc_name: Optional[str] = None,
+    ) -> Path:
+        if build_first:
+            self.build()
+        calc_name = calc_name or lean_calc_name(Path(input_name))
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", calc_name):
+            raise RuntimeError("Isabelle --calc-name must be a simple identifier")
+        left_out = sorted(set(targets) & self.defs_excluded_rules())
+        if left_out:
+            raise RuntimeError(f"{' '.join(left_out)} is excluded by {self.defs_file}")
+        stem = self.stage_name(input_name)
+        desugared = self.stage_out_dir / f"isabelle-{stem}-desugar.eo"
+        final_defs = self.stage_out_dir / f"isabelle-{stem}-final.eo"
+        report.step(f"Generating Isabelle for {report.rel(input_name)}")
+        source = input_name
+        if not all_targets:
+            trimmed = self.stage_out_dir / f"isabelle-{stem}-trim.eo"
+            self.trim_defs(input_name, targets, trimmed)
+            source = self.binary_path_arg(trimmed)
+        self.desugar(source, desugared, use_vc_plugin=False,
+                     deps=ISABELLE_DEPS, plugin_label="isabelle-meta")
+        # This backend does not consume model-smt. Its dependency echo would
+        # otherwise retain model-only helpers in the checker fragment.
+        text = desugared.read_text()
+        desugared.write_text(re.sub(r'^\(echo "include model_smt[^\n]*\)\n',
+                                   '', text, flags=re.M))
+        self.trim_defs(self.binary_path_arg(desugared),
+                       ISABELLE_DEPS.split(), final_defs)
+        self.ethos(["--plugin.isabelle-meta", self.binary_path_arg(final_defs)],
+                   quiet=True)
+        out = self.final_out_dir / "isabelle"
+        # Publish only after the backend succeeds, as for Lean. This directory
+        # is generated in its entirety; an earlier calculus must not survive.
+        if out.exists():
+            shutil.rmtree(out)
+        out.mkdir(parents=True)
+        for source, suffix in (("isabelle_meta_gen.thy", "Checker"),
+                               ("isabelle_meta_spec_gen.thy", "Spec")):
+            theory = self.plugin_generated(f"isabelle_meta/{source}").read_text()
+            (out / f"{calc_name}_{suffix}.thy").write_text(
+                theory.replace(LEAN_CALC_PLACEHOLDER, calc_name))
+        (out / "ROOT").write_text(
+            f'session {calc_name} = HOL +\n'
+            f'  options [document = false]\n'
+            f'  theories\n    {calc_name}_Spec\n')
+        report.step(f"Isabelle session: {report.rel(out)}")
+        return out
+
     def run_desugar(self, input_name: str, *, build_first: bool,
                     natives: str = "embed") -> Path:
         if build_first:
@@ -1041,6 +1095,13 @@ def main(argv: list[str]) -> int:
         ),
     )
 
+    isabelle = subparsers.add_parser("isabelle", help="Generate an Isabelle/HOL checker session.")
+    add_common_args(isabelle)
+    isabelle.add_argument("input")
+    isabelle.add_argument("targets", nargs="*")
+    isabelle.add_argument("--all", action="store_true", help="Compile the entire signature.")
+    isabelle.add_argument("--calc-name", default=None, help="Isabelle session and theory prefix.")
+
     desugar = subparsers.add_parser("desugar", help="Generate a desugared EO file.")
     add_common_args(desugar)
     desugar.add_argument("input")
@@ -1196,6 +1257,14 @@ def main(argv: list[str]) -> int:
                 generate_parser=not args.no_parser,
                 calc_name=args.calc_name,
             )
+        elif args.command == "isabelle":
+            if not args.all and not args.targets:
+                parser.error("isabelle requires at least one target unless --all is passed")
+            if args.all and args.targets:
+                parser.error("isabelle --all takes no targets")
+            pipeline.run_isabelle(
+                args.input, list(args.targets), all_targets=args.all,
+                build_first=build_first, calc_name=args.calc_name)
         elif args.command == "desugar":
             pipeline.run_desugar(args.input, build_first=build_first,
                                  natives=args.natives)

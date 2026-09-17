@@ -24,15 +24,21 @@ description of what its symbols mean:
 | Target | What it produces | Command |
 | --- | --- | --- |
 | **Lean** | a proof checker for the calculus, its term language, and one lemma per proof rule | `driver.py lean` |
+| **Isabelle/HOL** | an executable checker and initial proof obligations for iogos | `driver.py isabelle` |
 | **SMT-LIB** | a verification condition per proof rule; a solver that refutes it has shown the rule sound | `driver.py vc` |
 | **SyGuS** | a synthesis query per proof rule, which searches for a counterexample to it | `driver.py vc --sygus` |
 
-The two are independent, and that is the point of the tool: a target is a
+The backends are independent: a target is a
 backend rather than a restatement of the calculus, and a calculus is a
 description rather than another compiler. What a symbol means is written once,
 as configuration, and every target is compiled from it; a new theory, a new
 proof rule or a new operator is added to the calculus and reaches every target
 with no compiler change at all.
+
+The initial Isabelle target compiles the executable checker directly from the
+calculus. Its proof scaffolding leaves the interpretation to the importing
+theory; it does not yet consume the semantics configuration used by the other
+targets.
 
 ### What a symbol means is written in `.eos`, and this is its reference
 
@@ -63,6 +69,7 @@ stage:
 - `model-smt`
 - `smt-meta`
 - `lean-meta`
+- `isabelle-meta`
 
 The default `ethos` build does not include them: it checks proofs, and this one
 compiles the calculus the proofs are written in. Build it with the two commands
@@ -74,6 +81,57 @@ SMT-LIB term layer, i.e. it is defined in terms of the other symbols of the
 signature. Such a reduction is written in the syntax of the signature itself,
 as an ordinary `define` whose name is `$eo_reduce_` followed by the symbol it
 reduces.
+
+## Isabelle checker for iogos
+
+The initial Isabelle backend (tested with Isabelle2025-2) follows `lean-meta`'s
+typed deep embedding and consumes the same desugared EO programs. It compiles the executable
+checker, without the `model-smt` stage or a proof-file parser. No semantics
+configuration is needed for the Boolean example:
+
+```sh
+python3 tools/eoc/driver.py isabelle --build-dir build-eoc \
+  --calc-name Iogos tests/Booleans-rules.eo contra and_intro
+isabelle build -D tools/eoc/out/isabelle
+```
+
+Use `--all` in place of the rule names to compile the whole signature, and
+`--final-out-dir DIR` to publish elsewhere. The generated `isabelle/` directory
+contains `ROOT`, `Iogos_Checker.thy`, and `Iogos_Spec.thy`. Import the latter
+from an iogos theory. This directory is replaced on each successful generation;
+keep handwritten theories outside it. The low-level stage is
+`ethos-eoc --plugin.isabelle-meta <desugared-and-trimmed.eo>`.
+
+`check_refutation fuel assumptions commands` runs the generated checker.
+`fuel` bounds program-call depth, rather than total work. Every generated
+program returns an option, so exhausting this budget propagates `None` and
+cannot count as acceptance. EO evaluation failure is represented separately
+by `Some Term_Stuck`. Recursive definitions terminate by decreasing the budget;
+the generated theories contain no `sorry` or termination axioms. The public
+checker accepts only a result of `Some True`.
+
+`Iogos_Spec` defines one obligation per rule against a supplied interpretation,
+and a `checker_sound_for` predicate. These are the starting point for an iogos
+soundness development; they do not prove logical soundness. The full SMT model,
+parser generation, and the remaining native operations are future work.
+Unsupported reachable natives produce a compiler error, naming the native and
+the enclosing program. Names are encoded injectively: non-alphanumeric bytes,
+including underscores, become `_xhh`, with a `p_` prefix for programs.
+Constructors carry their datatype's name, for example `CRule_contra` and
+`Term_Apply`. Signature symbols use `Term_Op_`, so a user operator named
+`Stuck` remains distinct from the embedding's `Term_Stuck`.
+
+Run the integration tests against an installed Isabelle with:
+
+```sh
+python3 tools/eoc/test/isabelle.py --build-dir build-eoc \
+  --isabelle /path/to/isabelle --require-isabelle
+```
+
+They compile selected rules and the whole Boolean signature, and execute HOL
+checks for acceptance, rejection, pattern fallthrough, and budget exhaustion.
+Without Isabelle the script checks generation and explicitly reports that HOL
+execution was skipped.
 
 ## The signatures written in the deep embedding
 

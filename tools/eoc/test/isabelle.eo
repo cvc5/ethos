@@ -1,0 +1,43 @@
+(include "../../../tests/Booleans-rules.eo")
+
+; No-argument rules are emitted by desugar as definitions, not programs.
+(declare-rule truth () :conclusion true)
+
+; The second case must remain reachable when the repeated variable differs.
+(program choose ((x Bool) (y Bool))
+  :signature (Bool Bool) Bool
+  (
+    ((choose x x) false)
+    ((choose x y) true)
+  ))
+(declare-rule selection ((x Bool) (y Bool))
+  :args (x y) :conclusion (choose x y))
+
+; An integer literal in a pattern needs an equality guard in HOL.
+(program is_zero ((x Int))
+  :signature (Int) Bool
+  (
+    ((is_zero 0) true)
+    ((is_zero x) false)
+  ))
+(declare-rule zero ((x Int)) :args (x) :conclusion (is_zero x))
+
+(program spin ((x Bool)) :signature (Bool) Bool (((spin x) (spin x))))
+(declare-rule diverge ((x Bool)) :args (x) :conclusion (spin x))
+(declare-rule lazy ((x Bool)) :args (x) :conclusion (eo::ite x true (spin x)))
+
+(declare-rule scope ((F Bool) (G Bool))
+  :assumption F :premises (G) :conclusion (=> F G))
+
+; User symbols must not collide with embedding constructors or escaped names.
+(declare-const Boolean Bool)
+(declare-const Stuck Bool)
+(declare-const |a-b| Bool)
+(declare-const |a_x2db| Bool)
+(program choose_name ((x Bool)) :signature (Bool) Bool
+  (
+    ((choose_name |a-b|) Boolean)
+    ((choose_name |a_x2db|) Stuck)
+    ((choose_name x) false)
+  ))
+(declare-rule distinct_names ((x Bool)) :args (x) :conclusion (choose_name x))

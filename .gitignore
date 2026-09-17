@@ -1,6 +1,7 @@
 build
 build-*/
-tools/eoc/__pycache__
+__pycache__/
+*.py[cod]
 .vscode
 .DS_Store
 build-cpp-compiler-test

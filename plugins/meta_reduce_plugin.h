@@ -30,7 +30,7 @@ enum class ConjectureType
 };
 
 /**
- * Base class for the meta-reduction backends (SmtMetaReduce, LeanMetaReduce).
+ * Base class for the SMT, Lean, and Isabelle meta-reduction backends.
  * It implements the classification of the symbols of a (desugared) Eunoia
  * signature into MetaKind, that is, into the datatypes of the final deep
  * embedding, and provides utilities shared by the backends, e.g. for

@@ -16,6 +16,7 @@
  *   ethos-eoc --plugin.desugar <file>
  *   ethos-eoc --plugin.model-smt --semantics=<file> [--smt-semantics=<file>] <file>
  *   ethos-eoc --plugin.lean-meta --lean-config=<file> <file>
+ *   ethos-eoc --plugin.isabelle-meta <file>
  *
  * With no --plugin.* argument, it parses the given file like plain ethos.
  * Unlike the plain ethos binary, it requires a file argument (no stdin mode)
@@ -34,6 +35,7 @@
 #include "state.h"
 
 #include "desugar/desugar.h"
+#include "isabelle_meta/isabelle_meta_reduce.h"
 #include "lean_meta/lean_meta_reduce.h"
 #include "model_smt/model_smt.h"
 #include "smt_meta/smt_meta_reduce.h"
@@ -85,6 +87,10 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
     return std::make_unique<LeanMetaReduce>(
         s, generateParser, leanConfigFile);
   }
+  if (name == "isabelle-meta")
+  {
+    return std::make_unique<IsabelleMetaReduce>(s);
+  }
   if (name == "trim-defs")
   {
     return std::make_unique<TrimDefs>(s);
@@ -101,7 +107,7 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
   }
   EO_FATAL() << "Error: unknown plugin \"" << name
              << "\" (available: desugar, desugar-vc, smt-meta, "
-                "smt-meta-sygus, lean-meta, trim-defs, model-smt)";
+                "smt-meta-sygus, lean-meta, isabelle-meta, trim-defs, model-smt)";
   return nullptr;
 }
 
