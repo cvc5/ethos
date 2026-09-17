@@ -738,7 +738,10 @@ Useful options:
 - `--sygus`: generate a SyGuS query instead of SMT2
 - `--skip-cvc5`: skip parse checks with `cvc5`
 - `--solve`: run `cvc5` on the generated VC or SyGuS file after optional parse checks
-- `--solve-args "ARGS"`: shell-style string of extra options passed to `cvc5` during `--solve`
+- `--solve-args="ARGS"`: shell-style string of extra options passed to `cvc5`
+  during `--solve`. The value has to be attached with `=`, since a solver
+  option begins with `-` and a detached one is read as an option of the
+  driver, e.g. `--solve-args="--tlimit=5000"`
 - `--no-build`: do not rebuild `ethos-eoc` first
 - `--cvc5 /path/to/cvc5`: override the solver used for parse checks
 
@@ -758,7 +761,7 @@ Useful options:
 - `--keep-going`: continue after failures and report all failed rules
 - `--skip-cvc5`
 - `--solve`
-- `--solve-args "ARGS"`
+- `--solve-args="ARGS"`, attached with `=` as under `vc` above
 - `--no-build`
 
 ### `lean`

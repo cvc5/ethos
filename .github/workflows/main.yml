@@ -37,6 +37,16 @@ jobs:
         cmake --build build-eoc --parallel ${{ env.num_proc }} \
           --target ethos-eoc
         ./build-eoc/ethos-eoc tests/simple.eo
+        # A literal type may be non-ground, i.e. written with eo::self, and
+        # the desugar stage answers one by instantiating it at a ground term
+        # for $eo_X and keeping the parameterized rule for $eo_lit_type_X.
+        # Five signatures in tests/ take that branch for <binary> and are
+        # fine; these two are the only ones that take it for <numeral>, which
+        # is the one an assertion contradicting the branch singled out. The
+        # regression compiles no signature with either, so nothing else here
+        # reaches it.
+        ./build-eoc/ethos-eoc --plugin.desugar tests/nat-type.eo
+        ./build-eoc/ethos-eoc --plugin.desugar tests/self-requires.eo
         cmake -S plugins/cpp_compiler -B build-cpp-compiler-test \
           -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_CXX_FLAGS=-Werror \

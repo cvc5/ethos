@@ -1400,10 +1400,12 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
     d_litTypeProg << "  )" << std::endl;
     d_litTypeProg << ")" << std::endl;
     // since $eo_Numeral is used to define the type rules for builtin
-    // operators, it must have a ground type.
+    // operators, it must have a ground type. It is ltg rather than t that
+    // is defined as $eo_Numeral, and the branch above is what makes it
+    // ground where t, using eo::self, is not.
     if (k == Kind::NUMERAL)
     {
-      Assert(t.isGround()) << "Must have a ground type for <numeral>.";
+      Assert(ltg.isGround()) << "Must have a ground type for <numeral>.";
     }
   }
 }
