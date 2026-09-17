@@ -4,8 +4,8 @@ What is here installs the generated Lean of the CPC signature into a Logos
 tree: `install_logos` does it for the whole calculus and `install_logos_mini`
 for the handful of rules `CpcMini` holds. `install_iogos` installs the generated
 Isabelle/HOL CPC session into an iogos tree. The rest of the directory is what
-they reach -- `run_gen_lean`, `run_gen_lean_all`, `run_gen_isabelle_all`, and `run_clean`, which
-fill in the default CPC signature and options and invoke
+they reach -- `run_gen_lean`, `run_gen_lean_all`, `run_gen_isabelle_all`, and
+`run_clean`, which fill in the default CPC signature and options and invoke
 `tools/eoc/driver.py`, and `common.sh`, which they share.
 
 Nothing else has a wrapper. A verification condition, a SyGuS query, a trimmed
@@ -39,8 +39,8 @@ Useful environment variables:
 - `BUILD_DIR=/path/to/build` to override the build tree. If unset, the wrappers
   use the current directory when it contains an executable `ethos-eoc`,
   otherwise `<repo>/build-eoc`.
-- `EOC_NO_BUILD=1` to skip rebuilding eoc in the full-generation and install
-  wrappers.
+- `EOC_NO_BUILD=1` to skip rebuilding eoc in `run_gen_lean_all` and
+  `run_gen_isabelle_all`, including `install_iogos`.
 - `EOC_SKIP_CVC5=1` to skip solver parse checks.
 - `EOC_CPC_INPUT=/path/to/signature.eo` to override the default CPC input. A
   signature given this way has no model definitions unless `EOC_SEMANTICS`
@@ -113,8 +113,8 @@ executable on the generated artifact after any parse check. They also accept
 `--solve-args="..."` to pass extra solver options through to that solve step,
 for example `--solve-args="--tlimit=1000 --seed=7"`.
 
-Both Lean install wrappers put a banner ahead of every module they install, which is
-what a reader who opens one in the middle of the package -- or a diff of one --
+Both Lean install wrappers put a banner ahead of every module they install.
+This is what a reader who opens one in the middle of the package -- or a diff of one --
 is told before anything else. The compiler writes none: what a package says
 about where its files came from is the package's own business rather than the
 compilation's, so it is an install that says it, and the text is
