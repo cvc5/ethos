@@ -69,8 +69,6 @@ of its declared calculus.
 
 ## How this repository is maintained
 
-Ethos is an **associate** of the Eunoia ecosystem.
-
 - The core of Ethos, the checker in `src/`, is maintained by human
 developers, and its code is fully understood by humans.
 
