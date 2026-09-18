@@ -63,16 +63,13 @@ ctest -R arith
 
 ## The name
 
-*Ethos* (ἦθος) is Greek for character or custom. Here it names the discipline
-of checking that a proof follows the rules of its declared calculus.
+*Ethos* (ἦθος) is Greek for character or custom. In the context of this tool,
+this name refers to the discipline of checking that a proof follows the rules
+of its declared calculus.
 
 ## How this repository is maintained
 
-Ethos is an **associate** of the Eunoia ecosystem. Its human maintainers set
-the repository's policy; it does not run the ecosystem's policy checker in CI.
-It does not use that ecosystem's channels for AI-directed work: there is no
-discussion file or agent-facing maintenance page here. Anything another
-project wants to say to Ethos is carried by a person.
+Ethos is an **associate** of the Eunoia ecosystem.
 
 - The core of Ethos, the checker in `src/`, is maintained by human
 developers, and its code is fully understood by humans.
