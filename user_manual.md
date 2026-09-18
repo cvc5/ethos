@@ -62,24 +62,6 @@ When invoking Ethos on the command line, Ethos will either emit an error message
 or will print a [successful response](#responses) when it finishes parsing all commands in the file or encounters an `exit` command.
 Further output can be given by user-provided `echo` commands.
 
-### Process status and diagnostic output
-
-Ethos has a text interface and no JSON diagnostic mode. A completed checking
-run exits with status 0 for both `correct` and `incomplete`; `--help` and
-`--show-config` also exit with status 0. The distinction between the two
-checking responses is described under [Responses](#responses).
-
-Input and checking errors write a diagnostic to stderr and terminate
-unsuccessfully. These errors currently use the same abort mechanism as internal
-assertion failures, so the process status does not distinguish invalid input
-from an internal defect. A signal, timeout or launch failure must not be treated
-as a checking verdict.
-Diagnostic wording and source-location formatting are not a versioned machine
-interface. Automated callers should record the executable version, arguments,
-exit status and both output streams. Status 0 alone does not establish that a
-proof is complete or proves `false`, and `echo` commands can add arbitrary text
-to stdout.
-
 ### Streaming input to Ethos
 
 The `ethos` binary accepts input piped from stdin. This input is interpreted as a proof file.
