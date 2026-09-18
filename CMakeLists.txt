@@ -70,8 +70,8 @@ add_subdirectory(tests)
 # CI gets the same coverage, plus linking, from the ethos-eoc build of the
 # standalone project in plugins/; see plugins/CMakeLists.txt.
 #
-# cpp_compiler is skipped: it is a snapshot from an earlier version of ethos
-# and is known not to compile (see plugins/cpp_compiler/README.md).
+# cpp_compiler has its own build and roundtrip tests; see
+# plugins/cpp_compiler/README.md.
 file(GLOB_RECURSE plugins_SRC CONFIGURE_DEPENDS "plugins/*.cpp")
 list(FILTER plugins_SRC EXCLUDE REGEX "/plugins/cpp_compiler/")
 if(plugins_SRC)

@@ -20,7 +20,6 @@ from typing import Iterable, Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import report  # noqa: E402
-import sem_compile  # noqa: E402
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -510,6 +509,8 @@ class Pipeline:
         plugin_label: Optional[str],
         natives: str = "embed",
     ) -> Path:
+        import sem_compile
+
         option = "--plugin.desugar-vc" if use_vc_plugin else "--plugin.desugar"
         args = [option]
         # What the signature of the input leaves out of the compilation, which
@@ -1096,6 +1097,16 @@ def main(argv: list[str]) -> int:
 
     if hasattr(args, "input"):
         args.input = str(resolve_path_arg(args.input, cwd=invocation_cwd))
+    # Listing reads only the signature. It must work without a compiler build
+    # or semantics configuration, and must not rewrite generated files.
+    if args.command == "list-rules":
+        try:
+            for rule in discover_rules(Path(args.input)):
+                print(rule)
+        except (OSError, RuntimeError) as err:
+            report.error(str(err))
+            return 1
+        return 0
     if getattr(args, "rules_file", None) is not None:
         args.rules_file = str(resolve_path_arg(args.rules_file, cwd=invocation_cwd))
 
@@ -1199,9 +1210,6 @@ def main(argv: list[str]) -> int:
                 list(args.targets),
                 build_first=build_first,
             )
-        elif args.command == "list-rules":
-            for rule in discover_rules(Path(args.input)):
-                print(rule)
         else:
             rules: list[str] = []
             if args.all_rules:
@@ -1236,7 +1244,7 @@ def main(argv: list[str]) -> int:
                         raise
             report.step(
                 f"{len(rules) - len(failures)} of {len(rules)} rules "
-                f"{'verified' if args.mode != 'sygus' else 'searched'}"
+                "compiled"
             )
             if failures:
                 for rule in failures:

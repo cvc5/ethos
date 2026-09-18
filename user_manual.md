@@ -2,6 +2,12 @@
 
 This is the user manual for Ethos, an efficient and extensible tool for checking proofs of Satisfiability Modulo Theories (SMT) solvers.
 
+It describes Eunoia as implemented by Ethos, including the intended behavior
+and restrictions of this checker. It is not an independent language standard.
+A disagreement between the manual and the implementation needs review by the
+maintainers; acceptance by one build does not by itself establish that the
+input is valid Eunoia.
+
 ## Building the Ethos executable
 
 The source code for Ethos is available at <https://github.com/cvc5/ethos>.
@@ -55,6 +61,24 @@ When invoking Ethos on the command line, Ethos will either emit an error message
 
 or will print a [successful response](#responses) when it finishes parsing all commands in the file or encounters an `exit` command.
 Further output can be given by user-provided `echo` commands.
+
+### Process status and diagnostic output
+
+Ethos has a text interface and no JSON diagnostic mode. A completed checking
+run exits with status 0 for both `correct` and `incomplete`; `--help` and
+`--show-config` also exit with status 0. The distinction between the two
+checking responses is described under [Responses](#responses).
+
+Input and checking errors write a diagnostic to stderr and terminate
+unsuccessfully. These errors currently use the same abort mechanism as internal
+assertion failures, so the process status does not distinguish invalid input
+from an internal defect. A signal, timeout or launch failure must not be treated
+as a checking verdict.
+Diagnostic wording and source-location formatting are not a versioned machine
+interface. Automated callers should record the executable version, arguments,
+exit status and both output streams. Status 0 alone does not establish that a
+proof is complete or proves `false`, and `echo` commands can add arbitrary text
+to stdout.
 
 ### Streaming input to Ethos
 
@@ -265,7 +289,7 @@ In the remainder of the example, we define `d` to be this function applied to th
 
 Intuitively, `d` should be considered an atomic constant symbol, where `A` and `B` are its indices and not its children.
 In particular, this means that any computation that pattern matches `d` will not consider it to be a function application.
-We give examples of this later in [ex-substitution](#ex-substitution).
+We give examples of this later in the [substitution example](#example-substitution).
 
 Functions can have both opaque and ordinary arguments, where the opaque arguments are expected to come first.
 Return types can never be marked `:opaque` or a type error will be immediately reported.
@@ -2211,13 +2235,14 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 <keyword>       ::= :<symbol>
 <attr>          ::= <keyword> <term>?
 <sexpr>         ::= <symbol> | <keyword> | <literal> | (<sexpr>*)
-<term>          ::= <symbol> | (<symbol> <term>+) | (! <term> <attr>+)
+<literal>       ::= <numeral> | <decimal> | <rational> | <binary> | <hexadecimal> | <string>
+<term>          ::= <symbol> | <literal> | (<symbol> <term>+) | (! <term> <attr>+)
 <type>          ::= <term>
 <typed-param>   ::= (<symbol> <type> <attr>*)
 <sort-dec>      ::= (<symbol> <numeral>)
 <sel-dec>       ::= (<symbol> <type>)
 <cons-dec>      ::= (<symbol> <sel-dec>*)
-<datatype-dec>  ::= (<cons-dec>+)
+<datatype-dec>  ::= (<cons-dec>+) | (par (<symbol>+) (<cons-dec>+))
 <lit-category>  ::= '<numeral>' | '<decimal>' | '<rational>' | '<binary>' | '<hexadecimal>' | '<string>'
 
 ;;;

@@ -4,19 +4,33 @@
 proof checker for that calculus, and into the obligations that say the calculus
 is sound.
 
-It is the compiler behind **Logos**, the Lean development for the CPC proof
-calculus. The Lean package Logos is built on is not written by hand; it is
-generated from the calculus by this tool, and regenerated whenever the calculus
-changes.
+This is experimental work alongside the human-maintained Ethos checker.
+The question is whether a calculus and its model semantics can produce usable
+checker code and soundness obligations from the same input. Its goals are to
+compile signatures, generate obligations, and keep that translation testable.
+It does not prove every generated obligation, define the Eunoia language, or
+establish equivalence with the C++ checker.
+
+The compiler reuses Ethos's parser and plugin API. Its C++ implementation lives
+under `plugins/`, and the parent's CI builds it and runs the child regressions;
+it is therefore not isolated from the parent build infrastructure. It remains
+experimental, with any change in its status reserved for the human maintainers.
+
+As of 2026-09-18, Logos uses this compiler to regenerate calculus modules; its
+hand-written specification and checked proofs determine what the resulting
+checker establishes. The [documentation index](docs/README.md) covers the
+compiler's pages. The Ethos [user manual](../../user_manual.md) remains the
+account of the language supported by the checker.
 
 ## Any calculus, several targets
 
-Nothing in the compiler is specific to one calculus. A run names the signature
-to compile and, separately, what its symbols mean, so a second calculus is a
-second pair of those rather than a change here: the tests in this tree compile
-`tests/Booleans-rules.eo`, the wrappers in [`cpc/`](cpc/) compile CPC, and the
-semantics CPC is compiled under lives in the Logos repository rather than in
-this one.
+A run names the signature to compile and, separately, what its symbols mean.
+The local regressions compile `tests/Booleans-rules.eo` and
+`tools/eoc/test/nary-nil.eo` using `semantics/development-cpc.eos`. There are no
+CPC wrapper scripts in this checkout. As of 2026-09-18, Logos supplies its CPC
+semantics at `install/defs/Cpc.eos`; pass that file explicitly when compiling
+against that development. A new calculus can reuse the compiler's existing
+embedding, but operations outside that embedding can require compiler changes.
 
 Whichever calculus it is, it compiles to each of these targets, from one
 description of what its symbols mean:
@@ -27,16 +41,16 @@ description of what its symbols mean:
 | **SMT-LIB** | a verification condition per proof rule; a solver that refutes it has shown the rule sound | `driver.py vc` |
 | **SyGuS** | a synthesis query per proof rule, which searches for a counterexample to it | `driver.py vc --sygus` |
 
-The two are independent, and that is the point of the tool: a target is a
+The calculus and backend are separate: a target is a
 backend rather than a restatement of the calculus, and a calculus is a
 description rather than another compiler. What a symbol means is written once,
-as configuration, and every target is compiled from it; a new theory, a new
-proof rule or a new operator is added to the calculus and reaches every target
-with no compiler change at all.
+as configuration, and every target is compiled from it; new symbols within the supported embedding can reach each target through
+configuration. Generated lemmas still require proofs, and solver results are
+relative to the generated encoding and the chosen semantics.
 
 ### What a symbol means is written in `.eos`, and this is its reference
 
-**[`semantics/README.md`](semantics/README.md) is the reference for the
+**[`docs/semantics.md`](docs/semantics.md) is the reference for the
 configuration language** -- the grammar, every entry with the attributes it
 may carry, the four vocabularies a body may be written in and how one is cast
 between them, what the compiler checks, worked examples, and what every
@@ -50,7 +64,7 @@ are `tools/eoc/semantics/` for what a calculus and SMT-LIB mean, and the
 
 `tools/eoc/driver.py` is the entrypoint for all of them, and exposes them as
 one documented interface. See [Quick start](#quick-start) to run one, and
-[`proof_pipeline.md`](../../proof_pipeline.md) for where this sits in the wider
+[the proof pipeline](docs/proof-pipeline.md) for where this sits in the wider
 cvc5 proof pipeline.
 
 ## What `ethos-eoc` is
@@ -99,22 +113,24 @@ python3 tools/eoc/driver.py lean --all \
 
 A file that is not a central file is taken to be a signature already written
 out and is passed through, which is what lets one that has no configuration
-still be given directly. See `tools/eoc/semantics/README.md` for what the
+still be given directly. See `tools/eoc/docs/semantics.md` for what the
 configuration is and the language it is written in.
 
 A run compiles **one set of each role**, and the set an option names stands in
 for the one the tool ships with rather than compiling beside it. Where a set
-compiles to is said by its role and by nothing else, so the four generated
+compiles to is said by its role and by nothing else, so the generated
 files have the names above whatever a run names and wherever the sets stand.
 
-Only the `model-smt` stage reads them; no stage before it sees either. A symbol
+The `model-smt` stage reads these two signatures. The separate
+`user_desugar.eo` file supplies predicates to the earlier desugar stage. A symbol
 the input declares that the file says nothing about is an error rather than a
 term the model would silently say nothing about. The plugin ships with the
 SMT-LIB semantics but with no signature of an input, so a run that names none
 is an error once that stage runs.
 
-The examples below leave `--semantics` out to keep them short; the driver
-itself requires it.
+Pass `--semantics` for model compilation. The quick-start examples below
+use the local development semantics explicitly; for another calculus, supply
+a set describing that input.
 
 Each is a sequence of blocks, one per symbol, opened by a `; -- X` line. For a
 symbol X, `smt_defs.eo` gives the constructor `$emb_sm.X` and the macro
@@ -126,8 +142,9 @@ call. `user_defs.eo` gives `$eoc_transform_X`, the cases X contributes to
 What a block says to the compiler is named `$eoc_`, which is what tells it
 apart from what the compiler emits: the case of an `$eoc_` program is spliced
 into the aggregate its family names, so the name itself never reaches the
-generated file. The exception is `$eoc_is_list_nil_X`, which the desugar stage
-calls by name and which is therefore emitted as `$eo_is_list_nil_X`.
+generated file. Nil predicates are separate programs named
+`$eo_is_list_nil_X`, written to `user_desugar.eo` and inserted by the driver
+before the desugar output calls them.
 
 Which families there are is not something either side knows by name. The head
 of each generated file declares them, one line to an aggregate:
@@ -139,11 +156,10 @@ of each generated file declares them, one line to an aggregate:
 
 which says the aggregate a case joins, the name the case is written under, and
 the marker of `plugins/model_smt/model_smt.eo` the stage writes them at; the
-longest name a program begins with is the aggregate it belongs to, and `whole`
-is the exception above. The lines are compiled from
+longest matching case prefix identifies the aggregate a program belongs to. The lines are compiled from
 `plugins/model_smt/model_smt.eos`, which is where an aggregate is to be changed
 or added, and the stage reads them rather than knowing any of it, so adding one
-asks nothing of `ethos-eoc`. See `semantics/README.md`.
+asks nothing of `ethos-eoc`. See `docs/semantics.md`.
 
 A block may also be of a helper rather than of a symbol, in which case the
 `; -- X` line names the helper itself, e.g. `; -- $smtx_typeof_bv_op_2` for the
@@ -155,7 +171,7 @@ A helper belongs in the signature when only theory operators call it. That is
 the whole of what a signature may hold beside its symbols: a set says what a
 theory **does** and never what the embedding **is**, so it writes programs and
 never a declaration, and a form that is neither is refused rather than carried
-over as the text it is; see `semantics/README.md`. The programs over a map --
+over as the text it is; see `docs/semantics.md`. The programs over a map --
 looking an entry up, typing one, saying whether one is written the one way --
 are therefore written in the configuration beside the sort they belong to,
 while the `$smt_Map` they are written over is declared in
@@ -212,7 +228,7 @@ says so with directives of the following forms:
 The configuration writes `:exclude` on the symbol, the method or the rule
 itself -- a method with `define-method` and a rule with `define-rule` -- and the
 compiler puts the directive back, the kind being what the form that declared it
-says one is; see `semantics/README.md`.
+says one is; see `docs/semantics.md`.
 
 `Pipeline.defs_excludes` collects them and gives them to the desugar stage,
 which is what drops what they name; a rule among them is also left out of
@@ -227,7 +243,7 @@ Lean has to be told why a recursive definition terminates whenever it cannot
 see this for itself, and no measure the compiler could guess would do for the
 programs that need one. So the clause is stated as the Lean text it is, under
 `:lean` in the configuration set of the signature the program is of (see
-`semantics/README.md`), and the `lean-meta` stage appends it to the definition
+`docs/semantics.md`), and the `lean-meta` stage appends it to the definition
 of the program it names:
 
 ```text
@@ -259,7 +275,7 @@ What a signature written in the embedding may call that no compiler writes is
 declared in `plugins/desugar/natives.eos`, one entry to a native:
 
 ```lisp
-(declare-native binary_and ((w <numeral>) (n1 <numeral>) (n2 <numeral>)))
+(declare-native binary_and ((w <numeral>) (n1 <numeral>) (n2 <numeral>))
 (declare-native z_zero () :op "0")
 ```
 
@@ -345,44 +361,15 @@ are taken from.
 
 ### What a layer owes the embedding
 
-The embedding declares 66 natives. Which of them a layer *must* implement is
-not "all of them", and the rule has three parts:
+A native written with `:is` is defined in terms of other natives. A native
+that forwards to a literal needs no backend definition. A primitive operator
+needs a native-layer definition unless the target language already supplies it.
 
-| a native that | the layer owes it | how many |
-| --- | --- | --: |
-| says `:is`, being written over the others | nothing -- what it is was said once | 7 |
-| forwards to a **literal**, as `z_zero` does to `0` | nothing -- a literal is itself in every target | 12 |
-| forwards to an operator the **target language already has**, as `and` does in SMT-LIB | nothing | varies |
-| forwards to anything else | a definition | the rest |
-
-Where the layers stand today, counting the 47 primitives that do not forward to
-a literal:
-
-| layer | implements | of |
-| --- | --: | --: |
-| `lean_meta/lean.eos` | 47 | 47 |
-| `smt_meta/smt-vc.eos` | 34 | 47 |
-| `eo_meta/eo.eos` | 28 | 47 |
-
-**The third row of the first table is the hole.** Nothing anywhere says which
-operators a target already has, so nothing can tell a native SMT-LIB gets for
-free -- `and`, `or`, `not`, `ite`, `to_real` -- from one that is simply
-missing. The thirteen `smt-vc.eos` does not implement are all of the first
-kind, and the nineteen `eo.eos` does not are mostly not: a native with no
-`:eo-impl` falls back to an opaque `$native_apply_N`, so the eo-meta output
-names an uninterpreted operator rather than failing.
-
-So the coherence of a layer is **unchecked in both directions**: a native no
-layer implements and no language has surfaces as a Lean or cvc5 error two
-tools downstream, and a layer entry for a native the embedding no longer
-declares is dead text nothing reports. See "What is not checked for you" in
-[`docs/README.md`](../../docs/README.md).
-
-What would close it is one line per target saying what its language brings --
-the operators it has without being told -- against which the compiler could
-check every native the compiled signature actually reaches. That is a smaller
-question than it looks, since only the natives a *run* reaches matter, and the
-run already knows which those are.
+There is no complete machine-checked register of the latter group. The SMT-LIB
+layer can use builtin operators such as `and`, `or`, `not`, `ite` and `to_real`.
+An eo-meta native without an implementation falls back to an opaque
+`$native_apply_N`. Missing or unused definitions are not comprehensively checked
+against what each backend supports. See the [design notes](docs/design.md).
 
 **A layer is a configuration set**, which `tools/eoc/sem_compile.py` compiles;
 one entry is one definition, under the attribute that says which language it
@@ -422,11 +409,9 @@ in `plugins/native_layer.cpp`.
 **Only what the compilation of an input reaches is emitted.** Most of a layer
 is dead for any one input: a signature with no strings in it has no use for
 the regular-expression matcher, and one of Booleans alone has none for
-arithmetic. The Lean layer is 116 definitions and 660 lines, of which a
-published `CpcMini` carries 46 and the full CPC package all but two; the
-SMT-LIB layer is 67, of which the verification condition of `symm` carries 16
--- and what it drops includes nine quantified axioms, which is work the solver
-does not do.
+arithmetic. The emitted definitions depend on the selected signature,
+rules and semantics; a smaller input can omit entire groups of natives and
+quantified axioms.
 
 A backend has one place per module its generated text is read in, each taking
 what comes out there as an ordinary replacement:
@@ -469,10 +454,8 @@ so gets generated text naming a definition that was never written, which
 
 ### `eo::hash` has no Lean
 
-EO leaves what `eo::hash` returns underconstrained, so a signature that
-reasons through it says nothing this backend could prove; the layer used to
-answer with a stub returning `0`, which is a claim about hash the signature
-never made, so the layer defines no `native_thash`.
+EO leaves what `eo::hash` returns underconstrained. This backend supplies no
+interpretation of hash, and the layer defines no `native_thash`.
 
 The `lean-meta` stage therefore refuses to print `$eo_hash`, the program of
 the embedding that would call it, the way it refuses `$eo_ite`; see
@@ -504,6 +487,7 @@ examples below all use `build-eoc`.
 ## Checking a change left the output alone
 
 ```bash
+python3 tools/eoc/test/driver.py             # read-only rule listing and errors
 python3 tools/eoc/test/regress.py            # say whether the bytes moved
 python3 tools/eoc/test/regress.py --update   # take this run as what is written
 ```
@@ -547,7 +531,7 @@ The driver resolves input paths relative to the directory where you invoke
 For example, from the repository root:
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build-eoc tests/Booleans-rules.eo and_intro
+python3 tools/eoc/driver.py vc --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos tests/Booleans-rules.eo and_intro
 ```
 
 The input path `tests/Booleans-rules.eo` is interpreted relative to the
@@ -561,22 +545,12 @@ because the checks that run this compiler live in other repositories -- logos
 and cvc5 -- and read its output there. One step of a run is a line under
 `-- `, what a step is made of is indented two spaces further, and a path is
 written from the root of the repository, so that a log reads the same whichever
-machine wrote it:
+machine wrote it. An illustrative fragment:
 
 ```text
--- Compiling semantics under tools/eoc/semantics
---   smt.eos             -> tools/eoc/out/smt_defs.eo (219 blocks)
---   smt.eos             -> tools/eoc/out/smt_termination.lean (12 clauses, unchanged)
---     132 symbols, 5 literals, 9 types, 14 values, 12 methods, 67 programs
---   development-cpc.eos -> tools/eoc/out/user_defs.eo (194 blocks, unchanged)
--- Generating Lean for /home/me/cvc5/proofs/eo/cpc/Cpc.eo
---   [1/4] desugar   -> tools/eoc/out/lean-cpc-desugar.eo
---   [2/4] model-smt -> tools/eoc/out/lean-cpc-final.eo
---   [3/4] parse        tools/eoc/out/lean-cpc-final.eo
---   [4/4] lean      -> tools/eoc/out/lean
--- Installing the generated Lean of tools/eoc/out/lean into /home/me/logos/Cpc
---   Logos.lean         -> Cpc/Logos.lean
---   Rules/*.lean       -> Cpc/Proofs/Rules/ (591 copied, 0 preserved)
+-- Generating a verification condition
+--   [1/4] desugar -> tools/eoc/out/trim-d-example.eo
+--   [2/4] model-smt -> tools/eoc/out/vcm-def-example.eo
 ```
 
 A path outside the repository -- the signature of a calculus, the tree the Lean
@@ -607,7 +581,7 @@ Published and stage files:
 ```text
 tools/eoc/out/
   smt_defs.eo               what the configuration compiles to, see
-  user_defs.eo              tools/eoc/semantics/README.md
+  user_defs.eo              tools/eoc/docs/semantics.md
   smt_termination.lean
   user_termination.lean
   lean_native.lean          the native layer of each backend, see above
@@ -639,7 +613,7 @@ tools/eoc/out/
         <Rule>.lean
 ```
 
-`out/lean/` is the package the files are installed into, not a Lean package
+`out/lean/` has the layout of the destination package, but is not a Lean package
 that builds on its own: the generated modules import `<Calc>.Proofs.CheckerCore`
 and `<Calc>.Proofs.RuleSupport.Support`, which the compiler never writes and
 which belong to that package. The proof-side modules stand under `Proofs/`,
@@ -678,25 +652,25 @@ Plugin-private files:
 Generate one VC:
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build-eoc tests/Booleans-rules.eo and_intro
+python3 tools/eoc/driver.py vc --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos tests/Booleans-rules.eo and_intro
 ```
 
 Generate one SyGuS query:
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build-eoc --sygus tests/Booleans-rules.eo and_intro
+python3 tools/eoc/driver.py vc --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos --sygus tests/Booleans-rules.eo and_intro
 ```
 
 Generate Lean for selected rules:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build-eoc tests/Booleans-rules.eo and_intro contra
+python3 tools/eoc/driver.py lean --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos tests/Booleans-rules.eo and_intro contra
 ```
 
 Generate Lean for the whole signature:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build-eoc --all <cvc5>/proofs/eo/cpc/Cpc.eo
+python3 tools/eoc/driver.py lean --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos --all <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
 A declaration the signature of the input leaves out of the compilation is
@@ -712,23 +686,28 @@ python3 tools/eoc/driver.py list-rules <cvc5>/proofs/eo/cpc/Cpc.eo
 Run every discovered rule through the VC pipeline:
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc vc <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos vc <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
 ```
 
 Run every discovered rule through the SyGuS pipeline:
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc sygus <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos sygus <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
 ```
 
 ## Command reference
+
+`INPUT`, `RULE` and `SEMANTICS` below are placeholders for the signature,
+rule and input semantics configuration. The CLI definitions in `driver.py`
+are the source for option names; this reference is not mechanically compared
+with `--help`.
 
 ### `vc`
 
 Generate a single SMT2 VC for one rule.
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE
+python3 tools/eoc/driver.py vc --build-dir build-eoc --semantics SEMANTICS INPUT RULE
 ```
 
 Useful options:
@@ -745,7 +724,7 @@ Useful options:
 Run many rules through the same pipeline.
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc vc INPUT RULE1 RULE2 RULE3
+python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics SEMANTICS vc INPUT RULE1 RULE2 RULE3
 ```
 
 Useful options:
@@ -766,13 +745,13 @@ Generate Lean output either for selected rules or for the full signature.
 Selected rules:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build-eoc INPUT RULE1 RULE2
+python3 tools/eoc/driver.py lean --build-dir build-eoc --semantics SEMANTICS INPUT RULE1 RULE2
 ```
 
 Whole signature:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build-eoc --all INPUT
+python3 tools/eoc/driver.py lean --build-dir build-eoc --semantics SEMANTICS --all INPUT
 ```
 
 Pass `--no-parser` to omit the signature-specific `Parser.lean` artifact while
@@ -848,27 +827,30 @@ Print discovered rules without running the pipeline.
 python3 tools/eoc/driver.py list-rules INPUT
 ```
 
-This walks `include` chains and preserves declaration order.
+This walks `include` chains and preserves declaration order. It reads only
+the signatures, requires no build or semantics configuration, and writes no
+generated files. The scanner expects `include` and `declare-rule` forms to
+start on their own lines; it is not a complete Eunoia parser.
 
 ## Common workflows
 
 ### Generate a VC for one rule
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build-eoc INPUT RULE
+python3 tools/eoc/driver.py vc --build-dir build-eoc --semantics SEMANTICS INPUT RULE
 ```
 
 ### Generate VCs for every rule
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc vc INPUT --all-rules --clean
-python3 tools/eoc/driver.py batch --build-dir build-eoc sygus INPUT --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics SEMANTICS vc INPUT --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics SEMANTICS sygus INPUT --all-rules --clean
 ```
 
 ### Generate Lean for a whole signature
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build-eoc --all INPUT
+python3 tools/eoc/driver.py lean --build-dir build-eoc --semantics SEMANTICS --all INPUT
 ls tools/eoc/out/lean
 ```
 
