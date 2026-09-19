@@ -22,7 +22,7 @@ signature by the set it stands in and by nothing else.
 What is left here is the reading of s-expressions, the four levels and the
 naming conventions of the embedding; everything about what a set compiles to is
 said by the set. The language the sets are written in is documented in full in
-semantics/README.md.
+docs/semantics.md.
 
   usage: sem_compile.py [--out-dir DIR] [--check] [--semantics CONFIG]
                         [--smt-semantics CONFIG] [CONFIG...]
@@ -574,9 +574,8 @@ def render_natives(natives, types=(), impls=None):
 AGGREGATE_MANIFEST = """\
 ; What each name below is, and where the model-smt stage is to put it. The
 ; case a symbol says of an aggregate is written under <case>, and the stage
-; writes those cases at <into>, which is a marker of its template. A line that
-; says `whole` is a program emitted under the name of the aggregate rather
-; than a case spliced into it, and a $eoc-helper line names the programs
+; writes those cases at <into>, which is a marker of its template.
+; A $eoc-helper line names the programs
 ; written over values that the cases of an aggregate hand their work to,
 ; together with where they are declared ahead of it.
 ;

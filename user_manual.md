@@ -2,6 +2,12 @@
 
 This is the user manual for Ethos, an efficient and extensible tool for checking proofs of Satisfiability Modulo Theories (SMT) solvers.
 
+It describes Eunoia as implemented by Ethos, including the intended behavior
+and restrictions of this checker. It is not an independent language standard.
+A disagreement between the manual and the implementation needs review by the
+maintainers; acceptance by one build does not by itself establish that the
+input is valid Eunoia.
+
 ## Building the Ethos executable
 
 The source code for Ethos is available at <https://github.com/cvc5/ethos>.
@@ -265,7 +271,7 @@ In the remainder of the example, we define `d` to be this function applied to th
 
 Intuitively, `d` should be considered an atomic constant symbol, where `A` and `B` are its indices and not its children.
 In particular, this means that any computation that pattern matches `d` will not consider it to be a function application.
-We give examples of this later in [ex-substitution](#ex-substitution).
+We give examples of this later in the [substitution example](#example-substitution).
 
 Functions can have both opaque and ordinary arguments, where the opaque arguments are expected to come first.
 Return types can never be marked `:opaque` or a type error will be immediately reported.
@@ -2211,13 +2217,14 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 <keyword>       ::= :<symbol>
 <attr>          ::= <keyword> <term>?
 <sexpr>         ::= <symbol> | <keyword> | <literal> | (<sexpr>*)
-<term>          ::= <symbol> | (<symbol> <term>+) | (! <term> <attr>+)
+<literal>       ::= <numeral> | <decimal> | <rational> | <binary> | <hexadecimal> | <string>
+<term>          ::= <symbol> | <literal> | (<symbol> <term>+) | (! <term> <attr>+)
 <type>          ::= <term>
 <typed-param>   ::= (<symbol> <type> <attr>*)
 <sort-dec>      ::= (<symbol> <numeral>)
 <sel-dec>       ::= (<symbol> <type>)
 <cons-dec>      ::= (<symbol> <sel-dec>*)
-<datatype-dec>  ::= (<cons-dec>+)
+<datatype-dec>  ::= (<cons-dec>+) | (par (<symbol>+) (<cons-dec>+))
 <lit-category>  ::= '<numeral>' | '<decimal>' | '<rational>' | '<binary>' | '<hexadecimal>' | '<string>'
 
 ;;;

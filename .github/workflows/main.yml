@@ -50,6 +50,9 @@ jobs:
     - name: Check the compiled semantics
       run: python3 tools/eoc/sem_compile.py --check
 
+    - name: Check the driver interface
+      run: python3 tools/eoc/test/driver.py
+
     # What reads back the verification conditions the pipeline writes. A digest
     # says the bytes did not move; only a solver says they are well formed, and
     # a change to the native layer of plugins/smt_meta/smt-vc.eos can leave a
