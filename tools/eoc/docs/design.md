@@ -2,8 +2,9 @@
 
 This page describes the compiler's configuration boundary and the work it
 still leaves to a calculus author. The [driver](../README.md) explains how to
-run it, [semantics.md](semantics.md) defines the configuration language, and
-[proof-pipeline.md](proof-pipeline.md) places it beside proof checking.
+run it, eunoia's [`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md)
+defines the configuration language, and [proof-pipeline.md](proof-pipeline.md)
+places it beside proof checking.
 These are design questions, not commitments to change the language.
 
 ## Inputs and feedback
@@ -52,7 +53,7 @@ structure. The implementation is shared between these files:
 The model stage reads aggregate metadata from the generated signatures rather
 than enumerating theory symbols in C++. Adding an aggregate still needs its
 shape in `sem_target.py` and a matching declaration and template marker.
-The [configuration reference](semantics.md#5-the-shape-of-what-is-written)
+The [configuration reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md#5-the-shape-of-what-is-written)
 describes that contract. Tables here are explanatory copies, not mechanically
 compared with that implementation.
 

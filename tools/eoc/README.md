@@ -55,13 +55,14 @@ as configuration, and every target is compiled from it; new symbols within the s
 configuration. Generated lemmas still require proofs, and solver results are
 relative to the generated encoding and the chosen semantics.
 
-### What a symbol means is written in `.eos`, and this is its reference
+### What a symbol means is written in `.eos`, and eunoia keeps its reference
 
-**[`docs/semantics.md`](docs/semantics.md) is the reference for the
-configuration language** -- the grammar, every entry with the attributes it
-may carry, the four vocabularies a body may be written in and how one is cast
-between them, what the compiler checks, worked examples, and what every
-diagnostic means.
+**The configuration language has [a reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md)**
+-- the grammar, every entry with the attributes it may carry, the four
+vocabularies a body may be written in and how one is cast between them, what
+the compiler checks, worked examples, and what every diagnostic means. It is
+maintained in the [eunoia](https://github.com/ajreynol/eunoia) repository, by
+its sapheneia project, and not in this tree.
 
 Almost all work on a calculus is an edit to one of those files rather than a
 change to anything here, and a target is reached by writing configuration
@@ -120,8 +121,8 @@ python3 tools/eoc/driver.py lean --all \
 
 A file that is not a central file is taken to be a signature already written
 out and is passed through, which is what lets one that has no configuration
-still be given directly. See `tools/eoc/docs/semantics.md` for what the
-configuration is and the language it is written in.
+still be given directly. See the [`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md)
+for what the configuration is and the language it is written in.
 
 A run compiles **one set of each role**, and the set an option names stands in
 for the one the tool ships with rather than compiling beside it. Where a set
@@ -166,7 +167,8 @@ the marker of `plugins/model_smt/model_smt.eo` the stage writes them at; the
 longest matching case prefix identifies the aggregate a program belongs to. The lines are compiled from
 `plugins/model_smt/model_smt.eos`, which is where an aggregate is to be changed
 or added, and the stage reads them rather than knowing any of it, so adding one
-asks nothing of `ethos-eoc`. See `docs/semantics.md`.
+asks nothing of `ethos-eoc`. See the
+[`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md).
 
 A block may also be of a helper rather than of a symbol, in which case the
 `; -- X` line names the helper itself, e.g. `; -- $smtx_typeof_bv_op_2` for the
@@ -178,11 +180,11 @@ A helper belongs in the signature when only theory operators call it. That is
 the whole of what a signature may hold beside its symbols: a set says what a
 theory **does** and never what the embedding **is**, so it writes programs and
 never a declaration, and a form that is neither is refused rather than carried
-over as the text it is; see `docs/semantics.md`. The programs over a map --
-looking an entry up, typing one, saying whether one is written the one way --
-are therefore written in the configuration beside the sort they belong to,
-while the `$smt_Map` they are written over is declared in
-`plugins/model_smt/model_smt.eo` with the rest of the embedding.
+over as the text it is; see the [`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md).
+The programs over a map -- looking an entry up, typing one, saying whether one
+is written the one way -- are therefore written in the configuration beside
+the sort they belong to, while the `$smt_Map` they are written over is
+declared in `plugins/model_smt/model_smt.eo` with the rest of the embedding.
 
 What remains in `plugins/model_smt/model_smt.eo` is what says what the
 embedding is, and what no theory is what asks for:
@@ -235,7 +237,8 @@ says so with directives of the following forms:
 The configuration writes `:exclude` on the symbol, the method or the rule
 itself -- a method with `define-method` and a rule with `define-rule` -- and the
 compiler puts the directive back, the kind being what the form that declared it
-says one is; see `docs/semantics.md`.
+says one is; see the
+[`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md).
 
 `Pipeline.defs_excludes` collects them and gives them to the desugar stage,
 which is what drops what they name; a rule among them is also left out of
@@ -249,9 +252,9 @@ for itself.
 Lean has to be told why a recursive definition terminates whenever it cannot
 see this for itself, and no measure the compiler could guess would do for the
 programs that need one. So the clause is stated as the Lean text it is, under
-`:lean` in the configuration set of the signature the program is of (see
-`docs/semantics.md`), and the `lean-meta` stage appends it to the definition
-of the program it names:
+`:lean` in the configuration set of the signature the program is of (see the
+[`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md)), and the
+`lean-meta` stage appends it to the definition of the program it names:
 
 ```text
 tools/eoc/out/smt_termination.lean   the programs of the deep embedding, which
@@ -588,7 +591,7 @@ Published and stage files:
 ```text
 tools/eoc/out/
   smt_defs.eo               what the configuration compiles to, see
-  user_defs.eo              tools/eoc/docs/semantics.md
+  user_defs.eo              eunoia's tools/sapheneia/docs/eos.md
   smt_termination.lean
   user_termination.lean
   lean_native.lean          the native layer of each backend, see above

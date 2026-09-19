@@ -22,7 +22,7 @@ signature by the set it stands in and by nothing else.
 What is left here is the reading of s-expressions, the four levels and the
 naming conventions of the embedding; everything about what a set compiles to is
 said by the set. The language the sets are written in is documented in full in
-docs/semantics.md.
+eunoia's tools/sapheneia/docs/eos.md.
 
   usage: sem_compile.py [--out-dir DIR] [--check] [--semantics CONFIG]
                         [--smt-semantics CONFIG] [CONFIG...]

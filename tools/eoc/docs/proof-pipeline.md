@@ -225,8 +225,8 @@ Its forms are `define-symbol`, `define-sort`, `declare-constructor`,
 into the generated file, so everything a signature names has been checked
 against the vocabulary of the embedding, ordered against the other blocks, and
 can be trimmed with them. A set therefore says what a theory *does* and never
-what the embedding *is*. `tools/eoc/docs/semantics.md` is the reference for
-the language.
+what the embedding *is*. Eunoia's [`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md)
+is the reference for the language.
 
 `defs_reader.{h,cpp}` reads a generated file as *text* blocks and splices the
 cases into the aggregate programs, copying everything else through unchanged.
