@@ -13,7 +13,7 @@ about it that the account, written from outside, could not: how much of that
 semantics already exists here, in what form, and what it would take to find out
 whether it is correct.
 
-Written against the criteria of [`design.md`](../tools/eoc/docs/design.md) — a configuration says
+Written against the criteria of [`design.md`](design.md) — a configuration says
 what a theory *does*, a template says what the embedding *is* — and in the
 vocabulary of
 [`why-eunoia.md`](https://github.com/ajreynol/anoieu/blob/main/tools/ynoia/why-eunoia.md),
@@ -128,8 +128,8 @@ nothing about strings or finite fields, so it writing no `:is-list-nil` for
 `str.++` is not a defect in it. The failure *mode* is the point: the desugar
 stage forward-declares a predicate for every n-ary symbol it sees, the set
 supplies nine, and nothing compares the two lists. That is
-[`eos-todo.md`](../tools/eoc/docs/eos-todo.md)'s **"Still open here"** and Part IV item 2 of
-[`design.md`](../tools/eoc/docs/design.md) — *"Diff them and refuse a mismatch in either
+[`eos-todo.md`](eos-todo.md)'s **"Still open here"** and Part IV item 2 of
+[`design.md`](design.md) — *"Diff them and refuse a mismatch in either
 direction"* — and it is ynoia's **O6** quoted almost verbatim. The relation
 produced four live instances of it in twenty minutes.
 
