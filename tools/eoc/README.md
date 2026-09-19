@@ -275,7 +275,7 @@ What a signature written in the embedding may call that no compiler writes is
 declared in `plugins/desugar/natives.eos`, one entry to a native:
 
 ```lisp
-(declare-native binary_and ((w <numeral>) (n1 <numeral>) (n2 <numeral>))
+(declare-native binary_and ((w <numeral>) (n1 <numeral>) (n2 <numeral>)))
 (declare-native z_zero () :op "0")
 ```
 
