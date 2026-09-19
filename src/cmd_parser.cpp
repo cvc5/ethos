@@ -374,7 +374,11 @@ bool CmdParser::parseNextCommand()
       Expr t = d_eparser.parseType();
       // maybe requires?
       // set the type rule
-      d_state.setLiteralTypeRule(k, t);
+      std::stringstream ssl;
+      if (!d_state.setLiteralTypeRule(k, t, &ssl))
+      {
+        d_lex.parseError(ssl.str());
+      }
       d_state.popScope();
     }
     break;

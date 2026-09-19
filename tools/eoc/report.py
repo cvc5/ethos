@@ -1,8 +1,7 @@
 """How the tools of the pipeline say what they are doing.
 
 One house style, so that a run reads the same whether a line came from the
-compiler, from the driver or from a script that calls them, see eoc_step in
-tools/eoc/cpc/common.sh for the same thing in shell:
+compiler, from the driver or from a script that calls them:
 
   -- Compiling semantics under tools/eoc/semantics
   --   smt.eos -> tools/eoc/out/smt_defs.eo (219 blocks)

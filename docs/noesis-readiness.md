@@ -13,7 +13,7 @@ about it that the account, written from outside, could not: how much of that
 semantics already exists here, in what form, and what it would take to find out
 whether it is correct.
 
-Written against the criteria of [`README.md`](README.md) — a configuration says
+Written against the criteria of [`design.md`](../tools/eoc/docs/design.md) — a configuration says
 what a theory *does*, a template says what the embedding *is* — and in the
 vocabulary of
 [`why-eunoia.md`](https://github.com/ajreynol/anoieu/blob/main/tools/ynoia/why-eunoia.md),
@@ -66,7 +66,7 @@ Eunoia is written down twice in this repository:
 
 The second is a formal semantics of Eunoia, written in Eunoia, and it is not a
 sketch: it is the definition every verification condition and every line of
-generated Lean is produced against. `proof_pipeline.md`'s known gaps —
+generated Lean is produced against. `proof-pipeline.md`'s known gaps —
 `eo::typeof` approximating rather than reproducing the internal type system, the
 `:chainable` and assoc desugarings mirrored in three places with nothing
 comparing them — read as isolated defects but are instances of one structural
@@ -128,8 +128,8 @@ nothing about strings or finite fields, so it writing no `:is-list-nil` for
 `str.++` is not a defect in it. The failure *mode* is the point: the desugar
 stage forward-declares a predicate for every n-ary symbol it sees, the set
 supplies nine, and nothing compares the two lists. That is
-[`eos-todo.md`](eos-todo.md)'s **"Still open here"** and Part IV item 2 of
-[`README.md`](README.md) — *"Diff them and refuse a mismatch in either
+[`eos-todo.md`](../tools/eoc/docs/eos-todo.md)'s **"Still open here"** and Part IV item 2 of
+[`design.md`](../tools/eoc/docs/design.md) — *"Diff them and refuse a mismatch in either
 direction"* — and it is ynoia's **O6** quoted almost verbatim. The relation
 produced four live instances of it in twenty minutes.
 
@@ -153,7 +153,7 @@ does surface a full regeneration later — that cost is real. But Lean *checks*
 a build error. So O3's cost is latency and toil, not trusted surface, and it
 should not be priced as a soundness hole. The genuinely soundness-shaped
 neighbour is elsewhere: stage 7a does not establish well-foundedness, and
-`proof_pipeline.md` is explicit that this makes it **report a spurious
+`proof-pipeline.md` is explicit that this makes it **report a spurious
 unsoundness** — it errs toward false alarm, never toward accepting an unsound
 rule. Worth stating precisely, because "termination is nobody's job" is easily
 heard as a claim about what could be believed on false grounds, and neither half
@@ -294,7 +294,7 @@ gitignored and `regress.py` holds digests of one run, so there is no link from a
 *Serves:* noesis, **hermeneia**, and anything downstream that wants to name what
 it is talking about.
 
-**7. Write the honest end-to-end TCB ledger.** `proof_pipeline.md` reports the
+**7. Write the honest end-to-end TCB ledger.** `proof-pipeline.md` reports the
 TCB as 2,680 lines of Lean. That is the TCB of the *Lean theorem*, and correct
 as such. The TCB of the *claim* also contains 5,430 C++, 2,026 Python, 1,551
 Eunoia and 494 Lean of template. Writing the second one reorders every priority

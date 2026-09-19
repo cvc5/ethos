@@ -228,3 +228,9 @@ ethos_fail_test(require-proof-of-false-no-step.eo
                 "last proof step did not prove false at assumption level zero")
 ethos_fail_test(require-proof-of-false-nested.eo
                 "last proof step did not prove false at assumption level zero")
+ethos_fail_test(nullary-arrow-type.eo
+                "Error: .*nullary-arrow-type.eo:[0-9]+.[0-9]+: Expected a return type")
+ethos_fail_test(assume-push-unclosed.eo
+                "Error: .*assume-push-unclosed.eo:[0-9]+.[0-9]+: This file did not preserve assumption scope")
+ethos_fail_test(declare-consts-twice.eo
+                "Error: .*declare-consts-twice.eo:[0-9]+.[0-9]+: Cannot set type rule for kind NUMERAL")

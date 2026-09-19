@@ -2,6 +2,8 @@ build
 build-*/
 __pycache__/
 *.py[cod]
+scratch/
+*.local.md
 .vscode
 .DS_Store
 build-cpp-compiler-test
