@@ -11,8 +11,8 @@
 ; about CPC names with --semantics; nothing keeps this copy in step with it.
 
 ; This is a configuration of the eoc pipeline rather than anything a stage of it
-; reads. tools/eoc/compiler/sem_compile.py compiles it, before any stage runs, into
-; tools/eoc/out/user_defs.eo and tools/eoc/out/user_termination.lean,
+; reads. tools/eoc/compiler/sem_compile.py compiles it, before any stage runs,
+; into tools/eoc/out/user_defs.eo and tools/eoc/out/user_termination.lean,
 ; both generated in full: what is to be changed is here. A run names another
 ; with --semantics, and that one compiles to these same two files in place of
 ; this set. See ../docs/semantics.md for the language.

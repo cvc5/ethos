@@ -10,8 +10,8 @@
 ;;
 ;; Where in the file a block can come out is not said here: its SMT-LIB is
 ;; what says that, by naming a datatype of the embedding or naming none, see
-;; vc_needs in tools/eoc/compiler/sem_compile.py. The blocks that name none of them
-;; come out where SMT-LIB alone is in scope, above the declaration of those
+;; vc_needs in tools/eoc/compiler/sem_compile.py. The blocks that name none of
+;; them come out where SMT-LIB alone is in scope, above the declaration of those
 ;; datatypes, and the rest below it.
 ;;
 ;; A block is emitted only if the compilation of an input reaches it, which
@@ -20,9 +20,9 @@
 ;; resources of the stage are what name it, says :keep and is emitted
 ;; whatever an input reaches.
 ;;
-;; Compiled by tools/eoc/compiler/sem_compile.py; the stage that reads what it compiles
-;; to is the smt-meta stage of ethos-eoc. The Lean backend says the same thing
-;; in Lean, see plugins/lean_meta/lean.eos.
+;; Compiled by tools/eoc/compiler/sem_compile.py; the stage that reads what it
+;; compiles to is the smt-meta stage of ethos-eoc. The Lean backend says the
+;; same thing in Lean, see plugins/lean_meta/lean.eos.
 
 (define-native-method Rat
   :smt-impl "(define-sort Rat () Real)")

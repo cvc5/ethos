@@ -1,9 +1,9 @@
 # The signature configuration
 
 The files under `tools/eoc/semantics/` say what a symbol means to the model, once, in the vocabulary of
-SMT-LIB and of the input. `tools/eoc/compiler/sem_compile.py` compiles them into the
-signatures written in the deep embedding that the model-smt stage reads and the
-Lean clauses the lean-meta stage reads, all of which are generated in full.
+SMT-LIB and of the input. `tools/eoc/compiler/sem_compile.py` compiles them into
+the signatures written in the deep embedding that the model-smt stage reads and
+the Lean clauses the lean-meta stage reads, all of which are generated in full.
 
 This is the reference for the language they are written in: the grammar, every
 entry with its attributes, the four levels and how a body is cast, what the
@@ -352,8 +352,8 @@ into the head of each generated signature, and `DefsFile::read` in
 that stage knows no aggregate by name. How a case is *written* -- what its
 program declares, what an argument stands for in it, what it gives back -- is
 read by nothing but the compiler, so it stays there, in
-`tools/eoc/compiler/sem_target.py`. An aggregate written in one and not the other is an
-error rather than a half a run would carry.
+`tools/eoc/compiler/sem_target.py`. An aggregate written in one and not the
+other is an error rather than a half a run would carry.
 
 A set holds one **kind** of entity or several, each with a shape of its own:
 the SMT-LIB signature declares its symbols and the types they are of, and the
@@ -416,9 +416,9 @@ what a case calls each argument: the program the cases are spliced into
 declares each name once, so an argument is named after the type it is of
 rather than `x1` twice. The name is a letter for that type and the place the
 argument stands at -- `s1` for a native string first, `T2` for a type second,
-`x3` for a term third -- and `SLOT_BY_TYPE` in `tools/eoc/compiler/sem_target.py` is
-where a type is given its letter. Two types may not share one, and a type with
-none is an error rather than a guess.
+`x3` for a term third -- and `SLOT_BY_TYPE` in
+`tools/eoc/compiler/sem_target.py` is where a type is given its letter. Two
+types may not share one, and a type with none is an error rather than a guess.
 
 What each stands for in a body is the aggregate's business. In
 `semantics/smt.eos` a `:raw` argument -- an index -- stands for the term itself
@@ -1098,8 +1098,8 @@ values. `of_width` is a macro defined by the same set.
 
 The compiler writes a constructor and macro for the term, a
 `$smtx_model_eval_bvadd` helper and cases for the type and value aggregates.
-Run `python3 tools/eoc/compiler/sem_compile.py` and inspect the `; -- bvadd` block in
-`tools/eoc/out/smt_defs.eo` for the exact generated declarations.
+Run `python3 tools/eoc/compiler/sem_compile.py` and inspect the `; -- bvadd`
+block in `tools/eoc/out/smt_defs.eo` for the exact generated declarations.
 
 ### A symbol that reaches for the model
 
@@ -1232,9 +1232,9 @@ Not a change to a signature. Write a `declare-aggregate-method` in
 `plugins/model_smt/model_smt.eos` for the program the cases are to be spliced
 into, saying what a case of it is named and the marker they are written at; put
 that marker in `plugins/model_smt/model_smt.eo` where the cases belong; and say
-how a case is written in the shape in `tools/eoc/compiler/sem_target.py`. The stage that
-reads the generated file knows no aggregate by name, so it needs no change and
-nothing has to be rebuilt.
+how a case is written in the shape in `tools/eoc/compiler/sem_target.py`. The
+stage that reads the generated file knows no aggregate by name, so it needs no
+change and nothing has to be rebuilt.
 
 ### Add the semantics of another input
 

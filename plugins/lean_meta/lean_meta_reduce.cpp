@@ -64,11 +64,11 @@ LeanMetaReduce::LeanMetaReduce(State& s,
   // Why a generated definition terminates is Lean text rather than anything
   // this plugin derives, so it is said under :lean in the semantics
   // configuration and compiled into a file of its own, see
-  // tools/eoc/compiler/sem_compile.py. The one of the deep embedding holds for every
-  // input and is generated when ethos-eoc is built, see plugins/CMakeLists.txt;
-  // the one of the input signature is named on the command line, which the
-  // driver fills with what the input's set compiled to, and an input whose
-  // programs all recurse structurally needs none.
+  // tools/eoc/compiler/sem_compile.py. The one of the deep embedding holds for
+  // every input and is generated when ethos-eoc is built, see
+  // plugins/CMakeLists.txt; the one of the input signature is named on the
+  // command line, which the driver fills with what the input's set compiled to,
+  // and an input whose programs all recurse structurally needs none.
   readTerminationClauses(getResourcePath("tools/eoc/out/smt_termination.lean"));
   if (!configFile.empty())
   {

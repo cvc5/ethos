@@ -67,8 +67,8 @@ DECLARE_RULE_RE = re.compile(r"^\(declare-rule\s+([^\s(]+)")
 INCLUDE_RE = re.compile(r'^\(include\s+"([^"]+)"\s*\)')
 # What the head of a signature written in the deep embedding says to a stage,
 # as against what its blocks say about the model. A line is `; $eoc-<what>`
-# and then its words; see head_lines in tools/eoc/compiler/sem_compile.py, which is
-# what writes them, and DefsFile::read, which reads the ones about the shape
+# and then its words; see head_lines in tools/eoc/compiler/sem_compile.py, which
+# is what writes them, and DefsFile::read, which reads the ones about the shape
 # of the file.
 DEFS_HEAD = "; $eoc-"
 DEFS_BLOCK = "; -- "
@@ -446,7 +446,8 @@ class Pipeline:
         wrote -- what the compilation has no place for, and what each block
         names of the input -- so it says it above the first block rather than
         leaving it to be read back out of the blocks, which would be taking the
-        file apart a second way. See head_lines in tools/eoc/compiler/sem_compile.py.
+        file apart a second way. See head_lines in
+        tools/eoc/compiler/sem_compile.py.
         """
         if self.defs_file is None:
             return []

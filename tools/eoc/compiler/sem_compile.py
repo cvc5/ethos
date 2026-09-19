@@ -397,9 +397,9 @@ NATIVES_GENERATED = """\
 ; GENERATED FILE -- do not edit.
 ;
 ; The natives of the embedding, compiled from %s by
-; tools/eoc/compiler/sem_compile.py, which is where one is to be changed or added. Each
-; is a name a signature written in the embedding may call, declared as the
-; operator it forwards to; what one *does* is said by a backend, see
+; tools/eoc/compiler/sem_compile.py, which is where one is to be changed or
+; added. Each is a name a signature written in the embedding may call, declared
+; as the operator it forwards to; what one *does* is said by a backend, see
 ; plugins/lean_meta/lean.eos and plugins/smt_meta/smt-vc.eos.
 ;
 ; The desugar stage puts this file where the `(include "native_defs.eo")` of
