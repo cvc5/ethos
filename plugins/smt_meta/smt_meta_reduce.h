@@ -117,7 +117,7 @@ class SmtMetaReduce : public MetaReducePlugin
    */
   std::string getEmbedName(const Expr& oApp);
   /**
-   * The native layer of this backend, i.e. what tools/eoc/sem_compile.py
+   * The native layer of this backend, i.e. what tools/eoc/compiler/sem_compile.py
    * compiled plugins/smt_meta/smt-vc.eos to. A verification condition is one
    * file with two places a block can come out: `Vc`, where SMT-LIB alone is
    * in scope, and `Embed`, below the datatypes of the embedding.

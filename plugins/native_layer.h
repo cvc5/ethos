@@ -22,7 +22,7 @@ namespace ethos {
  *
  * A layer is a configuration set -- plugins/lean_meta/lean.eos for the Lean
  * backend, plugins/smt_meta/smt-vc.eos for the SMT-LIB one -- which
- * tools/eoc/sem_compile.py compiles to the file read here. The line that
+ * tools/eoc/compiler/sem_compile.py compiles to the file read here. The line that
  * opens a block says everything a stage has to know about it:
  *
  *   <comment> $native <name> <needs> <calls>...

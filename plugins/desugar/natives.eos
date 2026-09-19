@@ -5,7 +5,7 @@
 ;; arguments is, and the operator it forwards to where that is not its own name.
 ;; That is the whole of what the declaration the desugar layer carries says, and
 ;; the compiler writes that declaration from here, so nothing states it twice;
-;; see render_natives in tools/eoc/sem_compile.py and the
+;; see render_natives in tools/eoc/compiler/sem_compile.py and the
 ;; `(include "native_defs.eo")` of native_embed.eo, which is where what this
 ;; compiles to stands.
 ;;
@@ -42,7 +42,7 @@
 ;;
 ;;   - one that forwards to a *literal* rather than to a function, as z_zero
 ;;     forwards to 0. That is what lets a whole number written in a body stand
-;;     for a name of the embedding, see read_spelling in tools/eoc/sem_lang.py,
+;;     for a name of the embedding, see read_spelling in tools/eoc/compiler/sem_lang.py,
 ;;     and a literal is no name to declare one under;
 ;;   - one that forwards to something the target language already has, as
 ;;     n_succ forwards to nat.succ, whose name is not ours to choose and is no
@@ -94,7 +94,7 @@
 ; string literal rather than to a function, which is what :op says here as it
 ; does for a native that forwards to a numeral: a set escapes a quote with a
 ; backslash and Eunoia by doubling it, so what stands here is the former and
-; what is written out is the latter. See escape_eo in tools/eoc/sem_compile.py.
+; what is written out is the latter. See escape_eo in tools/eoc/compiler/sem_compile.py.
 (declare-native str_c0 () :op "\"0\"")
 
 (declare-native str_c9 () :op "\"9\"")

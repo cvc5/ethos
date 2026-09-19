@@ -101,7 +101,7 @@ tools/eoc/out/user_defs.eo  how the input's symbols transform into it
 ```
 
 **Both are generated**, from the configuration under `tools/eoc/semantics`,
-which `tools/eoc/sem_compile.py` compiles before any stage runs; neither is
+which `tools/eoc/compiler/sem_compile.py` compiles before any stage runs; neither is
 checked in. What the options name is therefore the *central file of a
 configuration set* rather than what it compiles to:
 
@@ -212,7 +212,7 @@ the driver reads those dependencies off the blocks and tells `trim-defs`; see
 the *desugar* stage are read the same way, since they are spliced into a
 trimmed signature too: the nil predicate of `str.++` names `seq.empty`, and a
 run that keeps the one has to keep the other. See `head_lines` in
-`tools/eoc/sem_compile.py`, which writes both.
+`tools/eoc/compiler/sem_compile.py`, which writes both.
 
 A block may also say that the compilation has no place for what it is of at
 all: SMT-LIB gives a proof-level binder no meaning, so `lambda` and everything
@@ -306,7 +306,7 @@ A definition a Lean block writes for itself, rather than the one it declares,
 is named `impl_native_` instead, which is what says it is private to that
 block: `impl_native_int_log_rec` is nothing a signature may reach.
 
-Where a name is spelled is settled in `LAYERS` in `tools/eoc/sem_compile.py`,
+Where a name is spelled is settled in `LAYERS` in `tools/eoc/compiler/sem_compile.py`,
 one entry to a backend.
 
 What is left in `native_embed.eo` is what the embedding *is* rather than what
@@ -371,7 +371,7 @@ An eo-meta native without an implementation falls back to an opaque
 `$native_apply_N`. Missing or unused definitions are not comprehensively checked
 against what each backend supports. See the [design notes](docs/design.md).
 
-**A layer is a configuration set**, which `tools/eoc/sem_compile.py` compiles;
+**A layer is a configuration set**, which `tools/eoc/compiler/sem_compile.py` compiles;
 one entry is one definition, under the attribute that says which language it
 is written in:
 
@@ -435,7 +435,7 @@ Neither of the two things this is read off is the generated text:
 - **What a block names** is read by the compiler, off the block itself, and
   written on the line that opens it: the scope it cannot be written above, and
   the rest of the layer it calls. See `lean_needs`, `vc_needs` and
-  `native_deps` in `tools/eoc/sem_compile.py`. Reading it there rather than
+  `native_deps` in `tools/eoc/compiler/sem_compile.py`. Reading it there rather than
   beside the definition is what keeps it from drifting: an annotation can, and
   the text cannot drift from itself.
 - **What an input names** is what the stage wrote: a name of the layer reaches
@@ -519,7 +519,7 @@ semantics the tool ships with covers entirely, so `lean --all` over one stops
 at the first symbol the semantics says nothing about; what covers it is a
 calculus of another tree.
 
-`python3 tools/eoc/sem_compile.py --check` is the other half: it says the
+`python3 tools/eoc/compiler/sem_compile.py --check` is the other half: it says the
 generated signatures hold what compiling the configuration writes, and that
 each block of one stands after the blocks it names.
 
@@ -562,7 +562,7 @@ regardless says so as `warning: ...`. Anything meant to be read by a program
 rather than a person -- the rule names of `list-rules` -- is written plainly to
 stdout with no prefix at all.
 
-The style is defined in one place, `tools/eoc/report.py`, which every tool
+The style is defined in one place, `tools/eoc/compiler/report.py`, which every tool
 here reports through.
 
 ## Output layout

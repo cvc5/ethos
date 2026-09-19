@@ -10,7 +10,7 @@ one without the other. The value aggregate uses them to name programs that
 operate on evaluated arguments and the marker where their declarations go.
 
 The names live in `plugins/model_smt/model_smt.eos`, while `helper_attr`,
-`helper_arg` and `helper_gives` live in `tools/eoc/sem_target.py`. The two files
+`helper_arg` and `helper_gives` live in `tools/eoc/compiler/sem_target.py`. The two files
 must agree about whether the aggregate has a helper family. The choice is
 whether to express the complete helper shape in configuration or keep the
 complete definition in Python. Removing only the two attributes would leave

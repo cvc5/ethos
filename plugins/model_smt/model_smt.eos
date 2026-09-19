@@ -5,7 +5,7 @@
 ;; itself stands in plugins/model_smt/model_smt.eo, and what is said here is
 ;; what more than one program has to agree on about it -- the name the compiler
 ;; writes a symbol's case under, and the marker of the template the cases are
-;; written at. Compiled by tools/eoc/sem_compile.py, which writes it into the
+;; written at. Compiled by tools/eoc/compiler/sem_compile.py, which writes it into the
 ;; head of each generated signature; the stage that reads it is the model-smt
 ;; stage of ethos-eoc, see DefsFile::read.
 ;;
@@ -14,7 +14,7 @@
 ;; what symbols mean -- semantics/smt.eos, semantics/development-cpc.eos --
 ;; says nothing here. How a case is *written* is fixed too and is no part of
 ;; this: what a case declares, what its arguments stand for and what it gives
-;; back are said in tools/eoc/sem_target.py, which is the only thing that reads
+;; back are said in tools/eoc/compiler/sem_target.py, which is the only thing that reads
 ;; them. An entry there and an entry here are joined by this name, and one
 ;; without the other is an error rather than an aggregate half the run knows.
 ;;

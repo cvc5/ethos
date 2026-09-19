@@ -13,7 +13,7 @@
 ; semantics, and the programs those compile to are written here rather than
 ; into the model, which is a later stage than the one that asks.
 ;
-; Compiled by tools/eoc/sem_compile.py, which writes the programs of the
+; Compiled by tools/eoc/compiler/sem_compile.py, which writes the programs of the
 ; aggregate below into tools/eoc/out/user_desugar.eo. That file stands where
 ; the `(include "user_desugar.eo")` of plugins/desugar/eo_desugar.eo names it,
 ; which is after the signature's own declarations and ahead of the cases that
