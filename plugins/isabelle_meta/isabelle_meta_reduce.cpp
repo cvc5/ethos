@@ -40,6 +40,35 @@ std::string tuple(const std::vector<std::string>& args)
 
 std::string some(const std::string& value) { return "(Some " + value + ")"; }
 
+std::string jsonString(const std::string& value)
+{
+  std::ostringstream out;
+  out << '"';
+  for (unsigned char c : value)
+  {
+    if (c == '"' || c == '\\') out << '\\' << c;
+    else if (c < 32)
+      out << "\\u" << std::hex << std::setw(4) << std::setfill('0')
+          << static_cast<unsigned>(c);
+    else out << c;
+  }
+  return out.str() + '"';
+}
+
+// Echo metadata uses Eunoia identifiers, including |quoted names|.
+std::string parserName(std::istream& in)
+{
+  in >> std::ws;
+  std::string name;
+  if (in.peek() == '|')
+  {
+    in.get();
+    std::getline(in, name, '|');
+  }
+  else in >> name;
+  return name;
+}
+
 // Strings use the embedding's Unicode code points, not Isabelle's byte chars.
 std::string stringValue(const std::vector<unsigned>& chars)
 {
@@ -147,7 +176,9 @@ std::string IsabelleMetaReduce::identifier(const std::string& name,
   // Prefixes keep numeric names and Isabelle keywords legal. Allocate instead
   // of relying on escaping being injective: a-b, a.b and a_b must stay distinct,
   // as must a literal name that already ends in a disambiguating suffix.
-  const std::string base = prefix + (stem.empty() ? "empty" : out.str());
+  std::string base = prefix + (stem.empty() ? "empty" : out.str());
+  // Isabelle rejects trailing underscores in declared names (for example u-).
+  if (base.back() == '_') base += "symbol";
   std::string result = base;
   auto& used = d_usedIdentifiers[prefix];
   for (size_t suffix = 2; !used.insert(result).second; ++suffix)
@@ -235,6 +266,7 @@ void IsabelleMetaReduce::finalizeDecl(const Expr& e)
       || getName(e) == "$eo_pf")
     return;
   const std::string name = getName(e);
+  d_parserSymbols[name] = e;
   if (name == "$emb_Type" || name == "$emb_Bool" || name == "$emb_FunType"
       || name == "$emb_Apply")
     return;
@@ -292,6 +324,11 @@ void IsabelleMetaReduce::defineProgram(const Expr& v, const Expr& prog)
 
 void IsabelleMetaReduce::define(const std::string& name, const Expr& e)
 {
+  if (isParseDefName(name))
+  {
+    d_parseDefs.emplace_back(getParseDefSurfaceName(name), e);
+    return;
+  }
   if (name.compare(0, 4, "$eo_") != 0 || !getEmbedTypeApp(e).isNull()) return;
   Expr symbol, prog;
   if (buildLambdaDefineProgram(name, e, symbol, prog))
@@ -306,6 +343,26 @@ void IsabelleMetaReduce::define(const std::string& name, const Expr& e)
 
 bool IsabelleMetaReduce::echo(const std::string& msg)
 {
+  if (msg.compare(0, 15, "lean-parser-op ") == 0)
+  {
+    std::istringstream in(msg.substr(15));
+    ParserOp op;
+    op.surface = parserName(in);
+    op.generated = parserName(in);
+    in >> op.indices >> op.arguments >> op.attr;
+    op.connector = parserName(in);
+    if (!in) EO_FATAL() << "Malformed Isabelle parser metadata: " << msg;
+    d_parserOps.push_back(op);
+    return false;
+  }
+  if (msg.compare(0, 17, "lean-parser-rule ") == 0)
+  {
+    std::istringstream in(msg.substr(17));
+    std::string surface = parserName(in), generated = parserName(in);
+    if (!in) EO_FATAL() << "Malformed Isabelle parser metadata: " << msg;
+    d_parserRules.emplace_back(surface, generated);
+    return false;
+  }
   if (msg.compare(0, 14, "isabelle-meta ") == 0)
   {
     std::istringstream in(msg.substr(14));
@@ -710,6 +767,185 @@ std::string IsabelleMetaReduce::programBody(const Program& p)
   return result;
 }
 
+// Parser builders are pure SML constructor expressions. In particular, a
+// signature macro must not execute an EO program outside the checked export.
+std::string IsabelleMetaReduce::parserTerm(const Expr& e)
+{
+  auto app = [](const std::string& head, const std::vector<std::string>& args) {
+    return args.empty() ? head : "(" + head + " " + tuple(args) + ")";
+  };
+  auto integer = [](std::string value) {
+    if (value[0] == '-') value[0] = '~';
+    return "(runtime_int (" + value + "))";
+  };
+  if (e.getKind() == Kind::PARAM) return identifier(getName(e), "v_");
+  if (e.getKind() == Kind::TYPE) return "Term_Type";
+  if (e.getKind() == Kind::BOOL_TYPE) return "Term_Bool";
+  if (e.getKind() == Kind::CONST && indexedArity(e) == 0) return constructor(e);
+  if (const Literal* l = e.getValue()->asLiteral())
+  {
+    switch (e.getKind())
+    {
+      case Kind::BOOLEAN: return l->d_bool ? "(Term_Boolean true)" : "(Term_Boolean false)";
+      case Kind::NUMERAL: return app("Term_Numeral", {integer(l->d_int.toString())});
+      case Kind::BINARY:
+        return app("Term_Binary", {integer(std::to_string(l->d_bv.getSize())),
+                                   integer(l->d_bv.getValue().toString())});
+      case Kind::STRING:
+      {
+        std::string chars = "[";
+        for (unsigned c : l->d_str.getVec())
+          chars += (chars.size() == 1 ? "" : ", ")
+                   + std::string("runtime_nat ") + std::to_string(c);
+        return "(Term_String " + chars + "])";
+      }
+      case Kind::RATIONAL:
+      {
+        std::string n = l->toString(), d = "1";
+        size_t slash = n.find('/');
+        if (slash != std::string::npos)
+        {
+          d = n.substr(slash + 1);
+          n.erase(slash);
+        }
+        if (n[0] == '-') n[0] = '~';
+        return "(runtime_rational (" + n + ") (" + d + "))";
+      }
+      default: break;
+    }
+  }
+  std::string head;
+  size_t start = 0;
+  std::vector<std::string> args;
+  if (e.getKind() == Kind::APPLY) head = "Term_Apply";
+  else if (e.getKind() == Kind::VARIABLE) head = "Term_Var";
+  else if (e.getKind() == Kind::FUNCTION_TYPE) head = "Term_FunType";
+  else if (e.getKind() == Kind::APPLY_OPAQUE && e[0].getKind() == Kind::CONST
+           && !isBuiltinMetaSymbol(getName(e[0])))
+  {
+    start = 1;
+    const size_t arity = indexedArity(e[0]);
+    if (arity)
+    {
+      head = "Term_UOp" + std::to_string(arity);
+      args.push_back(identifier(getName(e[0]), "UserOp" + std::to_string(arity) + "_Op_"));
+    }
+    else head = constructor(e[0]);
+  }
+  else return "";
+  for (size_t i = start; i < e.getNumChildren(); ++i)
+  {
+    std::string arg = parserTerm(e[i]);
+    if (arg.empty()) return "";
+    args.push_back(arg);
+  }
+  if (e.getKind() == Kind::FUNCTION_TYPE)
+    return app("Term_Apply", {app("Term_Apply", {head, args.at(0)}), args.at(1)});
+  return app(head, args);
+}
+
+void IsabelleMetaReduce::finalizeParser()
+{
+  std::ostringstream ops, rules, defs;
+  std::set<std::string> names;
+  auto emit = [&](const ParserOp& op, const std::string& head) {
+    if (ops.tellp() > 0) ops << ",\n";
+    ops << "    {\"name\": " << jsonString(op.surface)
+        << ", \"indices\": " << op.indices << ", \"arguments\": " << op.arguments
+        << ", \"arity\": " << jsonString(op.attr)
+        << ", \"connector\": " << jsonString(op.connector)
+        << ", \"head\": " << jsonString(head) << "}";
+    names.insert(op.surface);
+  };
+  emit({"Bool", "", "none", "", 0, 0}, "Term_Bool");
+  emit({"false", "", "none", "", 0, 0}, "(Term_Boolean false)");
+  emit({"true", "", "none", "", 0, 0}, "(Term_Boolean true)");
+  emit({"->", "", "right-assoc", "", 0, 2}, "Term_FunType");
+  auto operatorHead = [&](const ParserOp& op) {
+    const Expr& symbol = d_parserSymbols.at(op.generated);
+    if (!op.indices) return constructor(symbol);
+    std::vector<std::string> args = {
+        identifier(getName(symbol), "UserOp" + std::to_string(op.indices) + "_Op_")};
+    for (size_t i = 0; i < op.indices; ++i) args.push_back("x" + std::to_string(i + 1));
+    return "(Term_UOp" + std::to_string(op.indices) + " " + tuple(args) + ")";
+  };
+  std::map<std::string, ParserOp> emitted;
+  for (const ParserOp& op : d_parserOps)
+  {
+    if (!d_parserSymbols.count(op.generated) || emitted.count(op.generated)) continue;
+    emit(op, operatorHead(op));
+    emitted[op.generated] = op;
+  }
+  // The embedding's list constructor is introduced after the metadata block.
+  if (d_parserSymbols.count("$eo_List_cons"))
+    emit({"@list", "", "right-assoc-nil", "", 0, 2},
+         constructor(d_parserSymbols.at("$eo_List_cons")));
+  if (d_parserSymbols.count("$eo_List_nil"))
+    emit({"@list.nil", "", "none", "", 0, 0},
+         constructor(d_parserSymbols.at("$eo_List_nil")));
+  std::set<std::string> seen;
+  for (const auto& def : d_parseDefs)
+  {
+    if (!seen.insert(def.first).second) continue;
+    Expr body = def.second;
+    std::vector<Expr> params;
+    if (body.getKind() == Kind::LAMBDA)
+    {
+      for (size_t i = 0; i < body[0].getNumChildren(); ++i) params.push_back(body[0][i]);
+      body = body[1];
+    }
+    bool implicit = false;
+    for (const Expr& v : Expr::getVariables(body))
+      if (std::find(params.begin(), params.end(), v) == params.end()) implicit = true;
+    if (implicit || (params.empty() && names.count(def.first))) continue;
+    auto alias = emitted.find(getName(body));
+    if (params.empty() && alias != emitted.end())
+    {
+      ParserOp op = alias->second;
+      op.surface = def.first;
+      emit(op, operatorHead(op));
+      continue;
+    }
+    std::string value = parserTerm(body);
+    if (value.empty())
+    {
+      Warning() << "Isabelle parser: omit definition " << def.first
+                << ", whose body is not a pure term constructor" << std::endl;
+      continue;
+    }
+    if (params.empty()) emit({def.first, "", "none", "", 0, 0}, value);
+    else
+    {
+      if (defs.tellp() > 0) defs << ",\n";
+      defs << "    {\"name\": " << jsonString(def.first) << ", \"params\": [";
+      for (size_t i = 0; i < params.size(); ++i)
+        defs << (i ? ", " : "") << jsonString(identifier(getName(params[i]), "v_"));
+      defs << "], \"head\": " << jsonString(value) << "}";
+    }
+  }
+  seen.clear();
+  for (const auto& rule : d_parserRules)
+  {
+    auto symbol = d_parserSymbols.find("$emb_r." + rule.second);
+    if (symbol == d_parserSymbols.end() || !seen.insert(rule.first).second) continue;
+    if (rules.tellp() > 0) rules << ",\n";
+    rules << "    {\"name\": " << jsonString(rule.first) << ", \"constructor\": "
+          << jsonString(constructor(symbol->second)) << "}";
+  }
+  emitResourceFile("plugins/isabelle_meta/isabelle_meta_syntax.json",
+                   "plugins/isabelle_meta/syntax_gen.json",
+                   {{"$PARSER_OPS$", ops.str()}, {"$PARSER_RULES$", rules.str()},
+                    {"$PARSER_DEFS$", defs.str()}});
+  emitResourceFile("plugins/isabelle_meta/isabelle_meta_parser.ML",
+                   "plugins/isabelle_meta/parser_gen.ML",
+                   {{"$TYPEOF$", identifier("$eo_typeof", "p_")},
+                    {"$NIL$", identifier("$eo_nil", "p_")}});
+  emitResourceFile("plugins/isabelle_meta/isabelle_meta_sexp.ML",
+                   "plugins/isabelle_meta/sexp_gen.ML", {});
+  emitResourceFile("plugins/isabelle_meta/generate_syntax.py",
+                   "plugins/isabelle_meta/generate_syntax_gen.py", {});
+}
+
 void IsabelleMetaReduce::finalize()
 {
   std::ostringstream datatypes, keys, defs, spec;
@@ -933,6 +1169,7 @@ void IsabelleMetaReduce::finalize()
   emitResourceFile("plugins/isabelle_meta/isabelle_meta_spec.thy",
                    "plugins/isabelle_meta/isabelle_meta_spec_gen.thy",
                    {{"$OBLIGATIONS$", spec.str()}});
+  finalizeParser();
 }
 
 }  // namespace ethos

@@ -53,6 +53,17 @@ class IsabelleMetaReduce : public MetaReducePlugin
                       std::set<Expr>& bound,
                       std::vector<std::string>& guards);
   std::string programBody(const Program& p);
+  struct ParserOp
+  {
+    std::string surface, generated, attr, connector;
+    size_t indices = 0, arguments = 0;
+  };
+  void finalizeParser();
+  std::string parserTerm(const Expr& e);
+  std::vector<ParserOp> d_parserOps;
+  std::vector<std::pair<std::string, std::string>> d_parserRules;
+  std::vector<std::pair<std::string, Expr>> d_parseDefs;
+  std::map<std::string, Expr> d_parserSymbols;
   std::map<std::string, std::vector<std::string>> d_datatypes;
   std::map<std::string, std::set<std::string>> d_datatypeDeps;
   std::map<std::string, Program> d_programs;

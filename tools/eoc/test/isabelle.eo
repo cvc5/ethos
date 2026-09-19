@@ -1,5 +1,15 @@
 (include "../../../tests/Booleans-rules.eo")
 
+; Parser definitions must come from the signature, including n-ary aliases
+; and macros that cannot be recovered by scanning generated constructors.
+(define conjunction () and)
+(define negate ((x Bool)) (not x))
+(define negative_constant () -3)
+
+; Use a connector other than CPC's and/@@TypedList.cons defaults.
+(declare-const chained (-> Bool Bool Bool) :chainable or)
+(declare-const gather (-> Bool Bool) :arg-list or)
+
 ; No-argument rules are emitted by desugar as definitions, not programs.
 (declare-rule truth () :conclusion true)
 
@@ -81,6 +91,7 @@
   :conclusion (eo::cmp x y))
 (declare-const String Type)
 (declare-consts <string> String)
+(define string_constant () "abc")
 (declare-rule native_strings ((x String) (y String)) :args (x y)
   :conclusion (eo::eq (eo::len (eo::concat x y)) (eo::find x y)))
 (declare-rule native_extract ((x String) (i Int) (j Int)) :args (x i j)

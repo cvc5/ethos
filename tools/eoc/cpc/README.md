@@ -101,10 +101,21 @@ once, preserving existing session entries and handwritten theories. Generated
 theories get an installation banner and are replaced on subsequent installs.
 Generation must succeed before the installed copy is touched.
 
+It also installs `Cpc/Runtime/Parser.ML`, `Sexp.ML`, `syntax.json`, and
+`generate_syntax.py`. The Isabelle backend generates the operator and rule
+tables from the desugared Eunoia signature, including indices, argument-list
+attributes, connectors, aliases, and constructor-valued signature macros.
+The reader templates live in `plugins/isabelle_meta/`; Iogos no longer needs
+a separately maintained syntax table or CPC-specific macro cases. At executable
+build time, `generate_syntax.py` binds the generated table to Isabelle's exported
+constructor names. The existing Iogos build wrapper calls this step.
+Reinstallation replaces these four files and preserves the runtime export,
+build helpers, CLI, and soundness development.
+
 Isabelle is needed to build the installed session, not to generate or install
 it. The compiler uses CPC's configuration for its exclusions and desugar
-definitions; the initial Isabelle backend still supplies only an executable
-checker and soundness scaffolding, without a proof-file parser or SMT model.
+definitions; the Isabelle backend supplies an executable checker, an unverified
+proof-file reader, and soundness scaffolding. It does not yet supply an SMT model.
 Import `"Cpc.Cpc_Spec"` from a theory in a session whose parent is `Cpc`.
 Unlike the Lean installer, there is currently no separate mini package or
 generated proof-file regression suite for Isabelle.

@@ -100,7 +100,7 @@ reduces.
 
 The initial Isabelle backend (tested with Isabelle2025-2) follows `lean-meta`'s
 typed deep embedding and consumes the same desugared EO programs. It compiles the executable
-checker, without the `model-smt` stage or a proof-file parser. No semantics
+checker and its proof-file reader, without the `model-smt` stage. No semantics
 configuration is needed for the Boolean example:
 
 ```sh
@@ -112,7 +112,12 @@ isabelle build -D tools/eoc/out/isabelle
 Use `--all` in place of the rule names to compile the whole signature, and
 `--final-out-dir DIR` to publish elsewhere. The generated `isabelle/` directory
 contains `ROOT`, `Iogos_Checker.thy`, and `Iogos_Spec.thy`. Import the latter
-from an iogos theory. This directory is replaced on each successful generation;
+from an iogos theory. `Runtime/` contains the generated `Parser.ML`, `Sexp.ML`,
+`syntax.json`, and `generate_syntax.py` used by Iogos's executable build.
+The syntax comes from EOC's declaration metadata and preserved definitions;
+no Logos checkout or recorded CPC syntax table is needed. The binding script
+resolves Isabelle's enumeration abbreviations and exported constructor names.
+This directory is replaced on each successful generation;
 keep handwritten theories outside it. The low-level stage is
 `ethos-eoc --plugin.isabelle-meta <desugared-and-trimmed.eo>`.
 
@@ -126,8 +131,11 @@ checker accepts only a result of `Some True`.
 
 `Iogos_Spec` defines one obligation per rule against a supplied interpretation,
 and a `checker_sound_for` predicate. These are the starting point for an iogos
-soundness development; they do not prove logical soundness. The full SMT model,
-parser generation, and the remaining native operations are future work.
+soundness development; they do not prove logical soundness. The reader is
+unverified, as in Iogos; checker acceptance still comes from Isabelle's export.
+Definitions with unresolved implicit parameters are omitted, and definitions
+that execute EO programs rather than construct terms are omitted with a warning.
+The full SMT model and the remaining native operations are future work.
 Unsupported reachable natives produce a compiler error, naming the native and
 the enclosing program. Generated names preserve underscores and replace hyphens,
 dots, and colons with underscores. Programs omit the compiler's `$eo_prog_`,
@@ -155,6 +163,8 @@ python3 tools/eoc/test/isabelle.py --build-dir build-eoc \
 
 They compile selected rules and the whole Boolean signature, and execute HOL
 checks for acceptance, rejection, pattern fallthrough, and budget exhaustion.
+They also compile the generated reader against the exported SML checker and
+exercise signature macros, aliases, indexed operators, literals, and quoted names.
 Without Isabelle the script checks generation and explicitly reports that HOL
 execution was skipped.
 

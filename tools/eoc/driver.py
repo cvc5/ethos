@@ -119,8 +119,11 @@ LEAN_SINGLE_DEPS = (
 )
 
 # Isabelle initially compiles the executable checker without the SMT model.
-# Keep the EO primitives that can remain as literal operators after trimming.
-ISABELLE_DEPS = "$eo_checker_is_refutation $eo_mk_apply $eo_eq $eo_ite $eo_requires"
+# Keep EO primitives and the declarations the proof reader constructs directly.
+ISABELLE_DEPS = (
+    "$eo_checker_is_refutation $eo_mk_apply $eo_eq $eo_ite $eo_requires "
+    "$eo_typeof $eo_nil $eot_UConst $eot_USort $eo_List_cons $eo_List_nil"
+)
 
 
 def resolve_path_arg(path_arg: str, *, cwd: Path) -> Path:
@@ -846,16 +849,27 @@ class Pipeline:
         self.ethos(["--plugin.isabelle-meta", self.binary_path_arg(final_defs)],
                    quiet=True)
         out = self.final_out_dir / "isabelle"
-        # Publish only after the backend succeeds, as for Lean. This directory
-        # is generated in its entirety; an earlier calculus must not survive.
-        if out.exists():
-            shutil.rmtree(out)
-        out.mkdir(parents=True)
+        generated = {}
         for source, suffix in (("isabelle_meta_gen.thy", "Checker"),
                                ("isabelle_meta_spec_gen.thy", "Spec")):
-            theory = self.plugin_generated(f"isabelle_meta/{source}").read_text()
-            (out / f"{calc_name}_{suffix}.thy").write_text(
-                theory.replace(LEAN_CALC_PLACEHOLDER, calc_name))
+            generated[f"{calc_name}_{suffix}.thy"] = self.plugin_generated(
+                f"isabelle_meta/{source}").read_text()
+        for source, dest in (("syntax_gen.json", "syntax.json"),
+                             ("parser_gen.ML", "Parser.ML"),
+                             ("sexp_gen.ML", "Sexp.ML"),
+                             ("generate_syntax_gen.py", "generate_syntax.py")):
+            generated[f"Runtime/{dest}"] = self.plugin_generated(
+                f"isabelle_meta/{source}").read_text()
+        # Publish only after the backend succeeds, as for Lean. This directory
+        # is generated in its entirety; an earlier calculus must not survive.
+        # Read every artifact first so missing parser output cannot replace a
+        # complete published session with a partial package.
+        if out.exists():
+            shutil.rmtree(out)
+        for name, text in generated.items():
+            dest = out / name
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(text.replace(LEAN_CALC_PLACEHOLDER, calc_name))
         (out / "ROOT").write_text(
             f'session {calc_name} = HOL +\n'
             f'  options [document = false]\n'
