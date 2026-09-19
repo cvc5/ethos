@@ -52,15 +52,17 @@ from sem_lang import (counts, defined_names, die,  # noqa: E402
                       excludes, lean_clauses, read_config, read_macros,
                       read_text, read_vocabulary, smt_type, write_text)
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(os.path.dirname(HERE))
-SEM = os.path.join(HERE, 'semantics')
+# The project directory of the compiler, tools/eoc: the semantics it ships
+# and the files a run writes are its, not this file's directory.
+EOC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(EOC))
+SEM = os.path.join(EOC, 'semantics')
 
 # Where the two signatures the model-smt stage reads are written. Neither is
 # said by a configuration: the SMT-LIB one is the target of the compilation and
 # so is fixed, and the stage reads one signature of the input whichever input a
 # run compiles, so there is one file for that too.
-OUT = os.path.join(HERE, 'out')
+OUT = os.path.join(EOC, 'out')
 SMT_TARGET = os.path.join(OUT, 'smt_defs.eo')
 INPUT_TARGET = os.path.join(OUT, 'user_defs.eo')
 # Where what a set says the generated Lean is to be told is written. The
@@ -149,13 +151,13 @@ MACRO_FILES = (os.path.join(ROOT, 'plugins', 'model_smt', 'model_smt.eo'),)
 GENERATED = """\
 ; GENERATED FILE -- do not edit.
 ;
-; Compiled from %s by tools/eoc/sem_compile.py,
+; Compiled from %s by tools/eoc/compiler/sem_compile.py,
 ; which is where a symbol is to be changed or added. The eoc pipeline runs it
 ; before the model-smt stage, so this file is current whenever that stage reads
 ; it; to run it by hand:
 ;
-;   python3 tools/eoc/sem_compile.py            to write this file
-;   python3 tools/eoc/sem_compile.py --check    to say whether it is current
+;   python3 tools/eoc/compiler/sem_compile.py            to write this file
+;   python3 tools/eoc/compiler/sem_compile.py --check    to say whether it is current
 ;
 """
 
@@ -163,7 +165,7 @@ GENERATED = """\
 DESUGAR_GENERATED = """\
 ; GENERATED FILE -- do not edit.
 ;
-; Compiled from %s by tools/eoc/sem_compile.py.
+; Compiled from %s by tools/eoc/compiler/sem_compile.py.
 ;
 ; What a signature of an input says to the *desugar* stage: for each n-ary
 ; symbol whose nil depends on the type of what it terminates, the predicate
@@ -182,7 +184,7 @@ DESUGAR_GENERATED = """\
 LEAN_GENERATED = """\
 -- GENERATED FILE -- do not edit.
 --
--- Compiled from %s by tools/eoc/sem_compile.py,
+-- Compiled from %s by tools/eoc/compiler/sem_compile.py,
 -- which is where a clause is to be changed or added: it is what a method of
 -- that set says under :lean. The eoc pipeline runs the compiler before the
 -- lean-meta stage, so this file is current whenever that stage reads it.
@@ -395,9 +397,9 @@ NATIVES_GENERATED = """\
 ; GENERATED FILE -- do not edit.
 ;
 ; The natives of the embedding, compiled from %s by
-; tools/eoc/sem_compile.py, which is where one is to be changed or added. Each
-; is a name a signature written in the embedding may call, declared as the
-; operator it forwards to; what one *does* is said by a backend, see
+; tools/eoc/compiler/sem_compile.py, which is where one is to be changed or
+; added. Each is a name a signature written in the embedding may call, declared
+; as the operator it forwards to; what one *does* is said by a backend, see
 ; plugins/lean_meta/lean.eos and plugins/smt_meta/smt-vc.eos.
 ;
 ; The desugar stage puts this file where the `(include "native_defs.eo")` of
@@ -660,7 +662,7 @@ EO_GENERATED = """\
 ; GENERATED FILE -- do not edit.
 ;
 ; The natives of the embedding written as Eunoia, compiled from %s
-; by tools/eoc/sem_compile.py. This is the native layer of the eo-meta
+; by tools/eoc/compiler/sem_compile.py. This is the native layer of the eo-meta
 ; backend: a signature desugared with this in place of native_defs.eo is
 ; stated over the Eunoia primitives that set names and no others, which is a
 ; smaller proof language than the one that went in.
@@ -1158,7 +1160,7 @@ def write_if_changed(text, path):
 NATIVE_GENERATED = """\
 GENERATED FILE -- do not edit.
 
-Compiled from %s by tools/eoc/sem_compile.py, which is where a
+Compiled from %s by tools/eoc/compiler/sem_compile.py, which is where a
 definition of the layer is to be changed or added.
 
 The layer is what the generated %s is allowed to call that the compiler

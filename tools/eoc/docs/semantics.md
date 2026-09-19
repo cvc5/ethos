@@ -1,9 +1,9 @@
 # The signature configuration
 
 The files under `tools/eoc/semantics/` say what a symbol means to the model, once, in the vocabulary of
-SMT-LIB and of the input. `tools/eoc/sem_compile.py` compiles them into the
-signatures written in the deep embedding that the model-smt stage reads and the
-Lean clauses the lean-meta stage reads, all of which are generated in full.
+SMT-LIB and of the input. `tools/eoc/compiler/sem_compile.py` compiles them into
+the signatures written in the deep embedding that the model-smt stage reads and
+the Lean clauses the lean-meta stage reads, all of which are generated in full.
 
 This is the reference for the language they are written in: the grammar, every
 entry with its attributes, the four levels and how a body is cast, what the
@@ -81,12 +81,12 @@ Compiling one set is four steps:
    the same set, and that no block uses a name a later block defines.
 
 ```bash
-python3 tools/eoc/sem_compile.py                    # write what each set compiles to
-python3 tools/eoc/sem_compile.py --check            # say whether the generated files are current
-python3 tools/eoc/sem_compile.py --out-dir D        # write elsewhere
-python3 tools/eoc/sem_compile.py CONFIG...          # one shipped set rather than both
-python3 tools/eoc/sem_compile.py --semantics CONFIG     # a set of another tree, as an input
-python3 tools/eoc/sem_compile.py --smt-semantics CONFIG # ... as an SMT-LIB semantics
+python3 tools/eoc/compiler/sem_compile.py                    # write what each set compiles to
+python3 tools/eoc/compiler/sem_compile.py --check            # say whether the generated files are current
+python3 tools/eoc/compiler/sem_compile.py --out-dir D        # write elsewhere
+python3 tools/eoc/compiler/sem_compile.py CONFIG...          # one shipped set rather than both
+python3 tools/eoc/compiler/sem_compile.py --semantics CONFIG     # a set of another tree, as an input
+python3 tools/eoc/compiler/sem_compile.py --smt-semantics CONFIG # ... as an SMT-LIB semantics
 ```
 
 The eoc driver runs the compiler before the model-smt stage, so the generated
@@ -298,7 +298,7 @@ is is said by the role a run gives it -- the two the tool ships with have
 theirs fixed, and any other is given one by the option that names it,
 `--smt-semantics` for a target and `--semantics` for an input, never by what
 its file is called -- and where what it compiles to is written is the tool's to
-say, in `SMT_TARGET` and `INPUT_TARGET` in `tools/eoc/sem_compile.py`.
+say, in `SMT_TARGET` and `INPUT_TARGET` in `tools/eoc/compiler/sem_compile.py`.
 
 **Where a set compiles to is said by its role and by nothing else.** A run
 compiles one set of each role, and the set an option names *stands in for* the
@@ -352,8 +352,8 @@ into the head of each generated signature, and `DefsFile::read` in
 that stage knows no aggregate by name. How a case is *written* -- what its
 program declares, what an argument stands for in it, what it gives back -- is
 read by nothing but the compiler, so it stays there, in
-`tools/eoc/sem_target.py`. An aggregate written in one and not the other is an
-error rather than a half a run would carry.
+`tools/eoc/compiler/sem_target.py`. An aggregate written in one and not the
+other is an error rather than a half a run would carry.
 
 A set holds one **kind** of entity or several, each with a shape of its own:
 the SMT-LIB signature declares its symbols and the types they are of, and the
@@ -366,9 +366,9 @@ two are read apart by the form that declares one.
 | a value of the **target**, `semantics/smt.eos` | `declare-constructor` | a constant of the embedding and the macro that applies it; a case of `$smtx_typeof_value` under `:typeof`, of `$smtx_value_canonical` under `:canonical` |
 | a literal of the **target**, `semantics/smt.eos` | `define-literal` | a constant of the embedding and the macro that applies it; the two cases a symbol writes, `:typeof` and `:value`, over what it carries rather than over terms |
 | a symbol of an **input**, `semantics/development-cpc.eos` | `define-symbol` | a case of `$eo_to_smt` under `:term`; a case of `$eo_to_smt_type` under `:type`; the predicate the desugar stage asks under `:is-list-nil` |
-| a **native** of the embedding, `plugins/desugar/natives.eos` | `declare-native` | nothing of any signature: it declares a name a signature written in the embedding may call, saying what each argument of it is and, under `:op`, the operator it forwards to where that is not its own name. The declaration the desugar layer carries is written from it, so nothing states one by hand; see `render_natives` in `tools/eoc/sem_compile.py` |
+| a **native** of the embedding, `plugins/desugar/natives.eos` | `declare-native` | nothing of any signature: it declares a name a signature written in the embedding may call, saying what each argument of it is and, under `:op`, the operator it forwards to where that is not its own name. The declaration the desugar layer carries is written from it, so nothing states one by hand; see `render_natives` in `tools/eoc/compiler/sem_compile.py` |
 | a **native type** of the embedding, `plugins/desugar/natives.eos` | `declare-native-type` | nothing of any signature: it declares a type a native may take or give back, written `<numeral>` where one stands, and under `:op` the name SMT-LIB and the backends spell it with. A type a backend has to be *given* rather than already having, as `<nat>` is, is given to it by that backend's native layer, which is the only place the text to give it can be written |
-| a definition of a **native layer**, `plugins/lean_meta/lean.eos` and `plugins/smt_meta/smt-vc.eos` | `define-native-method` | one block of the layer a backend's generated text is written over: the text it is, under `:lean-impl` for the Lean backend and `:smt-impl` for the SMT-LIB one. Where the block can come out is read off that text rather than declared beside it, see `lean_needs` and `vc_needs` in `tools/eoc/sem_compile.py`, and it is emitted only where the compilation of an input reaches it, or when it says `:keep`. It names the native the way the backend spells it; whatever else it defines is private to the entry, which `impl_native_` rather than `native_` is what says on the Lean side |
+| a definition of a **native layer**, `plugins/lean_meta/lean.eos` and `plugins/smt_meta/smt-vc.eos` | `define-native-method` | one block of the layer a backend's generated text is written over: the text it is, under `:lean-impl` for the Lean backend and `:smt-impl` for the SMT-LIB one. Where the block can come out is read off that text rather than declared beside it, see `lean_needs` and `vc_needs` in `tools/eoc/compiler/sem_compile.py`, and it is emitted only where the compilation of an input reaches it, or when it says `:keep`. It names the native the way the backend spells it; whatever else it defines is private to the entry, which `impl_native_` rather than `native_` is what says on the Lean side |
 | a method, either set | `define-method` | nothing of the model: what is said about a program is said to a stage -- the Lean clause of `:lean`, which is written into the Lean file of the set, and `:exclude` |
 | a rule of an **input**, `semantics/development-cpc.eos` | `define-rule` | the same, for a proof rule, which says only that it is left out |
 | an **aggregate** of the model, `plugins/model_smt/model_smt.eos` | `declare-aggregate-method` | nothing of any signature: it declares one of the programs a symbol contributes a case to, saying under `:case` what the compiler names a symbol's case and under `:into` the marker of `plugins/model_smt/model_smt.eo` the cases are written at. `:helper` and `:forward` name the programs written over values that the cases hand their work to, and where those are declared ahead of the aggregate |
@@ -416,9 +416,9 @@ what a case calls each argument: the program the cases are spliced into
 declares each name once, so an argument is named after the type it is of
 rather than `x1` twice. The name is a letter for that type and the place the
 argument stands at -- `s1` for a native string first, `T2` for a type second,
-`x3` for a term third -- and `SLOT_BY_TYPE` in `tools/eoc/sem_target.py` is
-where a type is given its letter. Two types may not share one, and a type with
-none is an error rather than a guess.
+`x3` for a term third -- and `SLOT_BY_TYPE` in
+`tools/eoc/compiler/sem_target.py` is where a type is given its letter. Two
+types may not share one, and a type with none is an error rather than a guess.
 
 What each stands for in a body is the aggregate's business. In
 `semantics/smt.eos` a `:raw` argument -- an index -- stands for the term itself
@@ -1098,8 +1098,8 @@ values. `of_width` is a macro defined by the same set.
 
 The compiler writes a constructor and macro for the term, a
 `$smtx_model_eval_bvadd` helper and cases for the type and value aggregates.
-Run `python3 tools/eoc/sem_compile.py` and inspect the `; -- bvadd` block in
-`tools/eoc/out/smt_defs.eo` for the exact generated declarations.
+Run `python3 tools/eoc/compiler/sem_compile.py` and inspect the `; -- bvadd`
+block in `tools/eoc/out/smt_defs.eo` for the exact generated declarations.
 
 ### A symbol that reaches for the model
 
@@ -1232,9 +1232,9 @@ Not a change to a signature. Write a `declare-aggregate-method` in
 `plugins/model_smt/model_smt.eos` for the program the cases are to be spliced
 into, saying what a case of it is named and the marker they are written at; put
 that marker in `plugins/model_smt/model_smt.eo` where the cases belong; and say
-how a case is written in the shape in `tools/eoc/sem_target.py`. The stage that
-reads the generated file knows no aggregate by name, so it needs no change and
-nothing has to be rebuilt.
+how a case is written in the shape in `tools/eoc/compiler/sem_target.py`. The
+stage that reads the generated file knows no aggregate by name, so it needs no
+change and nothing has to be rebuilt.
 
 ### Add the semantics of another input
 

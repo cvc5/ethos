@@ -501,7 +501,7 @@ class Shape:
     # The text a native *is*, which the stage emits as a block of the layer
     # rather than after a definition it wrote itself: the Lean of one for the
     # lean-meta stage, the SMT-LIB of one for the smt-meta stage. A layer says
-    # only one of the two, see LAYERS in tools/eoc/sem_compile.py.
+    # only one of the two, see LAYERS in tools/eoc/compiler/sem_compile.py.
     out['lean-impl'] = 1
     out['smt-impl'] = 1
     out['eo-impl'] = 1
