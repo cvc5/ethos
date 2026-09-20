@@ -1,8 +1,57 @@
 # Adding the SMT model to Isabelle
 
-Investigation of the boundary between Isabelle's executable checker and the
-model semantics used to prove its soundness. Model generation is not yet
-implemented in `isabelle-meta`; the architecture below is a proposal.
+Implementation status and design of the boundary between Isabelle's executable
+checker and the model semantics used to prove its soundness.
+
+## Implemented: selected logical model definitions
+
+`isabelle --model-root SYMBOL` now runs `model-smt` and generates a separate
+`Model/` session for the requested dependency closure. Repeat the option for
+multiple roots. This is an experimental interface for porting the model in
+increments; it does not yet generate the full model evaluator or prove checker
+soundness. For example:
+
+```sh
+python3 tools/eoc/driver.py isabelle --build-dir build-eoc \
+  --semantics tools/eoc/semantics/development-cpc.eos --calc-name EocModel \
+  --model-root '$eo_to_smt' \
+  --model-root '$smtx_model_eval_not' \
+  --model-root '$smtx_model_eval_and' \
+  tests/Booleans-rules.eo contra and_intro
+isabelle build -D tools/eoc/out/isabelle
+```
+
+The emitted theory imports the original checker and defines SMT datatypes,
+the EO-to-SMT translation (including mutually recursive datatype translation),
+and Boolean value operations from the actual model IR. The checker pass exports
+constructor bindings, including allocated collision suffixes and indexed
+operator representations, for the model pass to reuse. A missing checker
+constructor is an error; the model pass cannot silently create another EO type.
+
+Logical programs use the `m_` prefix and take no checker fuel. Isabelle's
+`function` package must prove pattern coverage and termination. Currently the
+emitter requests automatic lexicographic termination; harder measures need
+further support. Uncovered SMT patterns do not get an arbitrary fallback.
+EO helpers preserve strictness and their explicit stuck result. Guarded model
+patterns and unsupported natives produce a compiler error before publication.
+
+The generated `ROOTS` registers the model session as a child of the unchanged
+checker session. The existing spec, parser, and runtime are unchanged. Both
+generation passes must succeed before the driver publishes the package.
+`install_iogos` still installs the checker package; installing the full model
+is a later step, once its native layer and termination proofs are supported.
+
+Run the regression, including kernel-checked translation/Boolean lemmas, a
+translation contract for `contra`, and byte-identical SML checker exports:
+
+```sh
+python3 tools/eoc/test/isabelle_model.py --build-dir build-eoc \
+  --isabelle /path/to/isabelle --require-isabelle
+```
+
+Without `--isabelle`, it checks generation, preservation of the checker
+artifacts, and preservation of published files on failure. `--out-dir DIR`
+keeps the generated test sessions for a separate Isabelle build.
 
 ## What can remain unchanged
 
@@ -46,9 +95,9 @@ not a generated or complete SMT model. The local probe lives under
 
 ## Two generation branches
 
-The current driver explicitly removes `include model_smt` and trims to
-`ISABELLE_DEPS`. Keep that checker generation path and add a model branch
-from the original desugared input:
+The driver keeps the checker path trimmed to `ISABELLE_DEPS`, without the
+`include model_smt` dependency echo. The optional model branch starts from
+the original desugared input:
 
 ```text
                        checker dependencies -> Checker + Runtime parser
@@ -63,18 +112,18 @@ sequences, regular languages and datatype declarations; the model record;
 the evaluator and typing/default/canonical-value helpers; and
 `$eo_to_smt` / `$eo_to_smt_type` with their translation helpers.
 
-The present backend emits every collected datatype and program into the
-checker theory. Feeding the combined input to that emitter would change the
-checker artifact and encounter unsupported model types. Add a separate
-emission path rather than simply enlarging `ISABELLE_DEPS`.
+The checker emitter puts every collected datatype and program into the checker
+theory. Feeding it the combined input would change the checker artifact. The
+model branch therefore uses a separate emission path and leaves
+`ISABELLE_DEPS` unchanged.
 
-That path should reuse the checker's allocated names through an explicit
-binding map. Constructor names, collision suffixes, enum chunks and mutual
-program identifiers are allocated by the checker emitter. A second pass must
-reference those definitions, not allocate independent copies of them. Model
-definitions also need their own namespace or identifier allocation domain.
+The constructor binding map implements name reuse for translation. Generating
+rule contracts will additionally need exported checker program names: those
+also have allocated collision suffixes. Model functions have a separate
+identifier allocation domain.
 
-A possible generated proof package is:
+As the remaining model support is ported, the current single model theory can
+be split into:
 
 | Theory | Contents |
 | --- | --- |
@@ -154,11 +203,12 @@ prove either the individual rule contracts or the checker theorem.
 
 ## Implementation order
 
-1. Keep the checker/parser byte-identity regression. Introduce the independent
-   model output path and explicit checker bindings.
-2. Generate model datatypes, Boolean operations and EO interpretation from the
-   actual `model-smt` output. Build them in HOL and prove a first ordinary rule
-   contract against the unchanged checker.
+1. Done: checker/parser byte-identity regression, independent model output path,
+   and explicit checker constructor bindings.
+2. Done: model datatypes, Boolean value operations, EO interpretation from the
+   actual `model-smt` output, and their HOL tests. A translation contract for
+   `contra` links this to the unchanged checker. A full semantic rule contract
+   still needs the evaluator and premise interpretation.
 3. Port the remaining reached natives and recursive helpers, including
    quantifiers, choice, datatype defaults and canonical values. Use Isabelle
    proofs for termination where structural recursion does not suffice.

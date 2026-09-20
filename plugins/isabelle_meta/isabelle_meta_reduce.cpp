@@ -10,6 +10,7 @@
 #include "isabelle_meta_reduce.h"
 
 #include <algorithm>
+#include <fstream>
 #include <functional>
 #include <iomanip>
 #include <sstream>
@@ -144,7 +145,7 @@ std::string IsabelleMetaReduce::identifier(const std::string& name,
   auto it = names.find(name);
   if (it != names.end()) return it->second;
   std::string stem = name;
-  if (prefix == "p_")
+  if (prefix == "p_" || prefix == "m_")
   {
     // These wrappers are compiler bookkeeping, not part of the rule name.
     if (stem.compare(0, 9, "$eo_prog_") == 0) stem.erase(0, 9);
@@ -196,7 +197,8 @@ bool IsabelleMetaReduce::isBuiltinMetaSymbol(const std::string& name) const
 std::string IsabelleMetaReduce::type(const Expr& t) const
 {
   MetaKind k = getTypeMetaKindFor(t, MetaKind::EUNOIA, true);
-  if (k == MetaKind::EO_EMBED || k == MetaKind::CHECKER_EMBED)
+  if (k == MetaKind::EO_EMBED || k == MetaKind::CHECKER_EMBED
+      || (d_model && k == MetaKind::SMT_EMBED))
     return getEmbedTypeName(getEmbedTypeApp(t));
   switch (k)
   {
@@ -204,6 +206,11 @@ std::string IsabelleMetaReduce::type(const Expr& t) const
     case MetaKind::PROOF: return "Proof";
     case MetaKind::CHECKER_RULE: return "CRule";
     case MetaKind::CHECKER_CMD: return "CCmd";
+    case MetaKind::SMT: if (d_model) return "SmtTerm"; break;
+    case MetaKind::SMT_TYPE: if (d_model) return "SmtType"; break;
+    case MetaKind::SMT_VALUE: if (d_model) return "SmtValue"; break;
+    case MetaKind::SMT_MAP: if (d_model) return "SmtMap"; break;
+    case MetaKind::SMT_SEQ: if (d_model) return "SmtSeq"; break;
     case MetaKind::SMT_BUILTIN:
     {
       if (t.getKind() == Kind::APPLY_OPAQUE && t.getNumChildren() == 2)
@@ -230,6 +237,17 @@ std::string IsabelleMetaReduce::type(const Expr& t) const
 std::string IsabelleMetaReduce::constructor(const Expr& e)
 {
   if (getName(e) == "$eo_pf") return "Proof_pf";
+  if (d_model)
+  {
+    auto it = d_importedConstructors.find(getName(e));
+    if (it != d_importedConstructors.end()) return it->second;
+    MetaKind kind = getTypeMetaKindFor(e.getType(), MetaKind::EUNOIA, true);
+    if (d_importedTypes.count(type(e.getType())) || kind == MetaKind::EUNOIA
+        || kind == MetaKind::EO_EMBED || kind == MetaKind::PROOF
+        || isCheckerMetaKind(kind))
+      EO_FATAL() << "IsabelleMetaReduce: model needs checker constructor "
+                 << getName(e) << " that was not exported by the checker";
+  }
   std::string name;
   getMetaKindFor(e, name);
   size_t arity = indexedArity(e);
@@ -267,6 +285,11 @@ void IsabelleMetaReduce::finalizeDecl(const Expr& e)
     return;
   const std::string name = getName(e);
   d_parserSymbols[name] = e;
+  if (d_model && d_importedTypes.count(type(e.getType())))
+  {
+    constructor(e);  // Check that the imported type really has this constructor.
+    return;
+  }
   if (name == "$emb_Type" || name == "$emb_Bool" || name == "$emb_FunType"
       || name == "$emb_Apply")
     return;
@@ -343,6 +366,29 @@ void IsabelleMetaReduce::define(const std::string& name, const Expr& e)
 
 bool IsabelleMetaReduce::echo(const std::string& msg)
 {
+  if (msg == "isabelle-model")
+  {
+    d_model = true;
+    d_datatypes.clear();
+    d_datatypeDeps.clear();
+    return false;
+  }
+  if (msg.compare(0, 21, "isabelle-import-type ") == 0)
+  {
+    if (!d_model || msg.size() == 21)
+      EO_FATAL() << "Malformed Isabelle model type binding: " << msg;
+    d_importedTypes.insert(msg.substr(21));
+    return false;
+  }
+  if (msg.compare(0, 23, "isabelle-import-symbol ") == 0)
+  {
+    std::istringstream in(msg.substr(23));
+    std::string name, value;
+    in >> std::quoted(name) >> std::quoted(value);
+    if (!in || !d_model) EO_FATAL() << "Malformed Isabelle model binding: " << msg;
+    d_importedConstructors[name] = value;
+    return false;
+  }
   if (msg.compare(0, 15, "lean-parser-op ") == 0)
   {
     std::istringstream in(msg.substr(15));
@@ -412,6 +458,17 @@ std::string IsabelleMetaReduce::atom(const Expr& e)
 std::string IsabelleMetaReduce::native(
     const std::string& name, const std::vector<std::string>& args) const
 {
+  if (d_model)
+  {
+    if ((name == "Teq" || name == "veq") && args.size() == 2)
+      return "(" + args[0] + " = " + args[1] + ")";
+    if (name == "string_prefix_eq" && args.size() == 2)
+      return "(take (length (" + args[0] + " :: nat list)) " + args[1]
+             + " = " + args[0] + ")";
+    if ((name == "uconst_id" || name == "const_id") && args.size() == 1)
+      return "(" + stringValue({64, name == "uconst_id" ? 117u : 99u, 46})
+             + " @ eoc_model_decimal " + args[0] + ")";
+  }
   if (args.empty())
   {
     if (name == "true") return "True";
@@ -948,6 +1005,11 @@ void IsabelleMetaReduce::finalizeParser()
 
 void IsabelleMetaReduce::finalize()
 {
+  if (d_model)
+  {
+    finalizeModel();
+    return;
+  }
   std::ostringstream datatypes, keys, defs, spec;
   // Give rule programs their readable names before helpers with the same stem.
   // Sorted source names make program allocation independent of call order.
@@ -1170,6 +1232,193 @@ void IsabelleMetaReduce::finalize()
                    "plugins/isabelle_meta/isabelle_meta_spec_gen.thy",
                    {{"$OBLIGATIONS$", spec.str()}});
   finalizeParser();
+  finalizeBindings();
+}
+
+void IsabelleMetaReduce::finalizeBindings()
+{
+  std::ofstream out(getOutputPath("plugins/isabelle_meta/isabelle_meta_bindings.eo"));
+  out << "(echo \"isabelle-model\")\n";
+  for (const auto& entry : d_datatypes)
+    out << "(echo " << jsonString("isabelle-import-type " + entry.first) << ")\n";
+  for (const auto& entry : d_parserSymbols)
+  {
+    std::ostringstream binding;
+    binding << "isabelle-import-symbol " << std::quoted(entry.first) << " "
+            << std::quoted(constructor(entry.second));
+    // Eunoia strings use doubled quotes (SMT-LIB), not JSON escaping.
+    out << "(echo \"";
+    for (char c : binding.str()) out << (c == '"' ? "\"\"" : std::string(1, c));
+    out << "\")\n";
+  }
+  out.close();
+  if (!out) EO_FATAL() << "IsabelleMetaReduce: could not write checker bindings";
+}
+
+std::string IsabelleMetaReduce::modelCall(
+    const std::string& name, const std::vector<std::string>& args)
+{
+  if (!d_programs.count(name))
+    EO_FATAL() << "IsabelleMetaReduce: undefined model program " << name
+               << " called by " << d_current;
+  d_calls[d_current].insert(name);
+  return application(identifier(name, "m_"), args);
+}
+
+std::string IsabelleMetaReduce::modelTerm(const Expr& e)
+{
+  if (e.getKind() == Kind::PROGRAM_CONST) return modelCall(getName(e), {});
+  if (e.getNumChildren() == 0) return atom(e);
+  const bool nativeApp = isSmtApplyApp(e);
+  size_t start = nativeApp ? 2 : 0;
+  std::string head;
+  bool prog = false;
+  if (!nativeApp)
+  {
+    if (isProgramApp(e))
+    {
+      head = getName(e[0]);
+      start = 1;
+      prog = true;
+    }
+    else if (e.getKind() == Kind::APPLY_OPAQUE)
+    {
+      head = atom(e[0]);
+      start = 1;
+    }
+    else if (e.getKind() == Kind::APPLY)
+    {
+      head = e.isEvaluatable() ? "$eo_mk_apply" : "Term_Apply";
+      prog = e.isEvaluatable();
+    }
+    else if (e.getKind() == Kind::VARIABLE) head = "Term_Var";
+    else if (e.getKind() == Kind::FUNCTION_TYPE) { }
+    else if (isLiteralOp(e.getKind()))
+    {
+      head = "$eo_" + kindToTerm(e.getKind()).substr(4);
+      prog = true;
+    }
+    else EO_FATAL() << "IsabelleMetaReduce: unsupported model expression " << e;
+  }
+  std::vector<std::string> args;
+  for (size_t i = start; i < e.getNumChildren(); ++i)
+    args.push_back(modelTerm(e[i]));
+  if (nativeApp) return native(getName(e[1]), args);
+  if (e.getKind() == Kind::FUNCTION_TYPE)
+    return "(Term_Apply (Term_Apply Term_FunType " + args.at(0) + ") "
+           + args.at(1) + ")";
+  return prog ? modelCall(head, args) : application(head, args);
+}
+
+std::string IsabelleMetaReduce::modelBody(const Program& p)
+{
+  const Expr& body = p.body;
+  const std::string name = identifier(getName(p.symbol), "m_");
+  if (body.getKind() != Kind::PROGRAM)
+    return "\"" + name + " = " + modelTerm(body) + "\"\n";
+  const Expr& t = p.symbol.getType();
+  const size_t arity = t.getNumChildren() - 1;
+  const std::string ret = type(t[arity]);
+  for (size_t j = 0; j <= arity; ++j)
+  {
+    MetaKind kind = getTypeMetaKindFor(t[j], MetaKind::EUNOIA, false);
+    if (kind == MetaKind::PROOF || isCheckerMetaKind(kind))
+      EO_FATAL() << "IsabelleMetaReduce: checker program " << d_current
+                 << " cannot be emitted as a logical model definition";
+  }
+  std::ostringstream equations;
+  bool first = true;
+  // EO programs are strict in Term arguments. Unlike the checker there is
+  // no fuel failure here, but the same EO stuck value must still propagate.
+  if (ret == "Term" && !p.macro)
+    for (size_t j = 0; j < arity; ++j)
+      if (type(t[j]) == "Term")
+      {
+        std::vector<std::string> pats;
+        for (size_t k = 0; k < arity; ++k)
+          pats.push_back(j == k ? "Term_Stuck" : "arg" + std::to_string(k));
+        equations << (first ? "  " : "| ") << "\"" << application(name, pats)
+                  << " = Term_Stuck\"\n";
+        first = false;
+      }
+  bool catchall = false;
+  for (size_t i = 0; i < body.getNumChildren(); ++i)
+  {
+    const Expr& hd = body[i][0];
+    std::vector<std::string> pats, guards;
+    std::set<Expr> bound;
+    for (size_t j = 1; j < hd.getNumChildren(); ++j)
+      pats.push_back(pattern(hd[j], bound, guards));
+    if (!guards.empty())
+      EO_FATAL() << "IsabelleMetaReduce: model pattern needs guards in " << d_current;
+    catchall = std::all_of(pats.begin(), pats.end(), [](const std::string& pat) {
+      return pat.compare(0, 2, "v_") == 0;
+    });
+    equations << (first ? "  " : "| ") << "\"" << application(name, pats)
+              << " = " << modelTerm(body[i][1]) << "\"\n";
+    first = false;
+  }
+  if (!catchall && (ret == "Term" || ret == "Proof"))
+  {
+    std::vector<std::string> pats(arity, "_");
+    equations << "| \"" << application(name, pats) << " = " << ret << "_Stuck\"\n";
+  }
+  return equations.str();
+}
+
+void IsabelleMetaReduce::finalizeModel()
+{
+  if (d_importedTypes.empty())
+    EO_FATAL() << "IsabelleMetaReduce: model emission requires checker bindings";
+  std::ostringstream datatypes, defs;
+  for (const auto& entry : d_datatypes) d_datatypeDeps[entry.first];
+  for (const auto& group : components(d_datatypeDeps))
+  {
+    for (size_t i = 0; i < group.size(); ++i)
+    {
+      datatypes << (i == 0 ? "datatype " : "and ") << group[i] << " =\n  ";
+      const auto& cs = d_datatypes.at(group[i]);
+      for (size_t j = 0; j < cs.size(); ++j)
+        datatypes << (j == 0 ? "" : "\n| ") << cs[j];
+      datatypes << "\n";
+    }
+    datatypes << "\n";
+  }
+  std::map<std::string, std::string> bodies;
+  for (const auto& entry : d_programs) identifier(entry.first, "m_");
+  for (const auto& entry : d_programs)
+  {
+    d_current = entry.first;
+    d_calls[d_current];
+    bodies[d_current] = modelBody(entry.second);
+  }
+  for (const auto& group : components(d_calls))
+  {
+    bool function = group.size() > 1 || d_calls.at(group[0]).count(group[0])
+                    || d_programs.at(group[0]).body.getKind() == Kind::PROGRAM;
+    for (size_t i = 0; i < group.size(); ++i)
+    {
+      const Program& p = d_programs.at(group[i]);
+      const Expr& t = p.symbol.getType();
+      bool cases = p.body.getKind() == Kind::PROGRAM;
+      size_t arity = cases ? t.getNumChildren() - 1 : 0;
+      defs << (i ? "and " : function ? "function (sequential) " : "definition ")
+           << identifier(group[i], "m_") << " :: \"";
+      for (size_t j = 0; j < arity; ++j) defs << "(" << type(t[j]) << ") => ";
+      defs << type(cases ? t[arity] : t) << "\"\n";
+    }
+    defs << "where\n";
+    for (size_t i = 0; i < group.size(); ++i)
+      defs << (i ? "| " : "") << bodies.at(group[i]);
+    // Unlike `fun`, this never inserts an undefined fallback for a missing
+    // pattern. Both coverage and termination must be proved by Isabelle.
+    if (function) defs << "  by pat_completeness auto\n"
+                          "termination by lexicographic_order\n";
+    defs << "\n";
+  }
+  emitResourceFile("plugins/isabelle_meta/isabelle_meta_model.thy",
+                   "plugins/isabelle_meta/isabelle_meta_model_gen.thy",
+                   {{"$DATATYPES$", datatypes.str()}, {"$PROGRAMS$", defs.str()}});
 }
 
 }  // namespace ethos

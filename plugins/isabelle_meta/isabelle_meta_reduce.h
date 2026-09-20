@@ -14,11 +14,13 @@
 
 namespace ethos {
 
-/** The executable checker fragment of the Isabelle/HOL meta backend.
+/** The checker and logical-model passes of the Isabelle/HOL meta backend.
  *
  * Like lean-meta, this consumes the desugar embedding. Programs return an
  * option and take a recursion budget: None means exhaustion, whereas an EO
- * pattern failure returns Some Term_Stuck. No termination axioms are needed.
+ * pattern failure returns Some Term_Stuck. The separate model pass imports
+ * the checker's constructors and generates fuel-free definitions whose
+ * coverage and termination must be proved in HOL. Neither pass adds axioms.
  */
 class IsabelleMetaReduce : public MetaReducePlugin
 {
@@ -53,6 +55,15 @@ class IsabelleMetaReduce : public MetaReducePlugin
                       std::set<Expr>& bound,
                       std::vector<std::string>& guards);
   std::string programBody(const Program& p);
+  void finalizeBindings();
+  void finalizeModel();
+  std::string modelTerm(const Expr& e);
+  std::string modelBody(const Program& p);
+  std::string modelCall(const std::string& name,
+                        const std::vector<std::string>& args);
+  bool d_model = false;
+  std::map<std::string, std::string> d_importedConstructors;
+  std::set<std::string> d_importedTypes;
   struct ParserOp
   {
     std::string surface, generated, attr, connector;

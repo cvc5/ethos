@@ -819,7 +819,10 @@ class Pipeline:
     def run_isabelle(
         self, input_name: str, targets: list[str], *, all_targets: bool,
         build_first: bool, calc_name: Optional[str] = None,
+        model_roots: Optional[list[str]] = None,
     ) -> Path:
+        if model_roots and self.defs_file is None:
+            raise RuntimeError("Isabelle --model-root requires --semantics")
         if build_first:
             self.build()
         calc_name = calc_name or lean_calc_name(Path(input_name))
@@ -839,12 +842,13 @@ class Pipeline:
             source = self.binary_path_arg(trimmed)
         self.desugar(source, desugared, use_vc_plugin=False,
                      deps=ISABELLE_DEPS, plugin_label="isabelle-meta")
-        # This backend does not consume model-smt. Its dependency echo would
-        # otherwise retain model-only helpers in the checker fragment.
+        # Keep the two dependency closures separate: the proof model must not
+        # add declarations, programs, or name allocations to the checker.
         text = desugared.read_text()
-        desugared.write_text(re.sub(r'^\(echo "include model_smt[^\n]*\)\n',
-                                   '', text, flags=re.M))
-        self.trim_defs(self.binary_path_arg(desugared),
+        checker_input = self.stage_out_dir / f"isabelle-{stem}-checker.eo"
+        checker_input.write_text(re.sub(r'^\(echo "include model_smt[^\n]*\)\n',
+                                       '', text, flags=re.M))
+        self.trim_defs(self.binary_path_arg(checker_input),
                        ISABELLE_DEPS.split(), final_defs)
         self.ethos(["--plugin.isabelle-meta", self.binary_path_arg(final_defs)],
                    quiet=True)
@@ -860,6 +864,28 @@ class Pipeline:
                              ("generate_syntax_gen.py", "generate_syntax.py")):
             generated[f"Runtime/{dest}"] = self.plugin_generated(
                 f"isabelle_meta/{source}").read_text()
+        if model_roots:
+            bindings = self.plugin_generated(
+                "isabelle_meta/isabelle_meta_bindings.eo").read_text()
+            modeled = self.stage_out_dir / f"isabelle-{stem}-model.eo"
+            model_defs = self.stage_out_dir / f"isabelle-{stem}-model-final.eo"
+            self.model_smt(desugared, modeled)
+            self.parse_file(modeled)
+            # Echo metadata retains checker/parser roots. Strip it before
+            # selecting the independent model dependency closure.
+            modeled.write_text(re.sub(r'^\(echo [^\n]*\)\n',
+                                      '', modeled.read_text(), flags=re.M))
+            self.trim_defs(self.binary_path_arg(modeled), model_roots, model_defs)
+            model_defs.write_text(bindings + model_defs.read_text())
+            self.ethos(["--plugin.isabelle-meta", self.binary_path_arg(model_defs)],
+                       quiet=True)
+            generated[f"Model/{calc_name}_Model.thy"] = self.plugin_generated(
+                "isabelle_meta/isabelle_meta_model_gen.thy").read_text()
+            generated["Model/ROOT"] = (
+                f"session {calc_name}_Model = {calc_name} +\n"
+                '  options [document = false]\n'
+                f"  theories {calc_name}_Model\n")
+            generated["ROOTS"] = "Model\n"
         # Publish only after the backend succeeds, as for Lean. This directory
         # is generated in its entirety; an earlier calculus must not survive.
         # Read every artifact first so missing parser output cannot replace a
@@ -1116,6 +1142,9 @@ def main(argv: list[str]) -> int:
     isabelle.add_argument("targets", nargs="*")
     isabelle.add_argument("--all", action="store_true", help="Compile the entire signature.")
     isabelle.add_argument("--calc-name", default=None, help="Isabelle session and theory prefix.")
+    isabelle.add_argument("--model-root", action="append", default=[], metavar="SYMBOL",
+                          help="Also generate a proof-side model-smt dependency closure "
+                               "(experimental; repeat for multiple roots). Requires --semantics.")
 
     desugar = subparsers.add_parser("desugar", help="Generate a desugared EO file.")
     add_common_args(desugar)
@@ -1289,7 +1318,8 @@ def main(argv: list[str]) -> int:
                 parser.error("isabelle --all takes no targets")
             pipeline.run_isabelle(
                 args.input, list(args.targets), all_targets=args.all,
-                build_first=build_first, calc_name=args.calc_name)
+                build_first=build_first, calc_name=args.calc_name,
+                model_roots=args.model_root)
         elif args.command == "desugar":
             pipeline.run_desugar(args.input, build_first=build_first,
                                  natives=args.natives)

@@ -49,10 +49,10 @@ as configuration, and every target is compiled from it; new symbols within the s
 configuration. Generated lemmas still require proofs, and solver results are
 relative to the generated encoding and the chosen semantics.
 
-The initial Isabelle target compiles the executable checker directly from the
-calculus. Its proof scaffolding leaves the interpretation to the importing
-theory; it does not yet consume the semantics configuration used by the other
-targets.
+The Isabelle target compiles the executable checker directly from the calculus.
+An experimental `--model-root` option also consumes the semantics configuration
+to generate selected logical model definitions in a separate session. Full
+model evaluation and semantic soundness obligations remain in development.
 
 ### What a symbol means is written in `.eos`, and this is its reference
 
@@ -136,6 +136,10 @@ unverified, as in Iogos; checker acceptance still comes from Isabelle's export.
 Definitions with unresolved implicit parameters are omitted, and definitions
 that execute EO programs rather than construct terms are omitted with a warning.
 The full SMT model and the remaining native operations are future work.
+For the implemented model generation path and its HOL tests, see
+[Isabelle model support](docs/isabelle-model.md). For example, add
+`--semantics tools/eoc/semantics/development-cpc.eos --model-root '$eo_to_smt'`
+to generate the translation without changing the checker or runtime artifacts.
 Unsupported reachable natives produce a compiler error, naming the native and
 the enclosing program. Generated names preserve underscores and replace hyphens,
 dots, and colons with underscores. Programs omit the compiler's `$eo_prog_`,
