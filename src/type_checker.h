@@ -51,10 +51,12 @@ class TypeChecker
   /**
    * Get type rule for literal kind k. The argument self is the expression to
    * instantiate eo::self with, if applicable, otherwise eo::? is used.
-   * If no type rule has been set yet for k, the type rule for k is initialized
-   * to a default, given by State::mkBuiltinType(k).
+   * Returns null if no type rule has been declared for k, writing an error
+   * message on out if it is provided. Boolean literals have builtin type Bool.
    */
-  Expr getLiteralTypeRuleMaybeInit(Kind k, ExprValue* self = nullptr);
+  Expr getLiteralTypeRule(Kind k,
+                         ExprValue* self = nullptr,
+                         std::ostream* out = nullptr);
   /**
    * Evaluate the expression e in the given context.
    */

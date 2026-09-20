@@ -316,7 +316,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   {
     // ensure it is ground by getting an arbitrary value
     Expr gt = getGroundTermForLiteralKind(itk->second);
-    ct = d_tc.getLiteralTypeRuleMaybeInit(itk->second, gt.getValue());
+    ct = d_tc.getLiteralTypeRule(itk->second, gt.getValue());
   }
   std::vector<Expr> approxSig = getGrammarSigApprox(ct);
   Assert(!approxSig.empty());

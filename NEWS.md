@@ -1,5 +1,10 @@
 This file contains a summary of important user-visible changes.
 
+ethos 0.2.5 (unreleased)
+========================
+
+- Literal types must now be declared with `declare-consts` before type checking literals or builtin operators that return them. Missing rules produce a type error instead of silently assigning a dummy type. Boolean literals retain their builtin type `Bool`.
+
 ethos 0.2.4
 ===========
 

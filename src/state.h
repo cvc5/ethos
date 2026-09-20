@@ -139,8 +139,6 @@ class State
   /** (Quote <term>) */
   Expr mkQuoteType(const Expr& t);
   /** */
-  Expr mkBuiltinType(Kind k);
-  /** */
   Expr mkSymbol(Kind k, const std::string& name, const Expr& type);
   /** (eo::requires <pair>+ <type>) */
   Expr mkRequires(const std::vector<Expr>& args, const Expr& ret);
