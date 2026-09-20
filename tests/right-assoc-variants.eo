@@ -1,8 +1,10 @@
 
 (declare-const Int Type)
+(declare-consts <numeral> Int)
 (declare-const Real Type)
 (declare-const BitVec (-> Int Type))
 (declare-const String Type)
+(declare-consts <string> String)
 (declare-const Seq (-> Type Type))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
