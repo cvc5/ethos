@@ -183,8 +183,8 @@ and the auxiliary programs those cases call. `user_defs.eo` gives
 
 **Both files are generated.** What is written by hand is a *configuration*
 under [`tools/eoc/semantics/`](../semantics), which
-`tools/eoc/sem_compile.py` compiles into them; the driver runs it before any
-stage, so the two are never out of step with what the stage reads.
+`tools/eoc/compiler/sem_compile.py` compiles into them; the driver runs it
+before any stage, so the two are never out of step with what the stage reads.
 
 | Configuration | Compiles to |
 | --- | --- |
@@ -225,8 +225,8 @@ Its forms are `define-symbol`, `define-sort`, `declare-constructor`,
 into the generated file, so everything a signature names has been checked
 against the vocabulary of the embedding, ordered against the other blocks, and
 can be trimmed with them. A set therefore says what a theory *does* and never
-what the embedding *is*. `tools/eoc/docs/semantics.md` is the reference for
-the language.
+what the embedding *is*. Eunoia's [`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md)
+is the reference for the language.
 
 `defs_reader.{h,cpp}` reads a generated file as *text* blocks and splices the
 cases into the aggregate programs, copying everything else through unchanged.
@@ -242,7 +242,8 @@ not know: the head of each generated file declares them, one line to an
 aggregate, saying what a symbol's case is named and the marker of the template
 its cases are written at. Those lines are compiled from
 `plugins/model_smt/model_smt.eos`, so an aggregate is added there and in
-`tools/eoc/sem_target.py`, and this stage needs no change and no rebuild.
+`tools/eoc/compiler/sem_target.py`, and this stage needs no change and no
+rebuild.
 
 A block may also say that the compilation has no place for its symbol. The
 configuration writes `:exclude` on the symbol, the method or the rule; the

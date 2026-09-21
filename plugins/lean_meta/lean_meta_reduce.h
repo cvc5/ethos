@@ -221,10 +221,10 @@ class LeanMetaReduce : public MetaReducePlugin
   /** The scope of the module the text written to os comes out in. */
   std::string scopeOf(const std::ostream* os) const;
   /**
-   * The native layer of this backend, i.e. what tools/eoc/sem_compile.py
-   * compiled plugins/lean_meta/lean.eos to. Its three homes are the modules
-   * that carry a $NATIVE_DEFS$: SmtEval, which every module sees, Logos and
-   * SmtModel.
+   * The native layer of this backend, i.e. what
+   * tools/eoc/compiler/sem_compile.py compiled plugins/lean_meta/lean.eos to.
+   * Its three homes are the modules that carry a $NATIVE_DEFS$: SmtEval, which
+   * every module sees, Logos and SmtModel.
    */
   NativeLayer d_natives;
   /**

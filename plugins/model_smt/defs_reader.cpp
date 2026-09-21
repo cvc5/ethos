@@ -465,7 +465,7 @@ bool DefsFile::read(const std::string& path)
   {
     EO_FATAL() << "DefsFile: " << path
                << " declares no aggregates; it was written by an older "
-                  "compiler, run tools/eoc/sem_compile.py";
+                  "compiler, run tools/eoc/compiler/sem_compile.py";
   }
   while (i != std::string::npos)
   {
