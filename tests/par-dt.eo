@@ -1,3 +1,6 @@
+(declare-const String Type)
+(declare-consts <string> String)
+
 (declare-const Int Type)
 (declare-datatypes ((List 1)) ((par (T) ((nil) (cons (head T) (tail (List T)))))))
 (define y () (eo::var "y" (List Int)))

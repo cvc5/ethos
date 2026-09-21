@@ -486,7 +486,8 @@
    (i $native_Nat) (j $native_Nat)
    (m $native_Int) (s $native_String)
    ; what a case of a literal is written with: a letter for the type it is of
-   ; and the place it stands at, see SLOT_BY_TYPE in tools/eoc/sem_target.py
+   ; and the place it stands at, see SLOT_BY_TYPE in
+   ; tools/eoc/compiler/sem_target.py
    (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
    (r1 $native_Rat) (s1 $native_String)
    ; generic parameters that may appear in terms to pattern match
@@ -535,7 +536,8 @@
    (i $native_Nat) (j $native_Nat)
    (m $native_Int) (s $native_String)
    ; what a case of a literal is written with: a letter for the type it is of
-   ; and the place it stands at, see SLOT_BY_TYPE in tools/eoc/sem_target.py
+   ; and the place it stands at, see SLOT_BY_TYPE in
+   ; tools/eoc/compiler/sem_target.py
    (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
    (r1 $native_Rat) (s1 $native_String)
    ; generic parameters that may appear in terms to pattern match

@@ -58,7 +58,7 @@ jobs:
     # they hold what compiling the configuration writes and, which nothing
     # else checks, that each block of one stands after the blocks it names.
     - name: Check the compiled semantics
-      run: python3 tools/eoc/sem_compile.py --check
+      run: python3 tools/eoc/compiler/sem_compile.py --check
 
     - name: Check the driver interface
       run: python3 tools/eoc/test/driver.py

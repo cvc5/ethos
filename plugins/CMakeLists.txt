@@ -52,7 +52,8 @@ target_compile_definitions(
 # its text changes, so a build with nothing to do leaves the tree alone.
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_custom_target(eoc-semantics
-  COMMAND ${Python3_EXECUTABLE} "${ETHOS_SOURCE_DIR}/tools/eoc/sem_compile.py"
+  COMMAND ${Python3_EXECUTABLE}
+          "${ETHOS_SOURCE_DIR}/tools/eoc/compiler/sem_compile.py"
   WORKING_DIRECTORY "${ETHOS_SOURCE_DIR}"
   COMMENT "Compiling the semantics configuration under tools/eoc/semantics")
 add_dependencies(ethos-eoc eoc-semantics)

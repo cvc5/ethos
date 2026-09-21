@@ -16,6 +16,13 @@ under `plugins/`, and the parent's CI builds it and runs the child regressions;
 it is therefore not isolated from the parent build infrastructure. It remains
 experimental, with any change in its status reserved for the human maintainers.
 
+What is where in this project: `compiler/` holds the implementation -- the
+configuration compiler, the language it reads and what it writes -- and
+`semantics/` the sets the tool ships. `driver.py` is the entry point, and is
+the one path a caller of another tree names, so it stands here rather than
+beside the modules it drives. `docs/` and `test/` hold the pages and the
+regressions; `out/` is what a run writes and is not checked in.
+
 As of 2026-09-18, Logos uses this compiler to regenerate calculus modules; its
 hand-written specification and checked proofs determine what the resulting
 checker establishes. The [documentation index](docs/README.md) covers the
@@ -54,13 +61,14 @@ An experimental `--model-root` option also consumes the semantics configuration
 to generate selected logical model definitions in a separate session. Full
 model evaluation and semantic soundness obligations remain in development.
 
-### What a symbol means is written in `.eos`, and this is its reference
+### What a symbol means is written in `.eos`, and eunoia keeps its reference
 
-**[`docs/semantics.md`](docs/semantics.md) is the reference for the
-configuration language** -- the grammar, every entry with the attributes it
-may carry, the four vocabularies a body may be written in and how one is cast
-between them, what the compiler checks, worked examples, and what every
-diagnostic means.
+**The configuration language has [a reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md)**
+-- the grammar, every entry with the attributes it may carry, the four
+vocabularies a body may be written in and how one is cast between them, what
+the compiler checks, worked examples, and what every diagnostic means. It is
+maintained in the [eunoia](https://github.com/ajreynol/eunoia) repository, by
+its sapheneia project, and not in this tree.
 
 Almost all work on a calculus is an edit to one of those files rather than a
 change to anything here, and a target is reached by writing configuration
@@ -184,8 +192,8 @@ tools/eoc/out/user_defs.eo  how the input's symbols transform into it
 ```
 
 **Both are generated**, from the configuration under `tools/eoc/semantics`,
-which `tools/eoc/sem_compile.py` compiles before any stage runs; neither is
-checked in. What the options name is therefore the *central file of a
+which `tools/eoc/compiler/sem_compile.py` compiles before any stage runs;
+neither is checked in. What the options name is therefore the *central file of a
 configuration set* rather than what it compiles to:
 
 ```text
@@ -196,8 +204,8 @@ python3 tools/eoc/driver.py lean --all \
 
 A file that is not a central file is taken to be a signature already written
 out and is passed through, which is what lets one that has no configuration
-still be given directly. See `tools/eoc/docs/semantics.md` for what the
-configuration is and the language it is written in.
+still be given directly. See the [`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md)
+for what the configuration is and the language it is written in.
 
 A run compiles **one set of each role**, and the set an option names stands in
 for the one the tool ships with rather than compiling beside it. Where a set
@@ -243,7 +251,8 @@ the marker of `plugins/model_smt/model_smt.eo` the stage writes them at; the
 longest matching case prefix identifies the aggregate a program belongs to. The lines are compiled from
 `plugins/model_smt/model_smt.eos`, which is where an aggregate is to be changed
 or added, and the stage reads them rather than knowing any of it, so adding one
-asks nothing of `ethos-eoc`. See `docs/semantics.md`.
+asks nothing of `ethos-eoc`. See the
+[`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md).
 
 A block may also be of a helper rather than of a symbol, in which case the
 `; -- X` line names the helper itself, e.g. `; -- $smtx_typeof_bv_op_2` for the
@@ -255,11 +264,11 @@ A helper belongs in the signature when only theory operators call it. That is
 the whole of what a signature may hold beside its symbols: a set says what a
 theory **does** and never what the embedding **is**, so it writes programs and
 never a declaration, and a form that is neither is refused rather than carried
-over as the text it is; see `docs/semantics.md`. The programs over a map --
-looking an entry up, typing one, saying whether one is written the one way --
-are therefore written in the configuration beside the sort they belong to,
-while the `$smt_Map` they are written over is declared in
-`plugins/model_smt/model_smt.eo` with the rest of the embedding.
+over as the text it is; see the [`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md).
+The programs over a map -- looking an entry up, typing one, saying whether one
+is written the one way -- are therefore written in the configuration beside
+the sort they belong to, while the `$smt_Map` they are written over is
+declared in `plugins/model_smt/model_smt.eo` with the rest of the embedding.
 
 What remains in `plugins/model_smt/model_smt.eo` is what says what the
 embedding is, and what no theory is what asks for:
@@ -296,7 +305,7 @@ the driver reads those dependencies off the blocks and tells `trim-defs`; see
 the *desugar* stage are read the same way, since they are spliced into a
 trimmed signature too: the nil predicate of `str.++` names `seq.empty`, and a
 run that keeps the one has to keep the other. See `head_lines` in
-`tools/eoc/sem_compile.py`, which writes both.
+`tools/eoc/compiler/sem_compile.py`, which writes both.
 
 A block may also say that the compilation has no place for what it is of at
 all: SMT-LIB gives a proof-level binder no meaning, so `lambda` and everything
@@ -312,7 +321,8 @@ says so with directives of the following forms:
 The configuration writes `:exclude` on the symbol, the method or the rule
 itself -- a method with `define-method` and a rule with `define-rule` -- and the
 compiler puts the directive back, the kind being what the form that declared it
-says one is; see `docs/semantics.md`.
+says one is; see the
+[`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md).
 
 `Pipeline.defs_excludes` collects them and gives them to the desugar stage,
 which is what drops what they name; a rule among them is also left out of
@@ -326,9 +336,9 @@ for itself.
 Lean has to be told why a recursive definition terminates whenever it cannot
 see this for itself, and no measure the compiler could guess would do for the
 programs that need one. So the clause is stated as the Lean text it is, under
-`:lean` in the configuration set of the signature the program is of (see
-`docs/semantics.md`), and the `lean-meta` stage appends it to the definition
-of the program it names:
+`:lean` in the configuration set of the signature the program is of (see the
+[`.eos` reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md)), and the
+`lean-meta` stage appends it to the definition of the program it names:
 
 ```text
 tools/eoc/out/smt_termination.lean   the programs of the deep embedding, which
@@ -390,8 +400,8 @@ A definition a Lean block writes for itself, rather than the one it declares,
 is named `impl_native_` instead, which is what says it is private to that
 block: `impl_native_int_log_rec` is nothing a signature may reach.
 
-Where a name is spelled is settled in `LAYERS` in `tools/eoc/sem_compile.py`,
-one entry to a backend.
+Where a name is spelled is settled in `LAYERS` in
+`tools/eoc/compiler/sem_compile.py`, one entry to a backend.
 
 What is left in `native_embed.eo` is what the embedding *is* rather than what
 it calls, and nothing else: the `$native_apply_*`, `$native_type_*` and
@@ -455,9 +465,9 @@ An eo-meta native without an implementation falls back to an opaque
 `$native_apply_N`. Missing or unused definitions are not comprehensively checked
 against what each backend supports. See the [design notes](docs/design.md).
 
-**A layer is a configuration set**, which `tools/eoc/sem_compile.py` compiles;
-one entry is one definition, under the attribute that says which language it
-is written in:
+**A layer is a configuration set**, which `tools/eoc/compiler/sem_compile.py`
+compiles; one entry is one definition, under the attribute that says which
+language it is written in:
 
 ```lisp
 (define-native-method str_to_upper
@@ -519,9 +529,9 @@ Neither of the two things this is read off is the generated text:
 - **What a block names** is read by the compiler, off the block itself, and
   written on the line that opens it: the scope it cannot be written above, and
   the rest of the layer it calls. See `lean_needs`, `vc_needs` and
-  `native_deps` in `tools/eoc/sem_compile.py`. Reading it there rather than
-  beside the definition is what keeps it from drifting: an annotation can, and
-  the text cannot drift from itself.
+  `native_deps` in `tools/eoc/compiler/sem_compile.py`. Reading it there rather
+  than beside the definition is what keeps it from drifting: an annotation can,
+  and the text cannot drift from itself.
 - **What an input names** is what the stage wrote: a name of the layer reaches
   generated text only by being printed into it, so the stage notes each as it
   prints it, against the scope the text it is printing comes out in. See
@@ -603,8 +613,8 @@ semantics the tool ships with covers entirely, so `lean --all` over one stops
 at the first symbol the semantics says nothing about; what covers it is a
 calculus of another tree, e.g. the CPC wrappers in `tools/eoc/cpc`.
 
-`python3 tools/eoc/sem_compile.py --check` is the other half: it says the
-generated signatures hold what compiling the configuration writes, and that
+`python3 tools/eoc/compiler/sem_compile.py --check` is the other half: it says
+the generated signatures hold what compiling the configuration writes, and that
 each block of one stands after the blocks it names.
 
 ## One important path rule
@@ -646,9 +656,9 @@ regardless says so as `warning: ...`. Anything meant to be read by a program
 rather than a person -- the rule names of `list-rules` -- is written plainly to
 stdout with no prefix at all.
 
-The style is defined in one place per language: `tools/eoc/report.py` for the
-tools, and `eoc_step`, `eoc_item`, `eoc_error` in `tools/eoc/cpc/common.sh` for
-the scripts that call them.
+The style is defined in one place per language: `tools/eoc/compiler/report.py`
+for the tools, and `eoc_step`, `eoc_item`, `eoc_error` in
+`tools/eoc/cpc/common.sh` for the scripts that call them.
 
 ## Output layout
 
@@ -666,7 +676,7 @@ Published and stage files:
 ```text
 tools/eoc/out/
   smt_defs.eo               what the configuration compiles to, see
-  user_defs.eo              tools/eoc/docs/semantics.md
+  user_defs.eo              eunoia's tools/sapheneia/docs/eos.md
   smt_termination.lean
   user_termination.lean
   lean_native.lean          the native layer of each backend, see above

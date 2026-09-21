@@ -19,8 +19,8 @@ class RuleListing(unittest.TestCase):
         self.root = Path(self.temp.name)
         # A listing must need only the driver, its output helper, and input.
         # In particular, sem_compile.py and plugins/ are deliberately absent.
-        for name in ("driver.py", "report.py"):
-            shutil.copyfile(EOC / name, self.root / name)
+        for source in (EOC / "driver.py", EOC / "compiler" / "report.py"):
+            shutil.copyfile(source, self.root / source.name)
 
     def run_listing(self, name):
         return subprocess.run(

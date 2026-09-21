@@ -23,7 +23,7 @@ namespace ethos {
 
 TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s), d_plugin(nullptr), d_sts(s.getStats())
 {
-  std::set<Kind> literalKinds = { Kind::BOOLEAN, Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING, Kind::DECIMAL, Kind::HEXADECIMAL };
+  std::set<Kind> literalKinds = { Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING, Kind::DECIMAL, Kind::HEXADECIMAL };
   // initialize literal kinds 
   for (Kind k : literalKinds)
   {
@@ -40,6 +40,18 @@ bool TypeChecker::setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out)
 {
   Trace("type_checker") << "**** setLiteralTypeRule " << k << " to " << t
                         << std::endl;
+  if (k == Kind::BOOLEAN)
+  {
+    // Bool is builtin: true and false have it whatever is declared, so a rule
+    // for <boolean> could only be ignored. Refuse it instead of storing one
+    // that nothing reads back.
+    if (out)
+    {
+      (*out) << "Cannot set a type rule for kind " << k
+             << ", since Boolean literals have the builtin type Bool";
+    }
+    return false;
+  }
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
   {
@@ -60,25 +72,28 @@ bool TypeChecker::setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out)
   return true;
 }
 
-Expr TypeChecker::getLiteralTypeRuleMaybeInit(Kind k, ExprValue* self)
+Expr TypeChecker::getLiteralTypeRule(Kind k, ExprValue* self, std::ostream* out)
 {
+  if (k == Kind::BOOLEAN)
+  {
+    return d_state.mkBoolType();
+  }
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
   {
     std::stringstream ss;
-    EO_FATAL() << "TypeChecker::getLiteralTypeRuleMaybeInit: cannot get type "
+    EO_FATAL() << "TypeChecker::getLiteralTypeRule: cannot get type "
                << "rule for kind " << k;
   }
-  Expr tp;
-  if (it->second.isNull())
+  Expr tp = it->second;
+  if (tp.isNull())
   {
-    // If no type rule, assign the type rule to the builtin type
-    tp = d_state.mkBuiltinType(k);
-    d_literalTypeRules[k] = tp;
-  }
-  else
-  {
-    tp = it->second;
+    if (out)
+    {
+      (*out) << "No type rule declared for literal kind " << k
+             << "; use declare-consts to declare its type before use";
+    }
+    return d_null;
   }
   // it may involve the "self" parameter
   if (!tp.isGround())
@@ -289,7 +304,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     case Kind::STRING:
     {
       // use the literal type rule
-      return getLiteralTypeRuleMaybeInit(k, e);
+      return getLiteralTypeRule(k, e, out);
     }
     case Kind::AS:
     case Kind::AS_RETURN:
@@ -310,7 +325,12 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     {
       Expr ctype1 = Expr(d_state.lookupType(e->d_children[0]));
       Expr ctype2 = Expr(d_state.lookupType(e->d_children[1]));
-      if (ctype1 != getLiteralTypeRuleMaybeInit(Kind::STRING, e->d_children[0]))
+      Expr stringType = getLiteralTypeRule(Kind::STRING, e->d_children[0], out);
+      if (stringType.isNull())
+      {
+        return d_null;
+      }
+      if (ctype1 != stringType)
       {
         if (out)
         {
@@ -1898,12 +1918,12 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_FIND:
     case Kind::EVAL_LIST_LENGTH:
     case Kind::EVAL_LIST_FIND:
-      return getLiteralTypeRuleMaybeInit(Kind::NUMERAL);
+      return getLiteralTypeRule(Kind::NUMERAL, nullptr, out);
     case Kind::EVAL_RAT_DIV:
-    case Kind::EVAL_TO_RAT: return getLiteralTypeRuleMaybeInit(Kind::RATIONAL);
+    case Kind::EVAL_TO_RAT: return getLiteralTypeRule(Kind::RATIONAL, nullptr, out);
     case Kind::EVAL_NAME_OF:
-    case Kind::EVAL_TO_STRING: return getLiteralTypeRuleMaybeInit(Kind::STRING);
-    case Kind::EVAL_TO_BIN: return getLiteralTypeRuleMaybeInit(Kind::BINARY);
+    case Kind::EVAL_TO_STRING: return getLiteralTypeRule(Kind::STRING, nullptr, out);
+    case Kind::EVAL_TO_BIN: return getLiteralTypeRule(Kind::BINARY, nullptr, out);
     case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS: return d_state.mkListType();
     default:break;

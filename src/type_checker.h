@@ -45,16 +45,20 @@ class TypeChecker
   static bool checkArity(Kind k, size_t nargs, std::ostream* out = nullptr);
   /**
    * Set type rule for literal kind k to t, returns false if the type rule for
-   * k was already set to a different type.
+   * k was already set to a different type, or if k is BOOLEAN, whose type is
+   * the builtin Bool and cannot be declared. An error message is written on
+   * out if it is provided.
    */
   bool setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out = nullptr);
   /**
    * Get type rule for literal kind k. The argument self is the expression to
    * instantiate eo::self with, if applicable, otherwise eo::? is used.
-   * If no type rule has been set yet for k, the type rule for k is initialized
-   * to a default, given by State::mkBuiltinType(k).
+   * Returns null if no type rule has been declared for k, writing an error
+   * message on out if it is provided. Boolean literals have builtin type Bool.
    */
-  Expr getLiteralTypeRuleMaybeInit(Kind k, ExprValue* self = nullptr);
+  Expr getLiteralTypeRule(Kind k,
+                         ExprValue* self = nullptr,
+                         std::ostream* out = nullptr);
   /**
    * Evaluate the expression e in the given context.
    */

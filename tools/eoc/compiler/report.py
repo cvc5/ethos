@@ -25,7 +25,10 @@ import sys
 PREFIX = '-- '
 INDENT = '  '
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# tools/eoc/compiler/report.py, so the root of the repository is four
+# directories up.
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 
 
 def rel(path, start=None):

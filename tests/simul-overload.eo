@@ -1,5 +1,8 @@
 
 
+(declare-const String Type)
+(declare-consts <string> String)
+
 (declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))
 
 (declare-rule refl ((T Type) (t T))

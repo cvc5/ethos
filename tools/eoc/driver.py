@@ -17,6 +17,10 @@ import sys
 from pathlib import Path
 from typing import Iterable, Optional
 
+# The compiler's modules are under compiler/. A listing copied out of the
+# tree has report.py beside the driver instead, see tools/eoc/test/driver.py,
+# so the driver's own directory is searched first.
+sys.path.insert(0, str(Path(__file__).resolve().parent / "compiler"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import report  # noqa: E402
@@ -63,8 +67,8 @@ DECLARE_RULE_RE = re.compile(r"^\(declare-rule\s+([^\s(]+)")
 INCLUDE_RE = re.compile(r'^\(include\s+"([^"]+)"\s*\)')
 # What the head of a signature written in the deep embedding says to a stage,
 # as against what its blocks say about the model. A line is `; $eoc-<what>`
-# and then its words; see head_lines in tools/eoc/sem_compile.py, which is
-# what writes them, and DefsFile::read, which reads the ones about the shape
+# and then its words; see head_lines in tools/eoc/compiler/sem_compile.py, which
+# is what writes them, and DefsFile::read, which reads the ones about the shape
 # of the file.
 DEFS_HEAD = "; $eoc-"
 DEFS_BLOCK = "; -- "
@@ -235,7 +239,7 @@ def inline_called_blocks(path: Path, include_name: str,
 
     A block is `; -- NAME` and the program under it, blocks being separated by
     a blank line, which is how every generated signature is laid out; see
-    Block.render in tools/eoc/sem_lang.py.
+    Block.render in tools/eoc/compiler/sem_lang.py.
     """
     marker = f'(include "{include_name}")'
     text = path.read_text()
@@ -449,7 +453,8 @@ class Pipeline:
         wrote -- what the compilation has no place for, and what each block
         names of the input -- so it says it above the first block rather than
         leaving it to be read back out of the blocks, which would be taking the
-        file apart a second way. See head_lines in tools/eoc/sem_compile.py.
+        file apart a second way. See head_lines in
+        tools/eoc/compiler/sem_compile.py.
         """
         if self.defs_file is None:
             return []
@@ -501,7 +506,7 @@ class Pipeline:
         same terms, since they are spliced into a trimmed signature too, see
         inline_called_blocks: the nil predicate of str.++ names seq.empty, and
         the run that keeps the one has to keep the other. See head_lines in
-        tools/eoc/sem_compile.py, which is what writes both.
+        tools/eoc/compiler/sem_compile.py, which is what writes both.
         """
         return ['(echo "trim-defs-cmd (depends %s)")\n' % " ".join(w[1:])
                 for w in self.defs_head() if w[0] == "$eoc-depends"]
@@ -567,7 +572,7 @@ class Pipeline:
         # backend is: `embed` gives each the operator it forwards to, and `eo`
         # gives it the Eunoia it is, so that what comes out is a signature
         # stated over the Eunoia primitives plugins/desugar/eo.eos names and no
-        # others. See render_natives in tools/eoc/sem_compile.py.
+        # others. See render_natives in tools/eoc/compiler/sem_compile.py.
         inline_include(
             output_file,
             "native_defs.eo",
@@ -984,7 +989,7 @@ def compile_signatures(
     which is what lets one that has no configuration still be given directly.
     Naming neither leaves the sets the tool ships with.
     """
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "compiler"))
     import sem_compile
 
     # One set of each role, the shipped one until an option names another.

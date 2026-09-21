@@ -5,10 +5,11 @@
 # shellcheck shell=bash
 
 # How a script says what it is doing, which is how the tools it calls say it
-# too, see tools/eoc/report.py: a step of a run is a line under `-- ', what a
-# step is made of is indented two spaces further under it, and a path is
-# written from the root of the repository. What went wrong is not a step: it
-# goes to stderr as `error: ...', where the CI of a caller looks for it.
+# too, see tools/eoc/compiler/report.py: a step of a run is a line under
+# `-- ', what a step is made of is indented two spaces further under it, and a
+# path is written from the root of the repository. What went wrong is not a
+# step: it goes to stderr as `error: ...', where the CI of a caller looks for
+# it.
 eoc_step() { printf -- '-- %s\n' "$*"; }
 eoc_item() { printf -- '--   %s\n' "$*"; }
 eoc_error() { printf 'error: %s\n' "$*" >&2; }
