@@ -66,5 +66,5 @@
 ; defined as, and the compiler knows all of that. That set declares the
 ; primitive types too, so what stands below is the whole of the layer and this
 ; file declares only what the layer is written over. See render_natives in
-; tools/eoc/sem_compile.py.
+; tools/eoc/compiler/sem_compile.py.
 (include "native_defs.eo")
