@@ -42,9 +42,9 @@ structure. The implementation is shared between these files:
 
 | File | Responsibility |
 | --- | --- |
-| [`sem_lang.py`](../sem_lang.py) | Read forms and macros, bind names and cast terms between levels. |
-| [`sem_target.py`](../sem_target.py) | Shapes of generated programs, parameters and aggregate cases. |
-| [`sem_compile.py`](../sem_compile.py) | Select sets, render files and check dependencies. |
+| [`sem_lang.py`](../compiler/sem_lang.py) | Read forms and macros, bind names and cast terms between levels. |
+| [`sem_target.py`](../compiler/sem_target.py) | Shapes of generated programs, parameters and aggregate cases. |
+| [`sem_compile.py`](../compiler/sem_compile.py) | Select sets, render files and check dependencies. |
 | [`model_smt.eos`](../../../plugins/model_smt/model_smt.eos) | Model aggregate names, template markers and constructor families. |
 | [`desugar.eos`](../../../plugins/desugar/desugar.eos) | Programs supplied to the desugar stage. |
 | [`model_smt.eo`](../../../plugins/model_smt/model_smt.eo) | SMT term/type/value embedding and aggregate templates. |
