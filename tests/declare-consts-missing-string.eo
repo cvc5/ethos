@@ -1,0 +1,3 @@
+; A polymorphic application must not accept an undeclared literal type.
+(declare-parameterized-const p ((T Type :implicit)) (-> T Bool))
+(assume a (p ""))

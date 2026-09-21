@@ -316,9 +316,23 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   {
     // ensure it is ground by getting an arbitrary value
     Expr gt = getGroundTermForLiteralKind(itk->second);
-    ct = d_tc.getLiteralTypeRuleMaybeInit(itk->second, gt.getValue());
+    ct = d_tc.getLiteralTypeRule(itk->second, gt.getValue());
   }
-  std::vector<Expr> approxSig = getGrammarSigApprox(ct);
+  // The names above are fixed while the rules are the input's, so a signature
+  // that declares none for this literal kind leaves nothing to read back. A
+  // literal of that kind would have failed to type check before reaching here,
+  // so this is an absence of type information rather than a bad type: let the
+  // default grammar stand for it, as it does for any component below that
+  // cannot be narrowed, instead of approximating a type that is not there.
+  std::vector<Expr> approxSig;
+  if (ct.isNull())
+  {
+    approxSig.push_back(d_null);
+  }
+  else
+  {
+    approxSig = getGrammarSigApprox(ct);
+  }
   Assert(!approxSig.empty());
   for (size_t i = 0, nsig = approxSig.size(); i < nsig; i++)
   {

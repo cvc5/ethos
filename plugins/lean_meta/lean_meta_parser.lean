@@ -114,7 +114,7 @@ private def parserState : Logos.Parser.State Term :=
 
 def parseProof (proof : String) : Except String (List Term × CCmdList) := do
   let ss ← Logos.Sexp.Parser.manySexps!.run proof
-  (Logos.Parser.parseCommands parserConfig (Logos.Parser.unwrapProof ss)).run'
+  (Logos.Parser.parseCommands parserConfig ss).run'
     parserState
 
 end Eo

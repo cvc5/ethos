@@ -617,12 +617,6 @@ Expr State::mkQuoteType(const Expr& t)
   return Expr(mkExprInternal(Kind::QUOTE_TYPE, {t.getValue()}));
 }
 
-Expr State::mkBuiltinType(Kind k)
-{
-  // for now, just use any type
-  return d_any;
-}
-
 Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
 {
   return Expr(mkSymbolInternal(k, name, type));
