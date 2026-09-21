@@ -45,7 +45,9 @@ class TypeChecker
   static bool checkArity(Kind k, size_t nargs, std::ostream* out = nullptr);
   /**
    * Set type rule for literal kind k to t, returns false if the type rule for
-   * k was already set to a different type.
+   * k was already set to a different type, or if k is BOOLEAN, whose type is
+   * the builtin Bool and cannot be declared. An error message is written on
+   * out if it is provided.
    */
   bool setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out = nullptr);
   /**

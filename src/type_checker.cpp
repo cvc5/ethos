@@ -23,7 +23,7 @@ namespace ethos {
 
 TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s), d_plugin(nullptr), d_sts(s.getStats())
 {
-  std::set<Kind> literalKinds = { Kind::BOOLEAN, Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING, Kind::DECIMAL, Kind::HEXADECIMAL };
+  std::set<Kind> literalKinds = { Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING, Kind::DECIMAL, Kind::HEXADECIMAL };
   // initialize literal kinds 
   for (Kind k : literalKinds)
   {
@@ -40,6 +40,18 @@ bool TypeChecker::setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out)
 {
   Trace("type_checker") << "**** setLiteralTypeRule " << k << " to " << t
                         << std::endl;
+  if (k == Kind::BOOLEAN)
+  {
+    // Bool is builtin: true and false have it whatever is declared, so a rule
+    // for <boolean> could only be ignored. Refuse it instead of storing one
+    // that nothing reads back.
+    if (out)
+    {
+      (*out) << "Cannot set a type rule for kind " << k
+             << ", since Boolean literals have the builtin type Bool";
+    }
+    return false;
+  }
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
   {

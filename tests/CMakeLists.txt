@@ -242,3 +242,5 @@ ethos_fail_test(declare-consts-missing-numeral-result.eo
                 "Message: No type rule declared for literal kind NUMERAL; use declare-consts")
 ethos_fail_test(declare-consts-missing-string-result.eo
                 "Message: No type rule declared for literal kind STRING; use declare-consts")
+ethos_fail_test(declare-consts-boolean.eo
+                "Error: .*declare-consts-boolean.eo:[0-9]+.[0-9]+: Cannot set a type rule for kind BOOLEAN")
