@@ -74,22 +74,24 @@ void SmtMetaSygus::finalizeGrammars()
 {
   Trace("smt-meta-sygus") << "FINALIZE grammars" << std::endl;
   d_gisFinalized = true;
-  SygusGrammar* sg = getGrammarFor(d_null);
   std::map<Expr, std::set<Expr>> processed;
-  // add reference to unknown to all eo.Term grammars
-  for (std::pair<const Expr, SygusGrammar*>& g : d_grammarTypeAlloc)
-  {
-    Assert(!g.first.isNull());
-    sg->d_rules << g.second->d_gname << " ";
-    processed[d_null].insert(g.first);
-    if (g.first == d_gfun)
-    {
-      // (partial) function applications
-      // g.second->d_rules << "(eo.Apply " << g.second->d_gname << " "
-      //                  << sg->d_gname << ") ";
-    }
-  }
-  // resolve all unique references
+  // Resolve all unique references, the generic eo.Term grammar among them.
+  //
+  // Every grammar a type was allocated for is referenced from that grammar,
+  // and getGrammarFor already records each one in d_grefs[d_null] as it
+  // allocates it, so the loop below reaches them and nothing has to walk
+  // d_grammarTypeAlloc to find them. Walking it is what this used to do, and
+  // it is what a run cannot do and stay reproducible: that map is keyed by
+  // Expr, whose order is the order of the addresses its values happen to have
+  // (see Expr::operator< in src/expr.cpp), so the productions came out in an
+  // order that holds on one machine and not on the next. d_grefs holds the
+  // same references in the order the signature named them, which is the same
+  // order everywhere. See tools/eoc/test/regress.py, which is what says the
+  // bytes have not moved.
+  //
+  // A parked idea went with the old loop: giving the grammar of a
+  // function-typed argument, d_gfun, a production for the (partial)
+  // application (eo.Apply <that grammar> G_eo.Term).
   for (std::pair<const Expr, std::vector<Expr>>& g : d_grefs)
   {
     SygusGrammar* sg = getGrammarFor(g.first);
@@ -314,9 +316,23 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   {
     // ensure it is ground by getting an arbitrary value
     Expr gt = getGroundTermForLiteralKind(itk->second);
-    ct = d_tc.getLiteralTypeRuleMaybeInit(itk->second, gt.getValue());
+    ct = d_tc.getLiteralTypeRule(itk->second, gt.getValue());
   }
-  std::vector<Expr> approxSig = getGrammarSigApprox(ct);
+  // The names above are fixed while the rules are the input's, so a signature
+  // that declares none for this literal kind leaves nothing to read back. A
+  // literal of that kind would have failed to type check before reaching here,
+  // so this is an absence of type information rather than a bad type: let the
+  // default grammar stand for it, as it does for any component below that
+  // cannot be narrowed, instead of approximating a type that is not there.
+  std::vector<Expr> approxSig;
+  if (ct.isNull())
+  {
+    approxSig.push_back(d_null);
+  }
+  else
+  {
+    approxSig = getGrammarSigApprox(ct);
+  }
   Assert(!approxSig.empty());
   for (size_t i = 0, nsig = approxSig.size(); i < nsig; i++)
   {

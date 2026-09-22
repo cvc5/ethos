@@ -89,8 +89,11 @@ class State
    * reset-assertions.
    */
   void clearReferenceAsserts();
-  /** Set type rule for literal kind k to t */
-  void setLiteralTypeRule(Kind k, const Expr& t);
+  /**
+   * Set type rule for literal kind k to t, returns false if the type rule for
+   * k was already set to a different type.
+   */
+  bool setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out = nullptr);
   /** */
   bool bind(const std::string& name, const Expr& e);
   /** 
@@ -135,8 +138,6 @@ class State
   Expr mkProof(const Expr& proven);
   /** (Quote <term>) */
   Expr mkQuoteType(const Expr& t);
-  /** */
-  Expr mkBuiltinType(Kind k);
   /** */
   Expr mkSymbol(Kind k, const std::string& name, const Expr& type);
   /** (eo::requires <pair>+ <type>) */

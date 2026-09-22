@@ -450,7 +450,7 @@ $EO_LITERAL_TYPE_DECL$
   :signature ((-> T U V) T $eo_Numeral) V
   (
   (($eo_list_repeat f a ($eot_numeral i))
-    ($native_ite ($native_z_< i $native_z_zero)
+    ($native_ite ($native_zlt i $native_z_zero)
       $eot_stuck
       ($eo_list_repeat_rec f a ($native_z_to_n i))))
   )
@@ -495,7 +495,13 @@ $EO_NIL_CASES$
   )
 )
 
-$EO_IS_LIST_NIL_DEFS$
+; The nil predicate of each n-ary symbol whose nil depends on the type of what
+; it terminates, which this stage cannot write for itself: it would need
+; eo::typeof. Each is a program of its own, named for the symbol it is of, and
+; the case below calls it by that name. They are compiled from the
+; :is-list-nil of the signature's own semantics into tools/eoc/out/
+; user_desugar.eo, which the driver puts here; see plugins/desugar/desugar.eos.
+(include "user_desugar.eo")
 
 ;;; $eo_is_list_nil
 ; Note: a helper for $eo_is_list_rec.
@@ -611,7 +617,8 @@ $EO_TYPEOF_CASES$
 
 (program $eo_is_closed_rec
   ((T Type) (U Type) (V Type) (s $eo_Term) (env $eo_List)
-   (f (-> U V T)) (x U) (vs $eo_List) (X Type) (u X) (x2 U) (x3 U))
+   (f (-> U V T)) (x U) (vs $eo_List) (X Type) (u X)
+   (x2 U) (x3 U) (x4 U) (x5 U))
   :signature ($eo_Term $eo_List) $eo_Term
   (
   (($eo_is_closed_rec ($eot_Var s T) $eo_List_nil) false)
@@ -620,11 +627,7 @@ $EO_TYPEOF_CASES$
 $EO_IS_CLOSED_CASES$
   (($eo_is_closed_rec (f x) env)
     (eo::and ($eo_is_closed_rec f env) ($eo_is_closed_rec x env)))
-  (($eo_is_closed_rec ($eot_uop1 u x) env) ($eo_is_closed_rec x env))
-  (($eo_is_closed_rec ($eot_uop2 u x x2) env)
-    (eo::and ($eo_is_closed_rec x env) ($eo_is_closed_rec x2 env)))
-  (($eo_is_closed_rec ($eot_uop3 u x x2 x3) env)
-    (eo::and (eo::and ($eo_is_closed_rec x env) ($eo_is_closed_rec x2 env)) ($eo_is_closed_rec x3 env)))
+$EO_IS_CLOSED_UOP_CASES$
   (($eo_is_closed_rec x env) true)
   )
 )

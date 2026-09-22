@@ -24,10 +24,11 @@ lexicographic order on keys, given by Key.lt.
 The key method for an argument is found by name: it is the name of the
 argument's type with the Smt or native_ prefix dropped, its first letter
 lowercased and Key appended, e.g. datatypeDeclKey orders SmtDatatypeDecl
-and intKey orders native_Int. Every type that can occur as an argument of
-a value or type constructor must therefore have a method of that name,
-either generated below or given here.
+and intKey orders the native integer type.
 -/
+-- $ Every type that can occur as an argument of a value or type constructor
+-- $ must therefore have a method of that name, either generated below or
+-- $ given here, see LeanMetaReduce::getOrderKeyMethod.
 namespace SmtValueOrder
 
 inductive Key where
@@ -74,42 +75,21 @@ mutual
 $LEAN_SMT_TYPE_KEY$
 @[expose] def valueKey : SmtValue -> Key
 $LEAN_SMT_VALUE_KEY$
-@[expose] def regLanKey : SmtRegLan -> Key
-  | .empty => node 0 []
-  | .epsilon => node 1 []
-  | .char c => node 2 [valueKey c]
-  | .range lo hi => node 3 [valueKey lo, valueKey hi]
-  | .allchar => node 4 []
-  | .concat r₁ r₂ => node 5 [regLanKey r₁, regLanKey r₂]
-  | .union r₁ r₂ => node 6 [regLanKey r₁, regLanKey r₂]
-  | .inter r₁ r₂ => node 7 [regLanKey r₁, regLanKey r₂]
-  | .star r => node 8 [regLanKey r]
-  | .comp r => node 9 [regLanKey r]
-
-@[expose] def mapKey : SmtMap -> Key
-  | .cons i e m => node 0 [valueKey i, valueKey e, mapKey m]
-  | .default t e => node 1 [typeKey t, valueKey e]
-
-@[expose] def seqKey : SmtSeq -> Key
-  | .cons v vs => node 0 [valueKey v, seqKey vs]
-  | .empty t => node 1 [typeKey t]
-
-@[expose] def datatypeDeclKey : SmtDatatypeDecl -> Key
-  | .nil => node 0 []
-  | .cons s d dd => node 1 [stringKey s, datatypeKey d, datatypeDeclKey dd]
-
-@[expose] def datatypeKey : SmtDatatype -> Key
-  | .null => node 0 []
-  | .sum c d => node 1 [datatypeConsKey c, datatypeKey d]
-
-@[expose] def datatypeConsKey : SmtDatatypeCons -> Key
-  | .unit => node 0 []
-  | .cons t c => node 1 [typeKey t, datatypeConsKey c]
-
+-- $ The key of each datatype the target declares the constructors of, whose
+-- $ tags are the order those constructors were declared in. Generated beside
+-- $ the inductives themselves, see printEmbedDatatypes.
+$LEAN_SMT_EMBED_KEY$
 end
 
 @[expose] def lt (a b : SmtValue) : Bool := Key.lt (valueKey a) (valueKey b)
 
 end SmtValueOrder
+
+-- The comparison of two values, which is the order above under the name the
+-- embedding gives it.
+
+/- Value comparison -/
+def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
+  SmtValueOrder.lt v1 v2
 
 end Smtm
