@@ -24,7 +24,7 @@ namespace ethos {
 class ExprParser
 {
  public:
-  ExprParser(Lexer& lex, State& state, bool isSignature, bool isReference = false);
+  ExprParser(Lexer& lex, State& state, bool isSignature, bool isReference);
   virtual ~ExprParser() {}
 
   /** Parses a term <term> */
@@ -234,12 +234,6 @@ class ExprParser
    */
   std::string tokenStrToSymbol(Token tok);
   /**
-   * If s is of the form "bv<numeral>", return true and set val to the numeral.
-   * This is the head symbol of the SMT-LIB indexed bit-vector constant family
-   * (_ bv<numeral> <width>).
-   */
-  static bool isBitVectorConstantSymbol(const std::string& s, std::string& val);
-  /**
    * Unescape string, which updates s based on processing escape sequences
    * as defined in SMT2.
    */
@@ -252,7 +246,7 @@ class ExprParser
   State& d_state;
   /** Are we parsing a signature file? */
   bool d_isSignature;
-  /** Whether we are parsing a reference (*.smt2) file */
+  /** Are we parsing a reference (*.smt2) file? */
   bool d_isReference;
   /** Strings to attributes */
   std::map<std::string, Attr> d_strToAttr;

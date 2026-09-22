@@ -377,19 +377,15 @@ void Expr::printDebugInternal(const Expr& e,
           }
           // otherwise printed as ordinary app
         }
-        else if (k != Kind::APPLY || (*cur.first)[0]->getNumChildren() > 0)
+        else if (k != Kind::APPLY || (*cur.first)[0]->getNumChildren() > 0
+                 || ExprValue::d_state->getAttributeKind((*cur.first)[0])
+                        != Attr::NONE)
         {
-          os << kindToTerm(k) << " ";
-        }
-        else if (ExprValue::d_state->getAttributeKind((*cur.first)[0])
-                 != Attr::NONE)
-        {
-          // If the head is a symbol whose applications are desugared, we must
-          // print the operator "_", since otherwise this term would be read
-          // back as the desugaring of the application. For example, a term
-          // APPLY(f, i) where f has an :opaque argument is printed
-          // (_ f i) and not (f i), where the latter would be read back as
-          // APPLY_OPAQUE(f, i), which is a distinct term.
+          // We omit the operator "_" only when the application reads back as
+          // the same term, that is, when its head is a symbol whose
+          // applications are not desugared. For example, APPLY(f, i) where f
+          // has an :opaque argument is printed (_ f i), since (f i) would be
+          // read back as APPLY_OPAQUE(f, i), which is a distinct term.
           os << kindToTerm(k) << " ";
         }
         visit.back().second++;

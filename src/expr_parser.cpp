@@ -46,6 +46,22 @@ bool stringToUnsigned(const std::string& str,
   return true;
 }
 
+/**
+ * If str is of the form "bv<numeral>", return true and set val to the numeral.
+ * This is the head symbol of the SMT-LIB indexed bit-vector constant family
+ * (_ bv<numeral> <width>).
+ */
+bool isBitVectorConstantSymbol(const std::string& str, std::string& val)
+{
+  if (str.size() <= 2 || str.compare(0, 2, "bv") != 0
+      || str.find_first_not_of("0123456789", 2) != std::string::npos)
+  {
+    return false;
+  }
+  val = str.substr(2);
+  return true;
+}
+
 }  // namespace
 
 /**
@@ -203,22 +219,19 @@ Expr ExprParser::parseExpr()
             // function identifier
             std::string name = tokenStrToSymbol(tok);
             // In reference files, (_ f i1 ... in) is an SMT-LIB indexed
-            // identifier, which should denote the same term as the application
+            // identifier, which denotes the same term as the application
             // (f i1 ... in). This differs from Eunoia, where `_` denotes
             // higher-order application, which does *not* apply the desugaring
-            // policy of f, e.g. its :opaque arguments. We handle this by
-            // dropping the `_` here, so that the remainder is parsed as an
-            // ordinary application.
+            // policy of f, e.g. its :opaque arguments. We thus drop the `_`
+            // and parse the remainder as an ordinary application.
             if (d_isReference && name == "_")
             {
               // (_ bv<numeral> <width>) is the indexed bit-vector constant
               // family of the SMT-LIB theory FixedSizeBitVectors, which we
-              // parse as the corresponding binary literal.
-              Token ptok = d_lex.peekToken();
+              // parse as the corresponding binary literal. Note that a symbol
+              // of this form that is declared in the input takes precedence.
               std::string bvval;
-              // note that a symbol of this form that is declared in the input
-              // takes precedence
-              if (ptok == Token::SYMBOL
+              if (d_lex.peekToken() == Token::SYMBOL
                   && isBitVectorConstantSymbol(d_lex.tokenStr(), bvval)
                   && d_state.getVar(d_lex.tokenStr()).isNull())
               {
@@ -227,10 +240,11 @@ Expr ExprParser::parseExpr()
                 d_lex.eatToken(Token::RPAREN);
                 BitVector bv(w, Integer(bvval));
                 ret = d_state.mkLiteral(Kind::BINARY, bv.toString());
-                break;
               }
-              // otherwise, parse the arguments as an ordinary application
-              pstack.emplace_back(ParseCtx::NEXT_ARG);
+              else
+              {
+                pstack.emplace_back(ParseCtx::NEXT_ARG);
+              }
               break;
             }
             std::vector<Expr> args;
@@ -1000,24 +1014,6 @@ uint32_t ExprParser::tokenStrToUnsigned()
     d_lex.parseError(ss.str());
   }
   return result;
-}
-
-bool ExprParser::isBitVectorConstantSymbol(const std::string& s,
-                                           std::string& val)
-{
-  if (s.size() <= 2 || s[0] != 'b' || s[1] != 'v')
-  {
-    return false;
-  }
-  for (size_t i = 2, nchar = s.size(); i < nchar; i++)
-  {
-    if (!isdigit(s[i]))
-    {
-      return false;
-    }
-  }
-  val = s.substr(2);
-  return true;
 }
 
 std::string ExprParser::tokenStrToSymbol(Token tok)
