@@ -300,6 +300,25 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
   return lbind;
 }
 
+/**
+ * Returns true if applications of a symbol with attribute a may be desugared
+ * when read, that is, if (f t1 ... tn) may be read as a term other than
+ * APPLY(f, t1, ..., tn). Programs, proof rules and datatype (constructor)
+ * symbols have attributes that do not change how their applications are read.
+ */
+static bool isDesugaringAttr(Attr a)
+{
+  switch (a)
+  {
+    case Attr::NONE:
+    case Attr::PROGRAM:
+    case Attr::PROOF_RULE:
+    case Attr::DATATYPE:
+    case Attr::DATATYPE_CONSTRUCTOR: return false;
+    default: return true;
+  }
+}
+
 void Expr::printDebugInternal(const Expr& e,
                               std::ostream& os,
                               std::map<const ExprValue*, size_t>& lbind)
@@ -378,8 +397,8 @@ void Expr::printDebugInternal(const Expr& e,
           // otherwise printed as ordinary app
         }
         else if (k != Kind::APPLY || (*cur.first)[0]->getNumChildren() > 0
-                 || ExprValue::d_state->getAttributeKind((*cur.first)[0])
-                        != Attr::NONE)
+                 || isDesugaringAttr(ExprValue::d_state->getAttributeKind(
+                     (*cur.first)[0])))
         {
           // We omit the operator "_" only when the application reads back as
           // the same term, that is, when its head is a symbol whose
