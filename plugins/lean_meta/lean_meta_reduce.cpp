@@ -1527,6 +1527,33 @@ void LeanMetaReduce::printParserOp(const ParserOp& op,
               + connectorTerm + " (parserNil " + connectorTerm + ") ts)";
     }
   }
+  // A binder takes its arguments as they are, but its first may instead be a
+  // sorted variable list, which Logos.Parser reads into the list its connector
+  // builds, e.g. `(forall ((x Int)) F)` denotes `(forall (@list x) F)`.
+  std::string binder;
+  if (op.d_attr == "binder")
+  {
+    std::string consTerm = getParserOpTerm(op.d_connector);
+    std::string nilTerm = "(parserNil " + consTerm + ")";
+    if (op.d_connector == "@list" || op.d_connector == "eo::List::cons")
+    {
+      // The list of the template, see lean_meta_parser.lean.
+      consTerm = "Term.__eo_List_cons";
+      nilTerm = "(fun _ => Term.__eo_List_nil)";
+    }
+    if (!consTerm.empty())
+    {
+      binder = "(fun vs => Logos.Parser.rightAssocNil Term.Apply " + consTerm
+               + " " + nilTerm + " vs)";
+      d_parserHasBinder = true;
+    }
+    else
+    {
+      Warning() << "Lean parser: binder " << name << " has list constructor "
+                << op.d_connector << ", which the parser does not declare"
+                << std::endl;
+    }
+  }
   if (arity.empty())
   {
     std::stringstream exact;
@@ -1558,7 +1585,13 @@ void LeanMetaReduce::printParserOp(const ParserOp& op,
     ops << "x" << (i + 1);
   }
   ops << "] => some " << term.str() << std::endl;
-  ops << "      | _ => none }," << std::endl;
+  if (binder.empty())
+  {
+    ops << "      | _ => none }," << std::endl;
+    return;
+  }
+  ops << "      | _ => none" << std::endl;
+  ops << "    binder := some " << binder << " }," << std::endl;
 }
 
 bool LeanMetaReduce::isEmittedParserOp(const ParserOp& op) const
@@ -1619,12 +1652,23 @@ void LeanMetaReduce::finalizeParser()
   std::stringstream defMacros;
   finalizeParseDefs(opNames, ops, defMacros);
 
+  // The variables a binder binds are `(eo::var name type)`; a calculus with no
+  // binder is left without them, which is what Logos.Parser defaults to.
+  std::string mkVar;
+  if (d_parserHasBinder)
+  {
+    mkVar =
+        "  mkVar := some fun name ty => "
+        "Term.Var (Term.String (native_string_lit name)) ty\n";
+  }
+
   const std::string outPath = emitResourceFile(
       "plugins/lean_meta/lean_meta_parser.lean",
       "plugins/lean_meta/lean_meta_parser_gen.lean",
       {{"$LEAN_PARSER_OPS$", ops.str()},
        {"$LEAN_PARSER_RULES$", rules.str()},
-       {"$LEAN_PARSER_MACROS$", defMacros.str()}});
+       {"$LEAN_PARSER_MACROS$", defMacros.str()},
+       {"$LEAN_PARSER_MK_VAR$", mkVar}});
   Trace("lean-meta") << "Write lean parser " << outPath << std::endl;
 }
 
