@@ -126,6 +126,8 @@ set(ethos_test_file_list
     is_eq.eo
     simple-reference.eo
     reference-define-fun.eo
+    reference-definitions.eo
+    reference-define-const-macro.eo
     simple-quant-reference.eo
     simple-lra-reference.eo
     check-sat-assuming-reference.eo
@@ -216,6 +218,10 @@ ethos_fail_test(parser-overflow-declare-sort.eo
 ethos_fail_test(check-sat-assuming-reference-fail.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(reference-reset-assertions-fail.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(reference-define-fun-equation-fail.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(reference-define-const-equation-fail.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(reference-push-pop.eo
                 "Expected Eunoia command, got .push.")
