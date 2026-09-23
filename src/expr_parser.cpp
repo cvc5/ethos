@@ -331,8 +331,10 @@ Expr ExprParser::parseExpr()
           d_lex.parseError("Expected a return type for ->");
         }
         // An explicit application requires an operator, i.e. (_) is not a
-        // term.
-        if (sf.d_args.size() == 1 && sf.d_args[0] == d_state.getVar("_"))
+        // term. In a reference file the `_` was dropped above, so the frame
+        // has no arguments at all; in Eunoia the `_` is the only one.
+        if (sf.d_args.empty()
+            || (sf.d_args.size() == 1 && sf.d_args[0] == d_state.getVar("_")))
         {
           d_lex.parseError("Expected an operator for _");
         }
