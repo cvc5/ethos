@@ -369,13 +369,22 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   // The attributes that combine an operator's arguments into a term take a
   // constructor as their operand: the operator that chains a chainable one, or
   // the one that builds the list of an `:arg-list` or of the variables a
-  // `:binder` binds.
+  // `:binder` binds. The first three name it as the surface syntax does. A
+  // binder's is named as this stage prints it, since the list may be one the
+  // surface syntax has no operator for, e.g. Eunoia's builtin one; lean-meta
+  // looks it up in the signature it reads.
   std::string parserConnector = "-";
   if (cattr == Attr::CHAINABLE || cattr == Attr::PAIRWISE
-      || cattr == Attr::ARG_LIST || cattr == Attr::BINDER)
+      || cattr == Attr::ARG_LIST)
   {
     std::stringstream ssConnector;
     ssConnector << cattrCons;
+    parserConnector = ssConnector.str();
+  }
+  else if (cattr == Attr::BINDER)
+  {
+    std::stringstream ssConnector;
+    printTerm(cattrCons, ssConnector);
     parserConnector = ssConnector.str();
   }
   d_leanParserMetadata << "(echo \"lean-parser-op " << parserSurface.str()

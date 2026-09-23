@@ -1529,29 +1529,33 @@ void LeanMetaReduce::printParserOp(const ParserOp& op,
   }
   // A binder takes its arguments as they are, but its first may instead be a
   // sorted variable list, which Logos.Parser reads into the list its connector
-  // builds, e.g. `(forall ((x Int)) F)` denotes `(forall (@list x) F)`.
+  // builds, as Ethos does, e.g. `(forall ((x Int)) F)` denotes
+  // `(forall (eo::List::cons x eo::List::nil) F)` in CPC. The connector and
+  // the binder are looked up in the signature, and the list ends in the nil of
+  // the connector at the type of the binder's first argument, which is the
+  // type of the list.
   std::string binder;
   if (op.d_attr == "binder")
   {
-    std::string consTerm = getParserOpTerm(op.d_connector);
-    std::string nilTerm = "(parserNil " + consTerm + ")";
-    if (op.d_connector == "@list" || op.d_connector == "eo::List::cons")
+    Expr cons = d_state.getVar(op.d_connector);
+    Expr b = d_state.getVar(op.d_generated);
+    Expr bt = b.isNull() ? b : b.getType();
+    if (!cons.isNull() && !bt.isNull() && bt.getKind() == Kind::FUNCTION_TYPE
+        && bt[0].isGround())
     {
-      // The list of the template, see lean_meta_parser.lean.
-      consTerm = "Term.__eo_List_cons";
-      nilTerm = "(fun _ => Term.__eo_List_nil)";
-    }
-    if (!consTerm.empty())
-    {
-      binder = "(fun vs => Logos.Parser.rightAssocNil Term.Apply " + consTerm
-               + " " + nilTerm + " vs)";
+      std::stringstream consTerm;
+      printEmbTerm(cons, consTerm, MetaKind::NONE, false);
+      std::stringstream listType;
+      printEmbTerm(bt[0], listType, MetaKind::NONE, false);
+      binder = "(fun vs => Logos.Parser.rightAssocNil Term.Apply "
+               + consTerm.str() + " (fun _ => __eo_nil " + consTerm.str() + " "
+               + listType.str() + ") vs)";
       d_parserHasBinder = true;
     }
     else
     {
-      Warning() << "Lean parser: binder " << name << " has list constructor "
-                << op.d_connector << ", which the parser does not declare"
-                << std::endl;
+      Warning() << "Lean parser: could not resolve the list constructor "
+                << op.d_connector << " of binder " << name << std::endl;
     }
   }
   if (arity.empty())
