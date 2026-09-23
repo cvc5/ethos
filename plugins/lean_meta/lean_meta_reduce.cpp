@@ -1532,24 +1532,38 @@ void LeanMetaReduce::printParserOp(const ParserOp& op,
   // builds, as Ethos does, e.g. `(forall ((x Int)) F)` denotes
   // `(forall (eo::List::cons x eo::List::nil) F)` in CPC. The connector and
   // the binder are looked up in the signature, and the list ends in the nil of
-  // the connector at the type of the binder's first argument, which is the
-  // type of the list.
+  // the connector at the type of the list, which is the type of the binder's
+  // first argument.
   std::string binder;
   if (op.d_attr == "binder")
   {
     Expr cons = d_state.getVar(op.d_connector);
     Expr b = d_state.getVar(op.d_generated);
     Expr bt = b.isNull() ? b : b.getType();
-    if (!cons.isNull() && !bt.isNull() && bt.getKind() == Kind::FUNCTION_TYPE
-        && bt[0].isGround())
+    Expr listType;
+    if (!bt.isNull() && bt.getKind() == Kind::FUNCTION_TYPE)
+    {
+      listType = bt[0];
+      // A binder whose type is not ground is written as a parameterized
+      // constant, whose first argument type is then the quote of the parameter
+      // that stands for the list and not the type of the list, e.g. `choice`
+      // in tests/skolemize-v2.eo. The type of the list is the type of that
+      // parameter, which the core requires to be ground. See
+      // Desugar::finalizeDeclaration and CmdParser::parseNextCommand.
+      if (listType.getKind() == Kind::QUOTE_TYPE)
+      {
+        listType = listType[0].getType();
+      }
+    }
+    if (!cons.isNull() && !listType.isNull() && listType.isGround())
     {
       std::stringstream consTerm;
       printEmbTerm(cons, consTerm, MetaKind::NONE, false);
-      std::stringstream listType;
-      printEmbTerm(bt[0], listType, MetaKind::NONE, false);
+      std::stringstream listTypeTerm;
+      printEmbTerm(listType, listTypeTerm, MetaKind::NONE, false);
       binder = "(fun vs => Logos.Parser.rightAssocNil Term.Apply "
                + consTerm.str() + " (fun _ => __eo_nil " + consTerm.str() + " "
-               + listType.str() + ") vs)";
+               + listTypeTerm.str() + ") vs)";
       d_parserHasBinder = true;
     }
     else
