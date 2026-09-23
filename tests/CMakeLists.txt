@@ -181,6 +181,7 @@ set(ethos_test_file_list
     quant-sk-type.eo
     fwd-decl-nground.eo
     require-proof-of-false.eo
+    overload-define-lambda.eo
 )
 
 macro(ethos_test file)
@@ -232,6 +233,8 @@ ethos_fail_test(require-proof-of-false-nested.eo
                 "last proof step did not prove false at assumption level zero")
 ethos_fail_test(nullary-arrow-type.eo
                 "Error: .*nullary-arrow-type.eo:[0-9]+.[0-9]+: Expected a return type")
+ethos_fail_test(apply-no-operator.eo
+                "Error: .*apply-no-operator.eo:[0-9]+.[0-9]+: Expected an operator for _")
 ethos_fail_test(assume-push-unclosed.eo
                 "Error: .*assume-push-unclosed.eo:[0-9]+.[0-9]+: This file did not preserve assumption scope")
 ethos_fail_test(declare-consts-twice.eo

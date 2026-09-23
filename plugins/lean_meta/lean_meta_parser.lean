@@ -104,7 +104,7 @@ def parserConfig : Logos.Parser.Config Term CRule CCmd CCmdList where
   datatypes := some
     { mkRef := fun name => Term.DatatypeTypeRef (native_string_lit name)
       mkDecls := parserDatatypeBindings }
-
+$LEAN_PARSER_MK_VAR$
 /--
 The initial state of the parser: the operators of the signature, together with
 the identifiers its definitions introduce.

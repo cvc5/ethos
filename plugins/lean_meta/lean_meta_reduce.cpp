@@ -1527,6 +1527,51 @@ void LeanMetaReduce::printParserOp(const ParserOp& op,
               + connectorTerm + " (parserNil " + connectorTerm + ") ts)";
     }
   }
+  // A binder takes its arguments as they are, but its first may instead be a
+  // sorted variable list, which Logos.Parser reads into the list its connector
+  // builds, as Ethos does, e.g. `(forall ((x Int)) F)` denotes
+  // `(forall (eo::List::cons x eo::List::nil) F)` in CPC. The connector and
+  // the binder are looked up in the signature, and the list ends in the nil of
+  // the connector at the type of the list, which is the type of the binder's
+  // first argument.
+  std::string binder;
+  if (op.d_attr == "binder")
+  {
+    Expr cons = d_state.getVar(op.d_connector);
+    Expr b = d_state.getVar(op.d_generated);
+    Expr bt = b.isNull() ? b : b.getType();
+    Expr listType;
+    if (!bt.isNull() && bt.getKind() == Kind::FUNCTION_TYPE)
+    {
+      listType = bt[0];
+      // A binder whose type is not ground is written as a parameterized
+      // constant, whose first argument type is then the quote of the parameter
+      // that stands for the list and not the type of the list, e.g. `choice`
+      // in tests/skolemize-v2.eo. The type of the list is the type of that
+      // parameter, which the core requires to be ground. See
+      // Desugar::finalizeDeclaration and CmdParser::parseNextCommand.
+      if (listType.getKind() == Kind::QUOTE_TYPE)
+      {
+        listType = listType[0].getType();
+      }
+    }
+    if (!cons.isNull() && !listType.isNull() && listType.isGround())
+    {
+      std::stringstream consTerm;
+      printEmbTerm(cons, consTerm, MetaKind::NONE, false);
+      std::stringstream listTypeTerm;
+      printEmbTerm(listType, listTypeTerm, MetaKind::NONE, false);
+      binder = "(fun vs => Logos.Parser.rightAssocNil Term.Apply "
+               + consTerm.str() + " (fun _ => __eo_nil " + consTerm.str() + " "
+               + listTypeTerm.str() + ") vs)";
+      d_parserHasBinder = true;
+    }
+    else
+    {
+      Warning() << "Lean parser: could not resolve the list constructor "
+                << op.d_connector << " of binder " << name << std::endl;
+    }
+  }
   if (arity.empty())
   {
     std::stringstream exact;
@@ -1558,7 +1603,13 @@ void LeanMetaReduce::printParserOp(const ParserOp& op,
     ops << "x" << (i + 1);
   }
   ops << "] => some " << term.str() << std::endl;
-  ops << "      | _ => none }," << std::endl;
+  if (binder.empty())
+  {
+    ops << "      | _ => none }," << std::endl;
+    return;
+  }
+  ops << "      | _ => none" << std::endl;
+  ops << "    binder := some " << binder << " }," << std::endl;
 }
 
 bool LeanMetaReduce::isEmittedParserOp(const ParserOp& op) const
@@ -1619,12 +1670,23 @@ void LeanMetaReduce::finalizeParser()
   std::stringstream defMacros;
   finalizeParseDefs(opNames, ops, defMacros);
 
+  // The variables a binder binds are `(eo::var name type)`; a calculus with no
+  // binder is left without them, which is what Logos.Parser defaults to.
+  std::string mkVar;
+  if (d_parserHasBinder)
+  {
+    mkVar =
+        "  mkVar := some fun name ty => "
+        "Term.Var (Term.String (native_string_lit name)) ty\n";
+  }
+
   const std::string outPath = emitResourceFile(
       "plugins/lean_meta/lean_meta_parser.lean",
       "plugins/lean_meta/lean_meta_parser_gen.lean",
       {{"$LEAN_PARSER_OPS$", ops.str()},
        {"$LEAN_PARSER_RULES$", rules.str()},
-       {"$LEAN_PARSER_MACROS$", defMacros.str()}});
+       {"$LEAN_PARSER_MACROS$", defMacros.str()},
+       {"$LEAN_PARSER_MK_VAR$", mkVar}});
   Trace("lean-meta") << "Write lean parser " << outPath << std::endl;
 }
 
