@@ -4,6 +4,8 @@ ethos 0.2.5 (unreleased)
 ========================
 
 - Literal types must now be declared with `declare-consts` before type checking literals or builtin operators that return them. Missing rules produce a type error instead of silently assigning a dummy type. Boolean literals have the builtin type `Bool`, and `declare-consts <boolean>` is now rejected rather than accepted and ignored.
+- Fixes a crash when parsing the term `(_)`, which is now a parse error.
+- Fixes an issue where applications of an overloaded `define` with parameters were not beta-reduced.
 
 ethos 0.2.4
 ===========
