@@ -131,6 +131,8 @@ set(ethos_test_file_list
     check-sat-assuming-reference.eo
     reference-query-commands.eo
     reference-reset-assertions.eo
+    reference-indexed-opaque.eo
+    reference-bv-constant.eo
     left-cons.eo
     overload-standalone.eo
     datatypes-split-rule.eo
@@ -233,6 +235,10 @@ ethos_fail_test(nullary-arrow-type.eo
                 "Error: .*nullary-arrow-type.eo:[0-9]+.[0-9]+: Expected a return type")
 ethos_fail_test(apply-no-operator.eo
                 "Error: .*apply-no-operator.eo:[0-9]+.[0-9]+: Expected an operator for _")
+ethos_fail_test(reference-apply-no-operator.eo
+                "Error: .*reference-apply-no-operator.smt2:[0-9]+.[0-9]+: Expected an operator for _")
+ethos_fail_test(reference-apply-no-operator-head.eo
+                "Error: .*reference-apply-no-operator-head.smt2:[0-9]+.[0-9]+: Expected an operator for _")
 ethos_fail_test(assume-push-unclosed.eo
                 "Error: .*assume-push-unclosed.eo:[0-9]+.[0-9]+: This file did not preserve assumption scope")
 ethos_fail_test(declare-consts-twice.eo

@@ -1,0 +1,10 @@
+; regression: an SMT-LIB indexed identifier in a reference file denotes the same
+; term as the corresponding application, including for :opaque arguments
+(declare-const Int Type)
+(declare-const > (-> Int Int Bool))
+(declare-consts <numeral> Int)
+(declare-parameterized-const opq ((i Int :opaque)) (-> Int Int))
+(declare-parameterized-const opq2 ((i Int :opaque) (j Int :opaque)) (-> Int Int))
+(reference "reference-indexed-opaque.smt2")
+(assume @p0 (> (opq 5 x) 0))
+(assume @p1 (> (opq2 7 9 x) 0))

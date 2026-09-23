@@ -24,7 +24,7 @@ namespace ethos {
 class ExprParser
 {
  public:
-  ExprParser(Lexer& lex, State& state, bool isSignature);
+  ExprParser(Lexer& lex, State& state, bool isSignature, bool isReference);
   virtual ~ExprParser() {}
 
   /** Parses a term <term> */
@@ -246,6 +246,8 @@ class ExprParser
   State& d_state;
   /** Are we parsing a signature file? */
   bool d_isSignature;
+  /** Are we parsing a reference (*.smt2) file? */
+  bool d_isReference;
   /** Strings to attributes */
   std::map<std::string, Attr> d_strToAttr;
   /** Mapping symbols to literal kinds */

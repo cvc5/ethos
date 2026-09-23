@@ -1,0 +1,9 @@
+; regression: (_ bvN m) in a reference file is the binary literal of width m
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-const BitVec (-> Int Type))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+(reference "reference-bv-constant.smt2")
+(assume @p0 (= x #b00000101))
+(assume @p1 (= y #b1010))

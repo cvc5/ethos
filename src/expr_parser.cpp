@@ -15,6 +15,7 @@
 #include "base/check.h"
 #include "base/output.h"
 #include "type_checker.h"
+#include "util/bitvector.h"
 
 namespace ethos {
 
@@ -42,6 +43,22 @@ bool stringToUnsigned(const std::string& str,
     return false;
   }
   result = parsed.toUnsignedInt();
+  return true;
+}
+
+/**
+ * If str is of the form "bv<numeral>", return true and set val to the numeral.
+ * This is the head symbol of the SMT-LIB indexed bit-vector constant family
+ * (_ bv<numeral> <width>).
+ */
+bool isBitVectorConstantSymbol(const std::string& str, std::string& val)
+{
+  if (str.size() <= 2 || str.compare(0, 2, "bv") != 0
+      || str.find_first_not_of("0123456789", 2) != std::string::npos)
+  {
+    return false;
+  }
+  val = str.substr(2);
   return true;
 }
 
@@ -89,8 +106,14 @@ enum class ParseCtx
   TERM_ANNOTATE_BODY
 };
 
-ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
-    : d_lex(lex), d_state(state), d_isSignature(isSignature)
+ExprParser::ExprParser(Lexer& lex,
+                       State& state,
+                       bool isSignature,
+                       bool isReference)
+    : d_lex(lex),
+      d_state(state),
+      d_isSignature(isSignature),
+      d_isReference(isReference)
 {
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":is_eq"] = Attr::IS_EQ;
@@ -195,6 +218,35 @@ Expr ExprParser::parseExpr()
           {
             // function identifier
             std::string name = tokenStrToSymbol(tok);
+            // In reference files, (_ f i1 ... in) is an SMT-LIB indexed
+            // identifier, which denotes the same term as the application
+            // (f i1 ... in). This differs from Eunoia, where `_` denotes
+            // higher-order application, which does *not* apply the desugaring
+            // policy of f, e.g. its :opaque arguments. We thus drop the `_`
+            // and parse the remainder as an ordinary application.
+            if (d_isReference && name == "_")
+            {
+              // (_ bv<numeral> <width>) is the indexed bit-vector constant
+              // family of the SMT-LIB theory FixedSizeBitVectors, which we
+              // parse as the corresponding binary literal. Note that a symbol
+              // of this form that is declared in the input takes precedence.
+              std::string bvval;
+              if (d_lex.peekToken() == Token::SYMBOL
+                  && isBitVectorConstantSymbol(d_lex.tokenStr(), bvval)
+                  && d_state.getVar(d_lex.tokenStr()).isNull())
+              {
+                d_lex.nextToken();
+                uint32_t w = parseIntegerNumeral();
+                d_lex.eatToken(Token::RPAREN);
+                BitVector bv(w, Integer(bvval));
+                ret = d_state.mkLiteral(Kind::BINARY, bv.toString());
+              }
+              else
+              {
+                pstack.emplace_back(ParseCtx::NEXT_ARG);
+              }
+              break;
+            }
             std::vector<Expr> args;
             Expr v = getVar(name);
             args.push_back(v);
@@ -279,8 +331,10 @@ Expr ExprParser::parseExpr()
           d_lex.parseError("Expected a return type for ->");
         }
         // An explicit application requires an operator, i.e. (_) is not a
-        // term.
-        if (sf.d_args.size() == 1 && sf.d_args[0] == d_state.getVar("_"))
+        // term. In a reference file the `_` was dropped above, so the frame
+        // has no arguments at all; in Eunoia the `_` is the only one.
+        if (sf.d_args.empty()
+            || (sf.d_args.size() == 1 && sf.d_args[0] == d_state.getVar("_")))
         {
           d_lex.parseError("Expected an operator for _");
         }
