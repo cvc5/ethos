@@ -1,0 +1,3 @@
+(include "reference-definitions-signature.eo")
+(reference "reference-definitions.smt2")
+(assume @bad (= k 1))
