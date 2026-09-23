@@ -46,7 +46,11 @@ std::ostream& operator<<(std::ostream& o, const Span& l);
 class Lexer
 {
  public:
-  Lexer(bool lexLet);
+  /**
+   * @param lexLet whether to lex "let".
+   * @param lexType whether to lex "Type".
+   */
+  Lexer(bool lexLet, bool lexType);
   virtual ~Lexer() {}
   /**
    * Initialize the lexer to generate tokens from stream input.
@@ -175,6 +179,8 @@ class Lexer
   std::istream* d_istream;
   /** Are we lexing "let"? */
   bool d_lexLet;
+  /** Are we lexing "Type"? */
+  bool d_lexType;
   /** True if the input stream is interactive */
   bool d_isInteractive;
   /** The current buffer */

@@ -1,0 +1,18 @@
+(declare-const Int Type)
+(declare-consts <numeral> Int)                ; numeral literals denote Int constants
+(declare-const BitVec (-> Int Type))
+(declare-consts <binary>
+    (BitVec (eo::len eo::self)))              ; binary literals denote BitVec constants of their length
+(define bvzero ((m Int)) (eo::to_bin m 0))    ; returns the bitvector value zero for bitwidth m
+
+(declare-parameterized-const bvor ((m Int :implicit))   ; bvor is parameterized by a bitwidth m
+    (-> (BitVec m) (BitVec m) (BitVec m))
+    :right-assoc-nil (bvzero m)               ; its nil terminator depends on m
+)
+
+(define test ((n Int :implicit) (z (BitVec n)) (w (BitVec n)))
+  (bvor z w)        ; (bvor z (bvor w (eo::nil bvor (eo::typeof z))))
+)
+(declare-const a (BitVec 4))
+(declare-const b (BitVec 4))
+(define test4 () (test a b) :type (BitVec 4))

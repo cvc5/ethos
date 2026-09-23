@@ -12,7 +12,6 @@ project (ethos_checker)
 # >> 2-valued: ON OFF
 #    > for options where we don't need to detect if set by user (default: OFF)
 option(BUILD_STATIC          "Build static binary" OFF)
-option(ENABLE_ORACLES        "Enable support for Oracles" ON)
 
 if(BUILD_STATIC)
   set(BUILD_SHARED_LIBS OFF)
@@ -41,10 +40,6 @@ add_cxx_flag("-std=gnu++17")
 
 if(WIN32)
   add_definitions(-DUSE_CPP_FILESYSTEM)
-  if(ENABLE_ORACLES)
-    message(STATUS "Disabling Oracles since they are not supported on Windows.")
-    set(ENABLE_ORACLES OFF)
-  endif()
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -58,13 +53,30 @@ else()
   message(FATAL_ERROR "Invalid build type '${CMAKE_BUILD_TYPE}'")
 endif()
 
-if(ENABLE_ORACLES)
-  add_definitions(-DEO_ORACLES)
-endif()
-
 enable_testing()
 
 include_directories(src)
 add_subdirectory(src)
 add_subdirectory(tests)
 
+# Compile-only check for the experimental extensions in plugins/. Those are
+# not part of ethos and produce nothing here; this target exists so that they
+# can be checked for bitrot against src/ from an ordinary build tree. It is
+# EXCLUDE_FROM_ALL, so an ordinary build never sees it. Build it explicitly
+# with:
+#
+#   make plugins-compile-check
+#
+# CI gets the same coverage, plus linking, from the ethos-eoc build of the
+# standalone project in plugins/; see plugins/CMakeLists.txt.
+#
+# cpp_compiler has its own build and roundtrip tests; see
+# plugins/cpp_compiler/README.md.
+file(GLOB_RECURSE plugins_SRC CONFIGURE_DEPENDS "plugins/*.cpp")
+list(FILTER plugins_SRC EXCLUDE REGEX "/plugins/cpp_compiler/")
+if(plugins_SRC)
+  add_library(plugins-compile-check OBJECT EXCLUDE_FROM_ALL ${plugins_SRC})
+else()
+  add_custom_target(plugins-compile-check
+    COMMAND ${CMAKE_COMMAND} -E echo "No plugin sources to check.")
+endif()

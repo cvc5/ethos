@@ -1,8 +1,8 @@
 
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
 
-(declare-type Array (Type Type))
+(declare-const Array (-> Type Type Type))
 
 ; The store all array constant.
 (declare-parameterized-const const ((T Type :implicit) (U Type :implicit)) (-> U (Array T U)))

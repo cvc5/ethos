@@ -1,0 +1,14 @@
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+(declare-const or (-> Bool Bool Bool) :right-assoc-non-singleton-nil false)
+(declare-const and (-> Bool Bool Bool) :right-assoc-non-singleton-nil true)
+(declare-const not (-> Bool Bool))
+
+(declare-rule bool-or-de-morgan ((x1 Bool) (y1 Bool) (zs1 Bool :list))
+  :args (x1 y1 zs1)
+  :conclusion (= (not (or x1 y1 zs1)) (and (not x1) (not (or y1 zs1))))
+)
+
+(declare-const a Bool)
+(declare-const b Bool)
+
+(step @p0 (= (not (or a b)) (and (not a) (not b))) :rule bool-or-de-morgan :args (a b false))

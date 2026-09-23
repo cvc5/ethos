@@ -1,4 +1,4 @@
-(declare-type Int ())
+(declare-const Int Type)
 
 (declare-consts <numeral> Int)
 
@@ -7,7 +7,7 @@
 (declare-const + (-> Int Int Int))
 
 (program run_inc ((a Int))
-    (Int) Int
+    :signature (Int) Int
     (
       ((run_inc a) (eo::add 1 a))
     )

@@ -7,7 +7,7 @@
     :conclusion (not (= t s))
 )
 
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
 
 (declare-rule disinct_value_int ((t Int) (s Int))
@@ -16,7 +16,7 @@
     :conclusion (not (= t s))
 )
 
-(declare-type Real ())
+(declare-const Real Type)
 (declare-consts <rational> Real)
 
 (declare-rule disinct_value_real ((t Real) (s Real))
@@ -26,7 +26,7 @@
 )
 
 
-(declare-type String ())
+(declare-const String Type)
 (declare-consts <string> String)
 
 (declare-rule disinct_value_str ((t String) (s String))
@@ -35,7 +35,7 @@
     :conclusion (not (= t s))
 )
 
-(declare-type Bin ())
+(declare-const Bin Type)
 (declare-consts <binary> Bin)
 
 (declare-rule disinct_value_bin ((t Bin) (s Bin))

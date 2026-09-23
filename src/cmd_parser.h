@@ -40,6 +40,8 @@ class CmdParser
   Lexer& d_lex;
   /** The state */
   State& d_state;
+  /** The type checker */
+  TypeChecker& d_tc;
   /** Reference to the stats */
   Stats& d_sts;
   /** The term parser */

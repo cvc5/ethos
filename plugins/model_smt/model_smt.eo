@@ -1,0 +1,766 @@
+; This file defines SMT-LIB model semantics in Eunoia.
+;
+; It is a template: the model_smt plugin substitutes the content it generates
+; for each of the `;$...$` placeholders below. Every placeholder is commented
+; out so that this file parses as it stands, which is what lets the SMT-LIB
+; signature be written in the vocabulary it declares, see
+; plugins/model_smt/smt.eo. A substitution replaces the comment character along
+; with the placeholder, so the generated content takes the whole line.
+; The programs in this file operate on datatypes that correspond to
+; a deep embedding of SMT-LIB values.
+; In particular, we use the following types:
+; 1. $smt_Value, the type of SMT-LIB values.
+; 2. Further types defining specific SMT-LIB values, e.g. $smt_Map.
+
+;;;;;; SMT terms
+
+; An SMT term.
+(declare-const $smt_Term Type)
+
+; An SMT type.
+(declare-const $smt_Type Type)
+; utilities
+(define $native_inhabited_type ((T $smt_Type)) ($native_apply_1 "inhabited_type" T))
+; Assumes that Teq is defined to be equality over $smt_Type
+(define $native_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($native_apply_2 "Teq" x1 x2))
+
+; A datatype constructor
+(define $smt_DatatypeCons () ($native_embed_smt "SmtDatatypeCons"))
+
+; A datatype
+(define $smt_Datatype () ($native_embed_smt "SmtDatatype"))
+
+; A datatype declaration
+(define $smt_DatatypeDecl () ($native_embed_smt "SmtDatatypeDecl"))
+
+; What the model says the constant of a type is called by an identifier, which
+; is what a symbol with no meaning of its own reaches for. It is named here
+; rather than applied raw so that a place beneath it has a level: the third
+; argument is a type, and a signature that names one may write it as the type
+; it is.
+(define $native_model_lookup ((M $smt_Model) (s $native_String) (T $smt_Type))
+  ($native_apply_3 "model_lookup" M s T))
+
+; An SMT-LIB value.
+(declare-const $smt_Value Type)
+; utilities
+; Assumes that veq is defined to be equality over $smt_Value
+(define $native_veq ((x1 $smt_Value) (x2 $smt_Value)) ($native_apply_2 "veq" x1 x2))
+; The order values are kept in, which is what says a map value is written the
+; one way. Assumes that vcmp is defined to be a strict order over $smt_Value.
+(define $native_vcmp ((x1 $smt_Value) (x2 $smt_Value)) ($native_apply_2 "vcmp" x1 x2))
+
+;;;;;; SMT term constructors
+
+; These stay here, where the types moved to tools/eoc/semantics/smt.eos, and
+; the reason is not that nobody has got to them. A define-symbol says what a
+; symbol evaluates to with each argument standing for its *value*, which is
+; what makes a case of $smtx_model_eval compositional; these are exactly the
+; constructors for which it is not. A binder takes its body unevaluated, an
+; application decides what to do by what its head is, and Var, UConst, DtCons
+; and their kin carry a name and a type rather than sub-terms -- an argument a
+; symbol form would evaluate on the way in. So a case of one cannot be written
+; as :value, and writing only its :typeof there would split one constructor
+; across two files, which is the thing that was just taken out of the natives
+; and the datatype programs. They belong together, and here.
+
+
+; No term at all, which a transformation answers with where what it was given
+; is not a term of the signature. It is the embedding's own rather than
+; anything a signature declares, so it is named here.
+(declare-const $emb_sm.None $smt_Term)
+(define $sm_none () $emb_sm.None)
+
+; The literals the configuration declares, i.e. the terms built over a native
+; rather than over terms, see the literals of tools/eoc/semantics/smt.eos.
+; They stand before the terms the embedding builds over them.
+;$SMT_LITERAL_CONSTRUCTORS$
+
+; What is written over the literals and is not one, i.e. a term named by a
+; native the way a literal is but built by the embedding itself.
+(define $sm_true () ($sm_Boolean $native_true))
+(define $sm_false () ($sm_Boolean $native_false))
+(define $sm_z_zero () ($sm_Numeral $native_z_zero))
+(define $sm_z_one () ($sm_Numeral $native_z_one))
+(define $sm_q_zero () ($sm_Rational $native_q_zero))
+(define $sm_binary_bit_false () ($sm_Binary $native_z_one $native_z_zero))
+(define $sm_binary_bit_true () ($sm_Binary $native_z_one $native_z_one))
+
+; An application of a Eunoia term
+(declare-parameterized-const $emb_sm.Apply
+  ((f $smt_Term :opaque) (a $smt_Term :opaque))
+  $smt_Term)
+(define $sm_apply ((x $smt_Term) (y $smt_Term)) ($emb_sm.Apply x y))
+
+; Represents a SMT-LIB variable in the final deep embedding.
+(declare-parameterized-const $emb_sm.Var
+  ((s $native_String :opaque) (T $smt_Type :opaque))
+  $smt_Term)
+(define $sm_Var ((s $native_String) (T $smt_Type)) ($emb_sm.Var s T))
+
+; exists
+; this takes the variable to quantify over, which should then be applied
+; to a formula, similarly for the other quantifiers
+(declare-parameterized-const $emb_sm.exists
+  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque))
+  $smt_Term)
+(define $sm_exists ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.exists s T F))
+
+; forall
+(declare-parameterized-const $emb_sm.forall
+  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque))
+  $smt_Term)
+(define $sm_forall ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.forall s T F))
+
+; choice
+; A Hilbert choice binder: choice s:T. F denotes a value of type T that makes
+; F true, if such a value exists.
+(declare-parameterized-const $emb_sm.choice
+  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque))
+  $smt_Term)
+(define $sm_choice ((s $native_String) (T $smt_Type) (F $smt_Term))
+  ($emb_sm.choice s T F))
+
+; bind
+; ($sm_bind s T t1 t2) binds the variable s of type T to the result of
+; evaluating t1, then evaluates t2 under that binding. Together with choice,
+; this is used to express (skolemized) nested quantifiers.
+(declare-parameterized-const $emb_sm.bind
+  ((s $native_String :opaque) (T $smt_Type :opaque)
+   (t1 $smt_Term :opaque) (t2 $smt_Term :opaque))
+  $smt_Term)
+(define $sm_bind ((s $native_String) (T $smt_Type) (t1 $smt_Term) (t2 $smt_Term))
+  ($emb_sm.bind s T t1 t2))
+
+; the ci^th constructor of datatype ($tsm_Datatype s dd).
+(declare-parameterized-const $emb_sm.DtCons
+  ((s $native_String :opaque) (d $smt_DatatypeDecl :opaque)
+   (ci $native_Nat :opaque))
+  $smt_Term)
+(define $sm_DtCons
+  ((s $native_String) (d $smt_DatatypeDecl) (ci $native_Nat))
+  ($emb_sm.DtCons s d ci))
+
+; The selector of the ai^th argument of the ci^th constructor of datatype
+; ($tsm_Datatype s dd).
+(declare-parameterized-const $emb_sm.DtSel
+  ((s $native_String :opaque) (d $smt_DatatypeDecl :opaque)
+   (ci $native_Nat :opaque) (ai $native_Nat :opaque))
+  $smt_Term)
+(define $sm_DtSel
+  ((s $native_String) (d $smt_DatatypeDecl)
+   (ci $native_Nat) (ai $native_Nat))
+  ($emb_sm.DtSel s d ci ai))
+
+; the tester of the ci^th constructor of datatype ($tsm_Datatype s dd).
+(declare-parameterized-const $emb_sm.DtTester
+  ((s $native_String :opaque) (d $smt_DatatypeDecl :opaque) (ci $native_Nat :opaque))
+  $smt_Term)
+(define $sm_DtTester ((s $native_String) (d $smt_DatatypeDecl) (ci $native_Nat))
+  ($emb_sm.DtTester s d ci))
+
+; uninterpreted constants
+(declare-parameterized-const $emb_sm.UConst
+  ((s $native_String :opaque) (T $smt_Type :opaque))
+  $smt_Term)
+(define $sm_UConst ((s $native_String) (T $smt_Type)) ($emb_sm.UConst s T))
+
+; all other ordinary term definitions
+;$SMT_TERM_CONSTRUCTORS$
+
+;;;;;; SMT type constructors
+
+; The type of no type at all, which every rule of the signature answers with
+; where what it was given is not of the type it asks for.
+(declare-const $emb_tsm.None $smt_Type)
+(define $tsm_none () $emb_tsm.None)
+
+; The types the configuration declares, i.e. the ones a signature is written
+; over, see the types of tools/eoc/semantics/smt.eos. What is left below is
+; the embedding's own: the types it keeps for the terms it builds itself, and
+; the two spelt out of the ones above.
+;$SMT_TYPE_CONSTRUCTORS$
+
+; The Array type (for terms), which is the map its values are of. It and the
+; String below are one of the types above under a second name rather than
+; types of their own, and stand here rather than in a set because a bare name
+; at type level is $tsm_X whichever signature writes it: an input that names an
+; array is written against this, and a macro would carry only across the files
+; of the one set that declared it.
+(define $tsm_Array ((Ti $smt_Type) (Te $smt_Type)) ($emb_tsm.Map Ti Te))
+
+; The String, type a sequence of chars
+(define $tsm_String () ($tsm_Seq $tsm_Char))
+
+; A datatype is a type containing (1) its name, and (2) its structure.
+; Its name can be understood as a binder under which ($tsm_TypeRef <name>) is
+; a recursive reference to the (most recently bound) instance of a datatype
+; with the given name.
+; For example, the recursive datatype for a list of integers:
+; (declare-datatype List ((cons (head Int) (tail List)) (nil)))
+; Would have the following syntax:
+; ($tsm_Datatype "List" d)
+; Where d is the datatype spec:
+; ($dt_sum
+;   ($dtc_cons $tsm_Int ($dtc_cons ($tsm_TypeRef "List") $dtc_unit)) ; cons
+;   ($dt_sum
+;      $dtc_unit ; nil
+;      $dt_null))
+; Note that names of constructors and selectors are not represented in the AST.
+; To express constructor terms, we give an index, such that cons/nil are terms:
+;   ($sm_DtCons "List" d 0), ($sm_DtCons "List" d 1).
+; The types of these constructors are:
+;   ($sm_DtCons "List" d 0) : (-> $tsm_Int ($tsm_Datatype "List" d) ($tsm_Datatype "List" d))
+;   ($sm_DtCons "List" d 1) : ($tsm_Datatype "List" d)
+; The list (1,2) is the term:
+; ($sm_apply
+;    ($sm_apply ($sm_DtCons "List" d 0) ($sm_Numeral 1))
+;    ($sm_apply
+;       ($sm_apply ($sm_DtCons "List" d 0) ($sm_Numeral 2))
+;       ($sm_DtCons "List" d 1)))
+; The selectors head/tail for this datatype give indices to the constructor
+; and argument position they refer to:
+;   ($sm_DtSel "List" d 0 0) ($sm_DtSel "List" d 0 1).
+; Note this also permits mutual recursion, e.g. for SMT datatype:
+; (declare-datatypes ((List 0) (Tree 0))
+;   (((cons (head Tree) (tail List)) (nil))
+;    ((node (children List)) (leaf))))
+; this is represented as:
+; (eo::define ((Tree
+;    ($tsm_Datatype "Tree"
+;      ($dt_sum
+;        ($dtc_cons ($tsm_TypeRef "List") $dtc_unit) ; node
+;        ($dt_sum
+;          $dtc_unit ; leaf
+;          $dt_null)))))
+;   ($tsm_Datatype "List"
+;      ($dt_sum
+;        ($dtc_cons Tree ($dtc_cons ($tsm_TypeRef "List") $dtc_unit)) ; cons
+;        ($dt_sum
+;           $dtc_unit ; nil
+;           $dt_null))))
+
+
+
+
+
+
+;;;;;; SMT values
+
+; The shapes a value is built over, i.e. what a value holds that is neither a
+; native nor a value itself. Each is a type of the embedding declared beside
+; the constructors that build one, and stands before the values written over
+; it. What a theory then *does* with one -- look an entry up, type one, say
+; whether one is written the one way -- is written in the configuration beside
+; the sort it belongs to, see tools/eoc/semantics/smt.eos.
+
+; The type used to define values for functions, arrays and sets in SMT-LIB. Its
+; entries are kept in the order $native_vcmp gives and none of them may repeat
+; the default, which is what makes the spelling of a map unique.
+(declare-const $smt_Map Type)
+
+
+; The type used to define values for sequences in SMT-LIB, i.e. what a string
+; is built over: a list of values ending in the empty sequence of a type.
+(declare-const $smt_Seq Type)
+
+
+; The type used to define values for regular languages in SMT-LIB. Its base
+; elements are $smt_Value, so that the regular expression operators can be
+; defined over the same (unpacked) sequence representation used by the
+; sequence operators.
+;
+; This says the datatype exists and no more. What builds one is declared by
+; the target, as the constructors that say `:builds SmtRegLan` in
+; tools/eoc/semantics/smt.eos, and where those are written is what it says of
+; itself in plugins/model_smt/model_smt.eos -- here, with the values, a regular
+; language being one of the things a value is built over.
+(define $smt_RegLan () ($native_embed_smt "SmtRegLan"))
+
+;;; SMT value datatype constructors
+
+; The values the configuration declares, i.e. what a term of the signature
+; evaluates to, see the values of tools/eoc/semantics/smt.eos. What is left
+; below is what the embedding names for itself: the values it keeps a name of
+; its own for, and the two ways of taking an application of one apart.
+;$SMT_VALUE_CONSTRUCTORS$
+
+; The values the embedding names, each of one it is given above.
+(define $vsm_true () ($vsm_Boolean $native_true))
+(define $vsm_false () ($vsm_Boolean $native_false))
+(define $vsm_z_zero () ($vsm_Numeral $native_z_zero))
+(define $vsm_z_one () ($vsm_Numeral $native_z_one))
+(define $vsm_q_zero () ($vsm_Rational $native_q_zero))
+(define $vsm_binary_empty () ($vsm_Binary $native_z_zero $native_z_zero))
+(define $vsm_binary_bit_false () ($vsm_Binary $native_z_one $native_z_zero))
+(define $vsm_binary_bit_true () ($vsm_Binary $native_z_one $native_z_one))
+(define $vsm_string_empty () ($vsm_Seq ($ssm_empty $tsm_Char)))
+
+; The two programs over an applied value, which stand with the constructors
+; they are written over rather than with the rest of the helpers.
+; ($smtx_apply_arg_nth_value v n npos), where we are getting the n^th argument,
+; npos is the current position we are at + 1.
+;;; forward declarations
+
+(program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
+(program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
+
+; The helpers over datatype declarations, whose bodies the target writes: what
+; a datatype *means* is said in tools/eoc/semantics/smt.eos, and what stands
+; here is the little of it this file has to name, the type of a datatype and
+; its well-foundedness being written above where the bodies come out.
+(program $smtx_dt_resolve () :signature ($smt_Datatype $smt_DatatypeDecl) $smt_Datatype)
+(program $smtx_dd_lookup () :signature ($native_String $smt_DatatypeDecl) $smt_Datatype)
+(program $smtx_dd_has_dt () :signature ($native_String $smt_DatatypeDecl) $native_Bool)
+(program $smtx_decl_wf_rec () :signature ($smt_DatatypeDecl $smt_DatatypeDecl) $native_Bool)
+(program $smtx_typeof_guard () :signature ($smt_Type $smt_Type) $smt_Type)
+(program $smtx_apply_arg_nth_value () :signature ($smt_Value $native_Nat $native_Nat) $smt_Value)
+
+;;; dt resolve
+
+
+
+
+
+(define $smtx_dd_resolve ((s $native_String) (dd $smt_DatatypeDecl))
+  ($smtx_dt_resolve ($smtx_dd_lookup s dd) dd))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Well-foundedness for types
+
+(program $smtx_type_wf_rec () :signature ($smt_Type) $native_Bool)
+(program $smtx_type_bounded () :signature ($native_Bool $smt_Type) $native_Bool)
+(program $smtx_is_finite_type () :signature ($smt_Type) $native_Bool)
+(program $smtx_type_default () :signature ($smt_Type) $smt_Value)
+(program $smtx_datatype_decl_default () :signature ($native_String $smt_DatatypeDecl $smt_DatatypeDecl) $smt_Value)
+(program $smtx_datatype_decl_bounded () :signature ($native_Bool $smt_DatatypeDecl $smt_DatatypeDecl $smt_DatatypeDecl) $smt_DatatypeDecl)
+(program $smtx_value_canonical () :signature ($smt_Value) $native_Bool)
+
+(define $smtx_type_wf_component_rec ((T $smt_Type))
+  ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T)))
+
+
+
+
+; The cases the configuration writes are spliced in below, and x1, x2 and n1
+; are what one of them is written with: a type stands at x<i> and the index a
+; type is built over at n<i>, see the types of tools/eoc/semantics/smt.eos.
+(program $smtx_type_wf_rec
+  ((T $smt_Type) (U Type) (s $native_String) (dd $smt_DatatypeDecl)
+   (x1 Type) (x2 Type) (n1 $native_Nat)
+   (s1 $native_String) (dd2 $smt_DatatypeDecl))
+  :signature ($smt_Type) $native_Bool
+  (
+  (($smtx_type_wf_rec $tsm_none) $native_false)
+;$SMT_TYPE_WF_CASES$
+  (($smtx_type_wf_rec U) $native_true)
+  )
+)
+
+
+;;; utilities
+
+; returns U if T is not none
+; returns U if T is well-formed and inhabited
+;; datatypes
+
+
+
+; The type of the ci^th constructor of a datatype, which is the type it builds
+; behind one $tsm_DtcAppType per argument it takes.
+;
+; $smtx_typeof_dt_cons_value_rec of the SMT-LIB set says the same for the
+; *value*: the hand-written Lean proofs of Logos are stated over both, so
+; neither stands in for the other.
+
+; returns the return type of the selector n,m of datatype d.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; The helpers the signature writes
+
+; Every auxiliary program a signature written in the embedding holds, i.e. what
+; the cases it contributes call rather than what it contributes. They stand
+; together here, before the first aggregate whose cases may call one, which is
+; what lets a helper of a theory be written in the configuration beside the
+; symbols that call it rather than here; see tools/eoc/semantics/smt.eos.
+;
+; A helper of the *value* language stands among them, so a case of
+; $smtx_typeof_value below may call one: the type of a map value is worked out
+; by $smtx_typeof_map_value, which the configuration writes with the Map type
+; it belongs to.
+
+;$SMT_EVAL_PROGS_FWD_DECL$
+
+;$SMT_HELPER_PROGS$
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Type rules for values
+
+; The cases the configuration writes are spliced in below, and each argument
+; is a letter for the type it is of and the place it stands at, see the values of
+; tools/eoc/semantics/smt.eos.
+(program $smtx_typeof_value
+  ((v $smt_Value) (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
+   (r1 $native_Rat) (c1 $native_Char) (n1 $native_Nat)
+   (n2 $native_Nat) (n3 $native_Nat) (s1 $native_String)
+   (m1 $smt_Map) (q1 $smt_Seq) (re1 $smt_RegLan)
+   (dd2 $smt_DatatypeDecl) (T2 $smt_Type) (T3 $smt_Type)
+   (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value) $smt_Type
+  (
+;$SMT_VALUE_TYPEOF_CASES$
+  (($smtx_typeof_value v)                   $tsm_none)
+  )
+)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Model semantics
+
+; What a theory says a term of it evaluates to is written in the
+; configuration, so what is left here is what the embedding evaluates for
+; itself: an application, and the terms it builds over a datatype declaration.
+
+;;; Apply
+
+; program: $smtx_model_eval_apply
+; We call ($smtx_model_eval_apply value_f value_i) when
+; evaluating (f i) whose values are value_f and value_i
+; respectively. If value_f is a map value, then we extract
+; the map and call the map lookup routine.
+(program $smtx_model_eval_apply
+  ((i $smt_Value) (f $smt_Value) (v $smt_Value) (n $native_Nat)
+   (T $smt_Type) (U $smt_Type) (M $smt_Model)
+   (s $native_String) (dd $smt_DatatypeDecl))
+  :signature ($smt_Model $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_apply M v $vsm_NotValue)    $vsm_NotValue)
+  ; If a Herbrand interpretation, apply it to the next value.
+  (($smtx_model_eval_apply M ($vsm_DtCons s dd n) i) ($vsm_Apply ($vsm_DtCons s dd n) i))
+  (($smtx_model_eval_apply M ($vsm_Apply f v) i) ($vsm_Apply ($vsm_Apply f v) i))
+  ; Call the native apply lookup
+  (($smtx_model_eval_apply M ($vsm_Fun s T U) i)
+    ($native_apply_5 "eval_fun_apply" M s T U i))
+  ; The function did not evaluate to a map value, we fail.
+  (($smtx_model_eval_apply M v i)                 $vsm_NotValue)
+  )
+)
+
+;;; Datatypes
+
+
+
+; An evaluator for all terms that we can reason about models.
+; This is a recursive call.
+; invariant: this must be a total function
+; invariant: unless this method returns $vsm_NotValue, it must be such that
+;            it represents a unique SMT-LIB value, i.e. ($vsm_term t) is
+;            forbidden unless t denotes a value.
+(program $smtx_model_eval_dt_sel
+  ((M $smt_Model) (n $native_Nat) (m $native_Nat) (v $smt_Value)
+   (s $native_String) (dd $smt_DatatypeDecl))
+  :signature ($smt_Model $native_String $smt_DatatypeDecl $native_Nat $native_Nat $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_dt_sel M s dd n m v)
+    ; check if the head of the apply term is ($vsm_DtCons s dd n)
+    ($native_ite ($native_veq ($smtx_apply_head_value v) ($vsm_DtCons s dd n))
+      ($smtx_apply_arg_nth_value v m ($smtx_dt_num_sels ($smtx_dd_lookup s dd) n))
+      ; wrongly applied selector
+      ; we introduce an uninterpreted function wrong_apply_sel : (-> Int Int D T)
+      ; where (wrong_apply_sel_id n m) is the uninterpreted function corresponding
+      ; to wrong applications of the m^th selector of the n^th constructor of the datatype of v.
+        ($smtx_model_eval_apply M
+          ($native_apply_3 "model_lookup" M ($native_apply_2 "wrong_apply_sel_id" n m)
+            ($tsm_FunType ($tsm_Datatype s dd) ($smtx_ret_typeof_sel s dd n m)))
+        v)))
+  )
+)
+
+(program $smtx_model_eval_dt_tester
+  ((s $native_String) (dd $smt_DatatypeDecl) (n $native_Nat) (v1 $smt_Value))
+  :signature ($native_String $smt_DatatypeDecl $native_Nat $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_dt_tester s dd n v1)
+    ; check if the head of the apply term is ($vsm_DtCons s dd n)
+    ($vsm_Boolean ($native_veq ($smtx_apply_head_value v1) ($vsm_DtCons s dd n))))
+  )
+)
+
+(program $smtx_model_eval
+  ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (dd $smt_DatatypeDecl)
+   (i $native_Nat) (j $native_Nat)
+   (m $native_Int) (s $native_String)
+   ; what a case of a literal is written with: a letter for the type it is of
+   ; and the place it stands at, see SLOT_BY_TYPE in
+   ; tools/eoc/compiler/sem_target.py
+   (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
+   (r1 $native_Rat) (s1 $native_String)
+   ; generic parameters that may appear in terms to pattern match
+   (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
+  :signature ($smt_Model $smt_Term) $smt_Value
+  (
+
+  ; evaluation of standard SMT symbols
+  ; These calls will reference helper methods above, e.g. of the form
+  ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
+;$SMT_EVAL_CASES$
+  ; quantifiers
+  (($smtx_model_eval M ($sm_exists s T x1))
+    ($native_apply_4 "eval_exists" M s T x1))
+  (($smtx_model_eval M ($sm_forall s T x1))
+    ($native_apply_4 "eval_forall" M s T x1))
+  (($smtx_model_eval M ($sm_choice s T x1))
+    ($native_apply_4 "eval_choice" M s T x1))
+  ; bind evaluates its body in the model extended with s bound to the value of
+  ; the first term.
+  (($smtx_model_eval M ($sm_bind s T x1 x2))
+    ($smtx_model_eval ($native_apply_4 "model_push" M s T ($smtx_model_eval M x1)) x2))
+  ; datatypes
+  (($smtx_model_eval M ($sm_DtCons s dd i)) ($vsm_DtCons s dd i))
+  (($smtx_model_eval M ($sm_apply ($sm_DtSel s dd i j) x1))
+    ($smtx_model_eval_dt_sel M s dd i j ($smtx_model_eval M x1)))
+  (($smtx_model_eval M ($sm_apply ($sm_DtTester s dd i) x1))
+    ($smtx_model_eval_dt_tester s dd i ($smtx_model_eval M x1)))
+  ; Apply case. We evaluate f and x1 separately and then call the
+  ; $smtx_model_eval_apply above. We expect f to be an uninterpreted
+  ; function whose model evaluation is an SMT-LIB map in this case.
+  ; All interpreted f should be handled in the evaluation cases above.
+  (($smtx_model_eval M ($sm_apply f x1))
+    ($smtx_model_eval_apply M ($smtx_model_eval M f) ($smtx_model_eval M x1)))
+  (($smtx_model_eval M ($sm_Var s T))     ($native_apply_3 "model_var_lookup" M s T))
+  (($smtx_model_eval M ($sm_UConst s T))  ($native_apply_3 "model_lookup" M s T))
+  (($smtx_model_eval M x1)   $vsm_NotValue)
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;
+
+
+(program $smtx_typeof
+  ((M $smt_Model) (f $smt_Term) (T $smt_Type) (dd $smt_DatatypeDecl)
+   (i $native_Nat) (j $native_Nat)
+   (m $native_Int) (s $native_String)
+   ; what a case of a literal is written with: a letter for the type it is of
+   ; and the place it stands at, see SLOT_BY_TYPE in
+   ; tools/eoc/compiler/sem_target.py
+   (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
+   (r1 $native_Rat) (s1 $native_String)
+   ; generic parameters that may appear in terms to pattern match
+   (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
+  :signature ($smt_Term) $smt_Type
+  (
+;$SMT_TYPEOF_CASES$
+  ; quantifiers
+  (($smtx_typeof ($sm_exists s T x1))
+    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T $tsm_Bool) $tsm_none))
+  (($smtx_typeof ($sm_forall s T x1))
+    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T $tsm_Bool) $tsm_none))
+  ; choice s:T. F has type T when F is Boolean and T is well-formed/inhabited.
+  (($smtx_typeof ($sm_choice s T x1))
+    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T T) $tsm_none))
+  ; bind s:T := t1 in t2 has the type of t2, provided t1 has type T (so that
+  ; the binding is well-typed) and T is well-formed/inhabited.
+  (($smtx_typeof ($sm_bind s T x1 x2))
+    ($native_ite ($native_Teq ($smtx_typeof x1) T) ($smtx_typeof_guard_wf T ($smtx_typeof x2)) $tsm_none))
+  ; datatypes
+  (($smtx_typeof ($sm_DtCons s dd i))
+    ($smtx_typeof_guard_wf ($tsm_Datatype s dd)
+      ($smtx_typeof_dt_cons_rec ($tsm_Datatype s dd) ($smtx_dd_resolve s dd) i)))
+  (($smtx_typeof ($sm_apply ($sm_DtSel s dd i j) x1))
+    (eo::define ((ret ($smtx_ret_typeof_sel s dd i j)))
+    ($smtx_typeof_guard_wf ret
+      ($smtx_typeof_apply
+        ($tsm_FunType ($tsm_Datatype s dd) ret)
+        ($smtx_typeof x1)))))
+  (($smtx_typeof ($sm_apply ($sm_DtTester s dd i) x1))
+    ($smtx_typeof_guard
+      ; must be a valid constructor
+      ($smtx_typeof_dt_cons_rec ($tsm_Datatype s dd) ($smtx_dd_resolve s dd) i)
+      ($smtx_typeof_apply
+        ($tsm_FunType ($tsm_Datatype s dd) $tsm_Bool)
+        ($smtx_typeof x1))))
+  ; other
+  (($smtx_typeof ($sm_apply f x1))  ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
+  (($smtx_typeof ($sm_Var s T))     ($smtx_typeof_guard_wf T T))
+  (($smtx_typeof ($sm_UConst s T))  ($smtx_typeof_guard_wf T T))
+  (($smtx_typeof x1)   $tsm_none)
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;
+
+
+; The two aggregates are forward declared, since what a signature says about a
+; symbol may name either, and both are defined below.
+(program $eo_to_smt ((T Type)) :signature (T) $smt_Term)
+(program $eo_to_smt_type () :signature (Type) $smt_Type)
+
+(program $eo_to_smt_datatype_cons ((U $eo_Term) (c $eo_DatatypeCons))
+  :signature ($eo_DatatypeCons) $smt_DatatypeCons
+  (
+  (($eo_to_smt_datatype_cons $edtc_unit) $dtc_unit)
+  (($eo_to_smt_datatype_cons ($edtc_cons U c))
+    ($dtc_cons ($eo_to_smt_type U) ($eo_to_smt_datatype_cons c)))
+  )
+)
+
+(program $eo_to_smt_datatype ((c $eo_DatatypeCons) (d $eo_Datatype))
+  :signature ($eo_Datatype) $smt_Datatype
+  (
+  (($eo_to_smt_datatype ($edt_sum c d))
+    ($dt_sum ($eo_to_smt_datatype_cons c) ($eo_to_smt_datatype d)))
+  (($eo_to_smt_datatype $edt_null) $dt_null)
+  )
+)
+
+(program $eo_to_smt_datatype_decl ((s $native_String) (d $eo_Datatype) (dd $eo_DatatypeDecl))
+  :signature ($eo_DatatypeDecl) $smt_DatatypeDecl
+  (
+  (($eo_to_smt_datatype_decl ($edd_cons s d dd))
+    ($dd_cons s ($eo_to_smt_datatype d) ($eo_to_smt_datatype_decl dd)))
+  (($eo_to_smt_datatype_decl $edd_nil) $dd_nil)
+  )
+)
+
+; auxiliary definitions for defining $eo_to_smt / $eo_to_smt_type
+;$EO_TO_SMT_AUX$
+
+
+
+
+
+(program $eo_to_smt_type
+  ((T Type) (n1 $native_Int) (i $native_Nat) (s $native_String) (dd $eo_DatatypeDecl)
+  (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
+  (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
+  :signature (Type) $smt_Type
+  (
+  (($eo_to_smt_type Bool)                     $tsm_Bool)
+  (($eo_to_smt_type ($eot_DatatypeType s dd))
+    ($native_ite ($eo_to_smt_reserved_datatype_name s) $tsm_none
+      ($tsm_Datatype s ($eo_to_smt_datatype_decl dd))))
+  (($eo_to_smt_type ($eot_DatatypeTypeRef s))
+    ($native_ite ($eo_to_smt_reserved_datatype_name s) $tsm_none
+      ($tsm_TypeRef s)))
+  (($eo_to_smt_type ($eot_DtcAppType T1 T2))
+    (eo::define ((S1 ($eo_to_smt_type T1)))
+    (eo::define ((S2 ($eo_to_smt_type T2)))
+      ($smtx_typeof_guard S1 ($smtx_typeof_guard S2 ($tsm_DtcAppType S1 S2))))))
+  (($eo_to_smt_type ($eot_USort i))           ($tsm_USort i))
+  (($eo_to_smt_type (-> T1 T2))
+    (eo::define ((S1 ($eo_to_smt_type T1)))
+    (eo::define ((S2 ($eo_to_smt_type T2)))
+      ($smtx_typeof_guard S1 ($smtx_typeof_guard S2 ($tsm_FunType S1 S2))))))
+;$EO_TO_SMT_TYPE_CASES$
+  (($eo_to_smt_type T)                      $tsm_none)
+  )
+)
+
+(program $eo_to_smt
+  ((b $native_Bool) (n $native_Int) (m $native_Int) (r $native_Rat)
+   (s $native_String) (w $native_Int) (dd $eo_DatatypeDecl)
+   (T Type) (U Type) (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
+   (f (-> U T)) (y U) (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5)
+   (i $native_Nat) (j $native_Nat))
+  :signature (T) $smt_Term
+  (
+  (($eo_to_smt ($eot_bool b))        ($sm_Boolean b))
+  (($eo_to_smt ($eot_numeral n))     ($sm_Numeral n))
+  (($eo_to_smt ($eot_rational r))    ($sm_Rational r))
+  (($eo_to_smt ($eot_string s))      ($sm_String s))
+  (($eo_to_smt ($eot_binary w n))    ($sm_Binary w n))
+  (($eo_to_smt ($eot_Var ($eot_string s) T))
+                                     ($sm_Var s ($eo_to_smt_type T)))
+  (($eo_to_smt ($eot_DtCons s dd i))
+    ($native_ite ($eo_to_smt_reserved_datatype_name s) $sm_none
+      ($sm_DtCons s ($eo_to_smt_datatype_decl dd) i)))
+  (($eo_to_smt ($eot_DtSel s dd i j))
+    ($native_ite ($eo_to_smt_reserved_datatype_name s) $sm_none
+      ($sm_DtSel s ($eo_to_smt_datatype_decl dd) i j)))
+  (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($native_uconst_id i) ($eo_to_smt_type T)))
+;$EO_TO_SMT_CASES$
+  (($eo_to_smt (f y))               ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
+  (($eo_to_smt y)                   $sm_none)
+  )
+)
+
+
+;;; Finiteness
+
+; The following computes whether a type has a bounded number of elements,
+; where the bound is determined by the flag u: if u is true, the type must
+; have exactly one element ("unit"), otherwise it must be finite.
+; For a datatype in declaration dd, we compute the set of bounded datatypes
+; of dd as a fixpoint: a declaration ddB (a sub-declaration of dd) is grown
+; by adding datatypes all of whose fields are bounded, where a reference
+; ($tsm_TypeRef s) is bounded iff s already occurs in ddB. The fixpoint is
+; reached after (at most) one pass per datatype in dd. Datatypes on reference
+; cycles never enter ddB, hence are correctly deemed infinite, while acyclic
+; references are resolved regardless of their order in the declaration.
+
+
+; Whether a type has exactly one value. Nothing in the model calls it: it
+; stands for the Lean development, whose hand-written proofs about the
+; generated model are stated over it, see the unit soundness and completeness
+; theorems in Cpc/Proofs/Canonical/FiniteSoundness.lean of Logos. It is
+; therefore kept whatever an input declares, and $smtx_is_finite_type beside it
+; is the one the model itself calls.
+; A unit datatype must have exactly one constructor, a finite datatype may
+; have any number of constructors.
+
+; One pass over the datatypes in the declaration being scanned, extending the
+; bounded set ddB with those datatypes that are bounded relative to ddB.
+
+; Computes the set of bounded datatypes in dd, where ddC is the countdown of
+; remaining passes, initially dd itself.
+
+; x1, x2 and n1 are what a case the configuration writes is written with.
+(program $smtx_type_bounded
+  ((u $native_Bool) (w $native_Nat) (T $smt_Type) (U $smt_Type)
+   (s $native_String) (dd $smt_DatatypeDecl)
+   (x1 $smt_Type) (x2 $smt_Type) (n1 $native_Nat)
+   (s1 $native_String) (dd2 $smt_DatatypeDecl))
+  :signature ($native_Bool $smt_Type) $native_Bool
+  (
+;$SMT_TYPE_BOUNDED_CASES$
+  ; note FunType is not extensional, thus assumed to be infinite
+  (($smtx_type_bounded u T)                    $native_false)
+  )
+)
+
+
+; Returns the first term in an enumeration, assumes the type is finite.
+; Datatype constructors return the first that does not involve recursion.
+; Bool must return false to be compatible with sets
+; x1, x2 and n1 are what a case the configuration writes is written with.
+(program $smtx_type_default
+  ((w $native_Nat) (V $smt_Type) (T $smt_Type) (U $smt_Type)
+   (s $native_String) (dd $smt_DatatypeDecl) (i $native_Nat)
+   (x1 $smt_Type) (x2 $smt_Type) (n1 $native_Nat)
+   (s1 $native_String) (dd2 $smt_DatatypeDecl))
+  :signature ($smt_Type) $smt_Value
+  (
+;$SMT_TYPE_DEFAULT_CASES$
+  (($smtx_type_default T) $vsm_NotValue)
+  )
+)
+
+;;; Canonicity of values
+
+; Whether a value is canonical, which answers with a native Bool. A proof
+; reads the same question as a Prop, which is a definition of its own and so
+; needs a name of its own: this one is taken.
+
+; Whether a value of a shape is canonical, which the configuration writes with
+; the shape it is of: a map value is canonical when its entries are ordered and
+; none of them is the default, which the Map shape is what says.
+;$SMT_CANONICAL_AUX$
+
+; The same, for what each value says about being canonical.
+(program $smtx_value_canonical
+  ((v $smt_Value) (i1 $native_Int) (i2 $native_Int) (c1 $native_Char)
+   (m1 $smt_Map) (q1 $smt_Seq) (re1 $smt_RegLan)
+   (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value) $native_Bool
+  (
+;$SMT_VALUE_CANONICAL_CASES$
+  (($smtx_value_canonical v) $native_true)
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end

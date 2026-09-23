@@ -1,12 +1,12 @@
 
 
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
 
 (declare-const and (-> Bool Bool Bool))
 
 (program select ((f1 Bool) (f2 Bool))
-  (Int Bool) Bool
+  :signature (Int Bool) Bool
   ; cases
   (
   ((select 0 (and f1 f2)) f1)
@@ -15,7 +15,7 @@
 )
 
 (program less-than ()
-  (Int Int) Bool
+  :signature (Int Int) Bool
   (
   ((less-than 0 2) true)
   ((less-than 1 2) true)

@@ -1,2 +1,2 @@
-(declare-type Int ())
+(declare-const Int Type)
 (declare-const !x Int)

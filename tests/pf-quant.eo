@@ -1,6 +1,9 @@
+(declare-const String Type)
+(declare-consts <string> String)
+
 (include "./quant.eo")
 
-(declare-type Int ())
+(declare-const Int Type)
 
 (define x1 () (eo::var "x1" Int))
 (declare-const a Int)

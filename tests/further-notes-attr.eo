@@ -1,0 +1,11 @@
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+
+(declare-const a Bool)
+(declare-const b Bool)
+(define apply-f-to-ab ((f (-> Bool Bool Bool))) (f a b))
+(define apply-or-to-ab () (apply-f-to-ab or))
+(define apply-or-to-ab-2 () (or a b))
+(define apply-or-to-ab-3 () (_ or a b))
+
+(declare-const test1 (eo::requires apply-or-to-ab apply-or-to-ab-3 Bool))
+(declare-const test2 (eo::requires (eo::eq apply-or-to-ab apply-or-to-ab-2) false Bool))

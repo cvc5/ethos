@@ -1,4 +1,4 @@
-(declare-type Real ())
+(declare-const Real Type)
 (declare-const > (-> Real Real Bool))
 (declare-const < (-> Real Real Bool))
 (declare-consts <rational> Real)

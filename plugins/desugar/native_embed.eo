@@ -1,0 +1,70 @@
+; This file defines a deep embedding of SMT-LIB into Eunoia.
+; It has the following uses:
+; 1. To give an SMT-LIB specific bootstrapping of the SMT-LIB inspired builtin
+;    Eunoia functions, e.g. $eo_add.
+; 2. It is used to define the end signature for defining the model semantics of
+;    SMT-LIB.
+
+; The type of $native_apply_* terms.
+; If a term has this type, we know it is an SMT-LIB type,
+; but we don't know which one from ordinary type checking.
+(declare-const $native_BuiltinType Type)
+
+;;; Deep embedding of SMT-LIB operator applications into Eunoia
+
+; Apply the SMT operator named "op" to x1, x2, and so on.
+; Assumes arity of SMT-LIB operators are at most 5.
+(declare-parameterized-const $native_type_0
+  (($smt_id Type :implicit) (op $smt_id :opaque))
+  Type)
+(declare-parameterized-const $native_type_1
+  (($smt_id Type :implicit) (W1 Type :implicit) (op $smt_id :opaque) (x1 W1 :opaque))
+  Type)
+(declare-parameterized-const $native_type_2
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque))
+  Type)
+; A type of the final deep embedding. The (opaque) name is the name of the
+; datatype this type maps to in the generated backend encodings, i.e. the
+; Lean inductive and the SMT-LIB datatype of that name. The three variants
+; determine the category of the definitions that mention the type: ordinary
+; Eunoia definitions, definitions belonging to the SMT-LIB model semantics,
+; or definitions belonging to the proof checker.
+(declare-parameterized-const $native_embed_eo
+  (($smt_id Type :implicit) (name $smt_id :opaque))
+  Type)
+(declare-parameterized-const $native_embed_smt
+  (($smt_id Type :implicit) (name $smt_id :opaque))
+  Type)
+(declare-parameterized-const $native_embed_checker
+  (($smt_id Type :implicit) (name $smt_id :opaque))
+  Type)
+(declare-parameterized-const $native_apply_0
+  (($smt_id Type :implicit) (op $smt_id :opaque))
+  $native_BuiltinType)
+(declare-parameterized-const $native_apply_1
+  (($smt_id Type :implicit) (W1 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque)) $native_BuiltinType)
+(declare-parameterized-const $native_apply_2
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $native_BuiltinType)
+(declare-parameterized-const $native_apply_3
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque)) $native_BuiltinType)
+(declare-parameterized-const $native_apply_4
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
+   (W3 Type :implicit) (W4 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque)) $native_BuiltinType)
+(declare-parameterized-const $native_apply_5
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
+   (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $native_BuiltinType)
+
+; The natives themselves, which are compiled from plugins/desugar/natives.eos
+; rather than written here: a declaration of one says its name, what each of
+; its arguments is, and either the operator it forwards to or what it is
+; defined as, and the compiler knows all of that. That set declares the
+; primitive types too, so what stands below is the whole of the layer and this
+; file declares only what the layer is written over. See render_natives in
+; tools/eoc/compiler/sem_compile.py.
+(include "native_defs.eo")

@@ -25,21 +25,23 @@ CmdParser::CmdParser(Lexer& lex,
                      State& state,
                      ExprParser& eparser,
                      bool isReference)
-    : d_lex(lex), d_state(state), d_sts(state.getStats()),
-      d_eparser(eparser), d_isReference(isReference), d_isFinished(false)
+    : d_lex(lex),
+      d_state(state),
+      d_tc(state.getTypeChecker()),
+      d_sts(state.getStats()),
+      d_eparser(eparser),
+      d_isReference(isReference),
+      d_isFinished(false)
 {
   // initialize the command tokens
   // commands supported in both inputs and proofs
-  d_table["declare-codatatype"] = Token::DECLARE_CODATATYPE;    // undocumented, TODO: remove
-  d_table["declare-codatatypes"] = Token::DECLARE_CODATATYPES;  // undocumented, TODO: remove
   d_table["declare-const"] = Token::DECLARE_CONST;
   d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
+  d_table["declare-sort"] = Token::DECLARE_SORT;
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
   d_table["set-option"] = Token::SET_OPTION;
-  d_table["pop"] = Token::POP;    // undocumented
-  d_table["push"] = Token::PUSH;  // undocumented
   d_table["reset"] = Token::RESET;
 
   if (d_isReference)
@@ -47,26 +49,25 @@ CmdParser::CmdParser(Lexer& lex,
     // only used in smt2 queries
     d_table["assert"] = Token::ASSERT;
     d_table["declare-fun"] = Token::DECLARE_FUN;
-    d_table["declare-sort"] = Token::DECLARE_SORT;
     d_table["define-const"] = Token::DEFINE_CONST;
     d_table["define-fun"] = Token::DEFINE_FUN;
     d_table["define-sort"] = Token::DEFINE_SORT;
     d_table["check-sat"] = Token::CHECK_SAT;
     d_table["check-sat-assuming"] = Token::CHECK_SAT_ASSUMING;
+    d_table["reset-assertions"] = Token::RESET_ASSERTIONS;
     d_table["set-logic"] = Token::SET_LOGIC;
     d_table["set-info"] = Token::SET_INFO;
+    // Note that any command whose name begins with "get-" is parsed and
+    // ignored, see nextCommandToken.
   }
   else
   {
     d_table["assume"] = Token::ASSUME;
     d_table["assume-push"] = Token::ASSUME_PUSH;
     d_table["declare-consts"] = Token::DECLARE_CONSTS;
-    d_table["declare-oracle-fun"] = Token::DECLARE_ORACLE_FUN;
     d_table["declare-parameterized-const"] = Token::DECLARE_PARAMETERIZED_CONST;
     d_table["declare-rule"] = Token::DECLARE_RULE;
-    d_table["declare-type"] = Token::DECLARE_TYPE;
     d_table["define"] = Token::DEFINE;
-    d_table["define-type"] = Token::DEFINE_TYPE;
     d_table["include"] = Token::INCLUDE;
     d_table["program"] = Token::PROGRAM;
     d_table["reference"] = Token::REFERENCE;
@@ -89,6 +90,15 @@ Token CmdParser::nextCommandToken()
     {
       return it->second;
     }
+    // In reference files, any command that begins with "get-" is one that
+    // queries the solver for output (e.g. get-model). Such commands have no
+    // impact on the set of assertions, hence we parse and ignore all of them.
+    // This is done by prefix so that we do not have to maintain a list of the
+    // commands of this form.
+    if (d_isReference && str.compare(0, 4, "get-") == 0)
+    {
+      return Token::SMT2_QUERY_COMMAND;
+    }
   }
   return tok;
 }
@@ -108,18 +118,15 @@ bool CmdParser::parseNextCommand()
     case Token::ASSUME:
     case Token::ASSUME_PUSH:
     {
-      if (tok==Token::ASSUME_PUSH)
-      {
-        d_state.pushAssumptionScope();
-      }
       // note we typically expect d_state.getAssumptionLevel() to be zero
       // when using ASSUME, but we do not check for this here.
       std::string name = d_eparser.parseSymbol();
       // parse what is proven
       Expr proven = d_eparser.parseFormula();
-      Expr pt = d_state.mkProofType(proven);
-      Expr v = d_state.mkSymbol(Kind::CONST, name, pt);
-      d_eparser.bind(name, v);
+      d_state.notifyAssume(name, proven, (tok == Token::ASSUME_PUSH));
+      // bind the assumption to (pf <proven>).
+      Expr pt = d_state.mkProof(proven);
+      d_eparser.bind(name, pt);
       if (!d_state.addAssumption(proven))
       {
         std::stringstream ss;
@@ -129,13 +136,11 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (declare-fun <symbol> (<sort>∗) <sort>)
-    // (declare-oracle-fun <symbol> (<sort>∗) <sort>)
     // (declare-const <symbol> <sort>)
     // (declare-parameterized-const (<sorted_var>*) <symbol> <sort>)
     case Token::DECLARE_CONST:
     case Token::DECLARE_FUN:
     case Token::DECLARE_PARAMETERIZED_CONST:
-    case Token::DECLARE_ORACLE_FUN:
     {
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
@@ -144,7 +149,7 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> params;
       // attributes marked on variables
       std::map<ExprValue*, AttrMap> pattrMap;
-      if (tok == Token::DECLARE_FUN || tok == Token::DECLARE_ORACLE_FUN)
+      if (tok == Token::DECLARE_FUN)
       {
         sorts = d_eparser.parseTypeList();
       }
@@ -159,19 +164,8 @@ bool CmdParser::parseNextCommand()
       Kind sk;
       Expr t;
       sk = Kind::CONST;
-      if (tok==Token::DECLARE_ORACLE_FUN)
-      {
-        if (sorts.empty())
-        {
-          d_lex.parseError("Oracle functions must have at least one argument");
-        }
-        ck = Attr::ORACLE;
-        sk = Kind::ORACLE;
-        std::string oname = d_eparser.parseSymbol();
-        cons = d_state.mkLiteral(Kind::STRING, oname);
-        // don't permit attributes for oracle functions
-      }
-      else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_PARAMETERIZED_CONST)
+      if (tok == Token::DECLARE_CONST
+          || tok == Token::DECLARE_PARAMETERIZED_CONST)
       {
         // possible attribute list
         AttrMap attrs;
@@ -183,18 +177,9 @@ bool CmdParser::parseNextCommand()
       t = ret;
       if (!sorts.empty())
       {
-        t = (tok == Token::DECLARE_ORACLE_FUN)
-                ? d_state.mkProgramType(sorts, ret)
-                : d_state.mkFunctionType(sorts, ret);
+        t = d_state.mkFunctionType(sorts, ret);
       }
       std::vector<Expr> opaqueArgs;
-      while (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::OPAQUE_TYPE)
-      {
-        Assert (t.getNumChildren()==2);
-        Assert (t[0].getNumChildren()==1);
-        opaqueArgs.push_back(t[0][0]);
-        t = t[1];
-      }
       // process the parameter list
       if (!params.empty())
       {
@@ -204,17 +189,37 @@ bool CmdParser::parseNextCommand()
         for (size_t i = 0, nparams = params.size(); i < nparams; i++)
         {
           size_t ii = nparams - i - 1;
-          Expr qt = d_state.mkQuoteType(params[ii]);
-          itp = pattrMap.find(params[ii].getValue());
+          Expr p = params[ii];
+          Expr pt = d_tc.getType(p);
+          Expr qt;
+          // Check if the parameter is contained in the return type. If so,
+          // then it must be quoted.
+          std::unordered_set<const ExprValue*> vp{p.getValue()};
+          if (Expr::hasVariable(t, vp))
+          {
+            // If the type of the parameter is non-ground, then we throw an
+            // error.
+            if (!pt.isGround())
+            {
+              std::stringstream ss;
+              ss << "Cannot define a type involving a parameter that has "
+                    "non-ground type. ";
+              ss << "The parameter in question was " << p << ".";
+              d_lex.parseError(ss.str());
+            }
+            // We also pass its type to ensure the argument passed to it matches
+            // its type.
+            qt = d_state.mkQuoteType(p);
+          }
+          else
+          {
+            // If not contained, the parameter is not quoted and we are an
+            // ordinary function argument type.
+            qt = pt;
+          }
+          itp = pattrMap.find(p.getValue());
           if (itp != pattrMap.end())
           {
-            itpa = itp->second.find(Attr::REQUIRES);
-            if (itpa != itp->second.end())
-            {
-              // requires adds to return type
-              t = d_state.mkRequires(itpa->second, t);
-              itp->second.erase(itpa);
-            }
             itpa = itp->second.find(Attr::OPAQUE);
             if (itpa != itp->second.end())
             {
@@ -239,8 +244,7 @@ bool CmdParser::parseNextCommand()
         std::pair<std::vector<Expr>, Expr> ft = t.getFunctionType();
         std::vector<Expr> argTypes = ft.first;
         argTypes.insert(argTypes.end(), opaqueArgs.begin(), opaqueArgs.end());
-        Expr tup = d_state.mkExpr(Kind::TUPLE, argTypes);
-        std::vector<Expr> pargs = Expr::getVariables(tup);
+        std::vector<Expr> pargs = Expr::getVariables(argTypes);
         Expr fv = d_eparser.findFreeVar(ft.second, pargs);
         if (!fv.isNull())
         {
@@ -253,8 +257,8 @@ bool CmdParser::parseNextCommand()
             d_lex.parseError(
                 "Ambiguous functions cannot have opaque arguments");
           }
-          Expr qt = d_state.mkQuoteType(ft.second);
-          t = d_state.mkFunctionType({qt}, t);
+          // must disambiguate the type using the utility
+          t = d_state.mkDisambiguatedType(ft.second, t, name);
           ck = Attr::AMB;
         }
       }
@@ -266,9 +270,14 @@ bool CmdParser::parseNextCommand()
         {
           d_lex.parseError("Can only use opaque argument on functions without attributes.");
         }
-        // Reconstruct with opaque arguments, do not flatten function type.
-        t = d_state.mkFunctionType(opaqueArgs, t, false);
         ck = Attr::OPAQUE;
+        // we store the number of opaque arguments as the constructor
+        std::stringstream onum;
+        onum << opaqueArgs.size();
+        Assert(cons.isNull());
+        cons = d_state.mkLiteral(Kind::NUMERAL, onum.str());
+        opaqueArgs.push_back(t);
+        t = d_state.mkExpr(Kind::FUNCTION_TYPE, opaqueArgs);
       }
       Expr v = d_state.mkSymbol(sk, name, t);
       // if the type has a property, we mark it on the variable of this type
@@ -292,16 +301,11 @@ bool CmdParser::parseNextCommand()
     break;
     // single or multiple datatype
     // (declare-datatype <symbol> <datatype_dec>)
-    // (declare-codatatype <symbol> <datatype_dec>)
     // (declare-datatypes (<sort_dec>^{n+1}) (<datatype_dec>^{n+1}) )
-    // (declare-codatatypes (<sort_dec>^{n+1}) (<datatype_dec>^{n+1}) )
-    case Token::DECLARE_CODATATYPE:
     case Token::DECLARE_DATATYPE:
-    case Token::DECLARE_CODATATYPES:
     case Token::DECLARE_DATATYPES:
     {
-      bool isCo = (tok==Token::DECLARE_CODATATYPES || tok==Token::DECLARE_CODATATYPE);
-      bool isMulti = (tok==Token::DECLARE_CODATATYPES || tok==Token::DECLARE_DATATYPES);
+      bool isMulti = (tok == Token::DECLARE_DATATYPES);
       std::vector<std::string> dnames;
       std::vector<size_t> arities;
       std::map<const ExprValue*, std::vector<Expr>> dts;
@@ -337,7 +341,7 @@ bool CmdParser::parseNextCommand()
         d_lex.parseError("Failed to bind symbols for datatype definition");
       }
       // mark the attributes
-      Attr attr = isCo ? Attr::CODATATYPE : Attr::DATATYPE;
+      Attr attr = Attr::DATATYPE;
       for (std::pair<const ExprValue* const, std::vector<Expr>>& d : dts)
       {
         Expr dt = Expr(d.first);
@@ -363,14 +367,22 @@ bool CmdParser::parseNextCommand()
     // (declare-consts <symbol> <sort>)
     case Token::DECLARE_CONSTS:
     {
+      d_state.pushScope();
+      Expr self = d_state.mkSelf();
+      d_eparser.bind("eo::self", self);
       Kind k = d_eparser.parseLiteralKind();
       Expr t = d_eparser.parseType();
       // maybe requires?
       // set the type rule
-      d_state.setLiteralTypeRule(k, t);
+      std::stringstream ssl;
+      if (!d_state.setLiteralTypeRule(k, t, &ssl))
+      {
+        d_lex.parseError(ssl.str());
+      }
+      d_state.popScope();
     }
     break;
-    // (declare-rule ...)
+    // (declare-rule ...), which defines a program for manipulating proof terms.
     case Token::DECLARE_RULE:
     {
       // ensure zero scope
@@ -409,6 +421,8 @@ bool CmdParser::parseNextCommand()
         premises.push_back(pat);
         keyword = d_eparser.parseKeyword();
       }
+      // whether the conclusion was given via conclusion-explicit
+      bool concExplicit = false;
       // parse args, optionally
       if (keyword=="args")
       {
@@ -418,68 +432,126 @@ bool CmdParser::parseNextCommand()
       // parse requirements, optionally
       if (keyword=="requires")
       {
-        // we support eo::conclusion in requirements
-        d_state.pushScope();
-        d_state.bind("eo::conclusion", d_state.mkConclusion());
         // parse the expression pair list
         reqs = d_eparser.parseExprPairList();
         keyword = d_eparser.parseKeyword();
-        d_state.popScope();
       }
       // parse conclusion
       if (keyword=="conclusion")
       {
         conc = d_eparser.parseExpr();
       }
-      else if (keyword=="conclusion-given")
+      else if (keyword == "conclusion-explicit")
       {
         // :conclusion-given is equivalent to :conclusion eo::conclusion
-        conc = d_state.mkConclusion();
+        conc = d_eparser.parseExpr();
+        concExplicit = true;
       }
       else
       {
         d_lex.parseError("Expected conclusion in declare-rule");
       }
-      std::vector<Expr> argTypes;
-      for (Expr& e : args)
+      // We construct the list of arguments to pattern match on (progArgs).
+      std::vector<Expr> progArgs;
+      // ordinary arguments first
+      progArgs.insert(progArgs.end(), args.begin(), args.end());
+      // then explicit conclusion
+      if (concExplicit)
       {
-        Expr et = d_state.mkQuoteType(e);
-        argTypes.push_back(et);
+        progArgs.push_back(conc);
       }
-      for (const Expr& e : premises)
-      {
-        Expr pet = d_state.mkProofType(e);
-        argTypes.push_back(pet);
-      }
+      // then assumption
       if (!assume.isNull())
       {
-        Expr ast = d_state.mkQuoteType(assume);
-        argTypes.push_back(ast);
+        progArgs.push_back(assume);
       }
-      Expr ret = d_state.mkProofType(conc);
+      // finally, premises
+      for (const Expr& e : premises)
+      {
+        Expr pet = d_state.mkProof(e);
+        progArgs.push_back(pet);
+      }
+      Expr ret = conc;
       // include the requirements into the return type
       if (!reqs.empty())
       {
         ret = d_state.mkRequires(reqs, ret);
       }
-      // Ensure all free variables in the conclusion are bound in the arguments.
-      // Otherwise, this rule will always generate a free variable, which is
-      // likely unintentional.
-      std::vector<Expr> bvs = Expr::getVariables(argTypes);
-      d_eparser.ensureBound(ret, bvs);
-      // make the overall type
-      if (!argTypes.empty())
-      {
-        ret = d_state.mkFunctionType(argTypes, ret, false);
-      }
+      // Ethos desugars proof rules to programs that take premises and
+      // arguments and returns the formula F that is proven. This result is
+      // then wrapped in (eo::pf F) when executing step/step-pop commands.
+      // For example,
+      // (declare-rule contra ((F Bool))
+      //   :premises (F (not F))
+      //   :conclusion false)
+      // is desugared to
+      // (program $eo_prog_contra ((F Bool))
+      //   :signature (Proof Proof) Bool
+      //   ((($eo_prog_contra (eo::pf F) (eo::pf (not F))) false))
+      // ).
+      // Proof rules themselves are a special kind of symbol that maps to their
+      // associated program. The proof rule symbols themselves are given type
+      // Bool, which is not used.
+      Expr pt = d_state.mkBoolType();
       d_state.popScope();
-      Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
+      Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, pt);
       d_eparser.typeCheck(rule);
-      d_eparser.bind(name, rule);
-      if (!plCons.isNull())
+      Expr ruleProg;
+      if (!progArgs.empty())
       {
-        d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
+        // construct the program type based on the arguments we are matching
+        std::vector<Expr> progTypes;
+        Expr type = d_state.mkType();
+        for (size_t i = 0, nargs = progArgs.size(); i < nargs; i++)
+        {
+          if (progArgs[i].getKind() == Kind::PROOF)
+          {
+            progTypes.push_back(d_state.mkProofType());
+          }
+          else
+          {
+            // Since arguments to proof rules may contain parameters, some
+            // arguments do not type check. Hence, we overapproximate the
+            // type of the program using type variables here.
+            std::stringstream ss;
+            ss << "$eo_arg_" << i;
+            Expr et = d_state.mkSymbol(Kind::PARAM, ss.str(), type);
+            progTypes.push_back(et);
+          }
+        }
+        pt = d_state.mkProgramType(progTypes, pt);
+        std::stringstream ss;
+        ss << "$eo_prog_" << name;
+        ruleProg = d_state.mkSymbol(Kind::PROGRAM_CONST, ss.str(), pt);
+        progArgs.insert(progArgs.begin(), ruleProg);
+        Expr ppat = d_state.mkExpr(Kind::APPLY, progArgs);
+        d_eparser.typeCheckProgramPair(ppat, ret, true);
+        Expr progCase = d_state.mkPair(ppat, ret);
+        Expr prog = d_state.mkExpr(Kind::PROGRAM, {progCase});
+        d_state.defineProgram(ruleProg, prog);
       }
+      else
+      {
+        // the returned proof term is the standalone definition.
+        ruleProg = ret;
+        // must check ground
+        if (!ret.isGround() || ret.isEvaluatable())
+        {
+          d_lex.parseError("Nullary proof rule must have ground reduced conclusion");
+        }
+      }
+      d_eparser.bind(name, rule);
+      std::vector<Expr> tupleChildren;
+      tupleChildren.push_back(plCons.isNull() ? d_state.mkAny() : plCons);
+      tupleChildren.push_back(d_state.mkBool(!assume.isNull()));
+      tupleChildren.push_back(d_state.mkBool(concExplicit));
+      tupleChildren.push_back(ruleProg);
+      Expr attrVal = d_state.mkExpr(Kind::TUPLE, tupleChildren);
+      // we always carry plCons, in case the rule was marked
+      // :premise-list as well as :assumption or :conclusion-explicit
+      // simulataneously. We will handle all 3 special cases at once in
+      // State::notifyStep when the rule is applied.
+      d_state.markConstructorKind(rule, Attr::PROOF_RULE, attrVal);
       AttrMap attrs;
       d_eparser.parseAttributeList(Kind::PROOF_RULE, rule, attrs);
     }
@@ -496,28 +568,6 @@ bool CmdParser::parseNextCommand()
       d_eparser.bind(name, decType);
     }
     break;
-    // (declare-type <symbol> (<sort>*))
-    case Token::DECLARE_TYPE:
-    {
-      //d_state.checkThatLogicIsSet();
-      //d_state.checkLogicAllowsFreeExprs();
-      std::string name = d_eparser.parseSymbol();
-      //d_state.checkUserSymbol(name);
-      std::vector<Expr> args = d_eparser.parseTypeList();
-      Expr type;
-      Expr ttype = d_state.mkType();
-      if (args.empty())
-      {
-        type = ttype;
-      }
-      else
-      {
-        type = d_state.mkFunctionType(args, ttype);
-      }
-      Expr decType = d_state.mkSymbol(Kind::CONST, name, type);
-      d_eparser.bind(name, decType);
-    }
-    break;
     // (define-const <symbol> <sort> <term>)
     case Token::DEFINE_CONST:
     {
@@ -531,10 +581,8 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
-    // (define-type <symbol> (<sorted_var>*) <term>)
     // (define <symbol> (<sorted_var>*) <term> <attr>*)
     case Token::DEFINE_FUN:
-    case Token::DEFINE_TYPE:
     case Token::DEFINE:
     {
       d_state.pushScope();
@@ -568,17 +616,16 @@ bool CmdParser::parseNextCommand()
       {
         ret = d_eparser.parseType();
       }
-      else if (tok == Token::DEFINE_TYPE)
-      {
-        ret = d_state.mkType();
-      }
       Expr expr = d_eparser.parseExpr();
       // ensure we have the right type
       if (!ret.isNull())
       {
         d_eparser.typeCheck(expr, ret);
       }
-      if (tok == Token::DEFINE_FUN)
+      bool defineFunAsReferenceAssert =
+          tok == Token::DEFINE_FUN && d_isReference
+          && !d_state.getOptions().d_referenceDefineFun;
+      if (defineFunAsReferenceAssert)
       {
         // This is for reference checking only. Note that = and lambda are
         // not builtin symbols, thus we must assume they are defined by the user.
@@ -605,7 +652,7 @@ bool CmdParser::parseNextCommand()
           {
             types.push_back(d_eparser.typeCheck(e));
           }
-          t = d_state.mkFunctionType(types, t, false);
+          t = d_state.mkFunctionType(types, t);
         }
         expr = d_state.mkSymbol(Kind::CONST, name, t);
         Expr a = d_state.mkExpr(Kind::APPLY, {eq, expr, rhs});
@@ -633,6 +680,8 @@ bool CmdParser::parseNextCommand()
       // bind
       Trace("define") << "Define: " << name << " -> " << expr << std::endl;
       d_eparser.bind(name, expr);
+      // also call state
+      d_state.define(name, expr);
     }
     break;
     // (define-sort <symbol> (<symbol>*) <sort>)
@@ -674,11 +723,11 @@ bool CmdParser::parseNextCommand()
       if (tok == Token::STRING_LITERAL)
       {
         std::string msg = d_eparser.parseStr(true);
-        std::cout << msg << std::endl;
+        d_state.echo(msg);
       }
       else
       {
-        std::cout << std::endl;
+        d_state.echo("");
       }
     }
     break;
@@ -733,7 +782,18 @@ bool CmdParser::parseNextCommand()
       d_state.pushScope();
       std::vector<Expr> vars =
           d_eparser.parseAndBindSortedVarList(Kind::PROGRAM);
-      std::vector<Expr> argTypes = d_eparser.parseTypeList();
+      // read ":signature"
+      bool parsedSig = false;
+      if (d_lex.peekToken() == Token::KEYWORD)
+      {
+        std::string keyword = d_eparser.parseKeyword();
+        parsedSig = (keyword == "signature");
+      }
+      if (!parsedSig)
+      {
+        d_lex.parseError("Expected :signature attribute");
+      }
+      std::vector<Expr> argTypes = d_eparser.parseTypeList(true);
       Expr retType = d_eparser.parseType();
       Expr progType = retType;
       Expr tup = d_state.mkExpr(Kind::TUPLE, argTypes);
@@ -769,8 +829,10 @@ bool CmdParser::parseNextCommand()
         {
           d_lex.parseError("Cannot define program more than once");
         }
-        // it should be a program with the same type
-        d_eparser.typeCheck(pprev, progType);
+        // ensure that its type is compatible with the previous definition
+        d_eparser.typeCheckProgramFwdDecl(pprev, progType, name);
+        // we use the forward declaration of the program that was globally bound
+        // already
         pvar = pprev;
       }
       else
@@ -787,10 +849,6 @@ bool CmdParser::parseNextCommand()
       {
         // parse the body
         std::vector<Expr> pchildren = d_eparser.parseExprPairList();
-        if (pchildren.empty())
-        {
-          d_lex.parseError("Expected non-empty list of cases");
-        }
         // ensure program cases are
         // (A) applications of the program
         // (B) have arguments that are not evaluatable
@@ -805,32 +863,15 @@ bool CmdParser::parseNextCommand()
           {
             d_lex.parseError("Wrong arity for pattern");
           }
-          // ensure some type checking??
-          //d_eparser.typeCheck(pc);
-          // ensure the right hand side is bound by the left hand side
-          std::vector<Expr> bvs = Expr::getVariables(pc);
           Expr rhs = p[1];
-          d_eparser.ensureBound(rhs, bvs);
-          // TODO: allow variable or default case?
-          for (size_t i = 1, nchildren = pc.getNumChildren(); i < nchildren;
-               i++)
-          {
-            Expr ecc = pc[i];
-            if (ecc.isEvaluatable())
-            {
-              std::stringstream ss;
-              ss << "Cannot match on evaluatable subterm " << pc[i];
-              d_lex.parseError(ss.str());
-            }
-          }
+          // type check whether this is a legal pattern/return pair.
+          d_eparser.typeCheckProgramPair(pc, rhs, true);
         }
         program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       }
       d_state.popScope();
-      if (!program.isNull())
-      {
-        d_state.defineProgram(pvar, program);
-      }
+      // call even if null, so that plugins are notified of forward declarations
+      d_state.defineProgram(pvar, program);
       if (pprev.isNull())
       {
         // rebind the program, if new
@@ -844,6 +885,11 @@ bool CmdParser::parseNextCommand()
       // reset the state of the parser, which is independent of the symbol
       // manager
       d_state.reset();
+      // in reference files, reset subsumes reset-assertions
+      if (d_isReference)
+      {
+        d_state.clearReferenceAsserts();
+      }
     }
     break;
     // (step i F? :rule R :premises (p1 ... pn) :args (t1 ... tm))
@@ -854,6 +900,13 @@ bool CmdParser::parseNextCommand()
     case Token::STEP_POP:
     {
       bool isPop = (tok==Token::STEP_POP);
+      if (isPop)
+      {
+        if (d_state.getAssumptionLevel() == 0)
+        {
+          d_lex.parseError("Cannot pop at level zero");
+        }
+      }
       std::string name = d_eparser.parseSymbol();
       Trace("step") << "Check step " << name << std::endl;
       Expr proven;
@@ -884,12 +937,7 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> premises;
       if (keyword=="premises")
       {
-        std::vector<Expr> given = d_eparser.parseExprList();
-        // maybe combine premises
-        if (!d_state.getActualPremises(rule.getValue(), given, premises))
-        {
-          d_lex.parseError("Failed to get premises");
-        }
+        premises = d_eparser.parseExprList();
         if (d_lex.peekToken()==Token::KEYWORD)
         {
           keyword = d_eparser.parseKeyword();
@@ -901,58 +949,25 @@ bool CmdParser::parseNextCommand()
       {
         args = d_eparser.parseExprList();
       }
-      std::vector<Expr> children;
-      children.push_back(rule);
-      children.insert(children.end(), args.begin(), args.end());
-      // premises after arguments
-      children.insert(children.end(), premises.begin(), premises.end());
-      // the assumption, if pop
-      if (isPop)
+      // compute the conclusion of the proof rule
+      Expr concTerm;
+      if (!d_state.notifyStep(
+              name, rule, proven, premises, args, isPop, concTerm))
       {
-        if (d_state.getAssumptionLevel()==0)
-        {
-          d_lex.parseError("Cannot pop at level zero");
-        }
-        std::vector<Expr> as = d_state.getCurrentAssumptions();
-        // The size of assumptions should be one, but may contain more
-        // assumptions if e.g. we encountered assume in a nested assumption
-        // scope. Nevertheless, as[0] is always the first assumption in
-        // the assume-push.
-        // push the assumption
-        children.push_back(as[0]);
-      }
-      // compute the type of applying the rule
-      Expr concType;
-      if (children.size()>1)
-      {
-        // check type rule for APPLY directly without constructing the app
-        concType = d_eparser.typeCheckApp(children);
-      }
-      else
-      {
-        concType = d_eparser.typeCheck(rule);
-      }
-      // if we specified a conclusion, we will possibly evaluate the type
-      // under the substitution `eo::conclusion -> proven`. We only do this
-      // if we did not already match what was proven.
-      if (!proven.isNull())
-      {
-        if (concType.getKind()!=Kind::PROOF_TYPE || concType[0]!=proven)
-        {
-          Ctx cctx;
-          cctx[d_state.mkConclusion().getValue()] = proven.getValue();
-          concType = d_state.getTypeChecker().evaluate(concType.getValue(), cctx);
-        }
-      }
-      // ensure proof type, note this is where "proof checking" happens.
-      if (concType.getKind() != Kind::PROOF_TYPE)
-      {
-        std::stringstream ss;
-        ss << "Non-proof conclusion for rule " << ruleName << ", got " << concType;
-        d_lex.parseError(ss.str());
+        // If we failed, check again now with an error stream. We do this
+        // because allocation of std::stringstream is expensive and this
+        // block of code only executes at most once.
+        std::stringstream sserr;
+        sserr << "A step of rule " << ruleName << " failed to check."
+              << std::endl;
+        bool recheck = d_state.notifyStep(
+            name, rule, proven, premises, args, isPop, concTerm, &sserr);
+        // should fail again
+        AlwaysAssert(!recheck);
+        // print the error
+        d_lex.parseError(sserr.str());
       }
       // Check that the proved term is actually Bool
-      Expr concTerm = concType[0];
       Expr concTermType = d_eparser.typeCheck(concTerm);
       if (concTermType.getKind() != Kind::BOOL_TYPE)
       {
@@ -962,12 +977,12 @@ bool CmdParser::parseNextCommand()
       }
       if (!proven.isNull())
       {
-        if (concType[0]!=proven)
+        if (concTerm != proven)
         {
           std::stringstream ss;
           ss << "Unexpected conclusion for rule " << ruleName << ":" << std::endl;
-          ss << "    Proves: " << concType << std::endl;
-          ss << "  Expected: (Proof " << proven << ")";
+          ss << "    Proves: " << concTerm << std::endl;
+          ss << "  Expected: " << proven;
           d_lex.parseError(ss.str());
         }
       }
@@ -976,9 +991,10 @@ bool CmdParser::parseNextCommand()
       {
         d_state.popAssumptionScope();
       }
+      // Now wrap the conclusion in the proof constructor.
+      Expr pfTerm = d_state.mkProof(concTerm);
       // bind to variable, note that the definition term is not kept
-      Expr v = d_state.mkSymbol(Kind::CONST, name, concType);
-      d_eparser.bind(name, v);
+      d_eparser.bind(name, pfTerm);
       // d_eparser.bind(name, def);
       Assert (rs!=nullptr);
       // increment the count regardless of whether stats are enabled, since it
@@ -1005,29 +1021,40 @@ bool CmdParser::parseNextCommand()
     // (check-sat-assuming (<formula>*))
     case Token::CHECK_SAT_ASSUMING:
     {
-      d_eparser.parseExprList();
+      // The formulas of a check-sat-assuming are part of the query, thus a
+      // proof of unsat is permitted to assume them.
+      std::vector<Expr> as = d_eparser.parseExprList();
+      for (Expr& a : as)
+      {
+        // ensure each assumption has type Bool, as is done for assert
+        d_eparser.typeCheck(a, d_state.mkBoolType());
+        d_state.addReferenceAssert(a);
+      }
     }
     break;
-    case Token::POP:
-    case Token::PUSH:
+    // (reset-assertions)
+    case Token::RESET_ASSERTIONS:
     {
-      bool isPush = (tok==Token::PUSH);
-      tok = d_lex.peekToken();
-      size_t num = 1;
-      if (tok == Token::INTEGER_LITERAL)
+      // Discards all assertions and pops all assertion levels, hence the
+      // reference assertions accumulated so far are no longer part of the
+      // query. Note that (reset) also clears the reference assertions.
+      d_state.clearReferenceAsserts();
+    }
+    break;
+    // Commands that only produce solver output, e.g. (get-model). We consume
+    // their arguments as s-expressions and ignore them.
+    case Token::SMT2_QUERY_COMMAND:
+    {
+      // note we peek at most once per iteration, as required by the lexer
+      Token ptok = d_lex.peekToken();
+      while (ptok != Token::RPAREN)
       {
-        num = d_eparser.parseIntegerNumeral();
-      }
-      for (size_t i=0; i<num; i++)
-      {
-        if (isPush)
+        if (ptok == Token::EOF_TOK)
         {
-          d_state.pushScope();
+          d_lex.parseError("Expected s-expression");
         }
-        else
-        {
-          d_state.popScope();
-        }
+        d_eparser.parseSymbolicExpr();
+        ptok = d_lex.peekToken();
       }
     }
     break;

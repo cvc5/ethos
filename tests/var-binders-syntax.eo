@@ -1,5 +1,8 @@
 
-(declare-type @List ())
+(declare-const String Type)
+(declare-consts <string> String)
+
+(declare-const @List Type)
 (declare-const @list.nil @List)
 (declare-parameterized-const @list ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @list.nil)
 

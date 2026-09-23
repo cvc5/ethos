@@ -1,4 +1,4 @@
-(declare-type Theory ())
+(declare-const Theory Type)
 (declare-const THEORY_BUILTIN Theory)
 (declare-const THEORY_BOOL Theory)
 (declare-const THEORY_UF Theory)
@@ -14,7 +14,7 @@
 (declare-const THEORY_STRINGS Theory)
 (declare-const THEORY_QUANTIFIERS Theory)
 
-(declare-type Method ())
+(declare-const Method Type)
 (declare-const RW_REWRITE Method)
 (declare-const RW_EXT_REWRITE Method)
 (declare-const RW_REWRITE_EQ_EXT Method)

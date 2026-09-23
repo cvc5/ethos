@@ -8,7 +8,7 @@
 
 (program substitute
   ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
-  (S S U) U
+  :signature (S S U) U
   (
   ((substitute x y x)     y)
   ((substitute x y (f a)) (_ (substitute x y f) (substitute x y a)))

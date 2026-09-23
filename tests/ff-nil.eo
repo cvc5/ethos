@@ -1,4 +1,4 @@
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const FiniteField (-> Int Type))
 
@@ -14,7 +14,7 @@
 (declare-parameterized-const eq ((T Type :implicit)) (-> T T Bool))
 
 (program f_eq_args ((U Type) (f (-> U U U)) (a U) (b U :list))
-  (U) U
+  :signature (U) U
   (
     ((f_eq_args (f a (f a b))) a)
   )

@@ -1,8 +1,8 @@
-(declare-type Int ())
-(declare-type Real ())
+(declare-const Int Type)
+(declare-const Real Type)
 
 (program a.typeunion ()
-    (Type Type) Type
+    :signature (Type Type) Type
     (
       ((a.typeunion Int Int) Int)
       ((a.typeunion Int Real) Real)

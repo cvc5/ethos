@@ -24,12 +24,8 @@ enum class Kind
   TYPE,
   FUNCTION_TYPE,
   PROGRAM_TYPE,
-  PROOF_TYPE,
-  ABSTRACT_TYPE,
   BOOL_TYPE,
   QUOTE_TYPE,
-  OPAQUE_TYPE,  // an argument marked :opaque, temporary during parsing
-  NULL_TYPE,    // an argument marked :implicit, temporary during parsing
 
   // terms
   APPLY,
@@ -40,8 +36,11 @@ enum class Kind
   AS_RETURN,  // SMT-LIB (as t T), where T is the return type of t
   PARAMETERIZED,
   APPLY_OPAQUE,
-  ANNOT_PARAM,  // a parameter with non-ground type that appears in type
-                // checking
+  ANY,          // atomic term standing for an unknown, treated as non-ground
+                // and evaluatable.
+  PROOF,  // a proof term (pf <proven>). We use a special kind for efficiency,
+          // although pf can be seen as an ordinary term of type (-> Bool
+          // Proof), where Proof is an ordinary type (see State::d_proofType).
 
   // symbols
   PARAM,
@@ -51,7 +50,6 @@ enum class Kind
   PROGRAM_CONST,
   PROOF_RULE,
   VARIABLE,
-  ORACLE,
 
   // literals
   BOOLEAN,
@@ -69,10 +67,10 @@ enum class Kind
   EVAL_IF_THEN_ELSE,
   EVAL_REQUIRES,
   EVAL_HASH,
-  EVAL_VAR,
   EVAL_TYPE_OF,
   EVAL_NAME_OF,
   EVAL_COMPARE,
+  EVAL_LOG,
   // testers
   EVAL_IS_Z,
   EVAL_IS_Q,
@@ -89,6 +87,17 @@ enum class Kind
   EVAL_LIST_CONCAT,
   EVAL_LIST_NTH,
   EVAL_LIST_FIND,
+  EVAL_LIST_ERASE,
+  EVAL_LIST_ERASE_ALL,
+  EVAL_LIST_REV,
+  EVAL_LIST_SETOF,
+  EVAL_LIST_MINCLUDE,
+  EVAL_LIST_MEQ,
+  EVAL_LIST_DIFF,
+  EVAL_LIST_INTER,
+  EVAL_LIST_SINGLETON_ELIM,
+  EVAL_LIST_SINGLETON_INTRO,
+  EVAL_LIST_REPEAT,
   // boolean
   EVAL_NOT,
   EVAL_AND,
@@ -98,6 +107,7 @@ enum class Kind
   EVAL_ADD,
   EVAL_NEG,
   EVAL_MUL,
+  EVAL_POW,
   EVAL_INT_DIV,
   EVAL_INT_MOD,
   EVAL_RAT_DIV,
@@ -129,6 +139,11 @@ bool isSymbol(Kind k);
 bool isLiteral(Kind k);
 /** */
 bool isLiteralOp(Kind k);
+/**
+ * Is k a n-ary literal op? In other words, can k be applied to 2+ children
+ * in the front-end language. True for eo::add, eo::concat, eo::and, etc.
+ */
+bool isNaryLiteralOp(Kind k);
 /** Is k a list literal operator? */
 bool isListLiteralOp(Kind k);
 

@@ -5,7 +5,7 @@
 
 (program replAll 
   ((x Bool) (y Bool) (z Bool) (tail Bool :list))
-  (Bool Bool Bool) Bool
+  :signature (Bool Bool Bool) Bool
   ; cases
   (
   ((replAll x y (or x tail)) (or y (replAll x y tail)))

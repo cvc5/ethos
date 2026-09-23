@@ -1,7 +1,7 @@
 
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
-(declare-type Array (Type Type))
-(declare-type Int ())
+(declare-const Array (-> Type Type Type))
+(declare-const Int Type)
 (define IntArray ((T Type)) (Array Int T))
 (declare-const a (Array Int Bool))
 (declare-const b (IntArray Bool))

@@ -1,7 +1,7 @@
 (include "Uf-rules.eo")
 (include "Builtin-rules.eo")
 (include "Booleans-rules.eo")
-(declare-type U ())
+(declare-const U Type)
 (declare-const f (-> U U U))
 (declare-const p2 Bool)
 (declare-const p3 Bool)

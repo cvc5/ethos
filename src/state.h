@@ -41,10 +41,17 @@ class Options
   bool d_statsAll;
   bool d_statsCompact;
   bool d_ruleSymTable;
+  /** Require the last proof step at level zero to prove false. */
+  bool d_requireProofOfFalse;
   bool d_normalizeDecimal;
   bool d_normalizeHexadecimal;
   /** Treat numerals as rational literals */
   bool d_normalizeNumeral;
+  /**
+   * In reference files, parse SMT-LIB define-fun commands as Eunoia-style
+   * definitions instead of translating them to reference assertions.
+   */
+  bool d_referenceDefineFun;
 };
 
 /**
@@ -77,8 +84,16 @@ class State
   bool addAssumption(const Expr& a);
   /** add reference assert */
   void addReferenceAssert(const Expr& a);
-  /** Set type rule for literal kind k to t */
-  void setLiteralTypeRule(Kind k, const Expr& t);
+  /**
+   * Discard all reference assertions, as e.g. done by the smt2 command
+   * reset-assertions.
+   */
+  void clearReferenceAsserts();
+  /**
+   * Set type rule for literal kind k to t, returns false if the type rule for
+   * k was already set to a different type.
+   */
+  bool setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out = nullptr);
   /** */
   bool bind(const std::string& name, const Expr& e);
   /** 
@@ -91,17 +106,24 @@ class State
   bool markConstructorKind(const Expr& v, Attr a, const Expr& cons);
   /** Define program, where v is PROGRAM_CONST and prog is PROGRAM. */
   void defineProgram(const Expr& v, const Expr& prog);
+  /** Define, called when a define command is parsed.
+   * @param name The name of the define.
+   * @param e The expression name is defined to be.
+   */
+  void define(const std::string& name, const Expr& e);
+  /** Echo, called when an echo command is parsed.
+   * @param msg The message of the echo command.
+   */
+  void echo(const std::string& msg);
   //--------------------------------------
   /** Type */
   Expr mkType();
   /** Make type constant (-> Type ... Type Type) */
   Expr mkTypeConstant(const std::string& name, size_t arity);
   /** (-> <type>+ <type>) */
-  Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten = true);
+  Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret);
   /** (-> <type>+ <type>) */
   Expr mkProgramType(const std::vector<Expr>& args, const Expr& ret);
-  /** ? */
-  Expr mkAbstractType();
   /** Bool */
   Expr mkBoolType();
   /** eo::List */
@@ -110,14 +132,12 @@ class State
   Expr mkListCons();
   /** eo::List::nil */
   Expr mkListNil();
-  /** (Proof <proven>) */
-  Expr mkProofType(const Expr& proven);
+  /** The Proof type, which is an ordinary simple type */
+  Expr mkProofType();
+  /** (pf <proven>), where <proven> is a formula. */
+  Expr mkProof(const Expr& proven);
   /** (Quote <term>) */
   Expr mkQuoteType(const Expr& t);
-  /** */
-  Expr mkBuiltinType(Kind k);
-  /** null type, used for :implicit */
-  Expr mkNullType();
   /** */
   Expr mkSymbol(Kind k, const std::string& name, const Expr& type);
   /** (eo::requires <pair>+ <type>) */
@@ -125,19 +145,25 @@ class State
   /** (eo::requires <arg1> <arg2> <type>) */
   Expr mkRequires(const Expr& a1, const Expr& a2, const Expr& ret);
   /** */
-  Expr mkSelf();
-  /** Make the conclusion variable */
-  Expr mkConclusion();
+  Expr mkSelf() const;
   /** Make pair */
   Expr mkPair(const Expr& t1, const Expr& t2);
-  /** */
+  /**
+   * Makes expression with given kind and childen. This method will apply
+   * desugaring based on the attributes of the operator head, i.e. the first
+   * expression in children.
+   */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
+  /** Same as above, without desugaring */
+  Expr mkRawExpr(Kind k, const std::vector<Expr>& children);
   /** make true */
-  Expr mkTrue();
+  Expr mkTrue() const;
   /** make false */
-  Expr mkFalse();
+  Expr mkFalse() const;
   /** make Boolean value */
-  Expr mkBool(bool val);
+  Expr mkBool(bool val) const;
+  /** Make any */
+  Expr mkAny() const;
   /**
    * Create a literal from a string.
    * @param s The string representation of the literal, may represent an
@@ -154,9 +180,35 @@ class State
    * otherwise.
    */
   Expr mkList(const std::vector<Expr>& args);
+  /**
+   * Make disambiguated type. This constructs the type of a symbol which we
+   * expect to be written as (as <symbol> <type>), which is parsed as an
+   * opaque application of that symbol to that type as its first argument. This
+   * method returns a type of the form (-> (Quote x) ($eo_disamb_type_<name> x))
+   * where $eo_disamb_type_<name> is a program defined by this method, and x
+   * has type Type.
+   *
+   * @param disambPat The pattern which is expected as the second argument to
+   *                  "as" above.
+   * @param ret The return type, whose free parameters are a subset of the free
+   *            parameters of disambPat. This is typically either disambPat,
+   *            or a function type whose return type is disambPat.
+   * @param name The name of the symbol we are disambiguating.
+   */
+  Expr mkDisambiguatedType(const Expr& disambPat,
+                           const Expr& ret,
+                           const std::string& name);
   //--------------------------------------
-  /** Get the constructor kind for symbol v */
-  Attr getConstructorKind(const ExprValue* v) const;
+  /**
+   * Get the constructor kind for symbol v. This is one of the types listed in
+   * attr.h which impact how the symbol v is parsed on interpreted.
+   */
+  Attr getAttributeKind(const ExprValue* v) const;
+  /**
+   * Get the attribute term for symbol v. Along with getAttributeKind, this
+   * term impacts how the symbol v is parsed on interpreted.
+   */
+  Expr getAttributeTerm(const ExprValue* v) const;
   /** make binder list */
   Expr mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs);
   /** */
@@ -170,14 +222,45 @@ class State
   Expr getBoundVar(const std::string& name, const Expr& type);
   /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
-  /** Get actual premises */
-  bool getActualPremises(const ExprValue* ev,
-                         std::vector<Expr>& given,
-                         std::vector<Expr>& actual);
+  /**
+   * Notify assume, called when an assume command is parsed.
+   * @param name The name of the assumption.
+   * @param proven The formula that it assumes.
+   * @param isPush true iff the assumption was from an assume-push command.
+   */
+  void notifyAssume(const std::string& name, Expr& proven, bool isPush);
+  /**
+   * Notify step, called when a step command is parsed.
+   * This method determines the argument list to a proof rule in a step or
+   * step-pop and computes the result of what the step proves. This takes into
+   * account whether the rule was marked :premise-list, :conclusion-explicit,
+   * or :assumption (for step-pop commands), or whether the plugin can provide
+   * the result.
+   * Note that result may be a term that is not of type Bool. This check is
+   * instead done in the parser.
+   * @param name The name of the step.
+   * @param rule The proof rule being applied.
+   * @param proven The conclusion of the proof rule, if provided.
+   * @param premises The provided premises of the proof rule.
+   * @param args The provided arguments of the proof rule.
+   * @param isPop Whether we were a step-pop.
+   * @param result The result proven by the step.
+   * @param err If provided, details on errors are printed to this stream.
+   * @return true if we successfully computed result. Otherwise, a proof
+   * checking error should be thrown.
+   */
+  bool notifyStep(const std::string& name,
+                  Expr& rule,
+                  Expr& proven,
+                  std::vector<Expr>& premises,
+                  std::vector<Expr>& args,
+                  bool isPop,
+                  Expr& result,
+                  std::ostream* err = nullptr);
+  /** Did the last checked step prove false at assumption level zero? */
+  bool lastStepProvesFalseAtLevelZero() const;
   /** Get the program */
   Expr getProgram(const ExprValue* ev);
-  /** Get the oracle command */
-  bool getOracleCmd(const ExprValue* ev, std::string& ocmd);
   /** */
   size_t getAssumptionLevel() const;
   /** */
@@ -213,26 +296,43 @@ class State
  private:
   /** Common constants */
   Expr d_null;
-  Expr d_nullType;
   Expr d_type;
   Expr d_boolType;
-  Expr d_absType;
   Expr d_true;
   Expr d_false;
   Expr d_self;
-  Expr d_conclusion;
+  Expr d_any;
   Expr d_fail;
   Expr d_listType;
   Expr d_listNil;
   Expr d_listCons;
-  /** Get base operator */
-  const ExprValue* getBaseOperator(const ExprValue * v) const;
+  /** The proof type */
+  Expr d_proofType;
   /** Mark that file s was included */
   bool markIncluded(const Filepath& s);
   /** mark deleted */
   void markDeleted(ExprValue* e);
+  /**
+   * Make (<APPLY> children) based on attribute. Returns the null term if the
+   * attribute does not impact how to build the application.
+   * @param ai The attribute of the head.
+   * @param vchildren The children, including the head term.
+   * @param consTerm The computed constructor term correspond to the
+   * application.
+   * @return The application of vchildren based on ai, or the null term if
+   * the default construction should be used to construct the application.
+   */
+  Expr mkApplyAttr(AppInfo* ai,
+                   const std::vector<ExprValue*>& vchildren,
+                   const Expr& consTerm);
   /** Make (<APPLY> children), curried. */
   ExprValue* mkApplyInternal(const std::vector<ExprValue*>& children);
+  /**
+   * Beta-reduce the application of a lambda, children[0], to the remaining
+   * children. Returns the null expression if the number of arguments does
+   * not match the number of variables of the lambda.
+   */
+  Expr mkBetaReduceInternal(const std::vector<ExprValue*>& children);
   /**
    * Constructs a new expression from k and children, or returns a
    * previous one if the same call to mkExprInternal was made previously.
@@ -253,13 +353,17 @@ class State
    * construct. This includes a head operator.
    * @param retType If non-null, this is required return type of the
    * application.
+   * @param retApply If true, we return the application of the
+   * appropriate overloaded constructor to children; otherwise we return the
+   * overloaded constructor itself.
    * @return If possible, one of the elements of overloads that meets
    * the above requirements. If multiple are possible, we return the
    * first only. If none are possible, we return the null expression.
    */
   Expr getOverloadInternal(const std::vector<Expr>& overloads,
                            const std::vector<Expr>& children,
-                           const ExprValue* retType = nullptr);
+                           const ExprValue* retType = nullptr,
+                           bool retApply = false);
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   const AppInfo* getAppInfo(const ExprValue* e) const;
@@ -274,8 +378,6 @@ class State
   std::map<std::string, Expr> d_symTable;
   /** Symbol table for proof rules, if using separate table */
   std::map<std::string, Expr> d_ruleSymTable;
-  /** The (canonical) bound variables for binders */
-  std::map<std::pair<std::string, const ExprValue*>, Expr> d_boundVars;
   /**
    * The list of declared symbols in the order they were bound.
    */
@@ -342,6 +444,8 @@ class State
   std::vector<ExprValue*> d_toDelete;
   /** Are we in garbage collection? */
   bool d_inGarbageCollection;
+  /** Whether the last checked step proved false at assumption level zero. */
+  bool d_lastStepProvesFalseAtLevelZero;
   //--------------------- utilities
   /** Options */
   Options& d_opts;

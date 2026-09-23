@@ -3,7 +3,7 @@
 
 (program flip 
   ((T Type) (x T) (y T))
-  (Bool) Bool
+  :signature (Bool) Bool
   (
   ((flip (= x y)) (= y x))
   )

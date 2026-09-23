@@ -3,7 +3,7 @@
 
 (program substitute
   ((T Type) (U Type) (S Type) (V Type) (x S) (y S) (f (-> T U)) (a T) (z U) (w V))
-  (S S U) U
+  :signature (S S U) U
   (
   ((substitute x y x)             y)
   ((substitute x y (skolem w))    (skolem w))   ; do not traverse into skolems
@@ -12,7 +12,7 @@
   )
 )
 (program substitute_list ((T Type) (U Type) (F U) (x T) (xs @List :list) (t T) (ts @List :list))
-  (@List @List U) U
+  :signature (@List @List U) U
   (
     ((substitute_list (@list x xs) (@list t ts) F) (substitute_list xs ts (substitute x t F)))
     ((substitute_list @list.nil @list.nil F)           F)
@@ -27,23 +27,24 @@
 ; returns the list of skolems for F
 ; TODO: this could be a fold
 (program mk_skolems ((x @List) (xs @List :list) (F Bool))
-  (@List Bool) @List
+  :signature (@List Bool) @List
   (
     ((mk_skolems (@list x xs) F) (eo::cons @list (skolem (@k.QUANTIFIERS_SKOLEMIZE F x)) (mk_skolems xs F)))
     ((mk_skolems @list.nil F)      @list.nil)
   )
 )
 
+(program mk_skolemize ((F Bool) (T Type) (x @List) (G Bool))
+  :signature (Bool) Bool
+  (
+  ((mk_skolemize (exists x G))       (substitute_list x (mk_skolems x (exists x G)) G))
+  ((mk_skolemize (not (forall x G))) (substitute_list x (mk_skolems x (exists x (not G))) (not G)))
+  )
+)
+
 (declare-rule skolemize ((F Bool))
   :premises (F)
-  :conclusion
-    (eo::match ((T Type) (x @List) (G Bool))
-        F
-        (
-          ((exists x G)       (substitute_list x (mk_skolems x F) G))
-          ((not (forall x G)) (substitute_list x (mk_skolems x (exists x (not G))) (not G)))
-        )
-    )
+  :conclusion (mk_skolemize F)
 )
 
 (declare-rule skolem_intro ((T Type) (t T))

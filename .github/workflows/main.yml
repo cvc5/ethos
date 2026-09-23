@@ -3,10 +3,97 @@ name: CI
 on: [push, pull_request]
 
 jobs:
+  plugins:
+    name: plugins:compile-and-test
+    runs-on: ubuntu-22.04
+
+    # The experimental extensions in plugins/ are not part of the ethos build
+    # and nothing else compiles them, so without this they would silently rot
+    # against src/. A debug build ensures assertions are compiled too. Building
+    # ethos-eoc covers every plugin source outside cpp_compiler/, so it
+    # subsumes the plugins-compile-check target of the top-level build.
+    concurrency:
+      group: plugins-${{ github.ref }}-${{ github.ref != 'refs/heads/main' || github.run_id }}
+      cancel-in-progress: ${{ github.repository != 'cvc5/ethos' || startsWith(github.ref, 'refs/pull/') }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Install Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libgmp-dev
+
+    - name: Set up num_proc variable
+      run: echo "num_proc=$(( $(nproc) + 1 ))" >> $GITHUB_ENV
+
+    - name: Compile and test plugins
+      run: |
+        cmake -S plugins -B build-eoc \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS=-Werror
+        cmake --build build-eoc --parallel ${{ env.num_proc }} \
+          --target ethos-eoc
+        ./build-eoc/ethos-eoc tests/simple.eo
+        cmake -S plugins/cpp_compiler -B build-cpp-compiler-test \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS=-Werror \
+          -DETHOS_CPP_COMPILER_MODE=test
+        cmake --build build-cpp-compiler-test --parallel ${{ env.num_proc }} \
+          --target cpp-compiler-roundtrip
+
+    # The build above is what writes the generated signatures, so this says
+    # they hold what compiling the configuration writes and, which nothing
+    # else checks, that each block of one stands after the blocks it names.
+    - name: Check the compiled semantics
+      run: python3 tools/eoc/compiler/sem_compile.py --check
+
+    - name: Check the driver interface
+      run: python3 tools/eoc/test/driver.py
+
+    # What reads back the verification conditions the pipeline writes. A digest
+    # says the bytes did not move; only a solver says they are well formed, and
+    # a change to the native layer of plugins/smt_meta/smt-vc.eos can leave a
+    # file that names a sort it never defines and still move only the bytes,
+    # which --update would then bless. The static release binary is downloaded
+    # rather than built -- cvc5 takes longer to build than everything else here
+    # together -- and pinned by version and digest so a run reads back with a
+    # known one.
+    - name: Install cvc5
+      run: |
+        version=1.3.4
+        sha256=dcdbfada0ce493ee98259c0816e0daafc561c223aadb3af298c2968e73ea39c6
+        curl -sSL -o "${RUNNER_TEMP}/cvc5.zip" \
+          "https://github.com/cvc5/cvc5/releases/download/cvc5-${version}/cvc5-Linux-x86_64-static.zip"
+        echo "${sha256}  ${RUNNER_TEMP}/cvc5.zip" | sha256sum --check --strict
+        unzip -q "${RUNNER_TEMP}/cvc5.zip" -d "${RUNNER_TEMP}"
+        echo "${RUNNER_TEMP}/cvc5-Linux-x86_64-static/bin" >> "$GITHUB_PATH"
+
+    # The four runs the pipeline has, over each signature the regression
+    # compiles, and then the bytes: what it wrote is compared with the digests
+    # checked in, which is what says a change to the compiler left the output
+    # where it was, and the two runs that write for a solver have cvc5 read
+    # back what they wrote.
+    # --require-cvc5 says a run without one is not a run, so that a step above
+    # that failed to install it cannot quietly leave this checking less. See
+    # tools/eoc/test/regress.py.
+    - name: Check the pipeline still writes what it wrote
+      run: python3 tools/eoc/test/regress.py --build-dir build-eoc --require-cvc5
+
+    - name: Build and run custom auto-parser binary
+      run: |
+        plugins/cpp_compiler/build_custom_ethos.sh \
+          plugins/cpp_compiler/test/signature.eo \
+          "${RUNNER_TEMP}/ethos-cpp-compiler" debug
+        "${RUNNER_TEMP}/ethos-cpp-compiler/ethos" \
+          plugins/cpp_compiler/test/signature.eo
+
   build:
     strategy:
       matrix:
-        name: [linux-x86_64, linux-arm64, macOS-x86_64, macOS-arm64, windows-x86_64]
+        name: [linux-x86_64, linux-arm64, macOS-x86_64, macOS-arm64, windows-x86_64, windows-arm64]
         build-type: [ release, debug ]
         include:
         - name: linux-x86_64
@@ -16,17 +103,20 @@ jobs:
           os: ubuntu-22.04-arm
           shell: bash
         - name: macOS-x86_64
-          os: macos-13
+          os: macos-15-intel
           bottle-suffix: monterey
           gmp-sha256: b04023f65b8c79c45798a4bfd97fdbeb10f1bf9e8416e22e8eeedbd9b2a8c102
           shell: bash
         - name: macOS-arm64
-          os: macos-14
+          os: macos-15
           bottle-suffix: arm64_monterey
           gmp-sha256: 2115b33b8b4052f91ffb85e476c7fc0388cf4e614af1ce6453b35e6d25473911
           shell: bash
         - name: windows-x86_64
           os: windows-latest
+          shell: 'msys2 {0}'
+        - name: windows-arm64
+          os: windows-11-arm
           shell: 'msys2 {0}'
     defaults:
       run:
@@ -43,7 +133,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Set MACOSX_DEPLOYMENT_TARGET
       if: runner.os == 'macOS'
@@ -51,6 +141,8 @@ jobs:
 
     - name: Install Packages (macOS)
       if: runner.os == 'macOS'
+      env:
+        HOMEBREW_DEVELOPER: 1 # Required by Brew >= 4.6.4. See https://github.com/Homebrew/brew/pull/20414
       run: |
         # Install GMP 6.3.0 bottle for macOS 12.0 (monterey)
         # Ensure compatibility with older versions of macOS
@@ -66,17 +158,29 @@ jobs:
         sudo apt-get install -y \
           libgmp-dev
 
-    - name: Install Packages (Windows)
+    - name: Install Packages (Windows x86_64)
       uses: msys2/setup-msys2@v2
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && runner.arch == 'X64'
       with:
-        msystem: mingw64
+        msystem: MINGW64
         path-type: inherit
         install: |
           make
           mingw-w64-x86_64-cmake
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-gmp
+
+    - name: Install Packages (Windows arm64)
+      uses: msys2/setup-msys2@v2
+      if: runner.os == 'Windows' && runner.arch == 'ARM64'
+      with:
+        msystem: CLANGARM64
+        path-type: inherit
+        install: |
+          make
+          mingw-w64-clang-aarch64-cmake
+          mingw-w64-clang-aarch64-clang
+          mingw-w64-clang-aarch64-gmp
 
     - name: Set up num_proc variable
       run: |
@@ -88,7 +192,7 @@ jobs:
 
     - name: Build
       run: |
-        ./configure.sh ${{ matrix.build-type  }} --static
+        ./configure.sh ${{ matrix.build-type  }} --static --werror
         cd build
         make -j${{ env.num_proc }}
 

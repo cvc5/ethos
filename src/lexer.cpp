@@ -25,9 +25,14 @@ std::ostream& operator<<(std::ostream& o, const Span& l)
   return o << l.d_start << "-" << l.d_end;
 }
 
-Lexer::Lexer(bool lexLet)
-    : d_lexLet(lexLet), d_isInteractive(false), d_bufferPos(0), d_bufferEnd(0),
-      d_peekedChar(false), d_chPeeked(0)
+Lexer::Lexer(bool lexLet, bool lexType)
+    : d_lexLet(lexLet),
+      d_lexType(lexType),
+      d_isInteractive(false),
+      d_bufferPos(0),
+      d_bufferEnd(0),
+      d_peekedChar(false),
+      d_chPeeked(0)
 {
   for (int32_t ch = 'a'; ch <= 'z'; ++ch)
   {
@@ -428,13 +433,7 @@ Token Lexer::tokenizeCurrentSymbol() const
     case 'e':
       if (d_token.size()>=4 && d_token[1] == 'o' && d_token[2] == ':' && d_token[3] == ':')
       {
-        if (d_token.size()==9 && d_token[4]=='m' && d_token[5]=='a' &&
-            d_token[6]=='t' && d_token[7]=='c' && d_token[8]=='h')
-        {
-          // eo::match
-          return Token::EVAL_MATCH;
-        }
-        else if (d_token.size()==10 && d_token[4]=='d' && d_token[5]=='e' &&
+        if (d_token.size()==10 && d_token[4]=='d' && d_token[5]=='e' &&
                  d_token[6]=='f' && d_token[7]=='i' && d_token[8]=='n' &&
                  d_token[9]=='e')
         {
@@ -463,7 +462,8 @@ Token Lexer::tokenizeCurrentSymbol() const
       }
       break;
     case 'T':
-      if (d_token.size() == 4 && d_token[1] == 'y' && d_token[2] == 'p' && d_token[3] == 'e')
+      if (d_lexType && d_token.size() == 4 && d_token[1] == 'y'
+          && d_token[2] == 'p' && d_token[3] == 'e')
       {
         return Token::TYPE;
       }

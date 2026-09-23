@@ -1,0 +1,26 @@
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const not (-> Bool Bool))
+
+(declare-rule split ((F Bool))
+  :conclusion-explicit (or F (not F))
+)
+
+(step @p0 (or true (not true)) :rule split)
+
+
+(declare-rule or-intro ((F Bool) (G Bool))
+  :premises (F)
+  :args (G)
+  :conclusion-explicit (or G F)
+)
+
+(declare-rule or-intro-ex2 ((F Bool) (G Bool))
+  :premise-list F and
+  :conclusion-explicit (or F G)
+)
+
+(assume @p1 true)
+(step @p2 (or true true) :rule or-intro :premises (@p1) :args (true))
+
+(step @p3 (or (and true true) true) :rule or-intro-ex2 :premises (@p1 @p1))

@@ -24,14 +24,18 @@ namespace ethos {
 class ExprParser
 {
  public:
-  ExprParser(Lexer& lex, State& state, bool isSignature);
+  ExprParser(Lexer& lex, State& state, bool isSignature, bool isReference);
   virtual ~ExprParser() {}
 
-  /** Parses an SMT-LIB term <term> */
+  /** Parses a term <term> */
   Expr parseExpr();
-  /** Parses an SMT-LIB type <type> */
-  Expr parseType();
-  /** Parses an SMT-LIB formula <formula> */
+  /**
+   * Parses a type <type>. We reject types that are ground and evaluatable.
+   * @param allowQuoteArg If true, we also permit (eo::quote <term>).
+   * @param allowEval If true, we permit the term to be evaluatable.
+   */
+  Expr parseType(bool allowQuoteArg = false, bool allowEval = true);
+  /** Parses a formula <formula> (term of Boolean type). */
   Expr parseFormula();
   /** Parses an SMT-LIB term pair */
   Expr parseExprPair();
@@ -39,8 +43,12 @@ class ExprParser
   std::string parseSymbolicExpr();
   /** Parses parentheses-enclosed term list (<term>*) */
   std::vector<Expr> parseExprList();
-  /** Parses parentheses-enclosed term list (<type>*) */
-  std::vector<Expr> parseTypeList();
+  /**
+   * Parses parentheses-enclosed term list (<type>*).
+   * Note that we never allow evaluation in types in this list.
+   * @param allowQuoteArg If true, we also permit (eo::quote t).
+   */
+  std::vector<Expr> parseTypeList(bool allowQuoteArg = false);
   /** Parses parentheses-enclosed term list ((<term> <term>)*) */
   std::vector<Expr> parseExprPairList();
   /**
@@ -49,6 +57,7 @@ class ExprParser
    * All variables marked
    * :implicit that were parsed and not added to the return value of this
    * method.
+   * Note that we never allow quote or evaluation in types in this list.
    *
    * @param k The category of the parameter list:
    * - CONST if this is a parameter list of declare-paramaterized-const.
@@ -129,18 +138,9 @@ class ExprParser
    * - NONE otherwise.
    * @param e The expression we are applying to
    * @param attr The attributes which are populated
-   * @param pushedScope True if we pushed a scope while reading the list. This
-   * is true when e.g. the attribute :var is read. The caller of this method
-   * is responsible for popping the scope.
    * @param plk If k is PARAM, this is the category of the parameter list
    * which that parameter belongs to
    */
-  void parseAttributeList(Kind k,
-                          Expr& e,
-                          AttrMap& attrs,
-                          bool& pushedScope,
-                          Kind plk = Kind::NONE);
-  /** Same as above, but ensures we pop the scope */
   void parseAttributeList(Kind k,
                           Expr& e,
                           AttrMap& attrs,
@@ -153,10 +153,29 @@ class ExprParser
   //-------------------------- checking
   /** type check the expression */
   Expr typeCheck(Expr& e);
-  /** type check (APPLY children), without constructing the APPLY */
-  Expr typeCheckApp(std::vector<Expr>& children);
   /** ensure type */
   Expr typeCheck(Expr& e, const Expr& expected);
+  /**
+   * Type check program pair. This method is called when (pat, ret) is
+   * parsed as a pattern/return pair for a program.
+   * If checkPreservation is true, we should expect it to be possible to
+   * show that pat and ret have the same type and give an error or warning
+   * otherwise.
+   * This currently checks that the free parameters of ret are a subset of
+   * the free parameters of pat. This ensures that programs do not return
+   * terms with free parameters that are not bound during pattern matching.
+   */
+  void typeCheckProgramPair(Expr& pat, Expr& ret, bool checkPreservation);
+  /**
+   * Type check program with forward declaration. Ensure that the forward
+   * declaration in prevProg has a type that is compatible with newType.
+   * In particular, note that forward declared programs may have non-ground
+   * type. Since parameters are not normalized, we need to check whether
+   * newType is alpha equivalent to the previously declared type.
+   */
+  void typeCheckProgramFwdDecl(Expr& prevProg,
+                               Expr& newType,
+                               const std::string& progName);
   /** get variable, else error */
   Expr getVar(const std::string& name);
   /** get variable, else error */
@@ -227,6 +246,8 @@ class ExprParser
   State& d_state;
   /** Are we parsing a signature file? */
   bool d_isSignature;
+  /** Are we parsing a reference (*.smt2) file? */
+  bool d_isReference;
   /** Strings to attributes */
   std::map<std::string, Attr> d_strToAttr;
   /** Mapping symbols to literal kinds */

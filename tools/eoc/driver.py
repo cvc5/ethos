@@ -1,0 +1,1267 @@
+#!/usr/bin/env python3
+"""
+Unified driver for the optional Eunoia-to-SMT2/Lean compilation pipeline.
+
+This is the canonical source-tree entrypoint for the EOC workflow.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import Iterable, Optional
+
+# The compiler's modules are under compiler/. A listing copied out of the
+# tree has report.py beside the driver instead, see tools/eoc/test/driver.py,
+# so the driver's own directory is searched first.
+sys.path.insert(0, str(Path(__file__).resolve().parent / "compiler"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import report  # noqa: E402
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent.parent
+DEFAULT_FINAL_OUT_DIR = SCRIPT_DIR / "out"
+LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
+
+# The signature-wide Lean files written by the lean subcommand, in module
+# dependency order. Each entry is (source relative to <build dir>/out/plugins,
+# path written under <final out dir>/lean). The per-rule files under
+# lean/Proofs/Rules/ are published separately, see
+# publish_generated_lean_rule_outputs.
+#
+# Every one of them is rendered by the lean-meta stage rather than copied from
+# the plugin source tree, including the ones whose resource carries no
+# generated text: the stage emits the part of the native layer the compilation
+# of the input reaches, and SmtEval.lean, Logos.lean and SmtModel.lean are
+# where that part comes out. See LeanMetaReduce::loadNativeDefs.
+#
+# The path is where the file stands in the package it is installed into, so
+# that publishing is what says the layout and installing is a copy of the tree.
+# It is not a Lean package that builds on its own: the generated modules import
+# <Calc>.Proofs.CheckerCore and <Calc>.Proofs.RuleSupport.Support, which the
+# compiler never writes and which belong to that package. The proof-side
+# modules stand under Proofs/, which is what the import <Calc>.Proofs.Rules.
+# <Rule> lines RuleLemmas.lean carries name; everything else stands at the
+# root, where its name already is its import.
+LEAN_OUTPUTS: tuple[tuple[str, str], ...] = (
+    ("lean_meta/lean_meta_checker_gen.lean", "Logos.lean"),
+    ("lean_meta/lean_meta_checker_term_gen.lean", "LogosTerm.lean"),
+    ("lean_meta/lean_meta_parser_gen.lean", "Parser.lean"),
+    ("lean_meta/lean_meta_smt_eval_gen.lean", "SmtEval.lean"),
+    ("lean_meta/lean_meta_smt_model_defs_gen.lean", "SmtModelDefs.lean"),
+    ("lean_meta/lean_meta_smt_value_order_gen.lean", "SmtValueOrder.lean"),
+    ("lean_meta/lean_meta_smt_model_gen.lean", "SmtModel.lean"),
+    ("lean_meta/lean_meta_spec_gen.lean", "Spec.lean"),
+    ("lean_meta/lean_meta_rule_lemmas_gen.lean", "Proofs/RuleLemmas.lean"),
+)
+
+DECLARE_RULE_RE = re.compile(r"^\(declare-rule\s+([^\s(]+)")
+INCLUDE_RE = re.compile(r'^\(include\s+"([^"]+)"\s*\)')
+# What the head of a signature written in the deep embedding says to a stage,
+# as against what its blocks say about the model. A line is `; $eoc-<what>`
+# and then its words; see head_lines in tools/eoc/compiler/sem_compile.py, which
+# is what writes them, and DefsFile::read, which reads the ones about the shape
+# of the file.
+DEFS_HEAD = "; $eoc-"
+DEFS_BLOCK = "; -- "
+
+# What has to survive the trimming whatever the rule at hand reaches, said as
+# the deps of the echo the desugar stage writes, see Pipeline.desugar. Nothing
+# in a trimmed signature names these: what asks for them is the template of the
+# stage that reads what this run produces.
+#
+# The embedding's own type language, which every stage is written over.
+EMBED_DEPS = "$eot_Bool $eot_Type $eot_fun_type $eot_apply $eo_mk_apply"
+
+DESUGAR_VC_DEPS = (
+    f"{EMBED_DEPS} "
+    "$smtx_typeof_value $smtx_model_update $smtx_model_eval_apply "
+    "$smtx_map_lookup "
+    # What a verification condition asks of the model is said by the SMT-LIB
+    # template rather than by the EO layer, see plugins/smt_meta/smt_meta.smt2.
+    # The two it says it of have to survive whether or not the rule at hand
+    # asks both -- a rule with no premises asks only one -- and so do the three
+    # the question is phrased with, which nothing in the trimmed EO reaches.
+    "$eo_model_sat $eo_model_unsat "
+    "$eo_to_smt $smtx_typeof $smtx_model_eval"
+)
+
+# The symbols of the *input* the Lean backend reaches for by name, which a run
+# over one rule therefore also trims to, see run_lean: saying it twice is what
+# would let the two drift.
+LEAN_INPUT_DEPS = ("and", "=>")
+
+# What the Lean backend asks of the model beside the type language above.
+LEAN_DEPS = (
+    f"{EMBED_DEPS} "
+    "$eo_eq $eo_ite $eo_requires $eo_and $eo_to_smt $smtx_model_eval "
+    "$eo_checker_is_refutation"
+)
+
+LEAN_ALL_DEPS = (
+    f"{LEAN_DEPS} "
+    # A run over the whole signature names only the first of the two, since it
+    # trims nothing away for the second to be kept from.
+    f"{LEAN_INPUT_DEPS[0]} $eot_UConst $eot_USort "
+    "$smtx_typeof $smtx_typeof_value $smtx_value_canonical "
+    "$smtx_map_lookup $emb_UOp"
+)
+
+LEAN_SINGLE_DEPS = (
+    f"{LEAN_DEPS} "
+    f"{' '.join(LEAN_INPUT_DEPS)} $eot_UConst $eot_USort "
+    "$smtx_model_eval_apply $smtx_typeof $smtx_typeof_value "
+    "$smtx_value_canonical $smtx_map_lookup $emb_UOp"
+)
+
+
+def resolve_path_arg(path_arg: str, *, cwd: Path) -> Path:
+    candidate = Path(path_arg).expanduser()
+    if candidate.is_absolute():
+        return candidate.resolve()
+    return (cwd / candidate).resolve()
+
+
+def strip_comment(line: str) -> str:
+    return line.split(";", 1)[0].strip()
+
+
+def dedupe_preserve_order(items: Iterable[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in items:
+        if item in seen:
+            continue
+        seen.add(item)
+        ordered.append(item)
+    return ordered
+
+
+def input_base_name(input_file: Path) -> str:
+    """The name of the calculus an input file compiles.
+
+    This is the file name up to its first dot, so that a qualifier may be
+    appended to the name of a calculus without renaming what it produces.
+    """
+    return input_file.name.split(".", 1)[0]
+
+
+def lean_calc_name(input_file: Path) -> str:
+    """What the generated Lean calls the calculus, where a run names nothing.
+
+    A run that installs the Lean into a package says the name of that package
+    with --calc-name, since that is what the imports of the installed tree have
+    to say; this is what an input alone gives.
+    """
+    parts = re.findall(r"[A-Za-z0-9]+", input_base_name(input_file))
+    if not parts:
+        return "EoCalc"
+    calc = "".join(part[:1].upper() + part[1:] for part in parts)
+    if not calc[0].isalpha():
+        calc = f"Calc{calc}"
+    return calc
+
+
+def discover_rules(input_file: Path) -> list[str]:
+    seen_files: set[Path] = set()
+    seen_rules: set[str] = set()
+    ordered_rules: list[str] = []
+
+    def visit(path: Path) -> None:
+        resolved = path.resolve()
+        if resolved in seen_files:
+            return
+        if not resolved.exists():
+            raise RuntimeError(f"input file not found while scanning rules: {resolved}")
+        seen_files.add(resolved)
+        for raw_line in resolved.read_text().splitlines():
+            line = strip_comment(raw_line)
+            if not line:
+                continue
+            include_match = INCLUDE_RE.match(line)
+            if include_match:
+                include_path = resolve_path_arg(include_match.group(1), cwd=resolved.parent)
+                visit(include_path)
+                continue
+            declare_match = DECLARE_RULE_RE.match(line)
+            if declare_match:
+                rule_name = declare_match.group(1)
+                if rule_name not in seen_rules:
+                    seen_rules.add(rule_name)
+                    ordered_rules.append(rule_name)
+
+    visit(input_file)
+    return ordered_rules
+
+
+def read_rules(path: Path) -> list[str]:
+    rules = []
+    for line in path.read_text().splitlines():
+        rule = line.strip()
+        if not rule or rule.startswith("#"):
+            continue
+        rules.append(rule)
+    return rules
+
+
+def replace_all(path: Path, replacements: list[tuple[str, str]]) -> None:
+    text = path.read_text()
+    for old, new in replacements:
+        text = text.replace(old, new)
+    path.write_text(text)
+
+
+def inline_called_blocks(path: Path, include_name: str,
+                         include_path: Path) -> None:
+    """Answer an include with the blocks of a file that the caller calls.
+
+    A set says the nil predicate of every n-ary symbol it gives semantics to,
+    and a run compiles one signature, which may declare none of them: the
+    signature this stage wrote is what says which are wanted. So a block is put
+    in where the file it is going into applies the program that block defines,
+    and left out otherwise -- a program over a symbol the signature never
+    declared would name what nothing declares and the file would not parse.
+
+    A block is `; -- NAME` and the program under it, blocks being separated by
+    a blank line, which is how every generated signature is laid out; see
+    Block.render in tools/eoc/compiler/sem_lang.py.
+    """
+    marker = f'(include "{include_name}")'
+    text = path.read_text()
+    kept = []
+    for block in include_path.read_text().split("\n\n"):
+        found = re.search(r"^\(program (\S+)", block, re.M)
+        if found is not None and f"({found.group(1)} " in text:
+            kept.append(block.strip("\n"))
+    path.write_text(text.replace(marker, "\n\n".join(kept)))
+
+
+def inline_include(path: Path, include_name: str, include_path: Path) -> None:
+    marker = f'(include "{include_name}")'
+    replacement = include_path.read_text()
+    text = path.read_text()
+    text = text.replace(marker, replacement)
+    path.write_text(text)
+
+
+def splice_matching_line(path: Path, needle: str, replacement_path: Path) -> None:
+    replacement = replacement_path.read_text()
+    if replacement and not replacement.endswith("\n"):
+        replacement += "\n"
+    out_lines: list[str] = []
+    for line in path.read_text().splitlines(keepends=True):
+        if needle in line:
+            out_lines.append(replacement)
+        else:
+            out_lines.append(line)
+    path.write_text("".join(out_lines))
+
+
+class Pipeline:
+    def __init__(
+        self,
+        build_dir: Path,
+        final_out_dir: Path,
+        jobs: int,
+        cvc5: Optional[Path],
+        solve_args: list[str],
+        defs_file: Optional[Path],
+        smt_defs_file: Optional[Path],
+        lean_config: Optional[Path],
+        desugar_defs: Optional[Path] = None,
+    ):
+        self.build_dir = build_dir.resolve()
+        self.final_out_dir = final_out_dir.resolve()
+        self.jobs = jobs
+        self.cvc5 = cvc5
+        self.solve_args = list(solve_args)
+        self.defs_file = defs_file.resolve() if defs_file else None
+        # The SMT-LIB semantics the stage is to read, where a run names one
+        # rather than leaving it the one the plugin ships with.
+        self.smt_defs_file = (smt_defs_file.resolve() if smt_defs_file
+                              else None)
+        self.lean_config = lean_config.resolve() if lean_config else None
+        # What the input's semantics say to the desugar stage, which is the
+        # nil predicate of each n-ary symbol whose nil is not ground. The
+        # stage's template names them with an include and this answers it; a
+        # run that names no semantics has none. See plugins/desugar/desugar.eos.
+        self.desugar_defs = desugar_defs.resolve() if desugar_defs else None
+        # What the head of that file said, read once; see defs_head.
+        self._head: Optional[list[list[str]]] = None
+        self.binary = self.build_dir / "ethos-eoc"
+        self.stage_out_dir = self.final_out_dir
+        self.plugin_out_dir = self.build_dir / "out" / "plugins"
+
+    def run(
+        self,
+        cmd: list[str],
+        *,
+        quiet: bool = False,
+        cwd: Optional[Path] = None,
+    ) -> None:
+        stdout = subprocess.DEVNULL if quiet else None
+        subprocess.run(
+            cmd,
+            cwd=str(cwd or self.build_dir),
+            check=True,
+            stdout=stdout,
+        )
+
+    def format_cmd(self, cmd: list[str]) -> str:
+        return shlex.join(cmd)
+
+    def build(self) -> None:
+        # ethos-eoc is built by the standalone plugins/ project; configure the
+        # build directory against it if this has not been done yet
+        if not (self.build_dir / "CMakeCache.txt").exists():
+            self.run(
+                [
+                    "cmake",
+                    "-S",
+                    str(REPO_ROOT / "plugins"),
+                    "-B",
+                    str(self.build_dir),
+                ],
+                cwd=REPO_ROOT,
+            )
+        self.run(
+            ["cmake", "--build", ".", "--target", "ethos-eoc", f"-j{self.jobs}"]
+        )
+
+    def ethos(self, args: Iterable[str], *, quiet: bool = False) -> None:
+        self.run([str(self.binary), *args], quiet=quiet)
+
+    def ensure_cvc5(self) -> Path:
+        if self.cvc5 is None:
+            raise RuntimeError(
+                "cvc5 executable not found; pass --skip-cvc5 or --cvc5=/path/to/cvc5"
+            )
+        return self.cvc5
+
+    def cvc5_validate_cmd(self, filename: Path, *, sygus: bool = False) -> list[str]:
+        cmd = [str(self.ensure_cvc5()), str(filename), "--parse-only"]
+        if sygus:
+            cmd.append("--lang=sygus")
+        return cmd
+
+    def cvc5_solve_cmd(self, filename: Path, *, sygus: bool = False) -> list[str]:
+        cmd = [str(self.ensure_cvc5()), str(filename)]
+        if sygus:
+            cmd.append("--lang=sygus")
+        cmd.extend(self.solve_args)
+        return cmd
+
+    def validate_smt(self, filename: Path, *, sygus: bool = False) -> None:
+        self.run(self.cvc5_validate_cmd(filename, sygus=sygus))
+
+    def solve_smt(self, filename: Path, *, sygus: bool = False) -> None:
+        self.run(self.cvc5_solve_cmd(filename, sygus=sygus))
+
+    def relative_input_from_out(self, input_name: str) -> str:
+        target = Path(input_name)
+        if not target.is_absolute():
+            target = self.build_dir / target
+        try:
+            return os.path.relpath(str(target), str(self.stage_out_dir))
+        except ValueError:
+            return str(target)
+
+    def binary_path_arg(self, filename: Path) -> str:
+        resolved = filename.resolve()
+        try:
+            return str(resolved.relative_to(self.build_dir))
+        except ValueError:
+            return str(resolved)
+
+    def plugin_generated(self, relative_path: str) -> Path:
+        return self.plugin_out_dir / relative_path
+
+    def clean_generated_lean_rule_outputs(self) -> None:
+        plugin_rule_dir = self.plugin_out_dir / "lean_meta" / "rules"
+        if not plugin_rule_dir.exists():
+            return
+        for child in plugin_rule_dir.iterdir():
+            if child.is_file() and child.name.startswith("lean_meta_rule_") and child.name.endswith("_gen.lean"):
+                child.unlink()
+
+    def publish_generated_lean_rule_outputs(self, lean_dir: Path) -> None:
+        """Publish the file of each rule the run compiled.
+
+        These go under lean/Proofs/Rules, where they stand in the package they
+        are installed into, as the rest of the published tree does; see
+        LEAN_OUTPUTS.
+        """
+        plugin_rule_dir = self.plugin_out_dir / "lean_meta" / "rules"
+        final_rule_dir = lean_dir / "Proofs" / "Rules"
+        if not plugin_rule_dir.exists():
+            return
+        rule_files = sorted(plugin_rule_dir.glob("lean_meta_rule_*_gen.lean"))
+        if not rule_files:
+            return
+        final_rule_dir.mkdir(parents=True, exist_ok=True)
+        for rule_file in rule_files:
+            rule_name = rule_file.name[len("lean_meta_rule_") : -len("_gen.lean")]
+            if not rule_name:
+                continue
+            module_name = rule_name[:1].upper() + rule_name[1:]
+            shutil.copyfile(rule_file, final_rule_dir / f"{module_name}.lean")
+
+    def materialize_lean_calc(self, lean_dir: Path, calc_name: str) -> None:
+        for lean_file in lean_dir.rglob("*.lean"):
+            replace_all(lean_file, [(LEAN_CALC_PLACEHOLDER, calc_name)])
+
+    def stage_name(self, input_name: str) -> str:
+        return input_base_name(Path(input_name)).lower()
+
+    def trim_defs(self, input_name: str, targets: list[str], output_file: Path) -> Path:
+        temp_trim = self.stage_out_dir / "temp_trim.eo"
+        temp_trim.parent.mkdir(parents=True, exist_ok=True)
+        pieces = [f'(include "{self.relative_input_from_out(input_name)}")\n']
+        pieces.extend(self.defs_depends())
+        for target in targets:
+            pieces.append(f'(echo "trim-defs {target}")\n')
+        temp_trim.write_text("".join(pieces))
+        try:
+            self.ethos(["--plugin.trim-defs", self.binary_path_arg(temp_trim)], quiet=True)
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(self.plugin_generated("trim_defs/trim_gen.eo"), output_file)
+            return output_file
+        finally:
+            if temp_trim.exists():
+                temp_trim.unlink()
+
+    def defs_head(self) -> list[list[str]]:
+        """What the head of the signature of the input says, one line to a
+        thing, each as the words it is written with.
+
+        The compiler knows what a stage has to be told about a signature it
+        wrote -- what the compilation has no place for, and what each block
+        names of the input -- so it says it above the first block rather than
+        leaving it to be read back out of the blocks, which would be taking the
+        file apart a second way. See head_lines in
+        tools/eoc/compiler/sem_compile.py.
+        """
+        if self.defs_file is None:
+            return []
+        if self._head is None:
+            said: list[list[str]] = []
+            for line in self.defs_file.read_text().splitlines():
+                if line.startswith(DEFS_BLOCK):
+                    break
+                if line.startswith(DEFS_HEAD):
+                    said.append(line[2:].split())
+            self._head = said
+        return self._head
+
+    def defs_excludes(self) -> list[tuple[str, str]]:
+        """What the signature of the input leaves out of the compilation.
+
+        A set may say that the compilation has no place for one of its
+        entities, as it does for lambda: SMT-LIB gives a proof-level binder no
+        meaning, so rather than a model the set says :exclude. The desugar
+        stage is what drops what they name, see Desugar::echo, so they are
+        collected here and given to it.
+
+        Each is returned as the kind it excludes, one of rule, method or
+        symbol, and the name of what it excludes.
+        """
+        return [(w[1], w[2]) for w in self.defs_head()
+                if w[0] == "$eoc-exclude"]
+
+    def defs_excluded_rules(self) -> set[str]:
+        """Those of the exclusions that are proof rules.
+
+        The compilation has nothing to say about such a rule: no verification
+        condition to generate and no Lean file to write. So a run over every
+        rule of the input leaves it out, and a run that names it says why
+        rather than failing further down.
+        """
+        return {name for kind, name in self.defs_excludes() if kind == "rule"}
+
+    def defs_depends(self) -> list[str]:
+        """What trim-defs must keep for the model of each symbol to make sense.
+
+        A block of the signature of the input may name a symbol of that input,
+        as the transformation of @quantifiers_skolemize names forall in the
+        pattern it matches. Trimming the input to one proof rule has to keep
+        such a symbol, or the case the model-smt stage emits for the block
+        would name something the trimmed signature no longer declares.
+
+        The blocks the set writes for the *desugar* stage are said here on the
+        same terms, since they are spliced into a trimmed signature too, see
+        inline_called_blocks: the nil predicate of str.++ names seq.empty, and
+        the run that keeps the one has to keep the other. See head_lines in
+        tools/eoc/compiler/sem_compile.py, which is what writes both.
+        """
+        return ['(echo "trim-defs-cmd (depends %s)")\n' % " ".join(w[1:])
+                for w in self.defs_head() if w[0] == "$eoc-depends"]
+
+    def desugar(
+        self,
+        input_name: str,
+        output_file: Path,
+        *,
+        use_vc_plugin: bool,
+        deps: Optional[str],
+        plugin_label: Optional[str],
+        natives: str = "embed",
+    ) -> Path:
+        import sem_compile
+
+        option = "--plugin.desugar-vc" if use_vc_plugin else "--plugin.desugar"
+        args = [option]
+        # What the signature of the input leaves out of the compilation, which
+        # this stage is what applies, see defs_excludes.
+        excludes = self.defs_excludes()
+        temp_excludes = self.stage_out_dir / "temp_excludes.eo"
+        if excludes:
+            temp_excludes.parent.mkdir(parents=True, exist_ok=True)
+            temp_excludes.write_text(
+                "".join('(echo "eoc-exclude %s %s")\n' % e for e in excludes)
+            )
+            args.append(f"--include={self.binary_path_arg(temp_excludes)}")
+        args.append(input_name)
+        try:
+            self.ethos(args, quiet=True)
+        finally:
+            if excludes and temp_excludes.exists():
+                temp_excludes.unlink()
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(self.plugin_generated("desugar/eo_desugar_gen.eo"), output_file)
+        replacements: list[tuple[str, str]] = []
+        if deps is not None:
+            replacements.append(
+                ("eo-desugar-vc-deps" if use_vc_plugin else "eo-desugar-deps", deps)
+            )
+        if plugin_label is not None:
+            replacements.append(
+                ("eo-desugar-vc" if use_vc_plugin else "eo-desugar", plugin_label)
+            )
+        if replacements:
+            replace_all(output_file, replacements)
+        inline_include(
+            output_file,
+            "eo_desugar_native.eo",
+            self.plugin_generated("desugar/eo_desugar_native.eo"),
+        )
+        inline_include(
+            output_file,
+            "native_embed.eo",
+            self.plugin_generated("desugar/native_embed.eo"),
+        )
+        # The natives themselves, which that file names rather than declaring:
+        # they are compiled from plugins/desugar/natives.eos, so the include it
+        # carries is answered here, once its own text is in.
+        #
+        # Which of the two the natives are answered with is what the eo-meta
+        # backend is: `embed` gives each the operator it forwards to, and `eo`
+        # gives it the Eunoia it is, so that what comes out is a signature
+        # stated over the Eunoia primitives plugins/desugar/eo.eos names and no
+        # others. See render_natives in tools/eoc/compiler/sem_compile.py.
+        inline_include(
+            output_file,
+            "native_defs.eo",
+            Path(sem_compile.EO_DEFS_TARGET if natives == "eo"
+                 else sem_compile.NATIVE_DEFS_TARGET),
+        )
+        # The nil predicates the input's semantics say, on the same terms. A
+        # run that names no semantics has none to put here, and the include is
+        # answered with nothing rather than left for ethos to fail on: what
+        # then reaches a case is a call to a program nothing defines, which is
+        # what the stage would have left behind before this file existed.
+        if self.desugar_defs is not None:
+            inline_called_blocks(
+                output_file, "user_desugar.eo", self.desugar_defs)
+        else:
+            replace_all(output_file, [('(include "user_desugar.eo")', "")])
+        return output_file
+
+    def model_smt(self, input_file: Path, output_file: Path) -> Path:
+        # The signature of the input written in the deep embedding, which says
+        # what its symbols mean to the model. This stage alone reads it, so it
+        # is named here rather than being part of the input; see the
+        # "signatures written in the deep embedding" section of
+        # tools/eoc/README.md.
+        args = ["--plugin.model-smt"]
+        if self.defs_file is not None:
+            args.append(f"--semantics={self.binary_path_arg(self.defs_file)}")
+        if self.smt_defs_file is not None:
+            args.append(
+                f"--smt-semantics={self.binary_path_arg(self.smt_defs_file)}")
+        args.append(self.binary_path_arg(input_file))
+        self.ethos(args, quiet=True)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(input_file, output_file)
+        splice_matching_line(
+            output_file,
+            'include model_smt',
+            self.plugin_generated("model_smt/model_smt_gen.eo"),
+        )
+        return output_file
+
+    def smt_meta(
+        self,
+        input_file: Path,
+        output_file: Path,
+        *,
+        sygus: bool,
+        validate_with_cvc5: bool,
+        solve_with_cvc5: bool,
+    ) -> Path:
+        option = "--plugin.smt-meta-sygus" if sygus else "--plugin.smt-meta"
+        self.ethos([option, self.binary_path_arg(input_file)], quiet=True)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(self.plugin_generated("smt_meta/smt_meta_gen.smt2"), output_file)
+        if validate_with_cvc5:
+            cmd = self.cvc5_validate_cmd(output_file, sygus=sygus)
+            report.step(f"cvc5 parses it: {self.format_cmd(cmd)}", 2)
+            self.validate_smt(output_file, sygus=sygus)
+        if solve_with_cvc5:
+            cmd = self.cvc5_solve_cmd(output_file, sygus=sygus)
+            report.step(f"cvc5 solves it: {self.format_cmd(cmd)}", 2)
+            self.solve_smt(output_file, sygus=sygus)
+        return output_file
+
+    def lean(
+        self,
+        input_file: Path,
+        *,
+        calc_name: str,
+        generate_parser: bool,
+    ) -> Path:
+        out_lean = self.final_out_dir / "lean"
+        self.clean_generated_lean_rule_outputs()
+        stale_parser = self.plugin_generated("lean_meta/lean_meta_parser_gen.lean")
+        if not generate_parser and stale_parser.exists():
+            stale_parser.unlink()
+        args = ["--plugin.lean-meta"]
+        if not generate_parser:
+            args.append("--no-parser")
+        # What the input signature needs said about its generated Lean that the
+        # compiler cannot derive, namely why each of its recursive programs
+        # terminates. It is what the input's set compiled to unless
+        # --lean-config named another, see compile_signatures; the deep
+        # embedding's own clauses are read by the stage itself, see
+        # LeanMetaReduce.
+        if self.lean_config is not None:
+            args.append(f"--lean-config={self.binary_path_arg(self.lean_config)}")
+        args.append(self.binary_path_arg(input_file))
+        self.ethos(args, quiet=True)
+        # What the run publishes is the whole of what it compiled, so the tree
+        # is written afresh: a file an earlier run left there is no part of
+        # this signature, and installing is a copy of the tree. It is wiped
+        # here rather than ahead of the stage, so that the tree the last run
+        # published stands until there is one to put in its place: a stage that
+        # fails leaves what was there, not an empty directory.
+        if out_lean.exists():
+            shutil.rmtree(out_lean)
+        out_lean.mkdir(parents=True)
+        for source, name in LEAN_OUTPUTS:
+            if not generate_parser and name == "Parser.lean":
+                continue
+            published = out_lean / name
+            published.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(self.plugin_generated(source), published)
+        self.publish_generated_lean_rule_outputs(out_lean)
+        self.materialize_lean_calc(out_lean, calc_name)
+        return out_lean
+
+    def parse_file(self, filename: Path) -> None:
+        self.ethos([self.binary_path_arg(filename)], quiet=True)
+
+    def run_vc(
+        self,
+        input_name: str,
+        target: str,
+        *,
+        sygus: bool,
+        build_first: bool,
+        validate_with_cvc5: bool,
+        solve_with_cvc5: bool,
+    ) -> Path:
+        if build_first:
+            self.build()
+        if target in self.defs_excluded_rules():
+            raise RuntimeError(
+                f"{target} is left out of the compilation by {self.defs_file}, "
+                "so there is nothing to verify about it"
+            )
+        stem = self.stage_name(input_name)
+        init_trim = self.stage_out_dir / f"trim-{stem}.eo"
+        init_desugar = self.stage_out_dir / f"trim-d-{stem}.eo"
+        vcm_defs = self.stage_out_dir / f"vcm-def-{stem}.eo"
+        vcmt_defs = self.stage_out_dir / f"vcmt-def-{stem}.eo"
+        suffix = "sy" if sygus else "smt2"
+        final_out = self.final_out_dir / ("sygus" if sygus else "vc") / f"final-{stem}-{target}.{suffix}"
+
+        report.step(
+            f"{'Searching for counterexamples of' if sygus else 'Verifying'} "
+            f"{target} in {report.rel(input_name)} "
+            f"{'via sygus' if sygus else 'via smt2'}"
+        )
+        report.stage(1, 6, "trim-defs", init_trim)
+        self.trim_defs(input_name, [target], init_trim)
+        report.stage(2, 6, "desugar", init_desugar)
+        self.desugar(
+            self.binary_path_arg(init_trim),
+            init_desugar,
+            use_vc_plugin=True,
+            deps=DESUGAR_VC_DEPS,
+            plugin_label="smt-meta",
+        )
+        report.stage(3, 6, "model-smt", vcm_defs)
+        self.model_smt(init_desugar, vcm_defs)
+        report.stage(4, 6, "trim-defs", vcmt_defs)
+        self.trim_defs(self.binary_path_arg(vcm_defs), [f"$eovc_{target}"], vcmt_defs)
+        report.stage(5, 6, "parse", vcmt_defs, gives=False)
+        self.parse_file(vcmt_defs)
+        report.stage(6, 6, "sygus" if sygus else "smt2", final_out)
+        self.smt_meta(
+            vcmt_defs,
+            final_out,
+            sygus=sygus,
+            validate_with_cvc5=validate_with_cvc5,
+            solve_with_cvc5=solve_with_cvc5,
+        )
+        return final_out
+
+    def run_lean(
+        self,
+        input_name: str,
+        targets: list[str],
+        *,
+        all_targets: bool,
+        build_first: bool,
+        generate_parser: bool,
+        calc_name: Optional[str] = None,
+    ) -> Path:
+        if build_first:
+            self.build()
+        left_out = sorted(set(targets) & self.defs_excluded_rules())
+        if left_out:
+            raise RuntimeError(
+                f"{' '.join(left_out)} is left out of the compilation by "
+                f"{self.defs_file}, so there is no Lean to generate for it"
+            )
+        calc_name = calc_name or lean_calc_name(Path(input_name))
+        stem = self.stage_name(input_name)
+        report.step(
+            "Generating Lean for "
+            + (report.rel(input_name) if all_targets
+               else f"{' '.join(targets)} in {report.rel(input_name)}")
+        )
+        if all_targets:
+            init_desugar = self.stage_out_dir / f"lean-{stem}-desugar.eo"
+            final_defs = self.stage_out_dir / f"lean-{stem}-final.eo"
+            report.stage(1, 4, "desugar", init_desugar)
+            self.desugar(
+                input_name,
+                init_desugar,
+                use_vc_plugin=False,
+                deps=LEAN_ALL_DEPS,
+                plugin_label="lean-meta",
+            )
+            report.stage(2, 4, "model-smt", final_defs)
+            self.model_smt(init_desugar, final_defs)
+            report.stage(3, 4, "parse", final_defs, gives=False)
+            self.parse_file(final_defs)
+            report.stage(4, 4, "lean", self.final_out_dir / 'lean')
+            return self.lean(
+                final_defs,
+                calc_name=calc_name,
+                generate_parser=generate_parser,
+            )
+
+        init_trim = self.stage_out_dir / f"lean-{stem}-trim.eo"
+        init_desugar = self.stage_out_dir / f"lean-{stem}-desugar.eo"
+        vcm_defs = self.stage_out_dir / f"lean-{stem}-defs.eo"
+        final_defs = self.stage_out_dir / f"lean-{stem}-final.eo"
+        report.stage(1, 6, "trim-defs", init_trim)
+        self.trim_defs(input_name, list(targets) + list(LEAN_INPUT_DEPS),
+                       init_trim)
+        report.stage(2, 6, "desugar", init_desugar)
+        self.desugar(
+            self.binary_path_arg(init_trim),
+            init_desugar,
+            use_vc_plugin=False,
+            deps=LEAN_SINGLE_DEPS,
+            plugin_label="lean-meta",
+        )
+        report.stage(3, 6, "model-smt", vcm_defs)
+        self.model_smt(init_desugar, vcm_defs)
+        # The generated proof parser expands parameterized n-ary syntax with
+        # the calculus' own nil/type utilities. Keep those utilities even when
+        # compiling only a small set of rules; parser metadata echoes are
+        # intentionally preserved by trim-defs as well.
+        target_progs = [f"$eo_prog_{target}" for target in targets]
+        target_progs.extend(["$eo_nil", "$eo_typeof"])
+        report.stage(4, 6, "trim-defs", final_defs)
+        self.trim_defs(self.binary_path_arg(vcm_defs), target_progs, final_defs)
+        report.stage(5, 6, "parse", final_defs, gives=False)
+        self.parse_file(final_defs)
+        report.stage(6, 6, "lean", self.final_out_dir / 'lean')
+        return self.lean(
+            final_defs,
+            calc_name=calc_name,
+            generate_parser=generate_parser,
+        )
+
+    def run_desugar(self, input_name: str, *, build_first: bool,
+                    natives: str = "embed") -> Path:
+        if build_first:
+            self.build()
+        # The eo-meta backend writes a file of its own, since what it says is a
+        # signature over the Eunoia primitives rather than over the embedding.
+        eo = natives == "eo"
+        output = self.final_out_dir / ("eo.eo" if eo else "desugar.eo")
+        report.step(("Compiling %s to Eunoia" if eo else "Desugaring %s")
+                    % report.rel(input_name))
+        report.stage(1, 2, "eo-meta" if eo else "desugar", output)
+        self.desugar(input_name, output, use_vc_plugin=False, deps=None,
+                     plugin_label=None, natives=natives)
+        report.stage(2, 2, "parse", output, gives=False)
+        self.parse_file(output)
+        return output
+
+    def run_trim_only(self, input_name: str, targets: list[str], *, build_first: bool) -> Path:
+        if build_first:
+            self.build()
+        output = self.final_out_dir / "trim_defs" / "trim_gen.eo"
+        report.step(f"Trimming {report.rel(input_name)}")
+        report.stage(1, 1, "trim-defs", output)
+        self.trim_defs(input_name, targets, output)
+        return output
+
+    def clean_final_dir(self, mode: str) -> None:
+        target_dir = self.final_out_dir / mode
+        if not target_dir.exists():
+            return
+        for child in target_dir.iterdir():
+            if child.is_file():
+                child.unlink()
+
+
+def resolve_cvc5(path_arg: Optional[str], *, cwd: Path) -> Optional[Path]:
+    if path_arg:
+        candidate = resolve_path_arg(path_arg, cwd=cwd)
+        return candidate if candidate.exists() else None
+    env_path = os.environ.get("CVC5")
+    if env_path:
+        candidate = resolve_path_arg(env_path, cwd=cwd)
+        return candidate if candidate.exists() else None
+    found = shutil.which("cvc5")
+    return Path(found) if found else None
+
+
+def compile_signatures(
+    semantics: Optional[Path], smt_semantics: Optional[Path] = None
+) -> tuple[Optional[Path], Optional[Path], Optional[Path], Optional[Path]]:
+    """Compile the configuration of the model-smt signatures, and say where
+    each of the two the stage reads came out, together with where the
+    termination clauses of the input's programs did.
+
+    That stage reads two files written in the deep embedding: the SMT-LIB
+    semantics the compilation is the target of, and the semantics of the input,
+    which is written against it. Both are generated from a configuration under
+    tools/eoc/semantics, so both are compiled here, before any stage runs; a
+    file is written only where its text changed. A set also compiles the Lean
+    its methods say under :lean, and the third of what comes back is where the
+    input's came out, which is what the lean-meta stage is given where
+    --lean-config names nothing. The fourth is what the input's set says to the
+    *desugar* stage, a stage earlier than either signature is read by; only an
+    input set says anything to it, see sem_compile.Config.desugar_target.
+
+    A run compiles **one set of each role**, and each option names which. The
+    option a set is named with is what gives it its role -- --smt-semantics
+    names the SMT-LIB semantics, the target of the compilation, and --semantics
+    the semantics of an input -- and the role is what says both which shape the
+    set compiles to and which file it writes, see sem_compile.role_of and
+    sem_compile.Config.target. So a set named here stands in for the one the
+    tool ships with rather than compiling beside it: there is one
+    smt_termination.lean and one user_termination.lean whatever a run names,
+    which is what lets the lean-meta stage read the first without being told
+    where it is.
+
+    Each option names the *central file* of a set. A file that is not a central
+    file is taken to be a signature already written out and is passed through,
+    which is what lets one that has no configuration still be given directly.
+    Naming neither leaves the sets the tool ships with.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "compiler"))
+    import sem_compile
+
+    # One set of each role, the shipped one until an option names another.
+    chosen = {is_target: path for path, is_target in sem_compile.SHIPPED}
+    named = []
+    two_roles = (
+        "is given two roles; --smt-semantics names the SMT-LIB semantics and "
+        "--semantics the semantics of an input, and a set is one or the other"
+    )
+    for given, is_target in ((semantics, False), (smt_semantics, True)):
+        mine = str(given.resolve()) if given is not None else None
+        if mine is not None and not sem_compile.is_config(mine):
+            mine = None
+        if mine is not None:
+            role = sem_compile.role_of(mine)
+            if role is not None and role != is_target:
+                raise RuntimeError(f"{mine} {two_roles}")
+            chosen[is_target] = mine
+        named.append(mine)
+    # The same again for a set the tool does not ship with, which has no role
+    # but the one the option that names it gives, so that the check above has
+    # nothing to compare against: one file under both options is one set given
+    # both roles just as much, and would otherwise compile twice, the second
+    # run writing over what the first wrote. A shipped set has its role fixed,
+    # so naming one under the wrong option is caught above whichever it is.
+    if (named[0] is not None and named[1] is not None
+            and sem_compile.same_file(named[0], named[1])):
+        raise RuntimeError(f"{named[0]} {two_roles}")
+    written = sem_compile.compile_to_files(
+        [(path, is_target) for is_target, path in chosen.items()])
+
+    def compiled(mine):
+        return next(v for k, v in written.items()
+                    if sem_compile.same_file(k, mine))
+
+    out: list[Optional[Path]] = []
+    for given, mine in zip((semantics, smt_semantics), named):
+        if mine is None:
+            out.append(given)
+        else:
+            out.append(Path(compiled(mine)[0]))
+    lean_config = Path(compiled(named[0])[1]) if named[0] is not None else None
+    # What the input's set says to the desugar stage, which only an input set
+    # writes; see sem_compile.Config.desugar_target.
+    made = compiled(named[0]) if named[0] is not None else ()
+    desugar_defs = Path(made[2]) if len(made) > 2 else None
+    return out[0], out[1], lean_config, desugar_defs
+
+
+def add_common_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--build-dir",
+        default=os.getcwd(),
+        help="Build directory for the plugins/ project, containing ethos-eoc and out/.",
+    )
+    parser.add_argument(
+        "--final-out-dir",
+        default=None,
+        help="Directory for final published outputs. Defaults to $EOC_FINAL_OUT_DIR or tools/eoc/out.",
+    )
+    parser.add_argument("--jobs", type=int, default=4, help="Parallel build jobs.")
+    parser.add_argument(
+        "--cvc5",
+        default=None,
+        help="Path to cvc5 for parse/validation checks. Defaults to $CVC5 or cvc5 on PATH.",
+    )
+    parser.add_argument(
+        "--skip-cvc5",
+        action="store_true",
+        help="Skip cvc5 parse/validation checks.",
+    )
+    parser.add_argument(
+        "--no-build",
+        action="store_true",
+        help="Do not rebuild ethos-eoc before running the pipeline.",
+    )
+    parser.add_argument(
+        "--semantics",
+        default=None,
+        help=(
+            "The central file of the configuration of the input's semantics, "
+            "e.g. tools/eoc/semantics/development-cpc.eos. It is compiled "
+            "before the model-smt stage reads what it compiles to. A file "
+            "that is not a central file is taken to be a signature already "
+            "written out."
+        ),
+    )
+    parser.add_argument(
+        "--smt-semantics",
+        default=None,
+        help=(
+            "The same, for the SMT-LIB semantics the input's semantics is "
+            "written against, e.g. tools/eoc/semantics/smt.eos. The one the "
+            "tool ships with is compiled where this names none."
+        ),
+    )
+    parser.add_argument(
+        "--lean-config",
+        default=None,
+        help=(
+            "Lean file of the termination clauses of the input's programs, "
+            "read by the lean-meta stage. Without it, the clauses the "
+            "input's configuration set compiled to are read, so this names "
+            "one only for a signature given already written out."
+        ),
+    )
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    vc = subparsers.add_parser("vc", help="Generate an SMT2 or SyGuS VC for one rule.")
+    add_common_args(vc)
+    vc.add_argument("input")
+    vc.add_argument("target")
+    vc.add_argument("--sygus", action="store_true")
+    vc.add_argument(
+        "--solve",
+        action="store_true",
+        help="Run cvc5 on the generated VC or SyGuS file after optional parse checks.",
+    )
+    vc.add_argument(
+        "--solve-args",
+        default="",
+        help="Shell-style string of extra options passed to cvc5 during --solve.",
+    )
+
+    lean = subparsers.add_parser("lean", help="Generate Lean output for selected rules.")
+    add_common_args(lean)
+    lean.add_argument("input")
+    lean.add_argument("targets", nargs="*")
+    lean.add_argument("--all", action="store_true", help="Compile the entire signature.")
+    lean.add_argument(
+        "--no-parser",
+        action="store_true",
+        help="Do not generate or publish the signature-specific Logos parser.",
+    )
+    lean.add_argument(
+        "--calc-name",
+        default=None,
+        help=(
+            "What the generated Lean calls the calculus, which is the name of "
+            "the package it is installed into, e.g. Cpc. Defaults to the name "
+            "of the input file up to its first dot."
+        ),
+    )
+
+    desugar = subparsers.add_parser("desugar", help="Generate a desugared EO file.")
+    add_common_args(desugar)
+    desugar.add_argument("input")
+    desugar.add_argument(
+        "--natives",
+        choices=["embed", "eo"],
+        default="embed",
+        help=(
+            "What the natives of the embedding are written as. `embed` is the "
+            "operator each forwards to, which the other backends read. `eo` is "
+            "the Eunoia each is, which makes what comes out a signature over "
+            "the Eunoia primitives plugins/desugar/eo.eos names and no others."
+        ),
+    )
+
+    trim = subparsers.add_parser("trim-defs", help="Run the trim-defs plugin only.")
+    add_common_args(trim)
+    trim.add_argument("input")
+    trim.add_argument("targets", nargs="+")
+
+    list_rules = subparsers.add_parser(
+        "list-rules", help="Print declared rules from a signature and its includes."
+    )
+    list_rules.add_argument("input")
+
+    batch = subparsers.add_parser("batch", help="Run a set of rules through a pipeline.")
+    add_common_args(batch)
+    batch.add_argument("mode", choices=["vc", "sygus"])
+    batch.add_argument("input")
+    batch.add_argument("rules", nargs="*")
+    batch.add_argument(
+        "--all-rules",
+        action="store_true",
+        help="Discover all declared rules from the input signature recursively.",
+    )
+    batch.add_argument("--rules-file")
+    batch.add_argument("--clean", action="store_true", help="Delete existing final outputs first.")
+    batch.add_argument(
+        "--solve",
+        action="store_true",
+        help="Run cvc5 on each generated VC or SyGuS file after optional parse checks.",
+    )
+    batch.add_argument(
+        "--solve-args",
+        default="",
+        help="Shell-style string of extra options passed to cvc5 during --solve.",
+    )
+    batch.add_argument(
+        "--keep-going",
+        action="store_true",
+        help="Continue after a failing rule and report all failures.",
+    )
+
+    args = parser.parse_args(argv)
+    invocation_cwd = Path.cwd().resolve()
+
+    if hasattr(args, "input"):
+        args.input = str(resolve_path_arg(args.input, cwd=invocation_cwd))
+    # Listing reads only the signature. It must work without a compiler build
+    # or semantics configuration, and must not rewrite generated files.
+    if args.command == "list-rules":
+        try:
+            for rule in discover_rules(Path(args.input)):
+                print(rule)
+        except (OSError, RuntimeError) as err:
+            report.error(str(err))
+            return 1
+        return 0
+    if getattr(args, "rules_file", None) is not None:
+        args.rules_file = str(resolve_path_arg(args.rules_file, cwd=invocation_cwd))
+
+    if getattr(args, "final_out_dir", None) is not None:
+        final_out_dir = resolve_path_arg(args.final_out_dir, cwd=invocation_cwd)
+    else:
+        final_out_env = os.environ.get("EOC_FINAL_OUT_DIR")
+        if final_out_env:
+            final_out_dir = resolve_path_arg(final_out_env, cwd=invocation_cwd)
+        else:
+            final_out_dir = DEFAULT_FINAL_OUT_DIR
+
+    need_cvc5 = not getattr(args, "skip_cvc5", False) or getattr(args, "solve", False)
+    cvc5 = resolve_cvc5(getattr(args, "cvc5", None), cwd=invocation_cwd) if need_cvc5 else None
+    try:
+        solve_args = shlex.split(getattr(args, "solve_args", "") or "")
+    except ValueError as err:
+        parser.error(f"invalid --solve-args: {err}")
+
+    def resolve_file_arg(name: str, flag: str) -> Optional[Path]:
+        """The file the given option names, resolved as the input is.
+
+        It has to exist: read as empty, a mistyped --semantics would quietly
+        compile a signature with no exclusions and no dependencies instead of
+        saying that the file it was pointed at is not there.
+        """
+        value = getattr(args, name, None)
+        if value is None:
+            return None
+        resolved = resolve_path_arg(value, cwd=invocation_cwd)
+        if not resolved.is_file():
+            parser.error(f"{flag} file not found: {resolved}")
+        return resolved
+
+    build_dir_arg = getattr(args, "build_dir", None) or os.getcwd()
+    # The signatures the model-smt stage reads are generated, so they are
+    # compiled before anything runs; the options then name what each set
+    # compiled to. The termination clauses of the input come out of the same
+    # compilation, so --lean-config names another only where the generated
+    # ones will not do.
+    # A set given the wrong role is the one mistake the options invite, since
+    # the two read alike, so it is said the way every other error of a run is.
+    try:
+        (defs_file, smt_defs_file, lean_config_file,
+         desugar_defs_file) = compile_signatures(
+            resolve_file_arg("semantics", "--semantics"),
+            resolve_file_arg("smt_semantics", "--smt-semantics"))
+    except RuntimeError as err:
+        report.error(str(err))
+        return 1
+    pipeline = Pipeline(
+        resolve_path_arg(build_dir_arg, cwd=invocation_cwd),
+        final_out_dir,
+        getattr(args, "jobs", 4),
+        cvc5,
+        solve_args,
+        defs_file,
+        smt_defs_file,
+        resolve_file_arg("lean_config", "--lean-config") or lean_config_file,
+        desugar_defs_file,
+    )
+    build_first = not getattr(args, "no_build", False)
+    if not build_first and not pipeline.binary.is_file():
+        parser.error(
+            f"ethos-eoc not found at {pipeline.binary}; drop --no-build or "
+            "name the build directory it is in with --build-dir"
+        )
+
+    try:
+        if args.command == "vc":
+            pipeline.run_vc(
+                args.input,
+                args.target,
+                sygus=args.sygus,
+                build_first=build_first,
+                validate_with_cvc5=not args.skip_cvc5,
+                solve_with_cvc5=args.solve,
+            )
+        elif args.command == "lean":
+            if not args.all and not args.targets:
+                parser.error("lean requires at least one target unless --all is passed")
+            if args.all and args.targets:
+                parser.error(
+                    "lean --all compiles the whole signature; it takes no targets, "
+                    f"but was given {' '.join(args.targets)}"
+                )
+            pipeline.run_lean(
+                args.input,
+                list(args.targets),
+                all_targets=args.all,
+                build_first=build_first,
+                generate_parser=not args.no_parser,
+                calc_name=args.calc_name,
+            )
+        elif args.command == "desugar":
+            pipeline.run_desugar(args.input, build_first=build_first,
+                                 natives=args.natives)
+        elif args.command == "trim-defs":
+            pipeline.run_trim_only(
+                args.input,
+                list(args.targets),
+                build_first=build_first,
+            )
+        else:
+            rules: list[str] = []
+            if args.all_rules:
+                excluded = pipeline.defs_excluded_rules()
+                rules.extend(
+                    r for r in discover_rules(Path(args.input)) if r not in excluded
+                )
+            if args.rules_file is not None:
+                rules.extend(read_rules(Path(args.rules_file)))
+            rules.extend(args.rules)
+            rules = dedupe_preserve_order(rules)
+            if not rules:
+                parser.error("batch requires at least one rule, --rules-file, or --all-rules")
+            if build_first:
+                pipeline.build()
+            if args.clean:
+                pipeline.clean_final_dir("sygus" if args.mode == "sygus" else "vc")
+            failures: list[str] = []
+            for rule in rules:
+                try:
+                    pipeline.run_vc(
+                        args.input,
+                        rule,
+                        sygus=args.mode == "sygus",
+                        build_first=False,
+                        validate_with_cvc5=not args.skip_cvc5,
+                        solve_with_cvc5=args.solve,
+                    )
+                except (subprocess.CalledProcessError, RuntimeError):
+                    failures.append(rule)
+                    if not args.keep_going:
+                        raise
+            report.step(
+                f"{len(rules) - len(failures)} of {len(rules)} rules "
+                "compiled"
+            )
+            if failures:
+                for rule in failures:
+                    report.error(f"{rule} failed")
+                return 1
+        return 0
+    except subprocess.CalledProcessError as err:
+        return err.returncode
+    except RuntimeError as err:
+        report.error(str(err))
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

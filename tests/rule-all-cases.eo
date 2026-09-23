@@ -1,0 +1,14 @@
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const => (-> Bool Bool Bool))
+(declare-const not (-> Bool Bool))
+
+(declare-rule assume-explicit-list ((A Bool) (F Bool))
+  :assumption A
+  :premise-list F and
+  :conclusion-explicit (=> A F)
+)
+
+
+(assume-push @p0 true)
+(step-pop @p1 (=> true (and true true)) :rule assume-explicit-list :premises (@p0 @p0))
