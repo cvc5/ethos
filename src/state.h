@@ -328,6 +328,12 @@ class State
   /** Make (<APPLY> children), curried. */
   ExprValue* mkApplyInternal(const std::vector<ExprValue*>& children);
   /**
+   * Beta-reduce the application of a lambda, children[0], to the remaining
+   * children. Returns the null expression if the number of arguments does
+   * not match the number of variables of the lambda.
+   */
+  Expr mkBetaReduceInternal(const std::vector<ExprValue*>& children);
+  /**
    * Constructs a new expression from k and children, or returns a
    * previous one if the same call to mkExprInternal was made previously.
    */

@@ -724,23 +724,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     if (hk==Kind::LAMBDA)
     {
       // beta-reduce eagerly, if the correct arity
-      const std::vector<ExprValue*>& vars = (*hd)[0]->getChildren();
-      size_t nvars = vars.size();
-      if (nvars==children.size()-1)
+      Expr ret = mkBetaReduceInternal(vchildren);
+      if (!ret.isNull())
       {
-        Ctx ctx;
-        for (size_t i=0; i<nvars; i++)
-        {
-          ctx[vars[i]] = vchildren[i + 1];
-        }
-        Expr ret = d_tc.evaluate((*hd)[1], ctx);
-        Trace("state") << "BETA_REDUCE " << Expr((*hd)[1]) << " " << ctx << " = " << ret << std::endl;
         return ret;
       }
-      else
-      {
-        Warning() << "Wrong number of arguments when applying " << Expr(hd) << std::endl;
-      }
+      Warning() << "Wrong number of arguments when applying " << Expr(hd) << std::endl;
     }
     else if (hk == Kind::PROGRAM_CONST)
     {
@@ -1822,6 +1811,27 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   return true;
 }
 
+Expr State::mkBetaReduceInternal(const std::vector<ExprValue*>& children)
+{
+  Assert(!children.empty() && children[0]->getKind() == Kind::LAMBDA);
+  ExprValue* hd = children[0];
+  const std::vector<ExprValue*>& vars = (*hd)[0]->getChildren();
+  size_t nvars = vars.size();
+  if (nvars != children.size() - 1)
+  {
+    return d_null;
+  }
+  Ctx ctx;
+  for (size_t i = 0; i < nvars; i++)
+  {
+    ctx[vars[i]] = children[i + 1];
+  }
+  Expr ret = d_tc.evaluate((*hd)[1], ctx);
+  Trace("state") << "BETA_REDUCE " << Expr((*hd)[1]) << " " << ctx << " = "
+                 << ret << std::endl;
+  return ret;
+}
+
 Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
                                 const std::vector<Expr>& children,
                                 const ExprValue* retType,
@@ -1864,16 +1874,13 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     {
       Trace("overload") << "...return success" << std::endl;
       // an overloaded define macro is beta-reduced eagerly, as in mkExpr
-      if (retApply && hd->getKind() == Kind::LAMBDA
-          && (*hd)[0]->getNumChildren() == children.size() - 1)
+      if (retApply && hd->getKind() == Kind::LAMBDA)
       {
-        const std::vector<ExprValue*>& vars = (*hd)[0]->getChildren();
-        Ctx ctx;
-        for (size_t j = 0, nvars = vars.size(); j < nvars; j++)
+        Expr ret = mkBetaReduceInternal(vchildren);
+        if (!ret.isNull())
         {
-          ctx[vars[j]] = vchildren[j + 1];
+          return ret;
         }
-        return d_tc.evaluate((*hd)[1], ctx);
       }
       // return the operator, do not check the remainder
       return retApply ? x : overloads[ii];
