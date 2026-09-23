@@ -93,8 +93,9 @@ bool isEmbedMetaKind(MetaKind k);
  * preserved, since a proof never mentions one. Each stage after desugaring reparses
  * the definition, which is how its body is compiled along with the rest of the
  * signature, but otherwise ignores it: a parse definition never contributes to
- * a verification condition or to the generated proof checker. The Lean and
- * Isabelle backends turn these definitions into their generated parser tables.
+ * a verification condition or to the generated proof checker. The Lean backend
+ * is the only consumer, which turns the definitions back into the tables of
+ * the generated parser (see LeanMetaReduce::finalizeParser).
  */
 const std::string& getParseDefPrefix();
 /** Return true if name is the name of a parse definition. */

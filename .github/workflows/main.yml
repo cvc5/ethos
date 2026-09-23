@@ -92,9 +92,6 @@ jobs:
     - name: Check the pipeline still writes what it wrote
       run: python3 tools/eoc/test/regress.py --build-dir build-eoc --require-cvc5
 
-    - name: Check Isabelle generation
-      run: python3 tools/eoc/test/isabelle.py --build-dir build-eoc
-
     - name: Build and run custom auto-parser binary
       run: |
         plugins/cpp_compiler/build_custom_ethos.sh \
