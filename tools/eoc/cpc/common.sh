@@ -207,7 +207,7 @@ eoc_sed_in_place() {
 # not among the sets the tool ships with is compiled by the driver during the
 # run rather than reported here.
 eoc_compile_sem_signatures() {
-  python3 "$EOC_TOOLS_DIR/sem_compile.py"
+  python3 "$EOC_TOOLS_DIR/compiler/sem_compile.py"
 }
 
 # Install the generated Lean into a package.

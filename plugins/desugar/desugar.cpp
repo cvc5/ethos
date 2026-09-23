@@ -42,6 +42,7 @@ const char* leanParserAttrName(Attr a)
     case Attr::CHAINABLE: return "chainable";
     case Attr::PAIRWISE: return "pairwise";
     case Attr::ARG_LIST: return "arg-list";
+    case Attr::BINDER: return "binder";
     case Attr::OPAQUE: return "opaque";
     default: return "none";
   }
@@ -367,10 +368,11 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   }
   // The attributes that combine an operator's arguments into a term take a
   // constructor as their operand: the operator that chains a chainable one, or
-  // the one that builds the list of an `:arg-list`.
+  // the one that builds the list of an `:arg-list` or of the variables a
+  // `:binder` binds.
   std::string parserConnector = "-";
   if (cattr == Attr::CHAINABLE || cattr == Attr::PAIRWISE
-      || cattr == Attr::ARG_LIST)
+      || cattr == Attr::ARG_LIST || cattr == Attr::BINDER)
   {
     std::stringstream ssConnector;
     ssConnector << cattrCons;

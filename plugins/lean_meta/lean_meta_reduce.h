@@ -349,6 +349,8 @@ class LeanMetaReduce : public MetaReducePlugin
      */
     std::string d_connector;
   };
+  /** Whether an operator emitted into the parser is a binder. */
+  bool d_parserHasBinder = false;
   /** Parser operator records received through desugaring echo metadata. */
   std::vector<ParserOp> d_parserOps;
   /** Surface/generated proof-rule names received through echo metadata. */
