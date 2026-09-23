@@ -1,0 +1,114 @@
+(include "../../../tests/Booleans-rules.eo")
+
+; Parser definitions must come from the signature, including n-ary aliases
+; and macros that cannot be recovered by scanning generated constructors.
+(define conjunction () and)
+(define negate ((x Bool)) (not x))
+(define negative_constant () -3)
+
+; Use a connector other than CPC's and/@@TypedList.cons defaults.
+(declare-const chained (-> Bool Bool Bool) :chainable or)
+(declare-const gather (-> Bool Bool) :arg-list or)
+
+; No-argument rules are emitted by desugar as definitions, not programs.
+(declare-rule truth () :conclusion true)
+
+; The second case must remain reachable when the repeated variable differs.
+(program choose ((x Bool) (y Bool))
+  :signature (Bool Bool) Bool
+  (
+    ((choose x x) false)
+    ((choose x y) true)
+  ))
+(declare-rule selection ((x Bool) (y Bool))
+  :args (x y) :conclusion (choose x y))
+
+; An integer literal in a pattern needs an equality guard in HOL.
+(program is_zero ((x Int))
+  :signature (Int) Bool
+  (
+    ((is_zero 0) true)
+    ((is_zero x) false)
+  ))
+(declare-rule zero ((x Int)) :args (x) :conclusion (is_zero x))
+
+(program spin ((x Bool)) :signature (Bool) Bool (((spin x) (spin x))))
+(declare-rule diverge ((x Bool)) :args (x) :conclusion (spin x))
+(declare-rule lazy ((x Bool)) :args (x) :conclusion (eo::ite x true (spin x)))
+
+(declare-rule scope ((F Bool) (G Bool))
+  :assumption F :premises (G) :conclusion (=> F G))
+
+; User symbols must not collide with embedding constructors or escaped names.
+(declare-const Boolean Bool)
+(declare-const Stuck Bool)
+(declare-const |a-b| Bool)
+(declare-const |a_x2db| Bool)
+(declare-const a_b Bool)
+(declare-const |a.b| Bool)
+(declare-const a_b_2 Bool)
+(declare-const eq Bool)
+(declare-const |a b| Bool)
+(declare-const a_x20b Bool)
+(program choose_name ((x Bool)) :signature (Bool) Bool
+  (
+    ((choose_name |a-b|) Boolean)
+    ((choose_name |a_x2db|) Stuck)
+    ((choose_name a_b) true)
+    ((choose_name |a.b|) |a-b|)
+    ((choose_name a_b_2) |a_x2db|)
+    ((choose_name eq) eq)
+    ((choose_name |a b|) Boolean)
+    ((choose_name a_x20b) Stuck)
+    ((choose_name x) false)
+  ))
+(declare-rule distinct_names ((x Bool)) :args (x) :conclusion (choose_name x))
+(declare-rule operator_names ((x Bool)) :args (x) :conclusion (= x x))
+
+; Readable rule names may collide with each other and with checker helpers.
+(declare-rule arith-elim-int-gt () :conclusion true)
+(declare-rule arith_elim_int_gt () :conclusion false)
+(declare-rule arith_elim_int_gt_2 () :conclusion Boolean)
+(declare-rule checker_is_refutation () :conclusion true)
+
+; Cleaning a binder's spelling must not merge distinct arguments.
+(declare-rule parameter_names ((a-b Bool) (a_b Bool))
+  :args (a-b a_b) :conclusion (eo::ite a-b a_b false))
+
+; Indexed operators use the embedding's generic UOp constructors.
+(declare-parameterized-const indexed ((i Int :opaque)) Bool)
+(program index_is_zero ((i Int) (x Bool)) :signature (Bool) Bool
+  (
+    ((index_is_zero (indexed i)) (eo::eq i 0))
+    ((index_is_zero x) false)
+  ))
+(declare-rule indexed_rule ((x Bool)) :args (x) :conclusion (index_is_zero x))
+
+; Keep the native operations used by the full CPC signature in a small fixture.
+(declare-rule native_arith ((x Int) (y Int)) :args (x y)
+  :conclusion (eo::eq (eo::pow x y) (eo::log x y)))
+(declare-rule native_compare ((x Bool) (y Bool)) :args (x y)
+  :conclusion (eo::cmp x y))
+(declare-const String Type)
+(declare-consts <string> String)
+(define string_constant () "abc")
+(declare-rule native_strings ((x String) (y String)) :args (x y)
+  :conclusion (eo::eq (eo::len (eo::concat x y)) (eo::find x y)))
+(declare-rule native_extract ((x String) (i Int) (j Int)) :args (x i j)
+  :conclusion (eo::eq (eo::extract x i j) x))
+(declare-rule native_convert ((x String)) :args (x)
+  :conclusion (eo::eq (eo::to_str (eo::to_z x)) x))
+(declare-rule native_bits ((x Int) (y Int)) :args (x y)
+  :conclusion (eo::eq (eo::xor (eo::and x y) (eo::or x y)) (eo::not x)))
+
+; Mutual recursion, including a recursive result controlling another call.
+(program mutual_left ((n Int)) :signature (Int) Bool)
+(program mutual_right ((n Int)) :signature (Int) Bool
+  (((mutual_right n)
+    (eo::ite (eo::eq n 0) false (mutual_left (eo::add n -1))))))
+(program mutual_left ((n Int)) :signature (Int) Bool
+  (((mutual_left n)
+    (eo::ite (eo::eq n 0) true
+      (eo::ite (mutual_right (eo::add n -1))
+        (mutual_right (eo::add n -1)) false)))))
+(declare-rule mutual_rule ((n Int)) :args (n) :conclusion (mutual_left n))
