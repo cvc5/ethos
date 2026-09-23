@@ -9,6 +9,7 @@ stated otherwise.
 | [Compiler README](../README.md) | Build, run, output layout, supported targets and limitations. |
 | [Configuration reference](https://github.com/ajreynol/eunoia/blob/main/tools/sapheneia/docs/eos.md) | The `.eos` language, compilation checks and examples. Maintained in the eunoia repository. |
 | [Proof pipeline](proof-pipeline.md) | How calculus compilation relates to checking a solver's proof. |
+| [Parametric datatypes](parametric-datatypes.md) | Instance representation, typing, parser hooks and integration tests. |
 | [Design notes](design.md) | Current configuration boundaries and open design questions. |
 | [Isabelle model support](isabelle-model.md) | Generating proof-side SMT definitions while preserving the executable checker. |
 | [Configuration work](eos-todo.md) | Helper-family and nil-predicate questions that remain open. |

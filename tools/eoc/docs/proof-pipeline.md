@@ -391,9 +391,10 @@ prove them or build the package.
 - **Proof-level lambda.** `development-cpc.eos` excludes `lambda`, related
   helper methods and `beta-reduce` explicitly. Exclusions are not closed under
   dependency automatically.
-- **Parametric datatypes.** The model embedding's datatype declarations have
-  no type parameters. A source signature accepted by Ethos can therefore be
-  outside this compiler's model.
+- **Nested and non-uniform datatypes.** Parametric instances with uniform
+  recursion are supported. The Logos parser rejects nested recursion and
+  recursive applications whose arguments differ from the block's parameters.
+  See [parametric datatypes](parametric-datatypes.md).
 - **Front-end equivalence.** A proof about a generated checker does not prove
   that Ethos's parser or C++ implementation implements it. The behavior of a
   downstream text parser is a separate obligation as well.

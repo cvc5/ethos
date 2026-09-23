@@ -763,10 +763,14 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   size_t nargs = vt.getNumChildren();
   // determine which output stream to print on
   bool isCheckerDef = false;
+  bool hasEunoiaArgs = false;
   for (size_t j = 0; j < nargs; j++)
   {
     vctxArgs.push_back(getTypeMetaKind(vt[j]));
     isCheckerDef |= isCheckerMetaKind(vctxArgs.back());
+    hasEunoiaArgs |= j + 1 < nargs
+                    && (vctxArgs.back() == MetaKind::EUNOIA
+                        || vctxArgs.back() == MetaKind::EO_EMBED);
   }
   std::ostream* out = nullptr;
   MetaKind tmk = MetaKind::EUNOIA;
@@ -774,7 +778,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     out = &d_eoChecker;
   }
-  else if (isSmtMetaKind(vctxArgs.back()))
+  else if (isSmtMetaKind(vctxArgs.back()) && !hasEunoiaArgs)
   {
     out = &d_smtDefs;
     tmk = MetaKind::SMT_TYPE;
@@ -1680,12 +1684,26 @@ void LeanMetaReduce::finalizeParser()
         "Term.Var (Term.String (native_string_lit name)) ty\n";
   }
 
+  // Indexed operators such as testers and updaters carry the instance in
+  // their constructor/selector index. Only emit the case when this signature
+  // has the corresponding Term constructor.
+  std::string datatypeIndexed;
+  if (!d_embedTOpDt[1].str().empty())
+  {
+    datatypeIndexed =
+        "  | .UOp1 op index =>\n"
+        "      if let a :: _ := args then\n"
+        "        if let some inst := parserInstantiate index (__eo_typeof a) then\n"
+        "          return apply (.UOp1 op inst)\n";
+  }
+
   const std::string outPath = emitResourceFile(
       "plugins/lean_meta/lean_meta_parser.lean",
       "plugins/lean_meta/lean_meta_parser_gen.lean",
       {{"$LEAN_PARSER_OPS$", ops.str()},
        {"$LEAN_PARSER_RULES$", rules.str()},
        {"$LEAN_PARSER_MACROS$", defMacros.str()},
+       {"$LEAN_PARSER_DATATYPE_INDEXED$", datatypeIndexed},
        {"$LEAN_PARSER_MK_VAR$", mkVar}});
   Trace("lean-meta") << "Write lean parser " << outPath << std::endl;
 }

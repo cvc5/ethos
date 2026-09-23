@@ -585,37 +585,68 @@
 ;;;;;;;;;;;;;;;;;;;;;;
 
 
-; The two aggregates are forward declared, since what a signature says about a
-; symbol may name either, and both are defined below.
+; The public translation starts with no parameters. Inside a template, ps is
+; the sequence of already translated type arguments. DatatypeCons already is
+; a sequence of SMT types, so the environment needs no new model datatype.
 (program $eo_to_smt ((T Type)) :signature (T) $smt_Term)
-(program $eo_to_smt_type () :signature (Type) $smt_Type)
+(program $eo_to_smt_type_in () :signature ($smt_DatatypeCons Type) $smt_Type)
+(program $eo_to_smt_type ((T Type))
+  :signature (Type) $smt_Type
+  ((($eo_to_smt_type T) ($eo_to_smt_type_in $dtc_unit T))))
 
-(program $eo_to_smt_datatype_cons ((U $eo_Term) (c $eo_DatatypeCons))
-  :signature ($eo_DatatypeCons) $smt_DatatypeCons
+(program $eo_to_smt_param ((ps $smt_DatatypeCons) (T $smt_Type) (i $native_Nat))
+  :signature ($smt_DatatypeCons $native_Nat) $smt_Type
   (
-  (($eo_to_smt_datatype_cons $edtc_unit) $dtc_unit)
-  (($eo_to_smt_datatype_cons ($edtc_cons U c))
-    ($dtc_cons ($eo_to_smt_type U) ($eo_to_smt_datatype_cons c)))
-  )
-)
+  (($eo_to_smt_param ($dtc_cons T ps) $native_n_zero) T)
+  (($eo_to_smt_param ($dtc_cons T ps) ($native_n_succ i)) ($eo_to_smt_param ps i))
+  (($eo_to_smt_param ps i) $tsm_none)
+  ))
 
-(program $eo_to_smt_datatype ((c $eo_DatatypeCons) (d $eo_Datatype))
-  :signature ($eo_Datatype) $smt_Datatype
+; Translate arguments in the enclosing scope before entering their template.
+; Recursion always descends through the original EO tree, without first
+; constructing an expanded declaration.
+(program $eo_to_smt_args
+  ((ps $smt_DatatypeCons) (T $eo_Term) (a $eo_DatatypeArgs))
+  :signature ($smt_DatatypeCons $eo_DatatypeArgs) $smt_DatatypeCons
   (
-  (($eo_to_smt_datatype ($edt_sum c d))
-    ($dt_sum ($eo_to_smt_datatype_cons c) ($eo_to_smt_datatype d)))
-  (($eo_to_smt_datatype $edt_null) $dt_null)
-  )
-)
+  (($eo_to_smt_args ps $eda_nil) $dtc_unit)
+  (($eo_to_smt_args ps ($eda_cons T a))
+    ($dtc_cons ($eo_to_smt_type_in ps T) ($eo_to_smt_args ps a)))
+  ))
 
-(program $eo_to_smt_datatype_decl ((s $native_String) (d $eo_Datatype) (dd $eo_DatatypeDecl))
+(program $eo_to_smt_datatype_cons
+  ((ps $smt_DatatypeCons) (U $eo_Term) (c $eo_DatatypeCons))
+  :signature ($smt_DatatypeCons $eo_DatatypeCons) $smt_DatatypeCons
+  (
+  (($eo_to_smt_datatype_cons ps $edtc_unit) $dtc_unit)
+  (($eo_to_smt_datatype_cons ps ($edtc_cons U c))
+    ($dtc_cons ($eo_to_smt_type_in ps U) ($eo_to_smt_datatype_cons ps c)))
+  ))
+
+(program $eo_to_smt_datatype
+  ((ps $smt_DatatypeCons) (c $eo_DatatypeCons) (d $eo_Datatype))
+  :signature ($smt_DatatypeCons $eo_Datatype) $smt_Datatype
+  (
+  (($eo_to_smt_datatype ps ($edt_sum c d))
+    ($dt_sum ($eo_to_smt_datatype_cons ps c) ($eo_to_smt_datatype ps d)))
+  (($eo_to_smt_datatype ps $edt_null) $dt_null)
+  ))
+
+(program $eo_to_smt_datatype_decl_in
+  ((ps $smt_DatatypeCons) (s $native_String) (d $eo_Datatype)
+   (dd $eo_DatatypeDecl) (a $eo_DatatypeArgs))
+  :signature ($smt_DatatypeCons $eo_DatatypeDecl) $smt_DatatypeDecl
+  (
+  (($eo_to_smt_datatype_decl_in ps ($edd_cons s d dd))
+    ($dd_cons s ($eo_to_smt_datatype ps d) ($eo_to_smt_datatype_decl_in ps dd)))
+  (($eo_to_smt_datatype_decl_in ps ($edd_params a dd))
+    ($eo_to_smt_datatype_decl_in ($eo_to_smt_args ps a) dd))
+  (($eo_to_smt_datatype_decl_in ps $edd_nil) $dd_nil)
+  ))
+
+(program $eo_to_smt_datatype_decl ((dd $eo_DatatypeDecl))
   :signature ($eo_DatatypeDecl) $smt_DatatypeDecl
-  (
-  (($eo_to_smt_datatype_decl ($edd_cons s d dd))
-    ($dd_cons s ($eo_to_smt_datatype d) ($eo_to_smt_datatype_decl dd)))
-  (($eo_to_smt_datatype_decl $edd_nil) $dd_nil)
-  )
-)
+  ((($eo_to_smt_datatype_decl dd) ($eo_to_smt_datatype_decl_in $dtc_unit dd))))
 
 ; auxiliary definitions for defining $eo_to_smt / $eo_to_smt_type
 ;$EO_TO_SMT_AUX$
@@ -624,30 +655,34 @@
 
 
 
-(program $eo_to_smt_type
-  ((T Type) (n1 $native_Int) (i $native_Nat) (s $native_String) (dd $eo_DatatypeDecl)
+(program $eo_to_smt_type_in
+  ((ps $smt_DatatypeCons) (a $eo_DatatypeArgs) (T Type) (n1 $native_Int) (i $native_Nat) (s $native_String) (dd $eo_DatatypeDecl)
   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
   (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
-  :signature (Type) $smt_Type
+  :signature ($smt_DatatypeCons Type) $smt_Type
   (
-  (($eo_to_smt_type Bool)                     $tsm_Bool)
-  (($eo_to_smt_type ($eot_DatatypeType s dd))
+  (($eo_to_smt_type_in ps ($eot_DtParam i)) ($eo_to_smt_param ps i))
+  (($eo_to_smt_type_in ps Bool)                     $tsm_Bool)
+  (($eo_to_smt_type_in ps ($eot_DatatypeType s ($edd_params a dd)))
+    ($native_ite ($eo_to_smt_reserved_datatype_name s) $tsm_none
+      ($tsm_Datatype s ($eo_to_smt_datatype_decl_in ($eo_to_smt_args ps a) dd))))
+  (($eo_to_smt_type_in ps ($eot_DatatypeType s dd))
     ($native_ite ($eo_to_smt_reserved_datatype_name s) $tsm_none
       ($tsm_Datatype s ($eo_to_smt_datatype_decl dd))))
-  (($eo_to_smt_type ($eot_DatatypeTypeRef s))
+  (($eo_to_smt_type_in ps ($eot_DatatypeTypeRef s))
     ($native_ite ($eo_to_smt_reserved_datatype_name s) $tsm_none
       ($tsm_TypeRef s)))
-  (($eo_to_smt_type ($eot_DtcAppType T1 T2))
-    (eo::define ((S1 ($eo_to_smt_type T1)))
-    (eo::define ((S2 ($eo_to_smt_type T2)))
+  (($eo_to_smt_type_in ps ($eot_DtcAppType T1 T2))
+    (eo::define ((S1 ($eo_to_smt_type_in ps T1)))
+    (eo::define ((S2 ($eo_to_smt_type_in ps T2)))
       ($smtx_typeof_guard S1 ($smtx_typeof_guard S2 ($tsm_DtcAppType S1 S2))))))
-  (($eo_to_smt_type ($eot_USort i))           ($tsm_USort i))
-  (($eo_to_smt_type (-> T1 T2))
-    (eo::define ((S1 ($eo_to_smt_type T1)))
-    (eo::define ((S2 ($eo_to_smt_type T2)))
+  (($eo_to_smt_type_in ps ($eot_USort i))           ($tsm_USort i))
+  (($eo_to_smt_type_in ps (-> T1 T2))
+    (eo::define ((S1 ($eo_to_smt_type_in ps T1)))
+    (eo::define ((S2 ($eo_to_smt_type_in ps T2)))
       ($smtx_typeof_guard S1 ($smtx_typeof_guard S2 ($tsm_FunType S1 S2))))))
 ;$EO_TO_SMT_TYPE_CASES$
-  (($eo_to_smt_type T)                      $tsm_none)
+  (($eo_to_smt_type_in ps T)                      $tsm_none)
   )
 )
 

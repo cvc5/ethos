@@ -163,7 +163,8 @@ class Aggregate:
   def __init__(self, key, of, declares, signature, stands_for, level,
                matches=None, context=(), own=(), default=None,
                primary=False, sole=False, helper_attr=None,
-               helper_arg=None, helper_gives=None, otherwise=None, slots=None):
+               helper_arg=None, helper_gives=None, otherwise=None, slots=None,
+               entrypoint=None):
     self.key = key                  # the attribute a symbol writes
     # The entry of plugins/model_smt/model_smt.eos this is written by, which
     # says the three things a stage of the pipeline agrees with this compiler
@@ -196,6 +197,9 @@ class Aggregate:
     # every case then says what it matches.
     self.matches = matches
     self.context = context          # what a case is given beside the term
+    # A public wrapper can supply the initial context. Recursive casts within
+    # an aggregate keep its context; casts outside it call this entry point.
+    self.entrypoint = entrypoint
     self.own = own                  # what the program declares beside those
     # The prefix a symbol that says nothing about this attribute is applied
     # under, which is the case it then takes.
@@ -395,10 +399,12 @@ class Shape:
     """
     return any(a.level == 'value' for a in self.aggregates.values())
 
-  def transform_into(self):
+  def transform_into(self, within=None):
     """What a name of the input becomes where the embedding is wanted, i.e. the
     aggregate of that level applied to it."""
-    return {a.level: '(%s %%s)' % a.program
+    return {a.level: (applied(a.program, [v for v, _ in a.context] + ['%s'])
+                     if a is within and a.entrypoint is not None
+                     else '(%s %%s)' % (a.entrypoint or a.program))
             for a in self.aggregates.values() if a.program is not None}
 
   def prefixes(self):
@@ -553,10 +559,10 @@ class Shapes:
   def raw_operators(self):
     return any(shape.raw_operators for shape in self.shapes)
 
-  def transform_into(self):
+  def transform_into(self, within=None):
     out = {}
     for shape in self.shapes:
-      out.update(shape.transform_into())
+      out.update(shape.transform_into(within))
     return out
 
   def prefixes(self):
@@ -679,11 +685,13 @@ TERM = Aggregate(
 TYPE = Aggregate(
     key='type',
     sole=True,
-    of='$eo_to_smt_type',
+    of='$eo_to_smt_type_in',
+    entrypoint='$eo_to_smt_type',
+    context=[('ps', '$smt_DatatypeCons')],
     matches='',
     declares=['(T{i} Type)', '(x{i} T{i})'],
-    signature=('(Type)', '$smt_Type'),
-    stands_for={'plain': '($eo_to_smt_type %s)', 'raw': INPUT},
+    signature=('($smt_DatatypeCons Type)', '$smt_Type'),
+    stands_for={'plain': '($eo_to_smt_type_in ps %s)', 'raw': INPUT},
     level='type')
 
 # Whether a term is the nil of an n-ary symbol, which the desugar stage asks by

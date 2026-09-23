@@ -1570,7 +1570,7 @@ class Symbol(Entry):
         # the type a transformation is of -- stands for itself.
         bound = [v for v, _ in agg.context] + [v for v, _ in agg.own]
         rhs = cast(term, Scope(env, bound=bound, surface=surface,
-                               into=ctx.decls.transform_into()),
+                               into=ctx.decls.transform_into(agg)),
                    self, ctx, agg.level)
       cases.append((head, rhs))
     return agg.render(self, cases, ctx, width)
@@ -1582,7 +1582,7 @@ class Symbol(Entry):
     env, surface = agg.scope(self, xs)
     # A name of the input reaches the default the way it reaches a case: as
     # itself where the input is wanted, transformed where the embedding is.
-    into = ctx.decls.transform_into()
+    into = ctx.decls.transform_into(agg)
     stands = [into[agg.level] % env[v]
               if v in surface and agg.level in into else env[v]
               for v in self.params]

@@ -72,7 +72,7 @@
   :case $eoc_transform_
   :into $EO_TO_SMT_CASES$)
 
-(declare-aggregate-method $eo_to_smt_type
+(declare-aggregate-method $eo_to_smt_type_in
   :case $eoc_transform_type_
   :into $EO_TO_SMT_TYPE_CASES$)
 

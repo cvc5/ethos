@@ -20,7 +20,7 @@ $NATIVE_DEFS$
 (define-sort SmtRegLan () RegLan)
 
 (declare-datatypes
-  ((eo.Term 0) (DatatypeDecl 0)  (Datatype 0) (DatatypeCons 0)
+  ((eo.Term 0) (DatatypeDecl 0) (DatatypeArgs 0) (Datatype 0) (DatatypeCons 0)
    (vsm.Value 0) (msm.Map 0) (ssm.Seq 0) (sm.Term 0) (tsm.Type 0)
    (SmtDatatypeDecl 0) (SmtDatatype 0) (SmtDatatypeCons 0))
   (
@@ -30,6 +30,11 @@ $SM_EO_TERM_DECL$
   (
   (edd.nil)
   (edd.cons (edd.cons.arg1 String) (edd.cons.arg2 Datatype) (edd.cons.arg3 DatatypeDecl))
+  (edd.params (edd.params.arg1 DatatypeArgs) (edd.params.arg2 DatatypeDecl))
+  )
+  (
+  (eda.nil)
+  (eda.cons (eda.cons.arg1 eo.Term) (eda.cons.arg2 DatatypeArgs))
   )
   (
   (edt.null)

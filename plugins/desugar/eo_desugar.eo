@@ -593,11 +593,15 @@ $EO_TYPEOF_NGROUND_DEFS$
   (($eo_typeof ($eot_binary w n))             ($eo_lit_type_Binary ($eot_binary w n)))
   ; to sync with eo_to_smt, we require the name is indeed a concrete string
   (($eo_typeof ($eot_Var ($eot_string s) T))  T)
-  (($eo_typeof ($eot_DatatypeType s dd))      Type)
+  (($eo_typeof ($eot_DtParam i))             $eot_stuck)
+  (($eo_typeof ($eot_DatatypeType s dd))
+    ($native_ite ($eo_dd_args_wf dd) Type $eot_stuck))
   (($eo_typeof ($eot_DtCons s dd i))
-    ($eo_typeof_dt_cons_rec ($eot_DatatypeType s dd) ($eo_dd_resolve s dd) i))
+    ($native_ite ($eo_dd_args_wf dd)
+      ($eo_typeof_dt_cons_rec ($eot_DatatypeType s dd) ($eo_dd_resolve s dd) i) $eot_stuck))
   (($eo_typeof ($eot_DtSel s dd i j))
-    (-> ($eot_DatatypeType s dd) ($eo_typeof_dt_sel_return ($eo_dd_resolve s dd) i j)))
+    ($native_ite ($eo_dd_args_wf dd)
+      (-> ($eot_DatatypeType s dd) ($eo_typeof_dt_sel_return ($eo_dd_resolve s dd) i j)) $eot_stuck))
   (($eo_typeof ($eot_USort i))                Type)
   (($eo_typeof ($eot_UConst i T))             T)
   ; otherwise, invoke the routine for user types from the signature.
