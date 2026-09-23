@@ -1427,8 +1427,8 @@ def main():
   # What the sets are named by in a line of the log: the directory they share
   # where they share one, so that a line names the file rather than the way to
   # it, see report.rel.
-  home = os.path.dirname(os.path.commonprefix(
-      [os.path.dirname(os.path.abspath(p)) + os.sep for p, _ in sets]))
+  home = os.path.commonpath(
+      [os.path.dirname(os.path.abspath(p)) for p, _ in sets])
   named_sets = [report.rel(p, home) for p, _ in sets]
   width = max(len(n) for n in named_sets)
   if a.check:
