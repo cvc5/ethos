@@ -1863,6 +1863,18 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
     {
       Trace("overload") << "...return success" << std::endl;
+      // an overloaded define macro is beta-reduced eagerly, as in mkExpr
+      if (retApply && hd->getKind() == Kind::LAMBDA
+          && (*hd)[0]->getNumChildren() == children.size() - 1)
+      {
+        const std::vector<ExprValue*>& vars = (*hd)[0]->getChildren();
+        Ctx ctx;
+        for (size_t j = 0, nvars = vars.size(); j < nvars; j++)
+        {
+          ctx[vars[j]] = vchildren[j + 1];
+        }
+        return d_tc.evaluate((*hd)[1], ctx);
+      }
       // return the operator, do not check the remainder
       return retApply ? x : overloads[ii];
     }

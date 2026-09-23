@@ -278,6 +278,12 @@ Expr ExprParser::parseExpr()
         {
           d_lex.parseError("Expected a return type for ->");
         }
+        // An explicit application requires an operator, i.e. (_) is not a
+        // term.
+        if (sf.d_args.size() == 1 && sf.d_args[0] == d_state.getVar("_"))
+        {
+          d_lex.parseError("Expected an operator for _");
+        }
         // Construct the application term specified by tstack.back()
         ret = d_state.mkExpr(Kind::APPLY, sf.d_args);
         //typeCheck(ret);
