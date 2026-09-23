@@ -24,6 +24,7 @@ Options::Options()
   d_stats = false;
   d_statsAll = false;
   d_statsCompact = false;
+  d_statsSteps = false;
   d_ruleSymTable = true;
   d_requireProofOfFalse = false;
   d_normalizeDecimal = true;
@@ -57,6 +58,12 @@ bool Options::setOption(const std::string& key, bool val)
     // also implies stats are enabled.
     d_stats = val ? true : d_stats;
     d_statsCompact = val;
+  }
+  else if (key == "stats-steps")
+  {
+    // also implies stats are enabled.
+    d_stats = val ? true : d_stats;
+    d_statsSteps = val;
   }
   else if (key == "rule-sym-table")
   {

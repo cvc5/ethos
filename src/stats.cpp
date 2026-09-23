@@ -32,11 +32,13 @@ void RuleStat::start(Stats& s)
   d_startMkExprCount = s.d_mkExprCount;
 }
 
-void RuleStat::increment(Stats& s)
+std::time_t RuleStat::increment(Stats& s)
 {
   // we assume count is already incremented separately
   d_mkExprCount += (s.d_mkExprCount-d_startMkExprCount);
-  d_time += (Stats::getCurrentTime()-d_startTime);
+  std::time_t elapsed = Stats::getCurrentTime() - d_startTime;
+  d_time += elapsed;
+  return elapsed;
 }
   
 std::string RuleStat::toString(std::time_t totalTime) const
@@ -87,6 +89,21 @@ struct SortRuleTime
     return itri->second.d_time>itrj->second.d_time;
   }
 };
+
+/** Quote a CSV field, including embedded quotes in Eunoia symbol names. */
+static void printCsvString(std::ostream& out, const std::string& value)
+{
+  out << '"';
+  for (char c : value)
+  {
+    if (c == '"')
+    {
+      out << '"';
+    }
+    out << c;
+  }
+  out << '"';
+}
 
 std::string Stats::toString(State& s, bool compact, bool all) const
 {
@@ -190,6 +207,18 @@ std::string Stats::toString(State& s, bool compact, bool all) const
         ss << "checkTime = { " << ssCheck.str() << " }" << std::endl;
         ss << "mkExpr = { " << ssMkExpr.str() << " }" << std::endl;
       }
+    }
+  }
+  if (s.getOptions().d_statsSteps)
+  {
+    // Use the same CSV format regardless of the aggregate statistics format.
+    ss << "step,rule,time_us\n";
+    for (const StepStat& step : d_stepStats)
+    {
+      printCsvString(ss, step.d_name);
+      ss << ',';
+      printCsvString(ss, step.d_rule);
+      ss << ',' << step.d_time << '\n';
     }
   }
   return ss.str();

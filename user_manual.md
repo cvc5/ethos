@@ -2137,8 +2137,9 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 - `--require-proof-of-false`: require the last proof step to prove `false` at assumption level zero.
 - `--show-config`: displays the build information for the given binary.
 - `--stats`: enables detailed statistics. All reported times are in microseconds.
-- `--stats-all`: enables all available statistics, including program invocations.
+- `--stats-all`: enables all aggregate statistics, including program invocations.
 - `--stats-compact`: print statistics in a compact format.
+- `--stats-steps`: enables statistics and appends individual proof step timings as CSV.
 - `-t <tag>`: enables the given trace tag (for debugging).
 - `-v`: verbose mode, enable all standard trace messages.
 
@@ -2155,6 +2156,38 @@ Most of the above options can also be set via `set-option` commands within proof
 For example, the command `(set-option :normalize-num true)` tells Ethos to normalize numerals always.
 Further note that option names in this interface should exclude `no-`, which is equivalent to setting the value of the option to false.
 As another example, `(set-option :normalize-dec false)` is equivalent to the command line option `--no-normalize-dec`.
+
+#### Individual proof step timings
+
+Use `ethos --stats-steps proof.eo` to collect the time spent checking each
+successful `step` and `step-pop`. After the usual statistics, the output contains
+a CSV table starting with `step,rule,time_us`, for example:
+
+```csv
+step,rule,time_us
+"p1","eq-symm",12
+"p2","eq-symm",0
+"p3","scope",8
+```
+
+Rows occur in checking order, including steps in included files. Step and rule
+names are CSV-quoted, with embedded double quotes doubled. Repeated step names
+(for example, in different assumption scopes) produce separate rows.
+The CSV format is the same with `--stats-compact`.
+
+Times are elapsed wall-clock microseconds and may be zero for fast steps. Each
+sample uses the same interval as the per-rule totals: from just after reading
+the rule name through parsing the premises and arguments, checking the rule and
+conclusion, and binding the step name. Parsing an explicitly supplied conclusion
+occurs before this interval. When enabled for the entire input, samples for a
+rule sum to its reported total time.
+
+This option retains one record per step until statistics are printed, so memory
+use and output size grow with the number of steps. It is opt-in; `--stats` and
+`--stats-all` alone do not collect these records. Within a script,
+`(set-option :stats-steps true)` starts collection for subsequent steps and
+`(set-option :stats-steps false)` stops collection and hides the CSV table.
+Re-enabling it retains earlier samples; steps checked while disabled are absent.
 
 <a name="full-syntax"></a>
 

@@ -52,8 +52,6 @@ class CmdParser
   bool d_isReference;
   /** Is finished */
   bool d_isFinished;
-  /** Stats enabled? */
-  bool d_statsEnabled;
 };
 
 }  // namespace ethos

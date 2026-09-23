@@ -11,6 +11,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 
 #include <ctime>
 
@@ -27,12 +28,21 @@ class RuleStat
   size_t d_count;
   size_t d_mkExprCount;
   std::time_t d_time;
-  void increment(Stats& s);
+  /** Update the totals and return the elapsed time for this application. */
+  std::time_t increment(Stats& s);
   // frame
   static std::time_t d_startTime;
   static size_t d_startMkExprCount;
   static void start(Stats& s);
   std::string toString(std::time_t totalTime) const;
+};
+
+/** One successfully checked step or step-pop, in input order. */
+struct StepStat
+{
+  std::string d_name;
+  std::string d_rule;
+  std::time_t d_time;
 };
 
 class Stats
@@ -47,6 +57,8 @@ public:
   std::time_t d_startTime;
   std::map<const ExprValue*, RuleStat> d_rstats;
   std::map<const ExprValue*, RuleStat> d_pstats;
+  /** Populated only when stats-steps is enabled. */
+  std::vector<StepStat> d_stepStats;
   std::string toString(State& s, bool compact, bool all) const;
 
   /** Get the current time, in microseconds since the epoch. */

@@ -72,8 +72,9 @@ int main( int argc, char* argv[] )
       out << "--require-proof-of-false: require the last proof step at level zero to prove false." << std::endl;
       out << "      --show-config: displays the build information for this binary." << std::endl;
       out << "            --stats: enables detailed statistics." << std::endl;
-      out << "        --stats-all: enables all available statistics." << std::endl;
+      out << "        --stats-all: enables all aggregate statistics, including program invocations." << std::endl;
       out << "    --stats-compact: print statistics in a compact format." << std::endl;
+      out << "      --stats-steps: also print each proof step's time as CSV (step,rule,time_us)." << std::endl;
       out << "           -t <tag>: enables the given trace tag (requires debug build)." << std::endl;
       out << "                 -v: verbose mode, enable all standard trace messages (requires debug build)." << std::endl;
       std::cout << out.str();

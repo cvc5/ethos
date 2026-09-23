@@ -74,8 +74,6 @@ CmdParser::CmdParser(Lexer& lex,
     d_table["step"] = Token::STEP;
     d_table["step-pop"] = Token::STEP_POP;
   }
-  
-  d_statsEnabled = d_state.getOptions().d_stats;
 }
 
 Token CmdParser::nextCommandToken()
@@ -917,7 +915,9 @@ bool CmdParser::parseNextCommand()
       std::string ruleName = d_eparser.parseSymbol();
       Expr rule = d_eparser.getProofRule(ruleName);
       RuleStat * rs = &d_sts.d_rstats[rule.getValue()];
-      if (d_statsEnabled)
+      // Read the current option to support set-option within the input.
+      bool statsEnabled = d_state.getOptions().d_stats;
+      if (statsEnabled)
       {
         RuleStat::start(d_sts);
       }
@@ -992,10 +992,15 @@ bool CmdParser::parseNextCommand()
       // increment the count regardless of whether stats are enabled, since it
       // may impact whether we report incomplete
       rs->d_count++;
-      if (d_statsEnabled)
+      if (statsEnabled)
       {
         // increment the stats
-        rs->increment(d_sts);
+        std::time_t elapsed = rs->increment(d_sts);
+        if (d_state.getOptions().d_statsSteps)
+        {
+          // Store the same duration as the aggregate, after stopping the timer.
+          d_sts.d_stepStats.push_back({name, ruleName, elapsed});
+        }
       }
     }
     break;

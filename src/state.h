@@ -40,6 +40,8 @@ class Options
   bool d_stats;
   bool d_statsAll;
   bool d_statsCompact;
+  /** Record the time of each proof step, in addition to aggregate statistics. */
+  bool d_statsSteps;
   bool d_ruleSymTable;
   /** Require the last proof step at level zero to prove false. */
   bool d_requireProofOfFalse;

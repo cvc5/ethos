@@ -208,6 +208,16 @@ foreach(file ${ethos_test_file_list})
   ethos_test(${file})
 endforeach()
 
+add_test(
+  NAME stats-steps
+  COMMAND
+    ${CMAKE_COMMAND}
+    "-DTEST_BINARY=$<TARGET_FILE:ethos>"
+    "-DTEST_DIR=${CMAKE_CURRENT_LIST_DIR}"
+    -P ${CMAKE_CURRENT_LIST_DIR}/stats-steps.cmake
+)
+set_tests_properties(stats-steps PROPERTIES TIMEOUT 40)
+
 ethos_fail_test(parser-overflow-declare-sort.eo
                 "Numerals must fit into 32-bit unsigned integers")
 ethos_fail_test(check-sat-assuming-reference-fail.eo
