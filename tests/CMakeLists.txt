@@ -111,6 +111,8 @@ set(ethos_test_file_list
     opaque-inst.eo
     opaque-inst2.eo
     mutual-rec.eo
+    push-pop-proof.pf
+    reference-push-pop.pf
     bv-extract-smt3.eo
     distinct_value_testers.eo
     gt_eval.eo
@@ -213,6 +215,7 @@ foreach(file ${ethos_test_file_list})
   ethos_test(${file})
 endforeach()
 
+ethos_fail_test(push-pop-signature.eo "Expected Eunoia command")
 ethos_fail_test(parser-overflow-declare-sort.eo
                 "Numerals must fit into 32-bit unsigned integers")
 ethos_fail_test(check-sat-assuming-reference-fail.eo
@@ -224,7 +227,7 @@ ethos_fail_test(reference-define-fun-equation-fail.eo
 ethos_fail_test(reference-define-const-equation-fail.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(reference-push-pop.eo
-                "Expected Eunoia command, got .push.")
+                "was not part of the referenced assertions")
 ethos_fail_test(reference-define-fun-rec.eo
                 "Expected Eunoia command, got .define-fun-rec.")
 ethos_fail_test(reference-define-funs-rec.eo
