@@ -1,0 +1,4 @@
+(include "reference-definitions-signature.eo")
+(reference "reference-definitions.smt2")
+; An equation with the right type but the wrong body must be rejected.
+(assume @bad (= id (lambda ((x Int)) 1)))

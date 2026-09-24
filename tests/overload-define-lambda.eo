@@ -1,0 +1,15 @@
+; regression: an overloaded define is beta-reduced like a non-overloaded one
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+
+(define f ((x Int)) (= x x))
+(define f ((x Int)) (= x x))
+
+(declare-rule eq-args ((a Bool) (b Bool))
+  :args (a b)
+  :requires ((a b))
+  :conclusion true)
+
+(step @p0 true :rule eq-args :args ((f 0) (f 0)))
+(step @p1 true :rule eq-args :args ((f 0) (= 0 0)))

@@ -241,14 +241,6 @@ std::string quoteSymbol(const std::string& s)
 std::vector<Expr> Expr::getPrintChildren(const ExprValue* e)
 {
   std::vector<Expr> ret;
-  // special case: variable is printed as (eo::var "name" type)
-  if (e->getKind() == Kind::VARIABLE)
-  {
-    Expr tt(ExprValue::d_state->lookupType(e));
-    Assert(!tt.isNull());
-    ret.push_back(tt);
-    return ret;
-  }
   for (size_t i = 0, nchildren = e->getNumChildren(); i < nchildren; i++)
   {
     ret.emplace_back((*e)[i]);
@@ -306,6 +298,25 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
     }
   }
   return lbind;
+}
+
+/**
+ * Returns true if applications of a symbol with attribute a may be desugared
+ * when read, that is, if (f t1 ... tn) may be read as a term other than
+ * APPLY(f, t1, ..., tn). Programs, proof rules and datatype (constructor)
+ * symbols have attributes that do not change how their applications are read.
+ */
+static bool isDesugaringAttr(Attr a)
+{
+  switch (a)
+  {
+    case Attr::NONE:
+    case Attr::PROGRAM:
+    case Attr::PROOF_RULE:
+    case Attr::DATATYPE:
+    case Attr::DATATYPE_CONSTRUCTOR: return false;
+    default: return true;
+  }
 }
 
 void Expr::printDebugInternal(const Expr& e,
@@ -372,31 +383,28 @@ void Expr::printDebugInternal(const Expr& e,
         }
         visit.pop_back();
       }
-      else if (k == Kind::VARIABLE)
-      {
-        // special case: variables print as the evaluation that made them
-        Expr tt(ExprValue::d_state->lookupType(cur.first));
-        const Literal* l = cur.first->asLiteral();
-        Assert(l != nullptr);
-        os << "(eo::var \"" << l->toString() << "\" ";
-        visit.back().second++;
-        visit.emplace_back(tt.getValue(), 0);
-      }
       else
       {
         os << "(";
         if (k == Kind::APPLY_OPAQUE)
         {
           // ambiguous functions must use "as"
-          Attr attr = ExprValue::d_state->getConstructorKind((*cur.first)[0]);
+          Attr attr = ExprValue::d_state->getAttributeKind((*cur.first)[0]);
           if (attr == Attr::AMB || attr == Attr::AMB_DATATYPE_CONSTRUCTOR)
           {
             os << "as ";
           }
           // otherwise printed as ordinary app
         }
-        else if (k != Kind::APPLY || (*cur.first)[0]->getNumChildren() > 0)
+        else if (k != Kind::APPLY || (*cur.first)[0]->getNumChildren() > 0
+                 || isDesugaringAttr(ExprValue::d_state->getAttributeKind(
+                     (*cur.first)[0])))
         {
+          // We omit the operator "_" only when the application reads back as
+          // the same term, that is, when its head is a symbol whose
+          // applications are not desugared. For example, APPLY(f, i) where f
+          // has an :opaque argument is printed (_ f i), since (f i) would be
+          // read back as APPLY_OPAQUE(f, i), which is a distinct term.
           os << kindToTerm(k) << " ";
         }
         visit.back().second++;
@@ -508,6 +516,11 @@ Expr& Expr::operator=(const Expr& e)
 bool Expr::operator==(const Expr& e) const { return d_value == e.d_value; }
 bool Expr::operator!=(const Expr& e) const { return d_value != e.d_value; }
 Kind Expr::getKind() const { return d_value->getKind(); }
+Expr Expr::getType() const
+{
+  Expr t(d_value);
+  return ExprValue::d_state->getTypeChecker().getType(t);
+}
 bool Expr::operator<(const Expr& e) const { return d_value < e.d_value; }
 
 bool Expr::hasVariable(const Expr& e,

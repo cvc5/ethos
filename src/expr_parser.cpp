@@ -15,8 +15,54 @@
 #include "base/check.h"
 #include "base/output.h"
 #include "type_checker.h"
+#include "util/bitvector.h"
 
 namespace ethos {
+
+namespace {
+
+bool stringToUnsigned(const std::string& str,
+                      uint32_t& result,
+                      std::ostream* os = nullptr)
+{
+  if (str.empty() || str.find_first_not_of("0123456789") != std::string::npos)
+  {
+    if (os != nullptr)
+    {
+      (*os) << "String is not a numeral.";
+    }
+    return false;
+  }
+  Integer parsed(str);
+  if (!parsed.fitsUnsignedInt())
+  {
+    if (os != nullptr)
+    {
+      (*os) << "Numerals must fit into 32-bit unsigned integers.";
+    }
+    return false;
+  }
+  result = parsed.toUnsignedInt();
+  return true;
+}
+
+/**
+ * If str is of the form "bv<numeral>", return true and set val to the numeral.
+ * This is the head symbol of the SMT-LIB indexed bit-vector constant family
+ * (_ bv<numeral> <width>).
+ */
+bool isBitVectorConstantSymbol(const std::string& str, std::string& val)
+{
+  if (str.size() <= 2 || str.compare(0, 2, "bv") != 0
+      || str.find_first_not_of("0123456789", 2) != std::string::npos)
+  {
+    return false;
+  }
+  val = str.substr(2);
+  return true;
+}
+
+}  // namespace
 
 /**
  * Definition of state identifiers when parsing terms
@@ -60,8 +106,14 @@ enum class ParseCtx
   TERM_ANNOTATE_BODY
 };
 
-ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
-    : d_lex(lex), d_state(state), d_isSignature(isSignature)
+ExprParser::ExprParser(Lexer& lex,
+                       State& state,
+                       bool isSignature,
+                       bool isReference)
+    : d_lex(lex),
+      d_state(state),
+      d_isSignature(isSignature),
+      d_isReference(isReference)
 {
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":is_eq"] = Attr::IS_EQ;
@@ -82,7 +134,7 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
   d_strToAttr[":syntax"] = Attr::SYNTAX;
   d_strToAttr[":restrict"] = Attr::RESTRICT;
   d_strToAttr[":sorry"] = Attr::SORRY;
-  
+
   d_strToLiteralKind["<boolean>"] = Kind::BOOLEAN;
   d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
   d_strToLiteralKind["<decimal>"] = Kind::DECIMAL;
@@ -166,12 +218,41 @@ Expr ExprParser::parseExpr()
           {
             // function identifier
             std::string name = tokenStrToSymbol(tok);
+            // In reference files, (_ f i1 ... in) is an SMT-LIB indexed
+            // identifier, which denotes the same term as the application
+            // (f i1 ... in). This differs from Eunoia, where `_` denotes
+            // higher-order application, which does *not* apply the desugaring
+            // policy of f, e.g. its :opaque arguments. We thus drop the `_`
+            // and parse the remainder as an ordinary application.
+            if (d_isReference && name == "_")
+            {
+              // (_ bv<numeral> <width>) is the indexed bit-vector constant
+              // family of the SMT-LIB theory FixedSizeBitVectors, which we
+              // parse as the corresponding binary literal. Note that a symbol
+              // of this form that is declared in the input takes precedence.
+              std::string bvval;
+              if (d_lex.peekToken() == Token::SYMBOL
+                  && isBitVectorConstantSymbol(d_lex.tokenStr(), bvval)
+                  && d_state.getVar(d_lex.tokenStr()).isNull())
+              {
+                d_lex.nextToken();
+                uint32_t w = parseIntegerNumeral();
+                d_lex.eatToken(Token::RPAREN);
+                BitVector bv(w, Integer(bvval));
+                ret = d_state.mkLiteral(Kind::BINARY, bv.toString());
+              }
+              else
+              {
+                pstack.emplace_back(ParseCtx::NEXT_ARG);
+              }
+              break;
+            }
             std::vector<Expr> args;
             Expr v = getVar(name);
             args.push_back(v);
             size_t nscopes = 0;
             // if a binder, read a variable list and push a scope
-            Attr ck = d_state.getConstructorKind(v.getValue());
+            Attr ck = d_state.getAttributeKind(v.getValue());
             if (ck==Attr::BINDER || ck==Attr::LET_BINDER)
             {
               // If it is a binder, immediately read the bound variable list.
@@ -243,6 +324,19 @@ Expr ExprParser::parseExpr()
         {
           d_lex.unexpectedTokenError(
               tok, "Mismatched parentheses in SMT-LIBv2 term");
+        }
+        // A function type requires a return type, i.e. (->) is not a term.
+        if (sf.d_args.size() == 1 && sf.d_args[0] == d_state.getVar("->"))
+        {
+          d_lex.parseError("Expected a return type for ->");
+        }
+        // An explicit application requires an operator, i.e. (_) is not a
+        // term. In a reference file the `_` was dropped above, so the frame
+        // has no arguments at all; in Eunoia the `_` is the only one.
+        if (sf.d_args.empty()
+            || (sf.d_args.size() == 1 && sf.d_args[0] == d_state.getVar("_")))
+        {
+          d_lex.parseError("Expected an operator for _");
         }
         // Construct the application term specified by tstack.back()
         ret = d_state.mkExpr(Kind::APPLY, sf.d_args);
@@ -684,7 +778,12 @@ std::vector<std::pair<Expr, Expr>> ExprParser::parseAndBindLetList()
   // now perform the bindings, which bind to the variable, not its definition
   for (std::pair<Expr, Expr>& ll : letList)
   {
-    bind(ll.first.getSymbol(), ll.first);
+    // above, variables of the form (eo::var s T) should have been created
+    Assert(ll.first.getKind() == Kind::VARIABLE
+           && ll.first.getNumChildren() == 2
+           && ll.first[0].getKind() == Kind::STRING);
+    const Literal* lsym = ll.first[0].getValue()->asLiteral();
+    bind(lsym->d_str.toString(), ll.first);
   }
   return letList;
 }
@@ -861,11 +960,6 @@ void ExprParser::parseConstructorDefinitionList(
       Expr sel = d_state.mkSymbol(Kind::CONST, id, stype);
       toBind.emplace_back(id,sel);
       sels.push_back(sel);
-      std::stringstream ss;
-      ss << "update-" << id;
-      Expr utype = d_state.mkFunctionType({dt, t}, dt);
-      Expr updater = d_state.mkSymbol(Kind::CONST, ss.str(), utype);
-      toBind.emplace_back(ss.str(), updater);
       d_lex.eatToken(Token::RPAREN);
     }
     bool isAmb = false;
@@ -889,12 +983,6 @@ void ExprParser::parseConstructorDefinitionList(
     Expr cons = d_state.mkSymbol(Kind::CONST, name, ctype);
     toBind.emplace_back(name, cons);
     conslist.push_back(cons);
-    // make the discriminator
-    std::stringstream ss;
-    ss << "is-" << name;
-    Expr dtype = d_state.mkFunctionType({dt}, boolType);
-    Expr tester = d_state.mkSymbol(Kind::CONST, ss.str(), dtype);
-    toBind.emplace_back(ss.str(), tester);
     dtcons[cons.getValue()] = sels;
     if (isAmb)
     {
@@ -925,10 +1013,14 @@ uint32_t ExprParser::tokenStrToUnsigned()
   {
     d_lex.parseError("Numeral with leading zeroes are forbidden");
   }
-  uint32_t result;
-  std::stringstream ss;
-  ss << d_lex.tokenStr();
-  ss >> result;
+  uint32_t result = 0;
+  if (!stringToUnsigned(token, result))
+  {
+    std::stringstream ss;
+    ss << "Failed to parse numeral. ";
+    stringToUnsigned(token, result, &ss);
+    d_lex.parseError(ss.str());
+  }
   return result;
 }
 
@@ -1070,7 +1162,7 @@ void ExprParser::parseAttributeList(
             val = parseExprPair();
           }
             break;
-          default:break;
+            default: break;
         }
       }
         break;
@@ -1243,6 +1335,37 @@ void ExprParser::typeCheckProgramPair(Expr& pat,
       d_lex.parseError(ss.str());
     }
   }
+}
+
+void ExprParser::typeCheckProgramFwdDecl(Expr& prevProg,
+                                         Expr& newType,
+                                         const std::string& progName)
+{
+  const Expr& prevType = d_state.getTypeChecker().getType(prevProg);
+  if (prevType == newType)
+  {
+    // already ok, return
+    return;
+  }
+  // rename the old variables to the new ones
+  std::vector<Expr> vso = Expr::getVariables(prevType);
+  std::vector<Expr> vsn = Expr::getVariables(newType);
+  if (vso.size() == vsn.size())
+  {
+    Ctx ctx;
+    for (size_t i = 0, nvars = vso.size(); i < nvars; i++)
+    {
+      ctx[vso[i].getValue()] = vsn[i].getValue();
+    }
+    if (d_state.getTypeChecker().evaluate(prevType.getValue(), ctx) == newType)
+    {
+      // same after renaming, return
+      return;
+    }
+  }
+  std::stringstream ss;
+  ss << "Forward declaration of program " << progName << " had different type.";
+  d_lex.parseError(ss.str());
 }
 
 Expr ExprParser::findFreeVar(const Expr& e, const std::vector<Expr>& bvs)

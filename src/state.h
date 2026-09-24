@@ -41,10 +41,17 @@ class Options
   bool d_statsAll;
   bool d_statsCompact;
   bool d_ruleSymTable;
+  /** Require the last proof step at level zero to prove false. */
+  bool d_requireProofOfFalse;
   bool d_normalizeDecimal;
   bool d_normalizeHexadecimal;
   /** Treat numerals as rational literals */
   bool d_normalizeNumeral;
+  /**
+   * In reference files, parse SMT-LIB define-fun and define-const commands as
+   * Eunoia-style definitions instead of translating them to reference assertions.
+   */
+  bool d_referenceDefineFun;
 };
 
 /**
@@ -81,8 +88,16 @@ class State
   bool addAssumption(const Expr& a);
   /** add reference assert */
   void addReferenceAssert(const Expr& a);
-  /** Set type rule for literal kind k to t */
-  void setLiteralTypeRule(Kind k, const Expr& t);
+  /**
+   * Discard all reference assertions and pop their declaration scopes, as
+   * done by the smt2 command reset-assertions.
+   */
+  void clearReferenceAsserts();
+  /**
+   * Set type rule for literal kind k to t, returns false if the type rule for
+   * k was already set to a different type.
+   */
+  bool setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out = nullptr);
   /** */
   bool bind(const std::string& name, const Expr& e);
   /** 
@@ -128,8 +143,6 @@ class State
   /** (Quote <term>) */
   Expr mkQuoteType(const Expr& t);
   /** */
-  Expr mkBuiltinType(Kind k);
-  /** */
   Expr mkSymbol(Kind k, const std::string& name, const Expr& type);
   /** (eo::requires <pair>+ <type>) */
   Expr mkRequires(const std::vector<Expr>& args, const Expr& ret);
@@ -139,8 +152,14 @@ class State
   Expr mkSelf() const;
   /** Make pair */
   Expr mkPair(const Expr& t1, const Expr& t2);
-  /** */
+  /**
+   * Makes expression with given kind and childen. This method will apply
+   * desugaring based on the attributes of the operator head, i.e. the first
+   * expression in children.
+   */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
+  /** Same as above, without desugaring */
+  Expr mkRawExpr(Kind k, const std::vector<Expr>& children);
   /** make true */
   Expr mkTrue() const;
   /** make false */
@@ -184,8 +203,16 @@ class State
                            const Expr& ret,
                            const std::string& name);
   //--------------------------------------
-  /** Get the constructor kind for symbol v */
-  Attr getConstructorKind(const ExprValue* v) const;
+  /**
+   * Get the constructor kind for symbol v. This is one of the types listed in
+   * attr.h which impact how the symbol v is parsed on interpreted.
+   */
+  Attr getAttributeKind(const ExprValue* v) const;
+  /**
+   * Get the attribute term for symbol v. Along with getAttributeKind, this
+   * term impacts how the symbol v is parsed on interpreted.
+   */
+  Expr getAttributeTerm(const ExprValue* v) const;
   /** make binder list */
   Expr mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs);
   /** */
@@ -234,6 +261,8 @@ class State
                   bool isPop,
                   Expr& result,
                   std::ostream* err = nullptr);
+  /** Did the last checked step prove false at assumption level zero? */
+  bool lastStepProvesFalseAtLevelZero() const;
   /** Get the program */
   Expr getProgram(const ExprValue* ev);
   /** */
@@ -303,6 +332,12 @@ class State
   /** Make (<APPLY> children), curried. */
   ExprValue* mkApplyInternal(const std::vector<ExprValue*>& children);
   /**
+   * Beta-reduce the application of a lambda, children[0], to the remaining
+   * children. Returns the null expression if the number of arguments does
+   * not match the number of variables of the lambda.
+   */
+  Expr mkBetaReduceInternal(const std::vector<ExprValue*>& children);
+  /**
    * Constructs a new expression from k and children, or returns a
    * previous one if the same call to mkExprInternal was made previously.
    */
@@ -347,8 +382,6 @@ class State
   std::map<std::string, Expr> d_symTable;
   /** Symbol table for proof rules, if using separate table */
   std::map<std::string, Expr> d_ruleSymTable;
-  /** The (canonical) bound variables for binders */
-  std::map<std::pair<std::string, const ExprValue*>, Expr> d_boundVars;
   /**
    * The list of declared symbols in the order they were bound.
    */
@@ -417,6 +450,8 @@ class State
   std::vector<ExprValue*> d_toDelete;
   /** Are we in garbage collection? */
   bool d_inGarbageCollection;
+  /** Whether the last checked step proved false at assumption level zero. */
+  bool d_lastStepProvesFalseAtLevelZero;
   //--------------------- utilities
   /** Options */
   Options& d_opts;

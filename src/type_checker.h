@@ -43,8 +43,22 @@ class TypeChecker
    * Check arity for kind, returns false if k cannot be applied to nargs.
    */
   static bool checkArity(Kind k, size_t nargs, std::ostream* out = nullptr);
-  /** Set type rule for literal kind k to t */
-  void setLiteralTypeRule(Kind k, const Expr& t);
+  /**
+   * Set type rule for literal kind k to t, returns false if the type rule for
+   * k was already set to a different type, or if k is BOOLEAN, whose type is
+   * the builtin Bool and cannot be declared. An error message is written on
+   * out if it is provided.
+   */
+  bool setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out = nullptr);
+  /**
+   * Get type rule for literal kind k. The argument self is the expression to
+   * instantiate eo::self with, if applicable, otherwise eo::? is used.
+   * Returns null if no type rule has been declared for k, writing an error
+   * message on out if it is provided. Boolean literals have builtin type Bool.
+   */
+  Expr getLiteralTypeRule(Kind k,
+                         ExprValue* self = nullptr,
+                         std::ostream* out = nullptr);
   /**
    * Evaluate the expression e in the given context.
    */
@@ -72,12 +86,12 @@ class TypeChecker
    * Match expression a with b. If this returns true, then ctx is a substitution
    * that when applied to b gives a. The substitution
    */
-  bool match(ExprValue* a, ExprValue* b, Ctx& ctx);
+  static bool match(ExprValue* a, ExprValue* b, Ctx& ctx);
   /** Same as above, but takes a cache of pairs we have already visited */
-  bool match(ExprValue* a,
-             ExprValue* b,
-             Ctx& ctx,
-             std::set<std::pair<ExprValue*, ExprValue*>>& visited);
+  static bool match(ExprValue* a,
+                    ExprValue* b,
+                    Ctx& ctx,
+                    std::set<std::pair<ExprValue*, ExprValue*>>& visited);
   /** */
   Expr getTypeAppInternal(std::vector<ExprValue*>& children,
                           Ctx& ctx,
@@ -89,14 +103,24 @@ class TypeChecker
                               Ctx& newCtx);
   /** Return its type */
   Expr getTypeInternal(ExprValue* e, std::ostream* out);
-  /**
-   * Get or set type rule (to default) for literal kind k. The argument
-   * self is the expression to instantiate eo::self with, if applicable,
-   * otherwise eo::? is used.
-   */
-  Expr getOrSetLiteralTypeRule(Kind k, ExprValue* self = nullptr);
   /** Evaluate literal op */
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
+  /** Evaluate nil
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param tinst The reference type
+   * @param tinstListArg If true, the reference type refers to the type of the
+   * list. Otherwise, the reference type refers to the element type. This only
+   * makes a difference for e.g. :right-assoc-nil operators whose type is
+   * (-> T U U) where U != T.
+   * @return The result of the evaluation.
+   */
+  Expr evaluateNil(ExprValue* op,
+                   ExprValue* nil,
+                   bool isLeft,
+                   ExprValue* tinst,
+                   bool tinstListArg = false);
   /** Evaluate list rev internal
    * @param op The n-ary operator.
    * @param nil The nil terminator for the operator.
@@ -158,6 +182,18 @@ class TypeChecker
                                      ExprValue* nil,
                                      bool isLeft,
                                      const std::vector<ExprValue*>& args);
+  /** Evaluate list singleton introduction internal
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param args The arguments to the application.
+   * @return The result of the evaluation.
+   */
+  Expr evaluateListSingletonIntroInternal(
+      ExprValue* op,
+      ExprValue* nil,
+      bool isLeft,
+      const std::vector<ExprValue*>& args);
   /**
    * Helper for above, starting with ret, append children in hargs to ret,
    * using n-ary operator op, which is :right-assoc-nil or :left-assoc-nil

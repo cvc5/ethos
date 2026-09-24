@@ -1,0 +1,15 @@
+; not a regression, to be used by reference commands
+(set-logic ALL)
+(declare-fun x () Int)
+(assert (< x 0))
+(push 2)
+(declare-fun y () Bool)
+(check-sat-assuming (y (< x 0)))
+(check-sat)
+(reset-assertions)
+; A fresh scope after reset must start from the cleared assertion state.
+(push)
+(assert (< x 0))
+(pop)
+(assert (> x 0))
+(check-sat)

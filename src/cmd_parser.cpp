@@ -61,8 +61,11 @@ CmdParser::CmdParser(Lexer& lex,
     d_table["define-sort"] = Token::DEFINE_SORT;
     d_table["check-sat"] = Token::CHECK_SAT;
     d_table["check-sat-assuming"] = Token::CHECK_SAT_ASSUMING;
+    d_table["reset-assertions"] = Token::RESET_ASSERTIONS;
     d_table["set-logic"] = Token::SET_LOGIC;
     d_table["set-info"] = Token::SET_INFO;
+    // Note that any command whose name begins with "get-" is parsed and
+    // ignored, see nextCommandToken.
   }
   else
   {
@@ -93,6 +96,15 @@ Token CmdParser::nextCommandToken()
     if (it != d_table.end())
     {
       return it->second;
+    }
+    // In reference files, any command that begins with "get-" is one that
+    // queries the solver for output (e.g. get-model). Such commands have no
+    // impact on the set of assertions, hence we parse and ignore all of them.
+    // This is done by prefix so that we do not have to maintain a list of the
+    // commands of this form.
+    if (d_isReference && str.compare(0, 4, "get-") == 0)
+    {
+      return Token::SMT2_QUERY_COMMAND;
     }
   }
   return tok;
@@ -265,14 +277,14 @@ bool CmdParser::parseNextCommand()
         {
           d_lex.parseError("Can only use opaque argument on functions without attributes.");
         }
-        // Reconstruct with opaque arguments, do not flatten function type.
-        t = d_state.mkFunctionType(opaqueArgs, t);
         ck = Attr::OPAQUE;
         // we store the number of opaque arguments as the constructor
         std::stringstream onum;
         onum << opaqueArgs.size();
         Assert(cons.isNull());
         cons = d_state.mkLiteral(Kind::NUMERAL, onum.str());
+        opaqueArgs.push_back(t);
+        t = d_state.mkExpr(Kind::FUNCTION_TYPE, opaqueArgs);
       }
       Expr v = d_state.mkSymbol(sk, name, t);
       // if the type has a property, we mark it on the variable of this type
@@ -369,7 +381,11 @@ bool CmdParser::parseNextCommand()
       Expr t = d_eparser.parseType();
       // maybe requires?
       // set the type rule
-      d_state.setLiteralTypeRule(k, t);
+      std::stringstream ssl;
+      if (!d_state.setLiteralTypeRule(k, t, &ssl))
+      {
+        d_lex.parseError(ssl.str());
+      }
       d_state.popScope();
     }
     break;
@@ -560,19 +576,9 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (define-const <symbol> <sort> <term>)
-    case Token::DEFINE_CONST:
-    {
-      //d_state.checkThatLogicIsSet();
-      std::string name = d_eparser.parseSymbol();
-      //d_state.checkUserSymbol(name);
-      Expr ret = d_eparser.parseType();
-      Expr e = d_eparser.parseExpr();
-      d_eparser.typeCheck(e, ret);
-      d_eparser.bind(name, e);
-    }
-    break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
     // (define <symbol> (<sorted_var>*) <term> <attr>*)
+    case Token::DEFINE_CONST:
     case Token::DEFINE_FUN:
     case Token::DEFINE:
     {
@@ -582,8 +588,18 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> impls;
       std::vector<Expr> opaques;
       std::map<ExprValue*, AttrMap> pattrMap;
-      std::vector<Expr> vars =
-          d_eparser.parseAndBindSortedVarList(Kind::LAMBDA, pattrMap);
+      bool defineAsReferenceAssert =
+          tok != Token::DEFINE && d_isReference
+          && !d_state.getOptions().d_referenceDefineFun;
+      std::vector<Expr> vars;
+      if (tok != Token::DEFINE_CONST)
+      {
+        // Reference equations use object-language bound variables, as do
+        // ordinary binders and eo::var terms in proofs. Macro definitions
+        // instead need fresh Eunoia parameters.
+        vars = d_eparser.parseAndBindSortedVarList(
+            defineAsReferenceAssert ? Kind::NONE : Kind::LAMBDA, pattrMap);
+      }
       if (vars.size() < pattrMap.size())
       {
         // If there were implicit variables, we go back and refine what is
@@ -603,7 +619,7 @@ bool CmdParser::parseNextCommand()
       // now process remainder of map
       d_eparser.processAttributeMaps(pattrMap);
       Expr ret;
-      if (tok == Token::DEFINE_FUN)
+      if (tok != Token::DEFINE)
       {
         ret = d_eparser.parseType();
       }
@@ -613,7 +629,7 @@ bool CmdParser::parseNextCommand()
       {
         d_eparser.typeCheck(expr, ret);
       }
-      if (tok == Token::DEFINE_FUN)
+      if (defineAsReferenceAssert)
       {
         // This is for reference checking only. Note that = and lambda are
         // not builtin symbols, thus we must assume they are defined by the user.
@@ -621,7 +637,10 @@ bool CmdParser::parseNextCommand()
         Expr eq = d_state.getVar("=");
         if (eq.isNull())
         {
-          d_lex.parseError("Expected symbol '=' to be defined when parsing define-fun.");
+          d_lex.parseError(
+              "Expected symbol '=' to be defined when parsing "
+              + std::string(tok == Token::DEFINE_CONST ? "define-const."
+                                                       : "define-fun."));
         }
         Expr rhs = expr;
         Expr t = ret;
@@ -809,8 +828,10 @@ bool CmdParser::parseNextCommand()
         {
           d_lex.parseError("Cannot define program more than once");
         }
-        // it should be a program with the same type
-        d_eparser.typeCheck(pprev, progType);
+        // ensure that its type is compatible with the previous definition
+        d_eparser.typeCheckProgramFwdDecl(pprev, progType, name);
+        // we use the forward declaration of the program that was globally bound
+        // already
         pvar = pprev;
       }
       else
@@ -827,10 +848,6 @@ bool CmdParser::parseNextCommand()
       {
         // parse the body
         std::vector<Expr> pchildren = d_eparser.parseExprPairList();
-        if (pchildren.empty())
-        {
-          d_lex.parseError("Expected non-empty list of cases");
-        }
         // ensure program cases are
         // (A) applications of the program
         // (B) have arguments that are not evaluatable
@@ -864,8 +881,12 @@ bool CmdParser::parseNextCommand()
     // (reset)
     case Token::RESET:
     {
-      // reset the state of the parser, which is independent of the symbol
-      // manager
+      // In reference files, reset subsumes reset-assertions. Pop the reference
+      // scopes before resetting the declaration stack.
+      if (d_isReference)
+      {
+        d_state.clearReferenceAsserts();
+      }
       d_state.reset();
     }
     break;
@@ -935,7 +956,8 @@ bool CmdParser::parseNextCommand()
         // because allocation of std::stringstream is expensive and this
         // block of code only executes at most once.
         std::stringstream sserr;
-        sserr << "A step of rule " << ruleName << " failed to check." << std::endl;
+        sserr << "A step of rule " << ruleName << " failed to check."
+              << std::endl;
         bool recheck = d_state.notifyStep(
             name, rule, proven, premises, args, isPop, concTerm, &sserr);
         // should fail again
@@ -983,34 +1005,19 @@ bool CmdParser::parseNextCommand()
       }
     }
     break;
-    //-------------------------- commands to support reading ordinary smt2 inputs
-    // (assert <formula>)
-    case Token::ASSERT:
-    {
-      Expr a = d_eparser.parseFormula();
-      d_state.addReferenceAssert(a);
-    }
-    break;
-    // (check-sat)
-    case Token::CHECK_SAT:
-    break;
-    // (check-sat-assuming (<formula>*))
-    case Token::CHECK_SAT_ASSUMING:
-    {
-      d_eparser.parseExprList();
-    }
-    break;
+    // (push <numeral>?)
+    // (pop <numeral>?)
     case Token::POP:
     case Token::PUSH:
     {
-      bool isPush = (tok==Token::PUSH);
+      bool isPush = (tok == Token::PUSH);
       tok = d_lex.peekToken();
       size_t num = 1;
       if (tok == Token::INTEGER_LITERAL)
       {
         num = d_eparser.parseIntegerNumeral();
       }
-      for (size_t i=0; i<num; i++)
+      for (size_t i = 0; i < num; i++)
       {
         if (isPush)
         {
@@ -1028,6 +1035,57 @@ bool CmdParser::parseNextCommand()
           }
           d_state.popScope();
         }
+      }
+    }
+    break;
+    //-------------------------- commands to support reading ordinary smt2 inputs
+    // (assert <formula>)
+    case Token::ASSERT:
+    {
+      Expr a = d_eparser.parseFormula();
+      d_state.addReferenceAssert(a);
+    }
+    break;
+    // (check-sat)
+    case Token::CHECK_SAT:
+    break;
+    // (check-sat-assuming (<formula>*))
+    case Token::CHECK_SAT_ASSUMING:
+    {
+      // The formulas of a check-sat-assuming are part of the query, thus a
+      // proof of unsat is permitted to assume them.
+      std::vector<Expr> as = d_eparser.parseExprList();
+      for (Expr& a : as)
+      {
+        // ensure each assumption has type Bool, as is done for assert
+        d_eparser.typeCheck(a, d_state.mkBoolType());
+        d_state.addReferenceAssert(a);
+      }
+    }
+    break;
+    // (reset-assertions)
+    case Token::RESET_ASSERTIONS:
+    {
+      // Discards all assertions and pops all assertion levels, hence the
+      // reference assertions accumulated so far are no longer part of the
+      // query. Note that (reset) also clears the reference assertions.
+      d_state.clearReferenceAsserts();
+    }
+    break;
+    // Commands that only produce solver output, e.g. (get-model). We consume
+    // their arguments as s-expressions and ignore them.
+    case Token::SMT2_QUERY_COMMAND:
+    {
+      // note we peek at most once per iteration, as required by the lexer
+      Token ptok = d_lex.peekToken();
+      while (ptok != Token::RPAREN)
+      {
+        if (ptok == Token::EOF_TOK)
+        {
+          d_lex.parseError("Expected s-expression");
+        }
+        d_eparser.parseSymbolicExpr();
+        ptok = d_lex.peekToken();
       }
     }
     break;

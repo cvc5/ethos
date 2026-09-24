@@ -18,6 +18,7 @@ set(ethos_test_file_list
     or-repl-all-basic.eo
     constant-eval.eo
     constant-eval-args.eo
+    log.eo
     chainable.eo
     substitution.eo
     pf-substitution.eo
@@ -126,8 +127,16 @@ set(ethos_test_file_list
     implicit-then-var.eo
     is_eq.eo
     simple-reference.eo
+    reference-define-fun.eo
+    reference-definitions.eo
+    reference-define-const-macro.eo
     simple-quant-reference.eo
     simple-lra-reference.eo
+    check-sat-assuming-reference.eo
+    reference-query-commands.eo
+    reference-reset-assertions.eo
+    reference-indexed-opaque.eo
+    reference-bv-constant.eo
     left-cons.eo
     overload-standalone.eo
     datatypes-split-rule.eo
@@ -153,6 +162,7 @@ set(ethos_test_file_list
     define-scope-attr.eo
     is-eq-tests.eo
     eo-arg-ex.eo
+    pow-list-repeat.eo
     list-ops-new.eo
     double-list.eo
     list-param-immediate.eo
@@ -171,6 +181,11 @@ set(ethos_test_file_list
     list-non-singleton.eo
     list-non-singleton-left.eo
     code-point-oob.eo
+    homogeneous-list-ops.eo
+    quant-sk-type.eo
+    fwd-decl-nground.eo
+    require-proof-of-false.eo
+    overload-define-lambda.eo
 )
 
 macro(ethos_test file)
@@ -186,11 +201,12 @@ macro(ethos_fail_test file regex)
   add_test(
     NAME ${file}
     COMMAND
-      bash
-      ${CMAKE_CURRENT_LIST_DIR}/run_expect_fail.sh
-      $<TARGET_FILE:ethos>
-      ${CMAKE_CURRENT_LIST_DIR}/${file}
-      ${regex}
+      ${CMAKE_COMMAND}
+      "-DTEST_BINARY=$<TARGET_FILE:ethos>"
+      "-DTEST_FILE=${CMAKE_CURRENT_LIST_DIR}/${file}"
+      "-DTEST_WORKDIR=${CMAKE_SOURCE_DIR}"
+      "-DEXPECT_REGEX=${regex}"
+      -P ${CMAKE_CURRENT_LIST_DIR}/expect_error.cmake
   )
   set_tests_properties(${file} PROPERTIES TIMEOUT 40)
 endmacro()
@@ -200,3 +216,49 @@ foreach(file ${ethos_test_file_list})
 endforeach()
 
 ethos_fail_test(push-pop-signature.eo "Expected Eunoia command")
+ethos_fail_test(parser-overflow-declare-sort.eo
+                "Numerals must fit into 32-bit unsigned integers")
+ethos_fail_test(check-sat-assuming-reference-fail.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(reference-reset-assertions-fail.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(reference-define-fun-equation-fail.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(reference-define-const-equation-fail.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(reference-push-pop.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(reference-define-fun-rec.eo
+                "Expected Eunoia command, got .define-fun-rec.")
+ethos_fail_test(reference-define-funs-rec.eo
+                "Expected Eunoia command, got .define-funs-rec.")
+ethos_fail_test(check-sat-assuming-non-bool.eo
+                "Expression of unexpected type")
+ethos_fail_test(require-proof-of-false-last-step.eo
+                "last proof step did not prove false at assumption level zero")
+ethos_fail_test(require-proof-of-false-no-step.eo
+                "last proof step did not prove false at assumption level zero")
+ethos_fail_test(require-proof-of-false-nested.eo
+                "last proof step did not prove false at assumption level zero")
+ethos_fail_test(nullary-arrow-type.eo
+                "Error: .*nullary-arrow-type.eo:[0-9]+.[0-9]+: Expected a return type")
+ethos_fail_test(apply-no-operator.eo
+                "Error: .*apply-no-operator.eo:[0-9]+.[0-9]+: Expected an operator for _")
+ethos_fail_test(reference-apply-no-operator.eo
+                "Error: .*reference-apply-no-operator.smt2:[0-9]+.[0-9]+: Expected an operator for _")
+ethos_fail_test(reference-apply-no-operator-head.eo
+                "Error: .*reference-apply-no-operator-head.smt2:[0-9]+.[0-9]+: Expected an operator for _")
+ethos_fail_test(assume-push-unclosed.eo
+                "Error: .*assume-push-unclosed.eo:[0-9]+.[0-9]+: This file did not preserve assumption scope")
+ethos_fail_test(declare-consts-twice.eo
+                "Error: .*declare-consts-twice.eo:[0-9]+.[0-9]+: Cannot set type rule for kind NUMERAL")
+ethos_fail_test(declare-consts-missing-numeral.eo
+                "Message: No type rule declared for literal kind NUMERAL; use declare-consts")
+ethos_fail_test(declare-consts-missing-string.eo
+                "Message: No type rule declared for literal kind STRING; use declare-consts")
+ethos_fail_test(declare-consts-missing-numeral-result.eo
+                "Message: No type rule declared for literal kind NUMERAL; use declare-consts")
+ethos_fail_test(declare-consts-missing-string-result.eo
+                "Message: No type rule declared for literal kind STRING; use declare-consts")
+ethos_fail_test(declare-consts-boolean.eo
+                "Error: .*declare-consts-boolean.eo:[0-9]+.[0-9]+: Cannot set a type rule for kind BOOLEAN")

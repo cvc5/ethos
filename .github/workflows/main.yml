@@ -3,6 +3,93 @@ name: CI
 on: [push, pull_request]
 
 jobs:
+  plugins:
+    name: plugins:compile-and-test
+    runs-on: ubuntu-22.04
+
+    # The experimental extensions in plugins/ are not part of the ethos build
+    # and nothing else compiles them, so without this they would silently rot
+    # against src/. A debug build ensures assertions are compiled too. Building
+    # ethos-eoc covers every plugin source outside cpp_compiler/, so it
+    # subsumes the plugins-compile-check target of the top-level build.
+    concurrency:
+      group: plugins-${{ github.ref }}-${{ github.ref != 'refs/heads/main' || github.run_id }}
+      cancel-in-progress: ${{ github.repository != 'cvc5/ethos' || startsWith(github.ref, 'refs/pull/') }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Install Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libgmp-dev
+
+    - name: Set up num_proc variable
+      run: echo "num_proc=$(( $(nproc) + 1 ))" >> $GITHUB_ENV
+
+    - name: Compile and test plugins
+      run: |
+        cmake -S plugins -B build-eoc \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS=-Werror
+        cmake --build build-eoc --parallel ${{ env.num_proc }} \
+          --target ethos-eoc
+        ./build-eoc/ethos-eoc tests/simple.eo
+        cmake -S plugins/cpp_compiler -B build-cpp-compiler-test \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS=-Werror \
+          -DETHOS_CPP_COMPILER_MODE=test
+        cmake --build build-cpp-compiler-test --parallel ${{ env.num_proc }} \
+          --target cpp-compiler-roundtrip
+
+    # The build above is what writes the generated signatures, so this says
+    # they hold what compiling the configuration writes and, which nothing
+    # else checks, that each block of one stands after the blocks it names.
+    - name: Check the compiled semantics
+      run: python3 tools/eoc/compiler/sem_compile.py --check
+
+    - name: Check the driver interface
+      run: python3 tools/eoc/test/driver.py
+
+    # What reads back the verification conditions the pipeline writes. A digest
+    # says the bytes did not move; only a solver says they are well formed, and
+    # a change to the native layer of plugins/smt_meta/smt-vc.eos can leave a
+    # file that names a sort it never defines and still move only the bytes,
+    # which --update would then bless. The static release binary is downloaded
+    # rather than built -- cvc5 takes longer to build than everything else here
+    # together -- and pinned by version and digest so a run reads back with a
+    # known one.
+    - name: Install cvc5
+      run: |
+        version=1.3.4
+        sha256=dcdbfada0ce493ee98259c0816e0daafc561c223aadb3af298c2968e73ea39c6
+        curl -sSL -o "${RUNNER_TEMP}/cvc5.zip" \
+          "https://github.com/cvc5/cvc5/releases/download/cvc5-${version}/cvc5-Linux-x86_64-static.zip"
+        echo "${sha256}  ${RUNNER_TEMP}/cvc5.zip" | sha256sum --check --strict
+        unzip -q "${RUNNER_TEMP}/cvc5.zip" -d "${RUNNER_TEMP}"
+        echo "${RUNNER_TEMP}/cvc5-Linux-x86_64-static/bin" >> "$GITHUB_PATH"
+
+    # The four runs the pipeline has, over each signature the regression
+    # compiles, and then the bytes: what it wrote is compared with the digests
+    # checked in, which is what says a change to the compiler left the output
+    # where it was, and the two runs that write for a solver have cvc5 read
+    # back what they wrote.
+    # --require-cvc5 says a run without one is not a run, so that a step above
+    # that failed to install it cannot quietly leave this checking less. See
+    # tools/eoc/test/regress.py.
+    - name: Check the pipeline still writes what it wrote
+      run: python3 tools/eoc/test/regress.py --build-dir build-eoc --require-cvc5
+
+    - name: Build and run custom auto-parser binary
+      run: |
+        plugins/cpp_compiler/build_custom_ethos.sh \
+          plugins/cpp_compiler/test/signature.eo \
+          "${RUNNER_TEMP}/ethos-cpp-compiler" debug
+        "${RUNNER_TEMP}/ethos-cpp-compiler/ethos" \
+          plugins/cpp_compiler/test/signature.eo
+
   build:
     strategy:
       matrix:

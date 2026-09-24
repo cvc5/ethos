@@ -1,0 +1,6 @@
+; regression: (_) has no operator, hence is not an application, also in a
+; reference file, where the `_` of an indexed identifier is dropped. See
+; apply-no-operator.eo for the Eunoia version.
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(reference "reference-apply-no-operator.smt2")

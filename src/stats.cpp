@@ -101,7 +101,7 @@ std::string Stats::toString(State& s, bool compact, bool all) const
   ss << "symCount = " << d_symCount << std::endl;
   ss << "litCount = " << d_litCount << std::endl;
   std::time_t totalTime = (getCurrentTime()-d_startTime);
-  ss << "time = " << totalTime << std::endl;
+  ss << "time = " << totalTime << "us" << std::endl;
   size_t imax = all ? 2 : 1;
   for (size_t i=0; i<imax; i++)
   {
@@ -117,8 +117,8 @@ std::string Stats::toString(State& s, bool compact, bool all) const
       ss << std::left << std::setw(7) << "#";
       if (i==0)
       {
-        ss << std::left << std::setw(17) << "t";
-        ss << std::left << std::setw(10) << "t/#";
+        ss << std::left << std::setw(17) << "t(us)";
+        ss << std::left << std::setw(10) << "t/#(us)";
         ss << std::left << std::setw(10) << "#mkExpr";
       }
       ss << std::endl;
@@ -198,9 +198,8 @@ std::string Stats::toString(State& s, bool compact, bool all) const
 std::time_t Stats::getCurrentTime()
 {
   auto now = std::chrono::high_resolution_clock::now();
-  //auto now_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(now);
-  auto now_ns = std::chrono::time_point_cast<std::chrono::microseconds>(now);
-  auto epoch_time = now_ns.time_since_epoch();
+  auto now_us = std::chrono::time_point_cast<std::chrono::microseconds>(now);
+  auto epoch_time = now_us.time_since_epoch();
   std::time_t t = epoch_time.count();
   return t;
 }

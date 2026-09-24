@@ -24,7 +24,7 @@ namespace ethos {
 class ExprParser
 {
  public:
-  ExprParser(Lexer& lex, State& state, bool isSignature);
+  ExprParser(Lexer& lex, State& state, bool isSignature, bool isReference);
   virtual ~ExprParser() {}
 
   /** Parses a term <term> */
@@ -166,6 +166,16 @@ class ExprParser
    * terms with free parameters that are not bound during pattern matching.
    */
   void typeCheckProgramPair(Expr& pat, Expr& ret, bool checkPreservation);
+  /**
+   * Type check program with forward declaration. Ensure that the forward
+   * declaration in prevProg has a type that is compatible with newType.
+   * In particular, note that forward declared programs may have non-ground
+   * type. Since parameters are not normalized, we need to check whether
+   * newType is alpha equivalent to the previously declared type.
+   */
+  void typeCheckProgramFwdDecl(Expr& prevProg,
+                               Expr& newType,
+                               const std::string& progName);
   /** get variable, else error */
   Expr getVar(const std::string& name);
   /** get variable, else error */
@@ -236,6 +246,8 @@ class ExprParser
   State& d_state;
   /** Are we parsing a signature file? */
   bool d_isSignature;
+  /** Are we parsing a reference (*.smt2) file? */
+  bool d_isReference;
   /** Strings to attributes */
   std::map<std::string, Attr> d_strToAttr;
   /** Mapping symbols to literal kinds */

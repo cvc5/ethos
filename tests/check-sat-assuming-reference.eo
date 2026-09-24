@@ -1,0 +1,9 @@
+; regression: assumptions of check-sat-assuming are reference assertions
+(declare-const Int Type)
+(declare-const > (-> Int Int Bool))
+(declare-const < (-> Int Int Bool))
+(declare-consts <numeral> Int)
+(reference "check-sat-assuming.smt2")
+(assume @p0 (> x 0))
+(assume @p1 (< x 0))
+(assume @p2 (< x 1))

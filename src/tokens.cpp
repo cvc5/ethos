@@ -61,10 +61,12 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::RATIONAL_LITERAL: o << "RATIONAL_LITERAL"; break;
     case Token::REFERENCE: o << "REFERENCE"; break;
     case Token::RESET: o << "RESET"; break;
+    case Token::RESET_ASSERTIONS: o << "RESET_ASSERTIONS"; break;
     case Token::RPAREN: o << "RPAREN"; break;
     case Token::SET_LOGIC: o << "SET_LOGIC"; break;
     case Token::SET_INFO: o << "SET_INFO"; break;
     case Token::SET_OPTION: o << "SET_OPTION"; break;
+    case Token::SMT2_QUERY_COMMAND: o << "SMT2_QUERY_COMMAND"; break;
     case Token::STEP: o << "STEP"; break;
     case Token::STEP_POP: o << "STEP_POP"; break;
     case Token::STRING_LITERAL: o << "STRING_LITERAL"; break;

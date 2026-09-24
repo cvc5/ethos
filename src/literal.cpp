@@ -92,10 +92,6 @@ std::string Literal::toString() const
     case Kind::BOOLEAN: return d_bool ? "true" : "false";
     case Kind::DECIMAL: return d_rat.toStringDecimal();
     case Kind::RATIONAL:
-      if (d_rat.isIntegral())
-      {
-        return d_rat.toString() + "/1";
-      }
       return d_rat.toString();
     case Kind::NUMERAL: return d_int.toString();
     case Kind::HEXADECIMAL: return d_bv.toString(16);
@@ -137,11 +133,53 @@ bool allSameBitWidth(const std::vector<const Literal*>& args)
   return true;
 }
 
+/**
+ * Returns the greatest non-negative integer m such that base^m <= value, or 0
+ * if base is not greater than one or value is non-positive. Since the result is
+ * never negative, this is the (rounded-down) inverse of eo::pow.
+ */
+Integer integerFloorLog(const Integer& base, const Integer& value)
+{
+  Integer one(1);
+  if (!(base > one) || value.sgn() <= 0)
+  {
+    return Integer(0);
+  }
+  // Repeatedly divide the value by the base, counting the steps until it drops
+  // below the base. We divide rather than build up successive powers so that
+  // the intermediate values stay bounded by the original value.
+  Integer result(0);
+  Integer remaining = value;
+  while (!(base > remaining))
+  {
+    result = result + one;
+    remaining = remaining.floorDivideQuotient(base);
+  }
+  return result;
+}
+
+bool literalToRational(const Literal* l, Rational& out)
+{
+  switch (l->getKind())
+  {
+    case Kind::NUMERAL:
+      out = Rational(l->d_int);
+      return true;
+    case Kind::DECIMAL:
+    case Kind::RATIONAL:
+      out = l->d_rat;
+      return true;
+    default: break;
+  }
+  return false;
+}
+
 Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
 {
   Assert (k!=Kind::EVAL_IS_EQ && k!=Kind::EVAL_IF_THEN_ELSE && k!=Kind::EVAL_REQUIRES);
   Kind ka = Kind::NONE;
-  if (k!=Kind::EVAL_EXTRACT && k!=Kind::EVAL_TO_BIN)
+  if (k != Kind::EVAL_EXTRACT && k != Kind::EVAL_TO_BIN
+      && k != Kind::EVAL_POW && k != Kind::EVAL_LOG)
   {
     ka = allSameKind(args);
     if (ka==Kind::NONE)
@@ -270,6 +308,36 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
         case Kind::BINARY:return Literal(ka, -args[0]->d_bv);
         default: break;
       }
+      break;
+    case Kind::EVAL_POW:
+      if (args[1]->d_kind == Kind::NUMERAL && args[1]->d_int.fitsUnsignedInt())
+      {
+        uint32_t exp = args[1]->d_int.toUnsignedInt();
+        switch (args[0]->d_kind)
+        {
+          case Kind::NUMERAL:
+            return Literal(args[0]->d_int.pow(exp));
+          case Kind::DECIMAL:
+          case Kind::RATIONAL:
+            return Literal(args[0]->d_kind, args[0]->d_rat.pow(exp));
+          default: break;
+        }
+      }
+      break;
+    case Kind::EVAL_LOG:
+    {
+      if (args[0]->getKind() != Kind::NUMERAL)
+      {
+        break;
+      }
+      Rational value;
+      if (literalToRational(args[1], value))
+      {
+        // Note the floor of a value in (0, 1) is 0, so values below one
+        // evaluate to 0, ensuring the result is never negative.
+        return Literal(integerFloorLog(args[0]->d_int, value.floor()));
+      }
+    }
       break;
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:

@@ -149,6 +149,8 @@ class Expr
   bool isNull() const;
   /** get the kind of this expression */
   Kind getKind() const;
+  /** get the type of this expression */
+  Expr getType() const;
   /** Has variable */
   bool isEvaluatable() const;
   /** Has variable */

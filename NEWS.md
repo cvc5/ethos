@@ -1,17 +1,40 @@
 This file contains a summary of important user-visible changes.
 
-ethos 0.2.3 prerelease
-======================
+ethos 0.2.5 (unreleased)
+========================
+
+- Literal types must now be declared with `declare-consts` before type checking literals or builtin operators that return them. Missing rules produce a type error instead of silently assigning a dummy type. Boolean literals have the builtin type `Bool`, and `declare-consts <boolean>` is now rejected rather than accepted and ignored.
+- Minor fixes to reference file parsing related to indexed identifiers.
+- Reference files now support the SMT-LIB indexed bit-vector constants `(_ bv<numeral> <width>)`, which are read as the corresponding binary literal.
+- Minor fixes to avoid crashes on malformed inputs.
+- Fixes an issue where applications of an overloaded `define` with parameters were not beta-reduced.
+
+ethos 0.2.4
+===========
+
+- Adds the optional `--require-proof-of-false` check, which requires the last proof step to prove `false` at assumption level zero.
+- Adds builtin operators `eo::pow` (exponentiation), `eo::log` (integer logarithm), `eo::list_repeat` (repeat a list element a given number of times), and `eo::list_singleton_intro` (turn a term into a singleton list).
+- Reference files now add the assumptions of `check-sat-assuming` commands to the set of reference assertions.
+- Reference files now support `reset-assertions` and `reset`, which discard the reference assertions read so far, and parse and ignore any command whose name begins with `get-`, e.g. `get-model`.
+
+ethos 0.2.3
+===========
 
 - The command `declare-parameterized-const` now forbids return types that contain parameters with non-ground type.
 - Updates to the external plugin interface.
 - The identifier `Type` is no longer treated as a keyword in proofs and reference files.
 - The command `declare-sort` is now allowed in proof files.
+- Adds the option `--reference-define-fun` to parse `define-fun` in reference files as Eunoia definitions instead of reference assertions.
 - The builtin `eo::to_str` no longer prints rationals, decimals, or bitvectors. It now only evaluates on strings and numeral code points.
 - Adds support for an attribute `:is_eq` to test whether a defined term is equal to another.
 - Fixes a bug where the character code point `\u{30000}` was incorrectly
   treated as a valid code point.
-
+- Fixes issue in the parser which did not guard for overflow of 32 bit unsigned
+  values.
+- Fixes an issue where non-ground nil terminators would not be properly computed for list construction operators with types where the element type is different from the return type of the operator.
+- Fixes for evaluation of `:left-assoc-nil` and `:left-assoc-non-singleton-nil` operators.
+- Variables `(eo::var s T)` are now considered ordinary terms, which are hence allowed in patterns.
+- Fixes the implementation of `eo::list_minclude`, which had considered the arguments in opposite order.
 
 ethos 0.2.2
 ===========

@@ -10,29 +10,21 @@
 #include "executor.h"
 
 namespace ethos {
-  
-std::string Executor::showCompiledFiles()
+
+std::string Executor::showCompiledFiles() { return ""; }
+
+bool Executor::includeFile(const Filepath& path,
+                           bool isSignature,
+                           bool isReference,
+                           const Expr& referenceNf)
 {
-  return "";
+  (void)path;
+  (void)isSignature;
+  (void)isReference;
+  (void)referenceNf;
+  return false;
 }
 
-void Executor::initialize()
-{
-}
+void Executor::initialize() {}
 
-Expr Executor::getType(ExprValue* hdType,
-                       const std::vector<ExprValue*>& args,
-                       std::ostream* out)
-{
-  return d_null;
-}
-
-Expr Executor::evaluate(ExprValue* e, Ctx& ctx) { return d_null; }
-
-ExprValue* Executor::evaluateProgramInternal(const std::vector<ExprValue*>& args,
-                                            Ctx& ctx)
-{
-  return nullptr;
-}
-
-}
+}  // namespace ethos

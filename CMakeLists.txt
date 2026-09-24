@@ -59,3 +59,24 @@ include_directories(src)
 add_subdirectory(src)
 add_subdirectory(tests)
 
+# Compile-only check for the experimental extensions in plugins/. Those are
+# not part of ethos and produce nothing here; this target exists so that they
+# can be checked for bitrot against src/ from an ordinary build tree. It is
+# EXCLUDE_FROM_ALL, so an ordinary build never sees it. Build it explicitly
+# with:
+#
+#   make plugins-compile-check
+#
+# CI gets the same coverage, plus linking, from the ethos-eoc build of the
+# standalone project in plugins/; see plugins/CMakeLists.txt.
+#
+# cpp_compiler has its own build and roundtrip tests; see
+# plugins/cpp_compiler/README.md.
+file(GLOB_RECURSE plugins_SRC CONFIGURE_DEPENDS "plugins/*.cpp")
+list(FILTER plugins_SRC EXCLUDE REGEX "/plugins/cpp_compiler/")
+if(plugins_SRC)
+  add_library(plugins-compile-check OBJECT EXCLUDE_FROM_ALL ${plugins_SRC})
+else()
+  add_custom_target(plugins-compile-check
+    COMMAND ${CMAKE_COMMAND} -E echo "No plugin sources to check.")
+endif()

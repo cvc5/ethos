@@ -1,3 +1,6 @@
+(declare-const String Type)
+(declare-consts <string> String)
+
 (declare-const Int Type)
 (declare-const > (-> Int Int Bool))
 (declare-const < (-> Int Int Bool))

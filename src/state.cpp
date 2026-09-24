@@ -25,9 +25,11 @@ Options::Options()
   d_statsAll = false;
   d_statsCompact = false;
   d_ruleSymTable = true;
+  d_requireProofOfFalse = false;
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
+  d_referenceDefineFun = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -60,6 +62,10 @@ bool Options::setOption(const std::string& key, bool val)
   {
     d_ruleSymTable = val;
   }
+  else if (key == "require-proof-of-false")
+  {
+    d_requireProofOfFalse = val;
+  }
   else if (key == "normalize-dec")
   {
     d_normalizeDecimal = val;
@@ -71,6 +77,10 @@ bool Options::setOption(const std::string& key, bool val)
   else if (key == "normalize-hex")
   {
     d_normalizeHexadecimal = val;
+  }
+  else if (key == "reference-define-fun")
+  {
+    d_referenceDefineFun = val;
   }
   else
   {
@@ -85,6 +95,7 @@ State::State(Options& opts, Stats& stats)
     : d_hashCounter(0),
       d_hasReference(false),
       d_inGarbageCollection(false),
+      d_lastStepProvesFalseAtLevelZero(false),
       d_opts(opts),
       d_stats(stats),
       d_tc(*this, opts),
@@ -106,8 +117,9 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("hash", Kind::EVAL_HASH);
   bindBuiltinEval("nameof", Kind::EVAL_NAME_OF);
   bindBuiltinEval("typeof", Kind::EVAL_TYPE_OF);
-  bindBuiltinEval("var", Kind::EVAL_VAR);
+  bindBuiltinEval("var", Kind::VARIABLE);
   bindBuiltinEval("cmp", Kind::EVAL_COMPARE);
+  bindBuiltinEval("log", Kind::EVAL_LOG);
   bindBuiltinEval("is_z", Kind::EVAL_IS_Z);
   bindBuiltinEval("is_q", Kind::EVAL_IS_Q);
   bindBuiltinEval("is_bin", Kind::EVAL_IS_BIN);
@@ -130,6 +142,8 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_diff", Kind::EVAL_LIST_DIFF);
   bindBuiltinEval("list_inter", Kind::EVAL_LIST_INTER);
   bindBuiltinEval("list_singleton_elim", Kind::EVAL_LIST_SINGLETON_ELIM);
+  bindBuiltinEval("list_singleton_intro", Kind::EVAL_LIST_SINGLETON_INTRO);
+  bindBuiltinEval("list_repeat", Kind::EVAL_LIST_REPEAT);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -139,6 +153,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("add", Kind::EVAL_ADD);
   bindBuiltinEval("neg", Kind::EVAL_NEG);
   bindBuiltinEval("mul", Kind::EVAL_MUL);
+  bindBuiltinEval("pow", Kind::EVAL_POW);
   bindBuiltinEval("zdiv", Kind::EVAL_INT_DIV);
   bindBuiltinEval("zmod", Kind::EVAL_INT_MOD);
   bindBuiltinEval("qdiv", Kind::EVAL_RAT_DIV);
@@ -203,6 +218,7 @@ void State::reset()
   d_assumptionsSizeCtx.clear();
   d_decls.clear();
   d_declsSizeCtx.clear();
+  d_lastStepProvesFalseAtLevelZero = false;
   if (d_plugin!=nullptr)
   {
     d_plugin->reset();
@@ -340,10 +356,16 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   d_referenceNf = referenceNf;
   Filepath currentPath = d_inputFile;
   d_inputFile = inputPath;
-  if (d_plugin!=nullptr)
+  if (d_plugin != nullptr)
   {
-    Assert (!isReference);
-    d_plugin->includeFile(inputPath, isSignature, isReference, referenceNf);
+    if (d_plugin->includeFile(
+            inputPath, isSignature, isReference, referenceNf))
+    {
+      d_inputFile = currentPath;
+      Trace("state") << "Include " << inputPath
+                     << " handled by plugin" << std::endl;
+      return true;
+    }
   }
   Trace("state") << "Include " << inputPath << std::endl;
   Assert (getAssumptionLevel()==0);
@@ -360,14 +382,15 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   if (getAssumptionLevel()!=0)
   {
     Assert(!d_declsSizeCtx.empty() && d_declsSizeCtx.back() < d_decls.size());
-    EO_FATAL() << "Including file " << inputPath.getRawPath()
-               << " did not preserve assumption scope. The most recent open "
-                  "assumption was "
-               << d_decls[d_declsSizeCtx.back()] << ".";
+    // report via the parser, so that this is an ordinary error message
+    std::stringstream ss;
+    ss << "This file did not preserve assumption scope. The most recent open "
+          "assumption was "
+       << d_decls[d_declsSizeCtx.back()] << ".";
+    p.getLexer().parseError(ss.str());
   }
   if (d_plugin != nullptr)
   {
-    Assert(!isReference);
     d_plugin->finalizeIncludeFile(
         inputPath, isSignature, isReference, referenceNf);
   }
@@ -510,13 +533,29 @@ void State::addReferenceAssert(const Expr& a)
   d_referenceAssertList.push_back(aa);
 }
 
-void State::setLiteralTypeRule(Kind k, const Expr& t)
+void State::clearReferenceAsserts()
 {
-  d_tc.setLiteralTypeRule(k, t);
+  // Reset assertion levels together with their declaration scopes.
+  while (!d_referenceAssertSizeCtx.empty())
+  {
+    popReferenceScope();
+    popScope();
+  }
+  d_referenceAssertCount.clear();
+  d_referenceAssertList.clear();
+}
+
+bool State::setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out)
+{
+  if (!d_tc.setLiteralTypeRule(k, t, out))
+  {
+    return false;
+  }
   if (d_plugin!=nullptr)
   {
     d_plugin->setLiteralTypeRule(k, t);
   }
+  return true;
 }
 
 Expr State::mkType()
@@ -610,13 +649,8 @@ Expr State::mkProof(const Expr& proven)
 
 Expr State::mkQuoteType(const Expr& t)
 {
+  Assert(t.getKind() == Kind::PARAM);
   return Expr(mkExprInternal(Kind::QUOTE_TYPE, {t.getValue()}));
-}
-
-Expr State::mkBuiltinType(Kind k)
-{
-  // for now, just use any type
-  return d_any;
 }
 
 Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
@@ -726,30 +760,19 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     if (hk==Kind::LAMBDA)
     {
       // beta-reduce eagerly, if the correct arity
-      const std::vector<ExprValue*>& vars = (*hd)[0]->getChildren();
-      size_t nvars = vars.size();
-      if (nvars==children.size()-1)
+      Expr ret = mkBetaReduceInternal(vchildren);
+      if (!ret.isNull())
       {
-        Ctx ctx;
-        for (size_t i=0; i<nvars; i++)
-        {
-          ctx[vars[i]] = vchildren[i + 1];
-        }
-        Expr ret = d_tc.evaluate((*hd)[1], ctx);
-        Trace("state") << "BETA_REDUCE " << Expr((*hd)[1]) << " " << ctx << " = " << ret << std::endl;
         return ret;
       }
-      else
-      {
-        Warning() << "Wrong number of arguments when applying " << Expr(hd) << std::endl;
-      }
+      Warning() << "Wrong number of arguments when applying " << Expr(hd) << std::endl;
     }
     else if (hk == Kind::PROGRAM_CONST)
     {
       // have to check whether we have marked the constructor kind, which is
       // not the case i.e. if we are constructing applications corresponding to
       // the cases in the program definition itself.
-      if (getConstructorKind(hd)!=Attr::NONE)
+      if (getAttributeKind(hd) != Attr::NONE)
       {
         Expr hdt = Expr(hd);
         const Expr& t = d_tc.getType(hdt);
@@ -816,7 +839,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   else if (k == Kind::AS_RETURN)
   {
     // (as nil (List Int)) --> (_ nil (List Int))
-    Attr ck = getConstructorKind(vchildren[0]);
+    Attr ck = getAttributeKind(vchildren[0]);
     if ((ck == Attr::AMB_DATATYPE_CONSTRUCTOR || ck == Attr::AMB)
         && children.size() == 2)
     {
@@ -864,6 +887,16 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         return reto;
       }
     }
+  }
+  return Expr(mkExprInternal(k, vchildren));
+}
+
+Expr State::mkRawExpr(Kind k, const std::vector<Expr>& children)
+{
+  std::vector<ExprValue*> vchildren;
+  for (const Expr& c : children)
+  {
+    vchildren.push_back(c.getValue());
   }
   return Expr(mkExprInternal(k, vchildren));
 }
@@ -1057,7 +1090,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
         size_t nlistTerms = 0;
         if (isNil)
         {
-          if (getConstructorKind(curr) != Attr::LIST)
+          if (getAttributeKind(curr) != Attr::LIST)
           {
             // if the last term is not marked as a list variable and
             // we have a null terminator, then we insert the null terminator
@@ -1089,7 +1122,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
           cc[prevIndex] = curr;
           cc[nextIndex] = vchildren[isLeft ? i : nchild - i];
           // if the "head" child is marked as list, we construct concatenation
-          if (isNil && getConstructorKind(cc[nextIndex]) == Attr::LIST)
+          if (isNil && getAttributeKind(cc[nextIndex]) == Attr::LIST)
           {
             curr = mkExprInternal(Kind::EVAL_LIST_CONCAT, cc);
           }
@@ -1179,8 +1212,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
       Expr argList;
       // If there is only one argument, and it was marked :list, then it is
       // not desugared.
-      if (vchildren.size() == 2
-          && getConstructorKind(vchildren[1]) == Attr::LIST)
+      if (vchildren.size() == 2 && getAttributeKind(vchildren[1]) == Attr::LIST)
       {
         argList = Expr(vchildren[1]);
       }
@@ -1217,13 +1249,12 @@ Expr State::mkApplyAttr(AppInfo* ai,
       }
       else
       {
-        // construct curried APPLY_OPAQUE application.
-        ExprValue* curr = vchildren[0];
-        for (size_t i = 1; i < nargs + 1; i++)
-        {
-          curr = mkExprInternal(Kind::APPLY_OPAQUE, {curr, vchildren[i]});
-        }
-        Expr op = Expr(curr);
+        // Note we do not curry APPLY_OPAQUE applications, as they are simpler
+        // to reason about in flattened form.
+        Assert (nargs < vchildren.size());
+        std::vector<ExprValue*> ochildren(vchildren.begin(),
+                                          vchildren.begin() + 1 + nargs);
+        Expr op = Expr(mkExprInternal(Kind::APPLY_OPAQUE, ochildren));
         Trace("opaque") << "Construct opaque operator " << op << std::endl;
         if (nargs + 1 == vchildren.size())
         {
@@ -1360,7 +1391,7 @@ Expr State::mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Exp
   return mkExpr(Kind::APPLY, vlist);
 }
 
-Attr State::getConstructorKind(const ExprValue* v) const
+Attr State::getAttributeKind(const ExprValue* v) const
 {
   const AppInfo* ai = getAppInfo(v);
   if (ai!=nullptr)
@@ -1370,6 +1401,15 @@ Attr State::getConstructorKind(const ExprValue* v) const
   return Attr::NONE;
 }
 
+Expr State::getAttributeTerm(const ExprValue* v) const
+{
+  const AppInfo* ai = getAppInfo(v);
+  if (ai != nullptr)
+  {
+    return ai->d_attrConsTerm;
+  }
+  return d_null;
+}
 
 Expr State::getVar(const std::string& name) const
 {
@@ -1383,22 +1423,12 @@ Expr State::getVar(const std::string& name) const
 
 Expr State::getBoundVar(const std::string& name, const Expr& type)
 {
-  if (!type.isGround())
-  {
-    // If the type is non-ground, we cannot evaluate it yet. Moreover this is
-    // not cached here, instead it is cached as part of mkExpr.
-    Expr ename = mkLiteral(Kind::STRING, name);
-    return mkExpr(Kind::EVAL_VAR, {ename, type});
-  }
-  std::pair<std::string, const ExprValue*> key(name, type.getValue());
-  std::map<std::pair<std::string, const ExprValue*>, Expr>::iterator it = d_boundVars.find(key);
-  if (it!=d_boundVars.end())
-  {
-    return it->second;
-  }
-  Expr ret = mkSymbol(Kind::VARIABLE, name, type);
-  d_boundVars[key] = ret;
-  return ret;
+  // Variables are not atomic terms. instead, they are terms with two
+  // children (string, type). Note this means that (eo::var s T) is an
+  // ordinary non-evaluable term, even if s or T is non-ground. This allows
+  // variables to be matched on.
+  Expr ename = mkLiteral(Kind::STRING, name);
+  return mkExpr(Kind::VARIABLE, {ename, type});
 }
 
 Expr State::getProofRule(const std::string& name) const
@@ -1433,19 +1463,33 @@ bool State::notifyStep(const std::string& name,
                        Expr& result,
                        std::ostream* err)
 {
+  bool handledByPlugin = false;
   if (d_plugin != nullptr)
   {
     // if the plugin handles it, then take its result
-    if (d_plugin->notifyStep(
-            name, rule, proven, premises, args, isPop, result, err))
+    handledByPlugin = d_plugin->notifyStep(
+        name, rule, proven, premises, args, isPop, result, err);
+    if (handledByPlugin)
     {
       // successful if the result is non-null and fully evaluated
-      return !result.isNull() && !result.isEvaluatable();
+      if (result.isNull() || result.isEvaluatable())
+      {
+        return false;
+      }
     }
   }
-  AppInfo* ainfo = getAppInfo(rule.getValue());
-  if (ainfo != nullptr)
+  if (!handledByPlugin)
   {
+    AppInfo* ainfo = getAppInfo(rule.getValue());
+    if (ainfo == nullptr)
+    {
+      if (err)
+      {
+        (*err) << "Provided :rule is not recognized as a proof rule"
+               << std::endl;
+      }
+      return false;
+    }
     std::vector<Expr> children;
     Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
     Expr tupleVal = ainfo->d_attrConsTerm;
@@ -1602,13 +1646,17 @@ bool State::notifyStep(const std::string& name,
       result = children[0];
     }
     Assert(!result.isNull() && !result.isEvaluatable());
-    return true;
   }
-  if (err)
-  {
-    (*err) << "Provided :rule is not recognized as a proof rule" << std::endl;
-  }
-  return false;
+  // A step-pop conclusion is bound after one assumption scope is removed,
+  // so it is at level zero when the current level is one.
+  d_lastStepProvesFalseAtLevelZero =
+      getAssumptionLevel() == (isPop ? 1 : 0) && result == d_false;
+  return true;
+}
+
+bool State::lastStepProvesFalseAtLevelZero() const
+{
+  return d_lastStepProvesFalseAtLevelZero;
 }
 
 Expr State::getProgram(const ExprValue* ev)
@@ -1799,6 +1847,27 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   return true;
 }
 
+Expr State::mkBetaReduceInternal(const std::vector<ExprValue*>& children)
+{
+  Assert(!children.empty() && children[0]->getKind() == Kind::LAMBDA);
+  ExprValue* hd = children[0];
+  const std::vector<ExprValue*>& vars = (*hd)[0]->getChildren();
+  size_t nvars = vars.size();
+  if (nvars != children.size() - 1)
+  {
+    return d_null;
+  }
+  Ctx ctx;
+  for (size_t i = 0; i < nvars; i++)
+  {
+    ctx[vars[i]] = children[i + 1];
+  }
+  Expr ret = d_tc.evaluate((*hd)[1], ctx);
+  Trace("state") << "BETA_REDUCE " << Expr((*hd)[1]) << " " << ctx << " = "
+                 << ret << std::endl;
+  return ret;
+}
+
 Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
                                 const std::vector<Expr>& children,
                                 const ExprValue* retType,
@@ -1840,6 +1909,15 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
     {
       Trace("overload") << "...return success" << std::endl;
+      // an overloaded define macro is beta-reduced eagerly, as in mkExpr
+      if (retApply && hd->getKind() == Kind::LAMBDA)
+      {
+        Expr ret = mkBetaReduceInternal(vchildren);
+        if (!ret.isNull())
+        {
+          return ret;
+        }
+      }
       // return the operator, do not check the remainder
       return retApply ? x : overloads[ii];
     }
