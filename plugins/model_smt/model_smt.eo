@@ -591,13 +591,18 @@
 (program $eo_to_smt ((T Type)) :signature (T) $smt_Term)
 (program $eo_to_smt_type_mono ((T Type)) :signature (Type) $smt_Type)
 
-; A substitution does not enter another datatype head: that head's declaration
-; binds its own parameters. Its application arguments are visited normally.
+; Plain declarations may contain free parameters. Only DatatypeParamType binds
+; a name, so substitution enters declarations and stops at a matching binder.
+(program $eo_to_smt_dd_subst () :signature ($native_String $eo_Term $eo_DatatypeDecl) $eo_DatatypeDecl)
 (program $eo_to_smt_dt_subst
-  ((s $native_String) (p $native_String) (U $eo_Term) (T $eo_Term) (V $eo_Term))
+  ((s $native_String) (p $native_String) (U $eo_Term) (T $eo_Term) (V $eo_Term) (dd $eo_DatatypeDecl))
   :signature ($native_String $eo_Term $eo_Term) $eo_Term
   (
   (($eo_to_smt_dt_subst s U ($eot_DtParam p)) ($native_ite ($native_streq s p) U ($eot_DtParam p)))
+  (($eo_to_smt_dt_subst s U ($eot_DatatypeParamType p T))
+    ($native_ite ($native_streq s p) ($eot_DatatypeParamType p T)
+      ($eot_DatatypeParamType p ($eo_to_smt_dt_subst s U T))))
+  (($eo_to_smt_dt_subst s U ($eot_DatatypeType p dd)) ($eot_DatatypeType p ($eo_to_smt_dd_subst s U dd)))
   (($eo_to_smt_dt_subst s U ($eot_apply T V)) ($eot_apply ($eo_to_smt_dt_subst s U T) ($eo_to_smt_dt_subst s U V)))
   (($eo_to_smt_dt_subst s U ($eot_DtcAppType T V)) ($eot_DtcAppType ($eo_to_smt_dt_subst s U T) ($eo_to_smt_dt_subst s U V)))
   (($eo_to_smt_dt_subst s U T) T)
@@ -620,24 +625,16 @@
   ((s $native_String) (p $native_String) (U $eo_Term) (d $eo_Datatype) (dd $eo_DatatypeDecl))
   :signature ($native_String $eo_Term $eo_DatatypeDecl) $eo_DatatypeDecl
   (
-  (($eo_to_smt_dd_subst s U ($edd_param p dd))
-    ($native_ite ($native_streq s p) ($edd_param p dd) ($edd_param p ($eo_to_smt_dd_subst s U dd))))
   (($eo_to_smt_dd_subst s U ($edd_cons p d dd)) ($edd_cons p ($eo_to_smt_dtd_subst s U d) ($eo_to_smt_dd_subst s U dd)))
   (($eo_to_smt_dd_subst s U $edd_nil) $edd_nil)
   ))
 
 ; Type is a sentinel for an ordinary application, not a datatype binder.
 (program $eo_to_smt_dt_instantiate
-  ((s $native_String) (p $native_String) (dd $eo_DatatypeDecl)
-   (U $eo_Term) (T $eo_Term) (i $native_Nat) (j $native_Nat))
+  ((p $native_String) (T $eo_Term) (U $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_to_smt_dt_instantiate ($eot_DatatypeType s ($edd_param p dd)) U)
-    ($eot_DatatypeType s ($eo_to_smt_dd_subst p U dd)))
-  (($eo_to_smt_dt_instantiate ($eot_DtCons s ($edd_param p dd) i) U)
-    ($eot_DtCons s ($eo_to_smt_dd_subst p U dd) i))
-  (($eo_to_smt_dt_instantiate ($eot_DtSel s ($edd_param p dd) i j) U)
-    ($eot_DtSel s ($eo_to_smt_dd_subst p U dd) i j))
+  (($eo_to_smt_dt_instantiate ($eot_DatatypeParamType p T) U) ($eo_to_smt_dt_subst p U T))
   (($eo_to_smt_dt_instantiate T U) $eot_Type)
   ))
 
@@ -665,7 +662,6 @@
   (
   (($eo_to_smt_dd_normalize fuel ($edd_cons s d dd))
     ($edd_cons s ($eo_to_smt_dtd_normalize fuel d) ($eo_to_smt_dd_normalize fuel dd)))
-  ; A template is normalized only after all its parameters have been supplied.
   (($eo_to_smt_dd_normalize fuel dd) dd)
   ))
 (program $eo_to_smt_dt_normalize
@@ -682,8 +678,6 @@
         ($native_ite ($native_Teq ($eo_to_smt_type_mono A) $tsm_none) $eot_stuck
           ($eo_to_smt_dt_normalize fuel I))))))
   (($eo_to_smt_dt_normalize fuel ($eot_DatatypeType s dd)) ($eot_DatatypeType s ($eo_to_smt_dd_normalize fuel dd)))
-  (($eo_to_smt_dt_normalize fuel ($eot_DtCons s dd i)) ($eot_DtCons s ($eo_to_smt_dd_normalize fuel dd) i))
-  (($eo_to_smt_dt_normalize fuel ($eot_DtSel s dd i j)) ($eot_DtSel s ($eo_to_smt_dd_normalize fuel dd) i j))
   (($eo_to_smt_dt_normalize fuel ($eot_DtcAppType T U))
     ($eot_DtcAppType ($eo_to_smt_dt_normalize fuel T) ($eo_to_smt_dt_normalize fuel U)))
   (($eo_to_smt_dt_normalize fuel ($eot_DtParam s)) $eot_stuck)
@@ -733,7 +727,6 @@
   :signature (Type) $smt_Type
   (
   (($eo_to_smt_type_mono Bool)                     $tsm_Bool)
-  (($eo_to_smt_type_mono ($eot_DatatypeType s ($edd_param p dd))) $tsm_none)
   (($eo_to_smt_type_mono ($eot_DatatypeType s dd))
     ($native_ite ($eo_to_smt_reserved_datatype_name s) $tsm_none
       ($tsm_Datatype s ($eo_to_smt_datatype_decl dd))))
@@ -754,37 +747,6 @@
   )
 )
 
-(program $eo_to_smt_dt_cons_type
-  ((n $native_Nat) (T $smt_Type) (s $native_String) (dd $smt_DatatypeDecl))
-  :signature ($native_Nat $smt_Type) $smt_Term
-  (
-  (($eo_to_smt_dt_cons_type n ($tsm_Datatype s dd)) ($sm_DtCons s dd n))
-  (($eo_to_smt_dt_cons_type n T) $sm_none)
-  ))
-(program $eo_to_smt_dt_sel_type
-  ((n $native_Nat) (m $native_Nat) (T $smt_Type) (s $native_String) (dd $smt_DatatypeDecl))
-  :signature ($native_Nat $native_Nat $smt_Type) $smt_Term
-  (
-  (($eo_to_smt_dt_sel_type n m ($tsm_Datatype s dd)) ($sm_DtSel s dd n m))
-  (($eo_to_smt_dt_sel_type n m T) $sm_none)
-  ))
-(program $eo_to_smt_dt_operator
-  ((T $eo_Term) (s $native_String) (dd $eo_DatatypeDecl) (n $native_Nat) (m $native_Nat))
-  :signature ($eo_Term) $smt_Term
-  (
-  (($eo_to_smt_dt_operator ($eot_DtCons s dd n))
-    ($eo_to_smt_dt_cons_type n ($eo_to_smt_type_mono ($eot_DatatypeType s dd))))
-  (($eo_to_smt_dt_operator ($eot_DtSel s dd n m))
-    ($eo_to_smt_dt_sel_type n m ($eo_to_smt_type_mono ($eot_DatatypeType s dd))))
-  (($eo_to_smt_dt_operator T) $sm_none)
-  ))
-(program $eo_to_smt_apply ((t $smt_Term) (f $smt_Term) (a $smt_Term))
-  :signature ($smt_Term $smt_Term $smt_Term) $smt_Term
-  (
-  (($eo_to_smt_apply $sm_none f a) ($sm_apply f a))
-  (($eo_to_smt_apply t f a) t)
-  ))
-
 (program $eo_to_smt
   ((b $native_Bool) (n $native_Int) (m $native_Int) (r $native_Rat)
    (s $native_String) (w $native_Int) (dd $eo_DatatypeDecl)
@@ -801,15 +763,14 @@
   (($eo_to_smt ($eot_Var ($eot_string s) T))
                                      ($sm_Var s ($eo_to_smt_type T)))
   (($eo_to_smt ($eot_DtCons s dd i))
-    ($eo_to_smt_dt_operator ($eo_to_smt_dt_normalize ($native_dt_budget ($eot_DtCons s dd i)) ($eot_DtCons s dd i))))
+    ($native_ite ($eo_to_smt_reserved_datatype_name s) $sm_none
+      ($sm_DtCons s ($eo_to_smt_datatype_decl dd) i)))
   (($eo_to_smt ($eot_DtSel s dd i j))
-    ($eo_to_smt_dt_operator ($eo_to_smt_dt_normalize ($native_dt_budget ($eot_DtSel s dd i j)) ($eot_DtSel s dd i j))))
+    ($native_ite ($eo_to_smt_reserved_datatype_name s) $sm_none
+      ($sm_DtSel s ($eo_to_smt_datatype_decl dd) i j)))
   (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($native_uconst_id i) ($eo_to_smt_type T)))
 ;$EO_TO_SMT_CASES$
-  (($eo_to_smt (f y))
-    ($eo_to_smt_apply
-      ($eo_to_smt_dt_operator ($eo_to_smt_dt_normalize ($native_dt_budget (f y)) (f y)))
-      ($eo_to_smt f) ($eo_to_smt y)))
+  (($eo_to_smt (f y)) ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
   (($eo_to_smt y)                   $sm_none)
   )
 )

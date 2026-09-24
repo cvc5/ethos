@@ -30,7 +30,6 @@ $SM_EO_TERM_DECL$
   (
   (edd.nil)
   (edd.cons (edd.cons.arg1 String) (edd.cons.arg2 Datatype) (edd.cons.arg3 DatatypeDecl))
-  (edd.param (edd.param.arg1 String) (edd.param.arg2 DatatypeDecl))
   )
   (
   (edt.null)
@@ -102,11 +101,10 @@ $NATIVE_EMBED_DEFS$
    (ite ((_ is eo.DtcAppType) t)
      (+ 1 (dt_budget_term (eo.DtcAppType.arg1 t)) (dt_budget_term (eo.DtcAppType.arg2 t)))
    (ite ((_ is eo.DatatypeType) t) (+ 1 (dt_budget_decl (eo.DatatypeType.arg2 t)))
-   (ite ((_ is eo.DtCons) t) (+ 1 (dt_budget_decl (eo.DtCons.arg2 t)))
-   (ite ((_ is eo.DtSel) t) (+ 1 (dt_budget_decl (eo.DtSel.arg2 t))) 1)))))
+   (ite ((_ is eo.DatatypeParamType) t) (+ 1 (dt_budget_term (eo.DatatypeParamType.arg2 t))) 1))))
    (ite ((_ is edd.cons) dd)
      (+ 1 (dt_budget_dt (edd.cons.arg2 dd)) (dt_budget_decl (edd.cons.arg3 dd)))
-   (ite ((_ is edd.param) dd) (+ 1 (dt_budget_decl (edd.param.arg2 dd))) 1))
+   1)
    (ite ((_ is edt.sum) d)
      (+ 1 (dt_budget_cons (edt.sum.arg1 d)) (dt_budget_dt (edt.sum.arg2 d))) 1)
    (ite ((_ is edtc.cons) c)

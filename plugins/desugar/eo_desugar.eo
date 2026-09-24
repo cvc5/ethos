@@ -558,21 +558,15 @@ $EO_IS_LIST_NIL_CASES$
 
 ; non-ground type defintions
 
-; Each declaration binder contributes one explicit type argument.
-(program $eo_typeof_dt_params ((s $native_String) (dd $eo_DatatypeDecl) (T $eo_Term))
-  :signature ($eo_DatatypeDecl $eo_Term) $eo_Term
+; The kind of a datatype type does not inspect its template's free parameters.
+(program $eo_typeof_datatype_kind ((s $native_String) (T $eo_Term) (dd $eo_DatatypeDecl))
+  :signature ($eo_Term) $eo_Term
   (
-  (($eo_typeof_dt_params ($edd_param s dd) T) (-> Type ($eo_typeof_dt_params dd T)))
-  (($eo_typeof_dt_params dd T) T)
-  ))
-
-(program $eo_typeof_apply_param
-  ((s $native_String) (p $eo_Term) (T $eo_Term) (U $eo_Term) (a $eo_Term))
-  :signature ($eo_Term $eo_Term $eo_Term $eo_Term) $eo_Term
-  (
-  (($eo_typeof_apply_param ($eot_DtParam s) (-> Type T) a Type)
-    ($eo_subst_param s a T))
-  (($eo_typeof_apply_param p T a U) ($eo_typeof_apply T U))
+  (($eo_typeof_datatype_kind ($eot_DatatypeParamType s T))
+    (eo::define ((K ($eo_typeof_datatype_kind T)))
+      ($native_ite ($native_is_ok K) (-> Type K) $eot_stuck)))
+  (($eo_typeof_datatype_kind ($eot_DatatypeType s dd)) Type)
+  (($eo_typeof_datatype_kind T) $eot_stuck)
   ))
 
 ; program: $eo_typeof_fun_type
@@ -611,16 +605,16 @@ $EO_TYPEOF_NGROUND_DEFS$
   ; to sync with eo_to_smt, we require the name is indeed a concrete string
   (($eo_typeof ($eot_Var ($eot_string s) T))  T)
   (($eo_typeof ($eot_DtParam s))             $eot_stuck)
+  (($eo_typeof ($eot_DatatypeParamType s T))
+    ($eo_typeof_datatype_kind ($eot_DatatypeParamType s T)))
   (($eo_typeof ($eot_DatatypeType s dd))
-    ($native_ite ($eo_dd_params_bound dd dd) ($eo_typeof_dt_params dd Type) $eot_stuck))
+    ($native_ite ($eo_dd_is_mono dd) Type $eot_stuck))
   (($eo_typeof ($eot_DtCons s dd i))
-    ($native_ite ($eo_dd_params_bound dd dd)
-      ($eo_typeof_dt_params dd ($eo_typeof_dt_cons_rec
-        ($eo_dt_generic_apply ($eot_DatatypeType s dd) dd) ($eo_dd_resolve s dd) i)) $eot_stuck))
+    ($native_ite ($eo_dd_is_mono dd)
+      ($eo_typeof_dt_cons_rec ($eot_DatatypeType s dd) ($eo_dd_resolve s dd) i) $eot_stuck))
   (($eo_typeof ($eot_DtSel s dd i j))
-    ($native_ite ($eo_dd_params_bound dd dd)
-      ($eo_typeof_dt_params dd (-> ($eo_dt_generic_apply ($eot_DatatypeType s dd) dd)
-        ($eo_typeof_dt_sel_return ($eo_dd_resolve s dd) i j))) $eot_stuck))
+    ($native_ite ($eo_dd_is_mono dd)
+      (-> ($eot_DatatypeType s dd) ($eo_typeof_dt_sel_return ($eo_dd_resolve s dd) i j)) $eot_stuck))
   (($eo_typeof ($eot_USort i))                Type)
   (($eo_typeof ($eot_UConst i T))             T)
   ; otherwise, invoke the routine for user types from the signature.
@@ -634,8 +628,7 @@ $EO_TYPEOF_NGROUND_DEFS$
   (($eo_typeof ($eo_List_cons $eo_x1))        (-> $eo_List $eo_List))
 $EO_TYPEOF_CASES$
   (($eo_typeof ($eo_f $eo_x))
-    ($eo_typeof_apply_param ($eo_dt_param_at $eo_f $native_n_zero)
-      ($eo_typeof $eo_f) $eo_x ($eo_typeof $eo_x)))
+    ($eo_typeof_apply ($eo_typeof $eo_f) ($eo_typeof $eo_x)))
   )
 )
 

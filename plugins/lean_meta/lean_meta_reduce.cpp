@@ -1693,8 +1693,8 @@ void LeanMetaReduce::finalizeParser()
     datatypeIndexed =
         "  | .UOp1 op index =>\n"
         "      if let a :: _ := args then\n"
-        "        if let some inst := parserInstantiate index (__eo_typeof a) then\n"
-        "          return apply (.UOp1 op inst)\n";
+        "        if let some inst := parserInstantiate term.generics index (__eo_typeof a) then\n"
+        "          return finish (.UOp1 op inst) index\n";
   }
 
   const std::string outPath = emitResourceFile(

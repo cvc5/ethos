@@ -31,7 +31,6 @@ Eunoia datatype declarations.
 inductive DatatypeDecl : Type where
   | nil : DatatypeDecl
   | cons : native_String -> Datatype -> DatatypeDecl -> DatatypeDecl
-  | param : native_String -> DatatypeDecl -> DatatypeDecl
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /-

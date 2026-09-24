@@ -23,9 +23,12 @@ private def param := native_string_lit "@p0"
 private def body : DatatypeDecl :=
   .cons name (.sum .unit (.sum (.cons (.DtParam param)
     (.cons (.DatatypeTypeRef name) .unit)) .null)) .nil
-private def template := DatatypeDecl.param param body
-private def list (t : Term) := Term.Apply (.DatatypeType name template) t
-private def nil (t : Term) := Term.Apply (.DtCons name template 0) t
+private def template := Term.DatatypeParamType param (.DatatypeType name body)
+private def list (t : Term) := Term.Apply template t
+private def decl (t : Term) : DatatypeDecl :=
+  .cons name (.sum .unit (.sum (.cons t (.cons (.DatatypeTypeRef name) .unit)) .null)) .nil
+private def monoList (t : Term) := Term.DatatypeType name (decl t)
+private def nil (t : Term) := Term.DtCons name (decl t) 0
 
 -- Sort instances retain ordinary applications, including phantom arguments.
 #guard term (use lists "(L Int)") == some (list int)
@@ -33,25 +36,25 @@ private def nil (t : Term) := Term.Apply (.DtCons name template 0) t
 #guard ty (use lists "(L Int)") == some .Type
 #guard ty (use lists "(L Bool)") == some .Type
 #guard ty (use lists "L") == some (.Apply (.Apply .FunType .Type) .Type)
-#guard ty (use lists "nil") == some (.Apply (.Apply .FunType .Type) (list (.DtParam param)))
+#guard ty (use lists "nil") == some .Stuck
 #guard ty (use lists "(L true)") == some .Stuck
 #guard ty (use lists "(L Int Bool)") == some .Stuck
 #guard term (use lists "(as nil (L Int))") == some (nil int)
-#guard ty (use lists "(cons 1 (as nil (L Int)))") == some (list int)
-#guard ty (use lists "(cons true (as nil (L Bool)))") == some (list .Bool)
+#guard ty (use lists "(cons 1 (as nil (L Int)))") == some (monoList int)
+#guard ty (use lists "(cons true (as nil (L Bool)))") == some (monoList .Bool)
 #guard ty (use lists "(cons true (as nil (L Int)))") == some .Stuck
-#guard ty (use lists "((as cons (L Int)) 1 (as nil (L Int)))") == some (list int)
+#guard ty (use lists "((as cons (L Int)) 1 (as nil (L Int)))") == some (monoList int)
 #guard ty (use lists "(head (cons 1 (as nil (L Int))))") == some int
-#guard ty (use lists "(tail (cons 1 (as nil (L Int))))") == some (list int)
+#guard ty (use lists "(tail (cons 1 (as nil (L Int))))") == some (monoList int)
 #guard ty (use lists "((_ is cons) (cons 1 (as nil (L Int))))") == some .Bool
-#guard ty (use lists "((_ update head) (cons 1 (as nil (L Int))) 2)") == some (list int)
+#guard ty (use lists "((_ update head) (cons 1 (as nil (L Int))) 2)") == some (monoList int)
 
 #guard ty (use (lists ++ " (declare-sort U 0) (declare-const u U)")
-  "(cons u (as nil (L U)))") == some (list (.USort 1))
+  "(cons u (as nil (L U)))") == some (monoList (.USort 1))
 #guard ty (use lists "(= (as nil (L Int)) (as nil (L Bool)))") == some .Stuck
 
 private def box := "(declare-datatype Box (par (X) ((box))))"
-#guard hasType (use box "box") -- a generic constructor still expects its type argument
+#guard ty (use box "box") == some .Stuck -- unresolved generic operators stay in the parser
 #guard hasType (use box "(as box (Box Int))")
 #guard term (use box "(Box Int)") != term (use box "(Box Bool)")
 
@@ -65,17 +68,20 @@ private def repeated := "(declare-datatype R (par (X) ((r (a X) (b X)))))"
 private def array := "(declare-datatype A (par (X Y) ((a (field (Array X Y))))))"
 #guard ty (use (array ++ " (declare-const v (Array Int Bool))") "(field (a v))") ==
   some (.Apply (.Apply (.UOp .Array) int) .Bool)
--- A sequence field exercises substitution through Apply independently of parsing.
-#guard __eo_subst_param param int (.Apply (.UOp .Seq) (.DtParam param)) ==
-  .Apply (.UOp .Seq) int
-
--- An earlier datatype's arguments belong to this template; its fields do not.
+-- A nested phantom parameter cannot be recovered from a monomorphic field.
 private def nestedInstance := box ++
   " (declare-datatype Outer (par (X) ((outer (field (Box X))))))"
-#guard hasType (use nestedInstance "(outer (as box (Box Int)))")
-#guard __eo_subst_param param int (list (.DtParam param)) == list int
-#guard __eo_subst_param param int (.DatatypeType name template) == .DatatypeType name template
-
+#guard ty (use nestedInstance "(outer (as box (Box Int)))") == some .Stuck
+#guard hasType (use nestedInstance "((as outer (Outer Int)) (as box (Box Int)))")
+-- Nested non-phantom arguments can be inferred, including reordered parameters.
+private def swapped := pair ++
+  " (declare-datatype O (par (X Y) ((o (one X) (nested (P Y X))))))"
+#guard ty (use swapped "(second (nested (o 1 (pair true 1))))") == some int
+#guard ty (use swapped "(first (nested (o 1 (pair true 1))))") == some .Bool
+#guard ty (use swapped "(o 1 (pair true false))") == some .Stuck
+private def groundNested := lists ++
+  " (declare-datatype Holder ((holder (contents (L Int)))))"
+#guard hasType (use groundNested "(holder (as nil (L Int)))")
 -- Uniform mutual references retain the instance of their whole block.
 private def mutuals :=
   "(declare-datatypes ((Tree 1) (Forest 1))
@@ -97,10 +103,13 @@ private def mutuals :=
 #guard __eo_typeof (list (.Boolean true)) == .Stuck
 #guard __eo_typeof (list (.DtParam param)) == .Stuck
 #guard __eo_typeof (.DatatypeType name body) == .Stuck
-#guard __eo_typeof (.DatatypeType name (.param param template)) == .Stuck
+#guard __eo_typeof (.DatatypeParamType param (.Boolean true)) == .Stuck
+#guard __eo_typeof (.DtCons name body 0) == .Stuck
+#guard __eo_typeof (.DtSel name body 1 0) == .Stuck
+#guard __eo_typeof (.Apply (nil int) .Bool) == .Stuck
 
 -- The instance's constructor list is what dt_split and dt-inst see.
-private def x : Term := .UConst 1 (list int)
+private def x : Term := .UConst 1 (monoList int)
 #guard __eo_typeof (__eo_prog_dt_split x) == .Bool
 private def inst := use (lists ++ " (declare-const x (L Int))")
   "(= (is cons x) (= x (cons (head x) (tail x))))"
@@ -132,49 +141,51 @@ attribute [local simp] __eo_to_smt_type __eo_to_smt_type_mono
   __eo_to_smt_dt_instantiate __eo_to_smt_dd_subst __eo_to_smt_dtd_subst
   __eo_to_smt_dtc_subst __eo_to_smt_dt_subst __eo_to_smt_datatype_decl
   __eo_to_smt_datatype __eo_to_smt_datatype_cons __eo_to_smt_reserved_datatype_name
-  __eo_to_smt_dt_operator __eo_to_smt_dt_cons_type __eo_to_smt_dt_sel_type
-  __eo_to_smt_apply __smtx_typeof_guard native_dt_budget
+  __smtx_typeof_guard native_dt_budget
   native_ite native_teq native_Teq native_streq native_string_lit native_string_prefix_eq
-  list nil int name param body template smtList smtListDecl
+  list nil decl monoList int name param body template smtList smtListDecl
 
 example : __eo_to_smt_type (list int) = smtList .Int := by simp
 example : __eo_to_smt_type (list (list int)) = smtList (smtList .Int) := by simp
 example : __eo_to_smt_type (list (list (list int))) = smtList (smtList (smtList .Int)) := by simp
 example : __eo_to_smt_type (.DtParam param) = .None := by simp
-example : __eo_to_smt_type (.DatatypeType name template) = .None := by simp
+example : __eo_to_smt_type template = .None := by simp
 
 -- The same canonical name in two templates belongs to its own scope.
-private def outerDecl := DatatypeDecl.param param
-  (.cons (native_string_lit "Outer") (.sum (.cons (list (.DtParam param)) .unit) .null) .nil)
-example : __eo_to_smt_type (.Apply (.DatatypeType (native_string_lit "Outer") outerDecl) int) =
+private def outerType := Term.DatatypeParamType param
+  (.DatatypeType (native_string_lit "Outer")
+    (.cons (native_string_lit "Outer") (.sum (.cons (list (.DtParam param)) .unit) .null) .nil))
+example : __eo_to_smt_type (.Apply outerType int) =
     .Datatype (native_string_lit "Outer")
-      (.cons (native_string_lit "Outer") (.sum (.cons (smtList .Int) .unit) .null) .nil) := by simp [outerDecl]
+      (.cons (native_string_lit "Outer") (.sum (.cons (smtList .Int) .unit) .null) .nil) := by simp [outerType]
 
-private def phantomDecl := DatatypeDecl.param param
-  (.cons (native_string_lit "Box") (.sum .unit .null) .nil)
-example : __eo_to_smt_type (.Apply (.DatatypeType (native_string_lit "Box") phantomDecl) int) =
-    __eo_to_smt_type (.Apply (.DatatypeType (native_string_lit "Box") phantomDecl) .Bool) := by simp [phantomDecl]
-example : __eo_to_smt_type (.Apply (.DatatypeType (native_string_lit "Box") phantomDecl) (.Boolean true)) =
-    .None := by simp [phantomDecl]
+private def phantomType := Term.DatatypeParamType param
+  (.DatatypeType (native_string_lit "Box")
+    (.cons (native_string_lit "Box") (.sum .unit .null) .nil))
+example : __eo_to_smt_type (.Apply phantomType int) =
+    __eo_to_smt_type (.Apply phantomType .Bool) := by simp [phantomType]
+example : __eo_to_smt_type (.Apply phantomType (.Boolean true)) =
+    .None := by simp [phantomType]
 
 private def pairName := native_string_lit "Pair"
 private def param2 := native_string_lit "@p1"
-private def pairDecl := DatatypeDecl.param param (.param param2
-  (.cons pairName (.sum (.cons (.DtParam param)
-    (.cons (.Apply (.Apply (.UOp .Array) (.DtParam param2)) (.DtParam param)) .unit)) .null) .nil))
-attribute [local simp] pairName param2 pairDecl
-example : __eo_to_smt_type (.Apply (.DatatypeType pairName pairDecl) int) = .None := by simp
-example : __eo_to_smt_type (.Apply (.Apply (.DatatypeType pairName pairDecl) int) .Bool) =
+private def pairType := Term.DatatypeParamType param (.DatatypeParamType param2
+  (.DatatypeType pairName
+    (.cons pairName (.sum (.cons (.DtParam param)
+      (.cons (.Apply (.Apply (.UOp .Array) (.DtParam param2)) (.DtParam param)) .unit)) .null) .nil)))
+attribute [local simp] pairName param2 pairType
+example : __eo_to_smt_type (.Apply pairType int) = .None := by simp
+example : __eo_to_smt_type (.Apply (.Apply pairType int) .Bool) =
     .Datatype pairName (.cons pairName
       (.sum (.cons .Int (.cons (.Map .Bool .Int) .unit)) .null) .nil) := by simp
 
 example : __eo_to_smt (nil int) = .DtCons name (smtListDecl .Int) 0 := by
   simp [__eo_to_smt.eq_def]
-example : __eo_to_smt (.Apply (.DtSel name template 1 0) int) =
+example : __eo_to_smt (.DtSel name (decl int) 1 0) =
     .DtSel name (smtListDecl .Int) 1 0 := by simp [__eo_to_smt.eq_def]
-example : __eo_to_smt (.Apply (.Apply (.Apply (.DtCons name template 1) int) (.Numeral 1)) (nil int)) =
+example : __eo_to_smt (.Apply (.Apply (.DtCons name (decl int) 1) (.Numeral 1)) (nil int)) =
     .Apply (.Apply (.DtCons name (smtListDecl .Int) 1) (.Numeral 1))
       (.DtCons name (smtListDecl .Int) 0) := by
-  simp [__eo_to_smt.eq_def, show sizeOf (1 : native_Int) = 2 from rfl]
+  simp [__eo_to_smt.eq_def]
 
 end ParametricDatatypesTest
