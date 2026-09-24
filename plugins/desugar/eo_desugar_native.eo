@@ -20,13 +20,15 @@
 ; A Eunoia term.
 ; This will be replaced by the datatype eo.Term in the final encoding.
 (declare-const $eo_Term Type)
+; An upper bound on the number of datatype instantiations along a type path.
+(define $native_dt_budget ((t $eo_Term)) ($native_apply_1 "dt_budget" t))
 ; Assumes that teq is defined to be equality over eo.Term
 (define $native_teq ((x1 $eo_Term) (x2 $eo_Term)) ($native_apply_2 "teq" x1 x2))
 ; Assumes that thash is defined to be an arbitary function (-> eo.Term Int)
 (define $native_thash ((x1 $eo_Term)) ($native_apply_1 "thash" x1))
 (define $native_tcmp ((x1 $eo_Term) (x2 $eo_Term)) ($native_apply_2 "tcmp" x1 x2))
 
-; A datatype constructor
+; A datatype constructor's sequence of field types.
 (define $eo_DatatypeCons () ($native_embed_eo "DatatypeCons"))
 
 ; A datatype
@@ -34,9 +36,6 @@
 
 ; A datatype declaration
 (define $eo_DatatypeDecl () ($native_embed_eo "DatatypeDecl"))
-
-; The type arguments of a datatype instance.
-(define $eo_DatatypeArgs () ($native_embed_eo "DatatypeArgs"))
 
 ;;; Eunoia datatype constructors
 
@@ -131,8 +130,8 @@ $EO_UOP_DECLS$
 
 ; A template parameter, never a ground type on its own.
 (declare-parameterized-const $emb_DtParam
-  ((k $native_Nat :opaque)) $eo_Term)
-(define $eot_DtParam ((k $native_Nat)) ($emb_DtParam k))
+  ((s $native_String :opaque)) $eo_Term)
+(define $eot_DtParam ((s $native_String)) ($emb_DtParam s))
 
 ; The type of partially applied datatype constructors
 (declare-parameterized-const $emb_DtcAppType
@@ -207,16 +206,11 @@ $EO_UOP_DECLS$
 (define $edd_cons ((s $native_String) (d $eo_Datatype) (dd $eo_DatatypeDecl))
   ($emb_edd.cons s d dd))
 
-; A wrapper applies to an entire declaration block, including mutual references.
-(declare-parameterized-const $emb_edd.params
-  ((a $eo_DatatypeArgs :opaque) (dd $eo_DatatypeDecl :opaque)) $eo_DatatypeDecl)
-(define $edd_params ((a $eo_DatatypeArgs) (dd $eo_DatatypeDecl))
-  ($emb_edd.params a dd))
-(declare-const $emb_eda.nil $eo_DatatypeArgs)
-(define $eda_nil () $emb_eda.nil)
-(declare-parameterized-const $emb_eda.cons
-  ((T $eo_Term :opaque) (a $eo_DatatypeArgs :opaque)) $eo_DatatypeArgs)
-(define $eda_cons ((T $eo_Term) (a $eo_DatatypeArgs)) ($emb_eda.cons T a))
+; A named parameter binds the entire declaration block, including mutual references.
+(declare-parameterized-const $emb_edd.param
+  ((s $native_String :opaque) (dd $eo_DatatypeDecl :opaque)) $eo_DatatypeDecl)
+(define $edd_param ((s $native_String) (dd $eo_DatatypeDecl))
+  ($emb_edd.param s dd))
 
 ;;; Utilities
 
@@ -817,123 +811,105 @@ $EO_UOP_DECLS$
 
 ; forward declaration
 
-; Parameters are substituted only in an instance's arguments, never in the
-; other template they belong to. References keep the enclosing block implicit.
-(program $eo_args_nth ((a $eo_DatatypeArgs) (T $eo_Term) (k $native_Nat))
-  :signature ($eo_DatatypeArgs $native_Nat) $eo_Term
+; Substitute one named parameter in a type. Datatype heads bind their own
+; parameters; applications outside those heads remain in the enclosing scope.
+(program $eo_subst_param
+  ((s $native_String) (t $native_String) (U $eo_Term) (T $eo_Term) (V $eo_Term))
+  :signature ($native_String $eo_Term $eo_Term) $eo_Term
   (
-  (($eo_args_nth ($eda_cons T a) $native_n_zero) T)
-  (($eo_args_nth ($eda_cons T a) ($native_n_succ k)) ($eo_args_nth a k))
-  (($eo_args_nth a k) $eot_stuck)
+  (($eo_subst_param s U ($eot_DtParam t))
+    ($native_ite ($native_streq s t) U ($eot_DtParam t)))
+  (($eo_subst_param s U ($eot_apply T V))
+    ($eot_apply ($eo_subst_param s U T) ($eo_subst_param s U V)))
+  (($eo_subst_param s U ($eot_DtcAppType T V))
+    ($eot_DtcAppType ($eo_subst_param s U T) ($eo_subst_param s U V)))
+  (($eo_subst_param s U T) T)
   ))
 
-(program $eo_subst_params () :signature ($eo_DatatypeArgs $eo_Term) $eo_Term)
-(program $eo_args_subst_params
-  ((a $eo_DatatypeArgs) (b $eo_DatatypeArgs) (T $eo_Term))
-  :signature ($eo_DatatypeArgs $eo_DatatypeArgs) $eo_DatatypeArgs
+(program $eo_dd_has_param ((s $native_String) (t $native_String) (dd $eo_DatatypeDecl))
+  :signature ($native_String $eo_DatatypeDecl) $native_Bool
   (
-  (($eo_args_subst_params a $eda_nil) $eda_nil)
-  (($eo_args_subst_params a ($eda_cons T b))
-    ($eda_cons ($eo_subst_params a T) ($eo_args_subst_params a b)))
+  (($eo_dd_has_param s ($edd_param t dd))
+    ($native_or ($native_streq s t) ($eo_dd_has_param s dd)))
+  (($eo_dd_has_param s dd) $native_false)
   ))
 
-(program $eo_subst_params
-  ((a $eo_DatatypeArgs) (b $eo_DatatypeArgs) (T $eo_Term) (U $eo_Term)
-   (s $native_String) (dd $eo_DatatypeDecl) (k $native_Nat))
-  :signature ($eo_DatatypeArgs $eo_Term) $eo_Term
+; Check names in their declaration's scope, including otherwise unused binders.
+(program $eo_params_bound () :signature ($eo_DatatypeDecl $eo_Term) $native_Bool)
+(program $eo_dd_params_bound () :signature ($eo_DatatypeDecl $eo_DatatypeDecl) $native_Bool)
+(program $eo_dtc_params_bound
+  ((scope $eo_DatatypeDecl) (T $eo_Term) (c $eo_DatatypeCons))
+  :signature ($eo_DatatypeDecl $eo_DatatypeCons) $native_Bool
   (
-  (($eo_subst_params a ($eot_DtParam k)) ($eo_args_nth a k))
-  (($eo_subst_params a ($eot_apply T U))
-    ($eot_apply ($eo_subst_params a T) ($eo_subst_params a U)))
-  (($eo_subst_params a ($eot_DatatypeType s ($edd_params b dd)))
-    ($eot_DatatypeType s ($edd_params ($eo_args_subst_params a b) dd)))
-  (($eo_subst_params a T) T)
-  ))
-
-(program $eo_args_length ((a $eo_DatatypeArgs) (T $eo_Term))
-  :signature ($eo_DatatypeArgs) $native_Nat
-  (
-  (($eo_args_length $eda_nil) $native_n_zero)
-  (($eo_args_length ($eda_cons T a)) ($native_n_succ ($eo_args_length a)))
-  ))
-
-; Bounds are checked in the parameter's own scope. An embedded instance's
-; arguments use the outer scope, while its template introduces a new one.
-(program $eo_params_bound () :signature ($native_Nat $eo_Term) $native_Bool)
-(program $eo_dd_params_bound () :signature ($native_Nat $eo_DatatypeDecl) $native_Bool)
-(program $eo_args_params_bound
-  ((n $native_Nat) (T $eo_Term) (a $eo_DatatypeArgs))
-  :signature ($native_Nat $eo_DatatypeArgs) $native_Bool
-  (
-  (($eo_args_params_bound n $eda_nil) $native_true)
-  (($eo_args_params_bound n ($eda_cons T a))
-    ($native_and ($eo_params_bound n T) ($eo_args_params_bound n a)))
+  (($eo_dtc_params_bound scope $edtc_unit) $native_true)
+  (($eo_dtc_params_bound scope ($edtc_cons T c))
+    ($native_and ($eo_params_bound scope T) ($eo_dtc_params_bound scope c)))
   ))
 (program $eo_params_bound
-  ((n $native_Nat) (k $native_Nat) (T $eo_Term) (U $eo_Term)
-   (s $native_String) (a $eo_DatatypeArgs) (dd $eo_DatatypeDecl))
-  :signature ($native_Nat $eo_Term) $native_Bool
+  ((scope $eo_DatatypeDecl) (s $native_String) (T $eo_Term) (U $eo_Term)
+   (dd $eo_DatatypeDecl))
+  :signature ($eo_DatatypeDecl $eo_Term) $native_Bool
   (
-  (($eo_params_bound n ($eot_DtParam k))
-    ($native_zlt ($native_n_to_z k) ($native_n_to_z n)))
-  (($eo_params_bound n ($eot_apply T U))
-    ($native_and ($eo_params_bound n T) ($eo_params_bound n U)))
-  (($eo_params_bound n ($eot_DatatypeType s ($edd_params a dd)))
-    ($native_and ($eo_args_params_bound n a) ($eo_dd_params_bound ($eo_args_length a) dd)))
-  (($eo_params_bound n ($eot_DatatypeType s dd)) ($eo_dd_params_bound $native_n_zero dd))
-  (($eo_params_bound n T) $native_true)
-  ))
-(program $eo_dtc_params_bound
-  ((n $native_Nat) (T $eo_Term) (c $eo_DatatypeCons))
-  :signature ($native_Nat $eo_DatatypeCons) $native_Bool
-  (
-  (($eo_dtc_params_bound n $edtc_unit) $native_true)
-  (($eo_dtc_params_bound n ($edtc_cons T c))
-    ($native_and ($eo_params_bound n T) ($eo_dtc_params_bound n c)))
+  (($eo_params_bound scope ($eot_DtParam s)) ($eo_dd_has_param s scope))
+  (($eo_params_bound scope ($eot_apply T U))
+    ($native_and ($eo_params_bound scope T) ($eo_params_bound scope U)))
+  (($eo_params_bound scope ($eot_DatatypeType s dd)) ($eo_dd_params_bound dd dd))
+  (($eo_params_bound scope T) $native_true)
   ))
 (program $eo_dt_params_bound
-  ((n $native_Nat) (c $eo_DatatypeCons) (d $eo_Datatype))
-  :signature ($native_Nat $eo_Datatype) $native_Bool
+  ((scope $eo_DatatypeDecl) (c $eo_DatatypeCons) (d $eo_Datatype))
+  :signature ($eo_DatatypeDecl $eo_Datatype) $native_Bool
   (
-  (($eo_dt_params_bound n $edt_null) $native_true)
-  (($eo_dt_params_bound n ($edt_sum c d))
-    ($native_and ($eo_dtc_params_bound n c) ($eo_dt_params_bound n d)))
+  (($eo_dt_params_bound scope $edt_null) $native_true)
+  (($eo_dt_params_bound scope ($edt_sum c d))
+    ($native_and ($eo_dtc_params_bound scope c) ($eo_dt_params_bound scope d)))
   ))
 (program $eo_dd_params_bound
-  ((n $native_Nat) (s $native_String) (d $eo_Datatype) (dd $eo_DatatypeDecl))
-  :signature ($native_Nat $eo_DatatypeDecl) $native_Bool
+  ((scope $eo_DatatypeDecl) (s $native_String) (d $eo_Datatype) (dd $eo_DatatypeDecl))
+  :signature ($eo_DatatypeDecl $eo_DatatypeDecl) $native_Bool
   (
-  (($eo_dd_params_bound n $edd_nil) $native_true)
-  (($eo_dd_params_bound n ($edd_cons s d dd))
-    ($native_and ($eo_dt_params_bound n d) ($eo_dd_params_bound n dd)))
-  ; A params wrapper belongs only at the root of a block.
-  (($eo_dd_params_bound n dd) $native_false)
+  (($eo_dd_params_bound scope $edd_nil) $native_true)
+  (($eo_dd_params_bound scope ($edd_param s dd))
+    ($native_and ($native_not ($eo_dd_has_param s dd)) ($eo_dd_params_bound scope dd)))
+  (($eo_dd_params_bound scope ($edd_cons s d dd))
+    ($native_and ($eo_dt_params_bound scope d) ($eo_dd_params_bound scope dd)))
   ))
 
-(program $eo_args_wf ((T $eo_Term) (a $eo_DatatypeArgs))
-  :signature ($eo_DatatypeArgs) $native_Bool
+; Apply a generic sort to the formal parameters of its declaration.
+(program $eo_dt_generic_apply ((T $eo_Term) (s $native_String) (dd $eo_DatatypeDecl))
+  :signature ($eo_Term $eo_DatatypeDecl) $eo_Term
   (
-  (($eo_args_wf $eda_nil) $native_true)
-  (($eo_args_wf ($eda_cons T a))
-    ($native_and ($native_teq ($eo_typeof T) $eot_Type) ($eo_args_wf a)))
+  (($eo_dt_generic_apply T ($edd_param s dd))
+    ($eo_dt_generic_apply ($eot_apply T ($eot_DtParam s)) dd))
+  (($eo_dt_generic_apply T dd) T)
   ))
-(program $eo_dd_args_wf ((a $eo_DatatypeArgs) (dd $eo_DatatypeDecl))
-  :signature ($eo_DatatypeDecl) $native_Bool
+
+; The next type argument binds this name. Type marks the end of the binders.
+(program $eo_dd_param_at ((s $native_String) (dd $eo_DatatypeDecl) (k $native_Nat))
+  :signature ($eo_DatatypeDecl $native_Nat) $eo_Term
   (
-  (($eo_dd_args_wf ($edd_params a dd))
-    ($native_and ($eo_args_wf a) ($eo_dd_params_bound ($eo_args_length a) dd)))
-  (($eo_dd_args_wf dd) ($eo_dd_params_bound $native_n_zero dd))
+  (($eo_dd_param_at ($edd_param s dd) $native_n_zero) ($eot_DtParam s))
+  (($eo_dd_param_at ($edd_param s dd) ($native_n_succ k)) ($eo_dd_param_at dd k))
+  (($eo_dd_param_at dd k) $eot_Type)
+  ))
+(program $eo_dt_param_at
+  ((T $eo_Term) (U $eo_Term) (s $native_String) (dd $eo_DatatypeDecl)
+   (k $native_Nat) (i $native_Nat) (j $native_Nat))
+  :signature ($eo_Term $native_Nat) $eo_Term
+  (
+  (($eo_dt_param_at ($eot_apply T U) k) ($eo_dt_param_at T ($native_n_succ k)))
+  (($eo_dt_param_at ($eot_DatatypeType s dd) k) ($eo_dd_param_at dd k))
+  (($eo_dt_param_at ($eot_DtCons s dd i) k) ($eo_dd_param_at dd k))
+  (($eo_dt_param_at ($eot_DtSel s dd i j) k) ($eo_dd_param_at dd k))
+  (($eo_dt_param_at T k) $eot_Type)
   ))
 
 (program $eo_dtc_resolve
-  ((s $native_String) (T $eo_Term) (c $eo_DatatypeCons) (dd $eo_DatatypeDecl)
-   (a $eo_DatatypeArgs))
+  ((s $native_String) (T $eo_Term) (c $eo_DatatypeCons) (dd $eo_DatatypeDecl))
   :signature ($eo_DatatypeCons $eo_DatatypeDecl) $eo_DatatypeCons
   (
   (($eo_dtc_resolve ($edtc_cons ($eot_DatatypeTypeRef s) c) dd)
-    ($edtc_cons ($eot_DatatypeType s dd) ($eo_dtc_resolve c dd)))
-  (($eo_dtc_resolve ($edtc_cons T c) ($edd_params a dd))
-    ($edtc_cons ($eo_subst_params a T) ($eo_dtc_resolve c ($edd_params a dd))))
+    ($edtc_cons ($eo_dt_generic_apply ($eot_DatatypeType s dd) dd) ($eo_dtc_resolve c dd)))
   (($eo_dtc_resolve ($edtc_cons T c) dd)
     ($edtc_cons T ($eo_dtc_resolve c dd)))
   (($eo_dtc_resolve $edtc_unit dd) $edtc_unit)
@@ -952,12 +928,12 @@ $EO_UOP_DECLS$
 
 (program $eo_dd_lookup
   ((s $native_String) (s2 $native_String) (d $eo_Datatype) (c $eo_DatatypeCons)
-   (dd $eo_DatatypeDecl) (a $eo_DatatypeArgs))
+   (dd $eo_DatatypeDecl) (p $native_String))
   :signature ($native_String $eo_DatatypeDecl) $eo_Datatype
   (
   (($eo_dd_lookup s ($edd_cons s2 d dd))
     ($native_ite ($native_streq s s2) d ($eo_dd_lookup s dd)))
-  (($eo_dd_lookup s ($edd_params a dd)) ($eo_dd_lookup s dd))
+  (($eo_dd_lookup s ($edd_param p dd)) ($eo_dd_lookup s dd))
   (($eo_dd_lookup s $edd_nil) $edt_null)
   )
 )
@@ -987,12 +963,24 @@ $EO_UOP_DECLS$
   )
 )
 
+(program $eo_dt_apply_list ((a $eo_Term) (c $eo_Term) (cs $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_dt_apply_list a ($eo_List_cons c cs))
+    ($eo_List_cons ($eot_apply c a) ($eo_dt_apply_list a cs)))
+  (($eo_dt_apply_list a cs) $eo_List_nil)
+  ))
+
 ; program: $eo_dt_constructors
 ; implements: eo::dt_constructors
 (program $eo_dt_constructors
-  ((s $native_String) (dd $eo_DatatypeDecl) (T $eo_Term))
+  ((s $native_String) (dd $eo_DatatypeDecl) (T $eo_Term) (U $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
+  (($eo_dt_constructors ($eot_apply T U))
+    ($native_ite ($native_teq ($eo_dt_param_at T $native_n_zero) $eot_Type)
+      ($eo_dt_constructors_main ($eot_apply T U))
+      ($eo_dt_apply_list U ($eo_dt_constructors T))))
   ; a user-defined datatype
   (($eo_dt_constructors ($eot_DatatypeType s dd))
     ($eo_datatype_constructors_rec s dd ($eo_dd_lookup s dd) $native_n_zero))
@@ -1024,9 +1012,13 @@ $EO_UOP_DECLS$
 ; program: $eo_dt_selectors
 ; implements: eo::dt_selectors
 (program $eo_dt_selectors
-  ((s $native_String) (dd $eo_DatatypeDecl) (n $native_Nat) (t $eo_Term))
+  ((s $native_String) (dd $eo_DatatypeDecl) (n $native_Nat) (t $eo_Term) (U $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
+  (($eo_dt_selectors ($eot_apply t U))
+    ($native_ite ($native_teq ($eo_dt_param_at t $native_n_zero) $eot_Type)
+      ($eo_dt_selectors_main ($eot_apply t U))
+      ($eo_dt_apply_list U ($eo_dt_selectors t))))
   ; a constructor of a user-defined datatype
   (($eo_dt_selectors ($eot_DtCons s dd n))
     ($eo_datatype_cons_selectors_rec s dd n ($eo_dd_resolve s dd) n $native_n_zero))

@@ -1,59 +1,96 @@
 # Parametric datatypes
 
-The compiler implements phase one of the
-[Logos `parDt` design](https://github.com/cvc5/logos/blob/parDt/docs/parametric-datatypes.md).
-The generated Lean parser requires the `DatatypeOps.mkParam`, `elaborate` and
-`ascribe` hooks from that branch. Uniform mutually recursive blocks are supported;
-the generic Logos parser rejects nested recursion, non-uniform recursion and
-blocks whose datatypes have different arities.
+The compiler supports uniform SMT-LIB parametric datatypes using the hooks in
+[Logos's `parDt` parser](https://github.com/cvc5/logos/tree/parDt). The generic
+parser rejects nested recursion, non-uniform recursion, and mutually recursive
+blocks with different parameter arities.
 
-An instance is a single `Term.DatatypeType` node. Its `DatatypeDecl.params`
-wrapper holds the arguments separately from a template whose fields use
-`Term.DtParam` indices. Constructors and selectors carry the same wrapped
-declaration. Monomorphic declarations retain their original representation.
+A declaration binds one named parameter at a time:
 
-The parser instantiates sorts, infers constructor arguments by matching ground
-field types, instantiates selectors and indexed testers/updaters from their
-operand, and handles constructor result-sort ascriptions such as
-`(as nil (List Int))`. Parameters that cannot be inferred require an ascription,
-including phantom parameters and nullary constructors. Elaboration proposes
-instances; the generated typing checks reject generic declarations, non-type
-arguments and out-of-range parameter indices.
+```lean
+Term.DtParam : native_String → Term
+DatatypeDecl.param : native_String → DatatypeDecl → DatatypeDecl
+```
 
-The shared EO embedding implements substitution and the typing checks.
-Substitution descends through applications and an embedded instance's arguments,
-preserving the embedded template's own parameter scope. Declaration lookup skips
-the wrapper, while resolution retains it on references to the same block.
-Consequently `eo::dt_constructors`, `eo::dt_selectors`, `dt_split` and `dt-inst`
-operate on the selected instance.
+`param "X" dd` binds `DtParam "X"` in the template. Multiple parameters are
+nested binders. The current Logos parser supplies parameter positions, which
+the generated adapter gives canonical names `@p0`, `@p1`, and so on. Each
+embedded datatype declaration introduces its own scope.
 
-SMT translation carries an environment of already translated type arguments.
-It translates an instance's arguments in the enclosing scope, then walks the
-template with those arguments as its new environment. A `DtParam` becomes a
-lookup. The translation therefore recurses structurally through the original
-EO tree without building substituted declarations or translating an argument
-again for each occurrence. The environment reuses `SmtDatatypeCons`, an existing
-sequence of SMT types; the SMT model remains monomorphic and gains no parameter
-constructors.
+Instances remain ordinary applications. For example, `List Int` is
+`Apply (DatatypeType "List" listDecl) Int`, and a constructor at that sort is
+`Apply (DtCons "List" listDecl i) Int`. This preserves phantom arguments and
+keeps monomorphic declarations unchanged. There is no argument-wrapper
+constructor or additional argument datatype.
 
-The public `eo_to_smt_type` and `eo_to_smt_datatype_decl` entry points start with
-an empty environment. Generated type cases propagate the environment through
-ordinary sort constructors such as `Array` and `Seq`. `Spec.lean` needs only
-`LogosTerm.lean` and the SMT model: translation is total without custom size
-measures, termination proofs or theorems in the specification. Existing
-downstream proofs may need new datatype cases after regeneration; the compiler
-does not update those handwritten proofs.
+Generic sorts and constructors expect one type argument per binder. Applying a
+constructor or selector to a type substitutes that one named parameter in its
+result type. The checker rejects undeclared or duplicate parameter names and
+non-type arguments. Recursive references resolve to the enclosing block applied
+to its formal parameters; substitution then supplies the actual arguments.
 
-Run the integration test with a built `ethos-eoc`, Lake, and a Logos checkout
-containing the `parDt` parser:
+The parser infers omitted constructor type arguments from ground field types.
+It supplies selector, tester, and updater type arguments from their operand's
+sort, and handles constructor result-sort ascriptions such as
+`(as nil (List Int))`. Nullary constructors and phantom parameters need an
+ascription when their arguments cannot be inferred.
+
+SMT translation first normalizes EO datatype applications. Each application
+normalizes its argument, removes one `DatatypeDecl.param` binder, and substitutes
+that argument into the remaining declaration. Substitution leaves embedded
+datatype declarations alone: their parameters belong to those declarations.
+It still traverses their external arguments, so `Outer X` containing `List X`
+instantiates correctly even when both templates use the same parameter name.
+
+`__eo_to_smt_type : Term → SmtType` keeps its one-argument interface. It passes
+the normalized type to `__eo_to_smt_type_mono`, the ordinary structural
+translator. There is no translation scope or `__eo_to_smt_type_in`. SMT syntax
+stays monomorphic, and a partially applied template has no ground SMT type.
+Constructors and selectors use the same normalization before translation.
+
+Normalization uses Lean's built-in `sizeOf` as an initial reduction budget.
+Only instantiation consumes it; traversal decreases the input subtree size.
+Ground arguments are normalized before substitution, so copying them introduces
+no further instantiation steps. Four lexicographic termination clauses suffice;
+there is no custom term-size function or handwritten theorem in `Spec.lean`.
+The SMT backend computes a corresponding structural bound.
+
+`Spec.lean` imports only `LogosTerm.lean` and the SMT model, with no dependency
+on `Logos.lean`. Changes to the specification are limited to parametric datatype
+translation; the existing SMT model and quantifier semantics are unchanged.
+
+## CPC helper compatibility
+
+CPC's original helper programs assume that constructor identities have no
+explicit type applications. The companion
+[Logos patch](logos-apply-datatypes.patch) updates the cached CPC signature to:
+
+- Return instantiated constructors for an applied datatype sort.
+- Resolve either a generic or an instantiated constructor to its instance.
+- Instantiate selectors using their operand's sort.
+- Exclude type arguments from constructor fields and injectivity equations.
+
+The equivalent changes should also be made in the upstream CPC source before
+regenerating the cached signature. To apply the patch to a Logos checkout:
+
+```sh
+git -C ~/logos apply /path/to/ethos/tools/eoc/docs/logos-apply-datatypes.patch
+```
+
+## Integration test
+
+With a built `ethos-eoc`, Lake, and a Logos checkout containing the `parDt`
+parser and the updated CPC signature:
 
 ```sh
 python3 tools/eoc/test/parametric_datatypes.py --logos ~/logos \
   --build-dir build-eoc --out-dir /tmp/eoc-parametric-test
 ```
 
-It regenerates CPC using that checkout's cached signature and semantics, builds
-the checker, parser and specification, and checks parsing, typing, datatype
-rules, substitution scope, malformed instances and monomorphic SMT translation.
-The Logos checkout is read only. `--no-generate` reuses the generated modules in
-the output directory for repeated Lean checks.
+The test regenerates CPC, builds its checker, parser, and specification, and
+checks parsing, typing, datatype rules, named parameters, malformed instances,
+and monomorphic SMT translation. It also reports LOC using Logos's report script
+and checks that the specification has no checker dependency.
+The Logos checkout is read only.
+`--signature /path/to/Cpc.cached.eo` tests a separate signature copy;
+`--no-generate` reuses the generated modules in the output directory.

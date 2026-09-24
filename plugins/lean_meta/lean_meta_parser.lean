@@ -66,15 +66,12 @@ private def parserDatatype (ctors : List (Logos.Parser.ConsSpec Term)) : Datatyp
 private def parserDatatypeDecl (dts : List (Logos.Parser.DatatypeSpec Term)) : DatatypeDecl :=
   dts.foldr (fun d rest => .cons (native_string_lit d.name) (parserDatatype d.constructors) rest) .nil
 
-private def parserArgs (ts : List Term) : DatatypeArgs := ts.foldr .cons .nil
+-- The generic parser supplies positions; use canonical names for their binders.
+private def parserParamName (k : Nat) : native_String := native_string_lit ("@p" ++ toString k)
 
-private def parserArgsList : DatatypeArgs → List Term
-  | .nil => []
-  | .cons t a => t :: parserArgsList a
-
-private def parserGeneric (a : DatatypeArgs) : Bool :=
-  let ts := parserArgsList a
-  !ts.isEmpty && ts == (List.range ts.length).map Term.DtParam
+private def parserParams : DatatypeDecl → List native_String
+  | .param s dd => s :: parserParams dd
+  | _ => []
 
 private def parserAppSpine : Term → List Term → Term × List Term
   | .Apply f a, args => parserAppSpine f (a :: args)
@@ -82,74 +79,57 @@ private def parserAppSpine : Term → List Term → Term × List Term
 
 -- Match ground argument types against a template. A parameter bound twice
 -- must have the same type both times; another template's parameters are local.
-mutual
-private def parserMatchType (pat actual : Term) (bindings : Array (Option Term)) :
-    Option (Array (Option Term)) :=
+private def parserMatchType (names : List native_String) (pat actual : Term)
+    (bindings : Array (Option Term)) : Option (Array (Option Term)) :=
   match pat, actual with
-  | .DtParam k, t => do
+  | .DtParam s, t => do
+      let (_, k) ← names.zipIdx.find? (fun (name, _) => name == s)
       let old ← bindings[k]?
       match old with
       | none => some (bindings.set! k (some t))
       | some u => if u == t then some bindings else none
   | .Apply f a, .Apply g b => do
-      parserMatchType a b (← parserMatchType f g bindings)
-  | .DatatypeType s (.params a dd), .DatatypeType t (.params b ee) =>
-      if s == t && dd == ee then parserMatchArgs a b bindings else none
+      parserMatchType names a b (← parserMatchType names f g bindings)
   | t, u => if t == u then some bindings else none
 
-private def parserMatchArgs (a b : DatatypeArgs) (bindings : Array (Option Term)) :
-    Option (Array (Option Term)) :=
-  match a, b with
-  | .nil, .nil => some bindings
-  | .cons t a, .cons u b => do
-      parserMatchArgs a b (← parserMatchType t u bindings)
-  | _, _ => none
-end
-
-private def parserMatchFields (ty : Term) (args : List Term)
+private def parserMatchFields (names : List native_String) (ty : Term) (args : List Term)
     (bindings : Array (Option Term)) : Option (Array (Option Term)) :=
   match args with
   | [] => some bindings
   | a :: args =>
       match ty with
       | .DtcAppType field rest => do
-          parserMatchFields rest args (← parserMatchType field (__eo_typeof a) bindings)
+          parserMatchFields names rest args (← parserMatchType names field (__eo_typeof a) bindings)
       | _ => none
 
 -- An operand supplies the instance for a selector, tester or updater.
-private def parserInstanceArgs (s : native_String) (gen : DatatypeArgs)
-    (dd : DatatypeDecl) (ty : Term) : Option DatatypeArgs :=
-  match ty with
-  | .DatatypeType t (.params a ee) =>
-      if parserGeneric gen && s == t && dd == ee &&
-          (parserArgsList gen).length == (parserArgsList a).length then some a else none
-  | _ => none
-
-private def parserInstantiate (op ty : Term) : Option Term :=
-  match op with
-  | .DtCons s (.params gen dd) i => do
-      let a ← parserInstanceArgs s gen dd ty
-      some (.DtCons s (.params a dd) i)
-  | .DtSel s (.params gen dd) i j => do
-      let a ← parserInstanceArgs s gen dd ty
-      some (.DtSel s (.params a dd) i j)
-  | _ => none
+private def parserInstantiate (op ty : Term) : Option Term := do
+  let (head, args) := parserAppSpine ty []
+  match op, head with
+  | .DtCons s dd _, .DatatypeType t ee
+  | .DtSel s dd _ _, .DatatypeType t ee =>
+      if s == t && dd == ee && args.length == (parserParams dd).length then
+        some (args.foldl Term.Apply op)
+      else none
+  | _, _ => none
 
 private def parserElaborate (term : Term) : Term := Id.run do
   let (head, args) := parserAppSpine term []
   let apply (head : Term) := args.foldl Term.Apply head
+  -- Type applications, including an ascribed constructor's type arguments,
+  -- are already explicit and stay as ordinary Apply nodes.
+  if args.head?.any (fun a => __eo_typeof a == .Type) then
+    return term
   match head with
-  | .DatatypeType s (.params gen dd) =>
-      if parserGeneric gen && args.length == (parserArgsList gen).length then
-        return .DatatypeType s (.params (parserArgs args) dd)
-  | .DtCons s (.params gen dd) i =>
-      if parserGeneric gen then
-        let ty := __eo_typeof_dt_cons_rec (.DatatypeType s (.params gen dd))
-          (__eo_dd_resolve s (.params gen dd)) i
-        if let some bindings := parserMatchFields ty args
-            (Array.replicate (parserArgsList gen).length none) then
+  | .DtCons s dd i =>
+      let names := parserParams dd
+      if !names.isEmpty then
+        let ty := __eo_typeof_dt_cons_rec
+          (__eo_dt_generic_apply (.DatatypeType s dd) dd) (__eo_dd_resolve s dd) i
+        if let some bindings := parserMatchFields names ty args
+            (Array.replicate names.length none) then
           if let some types := bindings.toList.mapM id then
-            return apply (.DtCons s (.params (parserArgs types) dd) i)
+            return apply (types.foldl Term.Apply head)
   | .DtSel .. =>
       if let a :: _ := args then
         if let some op := parserInstantiate head (__eo_typeof a) then
@@ -172,8 +152,7 @@ private def parserDatatypeBindings (dts : List (Logos.Parser.DatatypeSpec Term))
     Option (List (String × Term)) :=
   let template := parserDatatypeDecl dts
   let arity := (dts.head?.map (·.arity)).getD 0
-  let decl := if arity == 0 then template else
-    .params (parserArgs ((List.range arity).map Term.DtParam)) template
+  let decl := (List.range arity).foldr (fun k dd => .param (parserParamName k) dd) template
   some <| dts.flatMap fun d =>
     let name := native_string_lit d.name
     (d.name, Term.DatatypeType name decl) ::
@@ -204,7 +183,7 @@ def parserConfig : Logos.Parser.Config Term CRule CCmd CCmdList where
   datatypes := some
     { mkRef := fun name => Term.DatatypeTypeRef (native_string_lit name)
       mkDecls := parserDatatypeBindings
-      mkParam := some Term.DtParam
+      mkParam := some fun k => Term.DtParam (parserParamName k)
       elaborate := parserElaborate
       ascribe := parserAscribe }
 $LEAN_PARSER_MK_VAR$

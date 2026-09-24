@@ -19,20 +19,21 @@ private def lists :=
   "(declare-datatype L (par (X) ((nil) (cons (head X) (tail (L X))))))"
 private def int : Term := .UOp .Int
 private def name := native_string_lit "L"
-private def template : DatatypeDecl :=
-  .cons name (.sum .unit (.sum (.cons (.DtParam 0)
+private def param := native_string_lit "@p0"
+private def body : DatatypeDecl :=
+  .cons name (.sum .unit (.sum (.cons (.DtParam param)
     (.cons (.DatatypeTypeRef name) .unit)) .null)) .nil
-private def decl (t : Term) := DatatypeDecl.params (.cons t .nil) template
-private def list (t : Term) := Term.DatatypeType name (decl t)
-private def nil (t : Term) := Term.DtCons name (decl t) 0
+private def template := DatatypeDecl.param param body
+private def list (t : Term) := Term.Apply (.DatatypeType name template) t
+private def nil (t : Term) := Term.Apply (.DtCons name template 0) t
 
--- Sort instances are single nodes, with distinct arguments even for phantom types.
+-- Sort instances retain ordinary applications, including phantom arguments.
 #guard term (use lists "(L Int)") == some (list int)
 #guard term (use lists "(L Bool)") == some (list .Bool)
 #guard ty (use lists "(L Int)") == some .Type
 #guard ty (use lists "(L Bool)") == some .Type
-#guard ty (use lists "L") == some .Stuck
-#guard ty (use lists "nil") == some .Stuck
+#guard ty (use lists "L") == some (.Apply (.Apply .FunType .Type) .Type)
+#guard ty (use lists "nil") == some (.Apply (.Apply .FunType .Type) (list (.DtParam param)))
 #guard ty (use lists "(L true)") == some .Stuck
 #guard ty (use lists "(L Int Bool)") == some .Stuck
 #guard term (use lists "(as nil (L Int))") == some (nil int)
@@ -50,7 +51,7 @@ private def nil (t : Term) := Term.DtCons name (decl t) 0
 #guard ty (use lists "(= (as nil (L Int)) (as nil (L Bool)))") == some .Stuck
 
 private def box := "(declare-datatype Box (par (X) ((box))))"
-#guard ty (use box "box") == some .Stuck
+#guard hasType (use box "box") -- a generic constructor still expects its type argument
 #guard hasType (use box "(as box (Box Int))")
 #guard term (use box "(Box Int)") != term (use box "(Box Bool)")
 
@@ -65,15 +66,15 @@ private def array := "(declare-datatype A (par (X Y) ((a (field (Array X Y))))))
 #guard ty (use (array ++ " (declare-const v (Array Int Bool))") "(field (a v))") ==
   some (.Apply (.Apply (.UOp .Array) int) .Bool)
 -- A sequence field exercises substitution through Apply independently of parsing.
-#guard __eo_subst_params (.cons int .nil) (.Apply (.UOp .Seq) (.DtParam 0)) ==
+#guard __eo_subst_param param int (.Apply (.UOp .Seq) (.DtParam param)) ==
   .Apply (.UOp .Seq) int
 
 -- An earlier datatype's arguments belong to this template; its fields do not.
 private def nestedInstance := box ++
   " (declare-datatype Outer (par (X) ((outer (field (Box X))))))"
 #guard hasType (use nestedInstance "(outer (as box (Box Int)))")
-#guard __eo_subst_params (.cons int .nil)
-    (.DatatypeType name (.params (.cons (.DtParam 0) .nil) template)) == list int
+#guard __eo_subst_param param int (list (.DtParam param)) == list int
+#guard __eo_subst_param param int (.DatatypeType name template) == .DatatypeType name template
 
 -- Uniform mutual references retain the instance of their whole block.
 private def mutuals :=
@@ -92,71 +93,88 @@ private def mutuals :=
   "(declare-datatypes ((A 1) (B 0)) ((par (X) ((a))) ((b))))" "true")).isNone
 
 -- Type checking rejects malformed hand-built instances independently of parsing.
-#guard __eo_typeof (.DtParam 0) == .Stuck
-#guard __eo_typeof (.DatatypeType name (.params .nil template)) == .Stuck
-#guard __eo_typeof (.DtCons name (.params (.cons (.Boolean true) .nil) template) 0) == .Stuck
-#guard __eo_typeof (.DtSel name (.params (.cons (.DtParam 0) .nil) template) 1 0) == .Stuck
-#guard __eo_typeof (.DatatypeType name template) == .Stuck
+#guard __eo_typeof (.DtParam param) == .Stuck
+#guard __eo_typeof (list (.Boolean true)) == .Stuck
+#guard __eo_typeof (list (.DtParam param)) == .Stuck
+#guard __eo_typeof (.DatatypeType name body) == .Stuck
+#guard __eo_typeof (.DatatypeType name (.param param template)) == .Stuck
 
 -- The instance's constructor list is what dt_split and dt-inst see.
-private def x : Term := .UConst 0 (list int)
+private def x : Term := .UConst 1 (list int)
 #guard __eo_typeof (__eo_prog_dt_split x) == .Bool
 private def inst := use (lists ++ " (declare-const x (L Int))")
   "(= (is cons x) (= x (cons (head x) (tail x))))"
 #guard (term inst).map __eo_prog_dt_inst == term inst
 
--- SMT declarations are monomorphic after translation; recursive references
--- remain relative to that declaration. These equalities are checked by Lean's kernel.
-example : __eo_to_smt_type (list int) = .Datatype name
-    (.cons name (.sum .unit (.sum (.cons .Int (.cons (.TypeRef name) .unit)) .null)) .nil) := by
-  simp [list, decl, template, int, name, __eo_to_smt_type,
-    __eo_to_smt_datatype, __eo_to_smt_datatype_cons,
-    __eo_to_smt_datatype_decl_in, __eo_to_smt_type_in,
-    __eo_to_smt_args, __eo_to_smt_param, __eo_to_smt_reserved_datatype_name,
-    native_string_lit, native_string_prefix_eq, native_ite]
-example : __eo_to_smt_type (.DtParam 0) = .None := by simp [__eo_to_smt_type, __eo_to_smt_type_in, __eo_to_smt_param]
-example : __eo_to_smt_datatype_decl (decl int) =
-    __eo_to_smt_datatype_decl_in (.cons .Int .unit) template := by
-  simp [decl, int, __eo_to_smt_datatype_decl, __eo_to_smt_datatype_decl_in,
-    __eo_to_smt_args, __eo_to_smt_type_in]
-example : __eo_to_smt_type (list (list int)) = .Datatype name
-    (.cons name (.sum .unit (.sum
-      (.cons (__eo_to_smt_type (list int)) (.cons (.TypeRef name) .unit)) .null)) .nil) := by
-  simp [list, decl, template, int, name, __eo_to_smt_type,
-    __eo_to_smt_datatype, __eo_to_smt_datatype_cons,
-    __eo_to_smt_datatype_decl_in, __eo_to_smt_type_in,
-    __eo_to_smt_args, __eo_to_smt_param, __eo_to_smt_reserved_datatype_name,
-    native_string_lit, native_string_prefix_eq, native_ite]
+-- Rules must see instantiated operators, and field positions exclude types.
+private def split := use (lists ++ " (declare-const x (L Int))")
+  "(or ((_ is nil) x) ((_ is cons) x))"
+#guard some (__eo_prog_dt_split x) == term split
+private def collapse := use lists "(= (head (cons 1 (as nil (L Int)))) 1)"
+#guard (term collapse).map __eo_prog_dt_collapse_selector == term collapse
+private def inject := use lists
+  "(= (= (cons 1 (as nil (L Int))) (cons 2 (as nil (L Int))))
+      (and (= 1 2) (= (as nil (L Int)) (as nil (L Int)))))"
+#guard (term inject).map __eo_prog_dt_cons_eq == term inject
 
-private def phantomTemplate : DatatypeDecl :=
-  .cons (native_string_lit "Box") (.sum .unit .null) .nil
-example : __eo_to_smt_datatype_decl (.params (.cons int .nil) phantomTemplate) =
-    __eo_to_smt_datatype_decl (.params (.cons .Bool .nil) phantomTemplate) := by
-  simp [phantomTemplate, __eo_to_smt_datatype_decl, __eo_to_smt_datatype_decl_in,
-    __eo_to_smt_datatype, __eo_to_smt_datatype_cons]
+-- SMT declarations are monomorphic after instantiation. These closed
+-- equalities are checked by Lean's kernel, with the one-argument entry point.
+set_option maxRecDepth 10000
+set_option maxHeartbeats 2000000
 
--- The inner List binds its parameter to the outer second argument. Returning
--- to the next field restores the outer scope, including repeated parameters.
-example : __eo_to_smt_datatype_cons (.cons .Int (.cons .Bool .unit))
-    (.cons (list (.DtParam 1)) (.cons (.DtParam 0) (.cons (.DtParam 0) .unit))) =
-    .cons (__eo_to_smt_type (list .Bool)) (.cons .Int (.cons .Int .unit)) := by
-  simp [list, decl, template, name, __eo_to_smt_type, __eo_to_smt_type_in,
-    __eo_to_smt_datatype_decl_in, __eo_to_smt_datatype, __eo_to_smt_datatype_cons,
-    __eo_to_smt_args, __eo_to_smt_param, __eo_to_smt_reserved_datatype_name,
-    native_string_lit, native_string_prefix_eq, native_ite]
+private def smtListDecl (t : SmtType) : SmtDatatypeDecl :=
+  .cons name (.sum .unit (.sum (.cons t (.cons (.TypeRef name) .unit)) .null)) .nil
+private def smtList (t : SmtType) : SmtType := .Datatype name (smtListDecl t)
 
--- An unwrapped declaration has its own empty scope, even when embedded in
--- a template. Ill-scoped parameters cannot capture the enclosing arguments.
-example : __eo_to_smt_type_in (.cons .Int .unit) (.DatatypeType name template) =
-    __eo_to_smt_type (.DatatypeType name template) := by
-  simp [template, __eo_to_smt_type, __eo_to_smt_type_in]
-example : __eo_to_smt_type_in (.cons .Int .unit) (.DtParam 1) = .None := by
-  simp [__eo_to_smt_type_in, __eo_to_smt_param]
+attribute [local simp] __eo_to_smt_type __eo_to_smt_type_mono
+  __eo_to_smt_dt_normalize.eq_def __eo_to_smt_dd_normalize.eq_def
+  __eo_to_smt_dtd_normalize.eq_def __eo_to_smt_dtc_normalize.eq_def
+  __eo_to_smt_dt_instantiate __eo_to_smt_dd_subst __eo_to_smt_dtd_subst
+  __eo_to_smt_dtc_subst __eo_to_smt_dt_subst __eo_to_smt_datatype_decl
+  __eo_to_smt_datatype __eo_to_smt_datatype_cons __eo_to_smt_reserved_datatype_name
+  __eo_to_smt_dt_operator __eo_to_smt_dt_cons_type __eo_to_smt_dt_sel_type
+  __eo_to_smt_apply __smtx_typeof_guard native_dt_budget
+  native_ite native_teq native_Teq native_streq native_string_lit native_string_prefix_eq
+  list nil int name param body template smtList smtListDecl
 
--- Generated sort cases preserve the parameter environment through Apply.
-example : __eo_to_smt_type_in (.cons .Int (.cons .Bool .unit))
-    (.Apply (.Apply (.UOp .Array) (.DtParam 0)) (.DtParam 1)) = .Map .Int .Bool := by
-  simp [__eo_to_smt_type_in, __eo_to_smt_param,
-    __smtx_typeof_guard, native_Teq, native_ite]
+example : __eo_to_smt_type (list int) = smtList .Int := by simp
+example : __eo_to_smt_type (list (list int)) = smtList (smtList .Int) := by simp
+example : __eo_to_smt_type (list (list (list int))) = smtList (smtList (smtList .Int)) := by simp
+example : __eo_to_smt_type (.DtParam param) = .None := by simp
+example : __eo_to_smt_type (.DatatypeType name template) = .None := by simp
+
+-- The same canonical name in two templates belongs to its own scope.
+private def outerDecl := DatatypeDecl.param param
+  (.cons (native_string_lit "Outer") (.sum (.cons (list (.DtParam param)) .unit) .null) .nil)
+example : __eo_to_smt_type (.Apply (.DatatypeType (native_string_lit "Outer") outerDecl) int) =
+    .Datatype (native_string_lit "Outer")
+      (.cons (native_string_lit "Outer") (.sum (.cons (smtList .Int) .unit) .null) .nil) := by simp [outerDecl]
+
+private def phantomDecl := DatatypeDecl.param param
+  (.cons (native_string_lit "Box") (.sum .unit .null) .nil)
+example : __eo_to_smt_type (.Apply (.DatatypeType (native_string_lit "Box") phantomDecl) int) =
+    __eo_to_smt_type (.Apply (.DatatypeType (native_string_lit "Box") phantomDecl) .Bool) := by simp [phantomDecl]
+example : __eo_to_smt_type (.Apply (.DatatypeType (native_string_lit "Box") phantomDecl) (.Boolean true)) =
+    .None := by simp [phantomDecl]
+
+private def pairName := native_string_lit "Pair"
+private def param2 := native_string_lit "@p1"
+private def pairDecl := DatatypeDecl.param param (.param param2
+  (.cons pairName (.sum (.cons (.DtParam param)
+    (.cons (.Apply (.Apply (.UOp .Array) (.DtParam param2)) (.DtParam param)) .unit)) .null) .nil))
+attribute [local simp] pairName param2 pairDecl
+example : __eo_to_smt_type (.Apply (.DatatypeType pairName pairDecl) int) = .None := by simp
+example : __eo_to_smt_type (.Apply (.Apply (.DatatypeType pairName pairDecl) int) .Bool) =
+    .Datatype pairName (.cons pairName
+      (.sum (.cons .Int (.cons (.Map .Bool .Int) .unit)) .null) .nil) := by simp
+
+example : __eo_to_smt (nil int) = .DtCons name (smtListDecl .Int) 0 := by
+  simp [__eo_to_smt.eq_def]
+example : __eo_to_smt (.Apply (.DtSel name template 1 0) int) =
+    .DtSel name (smtListDecl .Int) 1 0 := by simp [__eo_to_smt.eq_def]
+example : __eo_to_smt (.Apply (.Apply (.Apply (.DtCons name template 1) int) (.Numeral 1)) (nil int)) =
+    .Apply (.Apply (.DtCons name (smtListDecl .Int) 1) (.Numeral 1))
+      (.DtCons name (smtListDecl .Int) 0) := by
+  simp [__eo_to_smt.eq_def, show sizeOf (1 : native_Int) = 2 from rfl]
 
 end ParametricDatatypesTest

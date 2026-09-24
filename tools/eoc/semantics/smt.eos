@@ -2254,6 +2254,21 @@ decreasing_by
 ; Every native type abbreviates a Lean type, which is what a clause writes
 ; instead. See LeanMetaReduce::useNative.
 
+; Normalization descends through the original tree at the same budget. Only
+; instantiating a binder revisits a constructed term, with a smaller budget.
+(define-method $eo_to_smt_dt_normalize
+  :lean "termination_by fuel T => (fuel, sizeOf T)
+decreasing_by all_goals (simp_wf; first | apply Prod.Lex.left; omega | apply Prod.Lex.right; omega)")
+(define-method $eo_to_smt_dd_normalize
+  :lean "termination_by dd => (fuel, sizeOf dd)
+decreasing_by all_goals (simp_wf; first | apply Prod.Lex.left; omega | apply Prod.Lex.right; omega)")
+(define-method $eo_to_smt_dtd_normalize
+  :lean "termination_by d => (fuel, sizeOf d)
+decreasing_by all_goals (simp_wf; first | apply Prod.Lex.left; omega | apply Prod.Lex.right; omega)")
+(define-method $eo_to_smt_dtc_normalize
+  :lean "termination_by c => (fuel, sizeOf c)
+decreasing_by all_goals (simp_wf; first | apply Prod.Lex.left; omega | apply Prod.Lex.right; omega)")
+
 ; Datatype defaults recurse through a mutually inductive type/declaration
 ; tree. The declaration suffix is the datatype recursion budget; the small
 ; offsets orient calls through datatype, constructor, and field helpers.

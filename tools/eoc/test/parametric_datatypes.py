@@ -7,6 +7,7 @@ integration tests, generation must not run concurrently with another EOC run.
 """
 
 import argparse
+import runpy
 from pathlib import Path
 import shutil
 import subprocess
@@ -17,10 +18,24 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 
 
+def check_spec(logos, package):
+    # Use the same dependency closure and Lean-aware counter as Logos's report.
+    report = runpy.run_path(str(logos / "scripts/cpc-loc-summary.py"))
+    report["build_graph"].__globals__["REPO_ROOT"] = str(package)
+    imports, modules = report["build_graph"]()
+    dependencies = report["closure"](["Cpc.Spec"], imports, modules)
+    if "Cpc.Logos" in dependencies:
+        raise SystemExit("Spec.lean must not depend on Logos.lean")
+    loc = report["total_loc"](dependencies, {})
+    print(f"eo_satisfiability definitions: {loc} LOC; no checker dependency.", flush=True)
+
+
 def run(args, output):
     logos = args.logos.resolve()
-    for path in (logos / "Logos/Parser.lean", logos / "install/defs/Cpc.cached.eo",
-                 logos / "install/defs/Cpc.eos", logos / "lean-toolchain"):
+    signature = (args.signature or logos / "install/defs/Cpc.cached.eo").resolve()
+    for path in (logos / "Logos/Parser.lean", signature,
+                 logos / "install/defs/Cpc.eos", logos / "lean-toolchain",
+                 logos / "scripts/cpc-loc-summary.py"):
         if not path.is_file():
             raise SystemExit(f"Missing Logos input: {path}")
     if "mkParam" not in (logos / "Logos/Parser.lean").read_text():
@@ -32,7 +47,7 @@ def run(args, output):
             "--build-dir", str(args.build_dir.resolve()), "--no-build",
             "--semantics", str(logos / "install/defs/Cpc.eos"),
             "--calc-name", "Cpc", "--final-out-dir", str(generated),
-            str(logos / "install/defs/Cpc.cached.eo"),
+            str(signature),
         ], cwd=ROOT, check=True)
     if not (generated / "lean/LogosTerm.lean").is_file():
         raise SystemExit(f"No generated CPC modules under {generated / 'lean'}")
@@ -47,14 +62,19 @@ def run(args, output):
         'name = "EocParametricTest"\n[[lean_lib]]\nname = "Logos"\n'
         '[[lean_lib]]\nname = "Cpc"\n')
     shutil.copyfile(HERE / "parametric_datatypes.lean", package / "Test.lean")
+    check_spec(logos, package)
     subprocess.run([args.lake, "build", "Cpc.Parser", "Cpc.Spec"], cwd=package, check=True)
-    subprocess.run([args.lake, "env", "lean", "Test.lean"], cwd=package, check=True)
+    # Lazy equation generation uses the command-line heartbeat limit in Lean.
+    subprocess.run([args.lake, "env", "lean", "-DmaxHeartbeats=2000000", "Test.lean"],
+                   cwd=package, check=True)
     print("Parametric datatype parsing, typing, rules and translation passed.")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--logos", type=Path, default=Path.home() / "logos")
+    parser.add_argument("--signature", type=Path,
+                        help="CPC signature to check (defaults to Logos's cached signature)")
     parser.add_argument("--build-dir", type=Path, default=ROOT / "build-eoc")
     parser.add_argument("--lake", default="lake")
     parser.add_argument("--out-dir", type=Path, help="Keep generated modules and Lake build")

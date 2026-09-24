@@ -558,6 +558,23 @@ $EO_IS_LIST_NIL_CASES$
 
 ; non-ground type defintions
 
+; Each declaration binder contributes one explicit type argument.
+(program $eo_typeof_dt_params ((s $native_String) (dd $eo_DatatypeDecl) (T $eo_Term))
+  :signature ($eo_DatatypeDecl $eo_Term) $eo_Term
+  (
+  (($eo_typeof_dt_params ($edd_param s dd) T) (-> Type ($eo_typeof_dt_params dd T)))
+  (($eo_typeof_dt_params dd T) T)
+  ))
+
+(program $eo_typeof_apply_param
+  ((s $native_String) (p $eo_Term) (T $eo_Term) (U $eo_Term) (a $eo_Term))
+  :signature ($eo_Term $eo_Term $eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_typeof_apply_param ($eot_DtParam s) (-> Type T) a Type)
+    ($eo_subst_param s a T))
+  (($eo_typeof_apply_param p T a U) ($eo_typeof_apply T U))
+  ))
+
 ; program: $eo_typeof_fun_type
 ; Calling ($eo_typeof_fun_type Ut Tt) returns the type of (-> U T),
 ; given that U has type Ut and T has type Tt.
@@ -593,15 +610,17 @@ $EO_TYPEOF_NGROUND_DEFS$
   (($eo_typeof ($eot_binary w n))             ($eo_lit_type_Binary ($eot_binary w n)))
   ; to sync with eo_to_smt, we require the name is indeed a concrete string
   (($eo_typeof ($eot_Var ($eot_string s) T))  T)
-  (($eo_typeof ($eot_DtParam i))             $eot_stuck)
+  (($eo_typeof ($eot_DtParam s))             $eot_stuck)
   (($eo_typeof ($eot_DatatypeType s dd))
-    ($native_ite ($eo_dd_args_wf dd) Type $eot_stuck))
+    ($native_ite ($eo_dd_params_bound dd dd) ($eo_typeof_dt_params dd Type) $eot_stuck))
   (($eo_typeof ($eot_DtCons s dd i))
-    ($native_ite ($eo_dd_args_wf dd)
-      ($eo_typeof_dt_cons_rec ($eot_DatatypeType s dd) ($eo_dd_resolve s dd) i) $eot_stuck))
+    ($native_ite ($eo_dd_params_bound dd dd)
+      ($eo_typeof_dt_params dd ($eo_typeof_dt_cons_rec
+        ($eo_dt_generic_apply ($eot_DatatypeType s dd) dd) ($eo_dd_resolve s dd) i)) $eot_stuck))
   (($eo_typeof ($eot_DtSel s dd i j))
-    ($native_ite ($eo_dd_args_wf dd)
-      (-> ($eot_DatatypeType s dd) ($eo_typeof_dt_sel_return ($eo_dd_resolve s dd) i j)) $eot_stuck))
+    ($native_ite ($eo_dd_params_bound dd dd)
+      ($eo_typeof_dt_params dd (-> ($eo_dt_generic_apply ($eot_DatatypeType s dd) dd)
+        ($eo_typeof_dt_sel_return ($eo_dd_resolve s dd) i j))) $eot_stuck))
   (($eo_typeof ($eot_USort i))                Type)
   (($eo_typeof ($eot_UConst i T))             T)
   ; otherwise, invoke the routine for user types from the signature.
@@ -615,7 +634,8 @@ $EO_TYPEOF_NGROUND_DEFS$
   (($eo_typeof ($eo_List_cons $eo_x1))        (-> $eo_List $eo_List))
 $EO_TYPEOF_CASES$
   (($eo_typeof ($eo_f $eo_x))
-    ($eo_typeof_apply ($eo_typeof $eo_f) ($eo_typeof $eo_x)))
+    ($eo_typeof_apply_param ($eo_dt_param_at $eo_f $native_n_zero)
+      ($eo_typeof $eo_f) $eo_x ($eo_typeof $eo_x)))
   )
 )
 

@@ -31,13 +31,7 @@ Eunoia datatype declarations.
 inductive DatatypeDecl : Type where
   | nil : DatatypeDecl
   | cons : native_String -> Datatype -> DatatypeDecl -> DatatypeDecl
-  | params : DatatypeArgs -> DatatypeDecl -> DatatypeDecl
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/- Type arguments, kept separate from the template they instantiate. -/
-inductive DatatypeArgs : Type where
-  | nil : DatatypeArgs
-  | cons : Term -> DatatypeArgs -> DatatypeArgs
+  | param : native_String -> DatatypeDecl -> DatatypeDecl
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
@@ -57,6 +51,10 @@ inductive DatatypeCons : Type where
 deriving Repr, DecidableEq, Inhabited, Ord
 
 end
+
+-- Ground arguments are normalized before substitution, so copying one adds
+-- no instantiation steps. The input's built-in size bounds each reduction path.
+noncomputable def native_dt_budget (t : Term) : Nat := sizeOf t
 
 -- Equality and ordering of Eunoia terms, which the checker asks for and the
 -- Term inductive above is what decides. They stand after the mutual block

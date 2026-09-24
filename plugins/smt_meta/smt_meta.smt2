@@ -20,7 +20,7 @@ $NATIVE_DEFS$
 (define-sort SmtRegLan () RegLan)
 
 (declare-datatypes
-  ((eo.Term 0) (DatatypeDecl 0) (DatatypeArgs 0) (Datatype 0) (DatatypeCons 0)
+  ((eo.Term 0) (DatatypeDecl 0) (Datatype 0) (DatatypeCons 0)
    (vsm.Value 0) (msm.Map 0) (ssm.Seq 0) (sm.Term 0) (tsm.Type 0)
    (SmtDatatypeDecl 0) (SmtDatatype 0) (SmtDatatypeCons 0))
   (
@@ -30,11 +30,7 @@ $SM_EO_TERM_DECL$
   (
   (edd.nil)
   (edd.cons (edd.cons.arg1 String) (edd.cons.arg2 Datatype) (edd.cons.arg3 DatatypeDecl))
-  (edd.params (edd.params.arg1 DatatypeArgs) (edd.params.arg2 DatatypeDecl))
-  )
-  (
-  (eda.nil)
-  (eda.cons (eda.cons.arg1 eo.Term) (eda.cons.arg2 DatatypeArgs))
+  (edd.param (edd.param.arg1 String) (edd.param.arg2 DatatypeDecl))
   )
   (
   (edt.null)
@@ -93,6 +89,31 @@ $NATIVE_EMBED_DEFS$
       (reflist_contains (reflist_insert.arg1 rl) s))))
   :pattern ((reflist_contains rl s))))
   :named smtx.reflist_contains_def))
+
+; A structural budget for normalization. Only datatype instantiation consumes
+; this budget; copied, already normalized arguments add no reduction steps.
+(define-funs-rec
+  ((dt_budget_term ((t eo.Term)) Int)
+   (dt_budget_decl ((dd DatatypeDecl)) Int)
+   (dt_budget_dt ((d Datatype)) Int)
+   (dt_budget_cons ((c DatatypeCons)) Int))
+  ((ite ((_ is eo.Apply) t)
+     (+ 1 (dt_budget_term (eo.Apply.arg1 t)) (dt_budget_term (eo.Apply.arg2 t)))
+   (ite ((_ is eo.DtcAppType) t)
+     (+ 1 (dt_budget_term (eo.DtcAppType.arg1 t)) (dt_budget_term (eo.DtcAppType.arg2 t)))
+   (ite ((_ is eo.DatatypeType) t) (+ 1 (dt_budget_decl (eo.DatatypeType.arg2 t)))
+   (ite ((_ is eo.DtCons) t) (+ 1 (dt_budget_decl (eo.DtCons.arg2 t)))
+   (ite ((_ is eo.DtSel) t) (+ 1 (dt_budget_decl (eo.DtSel.arg2 t))) 1)))))
+   (ite ((_ is edd.cons) dd)
+     (+ 1 (dt_budget_dt (edd.cons.arg2 dd)) (dt_budget_decl (edd.cons.arg3 dd)))
+   (ite ((_ is edd.param) dd) (+ 1 (dt_budget_decl (edd.param.arg2 dd))) 1))
+   (ite ((_ is edt.sum) d)
+     (+ 1 (dt_budget_cons (edt.sum.arg1 d)) (dt_budget_dt (edt.sum.arg2 d))) 1)
+   (ite ((_ is edtc.cons) c)
+     (+ 1 (dt_budget_term (edtc.cons.arg1 c)) (dt_budget_cons (edtc.cons.arg2 c))) 1)))
+(define-fun-rec dt_budget_nat ((n Int)) Nat
+  (ite (<= n 0) nat.zero (nat.succ (dt_budget_nat (- n 1)))))
+(define-fun dt_budget ((t eo.Term)) Nat (dt_budget_nat (dt_budget_term t)))
 
 (define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
 (define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))

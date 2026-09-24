@@ -197,8 +197,8 @@ class Aggregate:
     # every case then says what it matches.
     self.matches = matches
     self.context = context          # what a case is given beside the term
-    # A public wrapper can supply the initial context. Recursive casts within
-    # an aggregate keep its context; casts outside it call this entry point.
+    # A public wrapper can prepare the input before entering the aggregate.
+    # Recursive casts stay inside it; external casts use the entry point.
     self.entrypoint = entrypoint
     self.own = own                  # what the program declares beside those
     # The prefix a symbol that says nothing about this attribute is applied
@@ -685,13 +685,12 @@ TERM = Aggregate(
 TYPE = Aggregate(
     key='type',
     sole=True,
-    of='$eo_to_smt_type_in',
+    of='$eo_to_smt_type_mono',
     entrypoint='$eo_to_smt_type',
-    context=[('ps', '$smt_DatatypeCons')],
     matches='',
     declares=['(T{i} Type)', '(x{i} T{i})'],
-    signature=('($smt_DatatypeCons Type)', '$smt_Type'),
-    stands_for={'plain': '($eo_to_smt_type_in ps %s)', 'raw': INPUT},
+    signature=('(Type)', '$smt_Type'),
+    stands_for={'plain': '($eo_to_smt_type_mono %s)', 'raw': INPUT},
     level='type')
 
 # Whether a term is the nil of an n-ary symbol, which the desugar stage asks by
