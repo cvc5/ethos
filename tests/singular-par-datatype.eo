@@ -1,0 +1,9 @@
+; regression: a singular parametric declare-datatype binds the datatype name
+; after its parameter scope is closed
+(declare-datatype Box (par (A) ((box (unbox A)))))
+(declare-datatype List (par (T) ((nil) (cons (head T) (tail (List T))))))
+(declare-const x (Box Bool))
+(declare-const y (List Bool))
+(define z () (cons (unbox x) (as nil (List Bool))))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+(assume @p0 (= y z))

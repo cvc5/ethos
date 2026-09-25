@@ -140,6 +140,7 @@ set(ethos_test_file_list
     overload-standalone.eo
     datatypes-split-rule.eo
     singular-datatype.eo
+    singular-par-datatype.eo
     simul-overload.eo
     bang-lex.eo
     segfault-98.eo
