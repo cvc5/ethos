@@ -881,6 +881,8 @@ bool ExprParser::parseDatatypesDef(
       // we will parse the parentheses-enclosed construct list below
       d_lex.reinsertToken(Token::LPAREN);
     }
+    // whether the datatype name was bound in the scope of its parameters
+    bool rebindDt = false;
     if (i >= arities.size())
     {
       // if the arity is not yet fixed, bind it now
@@ -891,6 +893,9 @@ bool ExprParser::parseDatatypesDef(
         return false;
       }
       dtlist.push_back(t);
+      // if we are in the scope of parameters, we must rebind it after the
+      // scope is popped below
+      rebindDt = pushedScope;
     }
     else if (arities[i] >= 0 && params.size() != arities[i])
     {
@@ -909,6 +914,10 @@ bool ExprParser::parseDatatypesDef(
       dti = d_state.mkExpr(Kind::APPLY, dapp);
     }
     std::vector<std::pair<std::string, Expr>> toBind;
+    if (rebindDt)
+    {
+      toBind.emplace_back(dnames[i], dt);
+    }
     std::vector<Expr>& clist = dts[dt.getValue()];
     parseConstructorDefinitionList(dti, clist, dtcons, toBind, ambCons, params);
     if (pushedScope)
