@@ -12,6 +12,7 @@
 #include "expr.h"
 #include "state.h"
 #include "parser/lexer.h"
+#include "parser/term_builder.h"
 #include "attr.h"
 
 namespace ethos {
@@ -29,6 +30,8 @@ class ExprParser
 
   /** Parses a term <term> */
   Expr parseExpr();
+  /** Get the term builder, used for constructing all parsed terms. */
+  TermBuilder& getTermBuilder() { return d_tb; }
   /**
    * Parses a type <type>. We reject types that are ground and evaluatable.
    * @param allowQuoteArg If true, we also permit (eo::quote <term>).
@@ -178,6 +181,18 @@ class ExprParser
                                const std::string& progName);
   /** get variable, else error */
   Expr getVar(const std::string& name);
+  /**
+   * Same as above, but also returns the overloads of name if it is bound to
+   * more than one term, or nullptr otherwise.
+   */
+  Expr getVar(const std::string& name, const std::vector<Expr>*& overloads);
+  /**
+   * Get the overloads of name, if it is bound to more than one term, or
+   * nullptr otherwise. Note that symbols in the parser are overloaded based
+   * on their name, e.g. if (f a) is parsed when f is bound to multiple terms,
+   * then we resolve f based on its argument a.
+   */
+  const std::vector<Expr>* getOverloads(const std::string& name) const;
   /** get variable, else error */
   Expr getProofRule(const std::string& name);
   /** Bind, or throw error otherwise */
@@ -244,6 +259,8 @@ class ExprParser
   Lexer& d_lex;
   /** The state */
   State& d_state;
+  /** The term builder */
+  TermBuilder d_tb;
   /** Are we parsing a signature file? */
   bool d_isSignature;
   /** Are we parsing a reference (*.smt2) file? */

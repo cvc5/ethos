@@ -415,6 +415,9 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       Expr qtt = d_state.mkExpr(Kind::QUOTE_TYPE, {tpTmp});
       Expr progType = d_state.mkProgramType({qtt}, tpTmp);
       Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pname, progType);
+      // TODO: State::mkExpr no longer applies the parser's desugaring or
+      // overload resolution (see parser/term_builder.h). The head is a program
+      // so this is unaffected, but this may need more looking at.
       Expr progPat = d_state.mkExpr(Kind::APPLY, {prog, ct[0]});
       Expr progPair = d_state.mkPair(progPat, cattrCons);
       Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
@@ -547,6 +550,9 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         std::vector<Expr> pchildren;
         pchildren.push_back(prog);
         pchildren.insert(pchildren.end(), ngscope.begin(), ngscope.end());
+        // TODO: State::mkExpr no longer applies the parser's desugaring or
+        // overload resolution (see parser/term_builder.h). The head is a program
+        // so this is unaffected, but this may need more looking at.
         Expr progPat = d_state.mkExpr(Kind::APPLY, pchildren);
         Expr progPair = d_state.mkPair(progPat, ct);
         Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
@@ -849,6 +855,9 @@ void Desugar::finalizeRule(const Expr& e)
   std::vector<Expr> vcpChildren;
   vcpChildren.push_back(prog);
   vcpChildren.insert(vcpChildren.end(), uvars.begin(), uvars.end());
+  // TODO: State::mkExpr no longer applies the parser's desugaring or
+  // overload resolution (see parser/term_builder.h). The head is a program
+  // so this is unaffected, but this may need more looking at.
   Expr progPat = d_state.mkExpr(Kind::APPLY, vcpChildren);
   Expr progPair = d_state.mkPair(progPat, unsound);
   Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
@@ -1299,6 +1308,9 @@ Expr Desugar::mkRequiresModelSat(const Expr& m,
     modelSatArgs.push_back(tgt ? d_peoModelSat : d_peoModelUnsat);
     modelSatArgs.push_back(m);
     modelSatArgs.push_back(test);
+    // TODO: State::mkExpr no longer applies the parser's desugaring or
+    // overload resolution (see parser/term_builder.h). The head is a program
+    // so this is unaffected, but this may need more looking at.
     Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
     return mkRequiresEq(t1, d_state.mkBool(true), ret);
   }
@@ -1308,6 +1320,9 @@ Expr Desugar::mkRequiresModelSat(const Expr& m,
     modelSatArgs.push_back(d_peoModelSat);
     modelSatArgs.push_back(m);
     modelSatArgs.push_back(test);
+    // TODO: State::mkExpr no longer applies the parser's desugaring or
+    // overload resolution (see parser/term_builder.h). The head is a program
+    // so this is unaffected, but this may need more looking at.
     Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
     if (tgt)
     {

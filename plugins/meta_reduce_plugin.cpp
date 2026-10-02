@@ -274,6 +274,9 @@ bool MetaReducePlugin::buildLambdaDefineProgram(const std::string& name,
   {
     appChildren.push_back(e[0][i]);
   }
+  // TODO: State::mkExpr no longer applies the parser's desugaring or
+  // overload resolution (see parser/term_builder.h). The head is a program
+  // so this is unaffected, but this may need more looking at.
   Expr progApp = d_state.mkExpr(Kind::APPLY, appChildren);
   Expr pcase = d_state.mkPair(progApp, e[1]);
   prog = d_state.mkExpr(Kind::PROGRAM, {pcase});

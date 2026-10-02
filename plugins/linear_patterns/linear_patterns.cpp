@@ -67,6 +67,9 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(State& s,
       ssd << "$eo.dv." << j;
       defappc.push_back(s.mkSymbol(Kind::PARAM, ssd.str(), pat[j].getType()));
     }
+    // TODO: State::mkExpr no longer applies the parser's desugaring or
+    // overload resolution (see parser/term_builder.h). The head is a program
+    // so this is unaffected, but this may need more looking at.
     Expr newApp = s.mkExpr(Kind::APPLY, newappc);
     Expr retLin =
         s.mkExpr(Kind::EVAL_IF_THEN_ELSE, {lpat.second, progDef[i][1], newApp});
@@ -75,8 +78,14 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(State& s,
     // only needs a default if the linearized case was not already fully general
     if (!wasDefault)
     {
+      // TODO: State::mkExpr no longer applies the parser's desugaring or
+      // overload resolution (see parser/term_builder.h). The head is a program
+      // so this is unaffected, but this may need more looking at.
       Expr defApp = s.mkExpr(Kind::APPLY, defappc);
       defappc[0] = newProg;
+      // TODO: State::mkExpr no longer applies the parser's desugaring or
+      // overload resolution (see parser/term_builder.h). The head is a program
+      // so this is unaffected, but this may need more looking at.
       Expr defRet = s.mkExpr(Kind::APPLY, defappc);
       Expr defCase = s.mkPair(defApp, defRet);
       currCases.push_back(defCase);

@@ -30,6 +30,7 @@ CmdParser::CmdParser(Lexer& lex,
       d_tc(state.getTypeChecker()),
       d_sts(state.getStats()),
       d_eparser(eparser),
+      d_tb(eparser.getTermBuilder()),
       d_isReference(isReference),
       d_isFinished(false)
 {
@@ -549,8 +550,8 @@ bool CmdParser::parseNextCommand()
       Expr attrVal = d_state.mkExpr(Kind::TUPLE, tupleChildren);
       // we always carry plCons, in case the rule was marked
       // :premise-list as well as :assumption or :conclusion-explicit
-      // simulataneously. We will handle all 3 special cases at once in
-      // State::notifyStep when the rule is applied.
+      // simulataneously. The premise list is handled when parsing the step
+      // and the other two cases in State::notifyStep when the rule is applied.
       d_state.markConstructorKind(rule, Attr::PROOF_RULE, attrVal);
       AttrMap attrs;
       d_eparser.parseAttributeList(Kind::PROOF_RULE, rule, attrs);
@@ -645,8 +646,10 @@ bool CmdParser::parseNextCommand()
           {
             d_lex.parseError("Expected symbol 'lambda' to be defined when parsing define-fun.");
           }
-          Expr bvl = d_state.mkBinderList(lambda.getValue(), vars);
-          rhs = d_state.mkExpr(Kind::APPLY, {lambda, bvl, rhs});
+          Expr bvl = d_tb.mkBinderList(lambda.getValue(), vars);
+          rhs = d_tb.mkExpr(Kind::APPLY,
+                            {lambda, bvl, rhs},
+                            {d_eparser.getOverloads("lambda")});
           std::vector<Expr> types;
           for (Expr& e : vars)
           {
@@ -655,7 +658,8 @@ bool CmdParser::parseNextCommand()
           t = d_state.mkFunctionType(types, t);
         }
         expr = d_state.mkSymbol(Kind::CONST, name, t);
-        Expr a = d_state.mkExpr(Kind::APPLY, {eq, expr, rhs});
+        Expr a = d_tb.mkExpr(
+            Kind::APPLY, {eq, expr, rhs}, {d_eparser.getOverloads("=")});
         Trace("define") << "Define-fun reference assert " << a << std::endl;
         d_state.addReferenceAssert(a);
       }
@@ -940,6 +944,22 @@ bool CmdParser::parseNextCommand()
       if (keyword=="args")
       {
         args = d_eparser.parseExprList();
+      }
+      // if the rule is marked :premise-list, combine the premises
+      Expr ruleInfo = d_state.getAttributeTerm(rule.getValue());
+      if (d_state.getAttributeKind(rule.getValue()) == Attr::PROOF_RULE
+          && ruleInfo[0] != d_state.mkAny())
+      {
+        Expr pl = d_tb.mkPremiseList(ruleInfo[0], premises);
+        if (pl.isNull())
+        {
+          std::stringstream sserr;
+          sserr << "A step of rule " << ruleName << " failed to check."
+                << std::endl;
+          d_tb.mkPremiseList(ruleInfo[0], premises, &sserr);
+          d_lex.parseError(sserr.str());
+        }
+        premises = {pl};
       }
       // compute the conclusion of the proof rule
       Expr concTerm;

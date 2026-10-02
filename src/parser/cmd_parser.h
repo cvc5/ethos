@@ -46,6 +46,8 @@ class CmdParser
   Stats& d_sts;
   /** The term parser */
   ExprParser& d_eparser;
+  /** The term builder of the expression parser */
+  TermBuilder& d_tb;
   /** Map strings to tokens */
   std::map<std::string, Token> d_table;
   /** */

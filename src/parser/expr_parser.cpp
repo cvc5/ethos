@@ -112,6 +112,7 @@ ExprParser::ExprParser(Lexer& lex,
                        bool isReference)
     : d_lex(lex),
       d_state(state),
+      d_tb(state),
       d_isSignature(isSignature),
       d_isReference(isReference)
 {
@@ -154,6 +155,18 @@ public:
   ParseCtx d_ctx;
   size_t d_nscopes;
   std::vector<Expr> d_args;
+  /** The overloads of d_args, see TermBuilder::Overloads */
+  TermBuilder::Overloads d_overloads;
+  /** Add argument a, whose overloads are ov */
+  void addArg(const Expr& a, const std::vector<Expr>* ov)
+  {
+    d_args.push_back(a);
+    if (ov != nullptr)
+    {
+      d_overloads.resize(d_args.size(), nullptr);
+      d_overloads.back() = ov;
+    }
+  }
   void pop(State& s)
   {
     // process the scope change
@@ -168,6 +181,8 @@ Expr ExprParser::parseExpr()
 {
   // the last parsed term
   Expr ret;
+  // the overloads of the last parsed term, if it was an overloaded symbol
+  const std::vector<Expr>* retOverloads = nullptr;
   // a request was made to update the current parse context
   bool needsUpdateCtx = false;
   // the last token we read
@@ -181,6 +196,7 @@ Expr ExprParser::parseExpr()
   {
     // At this point, we are ready to parse the next term
     tok = d_lex.nextToken();
+    retOverloads = nullptr;
     Expr currExpr;
     switch (tok)
     {
@@ -248,7 +264,8 @@ Expr ExprParser::parseExpr()
               break;
             }
             std::vector<Expr> args;
-            Expr v = getVar(name);
+            const std::vector<Expr>* vov = nullptr;
+            Expr v = getVar(name, vov);
             args.push_back(v);
             size_t nscopes = 0;
             // if a binder, read a variable list and push a scope
@@ -280,7 +297,7 @@ Expr ExprParser::parseExpr()
                     {
                       d_lex.parseError("Expected non-empty sorted variable list");
                     }
-                    Expr vl = d_state.mkBinderList(v.getValue(), vs);
+                    Expr vl = d_tb.mkBinderList(v.getValue(), vs);
                     args.push_back(vl);
                   }
                   else
@@ -293,7 +310,7 @@ Expr ExprParser::parseExpr()
                     {
                       d_lex.parseError("Expected non-empty let list");
                     }
-                    Expr vl = d_state.mkLetBinderList(v.getValue(), lls);
+                    Expr vl = d_tb.mkLetBinderList(v.getValue(), lls);
                     args.push_back(vl);
                   }
                 }
@@ -304,6 +321,10 @@ Expr ExprParser::parseExpr()
               }
             }
             pstack.emplace_back(ParseCtx::NEXT_ARG, nscopes, args);
+            if (vov != nullptr)
+            {
+              pstack.back().d_overloads.push_back(vov);
+            }
           }
           break;
           case Token::UNTERMINATED_QUOTED_SYMBOL:
@@ -339,7 +360,7 @@ Expr ExprParser::parseExpr()
           d_lex.parseError("Expected an operator for _");
         }
         // Construct the application term specified by tstack.back()
-        ret = d_state.mkExpr(Kind::APPLY, sf.d_args);
+        ret = d_tb.mkExpr(Kind::APPLY, sf.d_args, sf.d_overloads);
         //typeCheck(ret);
         // pop the stack
         sf.pop(d_state);
@@ -351,7 +372,7 @@ Expr ExprParser::parseExpr()
       case Token::QUOTED_SYMBOL:
       {
         std::string name = tokenStrToSymbol(tok);
-        ret = getVar(name);
+        ret = getVar(name, retOverloads);
         if (ret.getKind()==Kind::BUILTIN_CONST)
         {
           std::stringstream ss;
@@ -469,8 +490,9 @@ Expr ExprParser::parseExpr()
         {
           Assert(!ret.isNull());
           // add it to the list of arguments and clear
-          sf.d_args.push_back(ret);
+          sf.addArg(ret, retOverloads);
           ret = d_null;
+          retOverloads = nullptr;
         }
         break;
         // ------------------------- let terms
@@ -911,7 +933,7 @@ bool ExprParser::parseDatatypesDef(
       std::vector<Expr> dapp;
       dapp.push_back(dt);
       dapp.insert(dapp.end(), params.begin(), params.end());
-      dti = d_state.mkExpr(Kind::APPLY, dapp);
+      dti = d_tb.mkExpr(Kind::APPLY, dapp);
     }
     std::vector<std::pair<std::string, Expr>> toBind;
     if (rebindDt)
@@ -1262,6 +1284,25 @@ Expr ExprParser::getVar(const std::string& name)
     d_lex.parseError(ss.str());
   }
   return ret;
+}
+
+Expr ExprParser::getVar(const std::string& name,
+                        const std::vector<Expr>*& overloads)
+{
+  const std::vector<Expr>* bs = d_state.getBindings(name);
+  if (bs == nullptr)
+  {
+    // report the error
+    return getVar(name);
+  }
+  overloads = bs->size() >= 2 ? bs : nullptr;
+  return bs->back();
+}
+
+const std::vector<Expr>* ExprParser::getOverloads(const std::string& name) const
+{
+  const std::vector<Expr>* bs = d_state.getBindings(name);
+  return (bs != nullptr && bs->size() >= 2) ? bs : nullptr;
 }
 
 Expr ExprParser::getProofRule(const std::string& name)

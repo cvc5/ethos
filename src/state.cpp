@@ -198,6 +198,8 @@ State::State(Options& opts, Stats& stats)
   Expr consType = mkFunctionType(argTypes, d_listType);
   d_listCons = Expr(mkSymbolInternal(Kind::CONST, "eo::List::cons", consType));
   bind("eo::List::cons", d_listCons);
+  // This impacts how eo::List::cons is parsed and how list operators, e.g.
+  // eo::list_len, are evaluated on it. Note that mkList does not rely on it.
   markConstructorKind(d_listCons, Attr::RIGHT_ASSOC_NIL, d_listNil);
 
   // any is used internally but is not avaiable to the user
@@ -250,29 +252,16 @@ void State::popScope()
   while (i > lastSize)
   {
     i--;
-    // Check if overloaded, which is the case if the last overloaded
-    // declaration had the same name.
-    if (!d_overloadedDecls.empty() && d_overloadedDecls.back()==d_decls[i])
+    std::map<std::string, std::vector<Expr>>::iterator its =
+        d_symTable.find(d_decls[i]);
+    Assert(its != d_symTable.end() && !its->second.empty());
+    // revert to the previous binding, if one exists
+    its->second.pop_back();
+    if (its->second.empty())
     {
-      d_overloadedDecls.pop_back();
-      std::map<std::string, Expr>::iterator its = d_symTable.find(d_decls[i]);
-      Assert (its!=d_symTable.end());
-      // it should be overloaded
-      std::vector<Expr>& ov = d_overloads[d_decls[i]];
-      // we always have at least 2 overloads
-      Assert (ov.size()>=2);
-      // was overloaded, we revert the binding
-      ov.pop_back();
-      Expr tmp = ov.back();
-      its->second = tmp;
-      if (ov.size()==1)
-      {
-        d_overloads.erase(d_decls[i]);
-      }
-      continue;
+      Trace("overload") << "** unbind " << d_decls[i] << std::endl;
+      d_symTable.erase(its);
     }
-    Trace("overload") << "** unbind " << d_decls[i] << std::endl;
-    d_symTable.erase(d_decls[i]);
   }
   d_decls.resize(lastSize);
 }
@@ -651,62 +640,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   if (k==Kind::APPLY)
   {
     Assert(!children.empty());
-    // see if there is a special way of building terms for the head
+    // Note that the desugaring of applications based on the attributes of
+    // the head (e.g. :right-assoc-nil) is done by the parser, see
+    // TermBuilder in parser/term_builder.h.
     ExprValue* hd = vchildren[0];
-    AppInfo* ai = getAppInfo(hd);
-    if (ai!=nullptr)
-    {
-      if (ai->d_kind!=Kind::NONE)
-      {
-        Trace("state-debug") << "Process builtin app " << ai->d_kind << std::endl;
-        if (ai->d_kind==Kind::FUNCTION_TYPE)
-        {
-          // functions (from parsing) are flattened here
-          std::vector<Expr> achildren(children.begin()+1, children.end()-1);
-          return mkFunctionType(achildren, children.back());
-        }
-        else if (ai->d_kind == Kind::APPLY)
-        {
-          // Applications (_ f ...) do *not* recursively desugar.
-          // remove the dummy operator "_"
-          vchildren.erase(vchildren.begin(), vchildren.begin() + 1);
-          // return the curried version
-          return Expr(vchildren.size() > 2
-                          ? mkApplyInternal(vchildren)
-                          : mkExprInternal(Kind::APPLY, vchildren));
-        }
-        // another builtin operator, possibly APPLY
-        std::vector<Expr> achildren(children.begin()+1, children.end());
-        // must call mkExpr again, since we may auto-evaluate
-        return mkExpr(ai->d_kind, achildren);
-      }
-      if (ai->d_isOverloaded)
-      {
-        Trace("overload") << "Use overload when constructing " << k << " " << children << std::endl;
-        std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
-        Assert (ov.size()>=2);
-        Expr ret = getOverloadInternal(ov, children, nullptr, true);
-        if (!ret.isNull())
-        {
-          Trace("overload") << "...found overload " << ret << std::endl;
-          return ret;
-        }
-        Warning() << "No overload found when constructing application "
-                  << children << std::endl;
-      }
-      // Compute the "constructor term" for the operator, which may involve
-      // type inference. We store the constructor term in consTerm and operator
-      // in hdTerm, where notice hdTerm is of kind PARAMETERIZED if consTerm
-      // (prior to resolution) was PARAMETERIZED. So, for example, applying
-      // `bvor` to `a` of type `(BitVec 4)` results in
-      //   consTerm := #b0000.
-      Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
-      Expr ret = mkApplyAttr(ai, vchildren, consTerm);
-      if (!ret.isNull())
-      {
-        return ret;
-      }
-    }
     Kind hk = hd->getKind();
     if (hk==Kind::LAMBDA)
     {
@@ -787,58 +724,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 << ", " << children.size() << " arguments" << std::endl;
     }
   }
-  else if (k == Kind::AS_RETURN)
-  {
-    // (as nil (List Int)) --> (_ nil (List Int))
-    Attr ck = getAttributeKind(vchildren[0]);
-    if ((ck == Attr::AMB_DATATYPE_CONSTRUCTOR || ck == Attr::AMB)
-        && children.size() == 2)
-    {
-      Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
-      return mkExpr(Kind::APPLY_OPAQUE, {children[0], children[1]});
-    }
-    // note we don't support other uses of `as` for symbol disambiguation yet,
-    // we fallthrough and construct the bogus term of kind AS_RETURN.
-  }
-  else if (k==Kind::AS)
-  {
-    // if it has 2 children, process it, otherwise we make the bogus term of
-    // kind AS below
-    if (vchildren.size()==2)
-    {
-      Trace("overload") << "process eo::as " << children[0] << " " << children[1] << std::endl;
-      AppInfo* ai = getAppInfo(vchildren[0]);
-      Expr ret = children[0];
-      std::pair<std::vector<Expr>, Expr> ftype = children[1].getFunctionType();
-      Expr reto;
-      // look up the overload
-      std::vector<Expr> dummyChildren;
-      dummyChildren.push_back(children[1]);
-      for (const Expr& t : ftype.first)
-      {
-        dummyChildren.emplace_back(mkSymbol(Kind::CONST, "tmp", t));
-      }
-      if (ai!=nullptr && ai->d_isOverloaded)
-      {
-        Trace("overload") << "...overloaded" << std::endl;
-        std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
-        Assert (ov.size()>=2);
-        reto = getOverloadInternal(
-            ov, dummyChildren, ftype.second.getValue(), false);
-      }
-      else
-      {
-        Trace("overload") << "...not overloaded" << std::endl;
-        reto = getOverloadInternal(
-            {children[0]}, dummyChildren, ftype.second.getValue(), false);
-      }
-      if (!reto.isNull())
-      {
-        Trace("overload") << "...found overload " << reto << " " << d_tc.getType(reto) << std::endl;
-        return reto;
-      }
-    }
-  }
   return Expr(mkExprInternal(k, vchildren));
 }
 
@@ -890,14 +775,16 @@ Expr State::mkParameterized(const ExprValue* hd, const std::vector<Expr>& params
 
 Expr State::mkList(const std::vector<Expr>& args)
 {
-  if (args.empty())
+  // construct (eo::List::cons a1 (eo::List::cons a2 ... eo::List::nil))
+  // directly, i.e. without relying on the desugaring of eo::List::cons.
+  ExprValue* cons = d_listCons.getValue();
+  ExprValue* curr = d_listNil.getValue();
+  for (size_t i = args.size(); i > 0; i--)
   {
-    return d_listNil;
+    ExprValue* ca = mkExprInternal(Kind::APPLY, {cons, args[i - 1].getValue()});
+    curr = mkExprInternal(Kind::APPLY, {ca, curr});
   }
-  std::vector<Expr> largs;
-  largs.push_back(d_listCons);
-  largs.insert(largs.end(), args.begin(), args.end());
-  return mkExpr(Kind::APPLY, largs);
+  return Expr(curr);
 }
 
 Expr State::mkDisambiguatedType(const Expr& disambPat,
@@ -1001,236 +888,6 @@ ExprValue* State::mkLiteralInternal(Literal& l)
   return ev;
 }
 
-Expr State::mkApplyAttr(AppInfo* ai,
-                        const std::vector<ExprValue*>& vchildren,
-                        const Expr& consTerm)
-{
-  ExprValue* hd = vchildren[0];
-  Trace("state-debug") << "Process category " << ai->d_attrCons << " for "
-                       << Expr(vchildren[0]) << std::endl;
-  size_t nchild = vchildren.size();
-  Trace("state-debug") << "...updated " << consTerm << std::endl;
-  // if it has a constructor attribute
-  switch (ai->d_attrCons)
-  {
-    case Attr::LEFT_ASSOC:
-    case Attr::RIGHT_ASSOC:
-    case Attr::LEFT_ASSOC_NIL:
-    case Attr::RIGHT_ASSOC_NIL:
-    case Attr::RIGHT_ASSOC_NS_NIL:
-    case Attr::LEFT_ASSOC_NS_NIL:
-    {
-      // This means that we don't construct bogus terms when e.g.
-      // right-assoc-nil operators are used in side condition bodies.
-      // note that nchild>=2 treats e.g. (or a) as (or a false).
-      // checking nchild>2 treats (or a) as a function Bool -> Bool.
-      if (nchild >= 2)
-      {
-        bool isLeft = (ai->d_attrCons == Attr::LEFT_ASSOC
-                       || ai->d_attrCons == Attr::LEFT_ASSOC_NIL
-                       || ai->d_attrCons == Attr::LEFT_ASSOC_NS_NIL);
-        bool isNsNil = (ai->d_attrCons == Attr::RIGHT_ASSOC_NS_NIL
-                        || ai->d_attrCons == Attr::LEFT_ASSOC_NS_NIL);
-        bool isNil = (isNsNil || ai->d_attrCons == Attr::RIGHT_ASSOC_NIL
-                      || ai->d_attrCons == Attr::LEFT_ASSOC_NIL);
-        size_t i = 1;
-        ExprValue* curr = vchildren[isLeft ? i : nchild - i];
-        std::vector<ExprValue*> cc{hd, nullptr, nullptr};
-        size_t nextIndex = isLeft ? 2 : 1;
-        size_t prevIndex = isLeft ? 1 : 2;
-        size_t nlistTerms = 0;
-        if (isNil)
-        {
-          if (getAttributeKind(curr) != Attr::LIST)
-          {
-            // if the last term is not marked as a list variable and
-            // we have a null terminator, then we insert the null terminator
-            Trace("state-debug")
-                << "...insert nil terminator " << consTerm << std::endl;
-            if (consTerm.isNull())
-            {
-              // if we failed to infer a nil terminator (likely due to
-              // a non-ground parameter), then we insert a placeholder
-              // (eo::nil f (eo::typeof t1)), which if t1 is non-ground
-              // will evaluate to the proper nil terminator when
-              // instantiated.
-              Expr typ =
-                  Expr(mkExprInternal(Kind::EVAL_TYPE_OF, {vchildren[1]}));
-              curr = mkExprInternal(Kind::EVAL_NIL,
-                                    {vchildren[0], typ.getValue()});
-            }
-            else
-            {
-              curr = consTerm.getValue();
-            }
-            i--;
-          }
-        }
-        // now, add the remaining children
-        i++;
-        while (i < nchild)
-        {
-          cc[prevIndex] = curr;
-          cc[nextIndex] = vchildren[isLeft ? i : nchild - i];
-          // if the "head" child is marked as list, we construct concatenation
-          if (isNil && getAttributeKind(cc[nextIndex]) == Attr::LIST)
-          {
-            curr = mkExprInternal(Kind::EVAL_LIST_CONCAT, cc);
-          }
-          else
-          {
-            nlistTerms++;
-            curr = mkApplyInternal(cc);
-          }
-          i++;
-        }
-        // if we are a non-singleton list with fewer than 2 non-list children
-        if (isNsNil && nlistTerms<2)
-        {
-          // If we are a "non-singleton" kind, we add singleton elimination.
-          // Note that this case is applied possibly on ground arguments,
-          // in contrast to the case of EVAL_LIST_CONCAT above which requires a
-          // :list annotation, which can only be applied to parameters. Hence,
-          // we must call mkExpr in case we evaluate this application
-          // immediately.
-          std::vector<Expr> ccse;
-          ccse.emplace_back(hd);
-          ccse.emplace_back(curr);
-          return mkExpr(Kind::EVAL_LIST_SINGLETON_ELIM, ccse);
-        }
-        Trace("type_checker")
-            << "...return for " << Expr(vchildren[0]) << std::endl;
-        return Expr(curr);
-      }
-      else
-      {
-        // Otherwise we are applying the operator to zero arguments. This
-        // can never occur in standard parsing since it is not possible
-        // to apply a function to zero arguments. However, this case may
-        // arise if e.g. a pairwise or chainable operator is applied to
-        // exactly one argument, e.g. (distinct t) is equivalent to true.
-        return consTerm;
-      }
-    }
-    break;
-    case Attr::CHAINABLE:
-    {
-      std::vector<Expr> cchildren;
-      Assert(!consTerm.isNull());
-      cchildren.push_back(consTerm);
-      std::vector<ExprValue*> cc{hd, nullptr, nullptr};
-      for (size_t i = 1, nchild = vchildren.size() - 1; i < nchild; i++)
-      {
-        cc[1] = vchildren[i];
-        cc[2] = vchildren[i + 1];
-        cchildren.emplace_back(mkApplyInternal(cc));
-      }
-      if (cchildren.size() == 2)
-      {
-        // no need to chain
-        return cchildren[1];
-      }
-      // note this could loop
-      return mkExpr(Kind::APPLY, cchildren);
-    }
-    break;
-    case Attr::PAIRWISE:
-    {
-      std::vector<Expr> cchildren;
-      Assert(!consTerm.isNull());
-      cchildren.push_back(consTerm);
-      std::vector<ExprValue*> cc{hd, nullptr, nullptr};
-      for (size_t i = 1, nchild = vchildren.size(); i < nchild - 1; i++)
-      {
-        for (size_t j = i + 1; j < nchild; j++)
-        {
-          cc[1] = vchildren[i];
-          cc[2] = vchildren[j];
-          cchildren.emplace_back(mkApplyInternal(cc));
-        }
-      }
-      if (cchildren.size() == 2)
-      {
-        // no need to chain
-        return cchildren[1];
-      }
-      // note this could loop
-      return mkExpr(Kind::APPLY, cchildren);
-    }
-    break;
-    case Attr::ARG_LIST:
-    {
-      Expr argList;
-      // If there is only one argument, and it was marked :list, then it is
-      // not desugared.
-      if (vchildren.size() == 2 && getAttributeKind(vchildren[1]) == Attr::LIST)
-      {
-        argList = Expr(vchildren[1]);
-      }
-      else
-      {
-        std::vector<Expr> cchildren;
-        Assert(!consTerm.isNull());
-        cchildren.push_back(consTerm);
-        for (size_t i = 1, nchild = vchildren.size(); i < nchild; i++)
-        {
-          cchildren.emplace_back(vchildren[i]);
-        }
-        argList = mkExpr(Kind::APPLY, cchildren);
-      }
-      return Expr(
-          mkExprInternal(Kind::APPLY, {vchildren[0], argList.getValue()}));
-    }
-    break;
-    case Attr::OPAQUE:
-    {
-      // determine how many opaque children
-      Expr hdt = Expr(hd);
-      const Expr& t = d_tc.getType(hdt);
-      Assert(t.getKind() == Kind::FUNCTION_TYPE);
-      // get the number of opaque arguments, stored as the constructor term
-      Expr acons = ai->d_attrConsTerm;
-      Assert(acons.getKind() == Kind::NUMERAL);
-      Assert(acons.getValue()->asLiteral()->d_int.fitsUnsignedInt());
-      size_t nargs = acons.getValue()->asLiteral()->d_int.toUnsignedInt();
-      if (nargs >= vchildren.size())
-      {
-        Warning() << "Too few arguments when applying opaque symbol " << hdt
-                  << std::endl;
-      }
-      else
-      {
-        // Note we do not curry APPLY_OPAQUE applications, as they are simpler
-        // to reason about in flattened form.
-        Assert (nargs < vchildren.size());
-        std::vector<ExprValue*> ochildren(vchildren.begin(),
-                                          vchildren.begin() + 1 + nargs);
-        Expr op = Expr(mkExprInternal(Kind::APPLY_OPAQUE, ochildren));
-        Trace("opaque") << "Construct opaque operator " << op << std::endl;
-        if (nargs + 1 == vchildren.size())
-        {
-          Trace("opaque") << "...return operator" << std::endl;
-          return op;
-        }
-        // higher order
-        std::vector<ExprValue*> rchildren;
-        rchildren.push_back(op.getValue());
-        rchildren.insert(
-            rchildren.end(), vchildren.begin() + 1 + nargs, vchildren.end());
-        Trace("opaque") << "...return operator applied to children"
-                        << std::endl;
-        if (rchildren.size() > 2)
-        {
-          return Expr(mkApplyInternal(rchildren));
-        }
-        return Expr(mkExprInternal(Kind::APPLY, rchildren));
-      }
-    }
-    default: break;
-  }
-  return d_null;
-}
-
 ExprValue* State::mkApplyInternal(const std::vector<ExprValue*>& children)
 {
   Assert(children.size() > 2);
@@ -1279,67 +936,19 @@ bool State::bind(const std::string& name, const Expr& e)
     d_ruleSymTable[name] = e;
     return true;
   }
-  // otherwise use the main symbol table
-  std::map<std::string, Expr>::iterator its = d_symTable.find(name);
-  if (its!=d_symTable.end())
+  // otherwise use the main symbol table, where we remember previous bindings
+  std::vector<Expr>& bs = d_symTable[name];
+  if (!bs.empty())
   {
     Trace("overload") << "** overload: " << name << std::endl;
-    // if already bound, mark as overloaded
-    AppInfo& ain = d_appData[e.getValue()];
-    ain.d_isOverloaded = true;
-    ain.d_overloadName = name;
-    std::vector<Expr>& ov = d_overloads[name];
-    if (ov.empty())
-    {
-      // if first time overloading, add the original symbol
-      ov.emplace_back(its->second);
-    }
-    ov.emplace_back(e);
-    // add to declaration
-    if (!d_declsSizeCtx.empty())
-    {
-      d_overloadedDecls.emplace_back(name);
-    }
   }
-  // Trace("state-debug") << "bind " << name << " -> " << &e << std::endl;
-  d_symTable[name] = e;
+  bs.emplace_back(e);
   // only have to remember if not at global scope
   if (!d_declsSizeCtx.empty())
   {
     d_decls.emplace_back(name);
   }
   return true;
-}
-
-Expr State::mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs)
-{
-  Assert (!vs.empty());
-  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(ev);
-  Assert (it!=d_appData.end());
-  std::vector<Expr> vlist;
-  vlist.push_back(it->second.d_attrConsTerm);
-  vlist.insert(vlist.end(), vs.begin(), vs.end());
-  return mkExpr(Kind::APPLY, vlist);
-}
-
-Expr State::mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Expr, Expr>>& lls)
-{
-  Assert (!lls.empty());
-  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(ev);
-  Assert (it!=d_appData.end());
-  Expr cons = it->second.d_attrConsTerm;
-  Assert (cons.getKind()==Kind::TUPLE && cons.getNumChildren()==2);
-  Expr pairCons = cons[0];
-  Expr listCons = cons[1];
-  std::vector<Expr> vs;
-  for (const std::pair<Expr, Expr>& ll : lls)
-  {
-    vs.emplace_back(mkExpr(Kind::APPLY, {pairCons, ll.first, ll.second}));
-  }
-  std::vector<Expr> vlist;
-  vlist.push_back(listCons);
-  vlist.insert(vlist.end(), vs.begin(), vs.end());
-  return mkExpr(Kind::APPLY, vlist);
 }
 
 Attr State::getAttributeKind(const ExprValue* v) const
@@ -1364,12 +973,24 @@ Expr State::getAttributeTerm(const ExprValue* v) const
 
 Expr State::getVar(const std::string& name) const
 {
-  std::map<std::string, Expr>::const_iterator it = d_symTable.find(name);
-  if (it!=d_symTable.end())
+  std::map<std::string, std::vector<Expr>>::const_iterator it =
+      d_symTable.find(name);
+  if (it != d_symTable.end())
   {
-    return it->second;
+    return it->second.back();
   }
   return d_null;
+}
+
+const std::vector<Expr>* State::getBindings(const std::string& name) const
+{
+  std::map<std::string, std::vector<Expr>>::const_iterator it =
+      d_symTable.find(name);
+  if (it != d_symTable.end())
+  {
+    return &it->second;
+  }
+  return nullptr;
 }
 
 Expr State::getBoundVar(const std::string& name, const Expr& type)
@@ -1384,9 +1005,12 @@ Expr State::getBoundVar(const std::string& name, const Expr& type)
 
 Expr State::getProofRule(const std::string& name) const
 {
-  const std::map<std::string, Expr>& t = d_opts.d_ruleSymTable ? d_ruleSymTable : d_symTable;
-  std::map<std::string, Expr>::const_iterator it = t.find(name);
-  if (it!=t.end())
+  if (!d_opts.d_ruleSymTable)
+  {
+    return getVar(name);
+  }
+  std::map<std::string, Expr>::const_iterator it = d_ruleSymTable.find(name);
+  if (it != d_ruleSymTable.end())
   {
     return it->second;
   }
@@ -1450,11 +1074,6 @@ bool State::notifyStep(const std::string& name,
     children.emplace_back(tupleVal[3]);
     // arguments first
     children.insert(children.end(), args.begin(), args.end());
-    Expr plCons;
-    if (tupleVal[0]!=d_any)
-    {
-      plCons = tupleVal[0];
-    }
     bool isAssume = tupleVal[1]==d_true;
     bool isConcExplicit = tupleVal[2]==d_true;
     if (isConcExplicit)
@@ -1504,60 +1123,9 @@ bool State::notifyStep(const std::string& name,
       }
       return false;
     }
-    if (!plCons.isNull())
-    {
-      // this collects the premises (pf F1) ... (pf Fn) and constructs
-      // e.g. (pf (and F1 ... Fn)), where and is the operator marked with
-      // :premise-list.
-      std::vector<Expr> achildren;
-      achildren.push_back(plCons);
-      for (Expr& e : premises)
-      {
-        // should be proofs
-        if (e.getKind() != Kind::PROOF)
-        {
-          if (err)
-          {
-            (*err) << "Provided premise is not a proof" << std::endl;
-          }
-          return false;
-        }
-        achildren.push_back(e[0]);
-      }
-      // TODO: do not special case this?
-      Expr ap;
-      if (achildren.size()==1)
-      {
-        // the nil terminator if applied to empty list
-        AppInfo* aic = getAppInfo(plCons.getValue());
-        Attr ck = aic->d_attrCons;
-        if (isListNilAttr(ck))
-        {
-          ap = aic->d_attrConsTerm;
-        }
-        else
-        {
-          if (err)
-          {
-            (*err) << "Premise list constructor " << plCons
-                   << " has no nil element" << std::endl;
-          }
-          return false;
-        }
-      }
-      else
-      {
-        ap = mkExpr(Kind::APPLY, achildren);
-      }
-      // collects to a proof
-      Expr n = mkProof(ap);
-      children.push_back(n);
-    }
-    else
-    {
-      // otherwise ordinary premises
-      children.insert(children.end(), premises.begin(), premises.end());
-    }
+    // Note that if the rule was marked :premise-list, the parser has already
+    // combined the premises, see CmdParser.
+    children.insert(children.end(), premises.begin(), premises.end());
     if (children.size() > 1)
     {
       // evaluate the program app
@@ -1825,64 +1393,6 @@ Expr State::mkBetaReduceInternal(const std::vector<ExprValue*>& children)
   Trace("state") << "BETA_REDUCE " << Expr((*hd)[1]) << " " << ctx << " = "
                  << ret << std::endl;
   return ret;
-}
-
-Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
-                                const std::vector<Expr>& children,
-                                const ExprValue* retType,
-                                bool retApply)
-{
-  Assert (!overloads.empty());
-  Trace("overload") << "Get overload" << std::endl;
-  std::vector<ExprValue*> vchildren;
-  for (const Expr& c : children)
-  {
-    vchildren.push_back(c.getValue());
-  }
-  // try overloads in order until one is found
-  for (size_t i=0, noverloads = overloads.size(); i<noverloads; i++)
-  {
-    // search in reverse order, i.e. the last bound symbol takes precendence
-    size_t ii = (noverloads-1)-i;
-    ExprValue* hd = overloads[ii].getValue();
-    vchildren[0] = hd;
-    Expr hde(hd);
-    Trace("overload") << "Try " << d_tc.getType(hde) << std::endl;
-    AppInfo* ai = getAppInfo(hd);
-    Expr x;
-    if (ai != nullptr)
-    {
-      Trace("overload") << "...has property " << ai->d_attrCons << std::endl;
-      Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
-      x = mkApplyAttr(ai, vchildren, consTerm);
-    }
-    if (x.isNull())
-    {
-      x = Expr(vchildren.size() > 2 ? mkApplyInternal(vchildren)
-                                    : mkExprInternal(Kind::APPLY, vchildren));
-    }
-    Expr t = d_tc.getType(x);
-
-    Trace("overload") << "type of " << x << " is " << t << std::endl;
-    // if term is well-formed, and matches the return type if it exists
-    if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
-    {
-      Trace("overload") << "...return success" << std::endl;
-      // an overloaded define macro is beta-reduced eagerly, as in mkExpr
-      if (retApply && hd->getKind() == Kind::LAMBDA)
-      {
-        Expr ret = mkBetaReduceInternal(vchildren);
-        if (!ret.isNull())
-        {
-          return ret;
-        }
-      }
-      // return the operator, do not check the remainder
-      return retApply ? x : overloads[ii];
-    }
-  }
-  // otherwise, none found, return null
-  return d_null;
 }
 
 }  // namespace ethos

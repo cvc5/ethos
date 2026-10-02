@@ -88,6 +88,8 @@ class State
 {
   friend class TypeChecker;
   friend class ExprValue;
+  // the parser's term builder uses the internal methods for constructing terms
+  friend class TermBuilder;
 
  public:
   State(Options& opts, Stats& stats);
@@ -179,12 +181,19 @@ class State
   /** Make pair */
   Expr mkPair(const Expr& t1, const Expr& t2);
   /**
-   * Makes expression with given kind and childen. This method will apply
-   * desugaring based on the attributes of the operator head, i.e. the first
-   * expression in children.
+   * Makes expression with given kind and childen. Applications are curried,
+   * applications of lambdas are beta-reduced and applications of programs and
+   * literal operators are evaluated eagerly where possible. N-ary literal
+   * operators are left-associated, e.g. (eo::add t1 t2 t3) is
+   * (eo::add (eo::add t1 t2) t3).
+   *
+   * Note this method does not apply the desugaring based on the attributes of
+   * the operator head (e.g. :right-assoc-nil) or the syntax of builtin
+   * operators (e.g. ->, _, eo::as), nor does it resolve overloading. This is
+   * done in the parser, see TermBuilder in parser/term_builder.h.
    */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
-  /** Same as above, without desugaring */
+  /** Same as above, without evaluation */
   Expr mkRawExpr(Kind k, const std::vector<Expr>& children);
   /** make true */
   Expr mkTrue() const;
@@ -206,8 +215,8 @@ class State
    */
   Expr mkParameterized(const ExprValue* hd, const std::vector<Expr>& params);
   /**
-   * Make (eo::List::Cons <args>) if args is non-empty or eo::List::nil
-   * otherwise.
+   * Make (eo::List::cons a1 (eo::List::cons a2 ... eo::List::nil)) for args
+   * a1 ... an. Returns eo::List::nil if args is empty.
    */
   Expr mkList(const std::vector<Expr>& args);
   /**
@@ -239,12 +248,18 @@ class State
    * term impacts how the symbol v is parsed on interpreted.
    */
   Expr getAttributeTerm(const ExprValue* v) const;
-  /** make binder list */
-  Expr mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs);
-  /** */
-  Expr mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Expr, Expr>>& lls);
-  /** Get the variable with the given name or nullptr if it does not exist */
+  /**
+   * Get the variable with the given name or nullptr if it does not exist. If
+   * name is bound to multiple terms, this returns the most recent one.
+   */
   Expr getVar(const std::string& name) const;
+  /**
+   * Get all terms the given name is bound to in the current scope, in the
+   * order they were bound, or nullptr if the name is not bound. Names bound
+   * to more than one term are interpreted as overloaded by the parser. The
+   * returned pointer is valid until the next call to bind or popScope.
+   */
+  const std::vector<Expr>* getBindings(const std::string& name) const;
   /**
    * Get the bound variable with the given type. This method always returns the
    * same variable for the same name and type.
@@ -263,15 +278,17 @@ class State
    * Notify step, called when a step command is parsed.
    * This method determines the argument list to a proof rule in a step or
    * step-pop and computes the result of what the step proves. This takes into
-   * account whether the rule was marked :premise-list, :conclusion-explicit,
-   * or :assumption (for step-pop commands), or whether the plugin can provide
-   * the result.
+   * account whether the rule was marked :conclusion-explicit or :assumption
+   * (for step-pop commands), or whether the plugin can provide the result.
+   * If the rule was marked :premise-list, the caller is responsible for
+   * combining the premises into a single premise beforehand.
    * Note that result may be a term that is not of type Bool. This check is
    * instead done in the parser.
    * @param name The name of the step.
    * @param rule The proof rule being applied.
    * @param proven The conclusion of the proof rule, if provided.
-   * @param premises The provided premises of the proof rule.
+   * @param premises The premises of the proof rule, after combining them for
+   * rules marked :premise-list.
    * @param args The provided arguments of the proof rule.
    * @param isPop Whether we were a step-pop.
    * @param result The result proven by the step.
@@ -349,19 +366,6 @@ class State
   bool markIncluded(const Filepath& s);
   /** mark deleted */
   void markDeleted(ExprValue* e);
-  /**
-   * Make (<APPLY> children) based on attribute. Returns the null term if the
-   * attribute does not impact how to build the application.
-   * @param ai The attribute of the head.
-   * @param vchildren The children, including the head term.
-   * @param consTerm The computed constructor term correspond to the
-   * application.
-   * @return The application of vchildren based on ai, or the null term if
-   * the default construction should be used to construct the application.
-   */
-  Expr mkApplyAttr(AppInfo* ai,
-                   const std::vector<ExprValue*>& vchildren,
-                   const Expr& consTerm);
   /** Make (<APPLY> children), curried. */
   ExprValue* mkApplyInternal(const std::vector<ExprValue*>& children);
   /**
@@ -381,26 +385,6 @@ class State
                               const Expr& type);
   /** Make literal internal */
   ExprValue* mkLiteralInternal(Literal& l);
-  /**
-   * Get overload internal. This determines which one of the operators
-   * in overloads (if any) should be applied in the Kind::APPLY we are
-   * constructing with the given children.
-   * @param overloads The candidate operators.
-   * @param children The children of the Kind::APPLY we are trying to
-   * construct. This includes a head operator.
-   * @param retType If non-null, this is required return type of the
-   * application.
-   * @param retApply If true, we return the application of the
-   * appropriate overloaded constructor to children; otherwise we return the
-   * overloaded constructor itself.
-   * @return If possible, one of the elements of overloads that meets
-   * the above requirements. If multiple are possible, we return the
-   * first only. If none are possible, we return the null expression.
-   */
-  Expr getOverloadInternal(const std::vector<Expr>& overloads,
-                           const std::vector<Expr>& children,
-                           const ExprValue* retType = nullptr,
-                           bool retApply = false);
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   const AppInfo* getAppInfo(const ExprValue* e) const;
@@ -411,27 +395,18 @@ class State
   /** Bind builtin eval */
   void bindBuiltinEval(const std::string& name, Kind k, Attr ac = Attr::NONE);
   //--------------------- parsing state
-  /** The symbol table, mapping symbols */
-  std::map<std::string, Expr> d_symTable;
+  /**
+   * The symbol table, mapping symbols to the terms they are bound to, where
+   * the last one is the current binding. Symbols bound to multiple terms are
+   * either shadowed or overloaded; the parser makes this distinction.
+   */
+  std::map<std::string, std::vector<Expr>> d_symTable;
   /** Symbol table for proof rules, if using separate table */
   std::map<std::string, Expr> d_ruleSymTable;
   /**
    * The list of declared symbols in the order they were bound.
    */
   std::vector<std::string> d_decls;
-  /**
-   * The list of declared symbols that were overloaded when they
-   * were bound. This is a sublist of d_decls. For example if
-   *   d_decls = { "A", "B", "A", "C", "A", "B" }
-   * then
-   *   d_overloadedDecls = { "A", "A", "B" }.
-   */
-  std::vector<std::string> d_overloadedDecls;
-  /**
-   * Maps symbols that are bound to >= 2 terms to the list of all terms bound
-   * to that symbol. Each vector in the range of this map has size >=2.
-   */
-  std::map<std::string, std::vector<Expr>> d_overloads;
   /**
    * Context size, which is the size of d_decls at the time of when each
    * current pushScope was called.

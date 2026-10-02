@@ -29,6 +29,7 @@ class Plugin;
 class TypeChecker
 {
   friend class State;
+  friend class TermBuilder;
 
  public:
   TypeChecker(State& s, Options& opts);
