@@ -12,8 +12,8 @@
 #include <map>
 
 #include "state.h"
-#include "lexer.h"
-#include "expr_parser.h"
+#include "parser/lexer.h"
+#include "parser/expr_parser.h"
 
 namespace ethos {
 

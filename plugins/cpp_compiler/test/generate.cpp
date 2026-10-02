@@ -10,6 +10,7 @@
 #include <cstdlib>
 
 #include "compiler.h"
+#include "parser/parser.h"
 #include "state.h"
 
 using namespace ethos;
@@ -24,6 +25,8 @@ int main(int argc, char** argv)
   options.setOption("normalize-hex", false);
   Stats stats;
   State state(options, stats);
+  ParserFileReader reader;
+  state.setFileReader(&reader);
   Compiler compiler(state);
   state.setPlugin(&compiler);
   if (!state.includeFile(argv[1], true))

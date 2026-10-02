@@ -26,6 +26,31 @@
 
 namespace ethos {
 
+class State;
+
+/**
+ * Reads the commands of a file into a state. The state is independent of any
+ * concrete syntax: when a file is included, it resolves the path, performs its
+ * bookkeeping, and then delegates reading the file to this interface. The
+ * standard implementation is ParserFileReader in parser/parser.h.
+ */
+class FileReader
+{
+ public:
+  virtual ~FileReader() {}
+  /**
+   * Read all commands of the file at path into s.
+   * @param s The state to populate.
+   * @param path The (canonical) path of the file.
+   * @param isSignature Whether the file is a signature file.
+   * @param isReference Whether the file is a reference file.
+   */
+  virtual void readFile(State& s,
+                        const Filepath& path,
+                        bool isSignature,
+                        bool isReference) = 0;
+};
+
 class Options
 {
  public:
@@ -55,7 +80,9 @@ class Options
 };
 
 /**
- * The state class which manages both the parsing state and the expression database.
+ * The state class which manages the symbol table, the expression database, and
+ * proof checking. It does not depend on the parser; files are read via a
+ * FileReader, see setFileReader.
  */
 class State
 {
@@ -76,7 +103,10 @@ class State
   void pushAssumptionScope();
   /** Pop assumption scope */
   void popAssumptionScope();
-  /** include file, if not already done, return false if error */
+  /**
+   * Include file, if not already done, return false if error. Requires a file
+   * reader to have been set, unless the plugin handles the include.
+   */
   bool includeFile(const std::string& s, bool isSignature);
   /** include file, possibly as a reference */
   bool includeFile(const std::string& s, bool isSignature, bool isReference, const Expr& referenceNf);
@@ -263,6 +293,11 @@ class State
   Expr getProgram(const ExprValue* ev);
   /** */
   size_t getAssumptionLevel() const;
+  /**
+   * Get the name of the most recently opened assumption scope, which requires
+   * getAssumptionLevel() > 0.
+   */
+  std::string getOpenAssumptionName() const;
   /** */
   std::vector<Expr> getCurrentAssumptions() const;
   /** Get hash for expression */
@@ -292,6 +327,8 @@ class State
   void setPlugin(Plugin* p);
   /** Get plugin */
   Plugin* getPlugin();
+  /** Set the file reader, used by includeFile */
+  void setFileReader(FileReader* r);
 
  private:
   /** Common constants */
@@ -455,6 +492,8 @@ class State
   TypeChecker d_tc;
   /** Plugin, if using one */
   Plugin* d_plugin;
+  /** The file reader, if set */
+  FileReader* d_fileReader;
 };
 
 }  // namespace ethos

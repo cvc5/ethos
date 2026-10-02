@@ -11,7 +11,7 @@
 
 #include "expr.h"
 #include "state.h"
-#include "lexer.h"
+#include "parser/lexer.h"
 #include "attr.h"
 
 namespace ethos {

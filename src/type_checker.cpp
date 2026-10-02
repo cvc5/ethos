@@ -16,7 +16,6 @@
 #include "base/output.h"
 #include "expr.h"
 #include "literal.h"
-#include "parser.h"
 #include "state.h"
 
 namespace ethos {

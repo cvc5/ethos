@@ -6,7 +6,7 @@
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
  ******************************************************************************/
-#include "lexer.h"
+#include "parser/lexer.h"
 
 #include <cassert>
 #include <iostream>

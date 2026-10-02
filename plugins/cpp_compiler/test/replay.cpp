@@ -11,6 +11,7 @@
 
 #include "executor.h"
 #include "literal.h"
+#include "parser/parser.h"
 #include "state.h"
 
 using namespace ethos;
@@ -41,6 +42,8 @@ int main()
   Options options;
   Stats stats;
   State state(options, stats);
+  ParserFileReader reader;
+  state.setFileReader(&reader);
   Executor executor(state);
   state.setPlugin(&executor);
 

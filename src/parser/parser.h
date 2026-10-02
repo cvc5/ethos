@@ -10,10 +10,10 @@
 #define PARSER_H
 
 #include "state.h"
-#include "cmd_parser.h"
-#include "lexer.h"
-#include "expr_parser.h"
-#include "input.h"
+#include "parser/cmd_parser.h"
+#include "parser/lexer.h"
+#include "parser/expr_parser.h"
+#include "parser/input.h"
 
 namespace ethos {
 
@@ -58,6 +58,11 @@ class Parser
    * Parse and return the next term.
    */
   Expr parseNextExpr();
+  /**
+   * Parse all remaining commands. Reports an error if the input did not
+   * close all assumption scopes it opened.
+   */
+  void parseAllCommands();
   /** Get the lexer */
   Lexer& getLexer() { return d_lex; }
 
@@ -72,6 +77,18 @@ class Parser
   ExprParser d_eparser;
   /** Command parser */
   CmdParser d_cmdParser;
+};
+
+/**
+ * The file reader for the state that reads files using the smt2 parser.
+ */
+class ParserFileReader : public FileReader
+{
+ public:
+  void readFile(State& s,
+                const Filepath& path,
+                bool isSignature,
+                bool isReference) override;
 };
 
 }  // namespace ethos

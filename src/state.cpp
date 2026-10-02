@@ -12,7 +12,6 @@
 
 #include "base/check.h"
 #include "base/output.h"
-#include "parser.h"
 #include "util/filesystem.h"
 
 namespace ethos {
@@ -99,7 +98,8 @@ State::State(Options& opts, Stats& stats)
       d_opts(opts),
       d_stats(stats),
       d_tc(*this, opts),
-      d_plugin(nullptr)
+      d_plugin(nullptr),
+      d_fileReader(nullptr)
 {
   ExprValue::d_state = this;
 
@@ -340,26 +340,13 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   }
   Trace("state") << "Include " << inputPath << std::endl;
   Assert (getAssumptionLevel()==0);
-  Parser p(*this, isSignature, isReference);
-  p.setFileInput(inputPath.getRawPath());
-  bool parsedCommand;
-  do
+  if (d_fileReader == nullptr)
   {
-    parsedCommand = p.parseNextCommand();
+    EO_FATAL() << "Error: no file reader set when including " << inputPath;
   }
-  while (parsedCommand);
+  d_fileReader->readFile(*this, inputPath, isSignature, isReference);
   d_inputFile = currentPath;
   Trace("state") << "...finished" << std::endl;
-  if (getAssumptionLevel()!=0)
-  {
-    Assert(!d_declsSizeCtx.empty() && d_declsSizeCtx.back() < d_decls.size());
-    // report via the parser, so that this is an ordinary error message
-    std::stringstream ss;
-    ss << "This file did not preserve assumption scope. The most recent open "
-          "assumption was "
-       << d_decls[d_declsSizeCtx.back()] << ".";
-    p.getLexer().parseError(ss.str());
-  }
   if (d_plugin != nullptr)
   {
     d_plugin->finalizeIncludeFile(
@@ -1638,6 +1625,12 @@ size_t State::getAssumptionLevel() const
   return d_assumptionsSizeCtx.size();
 }
 
+std::string State::getOpenAssumptionName() const
+{
+  Assert(!d_declsSizeCtx.empty() && d_declsSizeCtx.back() < d_decls.size());
+  return d_decls[d_declsSizeCtx.back()];
+}
+
 std::vector<Expr> State::getCurrentAssumptions() const
 {
   size_t start = d_assumptionsSizeCtx.empty() ? 0 : d_assumptionsSizeCtx.back();
@@ -1731,6 +1724,8 @@ Plugin* State::getPlugin()
 {
   return d_plugin;
 }
+
+void State::setFileReader(FileReader* r) { d_fileReader = r; }
 
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
 {

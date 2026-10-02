@@ -117,8 +117,9 @@ need plugin-specific build logic.
 but it is a private implementation detail. Generated code does not call it.
 Instead, `Plugin::includeFile()` is a pre-parse callback with a Boolean result:
 
-- `Compiler::includeFile()` returns `false`, so `State` parses the signature
-  and the compiler records the parser callbacks.
+- `Compiler::includeFile()` returns `false`, so `State` reads the signature
+  through its `FileReader` (the parser) and the compiler records the parser
+  callbacks.
 - Generated `Executor::includeFile()` returns `true` for embedded signature
   paths, telling `State` that initialization already reconstructed them and
   their source should not be parsed.

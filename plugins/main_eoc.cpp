@@ -31,6 +31,7 @@
 
 #include "base/check.h"
 #include "base/output.h"
+#include "parser/parser.h"
 #include "state.h"
 
 #include "desugar/desugar.h"
@@ -245,6 +246,8 @@ int main(int argc, char* argv[])
   // options are finalized, now initialize the state and the plugin
   Stats stats;
   State s(opts, stats);
+  ParserFileReader reader;
+  s.setFileReader(&reader);
   std::unique_ptr<Plugin> plugin;
   if (!pluginName.empty())
   {

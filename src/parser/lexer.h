@@ -17,8 +17,8 @@
 #include <vector>
 
 #include "base/check.h"
-#include "input.h"
-#include "tokens.h"
+#include "parser/input.h"
+#include "parser/tokens.h"
 
 namespace ethos {
 

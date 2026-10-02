@@ -6,7 +6,7 @@
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
  ******************************************************************************/
-#include "tokens.h"
+#include "parser/tokens.h"
 
 #include <iostream>
 

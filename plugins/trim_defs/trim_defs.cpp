@@ -20,7 +20,7 @@
 #include <utility>
 #include <vector>
 
-#include "input.h"
+#include "parser/input.h"
 #include "../utils.h"
 
 namespace ethos {

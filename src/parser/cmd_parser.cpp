@@ -13,7 +13,7 @@
  * The smt2 command parser.
  */
 
-#include "cmd_parser.h"
+#include "parser/cmd_parser.h"
 
 #include <iostream>
 #include <ostream>

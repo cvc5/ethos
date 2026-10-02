@@ -13,7 +13,7 @@
 
 #include "base/check.h"
 #include "base/output.h"
-#include "parser.h"
+#include "parser/parser.h"
 #include "state.h"
 
 using namespace ethos;
@@ -134,6 +134,8 @@ int main( int argc, char* argv[] )
   // options are finalized, now initialize the state and run the includes
   Stats stats;
   State s(opts, stats);
+  ParserFileReader reader;
+  s.setFileReader(&reader);
   std::unique_ptr<Plugin> plugin = createPlugin(s);
   if (showConfig)
   {
