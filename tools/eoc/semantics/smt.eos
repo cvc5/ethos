@@ -2281,9 +2281,4 @@ decreasing_by
 ; the equation for a Boolean term, which Lean would otherwise unfold anew at
 ; every use.
 (define-method $smtx_model_eval
-  :lean "termination_by structural t => t
-
-private theorem __smtx_model_eval_eqns_cache (M : SmtModel) (b : Bool) :
-    __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
-  unfold __smtx_model_eval
-  rfl")
+  :lean "termination_by structural t => t")
