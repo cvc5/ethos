@@ -1021,7 +1021,10 @@ def main(argv: list[str]) -> int:
     vc.add_argument(
         "--solve-args",
         default="",
-        help="Shell-style string of extra options passed to cvc5 during --solve.",
+        help='Shell-style string of extra options passed to cvc5 during '
+             '--solve. Attach the value with =, e.g. '
+             '--solve-args="--tlimit=5000", since a detached value beginning '
+             'with - is read as an option of this script.',
     )
 
     lean = subparsers.add_parser("lean", help="Generate Lean output for selected rules.")
@@ -1089,7 +1092,10 @@ def main(argv: list[str]) -> int:
     batch.add_argument(
         "--solve-args",
         default="",
-        help="Shell-style string of extra options passed to cvc5 during --solve.",
+        help='Shell-style string of extra options passed to cvc5 during '
+             '--solve. Attach the value with =, e.g. '
+             '--solve-args="--tlimit=5000", since a detached value beginning '
+             'with - is read as an option of this script.',
     )
     batch.add_argument(
         "--keep-going",
