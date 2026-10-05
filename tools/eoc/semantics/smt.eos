@@ -2277,8 +2277,6 @@ decreasing_by
 
 
 
-; The evaluator recurses structurally, and the theorem that follows it caches
-; the equation for a Boolean term, which Lean would otherwise unfold anew at
-; every use.
+; The evaluator recurses structurally.
 (define-method $smtx_model_eval
   :lean "termination_by structural t => t")
