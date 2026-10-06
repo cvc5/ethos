@@ -1,0 +1,5 @@
+; regression: the same, for the ((_ ...) ...) syntax, which begins an
+; application with an indexed identifier as its head.
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(reference "reference-apply-no-operator-head.smt2")

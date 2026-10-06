@@ -126,15 +126,21 @@ set(ethos_test_file_list
     is_eq.eo
     simple-reference.eo
     reference-define-fun.eo
+    reference-definitions.eo
+    reference-define-const-macro.eo
     simple-quant-reference.eo
     simple-lra-reference.eo
     check-sat-assuming-reference.eo
     reference-query-commands.eo
     reference-reset-assertions.eo
+    reference-indexed-opaque.eo
+    reference-bv-constant.eo
+    reference-par-dt.eo
     left-cons.eo
     overload-standalone.eo
     datatypes-split-rule.eo
     singular-datatype.eo
+    singular-par-datatype.eo
     simul-overload.eo
     bang-lex.eo
     segfault-98.eo
@@ -179,6 +185,7 @@ set(ethos_test_file_list
     quant-sk-type.eo
     fwd-decl-nground.eo
     require-proof-of-false.eo
+    overload-define-lambda.eo
 )
 
 macro(ethos_test file)
@@ -214,6 +221,10 @@ ethos_fail_test(check-sat-assuming-reference-fail.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(reference-reset-assertions-fail.eo
                 "was not part of the referenced assertions")
+ethos_fail_test(reference-define-fun-equation-fail.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(reference-define-const-equation-fail.eo
+                "was not part of the referenced assertions")
 ethos_fail_test(reference-push-pop.eo
                 "Expected Eunoia command, got .push.")
 ethos_fail_test(reference-define-fun-rec.eo
@@ -230,6 +241,12 @@ ethos_fail_test(require-proof-of-false-nested.eo
                 "last proof step did not prove false at assumption level zero")
 ethos_fail_test(nullary-arrow-type.eo
                 "Error: .*nullary-arrow-type.eo:[0-9]+.[0-9]+: Expected a return type")
+ethos_fail_test(apply-no-operator.eo
+                "Error: .*apply-no-operator.eo:[0-9]+.[0-9]+: Expected an operator for _")
+ethos_fail_test(reference-apply-no-operator.eo
+                "Error: .*reference-apply-no-operator.smt2:[0-9]+.[0-9]+: Expected an operator for _")
+ethos_fail_test(reference-apply-no-operator-head.eo
+                "Error: .*reference-apply-no-operator-head.smt2:[0-9]+.[0-9]+: Expected an operator for _")
 ethos_fail_test(assume-push-unclosed.eo
                 "Error: .*assume-push-unclosed.eo:[0-9]+.[0-9]+: This file did not preserve assumption scope")
 ethos_fail_test(declare-consts-twice.eo

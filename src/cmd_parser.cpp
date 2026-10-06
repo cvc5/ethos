@@ -569,19 +569,9 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (define-const <symbol> <sort> <term>)
-    case Token::DEFINE_CONST:
-    {
-      //d_state.checkThatLogicIsSet();
-      std::string name = d_eparser.parseSymbol();
-      //d_state.checkUserSymbol(name);
-      Expr ret = d_eparser.parseType();
-      Expr e = d_eparser.parseExpr();
-      d_eparser.typeCheck(e, ret);
-      d_eparser.bind(name, e);
-    }
-    break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
     // (define <symbol> (<sorted_var>*) <term> <attr>*)
+    case Token::DEFINE_CONST:
     case Token::DEFINE_FUN:
     case Token::DEFINE:
     {
@@ -591,8 +581,18 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> impls;
       std::vector<Expr> opaques;
       std::map<ExprValue*, AttrMap> pattrMap;
-      std::vector<Expr> vars =
-          d_eparser.parseAndBindSortedVarList(Kind::LAMBDA, pattrMap);
+      bool defineAsReferenceAssert =
+          tok != Token::DEFINE && d_isReference
+          && !d_state.getOptions().d_referenceDefineFun;
+      std::vector<Expr> vars;
+      if (tok != Token::DEFINE_CONST)
+      {
+        // Reference equations use object-language bound variables, as do
+        // ordinary binders and eo::var terms in proofs. Macro definitions
+        // instead need fresh Eunoia parameters.
+        vars = d_eparser.parseAndBindSortedVarList(
+            defineAsReferenceAssert ? Kind::NONE : Kind::LAMBDA, pattrMap);
+      }
       if (vars.size() < pattrMap.size())
       {
         // If there were implicit variables, we go back and refine what is
@@ -612,7 +612,7 @@ bool CmdParser::parseNextCommand()
       // now process remainder of map
       d_eparser.processAttributeMaps(pattrMap);
       Expr ret;
-      if (tok == Token::DEFINE_FUN)
+      if (tok != Token::DEFINE)
       {
         ret = d_eparser.parseType();
       }
@@ -622,10 +622,7 @@ bool CmdParser::parseNextCommand()
       {
         d_eparser.typeCheck(expr, ret);
       }
-      bool defineFunAsReferenceAssert =
-          tok == Token::DEFINE_FUN && d_isReference
-          && !d_state.getOptions().d_referenceDefineFun;
-      if (defineFunAsReferenceAssert)
+      if (defineAsReferenceAssert)
       {
         // This is for reference checking only. Note that = and lambda are
         // not builtin symbols, thus we must assume they are defined by the user.
@@ -633,7 +630,10 @@ bool CmdParser::parseNextCommand()
         Expr eq = d_state.getVar("=");
         if (eq.isNull())
         {
-          d_lex.parseError("Expected symbol '=' to be defined when parsing define-fun.");
+          d_lex.parseError(
+              "Expected symbol '=' to be defined when parsing "
+              + std::string(tok == Token::DEFINE_CONST ? "define-const."
+                                                       : "define-fun."));
         }
         Expr rhs = expr;
         Expr t = ret;

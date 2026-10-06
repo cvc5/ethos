@@ -2061,12 +2061,19 @@ When Ethos encounters a command of the form `(reference <string>)`, the checker 
 
 In particular, when the command `(reference "file.smt2")` is read, Ethos will parse `file.smt2`.
 The declaration commands in this file will be treated as normal, that is, they will populate the symbol table of Ethos as they normally would if they were to appear in an `*.eo` input.
-By default, `define-fun` commands in reference files are interpreted as reference assertions equating the defined symbol with its body.
-If the option `reference-define-fun` is enabled, they are instead parsed as Eunoia definitions.
+By default, `define-fun` and `define-const` commands in reference files are interpreted as reference assertions equating the defined symbol with its body, wrapped in an object-language `lambda` for functions with parameters.
+This requires the signature to define `=` and, for functions with parameters, a `lambda` binder.
+If the option `reference-define-fun` is enabled, both commands are instead parsed as Eunoia definitions.
 The commands of the form `(assert F)` will add `F` to a set of formulas we will refer to as the _reference assertions_.
 The commands of the form `(check-sat-assuming (F1 ... Fn))` will likewise add `F1 ... Fn` to the reference assertions, since these formulas are part of the query that was checked.
 The commands `(reset-assertions)` and `(reset)` discard all reference assertions collected so far.
 Other commands in `file.smt2` (e.g. `set-logic`, `set-option`, and so on) will be ignored.
+
+In reference files only, `(_ f i1 ... in)` is read as an SMT-LIB indexed identifier, that is, it denotes the same term as the application `(f i1 ... in)`.
+This is in contrast to Eunoia inputs, where `_` denotes higher-order application, which does not apply the desugaring policy of `f` (see [opaque arguments](#opaque)).
+The distinction matters for symbols whose arguments are marked `:opaque`, which is how the indexed operators of SMT-LIB are declared.
+For example, in a reference file `((_ extract 63 32) x)` denotes the same term as `(extract 63 32 x)`, which is how a proof must spell it.
+The indexed bit-vector constants `(_ bv<numeral> <width>)` are read as the binary literal of the given width.
 
 If Ethos has read a reference file, then for each command of the form `(assume <symbol> G)`, Ethos will check whether `G` occurs in the set of parsed reference assertions.
 If it does not, then an error is thrown indicating that the proof is assuming a formula that is not a part of the original input.
@@ -2149,7 +2156,7 @@ They do not impact how signature files (*.eo) are parsed:
 - `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
 - `--no-parse-let`: do not treat `let` as a builtin symbol for specifying a macro.
-- `--reference-define-fun`: when parsing reference files, treat `define-fun` commands as Eunoia definitions instead of reference assertions.
+- `--reference-define-fun`: when parsing reference files, treat `define-fun` and `define-const` commands as Eunoia definitions instead of reference assertions.
 
 Most of the above options can also be set via `set-option` commands within proofs or Eunoia scripts.
 For example, the command `(set-option :normalize-num true)` tells Ethos to normalize numerals always.

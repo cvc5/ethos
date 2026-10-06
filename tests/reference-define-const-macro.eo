@@ -1,0 +1,4 @@
+; Macro mode requires no equality or lambda symbols in the signature.
+(set-option :reference-define-fun true)
+(reference "reference-define-const.smt2")
+(assume @p x)
