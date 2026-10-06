@@ -216,7 +216,10 @@ eoc_copy_lean_outputs() {
     eoc_error "$(eoc_rel "$lean_dir") holds no generated Lean"
     return 1
   fi
-  eoc_step "Installing the generated Lean of $(eoc_rel "$lean_dir") into $(eoc_rel "$dest_dir")"
+  mkdir -p "$dest_dir"
+  eoc_step "Installing generated .lean files"
+  eoc_item "Source: $(eoc_rel "$lean_dir")/"
+  eoc_item "Destination: $(cd "$dest_dir" && pwd)/ (including subdirectories)"
   [[ -f "$lean_dir/Parser.lean" ]] || rm -f "$dest_dir/Parser.lean"
   while IFS= read -r -d '' file; do
     rel="${file#"$lean_dir"/}"
@@ -230,7 +233,7 @@ eoc_copy_lean_outputs() {
     cp "$file" "$dest"
     copied=$((copied + 1))
   done < <(find "$lean_dir" -type f -name '*.lean' -print0)
-  eoc_item "$(printf '%d copied, %d preserved' "$copied" "$preserved")"
+  eoc_item "$(printf '%d .lean files copied, %d existing rule files preserved' "$copied" "$preserved")"
 }
 
 # The banner a generated module of a Logos package carries, so that a reader

@@ -59,3 +59,7 @@ fi
 
 eoc_step "Cleaning the stage files"
 EOC_SKIP_CVC5="${EOC_SKIP_CVC5:-1}" "$SCRIPT_DIR/run_clean"
+
+eoc_step "Lean installation complete (including subdirectories)"
+eoc_item "Cpc .lean files: $(cd "$LOGOS_DIR/Cpc" && pwd)/"
+eoc_item "${SUB_DIR:-CpcMini} .lean files: $(cd "$LOGOS_DIR/${SUB_DIR:-CpcMini}" && pwd)/"

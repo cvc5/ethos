@@ -32,3 +32,6 @@ if [[ -d "$LOGOS_DIR/$SUB_DIR" ]]; then
     done < <(find . -type f -name '*.lean' -print0)
   )
 fi
+
+eoc_step "Lean installation complete (including subdirectories)"
+eoc_item "$SUB_DIR .lean files: $(cd "$LOGOS_DIR/$SUB_DIR" && pwd)/"

@@ -76,6 +76,10 @@ the imports are right where they are written and nothing rewrites them
 afterwards. `EOC_LEAN_CALC` names one for a wrapper called on its own; a run
 that names none calls the calculus after its input file, up to the first dot.
 
+Each copy step prints the source and absolute destination of the `.lean` files.
+On success, the installer ends with the absolute package directories, including
+their subdirectories; `install_logos` prints this summary after cleanup.
+
 Examples:
 
 ```bash
