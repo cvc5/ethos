@@ -3,7 +3,7 @@ module
 public import $EO_CALC$.SmtValueOrder
 import all $EO_CALC$.SmtValueOrder
 
-public section
+@[expose] public section
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
