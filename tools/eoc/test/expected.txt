@@ -2,10 +2,10 @@
 # regress.py, under a directory named for the signature each
 # compiled. This is what says the bytes have not moved; run that
 # file with --update to write this one.
-f125414962d45bb64db862e29c760057c14b745f663e874872d705a33164bd4b  Booleans-rules/eo.eo
-0680333364ae2ab50585b0c39ef1b46b1729ea2f04f4a781011f3cd16bd3297a  Booleans-rules/lean-booleans-rules-defs.eo
-d58e356cb22145b033b2c12844d3fd3f70b359b4a30027c719407a2d06717f5a  Booleans-rules/lean-booleans-rules-desugar.eo
-4a17121c60bda9a195a9db58df6ef5746966769c2838138b93c02e51d9a0b0cf  Booleans-rules/lean-booleans-rules-final.eo
+82976a5a5295adff6a510769a1da00f07a096395b146beb3ceb0f4ccb006ce61  Booleans-rules/eo.eo
+d5c994ab023a3bf4fbf57ef4f9e1b6e8aeaa1c01626bf8e0e0992069f6c96221  Booleans-rules/lean-booleans-rules-defs.eo
+633ad768846047fd3d77499b5218fa8ba7e9d8dc10e9478064328bf735d44b24  Booleans-rules/lean-booleans-rules-desugar.eo
+3048f79245f6cdc1ecb3ae852ddb9a722ea6d88150140fb410dd884b2da83634  Booleans-rules/lean-booleans-rules-final.eo
 d63e0890c8c6b9f3c3d3c784de6c80d93c0d188b0b450302e8b4b6cd6a97bf36  Booleans-rules/lean-booleans-rules-trim.eo
 a0af0dd112d82a8f41cebd2c02320ca63012b05fdc56e7670db07475e8df56b0  Booleans-rules/lean/Logos.lean
 238960d1051e40e67d97812961d16d7d7b22c26938169b797c248fcd6fead167  Booleans-rules/lean/LogosTerm.lean
@@ -19,14 +19,14 @@ d1bf3cb8621d4d9a5f35d35bf04bd3559d45e78b9a1b234a817d2ce2fba78111  Booleans-rules
 9337f92ce9bf88a08aded338b441097854b7e4d10b6328ce53f17b4f48c8d048  Booleans-rules/lean/Spec.lean
 f68ced3924384c5da579070d81f6bf1259633d6675ec5ece19743e4729d2fe60  Booleans-rules/sygus/final-booleans-rules-and_intro.sy
 6436b5358d7e033ae2b3e500ebb1925527f85a06ed2bd305f3e5a8e8a1fb4d06  Booleans-rules/trim-booleans-rules.eo
-773674489197574e80fefc11032effee086a94ed4a134cf6cd1e7f4fd9bec6f7  Booleans-rules/trim-d-booleans-rules.eo
+eb17c3acd886de918b3fb4b5f29f2049ad084a580f966fde425bae9aea9aa19a  Booleans-rules/trim-d-booleans-rules.eo
 1c84181f0cecb1d224cd11e755043bda24e6858d446697a9034b1125d41d566f  Booleans-rules/vc/final-booleans-rules-and_intro.smt2
-95c48291690e4d63b48495b16d5a2a0a291b7c1eb2da690e7db134ac9a53aeee  Booleans-rules/vcm-def-booleans-rules.eo
-c2c2748c360f1e9742885bcbdd71b654471356ff15b59037d6fdaf863f50cd68  Booleans-rules/vcmt-def-booleans-rules.eo
-9e93adba44bb354c05ae18332293b4beea133863e91e63aa1a3a58de92b081c9  nary-nil/eo.eo
-da78d6137003d547f6d92677cb3b28e411c157745bf3a2cb3f3addeb501b6879  nary-nil/lean-nary-nil-defs.eo
-e64a140c15b25c95cccb75be2d41536c51b530d67ca25bdbb4b611eeeecb953d  nary-nil/lean-nary-nil-desugar.eo
-3f846ecba9b44b1141430e1697769e7eb7218af9ec0d09a5565fe3f10986bd28  nary-nil/lean-nary-nil-final.eo
+eae777f1985cc3ebdaec32599f8b05928c0c198416710464afb7294d5963cd12  Booleans-rules/vcm-def-booleans-rules.eo
+c6e89b2223847dab17206696abab9508b763813bef07f8a3c5eca7d1933e28b1  Booleans-rules/vcmt-def-booleans-rules.eo
+6439f2069f13dbc447be71216901dd4b19810a9727a0e2965c1c6fc9da6ade3a  nary-nil/eo.eo
+747141836c66998b966f04df4b02d1eedf84a6c09c0f60b2cf6542418d75679a  nary-nil/lean-nary-nil-defs.eo
+451b9e8e52831004bde1bbb0814543c15293719b9d9e5e2fd1399719810aec7c  nary-nil/lean-nary-nil-desugar.eo
+adf6b2e6a358388515f368aa4feb267dd860f2c0cb20f688e7314a368aa1a8c4  nary-nil/lean-nary-nil-final.eo
 eb43d78dec91fa0e22772cd6ee3b9c1a09bd3dae900e565e55e0f0c9c9fd2f5d  nary-nil/lean-nary-nil-trim.eo
 d0f6b48a7bfe1c1131d7b95bd660e2943801e6ea2539976a2d00e0f91139c9a6  nary-nil/lean/Logos.lean
 d2ee813841b0bc457198a4cfbaa32b26bcef68ad7897f26caf0b99f184ec55ec  nary-nil/lean/LogosTerm.lean
@@ -39,8 +39,8 @@ c062da1c1e17b1431d1a5190d3c0260791dfc7c9f4e04e677d6a01a66161b7ca  nary-nil/lean/
 eef896509e9b8daf1b6eaee7056d8787ecea93678c4073eaea7e0ebd25a71b19  nary-nil/lean/SmtValueOrder.lean
 ca66de9810b40fea8043b4c49f5d5a5905c23bcba57dbccc64214c8928468299  nary-nil/lean/Spec.lean
 bea030f9b7ff466d05d28b1e7d3a90fac2f2301a59dac98d01e9ddcdca7c51bd  nary-nil/sygus/final-nary-nil-str_concat_lprefix.sy
-26c47e72c326c5dfb246f28b359105ce249f6d1372f9ee3df514489c4d0f5dd4  nary-nil/trim-d-nary-nil.eo
+c2359bf3ab3105a9d368ff5f6de5f1060c274f10a16d0abbf2dd9251915503e9  nary-nil/trim-d-nary-nil.eo
 1165630e3d0a7978fa988ead29fd7c14afe24adae21deb68083a32c3c75de601  nary-nil/trim-nary-nil.eo
 c0355e8c46e9d93ae74ed86cb763d87237b9db4ba673091aee77da7887798276  nary-nil/vc/final-nary-nil-str_concat_lprefix.smt2
-6ec4a5bf5171190336704a34f5f5cb9c4c74c23c1ef7b68453ce5ef15b75b888  nary-nil/vcm-def-nary-nil.eo
-0d18f191a1a56b82dfd329ef1f7535ac3f0608e1f6b682c7312164a10a68ca6e  nary-nil/vcmt-def-nary-nil.eo
+618a309a4f4af8c34783e758517655f361591fb0e8b0cfc904c54302c1d8ad9f  nary-nil/vcm-def-nary-nil.eo
+c4637b4b30c7ccf053b19c8bd3fafbf16733ec58ec1d3f59e4b0ae444e43e64e  nary-nil/vcmt-def-nary-nil.eo

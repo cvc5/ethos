@@ -19,12 +19,12 @@ input: <cvc5>/proofs/eo/cpc/Cpc.eo
 They first look in the sibling `cvc5-ajr` checkout, then in `~/cvc5`.
 `EOC_CPC_INPUT` overrides both locations.
 
-What its symbols mean to the model is said by a signature of its own, which
-the wrappers give with `--semantics`. What they name there is the central file of
-its configuration, `semantics/development-cpc.eos`: the driver compiles that
-before the model-smt stage and gives the stage what it compiled to,
-`tools/eoc/out/user_defs.eo`, so the two are never out of step. Override it
-with `EOC_SEMANTICS`.
+The wrappers use the CPC semantics supplied by the destination Logos tree,
+`$LOGOS_DIR/install/defs/Cpc.eos`, with `LOGOS_DIR` defaulting to `~/logos`.
+The driver compiles that file into `tools/eoc/out/user_defs.eo` before the
+model-smt stage. `EOC_SEMANTICS` overrides it, including for the mini package
+installed by `install_logos`. A missing file is an error; the compiler's small
+`test/semantics.eos` fixture is only for local regressions.
 
 That configuration is also where CPC says what the compilation has no place for
 at all,
@@ -39,9 +39,9 @@ Useful environment variables:
   otherwise `<repo>/build-eoc`.
 - `EOC_NO_BUILD=1` to skip rebuilding eoc in `run_gen_lean_all`.
 - `EOC_SKIP_CVC5=1` to skip solver parse checks.
-- `EOC_CPC_INPUT=/path/to/signature.eo` to override the default CPC input. A
-  signature given this way has no model definitions unless `EOC_SEMANTICS`
-  names them.
+- `EOC_CPC_INPUT=/path/to/signature.eo` to override the default CPC input.
+  The install scripts still use the destination's CPC semantics. For the
+  `run_*` wrappers, an explicit input needs `EOC_SEMANTICS` as well.
 - `EOC_SEMANTICS=/path/to/defs.eos` to override the semantics of the input,
   which say what its symbols mean to the model.
 - `EOC_SMT_SEMANTICS=/path/to/smt.eos` to override the SMT-LIB semantics the

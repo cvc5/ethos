@@ -13,10 +13,11 @@ source "$SCRIPT_DIR/common.sh"
 BUILD_DIR="$(eoc_build_dir)"
 FINAL_OUT_DIR="$(eoc_final_out_dir)"
 LOGOS_DIR="${LOGOS_DIR:-$HOME/logos}"
+export EOC_SEMANTICS="${EOC_SEMANTICS:-$LOGOS_DIR/install/defs/Cpc.eos}"
 SUB_DIR="${SUB_DIR:-CpcMini}"
 read -r -a MINI_TARGETS <<< "${MINI_TARGETS:-symm contra refl scope trans}"
 
-eoc_step "Generating the Mini-Lean signature"
+eoc_step "Generating the Mini-Lean signature using $(eoc_rel "$EOC_SEMANTICS")"
 EOC_LEAN_CALC="$SUB_DIR" "$SCRIPT_DIR/run_gen_lean" --no-parser "${MINI_TARGETS[@]}"
 
 eoc_copy_lean_outputs "$LOGOS_DIR/$SUB_DIR" "$FINAL_OUT_DIR" 1

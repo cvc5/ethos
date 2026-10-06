@@ -123,9 +123,11 @@ suite is not measured anywhere**:
 Every one arrives as a fatal error from `src/lexer.cpp` naming a line of a
 generated file. None arrives as the stage saying what it could not do.
 
-**On the first four.** `development-cpc.eos` is a *test* semantics and says
-nothing about strings or finite fields, so it writing no `:is-list-nil` for
-`str.++` is not a defect in it. The failure *mode* is the point: the desugar
+**On the first four.** The test semantics used in this audit (then named
+`development-cpc.eos`) said nothing about strings or finite fields, so its
+missing `:is-list-nil` for `str.++` was not a defect in it. The current
+`test/semantics.eos` fixture covers string concatenation; full CPC semantics
+live in Logos. The failure *mode* is the point: the desugar
 stage forward-declares a predicate for every n-ary symbol it sees, the set
 supplies nine, and nothing compares the two lists. That is
 [`eos-todo.md`](eos-todo.md)'s **"Still open here"** and Part IV item 2 of

@@ -18,7 +18,7 @@ experimental, with any change in its status reserved for the human maintainers.
 
 What is where in this project: `compiler/` holds the implementation -- the
 configuration compiler, the language it reads and what it writes -- and
-`semantics/` the sets the tool ships. `driver.py` is the entry point, and is
+`semantics/` the SMT-LIB semantics. `driver.py` is the entry point, and is
 the one path a caller of another tree names, so it stands here rather than
 beside the modules it drives. `docs/` and `test/` hold the pages and the
 regressions; `out/` is what a run writes and is not checked in.
@@ -33,11 +33,12 @@ account of the language supported by the checker.
 
 A run names the signature to compile and, separately, what its symbols mean.
 The local regressions compile `tests/Booleans-rules.eo` and
-`tools/eoc/test/nary-nil.eo` using `semantics/development-cpc.eos`, and the
-wrappers in [`cpc/`](cpc/) compile CPC. As of 2026-09-18, Logos supplies its CPC
-semantics at `install/defs/Cpc.eos`; pass that file explicitly when compiling
-against that development. A new calculus can reuse the compiler's existing
-embedding, but operations outside that embedding can require compiler changes.
+`tools/eoc/test/nary-nil.eo` using the small `test/semantics.eos` fixture.
+Full CPC semantics live in Logos at `install/defs/Cpc.eos`; the wrappers in
+[`cpc/`](cpc/) use that file from the destination Logos tree. Pass it explicitly
+when compiling CPC with the driver. A new calculus can reuse the compiler's
+existing embedding, but operations outside that embedding can require compiler
+changes.
 
 Whichever calculus it is, it compiles to each of these targets, from one
 description of what its symbols mean:
@@ -108,14 +109,14 @@ tools/eoc/out/smt_defs.eo   the SMT-LIB semantics, written in the embedding
 tools/eoc/out/user_defs.eo  how the input's symbols transform into it
 ```
 
-**Both are generated**, from the configuration under `tools/eoc/semantics`,
+**Both are generated**, from the selected semantics configuration,
 which `tools/eoc/compiler/sem_compile.py` compiles before any stage runs;
 neither is checked in. What the options name is therefore the *central file of a
 configuration set* rather than what it compiles to:
 
 ```text
 python3 tools/eoc/driver.py lean --all \
-  --semantics tools/eoc/semantics/development-cpc.eos \
+  --semantics <logos>/install/defs/Cpc.eos \
   <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
@@ -137,9 +138,9 @@ SMT-LIB semantics but with no signature of an input, so a run that names none
 is an error once that stage runs.
 
 Pass `--semantics` for model compilation. The quick-start examples below
-use the local development semantics explicitly; for another calculus, supply
-a set describing that input. The wrappers in [`cpc/`](cpc/) pass it for you,
-see `EOC_DEFAULT_SEMANTICS` in `common.sh`.
+use the local test fixture for Boolean rules; for another calculus, supply
+a set describing that input. The wrappers in [`cpc/`](cpc/) pass Logos's CPC
+semantics; see `EOC_DEFAULT_SEMANTICS` in `common.sh`.
 
 Each is a sequence of blocks, one per symbol, opened by a `; -- X` line. For a
 symbol X, `smt_defs.eo` gives the constructor `$emb_sm.X` and the macro
@@ -521,7 +522,7 @@ What is checked in is the digest of each file rather than the file, since the
 tree checks in no generated artifact at all; see the `tools/eoc/out/` line of
 `.gitignore`. The digests are of what the pipeline wrote *under these
 semantics*, so a change to `semantics/smt.eos` or to
-`semantics/development-cpc.eos` moves them, and rightly: `--update` is how a
+`test/semantics.eos` moves them, and rightly: `--update` is how a
 run that meant to change the model says so, and the diff of `expected.txt`
 then shows how much of the output that change reached.
 
@@ -542,7 +543,7 @@ The driver resolves input paths relative to the directory where you invoke
 For example, from the repository root:
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos tests/Booleans-rules.eo and_intro
+python3 tools/eoc/driver.py vc --build-dir build-eoc --semantics tools/eoc/test/semantics.eos tests/Booleans-rules.eo and_intro
 ```
 
 The input path `tests/Booleans-rules.eo` is interpreted relative to the
@@ -664,25 +665,25 @@ Plugin-private files:
 Generate one VC:
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos tests/Booleans-rules.eo and_intro
+python3 tools/eoc/driver.py vc --build-dir build-eoc --semantics tools/eoc/test/semantics.eos tests/Booleans-rules.eo and_intro
 ```
 
 Generate one SyGuS query:
 
 ```bash
-python3 tools/eoc/driver.py vc --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos --sygus tests/Booleans-rules.eo and_intro
+python3 tools/eoc/driver.py vc --build-dir build-eoc --semantics tools/eoc/test/semantics.eos --sygus tests/Booleans-rules.eo and_intro
 ```
 
 Generate Lean for selected rules:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos tests/Booleans-rules.eo and_intro contra
+python3 tools/eoc/driver.py lean --build-dir build-eoc --semantics tools/eoc/test/semantics.eos tests/Booleans-rules.eo and_intro contra
 ```
 
 Generate Lean for the whole signature:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos --all <cvc5>/proofs/eo/cpc/Cpc.eo
+python3 tools/eoc/driver.py lean --build-dir build-eoc --semantics <logos>/install/defs/Cpc.eos --all <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
 A declaration the signature of the input leaves out of the compilation is
@@ -698,13 +699,13 @@ python3 tools/eoc/driver.py list-rules <cvc5>/proofs/eo/cpc/Cpc.eo
 Run every discovered rule through the VC pipeline:
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos vc <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics <logos>/install/defs/Cpc.eos vc <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
 ```
 
 Run every discovered rule through the SyGuS pipeline:
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics tools/eoc/semantics/development-cpc.eos sygus <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics <logos>/install/defs/Cpc.eos sygus <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
 ```
 
 ## Command reference

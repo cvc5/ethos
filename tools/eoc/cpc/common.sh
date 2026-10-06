@@ -37,7 +37,7 @@ EOC_DRIVER="$EOC_TOOLS_DIR/driver.py"
 # the stage what it compiled to, so the two are never out of step. See
 # compile_signatures in tools/eoc/driver.py.
 EOC_DEFAULT_CPC_INPUT="$EOC_REPO_ROOT/../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
-EOC_DEFAULT_SEMANTICS="$EOC_TOOLS_DIR/semantics/development-cpc.eos"
+EOC_DEFAULT_SEMANTICS="${LOGOS_DIR:-$HOME/logos}/install/defs/Cpc.eos"
 # Two more a run needs are named nowhere here, since nothing here would be the
 # one to say them: the SMT-LIB semantics the above is written against is the
 # target of the compilation, which sem_compile.py holds the set of, and why
@@ -188,26 +188,6 @@ eoc_sed_in_place() {
   local file="$2"
   sed -i.bak -e "$expression" "$file"
   rm -f "$file.bak"
-}
-
-# Compile the configuration of the model-smt signatures, and say what came out.
-#
-# The stage reads two signatures written in the deep embedding: the SMT-LIB one,
-# smt_defs.eo, which it finds for itself since it is the target, and the input's,
-# user_defs.eo, which --semantics names. Both are generated from the
-# configuration under tools/eoc/semantics. The driver compiles them before any
-# stage runs (see compile_signatures in tools/eoc/driver.py) but does so
-# silently, so a run never says where user_defs.eo came from; this compiles them
-# first, where the compiler says it. Doing so costs nothing and leaves the
-# driver's own pass with nothing to do: a file is written only where its text
-# changed.
-#
-# Which sets are compiled is sem_compile's own business rather than something
-# listed here, so the two cannot drift. One named with EOC_SEMANTICS that is
-# not among the sets the tool ships with is compiled by the driver during the
-# run rather than reported here.
-eoc_compile_sem_signatures() {
-  python3 "$EOC_TOOLS_DIR/compiler/sem_compile.py"
 }
 
 # Install the generated Lean into a package.
