@@ -108,6 +108,7 @@ $NATIVE_EMBED_DEFS$
 (declare-fun eval_exists (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_forall (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_choice (SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun eval_bind (SmtModel String tsm.Type sm.Term sm.Term) vsm.Value)
 (declare-fun inhabited_type (tsm.Type) Bool)
 (declare-fun eval_fun_apply (SmtModel String tsm.Type tsm.Type vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
@@ -176,6 +177,14 @@ $SM_DEFS$
          (vsm.Boolean true)))
   :pattern ((eval_choice M s T F))))
   :named smtx.tchoice.def))
+
+; bind
+; The body evaluated in the model extended with s bound to the value of t.
+(assert (! (forall ((M SmtModel) (s String) (T tsm.Type) (t sm.Term) (F sm.Term))
+  (! (= (eval_bind M s T t F)
+        ($smtx_model_eval (model_push M s T ($smtx_model_eval M t)) F))
+  :pattern ((eval_bind M s T t F))))
+  :named smtx.tbind.def))
 
 ; typeof choice, must be an inhabitant, else it is ill-typed.
 (assert (! (forall ((T tsm.Type))

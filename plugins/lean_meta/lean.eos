@@ -791,6 +791,13 @@ macro_rules
             else
               SmtValue.NotValue)")
 
+(define-native-method eval_bind
+  :lean-impl "macro_rules
+  | `(native_eval_bind $M $s $T $t $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      `($evalId ($pushId $M $s $T ($evalId $M $t)) $body)")
+
 (define-native-method unpack_seq
   :lean-impl "def native_unpack_seq : SmtSeq -> List SmtValue
   | (SmtSeq.cons v vs) => v :: (native_unpack_seq vs)

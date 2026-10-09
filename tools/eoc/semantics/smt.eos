@@ -2246,9 +2246,9 @@ decreasing_by
 ; The symbols that bind a variable: each is given the name and the type of
 ; what it binds, and a body. Every argument says the type it is of, so each
 ; stands for itself -- the body is a term rather than its value -- and the case
-; says where the body is evaluated: a quantifier and choice ask what it comes
-; to under every extension of the model, which is a native of the backend, and
-; bind evaluates it under one. A binder is written only where a transformation
+; says how the body is evaluated, which is a native of the backend: a
+; quantifier and choice ask what it comes to under every extension of the
+; model, and bind evaluates it under one. A binder is written only where a transformation
 ; of the input builds one, as any symbol of this set is.
 
 ; exists s:T. F
@@ -2274,7 +2274,7 @@ decreasing_by
 ; well-formed.
 (define-symbol bind ((s <string>) (T SmtType) (t SmtTerm) (F SmtTerm))
   :typeof ("ite" ("Teq" ($smtx_typeof t) T) ($smtx_typeof_guard_wf T ($smtx_typeof F)) none)
-  :value ($smtx_model_eval ("model_push" M s T ($smtx_model_eval M t)) F))
+  :value ("eval_bind" M s T t F))
 
 ;-----------------------------------------------------------------------------
 (section "The methods of the embedding")
