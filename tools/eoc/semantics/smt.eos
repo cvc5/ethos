@@ -2240,6 +2240,43 @@ decreasing_by
   :eval (a b) (= (set.inter a b) a))
 
 ;-----------------------------------------------------------------------------
+(section "The binders")
+;-----------------------------------------------------------------------------
+
+; The symbols that bind a variable: each is given the name and the type of
+; what it binds, and a body. Every argument says the type it is of, so each
+; stands for itself -- the body is a term rather than its value -- and the case
+; says where the body is evaluated: a quantifier and choice ask what it comes
+; to under every extension of the model, which is a native of the backend, and
+; bind evaluates it under one. A binder is written only where a transformation
+; of the input builds one, as any symbol of this set is.
+
+; exists s:T. F
+(define-symbol exists ((s <string>) (T SmtType) (F SmtTerm))
+  :typeof ("ite" ("Teq" ($smtx_typeof F) Bool) ($smtx_typeof_guard_wf T Bool) none)
+  :value ("eval_exists" M s T F))
+
+; forall s:T. F
+(define-symbol forall ((s <string>) (T SmtType) (F SmtTerm))
+  :typeof ("ite" ("Teq" ($smtx_typeof F) Bool) ($smtx_typeof_guard_wf T Bool) none)
+  :value ("eval_forall" M s T F))
+
+; A Hilbert choice binder: choice s:T. F denotes a value of type T that makes F
+; true, if such a value exists. It has type T when F is Boolean and T is
+; well-formed.
+(define-symbol choice ((s <string>) (T SmtType) (F SmtTerm))
+  :typeof ("ite" ("Teq" ($smtx_typeof F) Bool) ($smtx_typeof_guard_wf T T) none)
+  :value ("eval_choice" M s T F))
+
+; bind s:T := t in F evaluates F in the model extended with s bound to the
+; value of t. Together with choice, this is used to express (skolemized)
+; nested quantifiers. It has the type of F, provided t has type T and T is
+; well-formed.
+(define-symbol bind ((s <string>) (T SmtType) (t SmtTerm) (F SmtTerm))
+  :typeof ("ite" ("Teq" ($smtx_typeof t) T) ($smtx_typeof_guard_wf T ($smtx_typeof F)) none)
+  :value ($smtx_model_eval ("model_push" M s T ($smtx_model_eval M t)) F))
+
+;-----------------------------------------------------------------------------
 (section "The methods of the embedding")
 ;-----------------------------------------------------------------------------
 

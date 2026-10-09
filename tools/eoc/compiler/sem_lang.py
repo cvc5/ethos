@@ -978,8 +978,18 @@ AGGREGATES = {
     '$eo_to_smt_type': 'a name of the input stands for what it transforms into '
                        'wherever a type of the embedding is wanted',
     '$smtx_model_eval': 'an argument of an :eval-case stands for its value in '
-                        'the model',
+                        'the model, and only a symbol given a term, i.e. one '
+                        'with an argument said to be SmtTerm, evaluates one',
 }
+
+
+def gives_terms(entry):
+  """Whether an entry is given a term rather than the value of one, i.e. one
+  of its parameters says it is SmtTerm. A binder is: its body is evaluated
+  under the model it extends, so where and how is the case's to say, and it
+  says so by naming the evaluator."""
+  return any(t is not None and t.is_sym('SmtTerm')
+             for t in getattr(entry, 'types', ()))
 
 
 def embedded(name, entry, ctx):
@@ -991,7 +1001,8 @@ def embedded(name, entry, ctx):
   so is naming a native, which the configuration names in quotes, or an
   aggregate, which the place a name stands in already says.
   """
-  if name in AGGREGATES:
+  if name in AGGREGATES and not (name == '$smtx_model_eval'
+                                 and gives_terms(entry)):
     die('%s: %s is the aggregate this case is a part of, so no case names it: '
         '%s' % (entry.name, name, AGGREGATES[name]))
   if name.startswith('$emb_') and name in ctx.macros:
