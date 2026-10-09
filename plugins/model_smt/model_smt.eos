@@ -11,7 +11,7 @@
 ;;
 ;; This is the shape of what is written rather than what anything means, so it
 ;; is fixed by the tool: no option names another set of it, and a set that says
-;; what symbols mean -- semantics/smt.eos, semantics/development-cpc.eos --
+;; what symbols mean -- semantics/smt.eos, test/semantics.eos --
 ;; says nothing here. How a case is *written* is fixed too and is no part of
 ;; this: what a case declares, what its arguments stand for and what it gives
 ;; back are said in tools/eoc/compiler/sem_target.py, which is the only thing

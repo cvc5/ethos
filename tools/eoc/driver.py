@@ -273,9 +273,9 @@ class Pipeline:
         jobs: int,
         cvc5: Optional[Path],
         solve_args: list[str],
-        defs_file: Optional[Path],
-        smt_defs_file: Optional[Path],
-        lean_config: Optional[Path],
+        defs_file: Optional[Path] = None,
+        smt_defs_file: Optional[Path] = None,
+        lean_config: Optional[Path] = None,
         desugar_defs: Optional[Path] = None,
     ):
         self.build_dir = build_dir.resolve()
@@ -870,8 +870,8 @@ def compile_signatures(
 
     That stage reads two files written in the deep embedding: the SMT-LIB
     semantics the compilation is the target of, and the semantics of the input,
-    which is written against it. Both are generated from a configuration under
-    tools/eoc/semantics, so both are compiled here, before any stage runs; a
+    which is written against it. Both are generated from the selected
+    configurations, so both are compiled here, before any stage runs; a
     file is written only where its text changed. A set also compiles the Lean
     its methods say under :lean, and the third of what comes back is where the
     input's came out, which is what the lean-meta stage is given where
@@ -977,7 +977,7 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         default=None,
         help=(
             "The central file of the configuration of the input's semantics, "
-            "e.g. tools/eoc/semantics/development-cpc.eos. It is compiled "
+            "e.g. tools/eoc/test/semantics.eos. It is compiled "
             "before the model-smt stage reads what it compiles to. A file "
             "that is not a central file is taken to be a signature already "
             "written out."
@@ -1153,31 +1153,15 @@ def main(argv: list[str]) -> int:
         return resolved
 
     build_dir_arg = getattr(args, "build_dir", None) or os.getcwd()
-    # The signatures the model-smt stage reads are generated, so they are
-    # compiled before anything runs; the options then name what each set
-    # compiled to. The termination clauses of the input come out of the same
-    # compilation, so --lean-config names another only where the generated
-    # ones will not do.
-    # A set given the wrong role is the one mistake the options invite, since
-    # the two read alike, so it is said the way every other error of a run is.
-    try:
-        (defs_file, smt_defs_file, lean_config_file,
-         desugar_defs_file) = compile_signatures(
-            resolve_file_arg("semantics", "--semantics"),
-            resolve_file_arg("smt_semantics", "--smt-semantics"))
-    except RuntimeError as err:
-        report.error(str(err))
-        return 1
+    semantics = resolve_file_arg("semantics", "--semantics")
+    smt_semantics = resolve_file_arg("smt_semantics", "--smt-semantics")
+    lean_config = resolve_file_arg("lean_config", "--lean-config")
     pipeline = Pipeline(
         resolve_path_arg(build_dir_arg, cwd=invocation_cwd),
         final_out_dir,
         getattr(args, "jobs", 4),
         cvc5,
         solve_args,
-        defs_file,
-        smt_defs_file,
-        resolve_file_arg("lean_config", "--lean-config") or lean_config_file,
-        desugar_defs_file,
     )
     build_first = not getattr(args, "no_build", False)
     if not build_first and not pipeline.binary.is_file():
@@ -1187,12 +1171,21 @@ def main(argv: list[str]) -> int:
         )
 
     try:
+        # The build generates the shipped semantics. Compile the selected sets
+        # afterwards, so a build cannot overwrite a downstream configuration
+        # (including its termination clauses and list nil predicates).
+        if build_first:
+            pipeline.build()
+        (pipeline.defs_file, pipeline.smt_defs_file, lean_config_file,
+         pipeline.desugar_defs) = compile_signatures(semantics, smt_semantics)
+        pipeline.lean_config = lean_config or lean_config_file
+
         if args.command == "vc":
             pipeline.run_vc(
                 args.input,
                 args.target,
                 sygus=args.sygus,
-                build_first=build_first,
+                build_first=False,
                 validate_with_cvc5=not args.skip_cvc5,
                 solve_with_cvc5=args.solve,
             )
@@ -1208,18 +1201,18 @@ def main(argv: list[str]) -> int:
                 args.input,
                 list(args.targets),
                 all_targets=args.all,
-                build_first=build_first,
+                build_first=False,
                 generate_parser=not args.no_parser,
                 calc_name=args.calc_name,
             )
         elif args.command == "desugar":
-            pipeline.run_desugar(args.input, build_first=build_first,
+            pipeline.run_desugar(args.input, build_first=False,
                                  natives=args.natives)
         elif args.command == "trim-defs":
             pipeline.run_trim_only(
                 args.input,
                 list(args.targets),
-                build_first=build_first,
+                build_first=False,
             )
         else:
             rules: list[str] = []
@@ -1234,8 +1227,6 @@ def main(argv: list[str]) -> int:
             rules = dedupe_preserve_order(rules)
             if not rules:
                 parser.error("batch requires at least one rule, --rules-file, or --all-rules")
-            if build_first:
-                pipeline.build()
             if args.clean:
                 pipeline.clean_final_dir("sygus" if args.mode == "sygus" else "vc")
             failures: list[str] = []
