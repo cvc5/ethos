@@ -129,6 +129,10 @@ The following commands are supported for declaring and defining types and terms.
 
 - `(reset)` removes all declarations and definitions and resets the global scope. This command is similar in nature to its counterpart in SMT-LIB.
 
+- `(push <numeral>?)` pushes the current declaration scope one or more levels, where the default is `1`. This command is accepted in proof files and in reference files, but not in signature files.
+
+- `(pop <numeral>?)` pops the current declaration scope one or more levels, where the default is `1`. This command is accepted in proof files and in reference files, but not in signature files.
+
 The Eunoia language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 
 - `(define <symbol> (<typed-param>*) <term> <attr>*)`, defines `<symbol>` to be a lambda term whose arguments and body are given by the command, or just an arbitrary term defined by the provided body if the argument list is empty (i.e., it may be a non-function term). Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided. It is also possible to provide attributes to the definition, e.g. `:type`, which instructs the checker to perform type checking on the given term (see [type checking define](#tcdefine)).
@@ -2065,6 +2069,7 @@ By default, `define-fun` and `define-const` commands in reference files are inte
 This requires the signature to define `=` and, for functions with parameters, a `lambda` binder.
 If the option `reference-define-fun` is enabled, both commands are instead parsed as Eunoia definitions.
 The commands of the form `(assert F)` will add `F` to a set of formulas we will refer to as the _reference assertions_.
+The commands `push` and `pop` update the declaration and assertion scopes while parsing the reference file.
 The commands of the form `(check-sat-assuming (F1 ... Fn))` will likewise add `F1 ... Fn` to the reference assertions, since these formulas are part of the query that was checked.
 The commands `(reset-assertions)` and `(reset)` discard all reference assertions collected so far.
 Other commands in `file.smt2` (e.g. `set-logic`, `set-option`, and so on) will be ignored.
@@ -2086,7 +2091,7 @@ If it does not, then an error is thrown indicating that the proof is assuming a 
 The following aspects of SMT-LIB version 2.6 inputs are *not* supported when used as reference files in the current version of ethos.
 
 - **Recursive function definitions.** The commands `define-fun-rec` and `define-funs-rec` are not supported and lead to a parse error. Each can be seen equivalently as a `declare-fun` and a quantified assertion, per function. The latter is the recommended way to express recursive functions if you want reference checking supported with ethos.
-- **Incremental inputs.** The commands `push` and `pop` are not supported and lead to a parse error. Reference checking should not be run on benchmarks with multiple queries. Note that the assumptions of a `check-sat-assuming` command *are* considered for reference checking, but are not scoped to that command.
+- **Incremental inputs.** Full incremental `*.smt2` inputs are not supported. The commands `push` and `pop` update the current scope, but proof assumptions are matched against the assertions that remain active after the reference file finishes parsing, rather than against a particular query. Note that the assumptions of a `check-sat-assuming` command *are* considered for reference checking, but are not scoped to that command.
 - **Other solver-specific commands.** Any command not listed in the grammar below (e.g. solver-specific commands that do not begin with `get-`) leads to a parse error.
 
 Any command whose name begins with `get-` is parsed and ignored, since the only effect of such a command is to produce solver output, which has no impact on the set of reference assertions. As of SMT-LIB version 2.6, the commands of this form are `get-assertions`, `get-assignment`, `get-info`, `get-model`, `get-option`, `get-proof`, `get-unsat-assumptions`, `get-unsat-core` and `get-value`; ethos does not maintain this list.
@@ -2178,6 +2183,7 @@ Their expected syntax is `<smtlib2-command>*`.
 - _Signature files_ are files given on the command line that have extension `*.eo`, or those that are included via the command `include`. Like proof files, their expected syntax is `<eo-command>*`.
 
 As mentioned, the first two kinds of file inputs take into account options concerning the normalization of terms (e.g. `--normalize-num`), while signature files do not.
+The commands `push` and `pop` are parsed in proof files and in reference files; they are rejected in signature files.
 When streaming input to Ethos, we assume the input is being given for a proof file.
 
 ```smt
@@ -2190,7 +2196,9 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? <conclusion> <attr>*) |
     (define <symbol> (<typed-param>*) <term> <attr>*) |
     (include <string>) |
+    (pop <numeral>?) |
     (program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)*)?) |
+    (push <numeral>?) |
     (reference <string> <term>?) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
     (step-pop <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
@@ -2216,6 +2224,8 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (define-const <symbol> <type> <term>) |
     (define-fun <symbol> (<typed-param>*) <type> <term>) |
     (define-sort <symbol> (<symbol>*) <type>) |
+    (pop <numeral>?) |
+    (push <numeral>?) |
     (reset-assertions) |
     (set-info <attr>) |
     (set-logic <symbol>) |

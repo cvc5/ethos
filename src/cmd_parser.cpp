@@ -24,17 +24,19 @@ namespace ethos {
 CmdParser::CmdParser(Lexer& lex,
                      State& state,
                      ExprParser& eparser,
+                     bool isSignature,
                      bool isReference)
     : d_lex(lex),
       d_state(state),
       d_tc(state.getTypeChecker()),
       d_sts(state.getStats()),
       d_eparser(eparser),
+      d_isSignature(isSignature),
       d_isReference(isReference),
       d_isFinished(false)
 {
   // initialize the command tokens
-  // commands supported in both inputs and proofs
+  // commands supported in proofs, references, and signatures
   d_table["declare-const"] = Token::DECLARE_CONST;
   d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
@@ -43,6 +45,11 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["exit"] = Token::EXIT;
   d_table["set-option"] = Token::SET_OPTION;
   d_table["reset"] = Token::RESET;
+  if (!d_isSignature)
+  {
+    d_table["pop"] = Token::POP;
+    d_table["push"] = Token::PUSH;
+  }
 
   if (d_isReference)
   {
@@ -874,14 +881,13 @@ bool CmdParser::parseNextCommand()
     // (reset)
     case Token::RESET:
     {
-      // reset the state of the parser, which is independent of the symbol
-      // manager
-      d_state.reset();
-      // in reference files, reset subsumes reset-assertions
+      // In reference files, reset subsumes reset-assertions. Pop the reference
+      // scopes before resetting the declaration stack.
       if (d_isReference)
       {
         d_state.clearReferenceAsserts();
       }
+      d_state.reset();
     }
     break;
     // (step i F? :rule R :premises (p1 ... pn) :args (t1 ... tm))
@@ -996,6 +1002,39 @@ bool CmdParser::parseNextCommand()
       {
         // increment the stats
         rs->increment(d_sts);
+      }
+    }
+    break;
+    // (push <numeral>?)
+    // (pop <numeral>?)
+    case Token::POP:
+    case Token::PUSH:
+    {
+      bool isPush = (tok == Token::PUSH);
+      tok = d_lex.peekToken();
+      size_t num = 1;
+      if (tok == Token::INTEGER_LITERAL)
+      {
+        num = d_eparser.parseIntegerNumeral();
+      }
+      for (size_t i = 0; i < num; i++)
+      {
+        if (isPush)
+        {
+          d_state.pushScope();
+          if (d_isReference)
+          {
+            d_state.pushReferenceScope();
+          }
+        }
+        else
+        {
+          if (d_isReference)
+          {
+            d_state.popReferenceScope();
+          }
+          d_state.popScope();
+        }
       }
     }
     break;

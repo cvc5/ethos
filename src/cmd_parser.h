@@ -27,6 +27,7 @@ class CmdParser
   CmdParser(Lexer& lex,
             State& state,
             ExprParser& eparser,
+            bool isSignature,
             bool isReference);
   virtual ~CmdParser() {}
   /**
@@ -48,6 +49,8 @@ class CmdParser
   ExprParser& d_eparser;
   /** Map strings to tokens */
   std::map<std::string, Token> d_table;
+  /** */
+  bool d_isSignature;
   /** */
   bool d_isReference;
   /** Is finished */
