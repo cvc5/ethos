@@ -202,10 +202,10 @@ what the embedding is rather than what a signature means.
 `smt.eos` is the target, so every input is compiled through it and nothing
 about an input is asked of it. `test/semantics.eos` is a small fixture for the
 Boolean and string regressions. Full CPC semantics live in Logos at
-`install/defs/Cpc.eos`, which the CPC wrappers select from `$LOGOS_DIR` and
-direct driver calls name with `--semantics`. A set from another tree still
-compiles into the fixed role-specific files under `tools/eoc/out/`; the source
-set itself is not modified.
+`install/defs/Cpc.eos`; there are no CPC wrapper scripts in this checkout, so
+a run that compiles CPC names that file with `--semantics` itself. A set from
+another tree still compiles into the fixed role-specific files under
+`tools/eoc/out/`; the source set itself is not modified.
 
 A configuration says what each symbol means once, in the vocabulary of SMT-LIB
 and of the input, and the compiler works out the programs, the constructors and
