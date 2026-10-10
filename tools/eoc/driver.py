@@ -273,9 +273,9 @@ class Pipeline:
         jobs: int,
         cvc5: Optional[Path],
         solve_args: list[str],
-        defs_file: Optional[Path],
-        smt_defs_file: Optional[Path],
-        lean_config: Optional[Path],
+        defs_file: Optional[Path] = None,
+        smt_defs_file: Optional[Path] = None,
+        lean_config: Optional[Path] = None,
         desugar_defs: Optional[Path] = None,
     ):
         self.build_dir = build_dir.resolve()
@@ -861,23 +861,11 @@ def resolve_cvc5(path_arg: Optional[str], *, cwd: Path) -> Optional[Path]:
     return Path(found) if found else None
 
 
-def compile_signatures(
+def check_semantics(
     semantics: Optional[Path], smt_semantics: Optional[Path] = None
-) -> tuple[Optional[Path], Optional[Path], Optional[Path], Optional[Path]]:
-    """Compile the configuration of the model-smt signatures, and say where
-    each of the two the stage reads came out, together with where the
-    termination clauses of the input's programs did.
-
-    That stage reads two files written in the deep embedding: the SMT-LIB
-    semantics the compilation is the target of, and the semantics of the input,
-    which is written against it. Both are generated from a configuration under
-    tools/eoc/semantics, so both are compiled here, before any stage runs; a
-    file is written only where its text changed. A set also compiles the Lean
-    its methods say under :lean, and the third of what comes back is where the
-    input's came out, which is what the lean-meta stage is given where
-    --lean-config names nothing. The fourth is what the input's set says to the
-    *desugar* stage, a stage earlier than either signature is read by; only an
-    input set says anything to it, see sem_compile.Config.desugar_target.
+) -> tuple[dict[bool, Optional[str]], list[Optional[str]]]:
+    """Which set each role is compiled from, and which of the two an option
+    named, the named sets having been checked for standing in one role each.
 
     A run compiles **one set of each role**, and each option names which. The
     option a set is named with is what gives it its role -- --smt-semantics
@@ -894,13 +882,21 @@ def compile_signatures(
     file is taken to be a signature already written out and is passed through,
     which is what lets one that has no configuration still be given directly.
     Naming neither leaves the sets the tool ships with.
+
+    What comes back is what compile_signatures compiles: the set each role is
+    compiled from, keyed by whether that role is the target, and what each
+    option named, None where it named nothing or named a file that is no
+    central file. Nothing here reads anything a build writes, so main calls it
+    *before* building: a set named under the wrong option is a mistake in the
+    arguments, and saying so should not wait on a cmake --build, which on a
+    cold directory takes minutes.
     """
     sys.path.insert(0, str(Path(__file__).resolve().parent / "compiler"))
     import sem_compile
 
     # One set of each role, the shipped one until an option names another.
     chosen = {is_target: path for path, is_target in sem_compile.SHIPPED}
-    named = []
+    named: list[Optional[str]] = []
     two_roles = (
         "is given two roles; --smt-semantics names the SMT-LIB semantics and "
         "--semantics the semantics of an input, and a set is one or the other"
@@ -924,6 +920,35 @@ def compile_signatures(
     if (named[0] is not None and named[1] is not None
             and sem_compile.same_file(named[0], named[1])):
         raise RuntimeError(f"{named[0]} {two_roles}")
+    return chosen, named
+
+
+def compile_signatures(
+    semantics: Optional[Path], smt_semantics: Optional[Path] = None
+) -> tuple[Optional[Path], Optional[Path], Optional[Path], Optional[Path]]:
+    """Compile the configuration of the model-smt signatures, and say where
+    each of the two the stage reads came out, together with where the
+    termination clauses of the input's programs did.
+
+    That stage reads two files written in the deep embedding: the SMT-LIB
+    semantics the compilation is the target of, and the semantics of the input,
+    which is written against it. Both are generated from the selected
+    configurations, so both are compiled here, before any stage runs; a
+    file is written only where its text changed. A set also compiles the Lean
+    its methods say under :lean, and the third of what comes back is where the
+    input's came out, which is what the lean-meta stage is given where
+    --lean-config names nothing. The fourth is what the input's set says to the
+    *desugar* stage, a stage earlier than either signature is read by; only an
+    input set says anything to it, see sem_compile.Config.desugar_target.
+
+    Which set each role is compiled from, and what the options may and may not
+    name, is check_semantics'; see there. This runs after the build, since the
+    build generates the shipped sets, so what it says about the arguments has
+    been said already.
+    """
+    import sem_compile
+
+    chosen, named = check_semantics(semantics, smt_semantics)
     written = sem_compile.compile_to_files(
         [(path, is_target) for is_target, path in chosen.items()])
 
@@ -977,7 +1002,7 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         default=None,
         help=(
             "The central file of the configuration of the input's semantics, "
-            "e.g. tools/eoc/semantics/development-cpc.eos. It is compiled "
+            "e.g. tools/eoc/test/semantics.eos. It is compiled "
             "before the model-smt stage reads what it compiles to. A file "
             "that is not a central file is taken to be a signature already "
             "written out."
@@ -1153,31 +1178,15 @@ def main(argv: list[str]) -> int:
         return resolved
 
     build_dir_arg = getattr(args, "build_dir", None) or os.getcwd()
-    # The signatures the model-smt stage reads are generated, so they are
-    # compiled before anything runs; the options then name what each set
-    # compiled to. The termination clauses of the input come out of the same
-    # compilation, so --lean-config names another only where the generated
-    # ones will not do.
-    # A set given the wrong role is the one mistake the options invite, since
-    # the two read alike, so it is said the way every other error of a run is.
-    try:
-        (defs_file, smt_defs_file, lean_config_file,
-         desugar_defs_file) = compile_signatures(
-            resolve_file_arg("semantics", "--semantics"),
-            resolve_file_arg("smt_semantics", "--smt-semantics"))
-    except RuntimeError as err:
-        report.error(str(err))
-        return 1
+    semantics = resolve_file_arg("semantics", "--semantics")
+    smt_semantics = resolve_file_arg("smt_semantics", "--smt-semantics")
+    lean_config = resolve_file_arg("lean_config", "--lean-config")
     pipeline = Pipeline(
         resolve_path_arg(build_dir_arg, cwd=invocation_cwd),
         final_out_dir,
         getattr(args, "jobs", 4),
         cvc5,
         solve_args,
-        defs_file,
-        smt_defs_file,
-        resolve_file_arg("lean_config", "--lean-config") or lean_config_file,
-        desugar_defs_file,
     )
     build_first = not getattr(args, "no_build", False)
     if not build_first and not pipeline.binary.is_file():
@@ -1186,40 +1195,63 @@ def main(argv: list[str]) -> int:
             "name the build directory it is in with --build-dir"
         )
 
+    # What is wrong with the command line is said here, before the build: a
+    # cmake --build of a cold directory takes minutes, and none of these
+    # answers depends on what one writes. Only what reads a generated file --
+    # the rules --all-rules discovers, which the compiled exclusions are
+    # subtracted from -- waits until after it.
+    if args.command == "lean":
+        if not args.all and not args.targets:
+            parser.error("lean requires at least one target unless --all is passed")
+        if args.all and args.targets:
+            parser.error(
+                "lean --all compiles the whole signature; it takes no targets, "
+                f"but was given {' '.join(args.targets)}"
+            )
+    elif args.command == "batch" and not (
+            args.all_rules or args.rules_file is not None or args.rules):
+        parser.error("batch requires at least one rule, --rules-file, or --all-rules")
+
     try:
+        # A set named under the wrong option is a mistake in the arguments too,
+        # so it is caught here rather than where the sets are compiled, which
+        # is after the build; see check_semantics.
+        check_semantics(semantics, smt_semantics)
+        # The build generates the shipped semantics. Compile the selected sets
+        # afterwards, so a build cannot overwrite a downstream configuration
+        # (including its termination clauses and list nil predicates).
+        if build_first:
+            pipeline.build()
+        (pipeline.defs_file, pipeline.smt_defs_file, lean_config_file,
+         pipeline.desugar_defs) = compile_signatures(semantics, smt_semantics)
+        pipeline.lean_config = lean_config or lean_config_file
+
         if args.command == "vc":
             pipeline.run_vc(
                 args.input,
                 args.target,
                 sygus=args.sygus,
-                build_first=build_first,
+                build_first=False,
                 validate_with_cvc5=not args.skip_cvc5,
                 solve_with_cvc5=args.solve,
             )
         elif args.command == "lean":
-            if not args.all and not args.targets:
-                parser.error("lean requires at least one target unless --all is passed")
-            if args.all and args.targets:
-                parser.error(
-                    "lean --all compiles the whole signature; it takes no targets, "
-                    f"but was given {' '.join(args.targets)}"
-                )
             pipeline.run_lean(
                 args.input,
                 list(args.targets),
                 all_targets=args.all,
-                build_first=build_first,
+                build_first=False,
                 generate_parser=not args.no_parser,
                 calc_name=args.calc_name,
             )
         elif args.command == "desugar":
-            pipeline.run_desugar(args.input, build_first=build_first,
+            pipeline.run_desugar(args.input, build_first=False,
                                  natives=args.natives)
         elif args.command == "trim-defs":
             pipeline.run_trim_only(
                 args.input,
                 list(args.targets),
-                build_first=build_first,
+                build_first=False,
             )
         else:
             rules: list[str] = []
@@ -1233,9 +1265,15 @@ def main(argv: list[str]) -> int:
             rules.extend(args.rules)
             rules = dedupe_preserve_order(rules)
             if not rules:
-                parser.error("batch requires at least one rule, --rules-file, or --all-rules")
-            if build_first:
-                pipeline.build()
+                # Naming no selection at all was refused before the build, so
+                # what is empty here is what a selection came to: a signature
+                # whose every rule the semantics leave out, or an empty
+                # --rules-file.
+                report.error(
+                    f"no rules to compile from {report.rel(args.input)}: what "
+                    "the selection came to is empty"
+                )
+                return 1
             if args.clean:
                 pipeline.clean_final_dir("sygus" if args.mode == "sygus" else "vc")
             failures: list[str] = []

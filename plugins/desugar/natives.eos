@@ -104,7 +104,7 @@
 ; What a signature that reserves names by a prefix reserves them with, and the
 ; names CPC builds with it. What they mean is no business of the embedding; a
 ; signature says that for itself, see $eo_to_smt_reserved_datatype_name in
-; tools/eoc/semantics/development-cpc.eos.
+; Logos's install/defs/Cpc.eos (or tools/eoc/test/semantics.eos for tests).
 (declare-native str_at_sign () :op "\"@\"")
 
 (declare-native str_vname () :op "\"@x\"")
@@ -306,4 +306,3 @@
 ; A natural number is what a character is written as, so this is what says
 ; which of the two a place means rather than what it converts.
 (declare-native n_to_char ((n <nat>)) :is n)
-

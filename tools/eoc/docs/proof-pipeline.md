@@ -43,12 +43,12 @@ cmake --build build-eoc --target ethos-eoc -j8
 
 # a verification condition for one rule
 python3 tools/eoc/driver.py vc --build-dir build-eoc \
-  --semantics tools/eoc/semantics/development-cpc.eos \
+  --semantics <logos>/install/defs/Cpc.eos \
   <input.eo> <proof-rule>
 
 # the whole CPC signature, compiled to Lean
 python3 tools/eoc/driver.py lean --build-dir build-eoc --all \
-  --semantics tools/eoc/semantics/development-cpc.eos \
+  --semantics <logos>/install/defs/Cpc.eos \
   <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
@@ -189,7 +189,7 @@ before any stage, so the two are never out of step with what the stage reads.
 | Configuration | Compiles to |
 | --- | --- |
 | `semantics/smt.eos`, named by `--smt-semantics` | `smt_defs.eo`, `smt_termination.lean` |
-| `semantics/development-cpc.eos`, named by `--semantics` | `user_defs.eo`, `user_termination.lean` |
+| The input's semantics, named by `--semantics` | `user_defs.eo`, `user_termination.lean` |
 | `plugins/desugar/desugar.eos` | `user_desugar.eo`, the input's nil predicates |
 | `plugins/desugar/natives.eos` | `native_defs.eo`, the natives the embedding calls |
 | `plugins/model_smt/model_smt.eos` | the head of each signature above, which says how the stage takes it apart |
@@ -200,10 +200,12 @@ The first two a run may name another of; the rest are fixed, since they say
 what the embedding is rather than what a signature means.
 
 `smt.eos` is the target, so every input is compiled through it and nothing
-about an input is asked of it. `development-cpc.eos` is a *test*, kept so that
-the compiler and the stages after it have a real signature to run over; **as of 2026-09-18, Logos supplies its CPC semantics in `install/defs/Cpc.eos`**, and that is what a
-run meaning to say something about CPC names with `--semantics`. A set from another tree still compiles into the fixed role-specific files
-under `tools/eoc/out/`; the source set itself is not modified.
+about an input is asked of it. `test/semantics.eos` is a small fixture for the
+Boolean and string regressions. Full CPC semantics live in Logos at
+`install/defs/Cpc.eos`; there are no CPC wrapper scripts in this checkout, so
+a run that compiles CPC names that file with `--semantics` itself. A set from
+another tree still compiles into the fixed role-specific files under
+`tools/eoc/out/`; the source set itself is not modified.
 
 A configuration says what each symbol means once, in the vocabulary of SMT-LIB
 and of the input, and the compiler works out the programs, the constructors and
@@ -385,7 +387,7 @@ prove them or build the package.
 
 ### What this compilation does not cover
 
-- **Proof-level lambda.** `development-cpc.eos` excludes `lambda`, related
+- **Proof-level lambda.** Logos's `install/defs/Cpc.eos` excludes `lambda`, related
   helper methods and `beta-reduce` explicitly. Exclusions are not closed under
   dependency automatically.
 - **Parametric datatypes.** The model embedding's datatype declarations have

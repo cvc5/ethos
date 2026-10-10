@@ -272,8 +272,15 @@ class Aggregate:
     aggregate: an argument reaches a case the way the shape says, and which way
     is said by how the argument was written."""
     env, surface = {}, set()
-    for v, kind, x in zip(entry.params, entry.kinds, xs):
+    for v, kind, declared, x in zip(entry.params, entry.kinds, entry.types,
+                                   xs):
       if x is None:
+        continue
+      if declared is not None:
+        # An argument that says the type it is of is already of it, so it
+        # stands for itself in every case: a binder is given the name and the
+        # type of what it binds, and a body it decides when to evaluate.
+        env[v] = x
         continue
       if kind not in self.stands:
         die('%s: no argument of %s is %s' % (entry.name, self.key, kind))

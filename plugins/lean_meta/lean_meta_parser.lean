@@ -100,6 +100,7 @@ def parserConfig : Logos.Parser.Config Term CRule CCmd CCmdList where
   mkStepPop := fun rule args premises =>
     .step_pop rule (args.foldr .cons .nil)
       (premises.foldr (fun i rest => .cons (Int.ofNat i) rest) .nil)
+  mkCheckProven := some .check_proven
   mkCmdList := (·.foldr .cons .nil)
   datatypes := some
     { mkRef := fun name => Term.DatatypeTypeRef (native_string_lit name)

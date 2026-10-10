@@ -5,7 +5,7 @@ primitives.
 
 ```bash
 python3 tools/eoc/driver.py desugar --natives=eo \
-  --semantics tools/eoc/semantics/development-cpc.eos <input.eo>
+  --semantics tools/eoc/test/semantics.eos tests/Booleans-rules.eo
 ```
 
 A signature that goes in may use any Eunoia primitive it likes. The desugar

@@ -56,13 +56,14 @@
 ; the reason is not that nobody has got to them. A define-symbol says what a
 ; symbol evaluates to with each argument standing for its *value*, which is
 ; what makes a case of $smtx_model_eval compositional; these are exactly the
-; constructors for which it is not. A binder takes its body unevaluated, an
-; application decides what to do by what its head is, and Var, UConst, DtCons
-; and their kin carry a name and a type rather than sub-terms -- an argument a
-; symbol form would evaluate on the way in. So a case of one cannot be written
-; as :value, and writing only its :typeof there would split one constructor
-; across two files, which is the thing that was just taken out of the natives
-; and the datatype programs. They belong together, and here.
+; constructors for which it is not. An application decides what to do by what
+; its head is, and Var, UConst, DtCons and their kin carry a name and a type
+; rather than sub-terms -- an argument a symbol form would evaluate on the way
+; in. So a case of one cannot be written as :value, and writing only its
+; :typeof there would split one constructor across two files, which is the
+; thing that was just taken out of the natives and the datatype programs. They
+; belong together, and here. The binders, whose arguments say their types and
+; so stand for themselves, are symbols of smt.eos, see "The binders" there.
 
 
 ; No term at all, which a transformation answers with where what it was given
@@ -97,40 +98,6 @@
   ((s $native_String :opaque) (T $smt_Type :opaque))
   $smt_Term)
 (define $sm_Var ((s $native_String) (T $smt_Type)) ($emb_sm.Var s T))
-
-; exists
-; this takes the variable to quantify over, which should then be applied
-; to a formula, similarly for the other quantifiers
-(declare-parameterized-const $emb_sm.exists
-  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque))
-  $smt_Term)
-(define $sm_exists ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.exists s T F))
-
-; forall
-(declare-parameterized-const $emb_sm.forall
-  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque))
-  $smt_Term)
-(define $sm_forall ((s $native_String) (T $smt_Type) (F $smt_Term)) ($emb_sm.forall s T F))
-
-; choice
-; A Hilbert choice binder: choice s:T. F denotes a value of type T that makes
-; F true, if such a value exists.
-(declare-parameterized-const $emb_sm.choice
-  ((s $native_String :opaque) (T $smt_Type :opaque) (F $smt_Term :opaque))
-  $smt_Term)
-(define $sm_choice ((s $native_String) (T $smt_Type) (F $smt_Term))
-  ($emb_sm.choice s T F))
-
-; bind
-; ($sm_bind s T t1 t2) binds the variable s of type T to the result of
-; evaluating t1, then evaluates t2 under that binding. Together with choice,
-; this is used to express (skolemized) nested quantifiers.
-(declare-parameterized-const $emb_sm.bind
-  ((s $native_String :opaque) (T $smt_Type :opaque)
-   (t1 $smt_Term :opaque) (t2 $smt_Term :opaque))
-  $smt_Term)
-(define $sm_bind ((s $native_String) (T $smt_Type) (t1 $smt_Term) (t2 $smt_Term))
-  ($emb_sm.bind s T t1 t2))
 
 ; the ci^th constructor of datatype ($tsm_Datatype s dd).
 (declare-parameterized-const $emb_sm.DtCons
@@ -485,11 +452,11 @@
   ((M $smt_Model) (f $smt_Term) (v $smt_Value) (T $smt_Type) (dd $smt_DatatypeDecl)
    (i $native_Nat) (j $native_Nat)
    (m $native_Int) (s $native_String)
-   ; what a case of a literal is written with: a letter for the type it is of
-   ; and the place it stands at, see SLOT_BY_TYPE in
+   ; what a case of a literal or a binder is written with: a letter for the
+   ; type it is of and the place it stands at, see SLOT_BY_TYPE in
    ; tools/eoc/compiler/sem_target.py
    (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
-   (r1 $native_Rat) (s1 $native_String)
+   (r1 $native_Rat) (s1 $native_String) (T2 $smt_Type)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Model $smt_Term) $smt_Value
@@ -499,17 +466,6 @@
   ; These calls will reference helper methods above, e.g. of the form
   ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
 ;$SMT_EVAL_CASES$
-  ; quantifiers
-  (($smtx_model_eval M ($sm_exists s T x1))
-    ($native_apply_4 "eval_exists" M s T x1))
-  (($smtx_model_eval M ($sm_forall s T x1))
-    ($native_apply_4 "eval_forall" M s T x1))
-  (($smtx_model_eval M ($sm_choice s T x1))
-    ($native_apply_4 "eval_choice" M s T x1))
-  ; bind evaluates its body in the model extended with s bound to the value of
-  ; the first term.
-  (($smtx_model_eval M ($sm_bind s T x1 x2))
-    ($smtx_model_eval ($native_apply_4 "model_push" M s T ($smtx_model_eval M x1)) x2))
   ; datatypes
   (($smtx_model_eval M ($sm_DtCons s dd i)) ($vsm_DtCons s dd i))
   (($smtx_model_eval M ($sm_apply ($sm_DtSel s dd i j) x1))
@@ -535,28 +491,16 @@
   ((M $smt_Model) (f $smt_Term) (T $smt_Type) (dd $smt_DatatypeDecl)
    (i $native_Nat) (j $native_Nat)
    (m $native_Int) (s $native_String)
-   ; what a case of a literal is written with: a letter for the type it is of
-   ; and the place it stands at, see SLOT_BY_TYPE in
+   ; what a case of a literal or a binder is written with: a letter for the
+   ; type it is of and the place it stands at, see SLOT_BY_TYPE in
    ; tools/eoc/compiler/sem_target.py
    (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
-   (r1 $native_Rat) (s1 $native_String)
+   (r1 $native_Rat) (s1 $native_String) (T2 $smt_Type)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Term) $smt_Type
   (
 ;$SMT_TYPEOF_CASES$
-  ; quantifiers
-  (($smtx_typeof ($sm_exists s T x1))
-    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T $tsm_Bool) $tsm_none))
-  (($smtx_typeof ($sm_forall s T x1))
-    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T $tsm_Bool) $tsm_none))
-  ; choice s:T. F has type T when F is Boolean and T is well-formed/inhabited.
-  (($smtx_typeof ($sm_choice s T x1))
-    ($native_ite ($native_Teq ($smtx_typeof x1) $tsm_Bool) ($smtx_typeof_guard_wf T T) $tsm_none))
-  ; bind s:T := t1 in t2 has the type of t2, provided t1 has type T (so that
-  ; the binding is well-typed) and T is well-formed/inhabited.
-  (($smtx_typeof ($sm_bind s T x1 x2))
-    ($native_ite ($native_Teq ($smtx_typeof x1) T) ($smtx_typeof_guard_wf T ($smtx_typeof x2)) $tsm_none))
   ; datatypes
   (($smtx_typeof ($sm_DtCons s dd i))
     ($smtx_typeof_guard_wf ($tsm_Datatype s dd)
