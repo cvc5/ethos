@@ -2,6 +2,9 @@
 """Exercise rule listing and selection of semantics across builds."""
 
 from pathlib import Path
+import contextlib
+import importlib.util
+import io
 import shutil
 import subprocess
 import sys
@@ -11,6 +14,24 @@ from unittest import mock
 
 
 EOC = Path(__file__).resolve().parents[1]
+
+
+def load_eoc_driver():
+    """tools/eoc/driver.py, loaded under a name of its own.
+
+    This file is itself named driver.py, so `import driver` is not the way to
+    reach it: under unittest discovery this module is already cached under that
+    name by the time a test runs, and the import would hand back the tests.
+    Loading the driver from its path under another name is what keeps the two
+    apart whichever way the suite is started -- as a script, as CI does, or
+    discovered. Importing it is also what puts compiler/ on sys.path, which is
+    where sem_compile is.
+    """
+    spec = importlib.util.spec_from_file_location("eoc_driver", EOC / "driver.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 class RuleListing(unittest.TestCase):
@@ -68,10 +89,8 @@ class RuleListing(unittest.TestCase):
 class SemanticsSelection(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        sys.path.insert(0, str(EOC))
-        import driver
+        cls.driver = load_eoc_driver()
         import sem_compile
-        cls.driver = driver
         cls.compiler = sem_compile
 
     def test_selected_semantics_survive_build(self):
@@ -130,6 +149,56 @@ class SemanticsSelection(unittest.TestCase):
                                                autospec=True, side_effect=run):
                             self.assertEqual(self.driver.main(command + options), 0)
                             self.assertEqual(built.call_count, int(not no_build))
+
+
+class ArgumentsBeforeBuild(unittest.TestCase):
+    """What is wrong with the command line is said without building first.
+
+    A cmake --build of a cold build directory takes minutes, so a run whose
+    arguments cannot be acted on at all must not reach one; see main. Each case
+    here is one such run, and what each asserts is that the build was never
+    called.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.driver = load_eoc_driver()
+
+    def refuses_without_building(self, argv):
+        """What the run came to, the build having been asserted not to run."""
+        with tempfile.TemporaryDirectory() as temp:
+            options = ["--build-dir", temp, "--skip-cvc5"]
+            with mock.patch.object(self.driver.Pipeline, "build",
+                                   autospec=True) as built, \
+                 contextlib.redirect_stderr(io.StringIO()) as err:
+                try:
+                    code = self.driver.main(argv + options)
+                except SystemExit as stop:
+                    code = stop.code
+            self.assertEqual(built.call_count, 0)
+            return code, err.getvalue()
+
+    def test_batch_with_no_rules(self):
+        code, _ = self.refuses_without_building(["batch", "vc", "input.eo"])
+        self.assertEqual(code, 2)
+
+    def test_lean_with_no_target(self):
+        code, _ = self.refuses_without_building(["lean", "input.eo"])
+        self.assertEqual(code, 2)
+
+    def test_lean_all_with_a_target(self):
+        code, _ = self.refuses_without_building(
+            ["lean", "--all", "input.eo", "rule"])
+        self.assertEqual(code, 2)
+
+    def test_semantics_under_the_wrong_option(self):
+        # The SMT-LIB semantics is the target of the compilation, so naming it
+        # as an input's is a role it cannot stand in; see check_semantics.
+        code, err = self.refuses_without_building(
+            ["vc", "input.eo", "rule",
+             "--semantics", str(EOC / "semantics" / "smt.eos")])
+        self.assertEqual(code, 1)
+        self.assertIn("is given two roles", err)
 
 
 if __name__ == "__main__":
