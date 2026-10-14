@@ -127,3 +127,39 @@ emitted declarations. `:arg-list` becomes `.argList`, so `(distinct a b c)`
 gathers into `(distinct (@tlist a b c))`; an operator that merely takes a
 `@@TypedList` without that attribute, such as `set.insert`, is applied to an
 explicit list and stays `.exact`.
+
+## Parametric datatypes
+
+The generated parser uses the datatype hooks from
+[Logos PR #473](https://github.com/cvc5/logos/pull/473), as of `9eccca6b`.
+It represents a generic sort with `Term.DatatypeParamType` binders and
+`Term.DatatypeTypeRef` parameter references. At each use, it instantiates the
+declaration and builds ordinary `DatatypeType`, `DtCons`, and `DtSel` terms.
+Constructor arguments infer parameters; selectors, testers and updaters infer
+them from their operand; `(as nil (List Int))` supplies an explicit instance.
+Unresolved generic operators become `Stuck` when they leave the parser.
+
+The generic Logos parser controls which declarations are accepted, including
+the requirement that recursive references use the block's parameters in order.
+The generated checker and SMT model continue to check monomorphic terms.
+The specification also translates applied datatype templates directly, consuming
+the parameters in application order and substituting in the translated fields,
+as in the PR.
+
+No change to `install/defs/Cpc.eos` is required. `$eo_to_smt_type` remains unary;
+its internal `$eo_to_smt_type_app` helper handles pending arguments. Regenerate
+both CPC and CpcMini with the updated compiler, and use the PR's generic
+`Logos/Parser.lean`. Proofs that exhaustively match `Term` need a case for
+`DatatypeParamType`; the model's datatype representation is unchanged.
+
+The integration regression compiles fresh generated Lean and runs both the
+datatype tests and Logos's CPC parser tests without modifying the Logos tree:
+
+```sh
+python3 tools/eoc/test/parametric-datatypes.py \
+  --logos ~/logos --signature ../cvc5-ajr/proofs/eo/cpc/Cpc.eo
+```
+
+It uses the Lean version in Logos's `lean-toolchain` and an already built
+`build-eoc/ethos-eoc`. `--generated DIR` checks an existing driver's output
+(`DIR/lean`) instead of regenerating it.

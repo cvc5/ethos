@@ -120,6 +120,14 @@ $EO_UOP_DECLS$
 (define $eot_DatatypeType ((s $native_String) (d $eo_DatatypeDecl))
   ($emb_DatatypeType s d))
 
+; A sort parameter binds references of the same name in a datatype template.
+; Constructors and selectors carry the monomorphic declaration after the
+; parser has instantiated this template.
+(declare-parameterized-const $emb_DatatypeParamType
+  ((s $native_String :opaque) (T $eo_Term :opaque)) $eo_Term)
+(define $eot_DatatypeParamType ((s $native_String) (T $eo_Term))
+  ($emb_DatatypeParamType s T))
+
 (declare-parameterized-const $emb_DatatypeTypeRef
   ((s $native_String :opaque))
   $eo_Term)

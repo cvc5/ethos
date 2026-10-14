@@ -558,6 +558,19 @@ $EO_IS_LIST_NIL_CASES$
 
 ; non-ground type defintions
 
+; A datatype template has one Type argument for each parameter binder.
+(program $eo_typeof_datatype_kind
+  ((s $native_String) (T $eo_Term) (dd $eo_DatatypeDecl))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_typeof_datatype_kind ($eot_DatatypeParamType s T))
+    (eo::define ((k ($eo_typeof_datatype_kind T)))
+      ($native_ite ($native_not ($native_teq k $eot_stuck))
+        (-> Type k) $eot_stuck)))
+  (($eo_typeof_datatype_kind ($eot_DatatypeType s dd)) Type)
+  )
+)
+
 ; program: $eo_typeof_fun_type
 ; Calling ($eo_typeof_fun_type Ut Tt) returns the type of (-> U T),
 ; given that U has type Ut and T has type Tt.
@@ -593,6 +606,8 @@ $EO_TYPEOF_NGROUND_DEFS$
   (($eo_typeof ($eot_binary w n))             ($eo_lit_type_Binary ($eot_binary w n)))
   ; to sync with eo_to_smt, we require the name is indeed a concrete string
   (($eo_typeof ($eot_Var ($eot_string s) T))  T)
+  (($eo_typeof ($eot_DatatypeParamType s T))
+    ($eo_typeof_datatype_kind ($eot_DatatypeParamType s T)))
   (($eo_typeof ($eot_DatatypeType s dd))      Type)
   (($eo_typeof ($eot_DtCons s dd i))
     ($eo_typeof_dt_cons_rec ($eot_DatatypeType s dd) ($eo_dd_resolve s dd) i))

@@ -590,6 +590,71 @@
 (program $eo_to_smt ((T Type)) :signature (T) $smt_Term)
 (program $eo_to_smt_type () :signature (Type) $smt_Type)
 
+; Instantiate a parameter in the translated declaration. Recursive datatype
+; references keep their names; only references to the bound parameter change.
+(program $eo_to_smt_datatype_cons_subst
+  ((p $native_String) (U $smt_Type) (T $smt_Type) (c $smt_DatatypeCons))
+  :signature ($native_String $smt_Type $smt_DatatypeCons) $smt_DatatypeCons
+  (
+  (($eo_to_smt_datatype_cons_subst p U $dtc_unit) $dtc_unit)
+  (($eo_to_smt_datatype_cons_subst p U ($dtc_cons T c))
+    ($dtc_cons ($native_ite ($native_Teq T ($tsm_TypeRef p)) U T)
+      ($eo_to_smt_datatype_cons_subst p U c)))
+  )
+)
+
+(program $eo_to_smt_datatype_subst
+  ((p $native_String) (U $smt_Type) (c $smt_DatatypeCons) (d $smt_Datatype))
+  :signature ($native_String $smt_Type $smt_Datatype) $smt_Datatype
+  (
+  (($eo_to_smt_datatype_subst p U ($dt_sum c d))
+    ($dt_sum ($eo_to_smt_datatype_cons_subst p U c)
+      ($eo_to_smt_datatype_subst p U d)))
+  (($eo_to_smt_datatype_subst p U $dt_null) $dt_null)
+  )
+)
+
+(program $eo_to_smt_datatype_decl_subst
+  ((p $native_String) (U $smt_Type) (s $native_String)
+   (d $smt_Datatype) (dd $smt_DatatypeDecl))
+  :signature ($native_String $smt_Type $smt_DatatypeDecl) $smt_DatatypeDecl
+  (
+  (($eo_to_smt_datatype_decl_subst p U ($dd_cons s d dd))
+    ($dd_cons s ($eo_to_smt_datatype_subst p U d)
+      ($eo_to_smt_datatype_decl_subst p U dd)))
+  (($eo_to_smt_datatype_decl_subst p U $dd_nil) $dd_nil)
+  )
+)
+
+(program $eo_to_smt_type_subst
+  ((p $native_String) (U $smt_Type) (T $smt_Type)
+   (s $native_String) (dd $smt_DatatypeDecl))
+  :signature ($native_String $smt_Type $smt_Type) $smt_Type
+  (
+  (($eo_to_smt_type_subst p U ($tsm_Datatype s dd))
+    ($tsm_Datatype s ($eo_to_smt_datatype_decl_subst p U dd)))
+  (($eo_to_smt_type_subst p U T) T)
+  )
+)
+
+; Pending sort arguments use the embedding's existing list of SMT types.
+; Only the application spine carries this list, keeping the public unary
+; $eo_to_smt_type API (and the EOS type cases) unchanged.
+(program $eo_to_smt_type_app
+  ((T Type) (U Type) (f (-> U Type)) (a U) (p $native_String)
+   (S $smt_Type) (params $smt_DatatypeCons))
+  :signature (Type $smt_DatatypeCons) $smt_Type
+  (
+  (($eo_to_smt_type_app T $dtc_unit) ($eo_to_smt_type T))
+  (($eo_to_smt_type_app (f a) params)
+    ($eo_to_smt_type_app f ($dtc_cons ($eo_to_smt_type a) params)))
+  (($eo_to_smt_type_app ($eot_DatatypeParamType p T) ($dtc_cons S params))
+    ($smtx_typeof_guard S
+      ($eo_to_smt_type_subst p S ($eo_to_smt_type_app T params))))
+  (($eo_to_smt_type_app T params) $tsm_none)
+  )
+)
+
 (program $eo_to_smt_datatype_cons ((U $eo_Term) (c $eo_DatatypeCons))
   :signature ($eo_DatatypeCons) $smt_DatatypeCons
   (
@@ -626,6 +691,7 @@
 
 (program $eo_to_smt_type
   ((T Type) (n1 $native_Int) (i $native_Nat) (s $native_String) (dd $eo_DatatypeDecl)
+  (U Type) (f (-> U Type)) (a U)
   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
   (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
   :signature (Type) $smt_Type
@@ -635,8 +701,10 @@
     ($native_ite ($eo_to_smt_reserved_datatype_name s) $tsm_none
       ($tsm_Datatype s ($eo_to_smt_datatype_decl dd))))
   (($eo_to_smt_type ($eot_DatatypeTypeRef s))
-    ($native_ite ($eo_to_smt_reserved_datatype_name s) $tsm_none
-      ($tsm_TypeRef s)))
+    ; Parameter names are internal (e.g. @p0), so references cannot use the
+    ; reserved-name check for declarations. An unresolved reference is not
+    ; well formed as a standalone SMT type.
+    ($tsm_TypeRef s))
   (($eo_to_smt_type ($eot_DtcAppType T1 T2))
     (eo::define ((S1 ($eo_to_smt_type T1)))
     (eo::define ((S2 ($eo_to_smt_type T2)))
@@ -647,6 +715,8 @@
     (eo::define ((S2 ($eo_to_smt_type T2)))
       ($smtx_typeof_guard S1 ($smtx_typeof_guard S2 ($tsm_FunType S1 S2))))))
 ;$EO_TO_SMT_TYPE_CASES$
+  (($eo_to_smt_type (f a))
+    ($eo_to_smt_type_app f ($dtc_cons ($eo_to_smt_type a) $dtc_unit)))
   (($eo_to_smt_type T)                      $tsm_none)
   )
 )
