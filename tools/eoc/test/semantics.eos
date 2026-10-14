@@ -1,0 +1,67 @@
+; Semantics for the compiler regressions in this directory.
+; Covers tests/Booleans-rules.eo's Boolean rules and nary-nil.eo's string rule.
+; Full CPC semantics belong to Logos: install/defs/Cpc.eos.
+;
+; The arithmetic and typed-list nil predicates are needed when desugaring
+; the complete included signatures, even where trimming removes those symbols.
+
+(section "Booleans")
+
+(define-symbol Bool () :type Bool)
+(define-symbol ite (c x y))
+(define-symbol not (x))
+(define-symbol or (x y))
+(define-symbol and (x y))
+(define-symbol => (x y))
+(define-symbol xor (x y))
+(define-symbol = (x y))
+
+; Builtin-theory.eo declares lambda, which the model does not cover.
+(define-symbol lambda () :exclude)
+
+(section "List nil predicates")
+
+(define-symbol @@TypedList.cons (x xs)
+  :term none
+  :is-list-nil (@@TypedList.nil T) true)
+
+(define-symbol + (x y)
+  :is-list-nil x (eo::is_eq (eo::to_q x) 0/1))
+
+(define-symbol * (x y)
+  :is-list-nil x (eo::is_eq (eo::to_q x) 1/1))
+
+(define-symbol Int () :type Int)
+(define-symbol Real () :type Real)
+
+(section "Strings and sequences")
+
+(define-symbol Char () :type Char)
+(define-symbol Seq (T)
+  :type ($smtx_typeof_guard T (Seq T)))
+
+(program $eo_to_smt_seq.empty ((T SmtType))
+  :signature (SmtType) SmtTerm
+  (
+  (($eo_to_smt_seq.empty (Seq T)) (seq.empty T))
+  (($eo_to_smt_seq.empty T) none)
+  )
+)
+
+(define-symbol seq.empty ((! t :type))
+  :term ($eo_to_smt_seq.empty t))
+
+; Exercise both a typed empty sequence and the empty string as list units.
+(define-symbol str.++ (s t)
+  :is-list-nil (seq.empty T) true
+  :is-list-nil s             (eo::eq s ""))
+
+; The model asks the input which datatype names are internal. The test
+; signatures use the same @ prefix as CPC.
+(program $eo_to_smt_reserved_datatype_name ((s <string>))
+  :keep
+  :signature (<string>) <bool>
+  (
+  (($eo_to_smt_reserved_datatype_name s) ("string_prefix_eq" "str_at_sign" s))
+  )
+)
