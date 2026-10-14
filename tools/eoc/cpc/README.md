@@ -109,9 +109,8 @@ given `EOC_LOGOS_BANNER=0` installs none.
 `$LOGOS_DIR/Cpc/Parser.lean`. The generated module is only a
 `Logos.Parser.Config`: the operator and proof-rule tables of the calculus, plus
 the mapping of literals, datatype declarations and proof commands into its term
-language. The parser itself is the hand-written, calculus-independent
-`Logos/Parser.lean` in the Logos repository, which is where that module lives
-rather than in a generated calculus package.
+language. The grammar and datatype elaboration live in the hand-written
+`Logos/Parser.lean` and `Logos/Parser/Datatypes.lean` in the Logos repository.
 
 `install_logos_mini` passes `--no-parser` to the compiler, skips Parser.lean
 when installing the generated modules, and removes any stale
@@ -131,7 +130,10 @@ explicit list and stays `.exact`.
 ## Parametric datatypes
 
 The generated parser uses the datatype hooks from
-[Logos PR #473](https://github.com/cvc5/logos/pull/473), as of `9eccca6b`.
+[Logos PR #473](https://github.com/cvc5/logos/pull/473), as of `3d4c569a`.
+Datatype elaboration lives in the shared `Logos.Parser.Datatypes` module.
+The generated parser supplies a `DatatypeTerms` adapter for its term and
+declaration constructors, then calls `Logos.Parser.parseProofWithDatatypes`.
 It represents a generic sort with `Term.DatatypeParamType` binders and
 `Term.DatatypeTypeRef` parameter references. At each use, it instantiates the
 declaration and builds ordinary `DatatypeType`, `DtCons`, and `DtSel` terms.
@@ -149,8 +151,9 @@ as in the PR.
 No change to `install/defs/Cpc.eos` is required. `$eo_to_smt_type` remains unary;
 its internal `$eo_to_smt_type_app` helper handles pending arguments. Regenerate
 both CPC and CpcMini with the updated compiler, and use the PR's generic
-`Logos/Parser.lean`. Proofs that exhaustively match `Term` need a case for
-`DatatypeParamType`; the model's datatype representation is unchanged.
+`Logos/Parser.lean` and `Logos/Parser/Datatypes.lean`. Proofs that exhaustively
+match `Term` need a case for `DatatypeParamType`; the model's datatype
+representation is unchanged.
 
 The integration regression compiles fresh generated Lean and runs both the
 datatype tests and Logos's CPC parser tests without modifying the Logos tree:

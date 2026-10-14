@@ -1689,17 +1689,13 @@ void LeanMetaReduce::finalizeParser()
 
   // Testers and updaters carry a generic datatype operator as their index.
   // A calculus with no one-index operators has no Term.UOp1 constructor.
-  std::string elaborateIndex;
+  std::string indexedView;
   for (const auto& op : d_emittedUserOps)
   {
     if (op.second == 1)
     {
-      elaborateIndex =
-          "  | .UOp1 op index =>\n"
-          "      if let a :: _ := args then\n"
-          "        if let some inst := parserInstantiate term.generics index "
-          "(__eo_typeof a) then\n"
-          "          return finish (.UOp1 op inst) index\n";
+      indexedView =
+          "  | .UOp1 op index => .indexed (Term.UOp1 op) index\n";
       break;
     }
   }
@@ -1710,7 +1706,7 @@ void LeanMetaReduce::finalizeParser()
       {{"$LEAN_PARSER_OPS$", ops.str()},
        {"$LEAN_PARSER_RULES$", rules.str()},
        {"$LEAN_PARSER_MACROS$", defMacros.str()},
-       {"$LEAN_PARSER_ELABORATE_INDEX$", elaborateIndex},
+       {"$LEAN_PARSER_INDEXED_VIEW$", indexedView},
        {"$LEAN_PARSER_MK_VAR$", mkVar}});
   Trace("lean-meta") << "Write lean parser " << outPath << std::endl;
 }

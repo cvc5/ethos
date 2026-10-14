@@ -1,7 +1,7 @@
 module
 
-public import Logos.Parser
-import all Logos.Parser
+public import Logos.Parser.Datatypes
+import all Logos.Parser.Datatypes
 public import $EO_CALC$.Logos
 import all $EO_CALC$.Logos
 
@@ -54,218 +54,60 @@ private def parserRuleMap : Std.HashMap String CRule := .ofList parserRules
 
 private def parserRule (name : String) : Option CRule := parserRuleMap[name]?
 
-/-- The argument types of one datatype constructor. -/
-private def parserDatatypeCons (selectors : List (String × Term)) : DatatypeCons :=
-  selectors.foldr (fun (_, ty) rest => .cons ty rest) .unit
+private def parserConsView : DatatypeCons → List Term
+  | .unit => []
+  | .cons t c => t :: parserConsView c
 
-/-- The constructors of one datatype, in declaration order. -/
-private def parserDatatype (ctors : List (Logos.Parser.ConsSpec Term)) : Datatype :=
-  ctors.foldr (fun c rest => .sum (parserDatatypeCons c.selectors) rest) .null
+private def parserDatatypeView : Datatype → List (List Term)
+  | .null => []
+  | .sum c d => parserConsView c :: parserDatatypeView d
 
-/-- The datatypes of one `declare-datatypes` block, in declaration order. -/
-private def parserDatatypeDecl (dts : List (Logos.Parser.DatatypeSpec Term)) : DatatypeDecl :=
-  dts.foldr (fun d rest => .cons (native_string_lit d.name) (parserDatatype d.constructors) rest) .nil
+private def parserDeclView : DatatypeDecl → Logos.Parser.DatatypeBlock Term native_String
+  | .nil => []
+  | .cons s d dd => (s, parserDatatypeView d) :: parserDeclView dd
 
--- The generic parser supplies positions; use canonical names for their binders.
-private def parserParamName (k : Nat) : native_String := native_string_lit ("@p" ++ toString k)
+private def parserConsBuild : List Term → DatatypeCons
+  | [] => .unit
+  | t :: c => .cons t (parserConsBuild c)
 
-private def parserBinders : Term → List native_String × Term
-  | .DatatypeParamType p t => let (ps, body) := parserBinders t; (p :: ps, body)
-  | t => ([], t)
+private def parserDatatypeBuild : List (List Term) → Datatype
+  | [] => .null
+  | c :: d => .sum (parserConsBuild c) (parserDatatypeBuild d)
 
-private def parserAppSpine : Term → List Term → Term × List Term
-  | .Apply f a, args => parserAppSpine f (a :: args)
-  | f, args => (f, args)
+private def parserDeclBuild : Logos.Parser.DatatypeBlock Term native_String → DatatypeDecl
+  | [] => .nil
+  | (s, d) :: dd => .cons s (parserDatatypeBuild d) (parserDeclBuild dd)
 
-mutual
-private def parserSubst (p : native_String) (a : Term) : Term → Term
-  | .DatatypeTypeRef q => if p == q then a else .DatatypeTypeRef q
-  | .DatatypeParamType q t =>
-      if p == q then .DatatypeParamType q t else .DatatypeParamType q (parserSubst p a t)
-  | .DatatypeType s dd => .DatatypeType s (parserSubstDecl p a dd)
-  | .Apply t u => .Apply (parserSubst p a t) (parserSubst p a u)
-  | .DtcAppType t u => .DtcAppType (parserSubst p a t) (parserSubst p a u)
-  | t => t
-private def parserSubstDecl (p : native_String) (a : Term) : DatatypeDecl → DatatypeDecl
-  | .nil => .nil
-  | .cons s d dd => .cons s (parserSubstDt p a d) (parserSubstDecl p a dd)
-private def parserSubstDt (p : native_String) (a : Term) : Datatype → Datatype
-  | .null => .null
-  | .sum c d => .sum (parserSubstCons p a c) (parserSubstDt p a d)
-private def parserSubstCons (p : native_String) (a : Term) : DatatypeCons → DatatypeCons
-  | .unit => .unit
-  | .cons t c => .cons (parserSubst p a t) (parserSubstCons p a c)
-end
+private def parserTermView : Term → Logos.Parser.DatatypeTermView Term native_String
+  | .Apply f a => .apply f a
+  | .DatatypeParamType p t => .param p t
+  | .DatatypeTypeRef p => .ref p
+  | .DatatypeType s dd => .datatype s (parserDeclView dd)
+  | .DtcAppType t u => .constructorType t u
+  | .DtCons s dd i => .constructor s (parserDeclView dd) i
+  | .DtSel s dd i j => .selector s (parserDeclView dd) i j
+$LEAN_PARSER_INDEXED_VIEW$
+  | t => .atom t
 
--- Matching a template can instantiate it with open parameters from another
--- declaration. Rename its formal parameters first to avoid capturing those
--- arguments. These temporary names are disjoint from parserParamName.
-private def parserSubsts (names : List native_String) (args : List Term) (body : Term) : Term :=
-  let fresh := names.zipIdx.map fun (_, i) => native_string_lit ("@inst" ++ toString i)
-  let body := (names.zip fresh).foldl (fun t (p, q) => parserSubst p (.DatatypeTypeRef q) t) body
-  (fresh.zip args).foldl (fun t (p, a) => parserSubst p a t) body
+private def parserTermBuild : Logos.Parser.DatatypeTermView Term native_String → Term
+  | .apply f a => .Apply f a
+  | .param p t => .DatatypeParamType p t
+  | .ref p => .DatatypeTypeRef p
+  | .datatype s dd => .DatatypeType s (parserDeclBuild dd)
+  | .constructorType t u => .DtcAppType t u
+  | .constructor s dd i => .DtCons s (parserDeclBuild dd) i
+  | .selector s dd i j => .DtSel s (parserDeclBuild dd) i j
+  | .indexed rebuild index => rebuild index
+  | .atom t => t
 
--- Elaboration is outside the trusted specification. Its output is checked by
--- __eo_typeof; constructors and selectors are built only after this lowering.
-mutual
-private partial def parserMono (t : Term) : Term :=
-  match t with
-  | .Apply f a =>
-      let (head, args) := parserAppSpine t []
-      let (names, body) := parserBinders head
-      if !names.isEmpty && names.length == args.length then
-        parserMono (parserSubsts names (args.map parserMono) body)
-      else .Apply (parserMono f) (parserMono a)
-  | .DatatypeType s dd => .DatatypeType s (parserMonoDecl dd)
-  | .DtcAppType t u => .DtcAppType (parserMono t) (parserMono u)
-  | t => t
-private partial def parserMonoDecl : DatatypeDecl → DatatypeDecl
-  | .nil => .nil
-  | .cons s d dd => .cons s (parserMonoDt d) (parserMonoDecl dd)
-private partial def parserMonoDt : Datatype → Datatype
-  | .null => .null
-  | .sum c d => .sum (parserMonoCons c) (parserMonoDt d)
-private partial def parserMonoCons : DatatypeCons → DatatypeCons
-  | .unit => .unit
-  | .cons t c => .cons (parserMono t) (parserMonoCons c)
-end
+private def parserDatatypeTerms : Logos.Parser.DatatypeTerms Term native_String where
+  name := native_string_lit
+  view := parserTermView
+  build := parserTermBuild
+  typeOf := __eo_typeof
+  stuck := .Stuck
 
--- A generic operator is parser metadata, not a polymorphic EO constructor.
--- An unresolved generic is lowered to Stuck when it leaves the parser.
-structure ParserTerm where
-  value : Term
-  generics : List (Term × Term) := [] -- prototype operator and its parameterized sort
-
-private def parserResolved (t : ParserTerm) : Term :=
-  if t.generics.isEmpty then t.value else .Stuck
-
-private def parserLift (f : List Term → Term) (ts : List ParserTerm) : ParserTerm :=
-  ⟨f (ts.map (·.value)), ts.flatMap (·.generics)⟩
-
-private def parserMatchParam (names : List native_String) (p : native_String)
-    (t : Term) (bs : Array (Option Term)) : Option (Array (Option Term)) := do
-  let (_, k) ← names.zipIdx.find? (fun (q, _) => p == q)
-  let old ← bs[k]?
-  if old.isNone || old == some t then some (bs.set! k (some t)) else none
-
-mutual
-private def parserMatchType (names : List native_String) :
-    Term → Term → Array (Option Term) → Option (Array (Option Term))
-  | .DatatypeTypeRef p, t, bs =>
-      if names.contains p then parserMatchParam names p t bs
-      else if .DatatypeTypeRef p == t then some bs else none
-  | .Apply f a, .Apply g b, bs | .DtcAppType f a, .DtcAppType g b, bs => do
-      parserMatchType names a b (← parserMatchType names f g bs)
-  -- Datatype resolution wraps bare parameter references in DatatypeType too.
-  | .DatatypeType s dd, .DatatypeType t ee, bs =>
-      if names.contains s then parserMatchParam names s (.DatatypeType t ee) bs
-      else if s == t then parserMatchDecl names dd ee bs else none
-  | .DatatypeType s _, t, bs => parserMatchParam names s t bs
-  | t, u, bs => if t == u then some bs else none
-private def parserMatchDecl (names : List native_String) (dd ee : DatatypeDecl)
-    (bs : Array (Option Term)) : Option (Array (Option Term)) := do
-  match dd, ee with
-  | .nil, .nil => some bs
-  | .cons s d dd, .cons t e ee =>
-      if s == t then parserMatchDecl names dd ee (← parserMatchDt names d e bs) else none
-  | _, _ => none
-private def parserMatchDt (names : List native_String) (d e : Datatype)
-    (bs : Array (Option Term)) : Option (Array (Option Term)) := do
-  match d, e with
-  | .null, .null => some bs
-  | .sum c d, .sum b e => parserMatchDt names d e (← parserMatchCons names c b bs)
-  | _, _ => none
-private def parserMatchCons (names : List native_String) (c d : DatatypeCons)
-    (bs : Array (Option Term)) : Option (Array (Option Term)) := do
-  match c, d with
-  | .unit, .unit => some bs
-  | .cons t c, .cons u d => parserMatchCons names c d (← parserMatchType names t u bs)
-  | _, _ => none
-end
-
-private def parserMatchFields (names : List native_String) (ty : Term) (args : List Term)
-    (bs : Array (Option Term)) : Option (Array (Option Term)) :=
-  match args, ty with
-  | [], _ => some bs
-  | a :: args, .DtcAppType field rest => do
-      parserMatchFields names rest args (← parserMatchType names field (__eo_typeof a) bs)
-  | _, _ => none
-
-private def parserInstantiate (generics : List (Term × Term)) (op ty : Term) : Option Term := do
-  let (_, generic) ← generics.find? (fun (g, _) => g == op)
-  let (names, body) := parserBinders generic
-  let actual := parserMono ty
-  let _ ← parserMatchType names (parserMono body) actual (Array.replicate names.length none)
-  match op, actual with
-  | .DtCons s _ i, .DatatypeType t dd => if s == t then some (.DtCons s dd i) else none
-  | .DtSel s _ i j, .DatatypeType t dd => if s == t then some (.DtSel s dd i j) else none
-  | _, _ => none
-
-private def parserElaborate (term : ParserTerm) : ParserTerm := Id.run do
-  let (head, args) := parserAppSpine term.value []
-  let finish (inst old : Term) : ParserTerm :=
-    ⟨args.foldl Term.Apply inst, term.generics.filter (fun (g, _) => g != old)⟩
-  match head with
-  | .DtCons s dd i =>
-      if let some (_, generic) := term.generics.find? (fun (g, _) => g == head) then
-        let (names, _) := parserBinders generic
-        let ty := parserMono (__eo_typeof_dt_cons_rec (.DatatypeType s dd) (__eo_dd_resolve s dd) i)
-        if let some bs := parserMatchFields names ty args (Array.replicate names.length none) then
-          if let some types := bs.toList.mapM id then
-            if let some inst := parserInstantiate term.generics head (types.foldl Term.Apply generic) then
-              return finish inst head
-  | .DtSel .. =>
-      if let a :: _ := args then
-        if let some inst := parserInstantiate term.generics head (__eo_typeof a) then
-          return finish inst head
-$LEAN_PARSER_ELABORATE_INDEX$
-
-  | _ => pure ()
-  return term
-
-private def parserAscribe (op ty : ParserTerm) : Option ParserTerm := do
-  if __eo_typeof (parserResolved ty) != .Type then none else do
-    match op.value with
-    | .DtCons .. =>
-        if op.generics.isEmpty then
-          if __eo_typeof op.value == parserMono ty.value then some op else none
-        else do
-          let inst ← parserInstantiate op.generics op.value ty.value
-          some ⟨inst, []⟩
-    | _ => none
-
-private def parserDatatypeBindings (dts : List (Logos.Parser.DatatypeSpec ParserTerm)) :
-    Option (List (String × ParserTerm)) :=
-  let raw : List (Logos.Parser.DatatypeSpec Term) := dts.map fun d =>
-    { name := d.name, arity := d.arity, constructors := d.constructors.map fun c =>
-      { name := c.name, selectors := c.selectors.map fun (s, t) => (s, parserResolved t) } }
-  let template := parserDatatypeDecl raw
-  let arity := (dts.head?.map (·.arity)).getD 0
-  let template := if arity == 0 then parserMonoDecl template else template
-  some <| dts.flatMap fun d =>
-    let name := native_string_lit d.name
-    let sort := (List.range arity).foldr (fun k t => .DatatypeParamType (parserParamName k) t)
-      (.DatatypeType name template)
-    let generic (op : Term) : ParserTerm := ⟨op, if arity == 0 then [] else [(op, sort)]⟩
-    (d.name, ⟨sort, []⟩) :: d.constructors.zipIdx.flatMap fun (c, i) =>
-      (c.name, generic (.DtCons name template i)) ::
-        c.selectors.zipIdx.map fun ((sel, _), j) => (sel, generic (.DtSel name template i j))
-
-private def parserArity : Logos.Parser.Arity Term → Logos.Parser.Arity ParserTerm
-  | .exact n => .exact n
-  | .leftAssoc => .leftAssoc
-  | .rightAssoc => .rightAssoc
-  | .rightAssocNil nil => .rightAssocNil fun t => ⟨nil (t.map (·.value)), t.toList.flatMap (·.generics)⟩
-  | .chainable f => .chainable (parserLift f)
-  | .argList f => .argList (parserLift f)
-
-private def parserLiftOp (op : Logos.Parser.OpDecl Term) : Logos.Parser.OpDecl ParserTerm :=
-  { name := op.name, indexArity := op.indexArity, arity := parserArity op.arity,
-    build := fun ts => (op.build (ts.map (parserMono ∘ (·.value)))).map fun t =>
-      ⟨t, ts.flatMap (·.generics)⟩,
-    binder := op.binder.map parserLift }
-
-private def parserBaseConfig : Logos.Parser.Config Term CRule CCmd CCmdList where
+def parserConfig : Logos.Parser.Config Term CRule CCmd CCmdList where
   ops := parserOps
   parseLiteral := parserLiteral
   isType := (· == .Type)
@@ -286,35 +128,7 @@ private def parserBaseConfig : Logos.Parser.Config Term CRule CCmd CCmdList wher
 $LEAN_PARSER_MK_VAR$
 
 
-def parserConfig : Logos.Parser.Config ParserTerm CRule CCmd CCmdList where
-  ops := parserOps.map parserLiftOp
-  parseLiteral := fun l => (parserLiteral l).map (fun t => ⟨t, []⟩)
-  isType := fun t => parserResolved t == .Type
-  mkType := ⟨.Type, []⟩
-  wellTyped := fun t => __eo_typeof (parserResolved t) != .Stuck
-  mkUSort := fun i => ⟨.USort i, []⟩
-  mkUConst := fun i t => ⟨.UConst i (if __eo_typeof (parserResolved t) == .Type then parserMono t.value else .Stuck), []⟩
-  apply := fun f a => ⟨.Apply f.value a.value, f.generics ++ a.generics⟩
-  parseRule := parserRule
-  mkAssumePush := parserBaseConfig.mkAssumePush ∘ parserResolved
-  mkStep := fun r ts ps => parserBaseConfig.mkStep r (ts.map parserResolved) ps
-  mkStepPop := fun r ts ps => parserBaseConfig.mkStepPop r (ts.map parserResolved) ps
-  mkCheckProven := parserBaseConfig.mkCheckProven.map (· ∘ parserResolved)
-  mkCmdList := parserBaseConfig.mkCmdList
-  mkVar := parserBaseConfig.mkVar.map fun mk s t => ⟨mk s (parserMono (parserResolved t)), []⟩
-  datatypes := some
-    { mkRef := fun s => ⟨.DatatypeTypeRef (native_string_lit s), []⟩
-      mkDecls := parserDatatypeBindings
-      mkParam := some fun k => ⟨.DatatypeTypeRef (parserParamName k), []⟩
-      elaborate := parserElaborate
-      ascribe := parserAscribe }
-
-private def parserState : Logos.Parser.State ParserTerm :=
-  { Logos.Parser.State.ofOps parserConfig.ops with macros := .ofList parserMacros }
-
-def parseProof (proof : String) : Except String (List Term × CCmdList) := do
-  let ss ← Logos.Sexp.Parser.manySexps!.run proof
-  let (ts, cmds) ← (Logos.Parser.parseCommands parserConfig ss).run' parserState
-  return (ts.map parserResolved, cmds)
+def parseProof (proof : String) : Except String (List Term × CCmdList) :=
+  Logos.Parser.parseProofWithDatatypes parserDatatypeTerms parserConfig parserMacros proof
 
 end Eo
