@@ -29,7 +29,7 @@ same thing in a line apiece, and a run that changed something says which files
 it changed; what they now hold is a `--final-out-dir` away.
 
 The digests are of what the pipeline wrote *for these signatures under these
-semantics*, so a change to `semantics/smt.eos` or to `development-cpc.eos`
+semantics*, so a change to `semantics/smt.eos` or to `test/semantics.eos`
 moves them, and rightly: a run that means to change the model is a run that
 means to change these. Say so with --update, and what the diff of expected.txt
 then shows is how much of the output that change reached.
@@ -61,8 +61,7 @@ DRIVER = os.path.join(ROOT, 'tools', 'eoc', 'driver.py')
 EXPECTED = os.path.join(HERE, 'expected.txt')
 
 # The semantics every signature here is compiled under.
-SEMANTICS = os.path.join(ROOT, 'tools', 'eoc', 'semantics',
-                         'development-cpc.eos')
+SEMANTICS = os.path.join(HERE, 'semantics.eos')
 
 # The signatures a run compiles and the rule each is compiled for. One rule of
 # one signature is what the trimming leaves the stages the most to do with the

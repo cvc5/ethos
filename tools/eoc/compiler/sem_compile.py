@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Compiles the configuration sets under semantics into the
+"""Compiles the selected semantics configurations into the
 signatures written directly in the deep embedding, i.e.
 
   semantics/smt.eos  ->  tools/eoc/out/smt_defs.eo
                       what each SMT-LIB symbol means to the model
-  semantics/development-cpc.eos  ->  tools/eoc/out/user_defs.eo
+  test/semantics.eos  ->  tools/eoc/out/user_defs.eo
                       how each symbol of the input transforms into the
                       SMT-LIB one
 
@@ -76,9 +76,10 @@ INPUT_LEAN_TARGET = os.path.join(OUT, 'user_termination.lean')
 # to it, so only an input set writes one; see Config.desugar_target and
 # plugins/desugar/desugar.eos.
 INPUT_DESUGAR_TARGET = os.path.join(OUT, 'user_desugar.eo')
-# The file each set stands in. A set is one file: it holds its theories in the
-# order their blocks are emitted, one to a section.
-CONFIGS = (os.path.join(SEM, 'smt.eos'), os.path.join(SEM, 'development-cpc.eos'))
+# The shipped target and the small input fixture used by plugin regressions.
+# Full CPC semantics are supplied by Logos's install/defs/Cpc.eos.
+CONFIGS = (os.path.join(SEM, 'smt.eos'),
+           os.path.join(EOC, 'test', 'semantics.eos'))
 
 # The sets the tool ships with, each with its role: whether it is the SMT-LIB
 # signature, which is the target of the compilation, rather than the signature

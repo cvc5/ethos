@@ -932,9 +932,16 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     // no cases necessary, just a macro
     Assert(vprog.getNumChildren() == 1);
-    decl << " :=" << std::endl;
-    decl << "  ";
-    printEmbTerm(vprog[0][1], decl, tmk);
+    std::stringstream body;
+    printEmbTerm(vprog[0][1], body, tmk);
+    decl << " :=";
+    // if let bindings were printed, the body already starts on a new line
+    std::string bstr = body.str();
+    if (bstr.empty() || bstr[0] != '\n')
+    {
+      decl << std::endl << "  ";
+    }
+    decl << bstr;
     (*out) << decl.str() << std::endl << std::endl;
     return;
   }

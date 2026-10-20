@@ -1,0 +1,5 @@
+; regression: a singular parametric declare-datatype in a reference file
+; binds the datatype name after its parameter scope is closed
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+(reference "reference-par-dt.smt2")
+(assume @p0 (= (unbox x) (fst y)))
