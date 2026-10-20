@@ -1,0 +1,3 @@
+(include "reference-push-pop-setup.eo")
+(reference "reference-push-pop.smt2")
+(assume @p0 (> x 0))
