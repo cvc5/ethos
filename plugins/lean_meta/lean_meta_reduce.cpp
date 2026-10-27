@@ -1687,17 +1687,15 @@ void LeanMetaReduce::finalizeParser()
         "Term.Var (Term.String (native_string_lit name)) ty\n";
   }
 
-  // Testers and updaters carry a generic datatype operator as their index.
-  // A calculus with no one-index operators has no Term.UOp1 constructor.
+  // Testers and updaters carry a generic datatype operator as their index,
+  // which the parser instantiates from the type of their argument. Indices of
+  // other arities are terms parsed on their own, so they need no view. A
+  // calculus with no one-index operators has no Term.UOp1 constructor, which
+  // is the same check printTheoryOpDefs makes.
   std::string indexedView;
-  for (const auto& op : d_emittedUserOps)
+  if (!d_embedTOpDt[1].str().empty())
   {
-    if (op.second == 1)
-    {
-      indexedView =
-          "  | .UOp1 op index => .indexed (Term.UOp1 op) index\n";
-      break;
-    }
+    indexedView = "  | .UOp1 op index => .indexed (Term.UOp1 op) index\n";
   }
 
   const std::string outPath = emitResourceFile(
