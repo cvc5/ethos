@@ -1687,12 +1687,24 @@ void LeanMetaReduce::finalizeParser()
         "Term.Var (Term.String (native_string_lit name)) ty\n";
   }
 
+  // Testers and updaters carry a generic datatype operator as their index,
+  // which the parser instantiates from the type of their argument. Indices of
+  // other arities are terms parsed on their own, so they need no view. A
+  // calculus with no one-index operators has no Term.UOp1 constructor, which
+  // is the same check printTheoryOpDefs makes.
+  std::string indexedView;
+  if (!d_embedTOpDt[1].str().empty())
+  {
+    indexedView = "  | .UOp1 op index => .indexed (Term.UOp1 op) index\n";
+  }
+
   const std::string outPath = emitResourceFile(
       "plugins/lean_meta/lean_meta_parser.lean",
       "plugins/lean_meta/lean_meta_parser_gen.lean",
       {{"$LEAN_PARSER_OPS$", ops.str()},
        {"$LEAN_PARSER_RULES$", rules.str()},
        {"$LEAN_PARSER_MACROS$", defMacros.str()},
+       {"$LEAN_PARSER_INDEXED_VIEW$", indexedView},
        {"$LEAN_PARSER_MK_VAR$", mkVar}});
   Trace("lean-meta") << "Write lean parser " << outPath << std::endl;
 }
