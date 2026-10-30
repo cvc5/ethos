@@ -186,6 +186,8 @@
 
 (declare-native nateq ((x1 <nat>) (x2 <nat>)))
 
+(declare-native natlt ((x1 <nat>) (x2 <nat>)))
+
 (declare-native z_to_n ((x1 <numeral>)) :op "int.to_nat")
 
 (declare-native n_to_z ((x1 <nat>)) :op "nat.to_int")

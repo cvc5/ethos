@@ -14,6 +14,10 @@ open SmtEval
 
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
+-- The number of elements of each uninterpreted sort, by its index, where 0
+-- means the sort is countably infinite.
+abbrev SmtUSortCard := native_Nat -> native_Nat
+
 -- The primitive operations no module above this one uses, together with those
 -- written over the types of this embedding, which cannot stand above it.
 -- $ The part of the native layer whose Lean names the embedding, and the part
@@ -39,6 +43,7 @@ deriving Repr, DecidableEq, Inhabited
 structure SmtModel where
   values : SmtModelKey -> SmtValue
   nativeFuns : SmtModelKey -> SmtNativeFun
+  usortCard : SmtUSortCard
 deriving Inhabited
 
 def model_key (s : native_String) (T : SmtType) : SmtModelKey :=
@@ -61,6 +66,9 @@ def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtV
         v
       else
         M.values k }
+
+def native_usort_card (uc : SmtUSortCard) (n : native_Nat) : native_Nat :=
+  uc n
 
 /- Definition of SMT-LIB model semantics -/
 
@@ -93,13 +101,13 @@ def model_fun_wf (M : SmtModel) : Prop :=
     __smtx_type_wf (SmtType.FunType A B) = true ->
     __smtx_typeof_value i = A ->
     __smtx_typeof_value (native_eval_fun_apply M fid A B i) = B ∧
-      __smtx_value_canonical (native_eval_fun_apply M fid A B i) = true
+      __smtx_value_canonical M.usortCard (native_eval_fun_apply M fid A B i) = true
 
 def model_wf (M : SmtModel) : Prop :=
   (∀ isVar s T, __smtx_type_wf T = true ->
     __smtx_typeof_value (M.values { isVar := isVar, name := s, ty := T }) = T) ∧
   (∀ isVar s T, __smtx_type_wf T = true ->
-    __smtx_value_canonical
+    __smtx_value_canonical M.usortCard
       (M.values { isVar := isVar, name := s, ty := T }) = true) ∧
   model_fun_wf M
 

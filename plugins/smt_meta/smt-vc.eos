@@ -103,6 +103,9 @@
 (define-native-method nateq
   :smt-impl "(define-fun nateq ((x Nat) (y Nat)) Bool (= x y))")
 
+(define-native-method natlt
+  :smt-impl "(define-fun natlt ((x Nat) (y Nat)) Bool (< (nat.to_int x) (nat.to_int y)))")
+
 (define-native-method int.to_nat
   :smt-impl "(declare-fun int.to_nat (Int) Nat)
 (assert (! (forall ((x Int))
@@ -318,7 +321,7 @@
   :smt-impl "(declare-fun str_occur_index_re ((Seq vsm.Value) RegLan Int) Int)")
 
 (define-native-method eval_map_diff
-  :smt-impl "(declare-fun eval_map_diff (msm.Map msm.Map) vsm.Value)")
+  :smt-impl "(declare-fun eval_map_diff (SmtModel msm.Map msm.Map) vsm.Value)")
 
 (define-native-method eval_seq_diff
   :smt-impl "(declare-fun eval_seq_diff (ssm.Seq ssm.Seq) vsm.Value)")
