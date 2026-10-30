@@ -54,6 +54,13 @@ private def parserRuleMap : Std.HashMap String CRule := .ofList parserRules
 
 private def parserRule (name : String) : Option CRule := parserRuleMap[name]?
 
+/-!
+The datatype terms of the calculus, as Logos.Parser views them.  Each
+`parser*View` function and its `parser*Build` counterpart must stay exact
+inverses, e.g. `parserTermBuild (parserTermView t) = t`, so a change to one
+side must be made to the other.
+-/
+
 private def parserConsView : DatatypeCons → List Term
   | .unit => []
   | .cons t c => t :: parserConsView c
