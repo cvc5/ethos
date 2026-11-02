@@ -144,6 +144,18 @@ $SM_DEFS$
 ; is evaluated as tgt. Note that we do not check the type of T here,
 ; instead $smtx_substitute will generate terms ($sm_Const v T), which
 ; only evaluate to v if it is of type T.
+;
+; FIXME: this and tforall_eq below range over *every* value of type T, whereas
+; the Lean model ranges only over the values canonical under the model, i.e.
+; those __smtx_value_canonical M.usortCard accepts. The two disagree on any
+; type that has non-canonical values: an uninterpreted sort the model gives
+; finitely many elements (here (exists ((x U) (y U)) (not (= x y))) holds in
+; every model, while in Lean it is false where U has one element), and maps,
+; sets and sequences not written the one way. A verification condition can
+; therefore accept a rule that is unsound under the Lean semantics, or reject
+; one that is sound. The model here has no cardinality of uninterpreted sorts
+; to check against, and $smtx_value_canonical is not yet one the SMT-LIB
+; backend can write: see "Known gaps" in tools/eoc/docs/proof-pipeline.md.
 (define-fun texists_eq ((M SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool
   (exists ((v vsm.Value))
     (and (= ($smtx_typeof_value v) T)

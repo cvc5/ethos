@@ -348,6 +348,18 @@ grammar, for SyGuS solvers.
 One thing this stage does not establish is the well-foundedness of Eunoia
 programs, which is why it can report a spurious unsoundness.
 
+Nor does it model the quantifiers the way the Lean model does. `exists`,
+`forall` and `choice` are given their meaning by `texists_eq` and `tforall_eq`
+in `smt_meta.smt2`, which range over every value of the type bound, where the
+Lean model ranges only over the values canonical under the model
+(`__smtx_value_canonical M.usortCard`). The two differ on every type with
+non-canonical values: an uninterpreted sort the model gives finitely many
+elements, and a map, set or sequence value not written the one way. So a
+verification condition may accept a rule that is unsound under the Lean
+semantics, or reject one that is sound. For example, `(exists ((x U) (y U))
+(not (= x y)))` holds in every SMT-LIB model, and is false in a Lean model that
+gives `U` one element.
+
 ## Stage 7b: lean-meta
 
 Compiles `*.eo` to `*.lean`, under the same opaque-argument and native-name
@@ -403,6 +415,14 @@ prove them or build the package.
 
 - Well-foundedness of Eunoia programs is not established, so stage 7a can
   report spurious unsoundness.
+- The quantifiers of a verification condition range over every value of the
+  type bound rather than the canonical ones, so stage 7a can disagree with the
+  Lean model in either direction, see stage 7a. Closing this needs the SMT-LIB
+  model to carry the cardinality of each uninterpreted sort and the SMT-LIB
+  backend to write `$smtx_value_canonical`, which it cannot yet: regular
+  language canonicity matches constructors that the builtin `RegLan` does not
+  have, and `vcmp`, `default_fun_id` and a `Char` from a `Nat` are not defined
+  there.
 - `eo::typeof` approximates rather than reproduces Eunoia's internal type
   system (stage 5).
 - The interpretation of the proof producer, its signature and the checker
