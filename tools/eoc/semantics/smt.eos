@@ -89,6 +89,12 @@
   ($smtx_map_update_aux ($smtx_map_get_default m) m i e))
 (define-macro smt.typeof_value (v)        ($smtx_typeof_value v))
 
+; The number of values the uninterpreted sort of index n has, where 0 means it
+; has infinitely many. What the number is is the model's to say, and uc is
+; what a program that asks it is given: see $smtx_type_bounded and
+; $smtx_value_canonical.
+(define-macro smt.usort_card (n)          ("usort_card" uc n))
+
 ; The type of the ci^th constructor of a datatype declared under s. Substitutes
 ; (TypeRef s) for (Datatype s dd), which is what makes the datatype closed.
 (define-macro smt.typeof_dt_cons_value (s dd n)
@@ -213,32 +219,32 @@
   )
 )
 
-(program $smtx_map_default_canonical ((T SmtType) (e SmtValue))
-  :signature (SmtType SmtValue) <bool>
+(program $smtx_map_default_canonical ((uc SmtUSortCard) (T SmtType) (e SmtValue))
+  :signature (SmtUSortCard SmtType SmtValue) <bool>
   (
-  (($smtx_map_default_canonical T e)
+  (($smtx_map_default_canonical uc T e)
     (eo::define ((U (smt.typeof_value e)))
     ; if a finite type, it must have the canonical finite type default
-    ("ite" ($smtx_is_finite_type T)
+    ("ite" ($smtx_is_finite_type uc T)
       ("veq" e ($smtx_type_default U))
       "true")))
   )
 )
 
 (program $smtx_map_canonical
-  ((T SmtType) (i SmtValue) (e SmtValue) (m SmtMap))
-  :signature (SmtMap) <bool>
+  ((uc SmtUSortCard) (T SmtType) (i SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtUSortCard SmtMap) <bool>
   (
-  (($smtx_map_canonical ($msm_default T e))
-    ("and" ($smtx_map_default_canonical T e) ($smtx_value_canonical e)))
-  (($smtx_map_canonical ($msm_cons i e m))
+  (($smtx_map_canonical uc ($msm_default T e))
+    ("and" ($smtx_map_default_canonical uc T e) ($smtx_value_canonical uc e)))
+  (($smtx_map_canonical uc ($msm_cons i e m))
     ("and"
       ("and"
         ("and"
           ("and"
-            ($smtx_value_canonical i)
-            ($smtx_value_canonical e))
-          ($smtx_map_canonical m))
+            ($smtx_value_canonical uc i)
+            ($smtx_value_canonical uc e))
+          ($smtx_map_canonical uc m))
         ($smtx_map_entries_ordered_after i m))
       ("not" ("veq" e ($smtx_map_get_default m)))))
   )
@@ -249,9 +255,9 @@
 ; where that range has none.
 (define-sort Map (I E)
   :wf ("and" ($smtx_type_wf_component_rec I) ($smtx_type_wf_component_rec E))
-  :bounded ("or" ($smtx_type_bounded "true" E)
+  :bounded ("or" ($smtx_type_bounded uc "true" E)
              ("and" ("not" u)
-               ("and" ($smtx_type_bounded u I) ($smtx_type_bounded u E))))
+               ("and" ($smtx_type_bounded uc u I) ($smtx_type_bounded uc u E))))
   :default (eo::define ((d ($smtx_type_default E)))
              ("ite" ("veq" d smt.not_value)
                smt.not_value
@@ -271,7 +277,7 @@
 ; full one are two -- and is finite when what it holds is.
 (define-sort Set (T)
   :wf ($smtx_type_wf_component_rec T)
-  :bounded ("and" ("not" u) ($smtx_type_bounded u T))
+  :bounded ("and" ("not" u) ($smtx_type_bounded uc u T))
   :default (smt.set (smt.map_empty_set T)))
 
 ; -- $smtx_typeof_seq_value
@@ -290,12 +296,12 @@
 )
 
 (program $smtx_seq_canonical
-  ((T SmtType) (v SmtValue) (s SmtSeq))
-  :signature (SmtSeq) <bool>
+  ((uc SmtUSortCard) (T SmtType) (v SmtValue) (s SmtSeq))
+  :signature (SmtUSortCard SmtSeq) <bool>
   (
-  (($smtx_seq_canonical ($ssm_empty T)) "true")
-  (($smtx_seq_canonical ($ssm_cons v s))
-    ("and" ($smtx_value_canonical v) ($smtx_seq_canonical s)))
+  (($smtx_seq_canonical uc ($ssm_empty T)) "true")
+  (($smtx_seq_canonical uc ($ssm_cons v s))
+    ("and" ($smtx_value_canonical uc v) ($smtx_seq_canonical uc s)))
   )
 )
 
@@ -318,7 +324,7 @@
 ; well formed when the declaration holds it and is itself well formed.
 (define-sort Datatype ((s <string>) (dd SmtDatatypeDecl))
   :wf ("and" ($smtx_dd_has_dt s dd) ($smtx_decl_wf_rec dd dd))
-  :bounded ($smtx_dd_has_dt s ($smtx_datatype_decl_bounded u dd dd $dd_nil))
+  :bounded ($smtx_dd_has_dt s ($smtx_datatype_decl_bounded uc u dd dd $dd_nil))
   :default ($smtx_datatype_decl_default s dd dd))
 
 ; A reference to a datatype of the declaration around it, which is not a type
@@ -326,8 +332,13 @@
 (define-sort TypeRef ((s <string>))
   :wf "false")
 
-; An uninterpreted sort, whose least value is its first.
+; An uninterpreted sort, which has as many values as the model says, and
+; whose least value is its first. It is unit when it has exactly one, and
+; finite when the model gives it any number of them.
 (define-sort USort ((! n :raw))
+  :bounded ("ite" u
+             ("nateq" (smt.usort_card n) ("n_succ" "n_zero"))
+             ("not" ("nateq" (smt.usort_card n) "n_zero")))
   :default ($vsm_UValue n "n_zero"))
 
 ; An intensional function type. It is not extensional, so it is assumed to
@@ -483,19 +494,19 @@
   )
 )
 
-(program $smtx_is_unit_type ((T SmtType))
+(program $smtx_is_unit_type ((uc SmtUSortCard) (T SmtType))
   :keep
-  :signature (SmtType) <bool>
+  :signature (SmtUSortCard SmtType) <bool>
   (
-  (($smtx_is_unit_type T) ($smtx_type_bounded "true" T))
+  (($smtx_is_unit_type uc T) ($smtx_type_bounded uc "true" T))
   )
 )
 
-(program $smtx_is_finite_type ((T SmtType))
+(program $smtx_is_finite_type ((uc SmtUSortCard) (T SmtType))
   :keep
-  :signature (SmtType) <bool>
+  :signature (SmtUSortCard SmtType) <bool>
   (
-  (($smtx_is_finite_type T) ($smtx_type_bounded "false" T))
+  (($smtx_is_finite_type uc T) ($smtx_type_bounded uc "false" T))
   )
 )
 
@@ -665,12 +676,12 @@
 )
 
 (program $smtx_field_type_bounded
-  ((u <bool>) (s <string>) (T SmtType) (ddB SmtDatatypeDecl))
+  ((uc SmtUSortCard) (u <bool>) (s <string>) (T SmtType) (ddB SmtDatatypeDecl))
   :keep
-  :signature (<bool> SmtType SmtDatatypeDecl) <bool>
+  :signature (SmtUSortCard <bool> SmtType SmtDatatypeDecl) <bool>
   (
-  (($smtx_field_type_bounded u (TypeRef s) ddB) ($smtx_dd_has_dt s ddB))
-  (($smtx_field_type_bounded u T ddB)                ($smtx_type_bounded u T))
+  (($smtx_field_type_bounded uc u (TypeRef s) ddB) ($smtx_dd_has_dt s ddB))
+  (($smtx_field_type_bounded uc u T ddB)                ($smtx_type_bounded uc u T))
   )
   :lean "termination_by T ddB => (sizeOf T, 1)"
 )
@@ -690,58 +701,58 @@ decreasing_by
 )
 
 (program $smtx_datatype_cons_bounded
-  ((u <bool>) (T SmtType) (c SmtDatatypeCons) (ddB SmtDatatypeDecl))
+  ((uc SmtUSortCard) (u <bool>) (T SmtType) (c SmtDatatypeCons) (ddB SmtDatatypeDecl))
   :keep
-  :signature (<bool> SmtDatatypeCons SmtDatatypeDecl) <bool>
+  :signature (SmtUSortCard <bool> SmtDatatypeCons SmtDatatypeDecl) <bool>
   (
-  (($smtx_datatype_cons_bounded u $dtc_unit ddB) "true")
-  (($smtx_datatype_cons_bounded u ($dtc_cons T c) ddB)
-    ("and" ($smtx_field_type_bounded u T ddB)
-      ($smtx_datatype_cons_bounded u c ddB)))
+  (($smtx_datatype_cons_bounded uc u $dtc_unit ddB) "true")
+  (($smtx_datatype_cons_bounded uc u ($dtc_cons T c) ddB)
+    ("and" ($smtx_field_type_bounded uc u T ddB)
+      ($smtx_datatype_cons_bounded uc u c ddB)))
   )
   :lean "termination_by c ddB => (sizeOf c, 0)"
 )
 
 (program $smtx_datatype_bounded
-  ((u <bool>) (c SmtDatatypeCons) (dF SmtDatatype) (ddB SmtDatatypeDecl))
+  ((uc SmtUSortCard) (u <bool>) (c SmtDatatypeCons) (dF SmtDatatype) (ddB SmtDatatypeDecl))
   :keep
-  :signature (<bool> SmtDatatype SmtDatatypeDecl) <bool>
+  :signature (SmtUSortCard <bool> SmtDatatype SmtDatatypeDecl) <bool>
   (
-  (($smtx_datatype_bounded u ($dt_sum c $dt_null) ddB) ($smtx_datatype_cons_bounded u c ddB))
-  (($smtx_datatype_bounded u ($dt_sum c dF) ddB)
+  (($smtx_datatype_bounded uc u ($dt_sum c $dt_null) ddB) ($smtx_datatype_cons_bounded uc u c ddB))
+  (($smtx_datatype_bounded uc u ($dt_sum c dF) ddB)
     ("and" ("not" u)
-      ("and" ($smtx_datatype_cons_bounded u c ddB) ($smtx_datatype_bounded u dF ddB))))
-  (($smtx_datatype_bounded u dF ddB) ("not" u))
+      ("and" ($smtx_datatype_cons_bounded uc u c ddB) ($smtx_datatype_bounded uc u dF ddB))))
+  (($smtx_datatype_bounded uc u dF ddB) ("not" u))
   )
   :lean "termination_by dF ddB => (sizeOf dF, 0)"
 )
 
 (program $smtx_datatype_decl_bounded_step
-  ((u <bool>) (sF <string>) (dF SmtDatatype)
+  ((uc SmtUSortCard) (u <bool>) (sF <string>) (dF SmtDatatype)
    (ddR SmtDatatypeDecl) (ddB SmtDatatypeDecl))
   :keep
-  :signature (<bool> SmtDatatypeDecl SmtDatatypeDecl) SmtDatatypeDecl
+  :signature (SmtUSortCard <bool> SmtDatatypeDecl SmtDatatypeDecl) SmtDatatypeDecl
   (
-  (($smtx_datatype_decl_bounded_step u ($dd_cons sF dF ddR) ddB)
-    ($smtx_datatype_decl_bounded_step u ddR
+  (($smtx_datatype_decl_bounded_step uc u ($dd_cons sF dF ddR) ddB)
+    ($smtx_datatype_decl_bounded_step uc u ddR
       ("ite"
         ("and" ("not" ($smtx_dd_has_dt sF ddB))
-          ($smtx_datatype_bounded u dF ddB))
+          ($smtx_datatype_bounded uc u dF ddB))
         ($dd_cons sF dF ddB) ddB)))
-  (($smtx_datatype_decl_bounded_step u $dd_nil ddB) ddB)
+  (($smtx_datatype_decl_bounded_step uc u $dd_nil ddB) ddB)
   )
   :lean "termination_by ddR ddB => (sizeOf ddR, 0)"
 )
 
 (program $smtx_datatype_decl_bounded
-  ((u <bool>) (sC <string>) (dC SmtDatatype) (ddC SmtDatatypeDecl)
+  ((uc SmtUSortCard) (u <bool>) (sC <string>) (dC SmtDatatype) (ddC SmtDatatypeDecl)
    (dd SmtDatatypeDecl) (ddB SmtDatatypeDecl))
   :keep
-  :signature (<bool> SmtDatatypeDecl SmtDatatypeDecl SmtDatatypeDecl) SmtDatatypeDecl
+  :signature (SmtUSortCard <bool> SmtDatatypeDecl SmtDatatypeDecl SmtDatatypeDecl) SmtDatatypeDecl
   (
-  (($smtx_datatype_decl_bounded u ($dd_cons sC dC ddC) dd ddB)
-    ($smtx_datatype_decl_bounded u ddC dd ($smtx_datatype_decl_bounded_step u dd ddB)))
-  (($smtx_datatype_decl_bounded u $dd_nil dd ddB) ddB)
+  (($smtx_datatype_decl_bounded uc u ($dd_cons sC dC ddC) dd ddB)
+    ($smtx_datatype_decl_bounded uc u ddC dd ($smtx_datatype_decl_bounded_step uc u dd ddB)))
+  (($smtx_datatype_decl_bounded uc u $dd_nil dd ddB) ddB)
   )
   :lean "termination_by ddC dd ddB => (sizeOf dd, sizeOf ddC)"
 )
@@ -837,7 +848,7 @@ decreasing_by
 
 (declare-constructor Map ((m SmtMap)) :builds SmtValue
   :typeof ($smtx_typeof_map_value m)
-  :canonical ($smtx_map_canonical m))
+  :canonical ($smtx_map_canonical uc m))
 
 ; A function value is named rather than given, so what it is of is what it
 ; says it is of.
@@ -848,19 +859,23 @@ decreasing_by
 ; what it maps the rest to is false.
 (declare-constructor Set ((m SmtMap)) :builds SmtValue
   :typeof ($smtx_map_to_set_type ($smtx_typeof_map_value m))
-  :canonical ("and" ($smtx_map_canonical m)
+  :canonical ("and" ($smtx_map_canonical uc m)
                ("veq" ($smtx_map_get_default m) smt.false)))
 
 (declare-constructor Seq ((s SmtSeq)) :builds SmtValue
   :typeof ($smtx_typeof_seq_value s)
-  :canonical ($smtx_seq_canonical s))
+  :canonical ($smtx_seq_canonical uc s))
 
 (declare-constructor Char ((c <char>)) :builds SmtValue
   :typeof ("ite" ("char_valid" c) Char none)
   :canonical ("char_valid" c))
 
+; An element of an uninterpreted sort is canonical when it is one of the
+; values the model says the sort has.
 (declare-constructor UValue ((i <nat>) (e <nat>)) :builds SmtValue
-  :typeof (USort i))
+  :typeof (USort i)
+  :canonical ("or" ("nateq" (smt.usort_card i) "n_zero")
+               ("natlt" e (smt.usort_card i))))
 
 
 ; -- $smtx_re_canonical
@@ -936,8 +951,8 @@ decreasing_by
 ; canonical when both halves are.
 (declare-constructor Apply ((f SmtValue) (a SmtValue)) :builds SmtValue
   :typeof ($smtx_typeof_apply_value (smt.typeof_value f) (smt.typeof_value a))
-  :canonical ("and" ($smtx_value_canonical f)
-               ($smtx_value_canonical a)))
+  :canonical ("and" ($smtx_value_canonical uc f)
+               ($smtx_value_canonical uc a)))
 
 ;-----------------------------------------------------------------------------
 (section "The literals")
@@ -1304,10 +1319,21 @@ decreasing_by
   :typeof ($smtx_typeof_store a i e)
   :eval (a i e) ($smtx_map_store a i e))
 
+; The difference of two maps is an index they differ at, which is one of the
+; values of the type of the index, and so is asked of the model.
+(program $smtx_map_diff
+  ((M SmtModel) (m1 SmtMap) (m2 SmtMap) (v1 SmtValue) (v2 SmtValue))
+  :signature (SmtModel SmtValue SmtValue) SmtValue
+  (
+  (($smtx_map_diff M (smt.map m1) (smt.map m2)) ("eval_map_diff" M m1 m2))
+  (($smtx_map_diff M (smt.set m1) (smt.set m2)) ("eval_map_diff" M m1 m2))
+  (($smtx_map_diff M v1 v2)                     smt.not_value)
+  )
+)
+
 (define-symbol map_diff (a b)
   :typeof ($smtx_typeof_map_diff a b)
-  :eval ((smt.map m1) (smt.map m2)) ("eval_map_diff" m1 m2)
-  :eval ((smt.set m1) (smt.set m2)) ("eval_map_diff" m1 m2))
+  :value ($smtx_map_diff M a b))
 
 ;-----------------------------------------------------------------------------
 (section "Bit-vectors")

@@ -742,15 +742,16 @@ TYPE_WF = Aggregate(
 
 # Whether a type has a bounded number of values, under the flag that says
 # which bound is asked: exactly one value if it is true, finitely many if it
-# is false. A type that says nothing has neither.
+# is false, and under uc, which says how many values each uninterpreted sort
+# has. A type that says nothing has neither.
 TYPE_BOUNDED = Aggregate(
     key='bounded',
     of='$smtx_type_bounded',
-    context=[('u', '$native_Bool')],
+    context=[('uc', '$smt_USortCard'), ('u', '$native_Bool')],
     matches='$tsm_',
     declares=TYPE_DECLARES,
     slots=TYPE_SLOTS,
-    signature=('($native_Bool $smt_Type)', '$native_Bool'),
+    signature=('($smt_USortCard $native_Bool $smt_Type)', '$native_Bool'),
     stands_for=TYPE_STANDS,
     level='native')
 
@@ -857,13 +858,15 @@ VALUE_TYPEOF = Aggregate(
     level='type')
 
 # Whether a value is canonical, i.e. whether it is the one spelling of what it
-# denotes. A value that says nothing is.
+# denotes, under uc, which says how many values each uninterpreted sort has. A
+# value that says nothing is.
 VALUE_CANONICAL = Aggregate(
     key='canonical',
     of='$smtx_value_canonical',
+    context=[('uc', '$smt_USortCard')],
     matches='$vsm_',
     declares=['(x{i} $smt_Value)'],
-    signature=('($smt_Value)', '$native_Bool'),
+    signature=('($smt_USortCard $smt_Value)', '$native_Bool'),
     stands_for=VALUE_STANDS,
     level='native')
 
