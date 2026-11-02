@@ -69,13 +69,17 @@ $SM_TYPE_DECL$
   )
 )
 
+; models, which come before the part of the native layer below since a block
+; of it may be written over one
+(define-sort SmtModelKey () (Tuple Bool String tsm.Type))
+(define-sort SmtModel () (Array SmtModelKey vsm.Value))
+; the number of elements of each uninterpreted sort, by its index, where 0
+; means the sort is countably infinite
+(define-sort SmtUSortCard () (Array Nat Nat))
+
 ; $ The part of the native layer written over the datatypes above, which is
 ; $ why it comes out here rather than at the top of the file.
 $NATIVE_EMBED_DEFS$
-
-; models
-(define-sort SmtModelKey () (Tuple Bool String tsm.Type))
-(define-sort SmtModel () (Array SmtModelKey vsm.Value))
 
 (declare-datatype srl.RefList
   ((reflist_nil) (reflist_insert (reflist_insert.arg1 srl.RefList) (reflist_insert.arg2 String))))
@@ -105,6 +109,7 @@ $NATIVE_EMBED_DEFS$
 (declare-fun model_lookup (SmtModel String tsm.Type) vsm.Value)
 (declare-fun model_var_lookup (SmtModel String tsm.Type) vsm.Value)
 (declare-fun model_push (SmtModel String tsm.Type vsm.Value) SmtModel)
+(define-fun usort_card ((uc SmtUSortCard) (n Nat)) Nat (select uc n))
 (declare-fun eval_exists (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_forall (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_choice (SmtModel String tsm.Type sm.Term) vsm.Value)

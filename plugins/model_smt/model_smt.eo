@@ -41,6 +41,16 @@
 (define $native_model_lookup ((M $smt_Model) (s $native_String) (T $smt_Type))
   ($native_apply_3 "model_lookup" M s T))
 
+; What the model says the number of elements of each uninterpreted sort is, by
+; its index, where 0 means the sort is countably infinite. Whether a type is
+; bounded and whether a value is canonical are asked under one, since both
+; depend on how many values an uninterpreted sort has.
+(define $smt_USortCard () ($native_embed_smt "SmtUSortCard"))
+
+; The number of elements of the uninterpreted sort of index n under uc.
+(define $native_usort_card ((uc $smt_USortCard) (n $native_Nat))
+  ($native_apply_2 "usort_card" uc n))
+
 ; An SMT-LIB value.
 (declare-const $smt_Value Type)
 ; utilities
@@ -295,12 +305,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Well-foundedness for types
 
 (program $smtx_type_wf_rec () :signature ($smt_Type) $native_Bool)
-(program $smtx_type_bounded () :signature ($native_Bool $smt_Type) $native_Bool)
-(program $smtx_is_finite_type () :signature ($smt_Type) $native_Bool)
+(program $smtx_type_bounded () :signature ($smt_USortCard $native_Bool $smt_Type) $native_Bool)
+(program $smtx_is_finite_type () :signature ($smt_USortCard $smt_Type) $native_Bool)
 (program $smtx_type_default () :signature ($smt_Type) $smt_Value)
 (program $smtx_datatype_decl_default () :signature ($native_String $smt_DatatypeDecl $smt_DatatypeDecl) $smt_Value)
-(program $smtx_datatype_decl_bounded () :signature ($native_Bool $smt_DatatypeDecl $smt_DatatypeDecl $smt_DatatypeDecl) $smt_DatatypeDecl)
-(program $smtx_value_canonical () :signature ($smt_Value) $native_Bool)
+(program $smtx_datatype_decl_bounded () :signature ($smt_USortCard $native_Bool $smt_DatatypeDecl $smt_DatatypeDecl $smt_DatatypeDecl) $smt_DatatypeDecl)
+(program $smtx_value_canonical () :signature ($smt_USortCard $smt_Value) $native_Bool)
 
 (define $smtx_type_wf_component_rec ((T $smt_Type))
   ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T)))
@@ -655,15 +665,15 @@
 
 ; x1, x2 and n1 are what a case the configuration writes is written with.
 (program $smtx_type_bounded
-  ((u $native_Bool) (w $native_Nat) (T $smt_Type) (U $smt_Type)
+  ((uc $smt_USortCard) (u $native_Bool) (w $native_Nat) (T $smt_Type) (U $smt_Type)
    (s $native_String) (dd $smt_DatatypeDecl)
    (x1 $smt_Type) (x2 $smt_Type) (n1 $native_Nat)
    (s1 $native_String) (dd2 $smt_DatatypeDecl))
-  :signature ($native_Bool $smt_Type) $native_Bool
+  :signature ($smt_USortCard $native_Bool $smt_Type) $native_Bool
   (
 ;$SMT_TYPE_BOUNDED_CASES$
   ; note FunType is not extensional, thus assumed to be infinite
-  (($smtx_type_bounded u T)                    $native_false)
+  (($smtx_type_bounded uc u T)                 $native_false)
   )
 )
 
@@ -697,13 +707,14 @@
 
 ; The same, for what each value says about being canonical.
 (program $smtx_value_canonical
-  ((v $smt_Value) (i1 $native_Int) (i2 $native_Int) (c1 $native_Char)
+  ((uc $smt_USortCard) (v $smt_Value) (i1 $native_Int) (i2 $native_Int)
+   (n1 $native_Nat) (n2 $native_Nat) (c1 $native_Char)
    (m1 $smt_Map) (q1 $smt_Seq) (re1 $smt_RegLan)
    (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value) $native_Bool
+  :signature ($smt_USortCard $smt_Value) $native_Bool
   (
 ;$SMT_VALUE_CANONICAL_CASES$
-  (($smtx_value_canonical v) $native_true)
+  (($smtx_value_canonical uc v) $native_true)
   )
 )
 

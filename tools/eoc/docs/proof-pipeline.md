@@ -283,7 +283,9 @@ the term under test embeds as `eo.Stuck`.
 The SMT-LIB semantics proper consist of the core evaluation semantics
 `$smtx_model_eval`; `$smtx_type_default`, which returns the first term of a
 finite type, beside `$smtx_type_wf` and `$smtx_type_bounded`, which say whether
-the values of a type are a set at all and whether they are finitely many; and,
+the values of a type are a set at all and whether they are finitely many --
+the latter, like `$smtx_value_canonical`, under the number of values the model
+gives each uninterpreted sort, which a body writes as `(smt.usort_card n)`; and,
 written in the configuration beside the sorts they belong to, the programs over
 a map value -- lookup, canonical update, the type of one and whether it is
 written the one way -- and their counterparts over a sequence value.
