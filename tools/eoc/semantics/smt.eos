@@ -116,7 +116,10 @@
 ;   :wf       whether the values of it are a set at all -- asked of a type
 ;             built over another, and true of the rest
 ;   :bounded  whether it has exactly one value, where u is true, or finitely
-;             many, where u is false -- neither, of a type that says nothing
+;             many, where u is false -- neither, of a type that says nothing.
+;             It is asked under uc, the number of values the model gives
+;             each uninterpreted sort, which a body reads with
+;             (smt.usort_card n), so the answer may depend on the model
 ;   :default  the value a model reaches for where it has to name one -- none,
 ;             of a type that says nothing
 ;
