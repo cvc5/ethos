@@ -1,5 +1,7 @@
 module
 
+public import $EO_CALC$.SmtTyping
+import all $EO_CALC$.SmtTyping
 public import $EO_CALC$.SmtValueOrder
 import all $EO_CALC$.SmtValueOrder
 
@@ -19,7 +21,7 @@ abbrev SmtNativeFun := SmtValue -> SmtValue
 abbrev SmtUSortCard := native_Nat -> native_Nat
 
 -- The primitive operations no module above this one uses, together with those
--- written over the types of this embedding, which cannot stand above it.
+-- written over the values of this embedding, which cannot stand above it.
 -- $ The part of the native layer whose Lean names the embedding, and the part
 -- $ no module above this one reaches, see LeanMetaReduce::nativeDefs.
 $NATIVE_DEFS$
@@ -75,11 +77,6 @@ def native_usort_card (uc : SmtUSortCard) (n : native_Nat) : native_Nat :=
 noncomputable section
 
 mutual
-
-def native_inhabited_type (T : SmtType) : native_Bool :=
-  (native_and
-    (native_not (native_Teq T SmtType.None))
-    (native_Teq (__smtx_typeof_value (__smtx_type_default T)) T))
 
 $LEAN_SMT_EVAL_DEFS$
 

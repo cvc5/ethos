@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <cctype>
 #include <fstream>
+#include <regex>
+#include <set>
 #include <sstream>
 #include <string>
 
@@ -29,6 +31,42 @@ bool optionSmtTheoryOp() { return false; }
 
 /** Whether to collapse atomic user operators into UserOp. */
 bool optionEoUserOp() { return true; }
+
+/** The Lean names text mentions, a qualified name counting as its parts. */
+std::set<std::string> leanNames(const std::string& text)
+{
+  static const std::regex name("[A-Za-z_][A-Za-z0-9_'?!]*");
+  std::set<std::string> names;
+  for (std::sregex_iterator i(text.begin(), text.end(), name), end; i != end;
+       ++i)
+  {
+    names.insert(i->str());
+  }
+  return names;
+}
+
+/** Whether a and b have a name in common. */
+bool meets(const std::set<std::string>& a, const std::set<std::string>& b)
+{
+  for (const std::string& n : a)
+  {
+    if (b.find(n) != b.end())
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Wrap text, if any, in a mutual block. */
+std::string mutualBlock(const std::string& text)
+{
+  if (text.empty())
+  {
+    return text;
+  }
+  return "mutual\n\n" + text + "end\n";
+}
 
 }  // namespace
 
@@ -86,8 +124,14 @@ std::string LeanMetaReduce::scopeOf(const std::ostream* os) const
   {
     return "Eo";
   }
-  if (os == &d_smt || os == &d_smtDefs || os == &d_eoIsObjDefs
+  // The translation stands below SmtTyping and beside SmtModel, so what it
+  // names comes out where the static interface does.
+  if (os == &d_smtTypingDefs || os == &d_eoIsObjDefs
       || os == &d_eoIsObjDefsSimple)
+  {
+    return "SmtTyping";
+  }
+  if (os == &d_smt || os == &d_smtDefs)
   {
     return "Smtm";
   }
@@ -433,7 +477,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
     }
     // native literals
     std::stringstream ss;
-    d_natives.use("native_string_lit", d_scope);
+    useNative("native_string_lit");
     ss << "(native_string_lit " << smtStr << ")";
     return ss.str();
   }
@@ -443,7 +487,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   }
   std::stringstream ss;
   ss << "native_" << cleanSmtId(smtStr);
-  d_natives.use(ss.str(), d_scope);
+  useNative(ss.str());
   return ss.str();
 }
 
@@ -724,6 +768,9 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   // nothing names the definition, so nothing misses it -- while one that does
   // use it gets Lean naming a definition that was never written, which Lean
   // reports.
+  // Nothing is recorded for a program until it is known to be an SMT-LIB
+  // one, see beginSmtProgram.
+  d_nativeLog = nullptr;
   if (vname == "$eo_ite" || vname == "$eo_hash")
   {
     return;
@@ -743,6 +790,10 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       out = &d_defs;
       (*out) << "partial ";
 #endif
+    }
+    else
+    {
+      out = beginSmtProgram(cleanId(vname));
     }
     d_scope = scopeOf(out);
     (*out) << "def " << cleanId(vname) << " : ";
@@ -866,8 +917,14 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     decl << "noncomputable ";
     out = &d_smt;
   }
-  // Which module this program comes out in is settled, so a native it names
-  // is named from there, see NativeLayer::use.
+  // An SMT-LIB program comes out in SmtTyping or SmtModel, which is settled
+  // once every one of them is written, see finalizeSmtPrograms.
+  if (out == &d_smtDefs)
+  {
+    out = beginSmtProgram(cleanId(vname));
+  }
+  // Which module this program comes out in is otherwise settled, so a native
+  // it names is named from there, see NativeLayer::use.
   d_scope = scopeOf(out);
   decl << "def " << cleanId(vname);
   size_t macroStartArg = 1;
@@ -1866,16 +1923,44 @@ std::string LeanMetaReduce::printEmbedKeys() const
   return keys.str();
 }
 
-std::string LeanMetaReduce::printEmbedDatatypes() const
+std::set<std::string> LeanMetaReduce::modelEmbedDatatypes() const
+{
+  // A datatype a value is built over is one whose constructors name a value,
+  // directly or through another such datatype; the rest (those a datatype
+  // declaration is made of) are syntax, which a type names.
+  std::set<std::string> model{"SmtValue"};
+  bool changed = true;
+  while (changed)
+  {
+    changed = false;
+    for (const std::pair<const std::string, std::stringstream>& dt : d_embedDt)
+    {
+      if (model.find(dt.first) == model.end()
+          && meets(leanNames(dt.second.str()), model))
+      {
+        model.insert(dt.first);
+        changed = true;
+      }
+    }
+  }
+  return model;
+}
+
+std::string LeanMetaReduce::printEmbedDatatypes(bool model) const
 {
   // One inductive per datatype the target declared the constructors of, in
   // the order the constructors arrived, which is the order the ordering key
   // beside it takes their tags from. They stand in the mutual block with the
-  // three the backend writes for itself, so nothing here has to order them
+  // ones the backend writes for itself, so nothing here has to order them
   // against one another.
+  std::set<std::string> models = modelEmbedDatatypes();
   std::stringstream defs;
   for (const std::pair<const std::string, std::stringstream>& dt : d_embedDt)
   {
+    if ((models.find(dt.first) != models.end()) != model)
+    {
+      continue;
+    }
     defs << "/-" << std::endl
          << "The " << dt.first << " of the embedding." << std::endl
          << "-/" << std::endl
@@ -1887,26 +1972,131 @@ std::string LeanMetaReduce::printEmbedDatatypes() const
   return defs.str();
 }
 
+std::ostream* LeanMetaReduce::beginSmtProgram(const std::string& name)
+{
+  d_smtProgs.emplace_back();
+  SmtProgram& p = d_smtProgs.back();
+  p.d_name = name;
+  d_nativeLog = &p.d_natives;
+  return &p.d_text;
+}
+
+void LeanMetaReduce::useNative(const std::string& n)
+{
+  if (d_nativeLog != nullptr)
+  {
+    d_nativeLog->push_back(n);
+    return;
+  }
+  d_natives.use(n, d_scope);
+}
+
+void LeanMetaReduce::finalizeSmtPrograms()
+{
+  d_nativeLog = nullptr;
+  // What a program of the static interface cannot name: what the modules of
+  // the model declare, which is read off their templates so that it cannot
+  // drift from them, and the datatypes a value is built over.
+  std::set<std::string> model = modelEmbedDatatypes();
+  static const std::regex declared(
+      "^(?:noncomputable |partial |private )*"
+      "(?:def|abbrev|structure|inductive) ([^\\s:(]+)");
+  for (const char* t : {"plugins/lean_meta/lean_meta_smt_model_defs.lean",
+                        "plugins/lean_meta/lean_meta_smt_value_order.lean",
+                        "plugins/lean_meta/lean_meta_smt_model.lean"})
+  {
+    std::ifstream in(getResourcePath(t));
+    std::string line;
+    std::smatch m;
+    while (std::getline(in, line))
+    {
+      if (std::regex_search(line, m, declared))
+      {
+        model.insert(m[1].str());
+      }
+    }
+  }
+  model.insert(cleanId("$smtx_model_eval"));
+  // A program is of the model if it names any of the above, a native that
+  // has to be written below the static interface, or a program of the model.
+  std::vector<std::set<std::string>> names;
+  std::vector<bool> isModel;
+  for (const SmtProgram& p : d_smtProgs)
+  {
+    names.push_back(leanNames(p.d_text.str()));
+    bool m = false;
+    for (const std::string& n : p.d_natives)
+    {
+      m = m || d_natives.needsBelowTop(n);
+    }
+    isModel.push_back(m);
+  }
+  bool changed = true;
+  while (changed)
+  {
+    changed = false;
+    for (size_t i = 0, n = d_smtProgs.size(); i < n; i++)
+    {
+      if (!isModel[i] && meets(names[i], model))
+      {
+        isModel[i] = true;
+        changed = true;
+      }
+      if (isModel[i] && model.insert(d_smtProgs[i].d_name).second)
+      {
+        changed = true;
+      }
+    }
+  }
+  for (size_t i = 0, n = d_smtProgs.size(); i < n; i++)
+  {
+    const SmtProgram& p = d_smtProgs[i];
+    std::stringstream& out = isModel[i] ? d_smtDefs : d_smtTypingDefs;
+    out << p.d_text.str();
+    for (const std::string& nat : p.d_natives)
+    {
+      d_natives.use(nat, scopeOf(&out));
+    }
+  }
+  // What the template of SmtTyping names of the layer itself, see
+  // native_inhabited_type there.
+  for (const char* nat :
+       {"native_and", "native_or", "native_ite", "native_streq"})
+  {
+    d_natives.use(nat, "SmtTyping");
+  }
+}
+
 void LeanMetaReduce::finalizeSmtModel()
 {
-  std::vector<Replacement> defsRepl{{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
-                                    {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()},
-                                    {"$LEAN_SMT_VALUE_DEF$",
-                                     d_smtValueDt.str()}};
+  std::vector<Replacement> syntaxRepl{{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
+                                      {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()}};
   if (optionSmtTheoryOp())
   {
     // NOTE: enabling this option additionally requires adding an
     // `inductive SmtTheoryOp` block carrying $LEAN_SMT_THEORY_OP_DEF$ to
-    // lean_meta_smt_model_defs.lean, ahead of the mutual block that defines
+    // lean_meta_smt_syntax.lean, ahead of the mutual block that defines
     // SmtTerm. The template has no such block today, so the tag is only
     // supplied when the option is on, where its absence is reported.
-    defsRepl.emplace_back("$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str());
+    syntaxRepl.emplace_back("$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str());
   }
-  defsRepl.emplace_back("$LEAN_SMT_EMBED_DEFS$", printEmbedDatatypes());
+  syntaxRepl.emplace_back("$LEAN_SMT_EMBED_DEFS$", printEmbedDatatypes(false));
+  const std::string outPathSyntax =
+      emitResourceFile("plugins/lean_meta/lean_meta_smt_syntax.lean",
+                       "plugins/lean_meta/lean_meta_smt_syntax_gen.lean",
+                       syntaxRepl);
+  Trace("lean-meta") << "Write lean-syntax " << outPathSyntax << std::endl;
+  const std::string outPathTyping = emitResourceFile(
+      "plugins/lean_meta/lean_meta_smt_typing.lean",
+      "plugins/lean_meta/lean_meta_smt_typing_gen.lean",
+      {{"$LEAN_SMT_TYPING_DEFS$", mutualBlock(d_smtTypingDefs.str())},
+       {"$NATIVE_DEFS$", d_natives.defs("SmtTyping")}});
+  Trace("lean-meta") << "Write lean-typing " << outPathTyping << std::endl;
   const std::string outPathDefs =
       emitResourceFile("plugins/lean_meta/lean_meta_smt_model_defs.lean",
                        "plugins/lean_meta/lean_meta_smt_model_defs_gen.lean",
-                       defsRepl);
+                       {{"$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str()},
+                        {"$LEAN_SMT_EMBED_DEFS$", printEmbedDatatypes(true)}});
   Trace("lean-meta") << "Write lean-defs " << outPathDefs << std::endl;
   const std::string outPathOrder =
       emitResourceFile("plugins/lean_meta/lean_meta_smt_value_order.lean",
@@ -1926,12 +2116,17 @@ void LeanMetaReduce::finalizeSmtModel()
 
 void LeanMetaReduce::finalizeSpec()
 {
+  const std::string outPathTranslate = emitResourceFile(
+      "plugins/lean_meta/lean_meta_smt_translate.lean",
+      "plugins/lean_meta/lean_meta_smt_translate_gen.lean",
+      {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()},
+       {"$LEAN_EO_IS_OBJ_SIMPLE_DEFS$", d_eoIsObjDefsSimple.str()}});
+  Trace("lean-meta") << "Write lean-translate " << outPathTranslate
+                     << std::endl;
   const std::string outPath =
       emitResourceFile("plugins/lean_meta/lean_meta_spec.lean",
                        "plugins/lean_meta/lean_meta_spec_gen.lean",
-                       {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()},
-                        {"$LEAN_EO_IS_OBJ_SIMPLE_DEFS$", d_eoIsObjDefsSimple.str()}
-                      });
+                       {});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }
 
@@ -1949,6 +2144,7 @@ void LeanMetaReduce::finalizeLemmas()
 void LeanMetaReduce::finalize()
 {
   finalizePrograms();
+  finalizeSmtPrograms();
   // refutation is if the method returns true
   d_eoIsRef << "  | intro (F : CArgList) (c : CCmdList) : " << std::endl;
   d_eoIsRef << "    (__eo_checker_is_refutation F c) = true -> "

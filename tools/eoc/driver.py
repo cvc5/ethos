@@ -40,8 +40,8 @@ LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
 # Every one of them is rendered by the lean-meta stage rather than copied from
 # the plugin source tree, including the ones whose resource carries no
 # generated text: the stage emits the part of the native layer the compilation
-# of the input reaches, and SmtEval.lean, Logos.lean and SmtModel.lean are
-# where that part comes out. See LeanMetaReduce::loadNativeDefs.
+# of the input reaches, and SmtEval.lean, Logos.lean, SmtTyping.lean and
+# SmtModel.lean are where that part comes out. See LeanMetaReduce::loadNativeDefs.
 #
 # The path is where the file stands in the package it is installed into, so
 # that publishing is what says the layout and installing is a copy of the tree.
@@ -56,6 +56,9 @@ LEAN_OUTPUTS: tuple[tuple[str, str], ...] = (
     ("lean_meta/lean_meta_checker_term_gen.lean", "LogosTerm.lean"),
     ("lean_meta/lean_meta_parser_gen.lean", "Parser.lean"),
     ("lean_meta/lean_meta_smt_eval_gen.lean", "SmtEval.lean"),
+    ("lean_meta/lean_meta_smt_syntax_gen.lean", "SmtSyntax.lean"),
+    ("lean_meta/lean_meta_smt_typing_gen.lean", "SmtTyping.lean"),
+    ("lean_meta/lean_meta_smt_translate_gen.lean", "SmtTranslate.lean"),
     ("lean_meta/lean_meta_smt_model_defs_gen.lean", "SmtModelDefs.lean"),
     ("lean_meta/lean_meta_smt_value_order_gen.lean", "SmtValueOrder.lean"),
     ("lean_meta/lean_meta_smt_model_gen.lean", "SmtModel.lean"),
