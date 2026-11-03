@@ -9,6 +9,7 @@
 #include "native_layer.h"
 
 #include <fstream>
+#include <set>
 #include <sstream>
 
 #include "base/check.h"
@@ -129,6 +130,29 @@ void NativeLayer::use(const std::string& n, const std::string& scope)
   {
     use(dep, at);
   }
+}
+
+bool NativeLayer::needsBelowTop(const std::string& n) const
+{
+  std::vector<std::string> todo{n};
+  std::set<std::string> seen;
+  while (!todo.empty())
+  {
+    std::string m = todo.back();
+    todo.pop_back();
+    std::map<std::string, size_t>::const_iterator b = d_of.find(m);
+    if (b == d_of.end() || !seen.insert(m).second)
+    {
+      continue;
+    }
+    const Def& d = d_defs[b->second];
+    if (d.d_needs != d_top)
+    {
+      return true;
+    }
+    todo.insert(todo.end(), d.d_deps.begin(), d.d_deps.end());
+  }
+  return false;
 }
 
 std::string NativeLayer::defs(const std::string& scope) const

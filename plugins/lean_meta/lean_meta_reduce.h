@@ -9,6 +9,7 @@
 #ifndef PLUGIN_LEAN_META_REDUCE_H
 #define PLUGIN_LEAN_META_REDUCE_H
 
+#include <deque>
 #include <map>
 #include <set>
 #include <sstream>
@@ -162,9 +163,16 @@ class LeanMetaReduce : public MetaReducePlugin
   std::string printTheoryOpDefs() const;
   /**
    * The inductives of the datatypes the target declared the constructors of,
-   * as the text of the $LEAN_SMT_EMBED_DEFS$ hole, see d_embedDt.
+   * as the text of the $LEAN_SMT_EMBED_DEFS$ hole of SmtModelDefs if model
+   * and of SmtSyntax otherwise, see d_embedDt and modelEmbedDatatypes.
    */
-  std::string printEmbedDatatypes() const;
+  std::string printEmbedDatatypes(bool model) const;
+  /**
+   * The datatypes of d_embedDt a value is built over, i.e. those whose
+   * constructors name SmtValue or another of them. They stand with SmtValue
+   * in SmtModelDefs and the rest stand in SmtSyntax.
+   */
+  std::set<std::string> modelEmbedDatatypes() const;
   /**
    * The ordering keys of the same, as the text of the $LEAN_SMT_EMBED_KEY$
    * hole, see d_embedKey.
@@ -189,9 +197,30 @@ class LeanMetaReduce : public MetaReducePlugin
   void finalizeParseDefs(const std::set<std::string>& opNames,
                          std::ostream& ops,
                          std::ostream& macros);
-  /** Emit Lean definitions for the SMT model layer. */
+  /**
+   * Begin writing the SMT-LIB program name, returning the stream it is
+   * written to. Whether it comes out in SmtTyping or SmtModel is not known
+   * until every program has been written, so until then it is kept apart,
+   * and the natives it names are recorded rather than placed. See
+   * finalizeSmtPrograms.
+   */
+  std::ostream* beginSmtProgram(const std::string& name);
+  /**
+   * Place each SMT-LIB program written by beginSmtProgram: in SmtModel if
+   * it names a value or a model, a native that needs them, or a program
+   * placed there, and in SmtTyping otherwise. This is what keeps the static
+   * interface the checker is built on free of the model semantics.
+   */
+  void finalizeSmtPrograms();
+  /**
+   * Note that the module now being written names the native n, see
+   * NativeLayer::use, or record it if the program being written has not yet
+   * been placed, see beginSmtProgram.
+   */
+  void useNative(const std::string& n);
+  /** Emit Lean definitions for the SMT syntax, typing and model layers. */
   void finalizeSmtModel();
-  /** Emit Lean specifications for generated proof-rule targets. */
+  /** Emit Lean definitions for the translation and the specification. */
   void finalizeSpec();
   /** Emit Lean lemma scaffolding for generated specifications. */
   void finalizeLemmas();
@@ -223,15 +252,15 @@ class LeanMetaReduce : public MetaReducePlugin
   /**
    * The native layer of this backend, i.e. what
    * tools/eoc/compiler/sem_compile.py compiled plugins/lean_meta/lean.eos to.
-   * Its three homes are the modules that carry a $NATIVE_DEFS$: SmtEval, which
-   * every module sees, Logos and SmtModel.
+   * Its four homes are the modules that carry a $NATIVE_DEFS$: SmtEval, which
+   * every module sees, Logos, SmtTyping and SmtModel.
    */
   NativeLayer d_natives;
   /**
    * The scope of the module now being written, which is where a native named
-   * while writing it has to be seen from: `Eo` for Logos, `Smtm` for SmtModel
-   * and the modules below it, and SmtEval, which every module sees, for the
-   * rest. See scopeOf.
+   * while writing it has to be seen from: `Eo` for Logos, `SmtTyping` for
+   * SmtTyping and SmtTranslate, `Smtm` for SmtModel and the modules below it,
+   * and SmtEval, which every module sees, for the rest. See scopeOf.
    */
   std::string d_scope = "SmtEval";
   /** Generated Lean definitions for programs. */
@@ -280,8 +309,24 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_eoIsRef;
   /** Generated Lean checker body. */
   std::stringstream d_eoChecker;
-  /** SMT definitions */
+  /** One SMT-LIB program, written before it is placed, see beginSmtProgram. */
+  struct SmtProgram
+  {
+    /** Its Lean name. */
+    std::string d_name;
+    /** Its Lean text. */
+    std::stringstream d_text;
+    /** The natives it names. */
+    std::vector<std::string> d_natives;
+  };
+  /** The SMT-LIB programs, in the order they were written. */
+  std::deque<SmtProgram> d_smtProgs;
+  /** Where the natives named are recorded, if not null, see useNative. */
+  std::vector<std::string>* d_nativeLog = nullptr;
+  /** SMT definitions of the model, see finalizeSmtPrograms. */
   std::stringstream d_smtDefs;
+  /** SMT definitions of the static interface, see finalizeSmtPrograms. */
+  std::stringstream d_smtTypingDefs;
   /** Generated Lean SMT helper definitions. */
   std::stringstream d_smt;
   /** SMT term datatype cases. */

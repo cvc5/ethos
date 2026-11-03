@@ -430,6 +430,7 @@ what comes out there as an ordinary replacement:
 | --- | --- | --- | --- |
 | Lean | `SmtEval.lean` | `lean_meta_smt_eval.lean` | `SmtEval`, which every module sees |
 | Lean | `Logos.lean` | `lean_meta_checker.lean` | `Eo`, the Eunoia terms and what is written over them |
+| Lean | `SmtTyping.lean` | `lean_meta_smt_typing.lean` | `SmtTyping`, the static interface: SMT-LIB typing and the translation |
 | Lean | `SmtModel.lean` | `lean_meta_smt_model.lean` | `Smtm`, the SMT-LIB value embedding |
 | SMT-LIB | above the datatypes | `smt_meta.smt2` | `Vc`, where SMT-LIB alone is in scope |
 | SMT-LIB | below the datatypes | `smt_meta.smt2` | `Embed`, where the embedding is declared |
@@ -613,6 +614,9 @@ tools/eoc/out/
     LogosTerm.lean
     Parser.lean
     SmtEval.lean
+    SmtSyntax.lean
+    SmtTyping.lean
+    SmtTranslate.lean
     SmtModelDefs.lean
     SmtValueOrder.lean
     SmtModel.lean
@@ -632,6 +636,16 @@ carries name; every other file stands at the root, where its name already is
 its import. Installing is therefore a copy of the tree, and a file added to
 `LEAN_OUTPUTS` in `tools/eoc/driver.py` arrives with no change to the install
 wrappers.
+
+The SMT-LIB modules are split so that the checker can be built without the
+model semantics. `SmtSyntax` declares types, terms and the datatypes they are
+built over; `SmtTyping` holds typing and well-formedness; `SmtTranslate` holds
+the translation from Eunoia to SMT-LIB. None of them names a value or a model.
+`SmtModelDefs`, `SmtValueOrder` and `SmtModel` hold values and the model
+semantics, and `Spec` joins the translation to satisfiability. An SMT-LIB
+program of the semantics comes out in `SmtTyping` unless it names a value, a
+model, a native that needs one, or a program that comes out in `SmtModel`; see
+`LeanMetaReduce::finalizeSmtPrograms`.
 
 `<Calc>` is what `--calc-name` says, which is the name of the package the run
 installs into; a run that names none calls the calculus after its input file,
