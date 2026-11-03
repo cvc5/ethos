@@ -637,11 +637,74 @@
   (
   (($smtx_decl_wf_rec dd ($dd_cons s d ddF))
     ("and" ($smtx_dt_wf_rec dd d) ; this must be a well formed datatype
-    ("and" ("inhabited_type" (Datatype s dd)) ; must be inhabited
+    ("and" ($smtx_inhabited_type (Datatype s dd)) ; must be inhabited
     ("and" ($smtx_decl_wf_rec dd ddF) ; the tail must be a well formed datatype decl
       ("not" ($smtx_dd_has_dt s ddF)))))) ; must be a unique reference
   (($smtx_decl_wf_rec dd $dd_nil)  "true")
   )
+)
+
+;; Inhabitation: whether $smtx_type_default constructs a value of a type,
+;; computed from the type alone. Base types are inhabited, a map type is when
+;; its range is, and a datatype is when one of its constructors has inhabited
+;; fields. As in the default generator, a field (TypeRef s) is resolved among
+;; the declarations that follow the current one, which is what makes the
+;; recursion well founded. It names no value, so it is part of the static
+;; interface the checker is built on.
+
+(program $smtx_dt_cons_inhabited
+  ((s <string>) (T SmtType) (c SmtDatatypeCons) (ddF SmtDatatypeDecl))
+  :keep
+  :signature (SmtDatatypeCons SmtDatatypeDecl) <bool>
+  (
+  (($smtx_dt_cons_inhabited ($dtc_cons (TypeRef s) c) ddF)
+    ("and" ($smtx_decl_inhabited s ddF) ($smtx_dt_cons_inhabited c ddF)))
+  (($smtx_dt_cons_inhabited ($dtc_cons T c) ddF)
+    ("and" ($smtx_inhabited_type T) ($smtx_dt_cons_inhabited c ddF)))
+  (($smtx_dt_cons_inhabited $dtc_unit ddF) "true")
+  )
+  :lean "termination_by c ddF => 2 * (sizeOf c + sizeOf ddF) + 2"
+)
+
+(program $smtx_dt_inhabited
+  ((c SmtDatatypeCons) (d SmtDatatype) (ddF SmtDatatypeDecl))
+  :keep
+  :signature (SmtDatatype SmtDatatypeDecl) <bool>
+  (
+  (($smtx_dt_inhabited ($dt_sum c d) ddF)
+    ("or" ($smtx_dt_cons_inhabited c ddF) ($smtx_dt_inhabited d ddF)))
+  (($smtx_dt_inhabited $dt_null ddF) "false")
+  )
+  :lean "termination_by d ddF => 2 * (sizeOf d + sizeOf ddF) + 1"
+)
+
+(program $smtx_decl_inhabited
+  ((s <string>) (sF <string>) (dF SmtDatatype) (ddF SmtDatatypeDecl))
+  :keep
+  :signature (<string> SmtDatatypeDecl) <bool>
+  (
+  (($smtx_decl_inhabited s ($dd_cons sF dF ddF))
+    ("ite" ("streq" s sF)
+      ($smtx_dt_inhabited dF ddF)
+      ($smtx_decl_inhabited s ddF)))
+  (($smtx_decl_inhabited s $dd_nil) "false")
+  )
+  :lean "termination_by ddF => 2 * sizeOf ddF"
+)
+
+(program $smtx_inhabited_type
+  ((s <string>) (T SmtType) (U SmtType) (dd SmtDatatypeDecl))
+  :keep
+  :signature (SmtType) <bool>
+  (
+  (($smtx_inhabited_type none)              "false")
+  (($smtx_inhabited_type (TypeRef s))       "false")
+  (($smtx_inhabited_type (DtcAppType T U))  "false")
+  (($smtx_inhabited_type (Map T U))         ($smtx_inhabited_type U))
+  (($smtx_inhabited_type (Datatype s dd))   ($smtx_decl_inhabited s dd))
+  (($smtx_inhabited_type T)                 "true")
+  )
+  :lean "termination_by T => 2 * sizeOf T"
 )
 
 (program $smtx_dtc_num_sels ((U SmtType) (c SmtDatatypeCons))

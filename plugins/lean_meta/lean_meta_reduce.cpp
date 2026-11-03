@@ -2058,13 +2058,6 @@ void LeanMetaReduce::finalizeSmtPrograms()
       d_natives.use(nat, scopeOf(&out));
     }
   }
-  // What the template of SmtTyping names of the layer itself, see
-  // native_inhabited_type there.
-  for (const char* nat :
-       {"native_and", "native_or", "native_ite", "native_streq"})
-  {
-    d_natives.use(nat, "SmtTyping");
-  }
 }
 
 void LeanMetaReduce::finalizeSmtModel()
