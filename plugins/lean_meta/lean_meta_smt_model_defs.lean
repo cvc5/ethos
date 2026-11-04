@@ -26,7 +26,7 @@ deriving Repr, DecidableEq, Inhabited, Ord
 -- $ target's to declare, see declare-embed-datatype in
 -- $ plugins/model_smt/model_smt.eos; which of them stand here rather than in
 -- $ SmtSyntax is read off their constructors, see
--- $ LeanMetaReduce::printEmbedDatatypes.
+-- $ LeanMetaReduce::isSyntaxDatatype.
 $LEAN_SMT_EMBED_DEFS$
 
 end

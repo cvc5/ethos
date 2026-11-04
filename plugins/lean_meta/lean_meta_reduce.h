@@ -9,7 +9,6 @@
 #ifndef PLUGIN_LEAN_META_REDUCE_H
 #define PLUGIN_LEAN_META_REDUCE_H
 
-#include <deque>
 #include <map>
 #include <set>
 #include <sstream>
@@ -163,16 +162,22 @@ class LeanMetaReduce : public MetaReducePlugin
   std::string printTheoryOpDefs() const;
   /**
    * The inductives of the datatypes the target declared the constructors of,
-   * as the text of the $LEAN_SMT_EMBED_DEFS$ hole of SmtModelDefs if model
-   * and of SmtSyntax otherwise, see d_embedDt and modelEmbedDatatypes.
+   * as the text of the $LEAN_SMT_EMBED_DEFS$ hole of SmtSyntax if syntax and
+   * of SmtModelDefs otherwise, see d_embedDt and isSyntaxDatatype.
    */
-  std::string printEmbedDatatypes(bool model) const;
+  std::string printEmbedDatatypes(bool syntax) const;
   /**
-   * The datatypes of d_embedDt a value is built over, i.e. those whose
-   * constructors name SmtValue or another of them. They stand with SmtValue
-   * in SmtModelDefs and the rest stand in SmtSyntax.
+   * Whether name is SmtType, SmtTerm or a datatype of d_embedDt no value is
+   * held by, i.e. one that stands in SmtSyntax rather than SmtModelDefs.
    */
-  std::set<std::string> modelEmbedDatatypes() const;
+  bool isSyntaxDatatype(const std::string& name) const;
+  /**
+   * Whether the signature t names a value or a model, which is what puts an
+   * SMT-LIB definition in SmtModel rather than the static interface the
+   * checker is built on, SmtTyping. Lean reports a definition that reaches
+   * past what its signature says.
+   */
+  bool namesModelType(const Expr& t) const;
   /**
    * The ordering keys of the same, as the text of the $LEAN_SMT_EMBED_KEY$
    * hole, see d_embedKey.
@@ -197,27 +202,6 @@ class LeanMetaReduce : public MetaReducePlugin
   void finalizeParseDefs(const std::set<std::string>& opNames,
                          std::ostream& ops,
                          std::ostream& macros);
-  /**
-   * Begin writing the SMT-LIB program name, returning the stream it is
-   * written to. Whether it comes out in SmtTyping or SmtModel is not known
-   * until every program has been written, so until then it is kept apart,
-   * and the natives it names are recorded rather than placed. See
-   * finalizeSmtPrograms.
-   */
-  std::ostream* beginSmtProgram(const std::string& name);
-  /**
-   * Place each SMT-LIB program written by beginSmtProgram: in SmtModel if
-   * it names a value or a model, a native that needs them, or a program
-   * placed there, and in SmtTyping otherwise. This is what keeps the static
-   * interface the checker is built on free of the model semantics.
-   */
-  void finalizeSmtPrograms();
-  /**
-   * Note that the module now being written names the native n, see
-   * NativeLayer::use, or record it if the program being written has not yet
-   * been placed, see beginSmtProgram.
-   */
-  void useNative(const std::string& n);
   /** Emit Lean definitions for the SMT syntax, typing and model layers. */
   void finalizeSmtModel();
   /** Emit Lean definitions for the translation and the specification. */
@@ -309,23 +293,9 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_eoIsRef;
   /** Generated Lean checker body. */
   std::stringstream d_eoChecker;
-  /** One SMT-LIB program, written before it is placed, see beginSmtProgram. */
-  struct SmtProgram
-  {
-    /** Its Lean name. */
-    std::string d_name;
-    /** Its Lean text. */
-    std::stringstream d_text;
-    /** The natives it names. */
-    std::vector<std::string> d_natives;
-  };
-  /** The SMT-LIB programs, in the order they were written. */
-  std::deque<SmtProgram> d_smtProgs;
-  /** Where the natives named are recorded, if not null, see useNative. */
-  std::vector<std::string>* d_nativeLog = nullptr;
-  /** SMT definitions of the model, see finalizeSmtPrograms. */
+  /** SMT definitions of the model. */
   std::stringstream d_smtDefs;
-  /** SMT definitions of the static interface, see finalizeSmtPrograms. */
+  /** SMT definitions of the static interface. */
   std::stringstream d_smtTypingDefs;
   /** Generated Lean SMT helper definitions. */
   std::stringstream d_smt;

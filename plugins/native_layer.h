@@ -69,12 +69,6 @@ class NativeLayer
   void use(const std::string& n);
   /** The part of the layer that comes out in scope, in the layer's order. */
   std::string defs(const std::string& scope) const;
-  /**
-   * Whether the block defining n, or anything it calls, can come out only
-   * below the top scope, i.e. whether a module naming n has to see that
-   * narrower scope. A name the layer does not define needs nothing.
-   */
-  bool needsBelowTop(const std::string& n) const;
 
  private:
   /** One block of the layer, as the line that opens it says it. */

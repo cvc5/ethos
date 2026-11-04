@@ -643,9 +643,9 @@ built over; `SmtTyping` holds typing and well-formedness; `SmtTranslate` holds
 the translation from Eunoia to SMT-LIB. None of them names a value or a model.
 `SmtModelDefs`, `SmtValueOrder` and `SmtModel` hold values and the model
 semantics, and `Spec` joins the translation to satisfiability. An SMT-LIB
-program of the semantics comes out in `SmtTyping` unless it names a value, a
-model, a native that needs one, or a program that comes out in `SmtModel`; see
-`LeanMetaReduce::finalizeSmtPrograms`.
+program of the semantics comes out in `SmtTyping` unless its signature names a
+value or a model, and a datatype of the embedding comes out in `SmtSyntax`
+unless it holds a value; see `LeanMetaReduce::namesModelType`.
 
 `<Calc>` is what `--calc-name` says, which is the name of the package the run
 installs into; a run that names none calls the calculus after its input file,

@@ -695,6 +695,20 @@
   )
 )
 
+; Whether a type has a value at all, read off the type alone. None has none.
+; x1, x2 and n1 are what a case the configuration writes is written with.
+(program $smtx_inhabited_type
+  ((T $smt_Type)
+   (x1 $smt_Type) (x2 $smt_Type) (n1 $native_Nat)
+   (s1 $native_String) (dd2 $smt_DatatypeDecl))
+  :signature ($smt_Type) $native_Bool
+  (
+  (($smtx_inhabited_type $tsm_none) $native_false)
+;$SMT_TYPE_INHABITED_CASES$
+  (($smtx_inhabited_type T) $native_true)
+  )
+)
+
 ;;; Canonicity of values
 
 ; Whether a value is canonical, which answers with a native Bool. A proof

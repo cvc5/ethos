@@ -16,7 +16,7 @@ open SmtEval
 -- names a value or a model, so the checker, which computes these, is built
 -- without the model semantics.
 -- $ What of the semantics comes out here rather than in SmtModel is read off
--- $ what each program names, see LeanMetaReduce::finalizeSmtPrograms.
+-- $ the signature of each program, see LeanMetaReduce::namesModelType.
 
 -- The primitive operations the static interface uses and no module above it.
 -- $ See LeanMetaReduce::nativeDefs.
@@ -24,6 +24,9 @@ $NATIVE_DEFS$
 
 /- Definition of the static interface of SMT-LIB -/
 
+mutual
+
 $LEAN_SMT_TYPING_DEFS$
+end
 
 end Smtm
