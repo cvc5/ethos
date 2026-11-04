@@ -767,6 +767,18 @@ TYPE_DEFAULT = Aggregate(
     stands_for=TYPE_STANDS,
     level='value')
 
+# Whether a type has a value at all, read off the type alone, so that what is
+# checked of one does not depend on a model. A type that says nothing has one.
+TYPE_INHABITED = Aggregate(
+    key='inhabited',
+    of='$smtx_inhabited_type',
+    matches='$tsm_',
+    declares=TYPE_DECLARES,
+    slots=TYPE_SLOTS,
+    signature=('($smt_Type)', '$native_Bool'),
+    stands_for=TYPE_STANDS,
+    level='native')
+
 # ---------------------------------------------------------------------------
 # What a signature of an input holds beside its symbols
 # ---------------------------------------------------------------------------
@@ -931,7 +943,7 @@ VALUES = Shape([VALUE_TYPEOF, VALUE_CANONICAL], constructor=None,
                asks_of='SmtValue')
 # A type of the embedding is the embedding's own whatever a calculus declares,
 # so its block is kept the way a symbol that says :keep is.
-TYPES = Shape([TYPE_WF, TYPE_BOUNDED, TYPE_DEFAULT], constructor=TYPE_CONSTANT,
+TYPES = Shape([TYPE_WF, TYPE_BOUNDED, TYPE_DEFAULT, TYPE_INHABITED], constructor=TYPE_CONSTANT,
               keyword='define-sort', noun='type', keep=True)
 
 INPUT_SYMBOLS = Shape([TERM, TYPE, IS_LIST_NIL])

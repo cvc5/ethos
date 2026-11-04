@@ -162,9 +162,22 @@ class LeanMetaReduce : public MetaReducePlugin
   std::string printTheoryOpDefs() const;
   /**
    * The inductives of the datatypes the target declared the constructors of,
-   * as the text of the $LEAN_SMT_EMBED_DEFS$ hole, see d_embedDt.
+   * as the text of the $LEAN_SMT_EMBED_DEFS$ hole of SmtSyntax if syntax and
+   * of SmtModelDefs otherwise, see d_embedDt and isSyntaxDatatype.
    */
-  std::string printEmbedDatatypes() const;
+  std::string printEmbedDatatypes(bool syntax) const;
+  /**
+   * Whether name is SmtType, SmtTerm or a datatype of d_embedDt no value is
+   * held by, i.e. one that stands in SmtSyntax rather than SmtModelDefs.
+   */
+  bool isSyntaxDatatype(const std::string& name) const;
+  /**
+   * Whether the signature t names a value or a model, which is what puts an
+   * SMT-LIB definition in SmtModel rather than the static interface the
+   * checker is built on, SmtTyping. Lean reports a definition that reaches
+   * past what its signature says.
+   */
+  bool namesModelType(const Expr& t) const;
   /**
    * The ordering keys of the same, as the text of the $LEAN_SMT_EMBED_KEY$
    * hole, see d_embedKey.
@@ -189,9 +202,9 @@ class LeanMetaReduce : public MetaReducePlugin
   void finalizeParseDefs(const std::set<std::string>& opNames,
                          std::ostream& ops,
                          std::ostream& macros);
-  /** Emit Lean definitions for the SMT model layer. */
+  /** Emit Lean definitions for the SMT syntax, typing and model layers. */
   void finalizeSmtModel();
-  /** Emit Lean specifications for generated proof-rule targets. */
+  /** Emit Lean definitions for the translation and the specification. */
   void finalizeSpec();
   /** Emit Lean lemma scaffolding for generated specifications. */
   void finalizeLemmas();
@@ -223,15 +236,15 @@ class LeanMetaReduce : public MetaReducePlugin
   /**
    * The native layer of this backend, i.e. what
    * tools/eoc/compiler/sem_compile.py compiled plugins/lean_meta/lean.eos to.
-   * Its three homes are the modules that carry a $NATIVE_DEFS$: SmtEval, which
-   * every module sees, Logos and SmtModel.
+   * Its four homes are the modules that carry a $NATIVE_DEFS$: SmtEval, which
+   * every module sees, Logos, SmtTyping and SmtModel.
    */
   NativeLayer d_natives;
   /**
    * The scope of the module now being written, which is where a native named
-   * while writing it has to be seen from: `Eo` for Logos, `Smtm` for SmtModel
-   * and the modules below it, and SmtEval, which every module sees, for the
-   * rest. See scopeOf.
+   * while writing it has to be seen from: `Eo` for Logos, `SmtTyping` for
+   * SmtTyping and SmtTranslate, `Smtm` for SmtModel and the modules below it,
+   * and SmtEval, which every module sees, for the rest. See scopeOf.
    */
   std::string d_scope = "SmtEval";
   /** Generated Lean definitions for programs. */
@@ -280,8 +293,10 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_eoIsRef;
   /** Generated Lean checker body. */
   std::stringstream d_eoChecker;
-  /** SMT definitions */
+  /** SMT definitions of the model. */
   std::stringstream d_smtDefs;
+  /** SMT definitions of the static interface. */
+  std::stringstream d_smtTypingDefs;
   /** Generated Lean SMT helper definitions. */
   std::stringstream d_smt;
   /** SMT term datatype cases. */

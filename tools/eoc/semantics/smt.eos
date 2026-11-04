@@ -110,7 +110,7 @@
 ; A parameter stands for itself, since a type is already of the embedding, and
 ; one written raw is the index a type is built over rather than a type.
 ;
-; Three things are asked of a type, and a type that says nothing about one is
+; Four things are asked of a type, and a type that says nothing about one is
 ; answered for by the program the case is spliced into:
 ;
 ;   :wf       whether the values of it are a set at all -- asked of a type
@@ -122,10 +122,12 @@
 ;             (smt.usort_card n), so the answer may depend on the model
 ;   :default  the value a model reaches for where it has to name one -- none,
 ;             of a type that says nothing
+;   :inhabited whether it has a value at all, read off the type alone -- it
+;             has, if it says nothing
 ;
 ; They stand here rather than in the section of their theory because everything
 ; below is written over them, and because the datatypes, the functions and the
-; types the embedding keeps for itself are the rest of the same three programs,
+; types the embedding keeps for itself are the rest of the same four programs,
 ; see plugins/model_smt/model_smt.eo.
 
 (define-sort Bool ()
@@ -264,7 +266,8 @@
   :default (eo::define ((d ($smtx_type_default E)))
              ("ite" ("veq" d smt.not_value)
                smt.not_value
-               (smt.map ($msm_default I d)))))
+               (smt.map ($msm_default I d))))
+  :inhabited ($smtx_inhabited_type E))
 
 ; -- $smtx_map_to_set_type
 ; A set is a mapping to Bool, so the type of one is read off the map it is.
@@ -328,12 +331,14 @@
 (define-sort Datatype ((s <string>) (dd SmtDatatypeDecl))
   :wf ("and" ($smtx_dd_has_dt s dd) ($smtx_decl_wf_rec dd dd))
   :bounded ($smtx_dd_has_dt s ($smtx_datatype_decl_bounded uc u dd dd $dd_nil))
-  :default ($smtx_datatype_decl_default s dd dd))
+  :default ($smtx_datatype_decl_default s dd dd)
+  :inhabited ($smtx_decl_inhabited s dd))
 
 ; A reference to a datatype of the declaration around it, which is not a type
 ; on its own: it is well formed only once resolved against that declaration.
 (define-sort TypeRef ((s <string>))
-  :wf "false")
+  :wf "false"
+  :inhabited "false")
 
 ; An uninterpreted sort, which has as many values as the model says, and
 ; whose least value is its first. It is unit when it has exactly one, and
@@ -353,7 +358,8 @@
 ; The type of a partially applied datatype constructor, which is not a first
 ; class type.
 (define-sort DtcAppType (Ti Te)
-  :wf "false")
+  :wf "false"
+  :inhabited "false")
 
 ;-----------------------------------------------------------------------------
 (section "The datatypes a value is built over")
@@ -637,11 +643,56 @@
   (
   (($smtx_decl_wf_rec dd ($dd_cons s d ddF))
     ("and" ($smtx_dt_wf_rec dd d) ; this must be a well formed datatype
-    ("and" ("inhabited_type" (Datatype s dd)) ; must be inhabited
+    ("and" ($smtx_inhabited_type (Datatype s dd)) ; must be inhabited
     ("and" ($smtx_decl_wf_rec dd ddF) ; the tail must be a well formed datatype decl
       ("not" ($smtx_dd_has_dt s ddF)))))) ; must be a unique reference
   (($smtx_decl_wf_rec dd $dd_nil)  "true")
   )
+)
+
+;; What :inhabited says of a datatype: one of its constructors has inhabited
+;; fields. As in the default generator, a field (TypeRef s) is resolved among
+;; the declarations that follow the current one, which is what makes the
+;; recursion well founded.
+
+(program $smtx_dt_cons_inhabited
+  ((s <string>) (T SmtType) (c SmtDatatypeCons) (ddF SmtDatatypeDecl))
+  :keep
+  :signature (SmtDatatypeCons SmtDatatypeDecl) <bool>
+  (
+  (($smtx_dt_cons_inhabited ($dtc_cons (TypeRef s) c) ddF)
+    ("and" ($smtx_decl_inhabited s ddF) ($smtx_dt_cons_inhabited c ddF)))
+  (($smtx_dt_cons_inhabited ($dtc_cons T c) ddF)
+    ("and" ($smtx_inhabited_type T) ($smtx_dt_cons_inhabited c ddF)))
+  (($smtx_dt_cons_inhabited $dtc_unit ddF) "true")
+  )
+  :lean "termination_by c ddF => 2 * (sizeOf c + sizeOf ddF) + 2"
+)
+
+(program $smtx_dt_inhabited
+  ((c SmtDatatypeCons) (d SmtDatatype) (ddF SmtDatatypeDecl))
+  :keep
+  :signature (SmtDatatype SmtDatatypeDecl) <bool>
+  (
+  (($smtx_dt_inhabited ($dt_sum c d) ddF)
+    ("or" ($smtx_dt_cons_inhabited c ddF) ($smtx_dt_inhabited d ddF)))
+  (($smtx_dt_inhabited $dt_null ddF) "false")
+  )
+  :lean "termination_by d ddF => 2 * (sizeOf d + sizeOf ddF) + 1"
+)
+
+(program $smtx_decl_inhabited
+  ((s <string>) (sF <string>) (dF SmtDatatype) (ddF SmtDatatypeDecl))
+  :keep
+  :signature (<string> SmtDatatypeDecl) <bool>
+  (
+  (($smtx_decl_inhabited s ($dd_cons sF dF ddF))
+    ("ite" ("streq" s sF)
+      ($smtx_dt_inhabited dF ddF)
+      ($smtx_decl_inhabited s ddF)))
+  (($smtx_decl_inhabited s $dd_nil) "false")
+  )
+  :lean "termination_by ddF => 2 * sizeOf ddF"
 )
 
 (program $smtx_dtc_num_sels ((U SmtType) (c SmtDatatypeCons))
@@ -2324,6 +2375,10 @@ decreasing_by
 ; tree. The declaration suffix is the datatype recursion budget; the small
 ; offsets orient calls through datatype, constructor, and field helpers.
 (define-method $smtx_type_default
+  :lean "termination_by T => 2 * sizeOf T")
+
+; Inhabitation recurses through the same tree, with the same offsets.
+(define-method $smtx_inhabited_type
   :lean "termination_by T => 2 * sizeOf T")
 
 

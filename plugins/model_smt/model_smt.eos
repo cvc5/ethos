@@ -63,6 +63,10 @@
   :case $eoc_type_default_
   :into $SMT_TYPE_DEFAULT_CASES$)
 
+(declare-aggregate-method $smtx_inhabited_type
+  :case $eoc_type_inhabited_
+  :into $SMT_TYPE_INHABITED_CASES$)
+
 (section "The signature of an input")
 
 ; What a symbol of the input becomes, and what a type constructor of it
