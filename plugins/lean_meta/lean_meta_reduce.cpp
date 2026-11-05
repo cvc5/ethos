@@ -86,8 +86,14 @@ std::string LeanMetaReduce::scopeOf(const std::ostream* os) const
   {
     return "Eo";
   }
-  if (os == &d_smt || os == &d_smtDefs || os == &d_eoIsObjDefs
+  // The translation stands below SmtTyping and beside SmtModel, so what it
+  // names comes out where the static interface does.
+  if (os == &d_smtTypingDefs || os == &d_eoIsObjDefs
       || os == &d_eoIsObjDefsSimple)
+  {
+    return "SmtTyping";
+  }
+  if (os == &d_smt || os == &d_smtDefs)
   {
     return "Smtm";
   }
@@ -732,7 +738,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   if (prog.getKind() != Kind::PROGRAM)
   {
     MetaKind vctx = getTypeMetaKind(vt);
-    std::ostream* out = &d_smtDefs;
+    std::ostream* out = namesModelType(vt) ? &d_smtDefs : &d_smtTypingDefs;
     if (vctx == MetaKind::EUNOIA)
     {
 #ifdef INFER_TOTAL_DEFS
@@ -776,7 +782,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   }
   else if (isSmtMetaKind(vctxArgs.back()))
   {
-    out = &d_smtDefs;
+    out = namesModelType(vt) ? &d_smtDefs : &d_smtTypingDefs;
     tmk = MetaKind::SMT_TYPE;
   }
   else
@@ -1866,16 +1872,64 @@ std::string LeanMetaReduce::printEmbedKeys() const
   return keys.str();
 }
 
-std::string LeanMetaReduce::printEmbedDatatypes() const
+bool LeanMetaReduce::isSyntaxDatatype(const std::string& name) const
+{
+  if (name == "SmtType" || name == "SmtTerm")
+  {
+    return true;
+  }
+  std::map<std::string, std::stringstream>::const_iterator it =
+      d_embedDt.find(name);
+  return it != d_embedDt.end()
+         && it->second.str().find("SmtValue") == std::string::npos;
+}
+
+bool LeanMetaReduce::namesModelType(const Expr& t) const
+{
+  MetaKind k = getTypeMetaKind(t);
+  if (k == MetaKind::EUNOIA)
+  {
+    // Not a type of the embedding, but what a signature is written with, e.g.
+    // an arrow, which holds them.
+    for (size_t i = 0, n = t.getNumChildren(); i < n; i++)
+    {
+      if (namesModelType(t[i]))
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+  if (k == MetaKind::SMT_BUILTIN)
+  {
+    return false;
+  }
+  std::stringstream name;
+  if (isEmbedMetaKind(k))
+  {
+    name << getEmbedTypeName(getEmbedTypeApp(t));
+  }
+  else
+  {
+    printMetaTypeKind(k, name);
+  }
+  return !isSyntaxDatatype(name.str());
+}
+
+std::string LeanMetaReduce::printEmbedDatatypes(bool syntax) const
 {
   // One inductive per datatype the target declared the constructors of, in
   // the order the constructors arrived, which is the order the ordering key
   // beside it takes their tags from. They stand in the mutual block with the
-  // three the backend writes for itself, so nothing here has to order them
+  // ones the backend writes for itself, so nothing here has to order them
   // against one another.
   std::stringstream defs;
   for (const std::pair<const std::string, std::stringstream>& dt : d_embedDt)
   {
+    if (isSyntaxDatatype(dt.first) != syntax)
+    {
+      continue;
+    }
     defs << "/-" << std::endl
          << "The " << dt.first << " of the embedding." << std::endl
          << "-/" << std::endl
@@ -1889,24 +1943,34 @@ std::string LeanMetaReduce::printEmbedDatatypes() const
 
 void LeanMetaReduce::finalizeSmtModel()
 {
-  std::vector<Replacement> defsRepl{{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
-                                    {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()},
-                                    {"$LEAN_SMT_VALUE_DEF$",
-                                     d_smtValueDt.str()}};
+  std::vector<Replacement> syntaxRepl{{"$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str()},
+                                      {"$LEAN_SMT_TERM_DEF$", d_smtDt.str()}};
   if (optionSmtTheoryOp())
   {
     // NOTE: enabling this option additionally requires adding an
     // `inductive SmtTheoryOp` block carrying $LEAN_SMT_THEORY_OP_DEF$ to
-    // lean_meta_smt_model_defs.lean, ahead of the mutual block that defines
+    // lean_meta_smt_syntax.lean, ahead of the mutual block that defines
     // SmtTerm. The template has no such block today, so the tag is only
     // supplied when the option is on, where its absence is reported.
-    defsRepl.emplace_back("$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str());
+    syntaxRepl.emplace_back("$LEAN_SMT_THEORY_OP_DEF$", d_smtTOpDt.str());
   }
-  defsRepl.emplace_back("$LEAN_SMT_EMBED_DEFS$", printEmbedDatatypes());
+  syntaxRepl.emplace_back("$LEAN_SMT_EMBED_DEFS$", printEmbedDatatypes(true));
+  const std::string outPathSyntax =
+      emitResourceFile("plugins/lean_meta/lean_meta_smt_syntax.lean",
+                       "plugins/lean_meta/lean_meta_smt_syntax_gen.lean",
+                       syntaxRepl);
+  Trace("lean-meta") << "Write lean-syntax " << outPathSyntax << std::endl;
+  const std::string outPathTyping =
+      emitResourceFile("plugins/lean_meta/lean_meta_smt_typing.lean",
+                       "plugins/lean_meta/lean_meta_smt_typing_gen.lean",
+                       {{"$LEAN_SMT_TYPING_DEFS$", d_smtTypingDefs.str()},
+                        {"$NATIVE_DEFS$", d_natives.defs("SmtTyping")}});
+  Trace("lean-meta") << "Write lean-typing " << outPathTyping << std::endl;
   const std::string outPathDefs =
       emitResourceFile("plugins/lean_meta/lean_meta_smt_model_defs.lean",
                        "plugins/lean_meta/lean_meta_smt_model_defs_gen.lean",
-                       defsRepl);
+                       {{"$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str()},
+                        {"$LEAN_SMT_EMBED_DEFS$", printEmbedDatatypes(false)}});
   Trace("lean-meta") << "Write lean-defs " << outPathDefs << std::endl;
   const std::string outPathOrder =
       emitResourceFile("plugins/lean_meta/lean_meta_smt_value_order.lean",
@@ -1926,12 +1990,17 @@ void LeanMetaReduce::finalizeSmtModel()
 
 void LeanMetaReduce::finalizeSpec()
 {
+  const std::string outPathTranslate = emitResourceFile(
+      "plugins/lean_meta/lean_meta_smt_translate.lean",
+      "plugins/lean_meta/lean_meta_smt_translate_gen.lean",
+      {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()},
+       {"$LEAN_EO_IS_OBJ_SIMPLE_DEFS$", d_eoIsObjDefsSimple.str()}});
+  Trace("lean-meta") << "Write lean-translate " << outPathTranslate
+                     << std::endl;
   const std::string outPath =
       emitResourceFile("plugins/lean_meta/lean_meta_spec.lean",
                        "plugins/lean_meta/lean_meta_spec_gen.lean",
-                       {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()},
-                        {"$LEAN_EO_IS_OBJ_SIMPLE_DEFS$", d_eoIsObjDefsSimple.str()}
-                      });
+                       {});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }
 

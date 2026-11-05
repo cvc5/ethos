@@ -20,7 +20,6 @@
 ; An SMT type.
 (declare-const $smt_Type Type)
 ; utilities
-(define $native_inhabited_type ((T $smt_Type)) ($native_apply_1 "inhabited_type" T))
 ; Assumes that Teq is defined to be equality over $smt_Type
 (define $native_Teq ((x1 $smt_Type) (x2 $smt_Type)) ($native_apply_2 "Teq" x1 x2))
 
@@ -290,6 +289,8 @@
 (program $smtx_dd_lookup () :signature ($native_String $smt_DatatypeDecl) $smt_Datatype)
 (program $smtx_dd_has_dt () :signature ($native_String $smt_DatatypeDecl) $native_Bool)
 (program $smtx_decl_wf_rec () :signature ($smt_DatatypeDecl $smt_DatatypeDecl) $native_Bool)
+(program $smtx_inhabited_type () :signature ($smt_Type) $native_Bool)
+(program $smtx_decl_inhabited () :signature ($native_String $smt_DatatypeDecl) $native_Bool)
 (program $smtx_typeof_guard () :signature ($smt_Type $smt_Type) $smt_Type)
 (program $smtx_apply_arg_nth_value () :signature ($smt_Value $native_Nat $native_Nat) $smt_Value)
 
@@ -313,7 +314,7 @@
 (program $smtx_value_canonical () :signature ($smt_USortCard $smt_Value) $native_Bool)
 
 (define $smtx_type_wf_component_rec ((T $smt_Type))
-  ($native_and ($native_inhabited_type T) ($smtx_type_wf_rec T)))
+  ($native_and ($smtx_inhabited_type T) ($smtx_type_wf_rec T)))
 
 
 
@@ -691,6 +692,20 @@
   (
 ;$SMT_TYPE_DEFAULT_CASES$
   (($smtx_type_default T) $vsm_NotValue)
+  )
+)
+
+; Whether a type has a value at all, read off the type alone. None has none.
+; x1, x2 and n1 are what a case the configuration writes is written with.
+(program $smtx_inhabited_type
+  ((T $smt_Type)
+   (x1 $smt_Type) (x2 $smt_Type) (n1 $native_Nat)
+   (s1 $native_String) (dd2 $smt_DatatypeDecl))
+  :signature ($smt_Type) $native_Bool
+  (
+  (($smtx_inhabited_type $tsm_none) $native_false)
+;$SMT_TYPE_INHABITED_CASES$
+  (($smtx_inhabited_type T) $native_true)
   )
 )
 

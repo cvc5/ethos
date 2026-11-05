@@ -114,7 +114,6 @@ $NATIVE_EMBED_DEFS$
 (declare-fun eval_forall (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_choice (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_bind (SmtModel String tsm.Type sm.Term sm.Term) vsm.Value)
-(declare-fun inhabited_type (tsm.Type) Bool)
 (declare-fun eval_fun_apply (SmtModel String tsm.Type tsm.Type vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (msm.Map msm.Map) Bool)
@@ -202,13 +201,6 @@ $SM_DEFS$
         ($smtx_model_eval (model_push M s T ($smtx_model_eval M t)) F))
   :pattern ((eval_bind M s T t F))))
   :named smtx.tbind.def))
-
-; typeof choice, must be an inhabitant, else it is ill-typed.
-(assert (! (forall ((T tsm.Type))
-  (! (= (inhabited_type T)
-    (exists ((v vsm.Value)) (= ($smtx_typeof_value v) T)))
-  :pattern ((inhabited_type T))))
-  :named smtx.inhabited_type.def))
 
 ; whether two map values are extensionally equal
 (assert (! (forall ((v1 msm.Map) (v2 msm.Map))
