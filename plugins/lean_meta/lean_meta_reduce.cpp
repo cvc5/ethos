@@ -66,6 +66,8 @@ LeanMetaReduce::LeanMetaReduce(State& s,
   // those operations are named from its scope all the same: they come out
   // beside the model, or where every module sees them if the checker reaches
   // them too.
+  // native_natlt is here for the same reason: the model no longer compares
+  // the number of values of an uninterpreted sort with anything.
   for (const char* n : {"native_qplus",
                         "native_qmult",
                         "native_qneg",
@@ -74,7 +76,8 @@ LeanMetaReduce::LeanMetaReduce(State& s,
                         "native_qleq",
                         "native_qdiv_total",
                         "native_to_real",
-                        "native_to_int"})
+                        "native_to_int",
+                        "native_natlt"})
   {
     d_natives.use(n, "Smtm");
   }
@@ -1350,6 +1353,12 @@ std::string LeanMetaReduce::getOrderKeyMethod(const std::string& t)
   // SmtDatatypeDecl is ordered by datatypeDeclKey and native_Int by intKey.
   // The methods for the types that are not generated are given by the
   // lean_meta_smt_value_order.lean template.
+  // An identifier a model chooses is a real number, see SmtReal, and is ordered
+  // as one.
+  if (t == "ModelId")
+  {
+    return "realKey";
+  }
   std::string base;
   if (t.compare(0, 3, "Smt") == 0)
   {

@@ -18,6 +18,9 @@ $NATIVE_DEFS$
 ;   inter-dependent.
 ; regular language values are the builtin SMT-LIB sort
 (define-sort SmtRegLan () RegLan)
+; an identifier of a value the model is free to choose, which the sets of
+; identifiers below are of and the values of the datatypes below hold
+(define-sort ModelId () Real)
 
 (declare-datatypes
   ((eo.Term 0) (DatatypeDecl 0)  (Datatype 0) (DatatypeCons 0)
@@ -73,9 +76,8 @@ $SM_TYPE_DECL$
 ; of it may be written over one
 (define-sort SmtModelKey () (Tuple Bool String tsm.Type))
 (define-sort SmtModel () (Array SmtModelKey vsm.Value))
-; the number of elements of each uninterpreted sort, by its index, where 0
-; means the sort is countably infinite
-(define-sort SmtUSortCard () (Array Nat Nat))
+; the identifiers of each uninterpreted sort, by its index
+(define-sort SmtUSortDom () (Array Nat (Array ModelId Bool)))
 
 ; $ The part of the native layer written over the datatypes above, which is
 ; $ why it comes out here rather than at the top of the file.
@@ -109,12 +111,16 @@ $NATIVE_EMBED_DEFS$
 (declare-fun model_lookup (SmtModel String tsm.Type) vsm.Value)
 (declare-fun model_var_lookup (SmtModel String tsm.Type) vsm.Value)
 (declare-fun model_push (SmtModel String tsm.Type vsm.Value) SmtModel)
-(define-fun usort_card ((uc SmtUSortCard) (n Nat)) Nat (select uc n))
+(define-fun usort_mem ((uc SmtUSortDom) (n Nat) (r ModelId)) Bool (select (select uc n) r))
+; that a set is finite is not something first-order logic can say of it
+(declare-fun usort_finite (SmtUSortDom Nat) Bool)
+(define-fun usort_unit ((uc SmtUSortDom) (n Nat)) Bool
+  (= (select uc n) (store ((as const (Array ModelId Bool)) false) 0.0 true)))
 (declare-fun eval_exists (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_forall (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_choice (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_bind (SmtModel String tsm.Type sm.Term sm.Term) vsm.Value)
-(declare-fun eval_fun_apply (SmtModel String tsm.Type tsm.Type vsm.Value) vsm.Value)
+(declare-fun eval_fun_apply (SmtModel ModelId tsm.Type tsm.Type vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (msm.Map msm.Map) Bool)
 
@@ -146,13 +152,13 @@ $SM_DEFS$
 ;
 ; FIXME: this and tforall_eq below range over *every* value of type T, whereas
 ; the Lean model ranges only over the values canonical under the model, i.e.
-; those __smtx_value_canonical M.usortCard accepts. The two disagree on any
+; those __smtx_value_canonical M.usortDom accepts. The two disagree on any
 ; type that has non-canonical values: an uninterpreted sort the model gives
 ; finitely many elements (here (exists ((x U) (y U)) (not (= x y))) holds in
 ; every model, while in Lean it is false where U has one element), and maps,
 ; sets and sequences not written the one way. A verification condition can
 ; therefore accept a rule that is unsound under the Lean semantics, or reject
-; one that is sound. The model here has no cardinality of uninterpreted sorts
+; one that is sound. The model here has no domain of uninterpreted sorts
 ; to check against, and $smtx_value_canonical is not yet one the SMT-LIB
 ; backend can write: see "Known gaps" in tools/eoc/docs/proof-pipeline.md.
 (define-fun texists_eq ((M SmtModel) (s String) (T tsm.Type) (F sm.Term) (tgt vsm.Value)) Bool

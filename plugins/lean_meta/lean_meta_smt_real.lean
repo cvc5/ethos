@@ -25,6 +25,12 @@ namespace SmtEval
 
 abbrev native_Real := _root_.Real
 
+-- The identifiers of the values a model is free to choose: the elements of an
+-- uninterpreted sort, and functions. They are real numbers only so that there
+-- are enough of them for every cardinality SMT-LIB permits; no formula can
+-- observe anything about one beyond whether it equals another.
+abbrev ModelId := native_Real
+
 noncomputable section
 
 /--

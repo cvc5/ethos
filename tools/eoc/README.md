@@ -650,8 +650,10 @@ model semantics, and `Spec` joins the translation to satisfiability. A value of
 sort `Real` is one of Mathlib's real numbers, whereas a term holds a rational,
 which is what the checker computes with: a literal denotes its image under
 `native_rat_to_real`. `SmtReal` is fixed text rather than part of the native
-layer, and is the one module that imports Mathlib, which the checker may not
-depend on. An SMT-LIB
+layer, and holds the Mathlib the values need, which the checker may not depend
+on. It also defines `ModelId`, the real numbers that identify an element of an
+uninterpreted sort or a function. `SmtModel` imports Mathlib's finite sets as
+well, since a model gives each uninterpreted sort a `Set ModelId`. An SMT-LIB
 program of the semantics comes out in `SmtTyping` unless its signature names a
 value or a model, and a datatype of the embedding comes out in `SmtSyntax`
 unless it holds a value; see `LeanMetaReduce::namesModelType`.
