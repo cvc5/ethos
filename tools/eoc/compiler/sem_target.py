@@ -132,13 +132,16 @@ SLOT = 'x%d'
 # declared to be of. A name is that letter and the place the argument stands
 # at, so `s1` is a native string first, `T2` a type second and `x3` a term
 # third. The program a case is spliced into declares each name once, so two
-# types may not share a letter; add a type here to give it one.
+# types may not share a letter; add a type here to give it one. The two that do
+# share one are never of one program: a rational is what a literal holds, which
+# is a term, and a real what a value holds.
 SLOT_BY_TYPE = {
     '$native_Bool': 'b',
     '$native_Char': 'c',
     '$native_Int': 'i',
     '$native_Nat': 'n',
     '$native_Rat': 'r',
+    '$native_Real': 'r',
     '$native_String': 's',
     '$smt_Term': 'x',
     '$smt_Type': 'T',

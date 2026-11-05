@@ -8,7 +8,7 @@ set_option linter.unusedVariables false
 
 namespace SmtEval
 
--- $ Not a block of the native layer: SmtValue carries a Rational constructor
+-- $ Not a block of the native layer: SmtTerm carries a Rational constructor
 -- $ whatever the input signature is, and derives Ord, so this instance is
 -- $ needed whatever an input reaches and is written here rather than in
 -- $ lean.eos.

@@ -64,7 +64,7 @@
 ; A value of each shape, from what it holds.
 (define-macro smt.bool (b)          ($vsm_Boolean b))
 (define-macro smt.numeral (n)       ($vsm_Numeral n))
-(define-macro smt.rational (r)      ($vsm_Rational r))
+(define-macro smt.real (r)          ($vsm_Real r))
 (define-macro smt.binary (w v)      ($vsm_Binary w v))
 (define-macro smt.seq (s)           ($vsm_Seq s))
 (define-macro smt.re (r)            ($vsm_RegLan r))
@@ -77,7 +77,7 @@
 (define-macro smt.not_value ()      $vsm_NotValue)
 (define-macro smt.true ()           $vsm_true)
 (define-macro smt.false ()          $vsm_false)
-(define-macro smt.q_zero ()         $vsm_q_zero)
+(define-macro smt.r_zero ()         $vsm_r_zero)
 (define-macro smt.string_empty ()   $vsm_string_empty)
 (define-macro smt.binary_empty ()   $vsm_binary_empty)
 (define-macro smt.bit_true ()       $vsm_binary_bit_true)
@@ -138,7 +138,7 @@
   :default (smt.numeral 0))
 
 (define-sort Real ()
-  :default smt.q_zero)
+  :default smt.r_zero)
 
 ; A regular expression is not the type of anything a model gives values to, so
 ; it is well-founded nowhere; the empty language is what stands for its value.
@@ -887,7 +887,9 @@ decreasing_by
 (declare-constructor Numeral ((n <numeral>)) :builds SmtValue
   :typeof Int)
 
-(declare-constructor Rational ((r <rational>)) :builds SmtValue
+; A value of sort Real is a real number, of which a literal is one, see the
+; literal Rational.
+(declare-constructor Real ((r <real>)) :builds SmtValue
   :typeof Real)
 
 ; A bit-vector is of the width it carries, and is the one spelling of what it
@@ -1028,9 +1030,11 @@ decreasing_by
   :typeof Int
   :value (smt.numeral n))
 
+; A literal is written with a rational, which is what a checker computes with,
+; and denotes the real number that rational is.
 (define-literal Rational ((r <rational>))
   :typeof Real
-  :value (smt.rational r))
+  :value (smt.real ("rat_to_real" r)))
 
 ; A string is of the strings when what it carries is one, i.e. when every
 ; character of it is a character of SMT-LIB; its value is the sequence of them.
@@ -1142,7 +1146,7 @@ decreasing_by
 ; Arithmetic.
 ;
 ; A symbol over Int and Real says a case for each, since the natives of the two
-; are named apart -- z over the integers and q over the reals -- and a case
+; are named apart -- z over the integers and r over the reals -- and a case
 ; names the one it is of. There is no sort class and nothing selects a rule: a
 ; symbol names the program its type is read off, and the two shapes below say
 ; how a value of each is taken apart and put back together.
@@ -1184,11 +1188,11 @@ decreasing_by
 )
 
 ; -- $smtx_to_real_coerce
-(program $smtx_to_real_coerce ((x1 <numeral>) (x2 <rational>) (v SmtValue))
+(program $smtx_to_real_coerce ((x1 <numeral>) (x2 <real>) (v SmtValue))
   :signature (SmtValue) SmtValue
   (
-  (($smtx_to_real_coerce (smt.numeral x1)) (smt.rational ("to_real" x1)))
-  (($smtx_to_real_coerce (smt.rational x2)) (smt.rational x2))
+  (($smtx_to_real_coerce (smt.numeral x1)) (smt.real ("int_to_real" x1)))
+  (($smtx_to_real_coerce (smt.real x2)) (smt.real x2))
   (($smtx_to_real_coerce v) smt.not_value)
   )
 )
@@ -1196,27 +1200,27 @@ decreasing_by
 (define-symbol + (x y)
   :typeof ($smtx_typeof_arith_overload_op_2 x y)
   :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("zplus" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("qplus" qx qy)))
+  :eval ((smt.real qx) (smt.real qy)) (smt.real ("rplus" qx qy)))
 
 (define-symbol - (x y)
   :typeof ($smtx_typeof_arith_overload_op_2 x y)
   :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("z_-" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("q_-" qx qy)))
+  :eval ((smt.real qx) (smt.real qy)) (smt.real ("r_-" qx qy)))
 
 (define-symbol * (x y)
   :typeof ($smtx_typeof_arith_overload_op_2 x y)
   :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("zmult" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("qmult" qx qy)))
+  :eval ((smt.real qx) (smt.real qy)) (smt.real ("rmult" qx qy)))
 
 (define-symbol < (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
   :eval ((smt.numeral x) (smt.numeral y)) (smt.bool ("zlt" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.bool ("qlt" qx qy)))
+  :eval ((smt.real qx) (smt.real qy)) (smt.bool ("rlt" qx qy)))
 
 (define-symbol <= (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
   :eval ((smt.numeral x) (smt.numeral y)) (smt.bool ("zleq" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.bool ("qleq" qx qy)))
+  :eval ((smt.real qx) (smt.real qy)) (smt.bool ("rleq" qx qy)))
 
 (define-symbol > (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
@@ -1228,11 +1232,11 @@ decreasing_by
 
 (define-symbol to_real (x)
   :typeof (of1 Int Real x)
-  :eval ((smt.numeral x)) (smt.rational ("to_real" x)))
+  :eval ((smt.numeral x)) (smt.real ("int_to_real" x)))
 
 (define-symbol to_int (x)
   :typeof (of1 Real Int x)
-  :eval ((smt.rational x)) (smt.numeral ("to_int" x)))
+  :eval ((smt.real x)) (smt.numeral ("real_to_int" x)))
 
 (define-symbol is_int (x)
   :typeof (of1 Real Bool x)
@@ -1241,7 +1245,7 @@ decreasing_by
 (define-symbol abs (x)
   :typeof ($smtx_typeof_arith_overload_op_1 x)
   :eval ((smt.numeral x)) (smt.numeral ("zabs" x))
-  :eval ((smt.rational qx)) (smt.rational ("qabs" qx)))
+  :eval ((smt.real qx)) (smt.real ("rabs" qx)))
 
 ; Unary minus is what the input overloads - with, and the desugar stage gives
 ; that overload the name $eoo_-.2, so nothing transforms into uneg by its own
@@ -1249,7 +1253,7 @@ decreasing_by
 (define-symbol uneg (x)
   :typeof ($smtx_typeof_arith_overload_op_1 x)
   :eval ((smt.numeral x)) (smt.numeral ("zneg" x))
-  :eval ((smt.rational qx)) (smt.rational ("qneg" qx)))
+  :eval ((smt.real qx)) (smt.real ("rneg" qx)))
 
 (define-symbol div_total (x y)
   :typeof (of2 Int Int Int x y)
@@ -1290,13 +1294,13 @@ decreasing_by
 
 (define-symbol /_total (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Real)
-  :eval ((smt.numeral x) (smt.numeral y)) (smt.rational ("mk_rational" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("qdiv_total" qx qy)))
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.real ("mk_real" x y))
+  :eval ((smt.real qx) (smt.real qy)) (smt.real ("rdiv_total" qx qy)))
 
 (define-symbol / (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Real)
   :value (eo::define ((q1 ($smtx_to_real_coerce x))) (eo::define ((q2 ($smtx_to_real_coerce y)))
-           (ite (= q2 smt.q_zero)
+           (ite (= q2 smt.r_zero)
              (apply M ("model_lookup" M "/_by_zero_id" (FunType Real Real)) q1)
              (/_total q1 q2)))))
 

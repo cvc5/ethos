@@ -617,6 +617,7 @@ tools/eoc/out/
     LogosTerm.lean
     Parser.lean
     SmtEval.lean
+    SmtReal.lean
     SmtSyntax.lean
     SmtTyping.lean
     SmtTranslate.lean
@@ -644,8 +645,13 @@ The SMT-LIB modules are split so that the checker can be built without the
 model semantics. `SmtSyntax` declares types, terms and the datatypes they are
 built over; `SmtTyping` holds typing and well-formedness; `SmtTranslate` holds
 the translation from Eunoia to SMT-LIB. None of them names a value or a model.
-`SmtModelDefs`, `SmtValueOrder` and `SmtModel` hold values and the model
-semantics, and `Spec` joins the translation to satisfiability. An SMT-LIB
+`SmtReal`, `SmtModelDefs`, `SmtValueOrder` and `SmtModel` hold values and the
+model semantics, and `Spec` joins the translation to satisfiability. A value of
+sort `Real` is one of Mathlib's real numbers, whereas a term holds a rational,
+which is what the checker computes with: a literal denotes its image under
+`native_rat_to_real`. `SmtReal` is fixed text rather than part of the native
+layer, and is the one module that imports Mathlib, which the checker may not
+depend on. An SMT-LIB
 program of the semantics comes out in `SmtTyping` unless its signature names a
 value or a model, and a datatype of the embedding comes out in `SmtSyntax`
 unless it holds a value; see `LeanMetaReduce::namesModelType`.

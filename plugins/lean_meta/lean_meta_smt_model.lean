@@ -14,6 +14,8 @@ namespace Smtm
 
 open SmtEval
 
+noncomputable section
+
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
 -- The number of elements of each uninterpreted sort, by its index, where 0
@@ -121,5 +123,7 @@ inductive smt_satisfiability : SmtTerm -> Bool -> Prop
       smt_satisfiability t false
 
 /- ---------------------------------------------- -/
+
+end
 
 end Smtm

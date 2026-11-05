@@ -17,6 +17,10 @@
 ;; either, so it may not name Eunoia, which the compiler checks. A definition no input reaches,
 ;; because the Lean resources of the stage are what name it, says :keep and is
 ;; emitted whatever an input reaches.
+;;
+;; The reals themselves are not here. A block comes out in a module the checker
+;; builds, and the operations over the reals need Mathlib, which it may not
+;; import, so they are the fixed text of lean_meta_smt_real.lean.
 
 (define-native-method Bool
   :keep
