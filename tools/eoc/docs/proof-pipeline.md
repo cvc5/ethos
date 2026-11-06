@@ -44,11 +44,13 @@ cmake --build build-eoc --target ethos-eoc -j8
 # a verification condition for one rule
 python3 tools/eoc/driver.py vc --build-dir build-eoc \
   --semantics <logos>/install/defs/Cpc.eos \
+  --smt-semantics <logos>/install/defs/smt.eos \
   <input.eo> <proof-rule>
 
 # the whole CPC signature, compiled to Lean
 python3 tools/eoc/driver.py lean --build-dir build-eoc --all \
   --semantics <logos>/install/defs/Cpc.eos \
+  --smt-semantics <logos>/install/defs/smt.eos \
   <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 

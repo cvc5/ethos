@@ -11,7 +11,8 @@ These are design questions, not commitments to change the language.
 
 A model compilation takes an Eunoia signature and an explicit `--semantics`
 file. `--smt-semantics` selects the target semantics; the default is
-`tools/eoc/semantics/smt.eos`. Input paths resolve against the invoking shell's
+`tools/eoc/semantics/smt.eos`, which holds SMT-LIB and nothing a particular
+calculus adds to it. Input paths resolve against the invoking shell's
 working directory. There is no `EOC_SEMANTICS` environment variable.
 
 The input must provide a meaning for each symbol that reaches the model stage,
