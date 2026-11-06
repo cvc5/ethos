@@ -56,6 +56,7 @@ LEAN_OUTPUTS: tuple[tuple[str, str], ...] = (
     ("lean_meta/lean_meta_checker_term_gen.lean", "LogosTerm.lean"),
     ("lean_meta/lean_meta_parser_gen.lean", "Parser.lean"),
     ("lean_meta/lean_meta_smt_eval_gen.lean", "SmtEval.lean"),
+    ("lean_meta/lean_meta_smt_real_gen.lean", "SmtReal.lean"),
     ("lean_meta/lean_meta_smt_syntax_gen.lean", "SmtSyntax.lean"),
     ("lean_meta/lean_meta_smt_typing_gen.lean", "SmtTyping.lean"),
     ("lean_meta/lean_meta_smt_translate_gen.lean", "SmtTranslate.lean"),

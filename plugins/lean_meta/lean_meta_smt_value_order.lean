@@ -11,6 +11,8 @@ namespace Smtm
 
 open SmtEval
 
+noncomputable section
+
 /-
 A total order on SMT-LIB values.
 
@@ -33,13 +35,19 @@ namespace SmtValueOrder
 
 inductive Key where
   | atom : Nat → Key
+  | real : native_Real → Key
   | pair : Key → Key → Key
-deriving DecidableEq, Repr
+deriving DecidableEq
 
 @[expose] def Key.lt : Key → Key → Bool
   | .atom m, .atom n => decide (m < n)
+  | .atom _, .real _ => true
   | .atom _, .pair _ _ => true
+  | .real _, .atom _ => false
+  | .real r, .real s => decide (r < s)
+  | .real _, .pair _ _ => true
   | .pair _ _, .atom _ => false
+  | .pair _ _, .real _ => false
   | .pair a b, .pair c d => if a = c then Key.lt b d else Key.lt a c
 termination_by a b => sizeOf a + sizeOf b
 
@@ -60,8 +68,7 @@ termination_by a b => sizeOf a + sizeOf b
   | .ofNat n => node 0 [natKey n]
   | .negSucc n => node 1 [natKey n]
 
-@[expose] def ratKey (q : Rat) : Key :=
-  node 0 [intKey q.num, natKey q.den]
+@[expose] def realKey (r : native_Real) : Key := .real r
 
 @[expose] def charKey (c : native_Char) : Key := .atom c
 
@@ -91,5 +98,7 @@ end SmtValueOrder
 /- Value comparison -/
 def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
   SmtValueOrder.lt v1 v2
+
+end
 
 end Smtm
