@@ -40,15 +40,26 @@
 (define $native_model_lookup ((M $smt_Model) (s $native_String) (T $smt_Type))
   ($native_apply_3 "model_lookup" M s T))
 
-; What the model says the number of elements of each uninterpreted sort is, by
-; its index, where 0 means the sort is countably infinite. Whether a type is
-; bounded and whether a value is canonical are asked under one, since both
-; depend on how many values an uninterpreted sort has.
-(define $smt_USortCard () ($native_embed_smt "SmtUSortCard"))
+; An identifier of a value the model is free to choose: an element of an
+; uninterpreted sort, or a function. It says nothing but whether it is another.
+(define $smt_ModelId () ($native_embed_smt "ModelId"))
 
-; The number of elements of the uninterpreted sort of index n under uc.
-(define $native_usort_card ((uc $smt_USortCard) (n $native_Nat))
-  ($native_apply_2 "usort_card" uc n))
+; What the model says the identifiers of each uninterpreted sort are, by its
+; index. Whether a type is bounded and whether a value is canonical are asked
+; under one, since both depend on which values an uninterpreted sort has.
+(define $smt_USortDom () ($native_embed_smt "SmtUSortDom"))
+
+; Whether r identifies a value of the uninterpreted sort of index n under uc.
+(define $native_usort_mem ((uc $smt_USortDom) (n $native_Nat) (r $smt_ModelId))
+  ($native_apply_3 "usort_mem" uc n r))
+
+; Whether the uninterpreted sort of index n has finitely many values under uc.
+(define $native_usort_finite ((uc $smt_USortDom) (n $native_Nat))
+  ($native_apply_2 "usort_finite" uc n))
+
+; Whether the uninterpreted sort of index n has exactly one value under uc.
+(define $native_usort_unit ((uc $smt_USortDom) (n $native_Nat))
+  ($native_apply_2 "usort_unit" uc n))
 
 ; An SMT-LIB value.
 (declare-const $smt_Value Type)
@@ -266,7 +277,7 @@
 (define $vsm_false () ($vsm_Boolean $native_false))
 (define $vsm_z_zero () ($vsm_Numeral $native_z_zero))
 (define $vsm_z_one () ($vsm_Numeral $native_z_one))
-(define $vsm_q_zero () ($vsm_Rational $native_q_zero))
+(define $vsm_r_zero () ($vsm_Real $native_r_zero))
 (define $vsm_binary_empty () ($vsm_Binary $native_z_zero $native_z_zero))
 (define $vsm_binary_bit_false () ($vsm_Binary $native_z_one $native_z_zero))
 (define $vsm_binary_bit_true () ($vsm_Binary $native_z_one $native_z_one))
@@ -306,12 +317,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Well-foundedness for types
 
 (program $smtx_type_wf_rec () :signature ($smt_Type) $native_Bool)
-(program $smtx_type_bounded () :signature ($smt_USortCard $native_Bool $smt_Type) $native_Bool)
-(program $smtx_is_finite_type () :signature ($smt_USortCard $smt_Type) $native_Bool)
+(program $smtx_type_bounded () :signature ($smt_USortDom $native_Bool $smt_Type) $native_Bool)
+(program $smtx_is_finite_type () :signature ($smt_USortDom $smt_Type) $native_Bool)
 (program $smtx_type_default () :signature ($smt_Type) $smt_Value)
 (program $smtx_datatype_decl_default () :signature ($native_String $smt_DatatypeDecl $smt_DatatypeDecl) $smt_Value)
-(program $smtx_datatype_decl_bounded () :signature ($smt_USortCard $native_Bool $smt_DatatypeDecl $smt_DatatypeDecl $smt_DatatypeDecl) $smt_DatatypeDecl)
-(program $smtx_value_canonical () :signature ($smt_USortCard $smt_Value) $native_Bool)
+(program $smtx_datatype_decl_bounded () :signature ($smt_USortDom $native_Bool $smt_DatatypeDecl $smt_DatatypeDecl $smt_DatatypeDecl) $smt_DatatypeDecl)
+(program $smtx_value_canonical () :signature ($smt_USortDom $smt_Value) $native_Bool)
 
 (define $smtx_type_wf_component_rec ((T $smt_Type))
   ($native_and ($smtx_inhabited_type T) ($smtx_type_wf_rec T)))
@@ -375,8 +386,8 @@
 ; tools/eoc/semantics/smt.eos.
 (program $smtx_typeof_value
   ((v $smt_Value) (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
-   (r1 $native_Rat) (c1 $native_Char) (n1 $native_Nat)
-   (n2 $native_Nat) (n3 $native_Nat) (s1 $native_String)
+   (r1 $native_Real) (c1 $native_Char) (n1 $native_Nat)
+   (n3 $native_Nat) (s1 $native_String) (e1 $smt_ModelId) (e2 $smt_ModelId)
    (m1 $smt_Map) (q1 $smt_Seq) (re1 $smt_RegLan)
    (dd2 $smt_DatatypeDecl) (T2 $smt_Type) (T3 $smt_Type)
    (v1 $smt_Value) (v2 $smt_Value))
@@ -404,7 +415,7 @@
 (program $smtx_model_eval_apply
   ((i $smt_Value) (f $smt_Value) (v $smt_Value) (n $native_Nat)
    (T $smt_Type) (U $smt_Type) (M $smt_Model)
-   (s $native_String) (dd $smt_DatatypeDecl))
+   (s $native_String) (e $smt_ModelId) (dd $smt_DatatypeDecl))
   :signature ($smt_Model $smt_Value $smt_Value) $smt_Value
   (
   (($smtx_model_eval_apply M v $vsm_NotValue)    $vsm_NotValue)
@@ -412,8 +423,8 @@
   (($smtx_model_eval_apply M ($vsm_DtCons s dd n) i) ($vsm_Apply ($vsm_DtCons s dd n) i))
   (($smtx_model_eval_apply M ($vsm_Apply f v) i) ($vsm_Apply ($vsm_Apply f v) i))
   ; Call the native apply lookup
-  (($smtx_model_eval_apply M ($vsm_Fun s T U) i)
-    ($native_apply_5 "eval_fun_apply" M s T U i))
+  (($smtx_model_eval_apply M ($vsm_Fun e T U) i)
+    ($native_apply_5 "eval_fun_apply" M e T U i))
   ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply M v i)                 $vsm_NotValue)
   )
@@ -666,11 +677,11 @@
 
 ; x1, x2 and n1 are what a case the configuration writes is written with.
 (program $smtx_type_bounded
-  ((uc $smt_USortCard) (u $native_Bool) (w $native_Nat) (T $smt_Type) (U $smt_Type)
+  ((uc $smt_USortDom) (u $native_Bool) (w $native_Nat) (T $smt_Type) (U $smt_Type)
    (s $native_String) (dd $smt_DatatypeDecl)
    (x1 $smt_Type) (x2 $smt_Type) (n1 $native_Nat)
    (s1 $native_String) (dd2 $smt_DatatypeDecl))
-  :signature ($smt_USortCard $native_Bool $smt_Type) $native_Bool
+  :signature ($smt_USortDom $native_Bool $smt_Type) $native_Bool
   (
 ;$SMT_TYPE_BOUNDED_CASES$
   ; note FunType is not extensional, thus assumed to be infinite
@@ -722,11 +733,11 @@
 
 ; The same, for what each value says about being canonical.
 (program $smtx_value_canonical
-  ((uc $smt_USortCard) (v $smt_Value) (i1 $native_Int) (i2 $native_Int)
-   (n1 $native_Nat) (n2 $native_Nat) (c1 $native_Char)
+  ((uc $smt_USortDom) (v $smt_Value) (i1 $native_Int) (i2 $native_Int)
+   (n1 $native_Nat) (e2 $smt_ModelId) (c1 $native_Char)
    (m1 $smt_Map) (q1 $smt_Seq) (re1 $smt_RegLan)
    (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_USortCard $smt_Value) $native_Bool
+  :signature ($smt_USortDom $smt_Value) $native_Bool
   (
 ;$SMT_VALUE_CANONICAL_CASES$
   (($smtx_value_canonical uc v) $native_true)

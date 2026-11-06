@@ -64,7 +64,7 @@
 ; A value of each shape, from what it holds.
 (define-macro smt.bool (b)          ($vsm_Boolean b))
 (define-macro smt.numeral (n)       ($vsm_Numeral n))
-(define-macro smt.rational (r)      ($vsm_Rational r))
+(define-macro smt.real (r)          ($vsm_Real r))
 (define-macro smt.binary (w v)      ($vsm_Binary w v))
 (define-macro smt.seq (s)           ($vsm_Seq s))
 (define-macro smt.re (r)            ($vsm_RegLan r))
@@ -77,7 +77,7 @@
 (define-macro smt.not_value ()      $vsm_NotValue)
 (define-macro smt.true ()           $vsm_true)
 (define-macro smt.false ()          $vsm_false)
-(define-macro smt.q_zero ()         $vsm_q_zero)
+(define-macro smt.r_zero ()         $vsm_r_zero)
 (define-macro smt.string_empty ()   $vsm_string_empty)
 (define-macro smt.binary_empty ()   $vsm_binary_empty)
 (define-macro smt.bit_true ()       $vsm_binary_bit_true)
@@ -89,11 +89,13 @@
   ($smtx_map_update_aux ($smtx_map_get_default m) m i e))
 (define-macro smt.typeof_value (v)        ($smtx_typeof_value v))
 
-; The number of values the uninterpreted sort of index n has, where 0 means it
-; has infinitely many. What the number is is the model's to say, and uc is
-; what a program that asks it is given: see $smtx_type_bounded and
-; $smtx_value_canonical.
-(define-macro smt.usort_card (n)          ("usort_card" uc n))
+; What the model says about the values of the uninterpreted sort of index n:
+; whether r identifies one, whether they are finitely many, and whether there is
+; exactly one. Which they are is the model's to say, and uc is what a program
+; that asks is given: see $smtx_type_bounded and $smtx_value_canonical.
+(define-macro smt.usort_mem (n r)         ("usort_mem" uc n r))
+(define-macro smt.usort_finite (n)        ("usort_finite" uc n))
+(define-macro smt.usort_unit (n)          ("usort_unit" uc n))
 
 ; The type of the ci^th constructor of a datatype declared under s. Substitutes
 ; (TypeRef s) for (Datatype s dd), which is what makes the datatype closed.
@@ -117,9 +119,9 @@
 ;             built over another, and true of the rest
 ;   :bounded  whether it has exactly one value, where u is true, or finitely
 ;             many, where u is false -- neither, of a type that says nothing.
-;             It is asked under uc, the number of values the model gives
-;             each uninterpreted sort, which a body reads with
-;             (smt.usort_card n), so the answer may depend on the model
+;             It is asked under uc, the values the model gives each
+;             uninterpreted sort, which a body reads with (smt.usort_finite n)
+;             and (smt.usort_unit n), so the answer may depend on the model
 ;   :default  the value a model reaches for where it has to name one -- none,
 ;             of a type that says nothing
 ;   :inhabited whether it has a value at all, read off the type alone -- it
@@ -138,7 +140,7 @@
   :default (smt.numeral 0))
 
 (define-sort Real ()
-  :default smt.q_zero)
+  :default smt.r_zero)
 
 ; A regular expression is not the type of anything a model gives values to, so
 ; it is well-founded nowhere; the empty language is what stands for its value.
@@ -224,8 +226,8 @@
   )
 )
 
-(program $smtx_map_default_canonical ((uc SmtUSortCard) (T SmtType) (e SmtValue))
-  :signature (SmtUSortCard SmtType SmtValue) <bool>
+(program $smtx_map_default_canonical ((uc SmtUSortDom) (T SmtType) (e SmtValue))
+  :signature (SmtUSortDom SmtType SmtValue) <bool>
   (
   (($smtx_map_default_canonical uc T e)
     (eo::define ((U (smt.typeof_value e)))
@@ -237,8 +239,8 @@
 )
 
 (program $smtx_map_canonical
-  ((uc SmtUSortCard) (T SmtType) (i SmtValue) (e SmtValue) (m SmtMap))
-  :signature (SmtUSortCard SmtMap) <bool>
+  ((uc SmtUSortDom) (T SmtType) (i SmtValue) (e SmtValue) (m SmtMap))
+  :signature (SmtUSortDom SmtMap) <bool>
   (
   (($smtx_map_canonical uc ($msm_default T e))
     ("and" ($smtx_map_default_canonical uc T e) ($smtx_value_canonical uc e)))
@@ -302,8 +304,8 @@
 )
 
 (program $smtx_seq_canonical
-  ((uc SmtUSortCard) (T SmtType) (v SmtValue) (s SmtSeq))
-  :signature (SmtUSortCard SmtSeq) <bool>
+  ((uc SmtUSortDom) (T SmtType) (v SmtValue) (s SmtSeq))
+  :signature (SmtUSortDom SmtSeq) <bool>
   (
   (($smtx_seq_canonical uc ($ssm_empty T)) "true")
   (($smtx_seq_canonical uc ($ssm_cons v s))
@@ -340,14 +342,11 @@
   :wf "false"
   :inhabited "false")
 
-; An uninterpreted sort, which has as many values as the model says, and
-; whose least value is its first. It is unit when it has exactly one, and
-; finite when the model gives it any number of them.
+; An uninterpreted sort, which has the values the model says, and whose first
+; value is the one every model gives it, see usort_dom_wf.
 (define-sort USort ((! n :raw))
-  :bounded ("ite" u
-             ("nateq" (smt.usort_card n) ("n_succ" "n_zero"))
-             ("not" ("nateq" (smt.usort_card n) "n_zero")))
-  :default ($vsm_UValue n "n_zero"))
+  :bounded ("ite" u (smt.usort_unit n) (smt.usort_finite n))
+  :default ($vsm_UValue n "id_zero"))
 
 ; An intensional function type. It is not extensional, so it is assumed to
 ; have infinitely many values and is not well founded.
@@ -503,17 +502,17 @@
   )
 )
 
-(program $smtx_is_unit_type ((uc SmtUSortCard) (T SmtType))
+(program $smtx_is_unit_type ((uc SmtUSortDom) (T SmtType))
   :keep
-  :signature (SmtUSortCard SmtType) <bool>
+  :signature (SmtUSortDom SmtType) <bool>
   (
   (($smtx_is_unit_type uc T) ($smtx_type_bounded uc "true" T))
   )
 )
 
-(program $smtx_is_finite_type ((uc SmtUSortCard) (T SmtType))
+(program $smtx_is_finite_type ((uc SmtUSortDom) (T SmtType))
   :keep
-  :signature (SmtUSortCard SmtType) <bool>
+  :signature (SmtUSortDom SmtType) <bool>
   (
   (($smtx_is_finite_type uc T) ($smtx_type_bounded uc "false" T))
   )
@@ -730,9 +729,9 @@
 )
 
 (program $smtx_field_type_bounded
-  ((uc SmtUSortCard) (u <bool>) (s <string>) (T SmtType) (ddB SmtDatatypeDecl))
+  ((uc SmtUSortDom) (u <bool>) (s <string>) (T SmtType) (ddB SmtDatatypeDecl))
   :keep
-  :signature (SmtUSortCard <bool> SmtType SmtDatatypeDecl) <bool>
+  :signature (SmtUSortDom <bool> SmtType SmtDatatypeDecl) <bool>
   (
   (($smtx_field_type_bounded uc u (TypeRef s) ddB) ($smtx_dd_has_dt s ddB))
   (($smtx_field_type_bounded uc u T ddB)                ($smtx_type_bounded uc u T))
@@ -755,9 +754,9 @@ decreasing_by
 )
 
 (program $smtx_datatype_cons_bounded
-  ((uc SmtUSortCard) (u <bool>) (T SmtType) (c SmtDatatypeCons) (ddB SmtDatatypeDecl))
+  ((uc SmtUSortDom) (u <bool>) (T SmtType) (c SmtDatatypeCons) (ddB SmtDatatypeDecl))
   :keep
-  :signature (SmtUSortCard <bool> SmtDatatypeCons SmtDatatypeDecl) <bool>
+  :signature (SmtUSortDom <bool> SmtDatatypeCons SmtDatatypeDecl) <bool>
   (
   (($smtx_datatype_cons_bounded uc u $dtc_unit ddB) "true")
   (($smtx_datatype_cons_bounded uc u ($dtc_cons T c) ddB)
@@ -768,9 +767,9 @@ decreasing_by
 )
 
 (program $smtx_datatype_bounded
-  ((uc SmtUSortCard) (u <bool>) (c SmtDatatypeCons) (dF SmtDatatype) (ddB SmtDatatypeDecl))
+  ((uc SmtUSortDom) (u <bool>) (c SmtDatatypeCons) (dF SmtDatatype) (ddB SmtDatatypeDecl))
   :keep
-  :signature (SmtUSortCard <bool> SmtDatatype SmtDatatypeDecl) <bool>
+  :signature (SmtUSortDom <bool> SmtDatatype SmtDatatypeDecl) <bool>
   (
   (($smtx_datatype_bounded uc u ($dt_sum c $dt_null) ddB) ($smtx_datatype_cons_bounded uc u c ddB))
   (($smtx_datatype_bounded uc u ($dt_sum c dF) ddB)
@@ -782,10 +781,10 @@ decreasing_by
 )
 
 (program $smtx_datatype_decl_bounded_step
-  ((uc SmtUSortCard) (u <bool>) (sF <string>) (dF SmtDatatype)
+  ((uc SmtUSortDom) (u <bool>) (sF <string>) (dF SmtDatatype)
    (ddR SmtDatatypeDecl) (ddB SmtDatatypeDecl))
   :keep
-  :signature (SmtUSortCard <bool> SmtDatatypeDecl SmtDatatypeDecl) SmtDatatypeDecl
+  :signature (SmtUSortDom <bool> SmtDatatypeDecl SmtDatatypeDecl) SmtDatatypeDecl
   (
   (($smtx_datatype_decl_bounded_step uc u ($dd_cons sF dF ddR) ddB)
     ($smtx_datatype_decl_bounded_step uc u ddR
@@ -799,10 +798,10 @@ decreasing_by
 )
 
 (program $smtx_datatype_decl_bounded
-  ((uc SmtUSortCard) (u <bool>) (sC <string>) (dC SmtDatatype) (ddC SmtDatatypeDecl)
+  ((uc SmtUSortDom) (u <bool>) (sC <string>) (dC SmtDatatype) (ddC SmtDatatypeDecl)
    (dd SmtDatatypeDecl) (ddB SmtDatatypeDecl))
   :keep
-  :signature (SmtUSortCard <bool> SmtDatatypeDecl SmtDatatypeDecl SmtDatatypeDecl) SmtDatatypeDecl
+  :signature (SmtUSortDom <bool> SmtDatatypeDecl SmtDatatypeDecl SmtDatatypeDecl) SmtDatatypeDecl
   (
   (($smtx_datatype_decl_bounded uc u ($dd_cons sC dC ddC) dd ddB)
     ($smtx_datatype_decl_bounded uc u ddC dd ($smtx_datatype_decl_bounded_step uc u dd ddB)))
@@ -887,7 +886,9 @@ decreasing_by
 (declare-constructor Numeral ((n <numeral>)) :builds SmtValue
   :typeof Int)
 
-(declare-constructor Rational ((r <rational>)) :builds SmtValue
+; A value of sort Real is a real number, of which a literal is one, see the
+; literal Rational.
+(declare-constructor Real ((r <real>)) :builds SmtValue
   :typeof Real)
 
 ; A bit-vector is of the width it carries, and is the one spelling of what it
@@ -906,7 +907,7 @@ decreasing_by
 
 ; A function value is named rather than given, so what it is of is what it
 ; says it is of.
-(declare-constructor Fun ((s <string>) (T SmtType) (U SmtType)) :builds SmtValue
+(declare-constructor Fun ((e SmtModelId) (T SmtType) (U SmtType)) :builds SmtValue
   :typeof (FunType T U))
 
 ; A set is a map to the Booleans, so it is canonical when the map is and when
@@ -926,10 +927,9 @@ decreasing_by
 
 ; An element of an uninterpreted sort is canonical when it is one of the
 ; values the model says the sort has.
-(declare-constructor UValue ((i <nat>) (e <nat>)) :builds SmtValue
+(declare-constructor UValue ((i <nat>) (e SmtModelId)) :builds SmtValue
   :typeof (USort i)
-  :canonical ("or" ("nateq" (smt.usort_card i) "n_zero")
-               ("natlt" e (smt.usort_card i))))
+  :canonical (smt.usort_mem i e))
 
 
 ; -- $smtx_re_canonical
@@ -1028,9 +1028,11 @@ decreasing_by
   :typeof Int
   :value (smt.numeral n))
 
+; A literal is written with a rational, which is what a checker computes with,
+; and denotes the real number that rational is.
 (define-literal Rational ((r <rational>))
   :typeof Real
-  :value (smt.rational r))
+  :value (smt.real ("rat_to_real" r)))
 
 ; A string is of the strings when what it carries is one, i.e. when every
 ; character of it is a character of SMT-LIB; its value is the sequence of them.
@@ -1142,7 +1144,7 @@ decreasing_by
 ; Arithmetic.
 ;
 ; A symbol over Int and Real says a case for each, since the natives of the two
-; are named apart -- z over the integers and q over the reals -- and a case
+; are named apart -- z over the integers and r over the reals -- and a case
 ; names the one it is of. There is no sort class and nothing selects a rule: a
 ; symbol names the program its type is read off, and the two shapes below say
 ; how a value of each is taken apart and put back together.
@@ -1184,11 +1186,11 @@ decreasing_by
 )
 
 ; -- $smtx_to_real_coerce
-(program $smtx_to_real_coerce ((x1 <numeral>) (x2 <rational>) (v SmtValue))
+(program $smtx_to_real_coerce ((x1 <numeral>) (x2 <real>) (v SmtValue))
   :signature (SmtValue) SmtValue
   (
-  (($smtx_to_real_coerce (smt.numeral x1)) (smt.rational ("to_real" x1)))
-  (($smtx_to_real_coerce (smt.rational x2)) (smt.rational x2))
+  (($smtx_to_real_coerce (smt.numeral x1)) (smt.real ("int_to_real" x1)))
+  (($smtx_to_real_coerce (smt.real x2)) (smt.real x2))
   (($smtx_to_real_coerce v) smt.not_value)
   )
 )
@@ -1196,27 +1198,27 @@ decreasing_by
 (define-symbol + (x y)
   :typeof ($smtx_typeof_arith_overload_op_2 x y)
   :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("zplus" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("qplus" qx qy)))
+  :eval ((smt.real qx) (smt.real qy)) (smt.real ("rplus" qx qy)))
 
 (define-symbol - (x y)
   :typeof ($smtx_typeof_arith_overload_op_2 x y)
   :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("z_-" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("q_-" qx qy)))
+  :eval ((smt.real qx) (smt.real qy)) (smt.real ("r_-" qx qy)))
 
 (define-symbol * (x y)
   :typeof ($smtx_typeof_arith_overload_op_2 x y)
   :eval ((smt.numeral x) (smt.numeral y)) (smt.numeral ("zmult" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("qmult" qx qy)))
+  :eval ((smt.real qx) (smt.real qy)) (smt.real ("rmult" qx qy)))
 
 (define-symbol < (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
   :eval ((smt.numeral x) (smt.numeral y)) (smt.bool ("zlt" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.bool ("qlt" qx qy)))
+  :eval ((smt.real qx) (smt.real qy)) (smt.bool ("rlt" qx qy)))
 
 (define-symbol <= (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
   :eval ((smt.numeral x) (smt.numeral y)) (smt.bool ("zleq" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.bool ("qleq" qx qy)))
+  :eval ((smt.real qx) (smt.real qy)) (smt.bool ("rleq" qx qy)))
 
 (define-symbol > (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Bool)
@@ -1228,11 +1230,11 @@ decreasing_by
 
 (define-symbol to_real (x)
   :typeof (of1 Int Real x)
-  :eval ((smt.numeral x)) (smt.rational ("to_real" x)))
+  :eval ((smt.numeral x)) (smt.real ("int_to_real" x)))
 
 (define-symbol to_int (x)
   :typeof (of1 Real Int x)
-  :eval ((smt.rational x)) (smt.numeral ("to_int" x)))
+  :eval ((smt.real x)) (smt.numeral ("real_to_int" x)))
 
 (define-symbol is_int (x)
   :typeof (of1 Real Bool x)
@@ -1241,7 +1243,7 @@ decreasing_by
 (define-symbol abs (x)
   :typeof ($smtx_typeof_arith_overload_op_1 x)
   :eval ((smt.numeral x)) (smt.numeral ("zabs" x))
-  :eval ((smt.rational qx)) (smt.rational ("qabs" qx)))
+  :eval ((smt.real qx)) (smt.real ("rabs" qx)))
 
 ; Unary minus is what the input overloads - with, and the desugar stage gives
 ; that overload the name $eoo_-.2, so nothing transforms into uneg by its own
@@ -1249,7 +1251,7 @@ decreasing_by
 (define-symbol uneg (x)
   :typeof ($smtx_typeof_arith_overload_op_1 x)
   :eval ((smt.numeral x)) (smt.numeral ("zneg" x))
-  :eval ((smt.rational qx)) (smt.rational ("qneg" qx)))
+  :eval ((smt.real qx)) (smt.real ("rneg" qx)))
 
 (define-symbol div_total (x y)
   :typeof (of2 Int Int Int x y)
@@ -1290,13 +1292,13 @@ decreasing_by
 
 (define-symbol /_total (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Real)
-  :eval ((smt.numeral x) (smt.numeral y)) (smt.rational ("mk_rational" x y))
-  :eval ((smt.rational qx) (smt.rational qy)) (smt.rational ("qdiv_total" qx qy)))
+  :eval ((smt.numeral x) (smt.numeral y)) (smt.real ("mk_real" x y))
+  :eval ((smt.real qx) (smt.real qy)) (smt.real ("rdiv_total" qx qy)))
 
 (define-symbol / (x y)
   :typeof ($smtx_typeof_arith_overload_op_2_ret x y Real)
   :value (eo::define ((q1 ($smtx_to_real_coerce x))) (eo::define ((q2 ($smtx_to_real_coerce y)))
-           (ite (= q2 smt.q_zero)
+           (ite (= q2 smt.r_zero)
              (apply M ("model_lookup" M "/_by_zero_id" (FunType Real Real)) q1)
              (/_total q1 q2)))))
 

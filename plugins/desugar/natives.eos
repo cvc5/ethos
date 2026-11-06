@@ -64,6 +64,10 @@
 
 (declare-native-type <rational> :op "Rat")
 
+; What a value of sort Real holds, as against `<rational>`, which is what a
+; literal is written with and what a checker computes with.
+(declare-native-type <real> :op "Real")
+
 (declare-native-type <string> :op "String")
 
 (declare-native-type <char> :op "Char")
@@ -83,6 +87,10 @@
 (declare-native z_one () :op "1")
 
 (declare-native z_two () :op "2")
+
+; The identifier every uninterpreted sort has, which is what its default value
+; is built over: see $smt_ModelId in plugins/model_smt/model_smt.eo.
+(declare-native id_zero () :op "0")
 
 ; strings
 (declare-native z_max_code () :op "196608")
@@ -170,6 +178,30 @@
 (declare-native zexp_total ((x1 <numeral>) (x2 <numeral>)))
 
 (declare-native qexp_total ((x1 <rational>) (x2 <numeral>)))
+
+; The operators over the values of sort Real. A literal denotes its image under
+; rat_to_real; nothing maps a real back to a rational.
+(declare-native rat_to_real ((x1 <rational>)))
+
+(declare-native int_to_real ((x1 <numeral>)))
+
+(declare-native real_to_int ((x1 <real>)))
+
+(declare-native mk_real ((x1 <numeral>) (x2 <numeral>)))
+
+(declare-native rleq ((x1 <real>) (x2 <real>)))
+
+(declare-native rlt ((x1 <real>) (x2 <real>)))
+
+(declare-native rplus ((x1 <real>) (x2 <real>)))
+
+(declare-native rmult ((x1 <real>) (x2 <real>)))
+
+(declare-native rneg ((x1 <real>)))
+
+(declare-native rabs ((x1 <real>)))
+
+(declare-native rdiv_total ((x1 <real>) (x2 <real>)))
 
 ; The (rounded-down) integer logarithm of x2 in base x1. This is the inverse of
 ; $native_z_**_total: it returns the greatest m>=0 such that x1^m <= x2, and 0
@@ -304,6 +336,11 @@
   :is ("qplus" x1 ("qneg" x2)))
 
 (declare-native q_zero () :is ("mk_rational" "z_zero" "z_one"))
+
+(declare-native r_- ((x1 <real>) (x2 <real>))
+  :is ("rplus" x1 ("rneg" x2)))
+
+(declare-native r_zero () :is ("mk_real" "z_zero" "z_one"))
 
 ; A natural number is what a character is written as, so this is what says
 ; which of the two a place means rather than what it converts.
