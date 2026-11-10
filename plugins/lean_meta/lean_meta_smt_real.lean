@@ -16,7 +16,9 @@ literal denotes its image under `native_rat_to_real`.
 -- $ Not blocks of the native layer, which comes out in modules the checker
 -- $ builds and is trimmed to what an input reaches. SmtValue holds a native_Real
 -- $ whatever the input is, so this module is needed whatever an input reaches,
--- $ and it is what keeps the import of Mathlib to one place. It carries no
+-- $ and it is where the reals of Mathlib are imported; the only other import
+-- $ of Mathlib is that of its finite sets, in lean_meta_smt_model.lean, which
+-- $ the checker does not build either. It carries no
 -- $ generated text. What these are in the SMT-LIB backend is said in
 -- $ plugins/smt_meta/smt-vc.eos.
 @[expose] public section
@@ -72,6 +74,8 @@ def native_rdiv_total : native_Real -> native_Real -> native_Real
 
 def native_real_to_int : native_Real -> native_Int
   | x => ⌊x⌋
+
+def native_id_zero : ModelId := 0
 
 end
 

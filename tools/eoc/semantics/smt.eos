@@ -43,10 +43,15 @@
 ; There is no file of the datatypes or the quantifiers of the input, since the
 ; SMT-LIB signature has nothing to say about them.
 ;
-; This set is meant to be the semantics of SMT-LIB and of nothing else. What a
-; solver or a calculus adds to SMT-LIB -- its skolems, its extended operators --
-; belongs to a set of its own, named with --smt-semantics: Logos keeps the one
-; CPC is written against at install/defs/smt.eos.
+; This set is meant to be the semantics of SMT-LIB and of little else: what it
+; has beyond the standard theories is what those are defined over or what the
+; solvers commonly share, i.e. the total division operators div_total,
+; mod_total and /_total, the sequences' seq.empty, seq.unit and seq.nth, and
+; the set.* symbols. What a solver or a calculus adds besides -- its skolems,
+; its extended operators -- is not here. A run that wants those names a set
+; with --smt-semantics, which *replaces* this one rather than adding to it, so
+; that set has to be complete, this one included: Logos keeps the one CPC is
+; written against at install/defs/smt.eos.
 
 ;-----------------------------------------------------------------------------
 (section "The vocabulary of the embedding")

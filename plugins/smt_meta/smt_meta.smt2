@@ -114,8 +114,15 @@ $NATIVE_EMBED_DEFS$
 (define-fun usort_mem ((uc SmtUSortDom) (n Nat) (r ModelId)) Bool (select (select uc n) r))
 ; that a set is finite is not something first-order logic can say of it
 (declare-fun usort_finite (SmtUSortDom Nat) Bool)
+; a unit sort has the identifier 0.0 and no other, said with a quantifier
+; rather than a constant array, which cvc5 handles only with --arrays-exp
 (define-fun usort_unit ((uc SmtUSortDom) (n Nat)) Bool
-  (= (select uc n) (store ((as const (Array ModelId Bool)) false) 0.0 true)))
+  (forall ((r ModelId)) (= (usort_mem uc n r) (= r 0.0))))
+; a unit set is finite, which nothing would say of usort_finite otherwise
+(assert (! (forall ((uc SmtUSortDom) (n Nat))
+  (! (=> (usort_unit uc n) (usort_finite uc n))
+  :pattern ((usort_finite uc n))))
+  :named smtx.usort_unit_finite))
 (declare-fun eval_exists (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_forall (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_choice (SmtModel String tsm.Type sm.Term) vsm.Value)

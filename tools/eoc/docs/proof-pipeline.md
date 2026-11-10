@@ -203,9 +203,16 @@ what the embedding is rather than what a signature means.
 
 `smt.eos` is the target, so every input is compiled through it and nothing
 about an input is asked of it. `test/semantics.eos` is a small fixture for the
-Boolean and string regressions. Full CPC semantics live in Logos at
-`install/defs/Cpc.eos`; there are no CPC wrapper scripts in this checkout, so
-a run that compiles CPC names that file with `--semantics` itself. A set from
+Boolean and string regressions. Full CPC semantics live in Logos, in two
+files: `install/defs/Cpc.eos`, the semantics of the input, and
+`install/defs/smt.eos`, the SMT-LIB semantics CPC is written against, which
+has the skolems and extended operators the shipped `smt.eos` leaves out. There
+are no CPC wrapper scripts in this checkout, so a run that compiles CPC names
+both itself, the first with `--semantics` and the second with
+`--smt-semantics` (which replaces the shipped `smt.eos` rather than adding to
+it). Without the second, a rule that reaches one of those symbols fails with
+an error pointing into the generated file, e.g. `arrays_ext` with
+`Could not find symbol $sm_map_diff`. A set from
 another tree still compiles into the fixed role-specific files under
 `tools/eoc/out/`; the source set itself is not modified.
 

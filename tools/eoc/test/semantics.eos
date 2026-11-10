@@ -1,6 +1,7 @@
 ; Semantics for the compiler regressions in this directory.
 ; Covers tests/Booleans-rules.eo's Boolean rules and nary-nil.eo's string rule.
-; Full CPC semantics belong to Logos: install/defs/Cpc.eos.
+; Full CPC semantics belong to Logos: install/defs/Cpc.eos, together with the
+; SMT-LIB semantics of install/defs/smt.eos, named with --smt-semantics.
 ;
 ; The arithmetic and typed-list nil predicates are needed when desugaring
 ; the complete included signatures, even where trimming removes those symbols.

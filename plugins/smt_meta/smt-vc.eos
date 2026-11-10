@@ -32,7 +32,7 @@
 
 (define-native-method mk_rational
   :smt-impl "; Helpers to avoid mixed arithmetic
-(define-fun mk_rational ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))")
+(define-fun mk_rational ((x Int) (y Int)) Real (/_total (to_real x) (to_real y)))")
 
 (define-native-method zeq
   :smt-impl "(define-fun zeq ((x Int) (y Int)) Bool (= x y))")
@@ -92,7 +92,10 @@
   :smt-impl "(define-fun real_to_int ((x Real)) Int (to_int x))")
 
 (define-native-method mk_real
-  :smt-impl "(define-fun mk_real ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))")
+  :smt-impl "(define-fun mk_real ((x Int) (y Int)) Real (/_total (to_real x) (to_real y)))")
+
+(define-native-method id_zero
+  :smt-impl "(define-fun id_zero () Real 0.0)")
 
 (define-native-method rleq
   :smt-impl "(define-fun rleq ((x Real) (y Real)) Bool (<= x y))")

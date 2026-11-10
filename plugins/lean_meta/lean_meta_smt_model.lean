@@ -58,7 +58,7 @@ def model_key (s : native_String) (T : SmtType) : SmtModelKey :=
 def model_fun_lookup (M : SmtModel) (fid : ModelId) (T U : SmtType) : SmtNativeFun :=
   M.nativeFuns fid T U
 
-noncomputable def native_default_fun_id : ModelId := 0
+def native_default_fun_id : ModelId := 0
 
 def native_model_var_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
   M.values { isVar := true, name := s, ty := T }
@@ -74,20 +74,18 @@ def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtV
         M.values k }
 
 open Classical in
-noncomputable def native_usort_mem (uc : SmtUSortDom) (n : native_Nat) (r : ModelId) : native_Bool :=
+def native_usort_mem (uc : SmtUSortDom) (n : native_Nat) (r : ModelId) : native_Bool :=
   decide (r ∈ uc n)
 
 open Classical in
-noncomputable def native_usort_finite (uc : SmtUSortDom) (n : native_Nat) : native_Bool :=
+def native_usort_finite (uc : SmtUSortDom) (n : native_Nat) : native_Bool :=
   decide (uc n).Finite
 
 open Classical in
-noncomputable def native_usort_unit (uc : SmtUSortDom) (n : native_Nat) : native_Bool :=
+def native_usort_unit (uc : SmtUSortDom) (n : native_Nat) : native_Bool :=
   decide (uc n = {0})
 
 /- Definition of SMT-LIB model semantics -/
-
-noncomputable section
 
 mutual
 
@@ -99,8 +97,6 @@ def native_eval_fun_apply (M : SmtModel) (fid : ModelId) (T U : SmtType) (i : Sm
     fallback
   else
     model_fun_lookup M fid T U i
-
-end
 
 end
 
