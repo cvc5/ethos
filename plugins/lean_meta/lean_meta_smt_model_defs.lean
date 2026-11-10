@@ -1,5 +1,7 @@
 module
 
+public import $EO_CALC$.SmtReal
+import all $EO_CALC$.SmtReal
 public import $EO_CALC$.SmtSyntax
 import all $EO_CALC$.SmtSyntax
 
@@ -12,6 +14,10 @@ namespace Smtm
 
 open SmtEval
 
+-- $ Equality of the reals is classical, so what is derived from it is
+-- $ noncomputable and there is neither a Repr nor an Ord to derive.
+noncomputable section
+
 mutual
 
 /-
@@ -19,7 +25,7 @@ SMT-LIB values.
 -/
 inductive SmtValue : Type where
 $LEAN_SMT_VALUE_DEF$
-deriving Repr, DecidableEq, Inhabited, Ord
+deriving DecidableEq, Inhabited
 
 -- $ The datatypes a value is built over -- the map, the sequence and the
 -- $ regular language. Which of them there are and what builds one is the
@@ -38,5 +44,7 @@ end
 /- Value equality -/
 def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
+
+end
 
 end Smtm

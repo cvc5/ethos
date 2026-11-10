@@ -44,11 +44,13 @@ cmake --build build-eoc --target ethos-eoc -j8
 # a verification condition for one rule
 python3 tools/eoc/driver.py vc --build-dir build-eoc \
   --semantics <logos>/install/defs/Cpc.eos \
+  --smt-semantics <logos>/install/defs/smt.eos \
   <input.eo> <proof-rule>
 
 # the whole CPC signature, compiled to Lean
 python3 tools/eoc/driver.py lean --build-dir build-eoc --all \
   --semantics <logos>/install/defs/Cpc.eos \
+  --smt-semantics <logos>/install/defs/smt.eos \
   <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
@@ -201,9 +203,16 @@ what the embedding is rather than what a signature means.
 
 `smt.eos` is the target, so every input is compiled through it and nothing
 about an input is asked of it. `test/semantics.eos` is a small fixture for the
-Boolean and string regressions. Full CPC semantics live in Logos at
-`install/defs/Cpc.eos`; there are no CPC wrapper scripts in this checkout, so
-a run that compiles CPC names that file with `--semantics` itself. A set from
+Boolean and string regressions. Full CPC semantics live in Logos, in two
+files: `install/defs/Cpc.eos`, the semantics of the input, and
+`install/defs/smt.eos`, the SMT-LIB semantics CPC is written against, which
+has the skolems and extended operators the shipped `smt.eos` leaves out. There
+are no CPC wrapper scripts in this checkout, so a run that compiles CPC names
+both itself, the first with `--semantics` and the second with
+`--smt-semantics` (which replaces the shipped `smt.eos` rather than adding to
+it). Without the second, a rule that reaches one of those symbols fails with
+an error pointing into the generated file, e.g. `arrays_ext` with
+`Could not find symbol $sm_map_diff`. A set from
 another tree still compiles into the fixed role-specific files under
 `tools/eoc/out/`; the source set itself is not modified.
 
@@ -281,14 +290,15 @@ The SMT-LIB semantics proper consist of the core evaluation semantics
 `$smtx_model_eval`; `$smtx_type_default`, which returns the first term of a
 finite type, beside `$smtx_type_wf` and `$smtx_type_bounded`, which say whether
 the values of a type are a set at all and whether they are finitely many --
-the latter, like `$smtx_value_canonical`, under the number of values the model
-gives each uninterpreted sort, which a body writes as `(smt.usort_card n)`; and,
+the latter, like `$smtx_value_canonical`, under the values the model gives each
+uninterpreted sort, which a body reads with `(smt.usort_mem n r)`,
+`(smt.usort_finite n)` and `(smt.usort_unit n)`; and,
 written in the configuration beside the sorts they belong to, the programs over
 a map value -- lookup, canonical update, the type of one and whether it is
 written the one way -- and their counterparts over a sequence value.
 
 A map value is what an array and a set are. A *function* value is not one:
-`$vsm_Fun` carries only a name and the two halves of its type, and applying one
+`$vsm_Fun` carries only an identifier and the two halves of its type, and applying one
 is left to the model, so `$smtx_model_eval_apply` hands it to the native
 `eval_fun_apply` rather than looking it up. Applying a datatype constructor is
 left alone as well, an application of one being the Herbrand term it denotes.
@@ -352,7 +362,7 @@ Nor does it model the quantifiers the way the Lean model does. `exists`,
 `forall` and `choice` are given their meaning by `texists_eq` and `tforall_eq`
 in `smt_meta.smt2`, which range over every value of the type bound, where the
 Lean model ranges only over the values canonical under the model
-(`__smtx_value_canonical M.usortCard`). The two differ on every type with
+(`__smtx_value_canonical M.usortDom`). The two differ on every type with
 non-canonical values: an uninterpreted sort the model gives finitely many
 elements, and a map, set or sequence value not written the one way. So a
 verification condition may accept a rule that is unsound under the Lean
@@ -418,7 +428,7 @@ prove them or build the package.
 - The quantifiers of a verification condition range over every value of the
   type bound rather than the canonical ones, so stage 7a can disagree with the
   Lean model in either direction, see stage 7a. Closing this needs the SMT-LIB
-  model to carry the cardinality of each uninterpreted sort and the SMT-LIB
+  model to carry the domain of each uninterpreted sort and the SMT-LIB
   backend to write `$smtx_value_canonical`, which it cannot yet: regular
   language canonicity matches constructors that the builtin `RegLan` does not
   have, and `vcmp`, `default_fun_id` and a `Char` from a `Nat` are not defined

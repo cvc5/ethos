@@ -35,7 +35,8 @@ A run names the signature to compile and, separately, what its symbols mean.
 The local regressions compile `tests/Booleans-rules.eo` and
 `tools/eoc/test/nary-nil.eo` using the small `test/semantics.eos` fixture.
 There are no CPC wrapper scripts in this checkout. Full CPC semantics live in
-Logos at `install/defs/Cpc.eos`; pass that file explicitly when compiling CPC
+Logos at `install/defs/Cpc.eos`, and what CPC adds to SMT-LIB is in Logos's own
+SMT-LIB semantics at `install/defs/smt.eos`; pass both explicitly when compiling CPC
 with the driver. A new calculus can reuse the compiler's existing embedding,
 but operations outside that embedding can require compiler changes.
 
@@ -116,6 +117,7 @@ configuration set* rather than what it compiles to:
 ```text
 python3 tools/eoc/driver.py lean --all \
   --semantics <logos>/install/defs/Cpc.eos \
+  --smt-semantics <logos>/install/defs/smt.eos \
   <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
@@ -614,6 +616,7 @@ tools/eoc/out/
     LogosTerm.lean
     Parser.lean
     SmtEval.lean
+    SmtReal.lean
     SmtSyntax.lean
     SmtTyping.lean
     SmtTranslate.lean
@@ -641,8 +644,15 @@ The SMT-LIB modules are split so that the checker can be built without the
 model semantics. `SmtSyntax` declares types, terms and the datatypes they are
 built over; `SmtTyping` holds typing and well-formedness; `SmtTranslate` holds
 the translation from Eunoia to SMT-LIB. None of them names a value or a model.
-`SmtModelDefs`, `SmtValueOrder` and `SmtModel` hold values and the model
-semantics, and `Spec` joins the translation to satisfiability. An SMT-LIB
+`SmtReal`, `SmtModelDefs`, `SmtValueOrder` and `SmtModel` hold values and the
+model semantics, and `Spec` joins the translation to satisfiability. A value of
+sort `Real` is one of Mathlib's real numbers, whereas a term holds a rational,
+which is what the checker computes with: a literal denotes its image under
+`native_rat_to_real`. `SmtReal` is fixed text rather than part of the native
+layer, and holds the Mathlib the values need, which the checker may not depend
+on. It also defines `ModelId`, the real numbers that identify an element of an
+uninterpreted sort or a function. `SmtModel` imports Mathlib's finite sets as
+well, since a model gives each uninterpreted sort a `Set ModelId`. An SMT-LIB
 program of the semantics comes out in `SmtTyping` unless its signature names a
 value or a model, and a datatype of the embedding comes out in `SmtSyntax`
 unless it holds a value; see `LeanMetaReduce::namesModelType`.
@@ -694,7 +704,7 @@ python3 tools/eoc/driver.py lean --build-dir build-eoc --semantics tools/eoc/tes
 Generate Lean for the whole signature:
 
 ```bash
-python3 tools/eoc/driver.py lean --build-dir build-eoc --semantics <logos>/install/defs/Cpc.eos --all <cvc5>/proofs/eo/cpc/Cpc.eo
+python3 tools/eoc/driver.py lean --build-dir build-eoc --semantics <logos>/install/defs/Cpc.eos --smt-semantics <logos>/install/defs/smt.eos --all <cvc5>/proofs/eo/cpc/Cpc.eo
 ```
 
 A declaration the signature of the input leaves out of the compilation is
@@ -710,13 +720,13 @@ python3 tools/eoc/driver.py list-rules <cvc5>/proofs/eo/cpc/Cpc.eo
 Run every discovered rule through the VC pipeline:
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics <logos>/install/defs/Cpc.eos vc <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics <logos>/install/defs/Cpc.eos --smt-semantics <logos>/install/defs/smt.eos vc <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
 ```
 
 Run every discovered rule through the SyGuS pipeline:
 
 ```bash
-python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics <logos>/install/defs/Cpc.eos sygus <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
+python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics <logos>/install/defs/Cpc.eos --smt-semantics <logos>/install/defs/smt.eos sygus <cvc5>/proofs/eo/cpc/Cpc.eo --all-rules --clean
 ```
 
 ## Command reference
