@@ -64,7 +64,7 @@ class Rational
   {
     d_value.canonicalize();
   }
-  Rational(const Integer& n) : d_value(n.get_mpz()) { d_value.canonicalize(); }
+  explicit Rational(const Integer& n) : d_value(n.get_mpz()) { d_value.canonicalize(); }
   ~Rational() {}
 
   int sgn() const { return mpq_sgn(d_value.get_mpq_t()); }
