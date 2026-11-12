@@ -22,6 +22,7 @@ Features:
 The following flags enable optional features (disable with --no-<option name>).
   --static                 build static binary [default=no]
   --werror                 build with -Werror
+  --asan                   build with AddressSanitizer [default=no]
 
 
 CMake Options (Advanced)
@@ -57,6 +58,7 @@ buildtype=default
 
 build_static=default
 werror=default
+asan=default
 
 #--------------------------------------------------------------------------#
 
@@ -87,6 +89,9 @@ do
 
     --werror) werror=ON;;
 
+    --asan) asan=ON;;
+    --no-asan) asan=OFF;;
+
     -D*) cmake_opts="${cmake_opts} $1" ;;
 
     -*) die "invalid option '$1' (try -h)";;
@@ -103,10 +108,28 @@ done
 
 #--------------------------------------------------------------------------#
 
-if [ $werror != default ]; then
-  export CFLAGS=-Werror
-  export CXXFLAGS=-Werror
+if [ $asan = ON ] && [ $build_static = ON ]; then
+  die "--asan is incompatible with --static (cannot specify -static with -fsanitize=address)"
 fi
+
+cflags=""
+cxxflags=""
+ldflags=""
+
+if [ $werror != default ]; then
+  cflags="$cflags -Werror"
+  cxxflags="$cxxflags -Werror"
+fi
+
+if [ $asan = ON ]; then
+  cflags="$cflags -fsanitize=address -fno-omit-frame-pointer"
+  cxxflags="$cxxflags -fsanitize=address -fno-omit-frame-pointer"
+  ldflags="$ldflags -fsanitize=address"
+fi
+
+[ -n "$cflags" ] && export CFLAGS="${cflags# }"
+[ -n "$cxxflags" ] && export CXXFLAGS="${cxxflags# }"
+[ -n "$ldflags" ] && export LDFLAGS="${ldflags# }"
 
 [ $buildtype != default ] \
   && cmake_opts="$cmake_opts -DCMAKE_BUILD_TYPE=$buildtype"
