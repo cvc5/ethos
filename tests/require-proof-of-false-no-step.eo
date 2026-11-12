@@ -1,0 +1,1 @@
+(set-option :require-proof-of-false true)

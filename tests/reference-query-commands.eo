@@ -1,0 +1,6 @@
+; regression: smt2 commands whose name begins with "get-" are ignored
+(declare-const Int Type)
+(declare-const > (-> Int Int Bool))
+(declare-consts <numeral> Int)
+(reference "reference-query-commands.smt2")
+(assume @p0 (> x 0))

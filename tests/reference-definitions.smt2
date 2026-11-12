@@ -1,0 +1,12 @@
+(set-logic ALL)
+(define-fun id ((x Int)) Int x)
+(define-fun choose ((x Int) (p Bool)) Int (ite p x 0))
+(define-fun shadow ((x Int)) Bool (forall ((x Bool)) x))
+(define-fun capture ((x Int)) Bool
+  (forall ((p Bool)) (= (ite p x 0) x)))
+(define-fun zero () Int 0)
+(define-const k Int 0)
+(define-const alias Int k)
+(assert (= (id k) zero))
+(assert (= alias k))
+(check-sat)

@@ -1,4 +1,7 @@
 
+(declare-const String Type)
+(declare-consts <string> String)
+
 (declare-const or (-> Bool Bool Bool))
 (declare-const not (-> Bool Bool))
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))

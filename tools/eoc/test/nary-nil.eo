@@ -1,0 +1,20 @@
+; The signature the digest regression compiles beside tests/Booleans-rules.eo,
+; for what that one cannot reach.
+;
+; The desugar stage asks the input's semantics for a nil predicate only where
+; the nil of an n-ary symbol is not ground, since only then can it not write
+; the predicate itself; see Desugar::finalizeDeclaration. str.++ is such a
+; symbol -- its nil is the empty sequence of the element type -- so a rule that
+; names it is what makes the stage emit the call, and so what makes the driver
+; keep the block that answers it, see inline_called_blocks in
+; tools/eoc/driver.py. Nothing in tests/Booleans-rules.eo has a nil that is not
+; ground, so a run over that signature exercises only the branch that keeps
+; nothing.
+
+(include "../../../tests/Strings-theory.eo")
+
+; If two concatenations that start alike are equal, so are their remainders.
+(declare-rule str_concat_lprefix ((s String) (t String :list) (u String :list))
+    :premises ((= (str.++ s t) (str.++ s u)))
+    :conclusion (= t u)
+)

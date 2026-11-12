@@ -1,0 +1,6 @@
+; A builtin's result type requires a rule even without a literal of that kind.
+(declare-const String Type)
+(declare-consts <string> String)
+(declare-const s String)
+(declare-parameterized-const p ((T Type :implicit)) (-> T Bool))
+(assume a (p (eo::len s)))

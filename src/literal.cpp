@@ -267,7 +267,7 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
             default: return Literal(); break;
             }
           }
-          return Literal(ka, res);
+          return Literal(res);
         }
           break;
         case Kind::DECIMAL:

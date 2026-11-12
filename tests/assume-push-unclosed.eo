@@ -1,0 +1,2 @@
+; regression: an assume-push that is never closed is an ordinary error
+(assume-push context true)

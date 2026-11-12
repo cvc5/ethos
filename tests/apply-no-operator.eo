@@ -1,0 +1,2 @@
+; regression: (_) has no operator, hence is not an application
+(declare-const y (_))

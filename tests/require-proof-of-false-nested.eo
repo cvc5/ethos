@@ -1,0 +1,15 @@
+(set-option :require-proof-of-false true)
+
+(declare-rule prove-false ()
+  :premises ()
+  :args ()
+  :conclusion false)
+
+(declare-rule scope ((F Bool) (G Bool))
+  :assumption F
+  :premises (G)
+  :conclusion F)
+
+(assume-push a true)
+(step s false :rule prove-false :premises () :args ())
+(step-pop final :rule scope :premises (s))

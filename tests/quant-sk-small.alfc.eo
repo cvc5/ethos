@@ -1,3 +1,6 @@
+(declare-const String Type)
+(declare-consts <string> String)
+
 (include "Quantifiers-rules.eo")
 (include "Booleans-rules.eo")
 (include "Builtin-rules.eo")

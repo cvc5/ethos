@@ -1,6 +1,8 @@
 ; This file checks the remaining eo::to_str behavior on numerals and strings,
 ; and that other literal kinds remain unevaluated.
 
+(declare-const Int Type)
+(declare-consts <numeral> Int)
 (declare-const Real Type)
 (declare-consts <rational> Real)
 (declare-const BitVec Type)

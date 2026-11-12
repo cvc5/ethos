@@ -42,8 +42,6 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
   d_table["set-option"] = Token::SET_OPTION;
-  d_table["pop"] = Token::POP;    // undocumented
-  d_table["push"] = Token::PUSH;  // undocumented
   d_table["reset"] = Token::RESET;
 
   if (d_isReference)
@@ -56,8 +54,11 @@ CmdParser::CmdParser(Lexer& lex,
     d_table["define-sort"] = Token::DEFINE_SORT;
     d_table["check-sat"] = Token::CHECK_SAT;
     d_table["check-sat-assuming"] = Token::CHECK_SAT_ASSUMING;
+    d_table["reset-assertions"] = Token::RESET_ASSERTIONS;
     d_table["set-logic"] = Token::SET_LOGIC;
     d_table["set-info"] = Token::SET_INFO;
+    // Note that any command whose name begins with "get-" is parsed and
+    // ignored, see nextCommandToken.
   }
   else
   {
@@ -88,6 +89,15 @@ Token CmdParser::nextCommandToken()
     if (it != d_table.end())
     {
       return it->second;
+    }
+    // In reference files, any command that begins with "get-" is one that
+    // queries the solver for output (e.g. get-model). Such commands have no
+    // impact on the set of assertions, hence we parse and ignore all of them.
+    // This is done by prefix so that we do not have to maintain a list of the
+    // commands of this form.
+    if (d_isReference && str.compare(0, 4, "get-") == 0)
+    {
+      return Token::SMT2_QUERY_COMMAND;
     }
   }
   return tok;
@@ -364,7 +374,11 @@ bool CmdParser::parseNextCommand()
       Expr t = d_eparser.parseType();
       // maybe requires?
       // set the type rule
-      d_state.setLiteralTypeRule(k, t);
+      std::stringstream ssl;
+      if (!d_state.setLiteralTypeRule(k, t, &ssl))
+      {
+        d_lex.parseError(ssl.str());
+      }
       d_state.popScope();
     }
     break;
@@ -555,19 +569,9 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (define-const <symbol> <sort> <term>)
-    case Token::DEFINE_CONST:
-    {
-      //d_state.checkThatLogicIsSet();
-      std::string name = d_eparser.parseSymbol();
-      //d_state.checkUserSymbol(name);
-      Expr ret = d_eparser.parseType();
-      Expr e = d_eparser.parseExpr();
-      d_eparser.typeCheck(e, ret);
-      d_eparser.bind(name, e);
-    }
-    break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
     // (define <symbol> (<sorted_var>*) <term> <attr>*)
+    case Token::DEFINE_CONST:
     case Token::DEFINE_FUN:
     case Token::DEFINE:
     {
@@ -577,8 +581,18 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> impls;
       std::vector<Expr> opaques;
       std::map<ExprValue*, AttrMap> pattrMap;
-      std::vector<Expr> vars =
-          d_eparser.parseAndBindSortedVarList(Kind::LAMBDA, pattrMap);
+      bool defineAsReferenceAssert =
+          tok != Token::DEFINE && d_isReference
+          && !d_state.getOptions().d_referenceDefineFun;
+      std::vector<Expr> vars;
+      if (tok != Token::DEFINE_CONST)
+      {
+        // Reference equations use object-language bound variables, as do
+        // ordinary binders and eo::var terms in proofs. Macro definitions
+        // instead need fresh Eunoia parameters.
+        vars = d_eparser.parseAndBindSortedVarList(
+            defineAsReferenceAssert ? Kind::NONE : Kind::LAMBDA, pattrMap);
+      }
       if (vars.size() < pattrMap.size())
       {
         // If there were implicit variables, we go back and refine what is
@@ -598,7 +612,7 @@ bool CmdParser::parseNextCommand()
       // now process remainder of map
       d_eparser.processAttributeMaps(pattrMap);
       Expr ret;
-      if (tok == Token::DEFINE_FUN)
+      if (tok != Token::DEFINE)
       {
         ret = d_eparser.parseType();
       }
@@ -608,10 +622,7 @@ bool CmdParser::parseNextCommand()
       {
         d_eparser.typeCheck(expr, ret);
       }
-      bool defineFunAsReferenceAssert =
-          tok == Token::DEFINE_FUN && d_isReference
-          && !d_state.getOptions().d_referenceDefineFun;
-      if (defineFunAsReferenceAssert)
+      if (defineAsReferenceAssert)
       {
         // This is for reference checking only. Note that = and lambda are
         // not builtin symbols, thus we must assume they are defined by the user.
@@ -619,7 +630,10 @@ bool CmdParser::parseNextCommand()
         Expr eq = d_state.getVar("=");
         if (eq.isNull())
         {
-          d_lex.parseError("Expected symbol '=' to be defined when parsing define-fun.");
+          d_lex.parseError(
+              "Expected symbol '=' to be defined when parsing "
+              + std::string(tok == Token::DEFINE_CONST ? "define-const."
+                                                       : "define-fun."));
         }
         Expr rhs = expr;
         Expr t = ret;
@@ -863,6 +877,11 @@ bool CmdParser::parseNextCommand()
       // reset the state of the parser, which is independent of the symbol
       // manager
       d_state.reset();
+      // in reference files, reset subsumes reset-assertions
+      if (d_isReference)
+      {
+        d_state.clearReferenceAsserts();
+      }
     }
     break;
     // (step i F? :rule R :premises (p1 ... pn) :args (t1 ... tm))
@@ -994,29 +1013,40 @@ bool CmdParser::parseNextCommand()
     // (check-sat-assuming (<formula>*))
     case Token::CHECK_SAT_ASSUMING:
     {
-      d_eparser.parseExprList();
+      // The formulas of a check-sat-assuming are part of the query, thus a
+      // proof of unsat is permitted to assume them.
+      std::vector<Expr> as = d_eparser.parseExprList();
+      for (Expr& a : as)
+      {
+        // ensure each assumption has type Bool, as is done for assert
+        d_eparser.typeCheck(a, d_state.mkBoolType());
+        d_state.addReferenceAssert(a);
+      }
     }
     break;
-    case Token::POP:
-    case Token::PUSH:
+    // (reset-assertions)
+    case Token::RESET_ASSERTIONS:
     {
-      bool isPush = (tok==Token::PUSH);
-      tok = d_lex.peekToken();
-      size_t num = 1;
-      if (tok == Token::INTEGER_LITERAL)
+      // Discards all assertions and pops all assertion levels, hence the
+      // reference assertions accumulated so far are no longer part of the
+      // query. Note that (reset) also clears the reference assertions.
+      d_state.clearReferenceAsserts();
+    }
+    break;
+    // Commands that only produce solver output, e.g. (get-model). We consume
+    // their arguments as s-expressions and ignore them.
+    case Token::SMT2_QUERY_COMMAND:
+    {
+      // note we peek at most once per iteration, as required by the lexer
+      Token ptok = d_lex.peekToken();
+      while (ptok != Token::RPAREN)
       {
-        num = d_eparser.parseIntegerNumeral();
-      }
-      for (size_t i=0; i<num; i++)
-      {
-        if (isPush)
+        if (ptok == Token::EOF_TOK)
         {
-          d_state.pushScope();
+          d_lex.parseError("Expected s-expression");
         }
-        else
-        {
-          d_state.popScope();
-        }
+        d_eparser.parseSymbolicExpr();
+        ptok = d_lex.peekToken();
       }
     }
     break;

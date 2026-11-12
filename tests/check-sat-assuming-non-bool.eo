@@ -1,0 +1,4 @@
+; regression: the assumptions of check-sat-assuming must have type Bool
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(reference "check-sat-assuming-non-bool.smt2")

@@ -1,0 +1,4 @@
+; regression: a literal category cannot be given two different types
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-consts <numeral> Bool)

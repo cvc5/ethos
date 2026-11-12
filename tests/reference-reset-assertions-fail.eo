@@ -1,0 +1,7 @@
+; regression: an assertion discarded by reset-assertions cannot be assumed
+(declare-const Int Type)
+(declare-const > (-> Int Int Bool))
+(declare-const < (-> Int Int Bool))
+(declare-consts <numeral> Int)
+(reference "reference-reset-assertions.smt2")
+(assume @p0 (< x 0))

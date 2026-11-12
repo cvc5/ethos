@@ -15,7 +15,7 @@ Parser::Parser(State& s, bool isSignature, bool isReference)
     // signature.
     : d_lex(!isSignature && s.getOptions().d_parseLet, isSignature),
       d_state(s),
-      d_eparser(d_lex, d_state, isSignature),
+      d_eparser(d_lex, d_state, isSignature, isReference),
       d_cmdParser(d_lex, d_state, d_eparser, isReference)
 {
 }

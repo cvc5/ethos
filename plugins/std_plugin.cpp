@@ -17,8 +17,10 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "state.h"
+#include "utils.h"
 
 namespace ethos {
 
@@ -150,6 +152,56 @@ std::string StdPlugin::getOutputPath(const std::string& relativePath)
   std::string path = s_plugin_output_path + relativePath;
   ensureDirectoryExists(getParentDirectory(path));
   return path;
+}
+
+std::string StdPlugin::emitResourceFile(
+    const std::string& resourcePath,
+    const std::string& outputPath,
+    const std::vector<Replacement>& replacements,
+    bool replAll) const
+{
+  std::ifstream in(getResourcePath(resourcePath));
+  if (!in.is_open())
+  {
+    EO_FATAL() << "MetaReducePlugin: failed to open resource " << resourcePath;
+  }
+
+  std::ostringstream ss;
+  ss << in.rdbuf();
+  std::string rendered = ss.str();
+  for (const Replacement& repl : replacements)
+  {
+    // a tag that does not occur in the template is silently ignored by the
+    // methods below, which is always a mistake on the part of the caller
+    if (rendered.find(repl.first) == std::string::npos)
+    {
+      Warning() << "MetaReducePlugin: tag " << repl.first
+                << " does not occur in resource " << resourcePath << std::endl;
+      continue;
+    }
+    if (replAll)
+    {
+      rendered = replace_all(rendered, repl.first, repl.second);
+    }
+    else
+    {
+      replace(rendered, repl.first, repl.second);
+    }
+  }
+
+  std::string outPath = getOutputPath(outputPath);
+  std::ofstream out(outPath);
+  if (!out.is_open())
+  {
+    EO_FATAL() << "MetaReducePlugin: failed to open output " << outPath;
+  }
+  out << rtrimLines(dropResourceNotes(rendered));
+  out.close();
+  if (!out)
+  {
+    EO_FATAL() << "MetaReducePlugin: failed to write output " << outPath;
+  }
+  return outPath;
 }
 
 void StdPlugin::copyResourceToOutput(const std::string& relativePath)

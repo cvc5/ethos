@@ -1,0 +1,19 @@
+(include "reference-definitions-signature.eo")
+(reference "reference-definitions.smt2")
+; Match the explicit bound-variable terms used in generated proofs.
+(define @x () (eo::var "x" Int))
+(define @p () (eo::var "p" Bool))
+(define @xb () (eo::var "x" Bool))
+(assume @id (= id (lambda (@list @x) @x)))
+(assume @choose (= choose (lambda (@list @x @p) (ite @p @x 0))))
+(assume @shadow (= shadow
+  (lambda (@list @x) (forall (@list @xb) @xb))))
+(assume @capture (= capture
+  (lambda (@list @x) (forall (@list @p) (= (ite @p @x 0) @x)))))
+; Nullary functions and constants both contribute equations.
+(assume @zero (= zero 0))
+(assume @k (= k 0))
+(assume @alias (= alias k))
+; Uses of defined symbols remain symbolic in default reference mode.
+(assume @assert-id (= (id k) zero))
+(assume @assert-alias (= alias k))

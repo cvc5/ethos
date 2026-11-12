@@ -1,0 +1,3 @@
+; regression: Bool is builtin, so <boolean> cannot be given a type rule at all,
+; not even the type it already has
+(declare-consts <boolean> Bool)

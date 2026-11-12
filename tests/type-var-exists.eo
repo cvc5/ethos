@@ -1,5 +1,8 @@
 
 
+(declare-const String Type)
+(declare-consts <string> String)
+
 (declare-const Int Type)
 
 (declare-const exists (-> eo::List Bool Bool) :binder eo::List::cons)

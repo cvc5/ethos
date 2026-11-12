@@ -25,6 +25,7 @@ Options::Options()
   d_statsAll = false;
   d_statsCompact = false;
   d_ruleSymTable = true;
+  d_requireProofOfFalse = false;
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
@@ -61,6 +62,10 @@ bool Options::setOption(const std::string& key, bool val)
   {
     d_ruleSymTable = val;
   }
+  else if (key == "require-proof-of-false")
+  {
+    d_requireProofOfFalse = val;
+  }
   else if (key == "normalize-dec")
   {
     d_normalizeDecimal = val;
@@ -90,6 +95,7 @@ State::State(Options& opts, Stats& stats)
     : d_hashCounter(0),
       d_hasReference(false),
       d_inGarbageCollection(false),
+      d_lastStepProvesFalseAtLevelZero(false),
       d_opts(opts),
       d_stats(stats),
       d_tc(*this, opts),
@@ -212,6 +218,7 @@ void State::reset()
   d_assumptionsSizeCtx.clear();
   d_decls.clear();
   d_declsSizeCtx.clear();
+  d_lastStepProvesFalseAtLevelZero = false;
   if (d_plugin!=nullptr)
   {
     d_plugin->reset();
@@ -346,10 +353,12 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   if (getAssumptionLevel()!=0)
   {
     Assert(!d_declsSizeCtx.empty() && d_declsSizeCtx.back() < d_decls.size());
-    EO_FATAL() << "Including file " << inputPath.getRawPath()
-               << " did not preserve assumption scope. The most recent open "
-                  "assumption was "
-               << d_decls[d_declsSizeCtx.back()] << ".";
+    // report via the parser, so that this is an ordinary error message
+    std::stringstream ss;
+    ss << "This file did not preserve assumption scope. The most recent open "
+          "assumption was "
+       << d_decls[d_declsSizeCtx.back()] << ".";
+    p.getLexer().parseError(ss.str());
   }
   if (d_plugin != nullptr)
   {
@@ -500,13 +509,23 @@ void State::addReferenceAssert(const Expr& a)
   d_referenceAssertList.push_back(aa);
 }
 
-void State::setLiteralTypeRule(Kind k, const Expr& t)
+void State::clearReferenceAsserts()
 {
-  d_tc.setLiteralTypeRule(k, t);
+  d_referenceAsserts.clear();
+  d_referenceAssertList.clear();
+}
+
+bool State::setLiteralTypeRule(Kind k, const Expr& t, std::ostream* out)
+{
+  if (!d_tc.setLiteralTypeRule(k, t, out))
+  {
+    return false;
+  }
   if (d_plugin!=nullptr)
   {
     d_plugin->setLiteralTypeRule(k, t);
   }
+  return true;
 }
 
 Expr State::mkType()
@@ -602,12 +621,6 @@ Expr State::mkQuoteType(const Expr& t)
 {
   Assert(t.getKind() == Kind::PARAM);
   return Expr(mkExprInternal(Kind::QUOTE_TYPE, {t.getValue()}));
-}
-
-Expr State::mkBuiltinType(Kind k)
-{
-  // for now, just use any type
-  return d_any;
 }
 
 Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
@@ -717,23 +730,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     if (hk==Kind::LAMBDA)
     {
       // beta-reduce eagerly, if the correct arity
-      const std::vector<ExprValue*>& vars = (*hd)[0]->getChildren();
-      size_t nvars = vars.size();
-      if (nvars==children.size()-1)
+      Expr ret = mkBetaReduceInternal(vchildren);
+      if (!ret.isNull())
       {
-        Ctx ctx;
-        for (size_t i=0; i<nvars; i++)
-        {
-          ctx[vars[i]] = vchildren[i + 1];
-        }
-        Expr ret = d_tc.evaluate((*hd)[1], ctx);
-        Trace("state") << "BETA_REDUCE " << Expr((*hd)[1]) << " " << ctx << " = " << ret << std::endl;
         return ret;
       }
-      else
-      {
-        Warning() << "Wrong number of arguments when applying " << Expr(hd) << std::endl;
-      }
+      Warning() << "Wrong number of arguments when applying " << Expr(hd) << std::endl;
     }
     else if (hk == Kind::PROGRAM_CONST)
     {
@@ -1431,19 +1433,33 @@ bool State::notifyStep(const std::string& name,
                        Expr& result,
                        std::ostream* err)
 {
+  bool handledByPlugin = false;
   if (d_plugin != nullptr)
   {
     // if the plugin handles it, then take its result
-    if (d_plugin->notifyStep(
-            name, rule, proven, premises, args, isPop, result, err))
+    handledByPlugin = d_plugin->notifyStep(
+        name, rule, proven, premises, args, isPop, result, err);
+    if (handledByPlugin)
     {
       // successful if the result is non-null and fully evaluated
-      return !result.isNull() && !result.isEvaluatable();
+      if (result.isNull() || result.isEvaluatable())
+      {
+        return false;
+      }
     }
   }
-  AppInfo* ainfo = getAppInfo(rule.getValue());
-  if (ainfo != nullptr)
+  if (!handledByPlugin)
   {
+    AppInfo* ainfo = getAppInfo(rule.getValue());
+    if (ainfo == nullptr)
+    {
+      if (err)
+      {
+        (*err) << "Provided :rule is not recognized as a proof rule"
+               << std::endl;
+      }
+      return false;
+    }
     std::vector<Expr> children;
     Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
     Expr tupleVal = ainfo->d_attrConsTerm;
@@ -1600,13 +1616,17 @@ bool State::notifyStep(const std::string& name,
       result = children[0];
     }
     Assert(!result.isNull() && !result.isEvaluatable());
-    return true;
   }
-  if (err)
-  {
-    (*err) << "Provided :rule is not recognized as a proof rule" << std::endl;
-  }
-  return false;
+  // A step-pop conclusion is bound after one assumption scope is removed,
+  // so it is at level zero when the current level is one.
+  d_lastStepProvesFalseAtLevelZero =
+      getAssumptionLevel() == (isPop ? 1 : 0) && result == d_false;
+  return true;
+}
+
+bool State::lastStepProvesFalseAtLevelZero() const
+{
+  return d_lastStepProvesFalseAtLevelZero;
 }
 
 Expr State::getProgram(const ExprValue* ev)
@@ -1797,6 +1817,27 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   return true;
 }
 
+Expr State::mkBetaReduceInternal(const std::vector<ExprValue*>& children)
+{
+  Assert(!children.empty() && children[0]->getKind() == Kind::LAMBDA);
+  ExprValue* hd = children[0];
+  const std::vector<ExprValue*>& vars = (*hd)[0]->getChildren();
+  size_t nvars = vars.size();
+  if (nvars != children.size() - 1)
+  {
+    return d_null;
+  }
+  Ctx ctx;
+  for (size_t i = 0; i < nvars; i++)
+  {
+    ctx[vars[i]] = children[i + 1];
+  }
+  Expr ret = d_tc.evaluate((*hd)[1], ctx);
+  Trace("state") << "BETA_REDUCE " << Expr((*hd)[1]) << " " << ctx << " = "
+                 << ret << std::endl;
+  return ret;
+}
+
 Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
                                 const std::vector<Expr>& children,
                                 const ExprValue* retType,
@@ -1838,6 +1879,15 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
     {
       Trace("overload") << "...return success" << std::endl;
+      // an overloaded define macro is beta-reduced eagerly, as in mkExpr
+      if (retApply && hd->getKind() == Kind::LAMBDA)
+      {
+        Expr ret = mkBetaReduceInternal(vchildren);
+        if (!ret.isNull())
+        {
+          return ret;
+        }
+      }
       // return the operator, do not check the remainder
       return retApply ? x : overloads[ii];
     }

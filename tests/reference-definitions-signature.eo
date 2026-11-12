@@ -1,0 +1,18 @@
+; Minimal object-language signature for reference definition equations.
+(declare-const Int Type)
+(declare-const String Type)
+(declare-consts <numeral> Int)
+(declare-consts <string> String)
+(define @List () eo::List)
+(define @list.nil () eo::List::nil)
+(define @list () eo::List::cons)
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+(declare-parameterized-const ite ((T Type :implicit)) (-> Bool T T T))
+(declare-const forall (-> @List Bool Bool) :binder @list)
+(program $lambda_type ((x @List) (xs @List :list) (T Type))
+  :signature (@List Type) Type
+  ((($lambda_type (@list x xs) T)
+    (-> (eo::typeof x) ($lambda_type xs T)))
+   (($lambda_type @list.nil T) T)))
+(declare-parameterized-const lambda ((T Type :implicit) (L @List))
+  (-> T ($lambda_type L T)) :binder @list)

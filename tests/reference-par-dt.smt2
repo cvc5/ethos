@@ -1,0 +1,11 @@
+; not a regression, to be used by reference commands
+(set-logic ALL)
+(declare-datatype Box (par (A) ((box (unbox A)))))
+(declare-datatypes ((Pair 1)) ((par (A) ((pair (fst A) (snd A))))))
+(declare-datatype List (par (T) ((nil) (cons (head T) (tail (List T))))))
+(declare-const x (Box Bool))
+(declare-const y (Pair Bool))
+(declare-const z (List Bool))
+(assert (= (unbox x) (fst y)))
+(assert (= z (cons (unbox x) (as nil (List Bool)))))
+(check-sat)

@@ -1,0 +1,6 @@
+; A builtin's result type requires a rule even without a literal of that kind.
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-const n Int)
+(declare-parameterized-const p ((T Type :implicit)) (-> T Bool))
+(assume a (p (eo::to_str n)))
