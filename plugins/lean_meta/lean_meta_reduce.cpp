@@ -61,6 +61,27 @@ LeanMetaReduce::LeanMetaReduce(State& s,
   // NOTE: any partial def can be forced by adding the method names to
   // d_partialExc, e.g. d_partialExc.insert("$str_re_consume_rec");
 
+  // The model is written over the reals, so nothing it generates reaches the
+  // operations over the rationals. What a package proves relates the two, so
+  // those operations are named from its scope all the same: they come out
+  // beside the model, or where every module sees them if the checker reaches
+  // them too.
+  // native_natlt is here for the same reason: the model no longer compares
+  // the number of values of an uninterpreted sort with anything.
+  for (const char* n : {"native_qplus",
+                        "native_qmult",
+                        "native_qneg",
+                        "native_qabs",
+                        "native_qlt",
+                        "native_qleq",
+                        "native_qdiv_total",
+                        "native_to_real",
+                        "native_to_int",
+                        "native_natlt"})
+  {
+    d_natives.use(n, "Smtm");
+  }
+
   // Why a generated definition terminates is Lean text rather than anything
   // this plugin derives, so it is said under :lean in the semantics
   // configuration and compiled into a file of its own, see
@@ -1332,6 +1353,12 @@ std::string LeanMetaReduce::getOrderKeyMethod(const std::string& t)
   // SmtDatatypeDecl is ordered by datatypeDeclKey and native_Int by intKey.
   // The methods for the types that are not generated are given by the
   // lean_meta_smt_value_order.lean template.
+  // An identifier a model chooses is a real number, see SmtReal, and is ordered
+  // as one.
+  if (t == "ModelId")
+  {
+    return "realKey";
+  }
   std::string base;
   if (t.compare(0, 3, "Smt") == 0)
   {
@@ -1935,7 +1962,11 @@ std::string LeanMetaReduce::printEmbedDatatypes(bool syntax) const
          << "-/" << std::endl
          << "inductive " << dt.first << " : Type where" << std::endl
          << dt.second.str()
-         << "deriving Repr, DecidableEq, Inhabited, Ord" << std::endl
+         // What holds a value holds a real, whose equality is classical and
+         // which has neither a Repr nor an Ord.
+         << (syntax ? "deriving Repr, DecidableEq, Inhabited, Ord"
+                    : "deriving DecidableEq, Inhabited")
+         << std::endl
          << std::endl;
   }
   return defs.str();
@@ -2058,6 +2089,10 @@ void LeanMetaReduce::finalize()
   emitResourceFile("plugins/lean_meta/lean_meta_smt_eval.lean",
                    "plugins/lean_meta/lean_meta_smt_eval_gen.lean",
                    {{"$NATIVE_DEFS$", d_natives.defs("SmtEval")}});
+  // The reals of the model are fixed text, whatever an input reaches.
+  emitResourceFile("plugins/lean_meta/lean_meta_smt_real.lean",
+                   "plugins/lean_meta/lean_meta_smt_real_gen.lean",
+                   {});
   finalizeChecker();
   finalizeSmtModel();
   finalizeSpec();

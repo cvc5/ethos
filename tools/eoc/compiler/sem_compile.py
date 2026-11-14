@@ -77,7 +77,8 @@ INPUT_LEAN_TARGET = os.path.join(OUT, 'user_termination.lean')
 # plugins/desugar/desugar.eos.
 INPUT_DESUGAR_TARGET = os.path.join(OUT, 'user_desugar.eo')
 # The shipped target and the small input fixture used by plugin regressions.
-# Full CPC semantics are supplied by Logos's install/defs/Cpc.eos.
+# Full CPC semantics are supplied by Logos: install/defs/Cpc.eos for the input,
+# with install/defs/smt.eos named by --smt-semantics in place of the first.
 CONFIGS = (os.path.join(SEM, 'smt.eos'),
            os.path.join(EOC, 'test', 'semantics.eos'))
 

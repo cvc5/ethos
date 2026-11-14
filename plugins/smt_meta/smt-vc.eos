@@ -32,7 +32,7 @@
 
 (define-native-method mk_rational
   :smt-impl "; Helpers to avoid mixed arithmetic
-(define-fun mk_rational ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))")
+(define-fun mk_rational ((x Int) (y Int)) Real (/_total (to_real x) (to_real y)))")
 
 (define-native-method zeq
   :smt-impl "(define-fun zeq ((x Int) (y Int)) Bool (= x y))")
@@ -81,6 +81,42 @@
 
 (define-native-method qdiv_total
   :smt-impl "(define-fun qdiv_total ((x Real) (y Real)) Real (/_total x y))")
+
+(define-native-method rat_to_real
+  :smt-impl "(define-fun rat_to_real ((x Rat)) Real x)")
+
+(define-native-method int_to_real
+  :smt-impl "(define-fun int_to_real ((x Int)) Real (to_real x))")
+
+(define-native-method real_to_int
+  :smt-impl "(define-fun real_to_int ((x Real)) Int (to_int x))")
+
+(define-native-method mk_real
+  :smt-impl "(define-fun mk_real ((x Int) (y Int)) Real (/_total (to_real x) (to_real y)))")
+
+(define-native-method id_zero
+  :smt-impl "(define-fun id_zero () Real 0.0)")
+
+(define-native-method rleq
+  :smt-impl "(define-fun rleq ((x Real) (y Real)) Bool (<= x y))")
+
+(define-native-method rlt
+  :smt-impl "(define-fun rlt ((x Real) (y Real)) Bool (< x y))")
+
+(define-native-method rplus
+  :smt-impl "(define-fun rplus ((x Real) (y Real)) Real (+ x y))")
+
+(define-native-method rmult
+  :smt-impl "(define-fun rmult ((x Real) (y Real)) Real (* x y))")
+
+(define-native-method rneg
+  :smt-impl "(define-fun rneg ((x Real)) Real (- x))")
+
+(define-native-method rabs
+  :smt-impl "(define-fun rabs ((x Real)) Real (ite (< x 0) (- x) x))")
+
+(define-native-method rdiv_total
+  :smt-impl "(define-fun rdiv_total ((x Real) (y Real)) Real (/_total x y))")
 
 (define-native-method Char
   :smt-impl "(define-sort Char () Int)")

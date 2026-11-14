@@ -17,6 +17,10 @@
 ;; either, so it may not name Eunoia, which the compiler checks. A definition no input reaches,
 ;; because the Lean resources of the stage are what name it, says :keep and is
 ;; emitted whatever an input reaches.
+;;
+;; The reals themselves are not here. A block comes out in a module the checker
+;; builds, and the operations over the reals need Mathlib, which it may not
+;; import, so they are the fixed text of lean_meta_smt_real.lean.
 
 (define-native-method Bool
   :keep
@@ -694,7 +698,7 @@ macro_rules
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
       let typeDefaultId := Lean.mkIdent `__smtx_type_default
       let canonId := Lean.mkIdent `__smtx_value_canonical
-      let usortCardId := Lean.mkIdent `SmtModel.usortCard
+      let usortDomId := Lean.mkIdent `SmtModel.usortDom
       `(by
           classical
           exact
@@ -704,7 +708,7 @@ macro_rules
                   (if hDiff :
                       ∃ i : SmtValue,
                         $typeofValueId i = T1 ∧
-                          $canonId ($usortCardId $M) i = true ∧
+                          $canonId ($usortDomId $M) i = true ∧
                             native_veq ($lookupId $m1 i) ($lookupId $m2 i) = false then
                     Classical.choose hDiff
                   else
@@ -744,14 +748,14 @@ macro_rules
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
       let canonId := Lean.mkIdent `__smtx_value_canonical
-      let usortCardId := Lean.mkIdent `SmtModel.usortCard
+      let usortDomId := Lean.mkIdent `SmtModel.usortDom
       `(by
           classical
           exact
             if h :
                 ∃ v : SmtValue,
                   $typeofValueId v = $T ∧
-                    $canonId ($usortCardId $M) v = true ∧
+                    $canonId ($usortDomId $M) v = true ∧
                     $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
               SmtValue.Boolean true
             else
@@ -764,14 +768,14 @@ macro_rules
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
       let canonId := Lean.mkIdent `__smtx_value_canonical
-      let usortCardId := Lean.mkIdent `SmtModel.usortCard
+      let usortDomId := Lean.mkIdent `SmtModel.usortDom
       `(by
           classical
           exact
             if h :
                 ∀ v : SmtValue,
                   $typeofValueId v = $T ->
-                    $canonId ($usortCardId $M) v = true ->
+                    $canonId ($usortDomId $M) v = true ->
                     $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
               SmtValue.Boolean true
             else
@@ -784,17 +788,17 @@ macro_rules
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
       let canonId := Lean.mkIdent `__smtx_value_canonical
-      let usortCardId := Lean.mkIdent `SmtModel.usortCard
+      let usortDomId := Lean.mkIdent `SmtModel.usortDom
       `(by
           classical
           exact
             if hSat :
                 ∃ v : SmtValue,
                   $typeofValueId v = $T ∧
-                    $canonId ($usortCardId $M) v = true ∧
+                    $canonId ($usortDomId $M) v = true ∧
                     $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
               Classical.choose hSat
-            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId ($usortCardId $M) v then
+            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId ($usortDomId $M) v then
               Classical.choose hTy
             else
               SmtValue.NotValue)")
