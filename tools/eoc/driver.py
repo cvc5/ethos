@@ -54,6 +54,7 @@ LEAN_CALC_PLACEHOLDER = "$EO_CALC$"
 LEAN_OUTPUTS: tuple[tuple[str, str], ...] = (
     ("lean_meta/lean_meta_checker_gen.lean", "Logos.lean"),
     ("lean_meta/lean_meta_checker_term_gen.lean", "LogosTerm.lean"),
+    ("lean_meta/lean_meta_checker_term_order_gen.lean", "LogosTermOrder.lean"),
     ("lean_meta/lean_meta_parser_gen.lean", "Parser.lean"),
     ("lean_meta/lean_meta_smt_eval_gen.lean", "SmtEval.lean"),
     ("lean_meta/lean_meta_smt_real_gen.lean", "SmtReal.lean"),

@@ -614,6 +614,7 @@ tools/eoc/out/
   lean/
     Logos.lean
     LogosTerm.lean
+    LogosTermOrder.lean
     Parser.lean
     SmtEval.lean
     SmtReal.lean
