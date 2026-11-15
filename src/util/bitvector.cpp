@@ -36,14 +36,20 @@ Integer BitVector::toInteger() const { return d_value; }
 std::string BitVector::toString(unsigned int base) const
 {
   std::string str = d_value.toString(base);
-  if (base == 2 && d_size > str.size())
+  // the number of digits, which for base 2 and 16 is determined by the size,
+  // so that e.g. #x0f and #x00f print differently.
+  size_t ndigits = 0;
+  if (base == 2)
   {
-    std::string zeroes;
-    for (unsigned int i = 0; i < d_size - str.size(); ++i)
-    {
-      zeroes.append("0");
-    }
-    return zeroes + str;
+    ndigits = d_size;
+  }
+  else if (base == 16)
+  {
+    ndigits = (d_size + 3) / 4;
+  }
+  if (ndigits > str.size())
+  {
+    return std::string(ndigits - str.size(), '0') + str;
   }
   else if (d_size==0)
   {

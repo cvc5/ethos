@@ -207,13 +207,16 @@ State::State(Options& opts, Stats& stats)
   // Proof is the return type of terms with kind Kind::PROOF, which is an
   // ordinary type (not available in the parser).
   d_proofType = Expr(mkSymbolInternal(Kind::CONST, "eo::Proof", d_type));
+  // remember the builtin symbols, which are restored on reset
+  d_builtinSymTable = d_symTable;
 }
 
 State::~State() {}
 
 void State::reset()
 {
-  d_symTable.clear();
+  // restore the builtin symbols, which are not removed by reset
+  d_symTable = d_builtinSymTable;
   d_assumptions.clear();
   d_assumptionsSizeCtx.clear();
   d_decls.clear();
@@ -323,8 +326,12 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
     return true;
   }
   Assert (!isReference || !d_hasReference);
-  d_hasReference = isReference;
-  d_referenceNf = referenceNf;
+  // Note that an ordinary include should not disable reference checking.
+  if (isReference)
+  {
+    d_hasReference = true;
+    d_referenceNf = referenceNf;
+  }
   Filepath currentPath = d_inputFile;
   d_inputFile = inputPath;
   if (d_plugin != nullptr)
@@ -1043,6 +1050,15 @@ Expr State::mkApplyAttr(AppInfo* ai,
       // right-assoc-nil operators are used in side condition bodies.
       // note that nchild>=2 treats e.g. (or a) as (or a false).
       // checking nchild>2 treats (or a) as a function Bool -> Bool.
+      // The latter is the case for :right-assoc and :left-assoc, which
+      // have no nil terminator, so that (or a) is a partial application.
+      bool hasNil = (ai->d_attrCons != Attr::LEFT_ASSOC
+                     && ai->d_attrCons != Attr::RIGHT_ASSOC);
+      if (!hasNil && nchild <= 2)
+      {
+        // return null, the caller constructs the ordinary application
+        return d_null;
+      }
       if (nchild >= 2)
       {
         bool isLeft = (ai->d_attrCons == Attr::LEFT_ASSOC

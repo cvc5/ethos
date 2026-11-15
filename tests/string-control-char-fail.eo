@@ -1,0 +1,4 @@
+; regression: control characters in string literals are an error.
+(declare-const String Type)
+(declare-consts <string> String)
+(define s () "a	b")

@@ -1,0 +1,7 @@
+; regression: an SMT-LIB bit-vector literal of width 0 is an error.
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-const BitVec (-> Int Type))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+(reference "reference-bv-zero-width-fail.smt2")

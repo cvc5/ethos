@@ -376,6 +376,8 @@ class State
   //--------------------- parsing state
   /** The symbol table, mapping symbols */
   std::map<std::string, Expr> d_symTable;
+  /** The symbols bound by the constructor, which are restored on reset */
+  std::map<std::string, Expr> d_builtinSymTable;
   /** Symbol table for proof rules, if using separate table */
   std::map<std::string, Expr> d_ruleSymTable;
   /**

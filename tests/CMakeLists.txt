@@ -115,6 +115,10 @@ set(ethos_test_file_list
     distinct_value_testers.eo
     gt_eval.eo
     let-binder-ex.eo
+    assoc-partial-app.eo
+    reset-builtins.eo
+    keyword-one-letter.eo
+    quote-param-bound.eo
     skolemize-v1.eo
     skolemize-v2.eo
     overloading-arith.eo
@@ -261,3 +265,21 @@ ethos_fail_test(declare-consts-missing-string-result.eo
                 "Message: No type rule declared for literal kind STRING; use declare-consts")
 ethos_fail_test(declare-consts-boolean.eo
                 "Error: .*declare-consts-boolean.eo:[0-9]+.[0-9]+: Cannot set a type rule for kind BOOLEAN")
+ethos_fail_test(requires-arity-fail.eo
+                "Error: .*requires-arity-fail.eo:[0-9]+.[0-9]+: A step of rule r failed to check")
+ethos_fail_test(list-op-arity-fail.eo
+                "Error: .*list-op-arity-fail.eo:[0-9]+.[0-9]+: A step of rule r failed to check")
+ethos_fail_test(reference-include-fail.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(string-control-char-fail.eo
+                "Control characters are not permitted in string literals")
+ethos_fail_test(rational-no-digits-fail.eo
+                "Could not find symbol -/5")
+ethos_fail_test(reference-bv-zero-width-fail.eo
+                "Error: .*reference-bv-zero-width-fail.smt2:[0-9]+.[0-9]+: Bit-vector literals must have positive width")
+ethos_fail_test(include-missing-fail.eo
+                "Error: .*include-missing-fail.eo:[0-9]+.[0-9]+: Cannot include file")
+ethos_fail_test(let-binder-param-fail.eo
+                "The constructors given by :let-binder cannot depend on parameters")
+ethos_fail_test(quote-param-bound-fail.eo
+                "Unexpected value of quoted child #2")

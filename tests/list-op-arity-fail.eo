@@ -1,0 +1,9 @@
+; regression: a list operator with too few arguments in a rule's :requires is
+; an error, not a crash.
+(declare-const T Type)
+(declare-rule r ((x T))
+  :args (x)
+  :requires (((eo::list_nth eo::List::cons) true))
+  :conclusion true)
+(declare-const c T)
+(step @p0 true :rule r :args (c))

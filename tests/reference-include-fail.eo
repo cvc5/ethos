@@ -1,0 +1,5 @@
+; regression: an include after a reference does not disable reference
+; checking.
+(reference "reference-include-fail.smt2")
+(include "reference-include-fail-sig.eo")
+(assume @p0 b)

@@ -237,6 +237,10 @@ Expr ExprParser::parseExpr()
               {
                 d_lex.nextToken();
                 uint32_t w = parseIntegerNumeral();
+                if (w == 0)
+                {
+                  d_lex.parseError("Bit-vector literals must have positive width");
+                }
                 d_lex.eatToken(Token::RPAREN);
                 BitVector bv(w, Integer(bvval));
                 ret = d_state.mkLiteral(Kind::BINARY, bv.toString());
@@ -434,6 +438,16 @@ Expr ExprParser::parseExpr()
       {
         std::string s = d_lex.tokenStr();
         unescapeString(s);
+        for (char c : s)
+        {
+          // control characters, e.g. tab or newline, are not permitted
+          if (static_cast<unsigned char>(c) < 32)
+          {
+            d_lex.parseError(
+                "Control characters are not permitted in string literals, "
+                "they must be encoded as escape sequences");
+          }
+        }
         // now, must run through String utility so that its unicode
         // handling is unique
         String str(s, true);
@@ -1446,6 +1460,16 @@ void ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
         // if the constructor spec is non-ground, make a lambda
         if (!av.isNull() && !av.isGround())
         {
+          if (a.first == Attr::BINDER || a.first == Attr::LET_BINDER)
+          {
+            // binder lists are constructed directly from the constructors,
+            // which hence cannot depend on parameters.
+            std::stringstream ss;
+            ss << "The constructors given by "
+               << (a.first == Attr::BINDER ? ":binder" : ":let-binder")
+               << " cannot depend on parameters";
+            d_lex.parseError(ss.str());
+          }
           std::vector<Expr> params = Expr::getVariables(av);
           Assert (!params.empty());
           cons = d_state.mkParameterized(av.getValue(), params);

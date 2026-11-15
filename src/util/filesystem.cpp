@@ -75,11 +75,12 @@ bool Filepath::isAbsolute() const
 bool Filepath::exists() const
 {
 #ifndef USE_CPP_FILESYSTEM
-  std::ifstream f;
+  std::ifstream f(rawPath);
   return f.good();
 #else
-  return std::filesystem::exists(rawPath)
-         && std::filesystem::is_regular_file(rawPath);
+  std::error_code ec;
+  return std::filesystem::exists(rawPath, ec)
+         && std::filesystem::is_regular_file(rawPath, ec);
 #endif
 }
 
@@ -181,7 +182,13 @@ void Filepath::makeCanonical()
   }
   rawPath = newPath.str();
 #else
-  rawPath = std::filesystem::canonical(rawPath);
+  // use the overload that does not throw, e.g. if the path does not exist
+  std::error_code ec;
+  std::filesystem::path p = std::filesystem::canonical(rawPath, ec);
+  if (!ec)
+  {
+    rawPath = p;
+  }
 #endif
 }
 

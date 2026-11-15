@@ -1,5 +1,18 @@
 This file contains a summary of important user-visible changes.
 
+ethos 0.2.6
+===========
+
+- An operator marked `:right-assoc` or `:left-assoc` applied to one argument is now a partial application, as documented, instead of the argument itself.
+- An `include` after a `reference` no longer disables the checks that assumptions are among the referenced assertions.
+- `(reset)` no longer removes the builtin symbols.
+- Control characters and NUL characters in string literals, and NUL characters in quoted symbols, are now errors instead of being dropped or causing crashes.
+- The constructors given by `:binder` and `:let-binder` can no longer depend on the parameters of `declare-parameterized-const`. Documents the attribute `:let-binder`.
+- A quoted parameter `(eo::quote x)` in a program signature must now agree with the binding of `x` from the types of earlier arguments.
+- Hexadecimal literals are printed with their leading zeros.
+- Missing input, include and reference files are now reported as errors on all platforms.
+- Fixes crashes on builtin operators applied to too few arguments, and on several malformed literals and inputs.
+
 ethos 0.2.5
 ===========
 

@@ -92,7 +92,8 @@ class Lexer
   {
     if (d_bufferPos < d_bufferEnd)
     {
-      d_ch = d_buffer[d_bufferPos];
+      // convert through unsigned char, so that e.g. 0xFF is not EOF
+      d_ch = static_cast<unsigned char>(d_buffer[d_bufferPos]);
       d_bufferPos++;
     }
     else if (d_isInteractive)
@@ -110,7 +111,7 @@ class Lexer
       }
       else
       {
-        d_ch = d_buffer[0];
+        d_ch = static_cast<unsigned char>(d_buffer[0]);
         d_bufferPos = 1;
       }
     }

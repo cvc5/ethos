@@ -323,6 +323,14 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     }
     case Kind::VARIABLE:
     {
+      if (e->getNumChildren() != 2)
+      {
+        if (out)
+        {
+          (*out) << "Expected two arguments to eo::var";
+        }
+        return d_null;
+      }
       Expr ctype1 = Expr(d_state.lookupType(e->d_children[0]));
       Expr ctype2 = Expr(d_state.lookupType(e->d_children[1]));
       Expr stringType = getLiteralTypeRule(Kind::STRING, e->d_children[0], out);
@@ -432,7 +440,21 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
         // we know that x is a parameter of the same type as t. We don't need
         // to match, we simply update the context.
         hdt = hdt->d_children[0];
-        Assert(ctx.find(hdt) == ctx.end());
+        // If x was already bound by the type of a previous argument, then
+        // it must be bound to t.
+        Ctx::iterator itc = ctx.find(hdt);
+        if (itc != ctx.end() && itc->second != child)
+        {
+          if (out)
+          {
+            (*out) << "Checking application of " << Expr(hd) << std::endl;
+            (*out) << "Unexpected value of quoted child #" << i << std::endl;
+            (*out) << "  Term: " << Expr(child) << std::endl;
+            (*out) << "  Expected: " << Expr(itc->second) << std::endl;
+            (*out) << "  Context " << ctx << std::endl;
+          }
+          return d_null;
+        }
         ctx[hdt] = child;
       }
     }
@@ -1132,6 +1154,16 @@ Expr TypeChecker::evaluateLiteralOpInternal(
 {
   Assert (!args.empty());
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
+  // check the arity first, since the cases below access the arguments
+  // directly.
+  if (!checkArity(k, args.size()))
+  {
+    Warning() << "Wrong number of arguments when applying literal op " << k
+              << ", " << args.size() << " arguments (" << args << ")"
+              << std::endl;
+    // does not evaluate if arity is wrong
+    return d_null;
+  }
   // special cases: ITE may evaluate if non-ground
   switch (k)
   {
@@ -1280,7 +1312,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_NAME_OF:
     {
       Kind k = args[0]->getKind();
-      if (k == Kind::VARIABLE)
+      if (k == Kind::VARIABLE && args[0]->getNumChildren() == 2)
       {
         return Expr((*args[0])[0]);
       }
@@ -1373,13 +1405,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   // if all values, run the literal evaluator
   if (allValues)
   {
-    if (!checkArity(k, args.size()))
-    {
-      Warning() << "Wrong number of arguments when applying literal op " << k
-                << ", " << args.size() << " arguments (" << args << ")" << std::endl;
-      // does not evaluate if arity is wrong
-      return d_null;
-    }
     // evaluate
     Literal eval = Literal::evaluate(k, lits);
     if (eval.getKind()==Kind::NONE)

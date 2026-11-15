@@ -235,6 +235,11 @@ Token Lexer::computeNextToken()
         {
           return Token::UNTERMINATED_QUOTED_SYMBOL;
         }
+        else if (ch == 0)
+        {
+          // the token string is null terminated, so we cannot represent this
+          parseError("NUL characters are not permitted in quoted symbols");
+        }
         pushToToken(ch);
       } while (ch != '|');
       return Token::QUOTED_SYMBOL;
@@ -272,6 +277,13 @@ Token Lexer::computeNextToken()
         {
           return Token::UNTERMINATED_STRING_LITERAL;
         }
+        else if (ch == 0)
+        {
+          // the token string is null terminated, so we cannot represent this
+          parseError(
+              "NUL characters are not permitted in string literals, they "
+              "must be encoded as escape sequences");
+        }
         else if (ch == '"')
         {
           pushToToken(ch);
@@ -292,7 +304,8 @@ Token Lexer::computeNextToken()
       {
         parseError("Error expected symbol following :");
       }
-      parseNonEmptyCharList(CharacterClass::SYMBOL);
+      // the remainder of the keyword may be empty, e.g. for `:a`
+      parseCharList(CharacterClass::SYMBOL);
       return Token::KEYWORD;
     default:
       if (isCharacterClass(ch, CharacterClass::DECIMAL_DIGIT))
@@ -411,7 +424,9 @@ Token Lexer::tokenizeCurrentSymbol() const
           {
             continue;
           }
-          else if (i+1<tsize && ret==Token::INTEGER_LITERAL)
+          // a decimal point or a slash must follow at least one digit
+          // and precede at least one, e.g. -/5 is a symbol.
+          else if (i > 1 && i + 1 < tsize && ret == Token::INTEGER_LITERAL)
           {
             if (d_token[i]=='.')
             {

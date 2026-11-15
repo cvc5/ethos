@@ -1,0 +1,3 @@
+; regression: the character after a one-letter keyword is not lost.
+(declare-const a Bool :a)
+(declare-const b Bool)
