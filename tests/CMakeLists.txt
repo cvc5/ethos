@@ -119,6 +119,8 @@ set(ethos_test_file_list
     reset-builtins.eo
     keyword-one-letter.eo
     quote-param-bound.eo
+    expr-trie-prefix.eo
+    expr-trie-overload.eo
     skolemize-v1.eo
     skolemize-v2.eo
     overloading-arith.eo
@@ -283,3 +285,5 @@ ethos_fail_test(let-binder-param-fail.eo
                 "The constructors given by :let-binder cannot depend on parameters")
 ethos_fail_test(quote-param-bound-fail.eo
                 "Unexpected value of quoted child #2")
+ethos_fail_test(var-one-arg-fail.eo
+                "Expected two arguments to eo::var")

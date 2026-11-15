@@ -12,6 +12,7 @@ ethos 0.2.6
 - Hexadecimal literals are printed with their leading zeros.
 - Missing input, include and reference files are now reported as errors on all platforms.
 - Fixes crashes on builtin operators applied to too few arguments, and on several malformed literals and inputs.
+- Fixes a bug where deleting a term could remove other live terms from the term table, so that syntactically equal terms were treated as distinct.
 
 ethos 0.2.5
 ===========
