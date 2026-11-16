@@ -34,6 +34,7 @@
   :lean-impl "abbrev native_Rat := Rat")
 
 (define-native-method Nat
+  :keep
   :lean-impl "abbrev native_Nat := Nat")
 
 (define-native-method Char
