@@ -1,0 +1,34 @@
+# Cpc/TranslationChecks.lean at cf18742973861b3718d04c5f25775448098ff474
+# Rule followed by its argument translation mask. Other rules require term translation.
+chain_resolution list list
+chain_m_resolution term list list
+instantiate list
+alpha_equiv term list list
+distinct_binary_elim wfTerm term
+exists_string_length type term term
+sets_eq_singleton_emp term term type
+sets_member_emp term term type
+sets_inter_emp1 term term type
+sets_inter_emp2 term term type
+sets_minus_emp1 term term type
+sets_minus_emp2 term term type
+sets_union_emp1 term term type
+sets_union_emp2 term term type
+sets_minus_self term type
+sets_is_empty_elim term type
+str_substr_empty_range term term term type
+str_substr_empty_start term term term type
+str_substr_empty_start_neg term term term type
+str_substr_substr_start_geq_len term term term term term type
+str_concat_unify_base term term term type
+str_concat_unify_base_rev term term term type
+str_contains_char term term type
+str_len_eq_zero_concat_rec term term term type
+str_len_eq_zero_base term type
+str_indexof_self term term type
+str_substr_char_start_eq_len term term type
+sets_member_singleton term wfElem
+sets_choose_singleton wfElem
+seq_len_unit wfElem
+seq_rev_unit wfElem
+seq_nth_unit wfElem

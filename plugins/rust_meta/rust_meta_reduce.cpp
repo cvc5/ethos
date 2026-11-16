@@ -20,7 +20,10 @@ bool starts(const std::string& s, const std::string& p)
 std::string read(const std::string& path)
 {
   std::ifstream in(path);
-  if (!in) { EO_FATAL() << "rust-meta: cannot read " << path; }
+  if (!in)
+  {
+    EO_FATAL() << "rust-meta: cannot read " << path;
+  }
   std::ostringstream out;
   out << in.rdbuf();
   return out.str();
@@ -42,8 +45,15 @@ std::string RustMetaReduce::ident(const std::string& name)
   for (unsigned char c : name)
   {
     if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-        || (c >= '0' && c <= '9')) { out << c; }
-    else { out << '_' << std::hex << std::setw(2) << std::setfill('0') << unsigned(c); }
+        || (c >= '0' && c <= '9'))
+    {
+      out << c;
+    }
+    else
+    {
+      out << '_' << std::hex << std::setw(2) << std::setfill('0')
+          << unsigned(c);
+    }
   }
   return out.str();
 }
@@ -54,9 +64,18 @@ std::string RustMetaReduce::quote(const std::string& text)
   out << '"';
   for (unsigned char c : text)
   {
-    if (c == '"' || c == '\\') { out << '\\' << c; }
-    else if (c >= 32 && c <= 126) { out << c; }
-    else { out << "\\u{" << std::hex << unsigned(c) << '}'; }
+    if (c == '"' || c == '\\')
+    {
+      out << '\\' << c;
+    }
+    else if (c >= 32 && c <= 126)
+    {
+      out << c;
+    }
+    else
+    {
+      out << "\\u{" << std::hex << unsigned(c) << '}';
+    }
   }
   out << '"';
   return out.str();
@@ -65,13 +84,22 @@ std::string RustMetaReduce::quote(const std::string& text)
 Kind RustMetaReduce::builtin(const std::string& name)
 {
   // Signature-dependent metadata is compiled, including typeof and nil.
-  if (!starts(name, "$eo_")) { return Kind::NONE; }
+  if (!starts(name, "$eo_"))
+  {
+    return Kind::NONE;
+  }
   for (int i = int(Kind::EVAL_IS_OK); i <= int(Kind::EVAL_DT_SELECTORS); ++i)
   {
     Kind k = static_cast<Kind>(i);
     if (k == Kind::EVAL_TYPE_OF || k == Kind::EVAL_NIL
-        || k == Kind::EVAL_DT_CONSTRUCTORS || k == Kind::EVAL_DT_SELECTORS) { continue; }
-    if (kindToTerm(k) == "eo::" + name.substr(4)) { return k; }
+        || k == Kind::EVAL_DT_CONSTRUCTORS || k == Kind::EVAL_DT_SELECTORS)
+    {
+      continue;
+    }
+    if (kindToTerm(k) == "eo::" + name.substr(4))
+    {
+      return k;
+    }
   }
   return Kind::NONE;
 }
@@ -84,10 +112,14 @@ bool RustMetaReduce::isBuiltinMetaSymbol(const std::string& name) const
 void RustMetaReduce::finalizeDecl(const Expr& e)
 {
   const std::string name = getName(e);
-  if (starts(name, "$native_") || !beginFinalizeDecl(e)) { return; }
+  if (starts(name, "$native_") || !beginFinalizeDecl(e))
+  {
+    return;
+  }
   Expr ty = e.getType();
   size_t arity = d_state.getAttributeKind(e.getValue()) == Attr::OPAQUE
-                     ? ty.getNumChildren() - 1 : 0;
+                     ? ty.getNumChildren() - 1
+                     : 0;
   bool object = !starts(name, "$emb_")
                 || (name.find('.') == std::string::npos && name != "$eo_pf");
   d_constructorOrder.push_back(name);
@@ -96,18 +128,27 @@ void RustMetaReduce::finalizeDecl(const Expr& e)
 
 void RustMetaReduce::defineProgram(const Expr& v, const Expr& prog)
 {
-  if (!prog.isNull()) { d_programs[getName(v)] = {v, prog, false}; }
+  if (!prog.isNull())
+  {
+    d_programs[getName(v)] = {v, prog, false};
+  }
 }
 
 void RustMetaReduce::define(const std::string& name, const Expr& e)
 {
-  if (!starts(name, "$eo_") || !getEmbedTypeApp(e).isNull()) { return; }
+  if (!starts(name, "$eo_") || !getEmbedTypeApp(e).isNull())
+  {
+    return;
+  }
   Expr symbol, prog;
   if (buildLambdaDefineProgram(name, e, symbol, prog))
   {
     d_programs[name] = {symbol, prog, true};
   }
-  else { d_programs[name] = {e, e, true}; }
+  else
+  {
+    d_programs[name] = {e, e, true};
+  }
 }
 
 bool RustMetaReduce::echo(const std::string& msg)
@@ -116,7 +157,8 @@ bool RustMetaReduce::echo(const std::string& msg)
   {
     std::istringstream in(msg.substr(15));
     std::string surface, name, arity, index, attr;
-    if (in >> surface >> name >> arity >> index >> attr && starts(attr, "left-assoc"))
+    if (in >> surface >> name >> arity >> index >> attr
+        && starts(attr, "left-assoc"))
     {
       d_leftAssoc.insert(name);
     }
@@ -126,33 +168,60 @@ bool RustMetaReduce::echo(const std::string& msg)
 
 std::set<std::string> RustMetaReduce::reachable() const
 {
-  const std::set<std::string> roots{
-      "$eo_checker_is_refutation", "$eo_invoke_cmd_list", "$eo_invoke_assume_list",
-      "$eo_state_is_refutation", "$eo_typeof", "$eo_nil", "$eo_is_list_nil",
-      "$eo_dt_constructors", "$eo_dt_selectors", "$eo_to_smt", "$eo_to_smt_type",
-      "$smtx_typeof", "$smtx_type_wf", "$smtx_type_wf_component"};
+  const std::set<std::string> roots{"$eo_checker_is_refutation",
+                                    "$eo_invoke_cmd_list",
+                                    "$eo_invoke_assume_list",
+                                    "$eo_state_is_refutation",
+                                    "$eo_typeof",
+                                    "$eo_nil",
+                                    "$eo_is_list_nil",
+                                    "$eo_dt_constructors",
+                                    "$eo_dt_selectors",
+                                    "$eo_to_smt",
+                                    "$eo_to_smt_type",
+                                    "$smtx_typeof",
+                                    "$smtx_type_wf",
+                                    "$smtx_type_wf_component"};
   std::vector<std::string> todo;
   for (const auto& p : d_programs)
   {
-    if (starts(p.first, "$eo_prog_") || roots.count(p.first)) { todo.push_back(p.first); }
+    if (starts(p.first, "$eo_prog_") || roots.count(p.first))
+    {
+      todo.push_back(p.first);
+    }
   }
   std::set<std::string> seen;
   while (!todo.empty())
   {
     std::string name = todo.back();
     todo.pop_back();
-    if (builtin(name) != Kind::NONE || !seen.insert(name).second) { continue; }
+    if (builtin(name) != Kind::NONE || !seen.insert(name).second)
+    {
+      continue;
+    }
     auto p = d_programs.find(name);
-    if (p == d_programs.end()) { EO_FATAL() << "rust-meta: undefined reachable program " << name; }
+    if (p == d_programs.end())
+    {
+      EO_FATAL() << "rust-meta: undefined reachable program " << name;
+    }
     std::vector<Expr> terms{p->second.body};
     std::set<Expr> visited;
     while (!terms.empty())
     {
       Expr e = terms.back();
       terms.pop_back();
-      if (!visited.insert(e).second) { continue; }
-      if (e.getKind() == Kind::PROGRAM_CONST) { todo.push_back(getName(e)); }
-      for (size_t i = 0; i < e.getNumChildren(); ++i) { terms.push_back(e[i]); }
+      if (!visited.insert(e).second)
+      {
+        continue;
+      }
+      if (e.getKind() == Kind::PROGRAM_CONST)
+      {
+        todo.push_back(getName(e));
+      }
+      for (size_t i = 0; i < e.getNumChildren(); ++i)
+      {
+        terms.push_back(e[i]);
+      }
     }
   }
   return seen;
@@ -161,26 +230,56 @@ std::set<std::string> RustMetaReduce::reachable() const
 std::string RustMetaReduce::schema() const
 {
   std::ostringstream out;
-  out << "#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]\npub enum Constructor {\n";
-  for (const auto& c : d_constructors) { out << ident(c.first) << ",\n"; }
-  out << "}\nimpl Constructor {\npub fn name(self) -> &'static str { match self {\n";
-  for (const auto& c : d_constructors) { out << "Self::" << ident(c.first) << " => " << quote(c.first) << ",\n"; }
-  out << "}}\npub fn from_name(name: &str) -> Option<Self> { Some(match name {\n";
-  for (const auto& c : d_constructors) { out << quote(c.first) << " => Self::" << ident(c.first) << ",\n"; }
-  out << "_ => return None, }) }\npub fn arity(self) -> usize { match self {\n";
-  for (const auto& c : d_constructors) { out << "Self::" << ident(c.first) << " => " << c.second.arity << ",\n"; }
+  out << "#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, "
+         "Ord)]\npub enum Constructor {\n";
+  for (const auto& c : d_constructors)
+  {
+    out << ident(c.first) << ",\n";
+  }
+  out << "}\nimpl Constructor {\npub fn name(self) -> &'static str { match "
+         "self {\n";
+  for (const auto& c : d_constructors)
+  {
+    out << "Self::" << ident(c.first) << " => " << quote(c.first) << ",\n";
+  }
+  out << "}}\npub fn from_name(name: &str) -> Option<Self> { Some(match name "
+         "{\n";
+  for (const auto& c : d_constructors)
+  {
+    out << quote(c.first) << " => Self::" << ident(c.first) << ",\n";
+  }
+  out << "_ => return None, }) }\npub fn is_user(self) -> bool { let n = "
+         "self.name(); !n.starts_with(\"$emb_\") && !n.starts_with(\"$eo_\") "
+         "&& !n.starts_with(\"$smt_\") }\npub fn arity(self) -> usize { match "
+         "self {\n";
+  for (const auto& c : d_constructors)
+  {
+    out << "Self::" << ident(c.first) << " => " << c.second.arity << ",\n";
+  }
   out << "}}\npub fn is_object(self) -> bool { match self {\n";
-  for (const auto& c : d_constructors) { out << "Self::" << ident(c.first) << " => " << (c.second.isObject ? "true" : "false") << ",\n"; }
+  for (const auto& c : d_constructors)
+  {
+    out << "Self::" << ident(c.first) << " => "
+        << (c.second.isObject ? "true" : "false") << ",\n";
+  }
   out << "}}\npub fn is_left_assoc(self) -> bool { match self.name() {\n";
-  for (const auto& n : d_leftAssoc) { out << quote(n) << " => true,\n"; }
-  out << "_ => false, }}\npub fn order_key(self) -> (usize, usize) { match self {\n";
+  for (const auto& n : d_leftAssoc)
+  {
+    out << quote(n) << " => true,\n";
+  }
+  out << "_ => false, }}\npub fn order_key(self) -> (usize, usize) { match "
+         "self {\n";
   std::map<std::string, size_t> tags;
   size_t next = 0;
-  const std::set<std::string> metaTypes{"$eo_Term", "$eo_Rule", "$eo_Cmd", "$eo_Proof", "$eo_pf"};
+  const std::set<std::string> metaTypes{
+      "$eo_Term", "$eo_Rule", "$eo_Cmd", "$eo_Proof", "$eo_pf"};
   for (const std::string& name : d_constructorOrder)
   {
     if ((starts(name, "$emb_") && name.find('.') == std::string::npos)
-        || (starts(name, "$eo_") && !metaTypes.count(name))) { tags[name] = next++; }
+        || (starts(name, "$eo_") && !metaTypes.count(name)))
+    {
+      tags[name] = next++;
+    }
   }
   std::map<size_t, size_t> users;
   std::map<std::string, size_t> datatypes;
@@ -188,15 +287,23 @@ std::string RustMetaReduce::schema() const
   {
     size_t arity = d_constructors.at(name).arity;
     size_t tag, subtag = 0;
-    if (tags.count(name)) { tag = tags.at(name); }
+    if (tags.count(name))
+    {
+      tag = tags.at(name);
+    }
     else if (!starts(name, "$emb_") && !starts(name, "$eo_"))
     {
-      std::string wrapper = "$emb_UOp" + (arity == 0 ? "" : std::to_string(arity));
+      std::string wrapper =
+          "$emb_UOp" + (arity == 0 ? "" : std::to_string(arity));
       tag = tags.count(wrapper) ? tags.at(wrapper) : next;
       subtag = users[arity]++;
     }
-    else { tag = datatypes[name.substr(0, name.find('.'))]++; }
-    out << "Self::" << ident(name) << " => (" << tag << ", " << subtag << "),\n";
+    else
+    {
+      tag = datatypes[name.substr(0, name.find('.'))]++;
+    }
+    out << "Self::" << ident(name) << " => (" << tag << ", " << subtag
+        << "),\n";
   }
   out << "}}\n}\n";
   return out.str();
@@ -208,10 +315,13 @@ std::string RustMetaReduce::literal(const Expr& e)
   std::ostringstream out;
   switch (e.getKind())
   {
-    case Kind::BOOLEAN: return l->d_bool ? "Lit::Bool(true)" : "Lit::Bool(false)";
-    case Kind::NUMERAL: return "Lit::Numeral(parse_int(" + quote(l->d_int.toString()) + ")?)";
+    case Kind::BOOLEAN:
+      return l->d_bool ? "Lit::Bool(true)" : "Lit::Bool(false)";
+    case Kind::NUMERAL:
+      return "Lit::Numeral(parse_int(" + quote(l->d_int.toString()) + ")?)";
     case Kind::RATIONAL:
-    case Kind::DECIMAL: return "Lit::Rational(parse_rat(" + quote(l->d_rat.toString()) + ")?)";
+    case Kind::DECIMAL:
+      return "Lit::Rational(parse_rat(" + quote(l->d_rat.toString()) + ")?)";
     case Kind::BINARY:
     case Kind::HEXADECIMAL:
       out << "Lit::Binary(BitVec::new(" << l->d_bv.getSize() << ", &parse_int("
@@ -219,7 +329,10 @@ std::string RustMetaReduce::literal(const Expr& e)
       return out.str();
     case Kind::STRING:
       out << "Lit::String(EoString::from_code_points(vec![";
-      for (unsigned c : l->d_str.getValue()) { out << c << ','; }
+      for (unsigned c : l->d_str.getVec())
+      {
+        out << c << ',';
+      }
       out << "]))";
       return out.str();
     default: EO_FATAL() << "rust-meta: unsupported literal " << e;
@@ -241,7 +354,10 @@ class RustMetaReduce::Emitter
   }
   std::string ctor(const std::string& name)
   {
-    if (!m.d_constructors.count(name)) { EO_FATAL() << "rust-meta: unknown constructor " << name; }
+    if (!m.d_constructors.count(name))
+    {
+      EO_FATAL() << "rust-meta: unknown constructor " << name;
+    }
     return "Constructor::" + ident(name);
   }
   std::string args(const Expr& t, size_t start, const std::string& sep = ", ")
@@ -254,11 +370,15 @@ class RustMetaReduce::Emitter
     }
     return ret;
   }
-  std::string conditional(const Expr& c, const Expr& yes, const Expr& no, bool native)
+  std::string conditional(const Expr& c,
+                          const Expr& yes,
+                          const Expr& no,
+                          bool native)
   {
     std::string cv = expr(c);
     std::string n = "v" + std::to_string(next++);
-    o << "let " << n << " = match s.boolean_value(" << cv << ", " << (native ? "true" : "false") << ")? {\nSome(true) => {\n";
+    o << "let " << n << " = match s.boolean_value(" << cv << ", "
+      << (native ? "true" : "false") << ")? {\nSome(true) => {\n";
     std::string a = expr(yes);
     o << a << "\n}, Some(false) => {\n";
     std::string b = expr(no);
@@ -267,37 +387,60 @@ class RustMetaReduce::Emitter
   }
   std::string op(Kind k, const Expr& t, size_t start)
   {
-    if (k == Kind::EVAL_HASH) { EO_FATAL() << "rust-meta: eo::hash has no Logos specification"; }
-    if (k == Kind::EVAL_IF_THEN_ELSE) { return conditional(t[start], t[start + 1], t[start + 2], false); }
+    if (k == Kind::EVAL_HASH)
+    {
+      EO_FATAL() << "rust-meta: eo::hash has no Logos specification";
+    }
+    if (k == Kind::EVAL_IF_THEN_ELSE)
+    {
+      return conditional(t[start], t[start + 1], t[start + 2], false);
+    }
     if (k == Kind::EVAL_REQUIRES)
     {
       std::string a = expr(t[start]), b = expr(t[start + 1]);
       std::string n = "v" + std::to_string(next++);
-      o << "let " << n << " = if " << a << " == " << b << " && !s.is_stuck(" << a << ")? {\n";
+      o << "let " << n << " = if " << a << " == " << b << " && !s.is_stuck("
+        << a << ")? {\n";
       std::string r = expr(t[start + 2]);
       o << r << "\n} else { s.stuck() };\n";
       return n;
     }
     std::string as = args(t, start);
-    if (k == Kind::EVAL_TYPE_OF || k == Kind::EVAL_NIL || k == Kind::EVAL_DT_CONSTRUCTORS || k == Kind::EVAL_DT_SELECTORS)
+    if (k == Kind::EVAL_TYPE_OF || k == Kind::EVAL_NIL
+        || k == Kind::EVAL_DT_CONSTRUCTORS || k == Kind::EVAL_DT_SELECTORS)
     {
       return val(ident("$eo_" + kindToTerm(k).substr(4)) + "(s, " + as + ")?");
     }
     // Match by EO name, so the C++ and Rust enum declaration orders are
     // independent. The generated runtime validates arities itself.
-    return val("s.operator(" + quote(kindToTerm(k).substr(4)) + ", &[" + as + "])?");
+    return val("s.operator(" + quote(kindToTerm(k).substr(4)) + ", &[" + as
+               + "])?");
   }
   std::string expr(const Expr& t)
   {
     auto var = vars.find(t);
-    if (var != vars.end()) { return var->second; }
+    if (var != vars.end())
+    {
+      return var->second;
+    }
     Kind k = t.getKind();
-    if (isLiteral(k)) { return val("s.literal(" + literal(t) + ")?"); }
+    if (isLiteral(k))
+    {
+      return val("s.literal(" + literal(t) + ")?");
+    }
     if (t.getNumChildren() == 0)
     {
-      if (k == Kind::PARAM) { EO_FATAL() << "rust-meta: unbound parameter " << t; }
-      if (k == Kind::PROGRAM_CONST) { return val(ident(getName(t)) + "(s)?"); }
-      std::string n = k == Kind::TYPE ? "$emb_Type" : k == Kind::BOOL_TYPE ? "$emb_Bool" : getName(t);
+      if (k == Kind::PARAM)
+      {
+        EO_FATAL() << "rust-meta: unbound parameter " << t;
+      }
+      if (k == Kind::PROGRAM_CONST)
+      {
+        return val(ident(getName(t)) + "(s)?");
+      }
+      std::string n = k == Kind::TYPE        ? "$emb_Type"
+                      : k == Kind::BOOL_TYPE ? "$emb_Bool"
+                                             : getName(t);
       return val("s.construct(" + ctor(n) + ", &[])?");
     }
     if (k == Kind::APPLY_OPAQUE)
@@ -306,7 +449,10 @@ class RustMetaReduce::Emitter
       if (starts(n, "$native_apply_"))
       {
         std::string name = getName(t[1]);
-        if (name == "ite" && t.getNumChildren() == 5) { return conditional(t[2], t[3], t[4], true); }
+        if (name == "ite" && t.getNumChildren() == 5)
+        {
+          return conditional(t[2], t[3], t[4], true);
+        }
         std::string as = args(t, 2);
         return val("s.native(" + quote(name) + ", &[" + as + "])?");
       }
@@ -317,11 +463,17 @@ class RustMetaReduce::Emitter
     {
       std::string n = getName(t[0]);
       Kind b = builtin(n);
-      if (b != Kind::NONE) { return op(b, t, 1); }
+      if (b != Kind::NONE)
+      {
+        return op(b, t, 1);
+      }
       std::string as = args(t, 1);
       return val(ident(n) + "(s" + (as.empty() ? "" : ", " + as) + ")?");
     }
-    if (isLiteralOp(k)) { return op(k, t, 0); }
+    if (isLiteralOp(k))
+    {
+      return op(k, t, 0);
+    }
     if (k == Kind::FUNCTION_TYPE)
     {
       size_t n = t.getNumChildren();
@@ -355,8 +507,14 @@ class RustMetaReduce::Emitter
     if (k == Kind::PARAM)
     {
       auto it = vars.find(t);
-      if (it != vars.end()) { o << "if " << value << " != " << it->second << fail; }
-      else { vars[t] = value; }
+      if (it != vars.end())
+      {
+        o << "if " << value << " != " << it->second << fail;
+      }
+      else
+      {
+        vars[t] = value;
+      }
       return;
     }
     if (k == Kind::FUNCTION_TYPE && t.getNumChildren() == 2)
@@ -388,10 +546,14 @@ class RustMetaReduce::Emitter
       std::string fields;
       if (starts(n, "$native_apply_"))
       {
-        fields = val("s.native_pattern(" + quote(getName(t[1])) + ", " + value + ")?");
+        fields = val("s.native_pattern(" + quote(getName(t[1])) + ", " + value
+                     + ")?");
         start = 2;
       }
-      else { fields = val("s.destruct(" + ctor(n) + ", " + value + ")?"); }
+      else
+      {
+        fields = val("s.destruct(" + ctor(n) + ", " + value + ")?");
+      }
       o << "let Some(fields) = " << fields << " else" << fail << ";\n";
       fields = val("fields");
       for (size_t i = start; i < t.getNumChildren(); ++i)
@@ -415,16 +577,37 @@ class RustMetaReduce::Emitter
   size_t next = 0;
 };
 
-std::string RustMetaReduce::emitProgram(const std::string& name, const Program& p)
+std::string RustMetaReduce::emitProgram(const std::string& name,
+                                        const Program& p)
 {
   std::ostringstream out;
   Emitter e(*this, out);
   bool cases = p.body.getKind() == Kind::PROGRAM;
   Expr ty = cases ? p.symbol.getType() : Expr();
   size_t nargs = cases ? ty.getNumChildren() - 1 : 0;
-  out << "// EO program " << quote(name) << "\npub fn " << ident(name) << "(s: &mut Store";
-  for (size_t i = 0; i < nargs; ++i) { out << ", a" << i << ": Term"; }
+  auto tailCall = [&](const Expr& body) {
+    return body.getKind() == Kind::APPLY && body.getNumChildren() == nargs + 1
+           && body[0] == p.symbol;
+  };
+  bool loop = false;
+  if (cases)
+  {
+    for (size_t i = 0; i < p.body.getNumChildren(); ++i)
+    {
+      loop |= tailCall(p.body[i][1]);
+    }
+  }
+  out << "// EO program " << quote(name) << "\npub fn " << ident(name)
+      << "(s: &mut Store";
+  for (size_t i = 0; i < nargs; ++i)
+  {
+    out << (loop ? ", mut a" : ", a") << i << ": Term";
+  }
   out << ") -> CheckResult<Term> {\ns.enter()?;\nlet result = (|| {\n";
+  if (loop)
+  {
+    out << "'recur: loop {\ns.tick()?;\n";
+  }
   if (cases && !p.isDefine)
   {
     std::vector<MetaKind> kinds;
@@ -439,9 +622,16 @@ std::string RustMetaReduce::emitProgram(const std::string& name, const Program& 
       std::string test;
       for (size_t i = 0; i < nargs; ++i)
       {
-        if (kinds[i] == MetaKind::EUNOIA) { test += (test.empty() ? "" : " || ") + std::string("s.is_stuck(a") + std::to_string(i) + ")?"; }
+        if (kinds[i] == MetaKind::EUNOIA)
+        {
+          test += (test.empty() ? "" : " || ") + std::string("s.is_stuck(a")
+                  + std::to_string(i) + ")?";
+        }
       }
-      if (!test.empty()) { out << "if " << test << " { return Ok(s.stuck()); }\n"; }
+      if (!test.empty())
+      {
+        out << "if " << test << " { return Ok(s.stuck()); }\n";
+      }
     }
   }
   if (cases)
@@ -449,59 +639,198 @@ std::string RustMetaReduce::emitProgram(const std::string& name, const Program& 
     for (size_t c = 0; c < p.body.getNumChildren(); ++c)
     {
       Expr pat = p.body[c][0];
-      if (pat.getNumChildren() != nargs + 1) { EO_FATAL() << "rust-meta: bad pattern arity for " << name; }
+      if (pat.getNumChildren() != nargs + 1)
+      {
+        EO_FATAL() << "rust-meta: bad pattern arity for " << name;
+      }
       out << "'case" << c << ": {\n";
       e.vars.clear();
-      for (size_t j = 0; j < nargs; ++j) { e.pattern(pat[j + 1], "a" + std::to_string(j), c); }
-      std::string v = e.expr(p.body[c][1]);
-      out << "return Ok(" << v << ");\n}\n";
+      for (size_t j = 0; j < nargs; ++j)
+      {
+        e.pattern(pat[j + 1], "a" + std::to_string(j), c);
+      }
+      Expr body = p.body[c][1];
+      if (loop && tailCall(body))
+      {
+        std::vector<std::string> next;
+        for (size_t j = 1; j <= nargs; ++j)
+        {
+          std::string value = e.expr(body[j]);
+          next.push_back(e.val(value));
+        }
+        // Evaluate every argument before overwriting any of the inputs.
+        for (size_t j = 0; j < nargs; ++j)
+        {
+          out << "a" << j << " = " << next[j] << ";\n";
+        }
+        out << "continue 'recur;\n}\n";
+      }
+      else
+      {
+        std::string v = e.expr(body);
+        out << "return Ok(" << v << ");\n}\n";
+      }
     }
-    out << "Ok(s.stuck())\n";
+    out << (loop ? "return Ok(s.stuck());\n}\n" : "Ok(s.stuck())\n");
   }
-  else { std::string v = e.expr(p.body); out << "Ok(" << v << ")\n"; }
+  else
+  {
+    std::string v = e.expr(p.body);
+    out << "Ok(" << v << ")\n";
+  }
   out << "})();\ns.leave();\nresult\n}\n";
   return out.str();
 }
 
-void RustMetaReduce::output(const std::string& file, const std::string& text) const
+void RustMetaReduce::output(const std::string& file,
+                            const std::string& text) const
 {
   std::string path = getOutputPath("plugins/rust_meta/checker/" + file);
   std::ofstream out(path);
-  if (!out || !(out << text)) { EO_FATAL() << "rust-meta: cannot write " << path; }
+  if (!out || !(out << text))
+  {
+    EO_FATAL() << "rust-meta: cannot write " << path;
+  }
 }
 
 void RustMetaReduce::finalize()
 {
   if (!d_programs.count("$eo_checker_is_refutation"))
   {
-    EO_FATAL() << "rust-meta: expected structural desugar output including the whole checker";
+    EO_FATAL() << "rust-meta: expected structural desugar output including the "
+                  "whole checker";
   }
   auto names = reachable();
   std::ostringstream code, manifest;
   code << "use crate::*;\n";
-  manifest << "source\trust\n";
+  manifest << "source\trust\tlean_identifier\n";
   // Complete generation before opening outputs, so unsupported constructs
   // cannot leave behind a partially generated checker.
   for (const auto& n : names)
   {
     code << emitProgram(n, d_programs.at(n));
-    manifest << n << '\t' << ident(n) << '\n';
+    std::string lean = replace_all(n, "-", "_");
+    if (lean == "end" || lean == "variable")
+    {
+      lean = "__eo_" + lean;
+    }
+    else
+    {
+      for (const auto& replacement : std::vector<Replacement>{{"++", "concat"},
+                                                              {"+", "plus"},
+                                                              {"-", "neg"},
+                                                              {"*", "mult"},
+                                                              {"=>", "imp"},
+                                                              {"<=", "leq"},
+                                                              {"<", "lt"},
+                                                              {">=", "geq"},
+                                                              {">", "gt"},
+                                                              {"=", "eq"},
+                                                              {"/", "qdiv"},
+                                                              {"^", "exp"},
+                                                              {".", "_"},
+                                                              {"@", "_at_"},
+                                                              {"$", "__"}})
+      {
+        lean = replace_all(lean, replacement.first, replacement.second);
+      }
+    }
+    manifest << n << '\t' << ident(n) << '\t' << lean << '\n';
   }
-  std::string lib = read(getResourcePath("plugins/rust_meta/runtime/lib.rs.in"));
-  for (const char* n : {"$eo_typeof", "$eo_nil", "$eo_is_list_nil", "$eo_checker_is_refutation"})
+  std::string lib =
+      read(getResourcePath("plugins/rust_meta/runtime/lib.rs.in"));
+  for (const char* n : {"$eo_typeof",
+                        "$eo_nil",
+                        "$eo_is_list_nil",
+                        "$eo_checker_is_refutation"})
   {
     lib = replace_all(lib, "@" + std::string(n) + "@", ident(n));
   }
+  bool translation = true;
+  for (const char* n : {"$eo_to_smt",
+                        "$eo_to_smt_type",
+                        "$smtx_typeof",
+                        "$smtx_type_wf",
+                        "$smtx_type_wf_component"})
+  {
+    translation &= names.count(n) != 0;
+  }
+  std::string checks =
+      read(getResourcePath("plugins/rust_meta/runtime/translation.rs.in"));
+  checks =
+      replace_all(checks, "@HAS_TRANSLATION@", translation ? "true" : "false");
+  const std::string unavailable =
+      "let _ = t; Err(CheckError::UnsupportedNative(\"SMT translation is "
+      "unavailable\".into()))";
+  checks = replace_all(checks,
+                       "@TRANSLATION_TYPE@",
+                       translation ? "let t = generated::" + ident("$eo_to_smt")
+                                         + "(self, t)?; generated::"
+                                         + ident("$smtx_typeof") + "(self, t)"
+                                   : unavailable);
+  checks = replace_all(
+      checks,
+      "@TRANSLATION_SORT@",
+      translation ? "generated::" + ident("$eo_to_smt_type") + "(self, t)"
+                  : unavailable);
+  checks = replace_all(
+      checks,
+      "@TRANSLATION_WF@",
+      translation
+          ? "let b = if component { generated::"
+                + ident("$smtx_type_wf_component")
+                + "(self, t)? } else { generated::" + ident("$smtx_type_wf")
+                + "(self, t)? }; Ok(self.boolean_value(b, true)? == Some(true))"
+          : "let _ = component; " + unavailable);
+  std::istringstream masks(
+      read(getResourcePath("plugins/rust_meta/cpc_translation_masks.txt")));
+  std::ostringstream maskCode;
+  std::string line;
+  while (std::getline(masks, line))
+  {
+    if (line.empty() || line[0] == '#')
+    {
+      continue;
+    }
+    std::istringstream words(line);
+    std::string rule, kind;
+    words >> rule;
+    maskCode << quote("$emb_r." + rule) << " => Some(&[";
+    while (words >> kind)
+    {
+      maskCode << quote(kind) << ",";
+    }
+    maskCode << "]),\n";
+  }
+  checks = replace_all(checks, "@TRANSLATION_MASKS@", maskCode.str());
+  lib += checks;
   output("src/lib.rs", lib);
   output("src/generated.rs", code.str());
   output("src/schema.rs", schema());
   output("functions.tsv", manifest.str());
-  for (const char* file : {"num.rs", "eostring.rs", "bitvec.rs", "lit.rs", "kind.rs", "codec.rs"})
+  std::ostringstream constructors;
+  constructors << "source\trust\tarity\n";
+  for (const auto& c : d_constructors)
   {
-    output(std::string("src/") + file, read(getResourcePath(std::string("plugins/rust_meta/runtime/") + file)));
+    constructors << c.first << '\t' << ident(c.first) << '\t' << c.second.arity
+                 << '\n';
   }
-  output("Cargo.toml", read(getResourcePath("plugins/rust_meta/runtime/Cargo.toml.in")));
-  output("LICENSE.pathos", read(getResourcePath("plugins/rust_meta/runtime/LICENSE.pathos")));
+  output("constructors.tsv", constructors.str());
+  for (const char* file :
+       {"num.rs", "eostring.rs", "bitvec.rs", "lit.rs", "kind.rs", "codec.rs"})
+  {
+    output(std::string("src/") + file,
+           read(getResourcePath(std::string("plugins/rust_meta/runtime/")
+                                + file)));
+  }
+  output("Cargo.toml",
+         read(getResourcePath("plugins/rust_meta/runtime/Cargo.toml.in")));
+  output("Cargo.lock",
+         read(getResourcePath("plugins/rust_meta/runtime/Cargo.lock.in")));
+  output("DEPENDENCIES.md",
+         read(getResourcePath("plugins/rust_meta/runtime/DEPENDENCIES.md")));
+  output("LICENSE.pathos",
+         read(getResourcePath("plugins/rust_meta/runtime/LICENSE.pathos")));
 }
 
 }  // namespace ethos

@@ -1,0 +1,31 @@
+(include "../../../tests/Booleans-rules.eo")
+
+(declare-parameterized-const test-index
+  ((hi Int :opaque) (lo Int :opaque)) Bool)
+(declare-const test-left (-> Bool Bool Bool) :left-assoc-nil false)
+
+(declare-rule scope ((F Bool) (G Bool))
+  :assumption F
+  :premises (G)
+  :conclusion (=> F G))
+
+; Nonlinear patterns fall through on an equality mismatch.
+(program $eo_prog_nonlin ((x Bool) (y Bool)) :signature (Bool Bool) Bool (
+  (($eo_prog_nonlin x x) true)
+  (($eo_prog_nonlin x y) false)))
+
+; Once a case matches, a failed requirement does not try the next case.
+(program $eo_prog_require_first ((x Bool)) :signature (Bool) Bool (
+  (($eo_prog_require_first x) (eo::requires x true false))
+  (($eo_prog_require_first x) true)))
+
+(program $loop ((x Bool)) :signature (Bool) Bool (
+  (($loop x) ($loop x))))
+
+; The unchosen branch must not be evaluated, including recursive calls.
+(program $eo_prog_lazy ((x Bool)) :signature (Bool) Bool (
+  (($eo_prog_lazy x) (eo::ite x true ($loop x)))))
+
+(program $eo_prog_swap ((n Int) (x Bool) (y Bool)) :signature (Int Bool Bool) Bool (
+  (($eo_prog_swap 0 x y) x)
+  (($eo_prog_swap n x y) ($eo_prog_swap 0 y x))))

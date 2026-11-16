@@ -63,6 +63,12 @@ jobs:
     - name: Check the driver interface
       run: python3 tools/eoc/test/driver.py
 
+    - name: Compile and test an emitted Rust checker
+      run: |
+        rustup toolchain install stable --profile minimal --component clippy,rustfmt
+        rustup default stable
+        python3 plugins/rust_meta/test/run.py --build-dir build-eoc
+
     # What reads back the verification conditions the pipeline writes. A digest
     # says the bytes did not move; only a solver says they are well formed, and
     # a change to the native layer of plugins/smt_meta/smt-vc.eos can leave a

@@ -31,6 +31,11 @@ account of the language supported by the checker.
 
 ## Any calculus, several targets
 
+The `rust` command emits a standalone safe-Rust checker for Pathos, including
+the checking loop and builtin runtime, without a proof parser. See the
+[Rust backend](../../plugins/rust_meta/README.md) for generation, integration
+and the boundary of the planned Logos verification.
+
 A run names the signature to compile and, separately, what its symbols mean.
 The local regressions compile `tests/Booleans-rules.eo` and
 `tools/eoc/test/nary-nil.eo` using the small `test/semantics.eos` fixture.
@@ -46,6 +51,7 @@ description of what its symbols mean:
 | Target | What it produces | Command |
 | --- | --- | --- |
 | **Lean** | a proof checker for the calculus, its term language, and one lemma per proof rule | `driver.py lean` |
+| **Rust** | a standalone parser-free checker, builtin runtime and constructor/function manifests for Pathos | `driver.py rust` |
 | **SMT-LIB** | a verification condition per proof rule; a solver that refutes it has shown the rule sound | `driver.py vc` |
 | **SyGuS** | a synthesis query per proof rule, which searches for a counterexample to it | `driver.py vc --sygus` |
 
@@ -739,6 +745,21 @@ python3 tools/eoc/driver.py batch --build-dir build-eoc --semantics <logos>/inst
 rule and input semantics configuration. The CLI definitions in `driver.py`
 are the source for option names; this reference is not mechanically compared
 with `--help`.
+
+### `rust`
+
+Compile the whole signature to a standalone Rust crate under the final output
+directory's `rust/` subdirectory:
+
+```bash
+python3 tools/eoc/driver.py rust --build-dir build-eoc --semantics SEMANTICS INPUT
+```
+
+This includes the checker loop and preserves builtin evaluation as Rust
+operations. It needs no solver. Without `--semantics`, only derivability is
+checked and an accepted refutation has the `Incomplete` Logos verdict. See
+the [backend documentation](../../plugins/rust_meta/README.md) for the API,
+CPC configuration and verification boundary.
 
 ### `vc`
 

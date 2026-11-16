@@ -1,0 +1,239 @@
+use pathos_compiled_checker::*;
+
+fn n(s: &mut Store, name: &str, args: &[Term]) -> Term {
+    s.named(name, args).unwrap()
+}
+fn index(s: &mut Store, i: u32) -> Term {
+    s.raw(Lit::Numeral(Integer::from(i))).unwrap()
+}
+fn list(s: &mut Store, nil: &str, cons: &str, ts: &[Term]) -> Term {
+    let mut tail = n(s, nil, &[]);
+    for &t in ts.iter().rev() {
+        tail = n(s, cons, &[t, tail]);
+    }
+    tail
+}
+
+#[test]
+fn checks_a_complete_refutation_and_rejects_wrong_premises() {
+    let mut s = Store::default();
+    let ty = n(&mut s, "$emb_Bool", &[]);
+    let id = index(&mut s, 0);
+    let p = n(&mut s, "$emb_UConst", &[id, ty]);
+    let not = n(&mut s, "not", &[]);
+    let np = s.apply(not, p).unwrap();
+    let assumptions = list(&mut s, "$emb_al.nil", "$emb_al.cons", &[p, np]);
+    let args = n(&mut s, "$emb_al.nil", &[]);
+    let i0 = index(&mut s, 0);
+    let i1 = index(&mut s, 1);
+    let premises = list(&mut s, "$emb_indl.nil", "$emb_indl.cons", &[i0, i1]);
+    let contra = n(&mut s, "$emb_r.contra", &[]);
+    let step = n(&mut s, "$emb_cmd.step", &[contra, args, premises]);
+    let commands = list(&mut s, "$emb_cmdl.nil", "$emb_cmdl.cons", &[step]);
+    assert_eq!(s.check_refutation(assumptions, commands), Ok(true));
+    let expected = if Constructor::from_name("$emb_tsm.None").is_some() {
+        Verdict::Correct
+    } else {
+        Verdict::Incomplete
+    };
+    assert_eq!(s.check_proof(assumptions, commands), Ok(expected));
+    let wrong = list(&mut s, "$emb_indl.nil", "$emb_indl.cons", &[i1, i0]);
+    let bad_step = n(&mut s, "$emb_cmd.step", &[contra, args, wrong]);
+    let bad = list(&mut s, "$emb_cmdl.nil", "$emb_cmdl.cons", &[bad_step]);
+    assert_eq!(s.check_refutation(assumptions, bad), Ok(false));
+    let empty = n(&mut s, "$emb_cmdl.nil", &[]);
+    assert_eq!(s.check_refutation(assumptions, empty), Ok(false));
+}
+
+#[test]
+fn step_pop_discharges_its_assumption() {
+    let mut s = Store::default();
+    let yes = s.boolean(true).unwrap();
+    let imp = n(&mut s, "=>", &[]);
+    let a = s.apply(imp, yes).unwrap();
+    let tautology = s.apply(a, yes).unwrap();
+    let not = n(&mut s, "not", &[]);
+    let denial = s.apply(not, tautology).unwrap();
+    let assumptions = list(&mut s, "$emb_al.nil", "$emb_al.cons", &[denial]);
+    let args = n(&mut s, "$emb_al.nil", &[]);
+    let zero = index(&mut s, 0);
+    let one = index(&mut s, 1);
+    let scope = n(&mut s, "$emb_r.scope", &[]);
+    let premises = list(&mut s, "$emb_indl.nil", "$emb_indl.cons", &[zero]);
+    let pop = n(&mut s, "$emb_cmd.step_pop", &[scope, args, premises]);
+    let push = n(&mut s, "$emb_cmd.assume_push", &[yes]);
+    let contra = n(&mut s, "$emb_r.contra", &[]);
+    let premises = list(&mut s, "$emb_indl.nil", "$emb_indl.cons", &[zero, one]);
+    let contradiction = n(&mut s, "$emb_cmd.step", &[contra, args, premises]);
+    let commands = list(
+        &mut s,
+        "$emb_cmdl.nil",
+        "$emb_cmdl.cons",
+        &[push, pop, contradiction],
+    );
+    assert_eq!(s.check_refutation(assumptions, commands), Ok(true));
+}
+
+#[test]
+fn open_scope_and_ill_typed_assumptions_are_rejected() {
+    let mut s = Store::default();
+    let f = s.boolean(false).unwrap();
+    let args = n(&mut s, "$emb_al.nil", &[]);
+    let push = n(&mut s, "$emb_cmd.assume_push", &[f]);
+    let cmds = list(&mut s, "$emb_cmdl.nil", "$emb_cmdl.cons", &[push]);
+    assert_eq!(s.check_refutation(args, cmds), Ok(false));
+    let numeral = s.numeral(Integer::one()).unwrap();
+    let bad = list(&mut s, "$emb_al.nil", "$emb_al.cons", &[numeral]);
+    let empty = n(&mut s, "$emb_cmdl.nil", &[]);
+    assert_eq!(s.check_refutation(bad, empty), Ok(false));
+}
+
+#[test]
+fn primitive_edge_cases_and_interning() {
+    let mut s = Store::default();
+    let x = s.numeral(Integer::parse("-7", 10).unwrap()).unwrap();
+    let y = s.numeral(Integer::from(2u32)).unwrap();
+    let q = s.builtin(EvalOp::IntDiv, &[x, y]).unwrap();
+    assert_eq!(
+        s.view(q),
+        Ok(&TermData::Literal(Lit::Numeral(
+            Integer::parse("-4", 10).unwrap()
+        )))
+    );
+    let zero = s.numeral(Integer::zero()).unwrap();
+    assert_eq!(s.builtin(EvalOp::IntDiv, &[x, zero]), Ok(s.stuck()));
+    let stuck = s.stuck();
+    let no = s.boolean(false).unwrap();
+    assert_eq!(s.builtin(EvalOp::IsEq, &[stuck, stuck]), Ok(no));
+    assert_eq!(s.literal(Lit::Numeral(Integer::from(2u32))), Ok(y));
+    assert_eq!(
+        s.named("$emb_cmd.step", &[]),
+        Err(CheckError::InvalidConstructor)
+    );
+    // Term order follows Logos constructor/field order, independently of
+    // allocation order. Rational fields compare numerator, then denominator.
+    let real = n(&mut s, "Real", &[]);
+    let int = n(&mut s, "Int", &[]);
+    assert!(s.compare(int, real).unwrap().is_lt());
+    let half = s
+        .literal(Lit::Rational(Rational::parse("1/2").unwrap()))
+        .unwrap();
+    let third = s
+        .literal(Lit::Rational(Rational::parse("1/3").unwrap()))
+        .unwrap();
+    assert!(s.compare(half, third).unwrap().is_lt());
+}
+
+#[test]
+fn primitive_lists_preserve_order_and_multiplicity() {
+    let mut s = Store::default();
+    let t = s.boolean(true).unwrap();
+    let f = s.boolean(false).unwrap();
+    let mut names = vec!["or"];
+    if Constructor::from_name("test-left").is_some() {
+        names.push("test-left");
+    }
+    for name in names {
+        let op = n(&mut s, name, &[]);
+        let tail = s.builtin(EvalOp::Cons, &[op, t, f]).unwrap();
+        let xs = s.builtin(EvalOp::Cons, &[op, t, tail]).unwrap();
+        let length = s.builtin(EvalOp::ListLength, &[op, xs]).unwrap();
+        let two = s.numeral(Integer::from(2u32)).unwrap();
+        assert_eq!(length, two);
+        assert_eq!(s.builtin(EvalOp::ListMinclude, &[op, xs, tail]), Ok(t));
+        assert_eq!(s.builtin(EvalOp::ListMinclude, &[op, tail, xs]), Ok(f));
+        assert_eq!(s.builtin(EvalOp::ListDiff, &[op, xs, tail]), Ok(tail));
+        assert_eq!(s.builtin(EvalOp::ListSetof, &[op, xs]), Ok(tail));
+    }
+}
+
+#[test]
+fn resource_exhaustion_is_an_error() {
+    let mut s = Store::new(Limits {
+        calls: 0,
+        ..Limits::default()
+    });
+    let assumptions = n(&mut s, "$emb_al.nil", &[]);
+    let commands = n(&mut s, "$emb_cmdl.nil", &[]);
+    assert_eq!(
+        s.check_refutation(assumptions, commands),
+        Err(CheckError::Limit)
+    );
+}
+
+#[test]
+fn long_command_lists_use_a_loop() {
+    let mut s = Store::default();
+    let f = s.boolean(false).unwrap();
+    let not = n(&mut s, "not", &[]);
+    let nf = s.apply(not, f).unwrap();
+    let nnf = s.apply(not, nf).unwrap();
+    let assumptions = list(&mut s, "$emb_al.nil", "$emb_al.cons", &[nnf]);
+    let args = n(&mut s, "$emb_al.nil", &[]);
+    let zero = index(&mut s, 0);
+    let premises = list(&mut s, "$emb_indl.nil", "$emb_indl.cons", &[zero]);
+    let rule = n(&mut s, "$emb_r.not_not_elim", &[]);
+    let step = n(&mut s, "$emb_cmd.step", &[rule, args, premises]);
+    let check = n(&mut s, "$emb_cmd.check_proven", &[f]);
+    let mut steps = vec![step];
+    steps.extend(vec![check; 2000]);
+    let cmds = list(&mut s, "$emb_cmdl.nil", "$emb_cmdl.cons", &steps);
+    assert_eq!(s.check_refutation(assumptions, cmds), Ok(true));
+}
+
+#[test]
+fn indexed_operators_have_the_logos_wrapper_view() {
+    let mut s = Store::default();
+    let name = if Constructor::from_name("test-index").is_some() {
+        "test-index"
+    } else {
+        "extract"
+    };
+    let ty = n(&mut s, "Int", &[]);
+    let name_term = s.literal(Lit::String(EoString::parse("x", false))).unwrap();
+    let variable = n(&mut s, "$emb_Var", &[name_term, ty]);
+    let zero = s.numeral(Integer::zero()).unwrap();
+    let indexed = n(&mut s, name, &[variable, zero]);
+    let wrapper = Constructor::from_name("$emb_UOp2").unwrap();
+    let fields = s.destruct(wrapper, indexed).unwrap().unwrap();
+    assert_eq!(fields.len(), 3);
+    assert_eq!(s.construct(wrapper, &fields), Ok(indexed));
+    let no = s.boolean(false).unwrap();
+    assert_eq!(generated::eo__24eo_5fis_5fclosed(&mut s, indexed), Ok(no));
+}
+
+#[test]
+fn nonlinear_patterns_requirements_and_lazy_branches() {
+    let mut s = Store::new(Limits {
+        calls: 1000,
+        ..Limits::default()
+    });
+    let yes = s.boolean(true).unwrap();
+    let no = s.boolean(false).unwrap();
+    assert_eq!(
+        generated::eo__24eo_5fprog_5fnonlin(&mut s, yes, yes),
+        Ok(yes)
+    );
+    assert_eq!(generated::eo__24eo_5fprog_5fnonlin(&mut s, yes, no), Ok(no));
+    let stuck = s.stuck();
+    assert_eq!(
+        generated::eo__24eo_5fprog_5frequire_5ffirst(&mut s, no),
+        Ok(stuck)
+    );
+    assert_eq!(generated::eo__24eo_5fprog_5flazy(&mut s, yes), Ok(yes));
+    assert_eq!(
+        generated::eo__24eo_5fprog_5flazy(&mut s, no),
+        Err(CheckError::Limit)
+    );
+    // A failed call must restore the depth counter (and the call budget
+    // remains exhausted until a new proof starts).
+    let assumptions = n(&mut s, "$emb_al.nil", &[]);
+    let commands = n(&mut s, "$emb_cmdl.nil", &[]);
+    assert_eq!(s.check_refutation(assumptions, commands), Ok(false));
+    assert_eq!(generated::eo__24eo_5fprog_5flazy(&mut s, yes), Ok(yes));
+    let one = s.numeral(Integer::one()).unwrap();
+    assert_eq!(
+        generated::eo__24eo_5fprog_5fswap(&mut s, one, yes, no),
+        Ok(no)
+    );
+}
