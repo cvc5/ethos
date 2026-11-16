@@ -161,6 +161,20 @@ class LeanMetaReduce : public MetaReducePlugin
    */
   std::string printTheoryOpDefs() const;
   /**
+   * The generated parts of LogosTermOrder: the comparison of each UserOp
+   * inductive printTheoryOpDefs writes, as the text of the
+   * $LEAN_EO_USER_OP_CMPS$ hole, and the cases of termCmp, one per
+   * constructor of Term in d_termCons, as the text of $LEAN_TERM_CMP$.
+   */
+  std::string printUserOpCmps() const;
+  std::string printTermCmp() const;
+  /**
+   * The comparison a term-order case calls for an argument of Lean type t:
+   * the type with any native_ prefix dropped, its first letter lowered and
+   * Cmp appended, e.g. intCmp for native_Int and userOp1Cmp for UserOp1.
+   */
+  static std::string getTermCmpMethod(const std::string& t);
+  /**
    * The inductives of the datatypes the target declared the constructors of,
    * as the text of the $LEAN_SMT_EMBED_DEFS$ hole of SmtSyntax if syntax and
    * of SmtModelDefs otherwise, see d_embedDt and isSyntaxDatatype.
@@ -259,6 +273,11 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_eoIsObjDefsSimple;
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
+  /**
+   * The constructors of Term in d_embedTermDt, in order, each with the Lean
+   * types of its arguments; what printTermCmp writes its cases from.
+   */
+  std::vector<std::pair<std::string, std::vector<std::string>>> d_termCons;
   /**
    * The datatypes of the embedding the target declares the constructors of,
    * i.e. what a value is built over rather than a value: the map, the
