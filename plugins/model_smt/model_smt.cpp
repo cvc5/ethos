@@ -204,40 +204,27 @@ void ModelSmt::loadDefs()
     }
     emitAt(b);
   }
-  // The general cases of an aggregate, i.e. what no symbol claims, which stand
-  // after every symbol's, in the order the input declares them. Those of a
-  // default give way to any other block's: the plain application stands
-  // where no binder that reduces a redex is taken, and only there. Every
-  // signature gives some, since what no symbol claims is the signature's to
-  // say rather than the template's.
+  // The general cases of an aggregate, i.e. what no symbol claims, which
+  // stand after every symbol's, in the order the input declares them. Those
+  // of a default give way to any other block's: the plain application stands
+  // where no binder that reduces a redex is taken, and only there.
   for (const DefsAggregate& a : d_smtDefs.getAggregates())
   {
-    if (a.d_general.empty())
-    {
-      continue;
-    }
     std::vector<const std::vector<std::string>*> own, defaults;
     for (const DefsBlock* b : byDecl)
     {
       std::map<std::string, std::vector<std::string>>::const_iterator it =
-          b->d_general.find(a.d_general);
+          b->d_general.find(a.d_into);
       if (it != b->d_general.end())
       {
         (b->d_default ? defaults : own).push_back(&it->second);
       }
     }
-    if (own.empty() && defaults.empty())
-    {
-      EO_FATAL() << "ModelSmt: no signature gives a general case of "
-                 << a.d_name
-                 << ", i.e. says what an application no symbol claims "
-                    "translates to";
-    }
     for (const std::vector<std::string>* cs : own.empty() ? defaults : own)
     {
       for (const std::string& c : *cs)
       {
-        d_at[a.d_general] << "  " << c << std::endl;
+        d_at[a.d_into] << "  " << c << std::endl;
       }
     }
   }
@@ -316,13 +303,6 @@ void ModelSmt::finalize()
   for (const DefsHelper& h : d_smtDefs.getHelpers())
   {
     replacePlaceholder(finalSmt, h.d_forward, d_at[h.d_forward].str());
-  }
-  for (const DefsAggregate& a : d_smtDefs.getAggregates())
-  {
-    if (!a.d_general.empty())
-    {
-      replacePlaceholder(finalSmt, a.d_general, d_at[a.d_general].str());
-    }
   }
   // What the stage says for itself, which no aggregate names: the programs the
   // cases call, and the constructors, which are written where the datatype

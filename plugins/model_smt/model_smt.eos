@@ -72,19 +72,9 @@
 ; What a symbol of the input becomes, and what a type constructor of it
 ; becomes. The second is the longer name, and so the one a case of it belongs
 ; to.
-;
-; What no symbol claims is the signature's to say as well: an application, e.g.
-; of an uninterpreted function or of a binder to its arguments, matches no case
-; of one symbol. :general is what says a signature gives cases of the
-; aggregate itself, written as a program named after it, and where they are
-; written: after every symbol's, which they would otherwise shadow. Every
-; signature gives at least one. One marked :default stands only where no block
-; taken gives any of its own, which is how a binder that may be trimmed away
-; overrides the plain application.
 (declare-aggregate-method $eo_to_smt
-  :case    $eoc_transform_
-  :into    $EO_TO_SMT_CASES$
-  :general $EO_TO_SMT_GENERAL_CASES$)
+  :case $eoc_transform_
+  :into $EO_TO_SMT_CASES$)
 
 (declare-aggregate-method $eo_to_smt_type
   :case $eoc_transform_type_

@@ -17,8 +17,8 @@
 (define-symbol xor (x y))
 (define-symbol = (x y))
 
-; An application no symbol claims, which every signature says, see :general in
-; plugins/model_smt/model_smt.eos.
+; An application no symbol claims, i.e. a general case of $eo_to_smt, which
+; stands after every symbol's; see DefsBlock::d_general.
 (program $eo_to_smt ((T Type) (U Type) (f (-> U T)) (y U))
   :keep
   :signature (T) SmtTerm

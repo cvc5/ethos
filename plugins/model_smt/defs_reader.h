@@ -42,15 +42,6 @@ struct DefsAggregate
   std::string d_case;
   /** The marker of the template what is taken from it is written at. */
   std::string d_into;
-  /**
-   * The marker the signature's general cases of it are written at, i.e. the
-   * ones of no symbol, which it is to give, as the head says with
-   *
-   *   ; $eoc-general <name> <marker>
-   *
-   * Empty where the aggregate takes none. See DefsBlock::d_general.
-   */
-  std::string d_general;
 };
 
 /**
@@ -192,9 +183,9 @@ struct DefsBlock
   /**
    * The general cases the block gives, i.e. the cases of a program named
    * after an aggregate rather than after a symbol, keyed by the marker the
-   * aggregate writes them at, see DefsAggregate::d_general. What no symbol
-   * claims -- an application -- is what they are for, so they stand after
-   * every symbol's cases rather than with the block's own.
+   * aggregate is written at. What no symbol claims -- an application -- is
+   * what they are for, so by convention they stand after every symbol's
+   * cases, last before whatever the template ends the aggregate with.
    */
   std::map<std::string, std::vector<std::string>> d_general;
 };

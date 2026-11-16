@@ -852,7 +852,7 @@ EMBED_DATATYPES = Shape([], keyword='declare-embed-datatype',
 AGGREGATES = Shape([], keyword='declare-aggregate-method', noun='aggregate',
                    params=False,
                    extra_attrs={'case': 1, 'into': 1, 'helper': 1,
-                                'forward': 1, 'general': 1})
+                                'forward': 1})
 
 # ---------------------------------------------------------------------------
 # The values of the SMT-LIB signature, which stand in the same file

@@ -1289,7 +1289,7 @@ class Program(Entry):
     self.keep = keep or default
     # Whether its cases, being general cases of an aggregate, stand only where
     # no block taken gives general cases of that aggregate of its own; see
-    # :general in plugins/model_smt/model_smt.eos.
+    # DefsBlock::d_general in plugins/model_smt/defs_reader.h.
     self.default = default
     self.params = params        # what each parameter is called
     self.sig = sig              # the type of each argument, as written
