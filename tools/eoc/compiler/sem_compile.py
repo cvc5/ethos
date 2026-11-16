@@ -1070,7 +1070,9 @@ def check_order(blocks, name, exempt=(), declared=()):
   the default of a type may name the value it is whichever block comes first.
 
   `declared` names what the template forward declares, which stands ahead of
-  every block; see template_forward_decls.
+  every block; see template_forward_decls. An aggregate is among those: the
+  template is what defines it, so a program of a set named after one gives
+  cases of it rather than defining it, see DefsBlock::d_general.
   """
   owner = {d: -1 for d in declared}
   for i, (_sym, text) in enumerate(blocks):
@@ -1441,7 +1443,8 @@ def main():
       bad += check_order(blocks, report.rel(config.target),
                          config.decls.helper_prefixes()
                          + config.decls.constructor_prefixes(),
-                         template_forward_decls(AGGREGATE_TEMPLATE))
+                         template_forward_decls(AGGREGATE_TEMPLATE)
+                         | set(aggregates()))
       for text, target, what in written(blocks, config):
         state, wrong = check_current(text, target)
         done.append((report.rel(target), state, None if wrong else what))
