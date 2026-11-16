@@ -92,7 +92,8 @@ class Lexer
   {
     if (d_bufferPos < d_bufferEnd)
     {
-      d_ch = d_buffer[d_bufferPos];
+      // convert through unsigned char, so that e.g. 0xFF is not EOF
+      d_ch = static_cast<unsigned char>(d_buffer[d_bufferPos]);
       d_bufferPos++;
     }
     else if (d_isInteractive)
@@ -110,7 +111,7 @@ class Lexer
       }
       else
       {
-        d_ch = d_buffer[0];
+        d_ch = static_cast<unsigned char>(d_buffer[0]);
         d_bufferPos = 1;
       }
     }
@@ -216,6 +217,9 @@ class Lexer
     BIT = (1 << 3),
     SYMBOL_START = (1 << 4),
     SYMBOL = (1 << 5),
+    // whitespace and the printable characters, where all non-ASCII characters
+    // are considered printable, as they may be part of UTF-8 encodings.
+    PRINTABLE = (1 << 6),
   };
   /** The set of non-letter/non-digit characters that may occur in keywords. */
   inline static const std::string s_extraSymbolChars = "+-/*=%?!.$_~&^<>@";

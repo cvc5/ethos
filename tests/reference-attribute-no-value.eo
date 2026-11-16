@@ -1,0 +1,4 @@
+; regression: the value of set-info and set-option is optional.
+(reference "reference-attribute-no-value.smt2")
+(assume @p0 a)
+(set-option :a)

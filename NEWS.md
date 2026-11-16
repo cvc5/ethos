@@ -1,5 +1,22 @@
 This file contains a summary of important user-visible changes.
 
+ethos 0.2.6
+===========
+
+- An operator marked `:right-assoc` or `:left-assoc` applied to one argument is now a partial application, as documented, instead of the argument itself.
+- An `include` after a `reference` no longer disables the checks that assumptions are among the referenced assertions.
+- `(reset)` is no longer permitted in signature (`*.eo`) files. It no longer removes the builtin symbols, and now forgets the included files and the reference, so that both can be given again.
+- `eo::extract` requires exactly three arguments.
+- Control characters other than whitespace, e.g. NUL, are now errors in string literals and quoted symbols instead of being dropped or causing crashes, as is a backslash in a quoted symbol, following SMT-LIB.
+- The value of `set-info` and `set-option` is now optional, e.g. `(set-info :a)`, following SMT-LIB.
+- Symbols such as `-.5` and `-/5` are no longer parsed as decimal or rational literals.
+- The constructors given by `:binder` and `:let-binder` can no longer depend on the parameters of `declare-parameterized-const`. Documents the attribute `:let-binder`.
+- A quoted parameter `(eo::quote x)` in a program signature must now agree with the binding of `x` from the types of earlier arguments.
+- Hexadecimal literals are printed with their leading zeros, and in binary if their width is not a positive multiple of 4, e.g. the result of `eo::extract`.
+- Missing input, include and reference files, and directories given as such files, are now reported as errors on all platforms.
+- Fixes crashes on builtin operators applied to too few arguments, and on several malformed literals and inputs.
+- Fixes a bug where deleting a term could remove other live terms from the term table, so that syntactically equal terms were treated as distinct.
+
 ethos 0.2.5
 ===========
 

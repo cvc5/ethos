@@ -1,0 +1,4 @@
+; regression: -/5 is not a rational literal.
+(declare-const Real Type)
+(declare-consts <rational> Real)
+(define x () -/5)

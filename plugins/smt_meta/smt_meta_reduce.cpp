@@ -923,12 +923,16 @@ bool SmtMetaReduce::echo(const std::string& msg)
     Expr vv = d_state.getVar(eosc);
     if (vv.isNull())
     {
-      Assert(false)
+      EO_FATAL()
           << "When making verification condition, could not find program "
           << eosc;
     }
     Expr def = d_state.getProgram(vv.getValue());
-    Assert(!def.isNull());
+    if (def.isNull() || def.getNumChildren() == 0)
+    {
+      EO_FATAL() << "When making verification condition, " << eosc
+                 << " is not a program with at least one case";
+    }
     Expr patCall = def[0][0];
     Assert(!patCall.isNull());
     // The conjecture stands at the end of the file, below everything.

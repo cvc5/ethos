@@ -237,6 +237,10 @@ Expr ExprParser::parseExpr()
               {
                 d_lex.nextToken();
                 uint32_t w = parseIntegerNumeral();
+                if (w == 0)
+                {
+                  d_lex.parseError("Bit-vector literals must have positive width");
+                }
                 d_lex.eatToken(Token::RPAREN);
                 BitVector bv(w, Integer(bvval));
                 ret = d_state.mkLiteral(Kind::BINARY, bv.toString());
@@ -340,6 +344,14 @@ Expr ExprParser::parseExpr()
         }
         // Construct the application term specified by tstack.back()
         ret = d_state.mkExpr(Kind::APPLY, sf.d_args);
+        // A variable must have a name and a type. We check this here since
+        // code that processes variables assumes they have two children,
+        // whereas malformed applications of other builtin operators are
+        // caught when type checking.
+        if (ret.getKind() == Kind::VARIABLE && ret.getNumChildren() != 2)
+        {
+          d_lex.parseError("Expected two arguments to eo::var");
+        }
         //typeCheck(ret);
         // pop the stack
         sf.pop(d_state);
@@ -433,6 +445,7 @@ Expr ExprParser::parseExpr()
       case Token::STRING_LITERAL:
       {
         std::string s = d_lex.tokenStr();
+        // note that control characters are rejected by the lexer
         unescapeString(s);
         // now, must run through String utility so that its unicode
         // handling is unique
@@ -1446,6 +1459,16 @@ void ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
         // if the constructor spec is non-ground, make a lambda
         if (!av.isNull() && !av.isGround())
         {
+          if (a.first == Attr::BINDER || a.first == Attr::LET_BINDER)
+          {
+            // binder lists are constructed directly from the constructors,
+            // which hence cannot depend on parameters.
+            std::stringstream ss;
+            ss << "The constructors given by "
+               << (a.first == Attr::BINDER ? ":binder" : ":let-binder")
+               << " cannot depend on parameters";
+            d_lex.parseError(ss.str());
+          }
           std::vector<Expr> params = Expr::getVariables(av);
           Assert (!params.empty());
           cons = d_state.mkParameterized(av.getValue(), params);

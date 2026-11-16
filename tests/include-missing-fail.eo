@@ -1,0 +1,2 @@
+; regression: including a file that does not exist is an error.
+(include "include-missing-fail-does-not-exist.eo")

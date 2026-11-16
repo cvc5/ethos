@@ -1,0 +1,6 @@
+; regression: the constructors of a let binder cannot depend on parameters.
+(declare-const @List Type)
+(declare-const @nil @List)
+(declare-parameterized-const @cons () (-> @List) :right-assoc-nil @nil)
+(declare-parameterized-const @pair ((U Type :implicit) (T Type :implicit)) (-> U T))
+(declare-parameterized-const myLet ((T Type :implicit)) (-> @List T @pair) :let-binder (T @cons))

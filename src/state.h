@@ -66,8 +66,16 @@ class State
   State(Options& opts, Stats& stats);
   ~State();
   //--------------------------------------
-  /** Reset */
-  void reset();
+  /**
+   * Reset, which removes all declarations and definitions.
+   * @param inReference Whether the (reset) command is in a reference file.
+   * If false, the command is in the top-level proof file, since resets are
+   * not permitted in signatures. In this case, this also forgets the
+   * included files and disables reference checking, since the symbols they
+   * declared have been removed. If true, we
+   * only discard the reference assertions collected so far.
+   */
+  void reset(bool inReference = false);
   /** Push scope */
   void pushScope();
   /** Pop scope */
@@ -376,6 +384,8 @@ class State
   //--------------------- parsing state
   /** The symbol table, mapping symbols */
   std::map<std::string, Expr> d_symTable;
+  /** The symbols bound by the constructor, which are restored on reset */
+  std::map<std::string, Expr> d_builtinSymTable;
   /** Symbol table for proof rules, if using separate table */
   std::map<std::string, Expr> d_ruleSymTable;
   /**

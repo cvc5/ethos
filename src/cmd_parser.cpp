@@ -24,12 +24,14 @@ namespace ethos {
 CmdParser::CmdParser(Lexer& lex,
                      State& state,
                      ExprParser& eparser,
+                     bool isSignature,
                      bool isReference)
     : d_lex(lex),
       d_state(state),
       d_tc(state.getTypeChecker()),
       d_sts(state.getStats()),
       d_eparser(eparser),
+      d_isSignature(isSignature),
       d_isReference(isReference),
       d_isFinished(false)
 {
@@ -876,12 +878,13 @@ bool CmdParser::parseNextCommand()
     {
       // reset the state of the parser, which is independent of the symbol
       // manager
-      d_state.reset();
-      // in reference files, reset subsumes reset-assertions
-      if (d_isReference)
+      // Signatures may be included, and a reset while including a file
+      // would remove the symbols of the files that include it.
+      if (d_isSignature)
       {
-        d_state.clearReferenceAsserts();
+        d_lex.parseError("Cannot use reset in signature files");
       }
+      d_state.reset(d_isReference);
     }
     break;
     // (step i F? :rule R :premises (p1 ... pn) :args (t1 ... tm))
@@ -1056,23 +1059,30 @@ bool CmdParser::parseNextCommand()
       d_eparser.parseSymbol();
     }
     break;
-    // (set-info <attribute> <sexpr>)
+    // (set-info <attribute> <sexpr>?)
     case Token::SET_INFO:
     {
       std::string key = d_eparser.parseKeyword();
-      d_eparser.parseSymbolicExpr();
+      // the value is optional, e.g. (set-info :a)
+      if (d_lex.peekToken() != Token::RPAREN)
+      {
+        d_eparser.parseSymbolicExpr();
+      }
     }
     break;
-    // (set-option <option> <sexpr>)
+    // (set-option <option> <sexpr>?)
     case Token::SET_OPTION:
     {
       std::string key = d_eparser.parseKeyword();
+      // the value, which is optional, e.g. (set-option :a). Note we may peek
+      // only once.
+      Token tok = d_lex.peekToken();
       // if reference, we always ignore this command
       if (!d_isReference)
       {
         // otherwise, it may be an Ethos option
         bool success = false;
-        if (d_lex.peekToken() == Token::SYMBOL)
+        if (tok == Token::SYMBOL)
         {
           std::string str(d_lex.tokenStr());
           if (str == "true" || str == "false")
@@ -1086,8 +1096,11 @@ bool CmdParser::parseNextCommand()
                     << std::endl;
         }
       }
-      // now parse the symbol
-      d_eparser.parseSymbolicExpr();
+      // now parse the value, if it exists
+      if (tok != Token::RPAREN)
+      {
+        d_eparser.parseSymbolicExpr();
+      }
     }
     break;
     case Token::EOF_TOK:

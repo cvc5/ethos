@@ -127,7 +127,7 @@ The following commands are supported for declaring and defining types and terms.
 
 - `(exit)` causes the checker to immediately terminate.
 
-- `(reset)` removes all declarations and definitions and resets the global scope. This command is similar in nature to its counterpart in SMT-LIB.
+- `(reset)` removes all declarations and definitions and resets the global scope. This command is similar in nature to its counterpart in SMT-LIB. It also forgets which files have been included, so that they can be included again, and disables the checks enabled by a previous `reference` command, so that a new reference can be given. This command is not permitted in signature (`*.eo`) files.
 
 The Eunoia language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 
@@ -313,8 +313,10 @@ The Eunoia language supports term annotations on declared constants which, for i
 
 - `:binder <symbol>` denoting that the first argument of the declared constant can be provided using a syntax for variable lists whose constructor is the one provided by `<symbol>`.
 
+- `:let-binder (<symbol> <symbol>)` denoting that the first argument of the declared constant can be provided using a syntax for let lists, where the first `<symbol>` is the constructor of the (variable, term) pairs and the second `<symbol>` is the constructor of the list of pairs.
+
 A declared function can be marked with at most one of the above attributes or an error is thrown.
-We refer to constants with one of the above attributes (with the exception of `:binder`) as _variadic_ constants.
+We refer to constants with one of the above attributes (with the exception of `:binder` and `:let-binder`) as _variadic_ constants.
 We describe these policies in detail in the following sections, which will describe how the parser desugars input syntax of the form `(f t1 ... tn)`.
 
 Furthermore, a parameter may be marked with the following attribute:
@@ -626,6 +628,33 @@ On the other hand, the definition `Q3` is distinct from both of these, since `y`
 Furthermore, note that a binder also may accept an explicit term as its first argument.
 In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly defined as a variable.
 This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`.
+
+#### Let binder
+
+```smt
+(declare-const @List Type)
+(declare-const @nil @List)
+(declare-parameterized-const @cons ((T Type :implicit)) (-> T @List @List)
+ :right-assoc-nil @nil)
+(declare-const @Pair (-> Type Type Type))
+(declare-parameterized-const @pair ((U Type :implicit) (T Type :implicit))
+ (-> U T (@Pair U T)))
+(declare-parameterized-const myLet ((T Type :implicit)) (-> @List T T)
+ :let-binder (@pair @cons))
+(declare-const P (-> Bool Bool))
+
+(define L1 () (myLet ((y true)) (P y)))
+```
+
+In the above example, `myLet` is declared as a let binder.
+Similar to binders, this indicates that the parser (optionally) accepts a let list as the first argument when parsing applications of `myLet`.
+A let list has the form `((x1 t1) ... (xn tn))`, where each `xi` is a symbol and each `ti` is a term.
+Each symbol `xi` is bound to a variable whose type is the type of `ti` when parsing the remaining arguments of `myLet`.
+The let list passed as the first argument to the let binder is determined by applying the first given constructor (in this case `@pair`) to each variable and its term, and applying the second given constructor (in this case `@cons`) to the result.
+Thus, `(myLet ((y true)) (P y))` is syntax sugar for `(myLet (@cons (@pair y true)) (P y))`, where `y` is the variable `(eo::var "y" Bool)`.
+Note that the let binder does not substitute the terms `ti` into its body; it is up to the user to provide proof rules that do so, if needed.
+
+The constructors given to `:binder` and `:let-binder` must not depend on the parameters of a constant declared with `declare-parameterized-const`.
 
 #### Further notes on constants with attributes
 

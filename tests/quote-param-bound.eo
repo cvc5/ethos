@@ -1,0 +1,13 @@
+; regression: a quoted parameter that is bound by the type of an earlier
+; argument must agree with that binding.
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-const BitVec (-> Int Type))
+(program p ((n Int) (x (BitVec n)))
+  :signature ((BitVec n) (eo::quote n)) (BitVec n)
+  (
+    ((p x 0) x)
+  )
+)
+(declare-const a (BitVec 5))
+(define t0 () (p a 5) :type (BitVec 5))

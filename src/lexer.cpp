@@ -73,6 +73,18 @@ Lexer::Lexer(bool lexLet, bool lexType)
   d_charClass['\t'] |= static_cast<uint32_t>(CharacterClass::WHITESPACE);
   d_charClass['\r'] |= static_cast<uint32_t>(CharacterClass::WHITESPACE);
   d_charClass['\n'] |= static_cast<uint32_t>(CharacterClass::WHITESPACE);
+  // printable characters, see CharacterClass::PRINTABLE
+  for (int32_t ch = 32; ch < 256; ++ch)
+  {
+    if (ch != 127)
+    {
+      d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::PRINTABLE);
+    }
+  }
+  for (int32_t ch : {' ', '\t', '\r', '\n'})
+  {
+    d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::PRINTABLE);
+  }
 }
 
 void Lexer::warning(const std::string& msg)
@@ -235,6 +247,15 @@ Token Lexer::computeNextToken()
         {
           return Token::UNTERMINATED_QUOTED_SYMBOL;
         }
+        else if (ch == '\\'
+                 || !isCharacterClass(ch, CharacterClass::PRINTABLE))
+        {
+          // SMT-LIB permits only whitespace and printable characters other
+          // than backslash and | in quoted symbols. Note this rejects NUL,
+          // which we could not represent since token strings are null
+          // terminated.
+          parseError("Illegal character in quoted symbol");
+        }
         pushToToken(ch);
       } while (ch != '|');
       return Token::QUOTED_SYMBOL;
@@ -272,6 +293,15 @@ Token Lexer::computeNextToken()
         {
           return Token::UNTERMINATED_STRING_LITERAL;
         }
+        else if (!isCharacterClass(ch, CharacterClass::PRINTABLE))
+        {
+          // SMT-LIB permits only whitespace and printable characters in
+          // string literals, e.g. tab and newline but not NUL, which we could
+          // not represent since token strings are null terminated.
+          parseError(
+              "Control characters other than whitespace are not permitted in "
+              "string literals, they must be encoded as escape sequences");
+        }
         else if (ch == '"')
         {
           pushToToken(ch);
@@ -292,7 +322,8 @@ Token Lexer::computeNextToken()
       {
         parseError("Error expected symbol following :");
       }
-      parseNonEmptyCharList(CharacterClass::SYMBOL);
+      // the remainder of the keyword may be empty, e.g. for `:a`
+      parseCharList(CharacterClass::SYMBOL);
       return Token::KEYWORD;
     default:
       if (isCharacterClass(ch, CharacterClass::DECIMAL_DIGIT))
@@ -411,7 +442,9 @@ Token Lexer::tokenizeCurrentSymbol() const
           {
             continue;
           }
-          else if (i+1<tsize && ret==Token::INTEGER_LITERAL)
+          // a decimal point or a slash must follow at least one digit
+          // and precede at least one, e.g. -/5 is a symbol.
+          else if (i > 1 && i + 1 < tsize && ret == Token::INTEGER_LITERAL)
           {
             if (d_token[i]=='.')
             {
