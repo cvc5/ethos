@@ -116,11 +116,12 @@ set(ethos_test_file_list
     gt_eval.eo
     let-binder-ex.eo
     assoc-partial-app.eo
-    reset-builtins.eo
+    reset-builtins.cpc
     keyword-one-letter.eo
     quote-param-bound.eo
     expr-trie-prefix.eo
     expr-trie-overload.eo
+    reset-reference.cpc
     skolemize-v1.eo
     skolemize-v2.eo
     overloading-arith.eo
@@ -287,3 +288,13 @@ ethos_fail_test(quote-param-bound-fail.eo
                 "Unexpected value of quoted child #2")
 ethos_fail_test(var-one-arg-fail.eo
                 "Expected two arguments to eo::var")
+ethos_fail_test(var-unchecked-fail.eo
+                "Expected two arguments to eo::var")
+ethos_fail_test(extract-arity-fail.eo
+                "Error: .*extract-arity-fail.eo:[0-9]+.[0-9]+: A step of rule r failed to check")
+ethos_fail_test(hex-extract-print-fail.eo
+                "Expression: .f #b01111.")
+ethos_fail_test(include-dir-fail.eo
+                "Error: .*include-dir-fail.eo:[0-9]+.[0-9]+: Cannot include file")
+ethos_fail_test(reset-signature-fail.eo
+                "Error: .*reset-signature-fail.eo:[0-9]+.[0-9]+: Cannot use reset in signature files")

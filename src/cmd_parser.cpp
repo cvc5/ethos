@@ -24,12 +24,14 @@ namespace ethos {
 CmdParser::CmdParser(Lexer& lex,
                      State& state,
                      ExprParser& eparser,
+                     bool isSignature,
                      bool isReference)
     : d_lex(lex),
       d_state(state),
       d_tc(state.getTypeChecker()),
       d_sts(state.getStats()),
       d_eparser(eparser),
+      d_isSignature(isSignature),
       d_isReference(isReference),
       d_isFinished(false)
 {
@@ -876,12 +878,13 @@ bool CmdParser::parseNextCommand()
     {
       // reset the state of the parser, which is independent of the symbol
       // manager
-      d_state.reset();
-      // in reference files, reset subsumes reset-assertions
-      if (d_isReference)
+      // Signatures may be included, and a reset while including a file
+      // would remove the symbols of the files that include it.
+      if (d_isSignature)
       {
-        d_state.clearReferenceAsserts();
+        d_lex.parseError("Cannot use reset in signature files");
       }
+      d_state.reset(d_isReference);
     }
     break;
     // (step i F? :rule R :premises (p1 ... pn) :args (t1 ... tm))

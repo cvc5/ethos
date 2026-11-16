@@ -213,7 +213,7 @@ State::State(Options& opts, Stats& stats)
 
 State::~State() {}
 
-void State::reset()
+void State::reset(bool inReference)
 {
   // restore the builtin symbols, which are not removed by reset
   d_symTable = d_builtinSymTable;
@@ -222,6 +222,16 @@ void State::reset()
   d_decls.clear();
   d_declsSizeCtx.clear();
   d_lastStepProvesFalseAtLevelZero = false;
+  // in reference files, reset subsumes reset-assertions
+  clearReferenceAsserts();
+  if (!inReference)
+  {
+    // the symbols declared by included files were removed above, so the
+    // files may be included again, and a new reference may be given.
+    d_includes.clear();
+    d_hasReference = false;
+    d_referenceNf = d_null;
+  }
   if (d_plugin!=nullptr)
   {
     d_plugin->reset();

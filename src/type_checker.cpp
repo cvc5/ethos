@@ -217,10 +217,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_LIST_MEQ:
     case Kind::EVAL_LIST_DIFF:
     case Kind::EVAL_LIST_INTER:
-    case Kind::EVAL_LIST_REPEAT: ret = (nargs == 3); break;
-    case Kind::EVAL_EXTRACT:
-      ret = (nargs==3 || nargs==2);
-      break;
+    case Kind::EVAL_LIST_REPEAT:
+    case Kind::EVAL_EXTRACT: ret = (nargs == 3); break;
     default:
       if (isNaryLiteralOp(k))
       {

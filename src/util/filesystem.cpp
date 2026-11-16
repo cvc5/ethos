@@ -8,11 +8,14 @@
  ******************************************************************************/
 #include "util/filesystem.h"
 
-#include <fstream>
 #include <sstream>
 #include <vector>
 
 #include "base/check.h"
+
+#ifndef USE_CPP_FILESYSTEM
+#include <sys/stat.h>
+#endif
 
 namespace ethos {
 Filepath::Filepath() {}
@@ -75,8 +78,10 @@ bool Filepath::isAbsolute() const
 bool Filepath::exists() const
 {
 #ifndef USE_CPP_FILESYSTEM
-  std::ifstream f(rawPath);
-  return f.good();
+  // Like the std::filesystem branch below, only regular files exist; note
+  // that opening an ifstream on a directory succeeds on POSIX systems.
+  struct stat st;
+  return stat(rawPath.c_str(), &st) == 0 && S_ISREG(st.st_mode);
 #else
   std::error_code ec;
   return std::filesystem::exists(rawPath, ec)

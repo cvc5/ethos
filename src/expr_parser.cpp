@@ -344,6 +344,14 @@ Expr ExprParser::parseExpr()
         }
         // Construct the application term specified by tstack.back()
         ret = d_state.mkExpr(Kind::APPLY, sf.d_args);
+        // A variable must have a name and a type. We check this here since
+        // code that processes variables assumes they have two children,
+        // whereas malformed applications of other builtin operators are
+        // caught when type checking.
+        if (ret.getKind() == Kind::VARIABLE && ret.getNumChildren() != 2)
+        {
+          d_lex.parseError("Expected two arguments to eo::var");
+        }
         //typeCheck(ret);
         // pop the stack
         sf.pop(d_state);

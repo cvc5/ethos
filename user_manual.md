@@ -127,7 +127,7 @@ The following commands are supported for declaring and defining types and terms.
 
 - `(exit)` causes the checker to immediately terminate.
 
-- `(reset)` removes all declarations and definitions and resets the global scope. This command is similar in nature to its counterpart in SMT-LIB.
+- `(reset)` removes all declarations and definitions and resets the global scope. This command is similar in nature to its counterpart in SMT-LIB. It also forgets which files have been included, so that they can be included again, and disables the checks enabled by a previous `reference` command, so that a new reference can be given. This command is not permitted in signature (`*.eo`) files.
 
 The Eunoia language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 

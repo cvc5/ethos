@@ -1,0 +1,2 @@
+; regression: a directory cannot be included.
+(include "smtlib")
