@@ -217,6 +217,9 @@ class Lexer
     BIT = (1 << 3),
     SYMBOL_START = (1 << 4),
     SYMBOL = (1 << 5),
+    // whitespace and the printable characters, where all non-ASCII characters
+    // are considered printable, as they may be part of UTF-8 encodings.
+    PRINTABLE = (1 << 6),
   };
   /** The set of non-letter/non-digit characters that may occur in keywords. */
   inline static const std::string s_extraSymbolChars = "+-/*=%?!.$_~&^<>@";

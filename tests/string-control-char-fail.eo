@@ -1,4 +1,5 @@
-; regression: control characters in string literals are an error.
+; regression: control characters other than whitespace are an error in
+; string literals.
 (declare-const String Type)
 (declare-consts <string> String)
-(define s () "a	b")
+(define s () "ab")

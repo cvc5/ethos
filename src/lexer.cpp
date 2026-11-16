@@ -73,6 +73,18 @@ Lexer::Lexer(bool lexLet, bool lexType)
   d_charClass['\t'] |= static_cast<uint32_t>(CharacterClass::WHITESPACE);
   d_charClass['\r'] |= static_cast<uint32_t>(CharacterClass::WHITESPACE);
   d_charClass['\n'] |= static_cast<uint32_t>(CharacterClass::WHITESPACE);
+  // printable characters, see CharacterClass::PRINTABLE
+  for (int32_t ch = 32; ch < 256; ++ch)
+  {
+    if (ch != 127)
+    {
+      d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::PRINTABLE);
+    }
+  }
+  for (int32_t ch : {' ', '\t', '\r', '\n'})
+  {
+    d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::PRINTABLE);
+  }
 }
 
 void Lexer::warning(const std::string& msg)
@@ -235,10 +247,14 @@ Token Lexer::computeNextToken()
         {
           return Token::UNTERMINATED_QUOTED_SYMBOL;
         }
-        else if (ch == 0)
+        else if (ch == '\\'
+                 || !isCharacterClass(ch, CharacterClass::PRINTABLE))
         {
-          // the token string is null terminated, so we cannot represent this
-          parseError("NUL characters are not permitted in quoted symbols");
+          // SMT-LIB permits only whitespace and printable characters other
+          // than backslash and | in quoted symbols. Note this rejects NUL,
+          // which we could not represent since token strings are null
+          // terminated.
+          parseError("Illegal character in quoted symbol");
         }
         pushToToken(ch);
       } while (ch != '|');
@@ -277,12 +293,14 @@ Token Lexer::computeNextToken()
         {
           return Token::UNTERMINATED_STRING_LITERAL;
         }
-        else if (ch == 0)
+        else if (!isCharacterClass(ch, CharacterClass::PRINTABLE))
         {
-          // the token string is null terminated, so we cannot represent this
+          // SMT-LIB permits only whitespace and printable characters in
+          // string literals, e.g. tab and newline but not NUL, which we could
+          // not represent since token strings are null terminated.
           parseError(
-              "NUL characters are not permitted in string literals, they "
-              "must be encoded as escape sequences");
+              "Control characters other than whitespace are not permitted in "
+              "string literals, they must be encoded as escape sequences");
         }
         else if (ch == '"')
         {

@@ -122,6 +122,8 @@ set(ethos_test_file_list
     expr-trie-prefix.eo
     expr-trie-overload.eo
     reset-reference.cpc
+    quoted-symbol-whitespace.eo
+    reference-attribute-no-value.eo
     skolemize-v1.eo
     skolemize-v2.eo
     overloading-arith.eo
@@ -275,9 +277,19 @@ ethos_fail_test(list-op-arity-fail.eo
 ethos_fail_test(reference-include-fail.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(string-control-char-fail.eo
-                "Control characters are not permitted in string literals")
+                "Control characters other than whitespace are not permitted in string literals")
+ethos_fail_test(string-nul-fail.eo
+                "Control characters other than whitespace are not permitted in string literals")
+ethos_fail_test(quoted-symbol-nul-fail.eo
+                "Illegal character in quoted symbol")
+ethos_fail_test(quoted-symbol-control-char-fail.eo
+                "Illegal character in quoted symbol")
+ethos_fail_test(quoted-symbol-backslash-fail.eo
+                "Illegal character in quoted symbol")
 ethos_fail_test(rational-no-digits-fail.eo
                 "Could not find symbol -/5")
+ethos_fail_test(decimal-no-digits-fail.eo
+                "Could not find symbol -.5")
 ethos_fail_test(reference-bv-zero-width-fail.eo
                 "Error: .*reference-bv-zero-width-fail.smt2:[0-9]+.[0-9]+: Bit-vector literals must have positive width")
 ethos_fail_test(include-missing-fail.eo

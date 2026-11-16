@@ -1059,23 +1059,30 @@ bool CmdParser::parseNextCommand()
       d_eparser.parseSymbol();
     }
     break;
-    // (set-info <attribute> <sexpr>)
+    // (set-info <attribute> <sexpr>?)
     case Token::SET_INFO:
     {
       std::string key = d_eparser.parseKeyword();
-      d_eparser.parseSymbolicExpr();
+      // the value is optional, e.g. (set-info :a)
+      if (d_lex.peekToken() != Token::RPAREN)
+      {
+        d_eparser.parseSymbolicExpr();
+      }
     }
     break;
-    // (set-option <option> <sexpr>)
+    // (set-option <option> <sexpr>?)
     case Token::SET_OPTION:
     {
       std::string key = d_eparser.parseKeyword();
+      // the value, which is optional, e.g. (set-option :a). Note we may peek
+      // only once.
+      Token tok = d_lex.peekToken();
       // if reference, we always ignore this command
       if (!d_isReference)
       {
         // otherwise, it may be an Ethos option
         bool success = false;
-        if (d_lex.peekToken() == Token::SYMBOL)
+        if (tok == Token::SYMBOL)
         {
           std::string str(d_lex.tokenStr());
           if (str == "true" || str == "false")
@@ -1089,8 +1096,11 @@ bool CmdParser::parseNextCommand()
                     << std::endl;
         }
       }
-      // now parse the symbol
-      d_eparser.parseSymbolicExpr();
+      // now parse the value, if it exists
+      if (tok != Token::RPAREN)
+      {
+        d_eparser.parseSymbolicExpr();
+      }
     }
     break;
     case Token::EOF_TOK:

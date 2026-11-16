@@ -1,0 +1,2 @@
+; regression: backslash is not permitted in quoted symbols.
+(declare-const |a\b| Bool)

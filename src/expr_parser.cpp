@@ -445,17 +445,8 @@ Expr ExprParser::parseExpr()
       case Token::STRING_LITERAL:
       {
         std::string s = d_lex.tokenStr();
+        // note that control characters are rejected by the lexer
         unescapeString(s);
-        for (char c : s)
-        {
-          // control characters, e.g. tab or newline, are not permitted
-          if (static_cast<unsigned char>(c) < 32)
-          {
-            d_lex.parseError(
-                "Control characters are not permitted in string literals, "
-                "they must be encoded as escape sequences");
-          }
-        }
         // now, must run through String utility so that its unicode
         // handling is unique
         String str(s, true);
