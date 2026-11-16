@@ -1320,6 +1320,10 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     printMetaTypeKind(tk, *out);
   }
   (*out) << std::endl;
+  if (tk == MetaKind::EUNOIA)
+  {
+    d_termCons.emplace_back(cname, argTypes);
+  }
   // the ordering key methods are generated in lockstep with the datatypes they
   // order, so that the tag of a constructor is its index in the datatype.
   if (!embedName.empty())
@@ -1446,13 +1450,121 @@ std::string LeanMetaReduce::printTheoryOpDefs() const
          << "-/" << std::endl
          << "inductive " << name << " : Type where" << std::endl
          << cons << std::endl
-         << "deriving Repr, DecidableEq, Inhabited, Ord";
+         << "deriving Repr, DecidableEq, Inhabited";
   }
   return defs.str();
 }
 
+std::string LeanMetaReduce::printUserOpCmps() const
+{
+  // one per inductive printTheoryOpDefs writes, so the same arities
+  std::stringstream os;
+  bool first = true;
+  for (size_t n = 0; n <= s_maxIndexArity; n++)
+  {
+    if (d_embedTOpDt[n].str().empty())
+    {
+      continue;
+    }
+    if (!first)
+    {
+      os << std::endl << std::endl;
+    }
+    first = false;
+    std::string name = "UserOp";
+    if (n > 0)
+    {
+      name += std::to_string(n);
+    }
+    os << "@[expose] def " << getTermCmpMethod(name) << " (a b : " << name
+       << ") : Ordering :=" << std::endl
+       << "  natCmp a.ctorIdx b.ctorIdx";
+  }
+  return os.str();
+}
+
+std::string LeanMetaReduce::getTermCmpMethod(const std::string& t)
+{
+  std::string base = t;
+  if (base.compare(0, 7, "native_") == 0)
+  {
+    base = base.substr(7);
+  }
+  if (!base.empty())
+  {
+    base[0] = std::tolower(static_cast<unsigned char>(base[0]));
+  }
+  return base + "Cmp";
+}
+
+std::string LeanMetaReduce::printTermCmp() const
+{
+  // Lexicographic: the constructor index first, then the arguments left to
+  // right, each compared by the method its type names. A case compares two
+  // terms of the same constructor argument by argument, nesting a match per
+  // argument but the last so that the first that differs decides; terms of
+  // different constructors are ordered by constructor index.
+  std::stringstream os;
+  bool first = true;
+  for (const auto& c : d_termCons)
+  {
+    const std::string& cname = c.first;
+    const std::vector<std::string>& args = c.second;
+    if (!first)
+    {
+      os << std::endl;
+    }
+    first = false;
+    if (args.empty())
+    {
+      os << "  | ." << cname << ", b => natCmp (Term.ctorIdx ." << cname
+         << ") b.ctorIdx";
+      continue;
+    }
+    os << "  | a@(." << cname;
+    for (size_t i = 1; i <= args.size(); i++)
+    {
+      os << " x" << i;
+    }
+    os << "), b =>" << std::endl << "    match b with" << std::endl
+       << "    | ." << cname;
+    for (size_t i = 1; i <= args.size(); i++)
+    {
+      os << " y" << i;
+    }
+    os << " =>" << std::endl;
+    for (size_t i = 0, nargs = args.size(); i < nargs; i++)
+    {
+      std::string indent(6 + 2 * i, ' ');
+      std::string call = getTermCmpMethod(args[i]) + " x" + std::to_string(i + 1)
+                         + " y" + std::to_string(i + 1);
+      if (i + 1 == nargs)
+      {
+        os << indent << call << std::endl;
+      }
+      else
+      {
+        os << indent << "match " << call << " with" << std::endl
+           << indent << "| .eq =>" << std::endl;
+      }
+    }
+    for (size_t i = args.size() - 1; i > 0; i--)
+    {
+      os << std::string(6 + 2 * (i - 1), ' ') << "| o => o" << std::endl;
+    }
+    os << "    | _ => natCmp a.ctorIdx b.ctorIdx";
+  }
+  return os.str();
+}
+
 void LeanMetaReduce::finalizeChecker()
 {
+  const std::string outPatho = emitResourceFile(
+      "plugins/lean_meta/lean_meta_checker_term_order.lean",
+      "plugins/lean_meta/lean_meta_checker_term_order_gen.lean",
+      {{"$LEAN_EO_USER_OP_CMPS$", printUserOpCmps()},
+       {"$LEAN_TERM_CMP$", printTermCmp()}});
+  Trace("lean-meta") << "Write lean-defs-term-order " << outPatho << std::endl;
   const std::string outPatht =
       emitResourceFile("plugins/lean_meta/lean_meta_checker_term.lean",
                        "plugins/lean_meta/lean_meta_checker_term_gen.lean",

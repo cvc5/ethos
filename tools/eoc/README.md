@@ -614,6 +614,7 @@ tools/eoc/out/
   lean/
     Logos.lean
     LogosTerm.lean
+    LogosTermOrder.lean
     Parser.lean
     SmtEval.lean
     SmtReal.lean
@@ -644,6 +645,9 @@ The SMT-LIB modules are split so that the checker can be built without the
 model semantics. `SmtSyntax` declares types, terms and the datatypes they are
 built over; `SmtTyping` holds typing and well-formedness; `SmtTranslate` holds
 the translation from Eunoia to SMT-LIB. None of them names a value or a model.
+The translation is trusted, so it is defined without the `eo::` operators,
+which belong to the checker. For example, `SmtTranslate` imports `LogosTerm`
+but not `LogosTermOrder`, which defines the order on Eunoia terms (`eo::cmp`).
 `SmtReal`, `SmtModelDefs`, `SmtValueOrder` and `SmtModel` hold values and the
 model semantics, and `Spec` joins the translation to satisfiability. A value of
 sort `Real` is one of Mathlib's real numbers, whereas a term holds a rational,
