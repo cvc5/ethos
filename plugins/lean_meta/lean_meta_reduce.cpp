@@ -893,6 +893,17 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     decl << "noncomputable ";
     out = &d_smt;
   }
+  else if (out == &d_smtDefs
+           && std::any_of(calls.begin(), calls.end(), [this](const Expr& e) {
+                return getName(e) == "$smtx_model_eval";
+              }))
+  {
+    // A program of the model that calls the evaluator back, e.g. the value of
+    // a beta-redex, stands in the evaluator's mutual block rather than before
+    // it with the rest.
+    decl << "noncomputable ";
+    out = &d_smt;
+  }
   // Which module this program comes out in is settled, so a native it names
   // is named from there, see NativeLayer::use.
   d_scope = scopeOf(out);

@@ -100,7 +100,11 @@ def native_eval_fun_apply (M : SmtModel) (fid : ModelId) (T U : SmtType) (i : Sm
 
 end
 
+-- The evaluator, and what calls it back, e.g. the value of a beta-redex.
+mutual
+
 $LEAN_SMT_EVAL$
+end
 
 def model_fun_wf (M : SmtModel) : Prop :=
   ∀ fid A B i,

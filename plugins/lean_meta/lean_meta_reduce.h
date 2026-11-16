@@ -316,7 +316,7 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_smtDefs;
   /** SMT definitions of the static interface. */
   std::stringstream d_smtTypingDefs;
-  /** Generated Lean SMT helper definitions. */
+  /** The evaluator of the model, and every program that calls it back. */
   std::stringstream d_smt;
   /** SMT term datatype cases. */
   std::stringstream d_smtDt;
