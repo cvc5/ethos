@@ -640,20 +640,9 @@
       ($sm_DtSel s ($eo_to_smt_datatype_decl dd) i j)))
   (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($native_uconst_id i) ($eo_to_smt_type T)))
 ;$EO_TO_SMT_CASES$
-  ; An application no symbol claimed. It may be a beta-redex, i.e. a binder
-  ; of the input applied to as many arguments as it binds variables, which no
-  ; case of a symbol can match since the arguments are of any number. So the
-  ; spine is looked ahead along: $eo_to_smt_beta_vars gives the variables the
-  ; arguments bind, outermost argument first, and the empty list when the
-  ; application is no redex, in which case $eo_to_smt_beta gives the last of
-  ; its arguments, the application of f to y. For a redex it wraps one bind
-  ; per argument around the body. Both are the signature's to define, since
-  ; only it knows what its binder is. The argument y is translated here and
-  ; every other argument by $eo_to_smt_beta, each from a strict subterm.
-  (($eo_to_smt (f y))
-    ($eo_to_smt_beta f ($eo_to_smt_beta_vars f ($eo_List_cons y $eo_List_nil))
-      ($eo_to_smt y)
-      ($sm_apply ($eo_to_smt f) ($eo_to_smt y))))
+  ; What no symbol claims, e.g. an application, which the signature says, see
+  ; :general in plugins/model_smt/model_smt.eos.
+;$EO_TO_SMT_GENERAL_CASES$
   (($eo_to_smt y)                   $sm_none)
   )
 )

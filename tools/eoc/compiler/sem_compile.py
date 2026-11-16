@@ -680,10 +680,13 @@ class AggregateEntry:
   stage agree on about one aggregate. How a case of it is *written* is no part
   of that and is said in sem_target.py, see sem_target.bind."""
 
-  def __init__(self, name, case, into, helper, forward, stage):
+  def __init__(self, name, case, into, helper, forward, stage, general=None):
     self.name = name
     self.case = case            # what a symbol's case is named, up to the symbol
     self.into = into            # the marker of the template the cases go at
+    # The marker the signature's own cases of it go at, i.e. those of no
+    # symbol, where it is to give some; see :general in model_smt.eos.
+    self.general = general
     self.helper = helper        # the programs written over values, if any
     self.forward = forward      # where those are declared, ahead of the aggregate
     # Which stage the aggregate is of, which is said by the set that declares
@@ -708,6 +711,8 @@ class AggregateEntry:
     out = ['; $eoc-aggregate %s %s %s' % (self.name, self.case, self.into)]
     if self.helper is not None:
       out.append('; $eoc-helper %s %s' % (self.helper, self.forward))
+    if self.general is not None:
+      out.append('; $eoc-general %s %s' % (self.name, self.general))
     return out
 
 
@@ -826,8 +831,12 @@ def read_aggregates(sets=AGGREGATE_SETS):
             e.get('into').val if model else None,
             e.get('helper').val if e.has('helper') else None,
             e.get('forward').val if e.has('forward') else None,
-            stage)
-        for marker in (entry.into, entry.forward):
+            stage,
+            e.get('general').val if e.has('general') else None)
+        if entry.general is not None and not model:
+          die('%s: an aggregate of the desugar stage is written out whole, so '
+              'it has no marker for :general to name' % what)
+        for marker in (entry.into, entry.forward, entry.general):
           if marker is not None and marker not in template:
             die('%s: %s names %s, which %s does not have'
                 % (what, e.name, marker, named(template_path)))
@@ -842,8 +851,13 @@ def read_aggregates(sets=AGGREGATE_SETS):
               'one program: an aggregate is written at a marker of its own'
               % (what, markers[entry.into], e.name, entry.into))
         out[e.name], cases[entry.case] = entry, e.name
-        if entry.into is not None:
-          markers[entry.into] = e.name
+        if entry.general is not None and entry.general in markers:
+          die('%s: %s and %s are both written at %s, which is one place in '
+              'one program: an aggregate is written at a marker of its own'
+              % (what, markers[entry.general], e.name, entry.general))
+        for marker in (entry.into, entry.general):
+          if marker is not None:
+            markers[marker] = e.name
   return out
 
 

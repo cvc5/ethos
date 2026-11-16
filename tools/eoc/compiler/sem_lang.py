@@ -1277,7 +1277,8 @@ class Program(Entry):
   # A program belongs to no symbol, so it belongs to the block it stands in.
   joins_open_block = True
 
-  def __init__(self, node, params, sig, ret, cases, keep=False, attrs=None):
+  def __init__(self, node, params, sig, ret, cases, keep=False, attrs=None,
+               default=False):
     self.node = node
     self.name = node.items[1].val
     self.attrs = attrs or {}
@@ -1285,7 +1286,11 @@ class Program(Entry):
     # program is otherwise taken only where a block already taken names it,
     # which is right for a helper of a symbol and wrong for one the *template*
     # names, see $EO_TO_SMT_AUX$ in plugins/model_smt/model_smt.eo.
-    self.keep = keep
+    self.keep = keep or default
+    # Whether its cases, being general cases of an aggregate, stand only where
+    # no block taken gives general cases of that aggregate of its own; see
+    # :general in plugins/model_smt/model_smt.eos.
+    self.default = default
     self.params = params        # what each parameter is called
     self.sig = sig              # the type of each argument, as written
     self.ret = ret              # the type of the result, as written
@@ -1342,20 +1347,26 @@ class Program(Entry):
       # DefsBlock::d_keep: the stage reads it and takes the block whatever the
       # input declares.
       out.append('(echo "eoc-keep symbol %s")' % self.name)
+    if self.default:
+      # Read the same way, see DefsBlock::d_default.
+      out.append('(echo "eoc-default %s")' % self.name)
     return '\n'.join(out + [self.node.laid_out(parts)])
 
 
 def parse_program(node, path, macros):
   it = node.items
   # :keep may stand between the parameters and the signature, and says the
-  # block is taken whatever the input declares.
-  keep = len(it) > 3 and it[3].kind == 'kw' and it[3].val == ':keep'
-  if keep:
+  # block is taken whatever the input declares. :default, which stands there
+  # instead, says that too, of general cases that give way to any other.
+  flag = it[3].val if len(it) > 3 and it[3].kind == 'kw' \
+      and it[3].val in (':keep', ':default') else None
+  keep, default = flag == ':keep', flag == ':default'
+  if flag is not None:
     it = it[:3] + it[4:]
   if len(it) < 7 or it[2].kind != 'list' or it[3].kind != 'kw' \
           or it[3].val != ':signature' or it[4].kind != 'list':
-    die('%s: a program is written (program NAME (param...) [:keep] '
-        ':signature (T...) R (case...))' % path)
+    die('%s: a program is written (program NAME (param...) '
+        '[:keep | :default] :signature (T...) R (case...))' % path)
   params = [p.items[0].val for p in it[2].items
             if p.kind == 'list' and p.items]
   if len(it) < 7 or it[6].kind != 'list':
@@ -1370,9 +1381,9 @@ def parse_program(node, path, macros):
   # so that the one program is one entry. See lean_clauses.
   # :keep stands before the signature, so what follows the cases is one
   # further along where it was said.
-  attrs = parse_attrs(node, 7 + (1 if keep else 0), it[1].val, path,
+  attrs = parse_attrs(node, 7 + (1 if flag else 0), it[1].val, path,
                       {'lean': 1}, frozenset(), macros)
-  return Program(node, params, it[4], it[5], cases, keep, attrs)
+  return Program(node, params, it[4], it[5], cases, keep, attrs, default)
 
 
 # A program belongs to no symbol and is an entry of either set. It is written

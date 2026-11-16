@@ -17,6 +17,16 @@
 (define-symbol xor (x y))
 (define-symbol = (x y))
 
+; An application no symbol claims, which every signature says, see :general in
+; plugins/model_smt/model_smt.eos.
+(program $eo_to_smt ((T Type) (U Type) (f (-> U T)) (y U))
+  :keep
+  :signature (T) SmtTerm
+  (
+  (($eo_to_smt (f y)) (apply f y))
+  )
+)
+
 ; Builtin-theory.eo declares lambda, which the model does not cover.
 (define-symbol lambda () :exclude)
 

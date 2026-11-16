@@ -42,6 +42,15 @@ struct DefsAggregate
   std::string d_case;
   /** The marker of the template what is taken from it is written at. */
   std::string d_into;
+  /**
+   * The marker the signature's general cases of it are written at, i.e. the
+   * ones of no symbol, which it is to give, as the head says with
+   *
+   *   ; $eoc-general <name> <marker>
+   *
+   * Empty where the aggregate takes none. See DefsBlock::d_general.
+   */
+  std::string d_general;
 };
 
 /**
@@ -117,6 +126,14 @@ struct DefsBlock
    */
   bool d_keep = false;
   /**
+   * Whether the general cases the block gives are a default, which
+   * `(echo "eoc-default X")` is what says: they stand only where no other
+   * block taken gives general cases of the same aggregate. A binder is what
+   * overrides one, the plain application giving way to one that reduces a
+   * redex, and only where the binder is not trimmed away.
+   */
+  bool d_default = false;
+  /**
    * Whether the block is of a term the embedding builds itself -- a literal,
    * i.e. one built over a native rather than over terms -- rather than of a
    * symbol of the signature written over them. A block of one is named after
@@ -172,6 +189,14 @@ struct DefsBlock
    * and nothing in this stage says which.
    */
   std::map<std::string, std::vector<std::string>> d_at;
+  /**
+   * The general cases the block gives, i.e. the cases of a program named
+   * after an aggregate rather than after a symbol, keyed by the marker the
+   * aggregate writes them at, see DefsAggregate::d_general. What no symbol
+   * claims -- an application -- is what they are for, so they stand after
+   * every symbol's cases rather than with the block's own.
+   */
+  std::map<std::string, std::vector<std::string>> d_general;
 };
 
 /**
@@ -231,6 +256,8 @@ class DefsFile
    * $eoc_transform_ whatever order the head declares them in.
    */
   const DefsAggregate* aggregateOf(const std::string& name) const;
+  /** The aggregate of the name, or nullptr where it is of none. */
+  const DefsAggregate* aggregateNamed(const std::string& name) const;
   /** The same, for a program written over values. */
   const DefsHelper* helperOf(const std::string& name) const;
   /**

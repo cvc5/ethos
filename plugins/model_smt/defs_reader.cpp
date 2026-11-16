@@ -243,9 +243,33 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
       {
         b.d_keep = true;
       }
+      if (f.find("\"eoc-default ") != std::string::npos)
+      {
+        b.d_default = true;
+      }
       continue;
     }
     const std::string name = formName(f);
+    if (kind == "program")
+    {
+      // A program named after an aggregate gives general cases of it. It
+      // defines nothing a block could be taken for: every case of a symbol
+      // names the aggregate, and naming it takes no block.
+      const DefsAggregate* a = aggregateNamed(name);
+      if (a != nullptr)
+      {
+        if (a->d_general.empty())
+        {
+          EO_FATAL() << "DefsFile: " << sym << " gives cases of " << name
+                     << ", which takes none of a signature's own";
+        }
+        namesOf(f, b.d_uses);
+        std::vector<std::string> cases = casesOf(f, name, name);
+        std::vector<std::string>& out = b.d_general[a->d_general];
+        out.insert(out.end(), cases.begin(), cases.end());
+        continue;
+      }
+    }
     namesOf(f, b.d_uses);
     b.d_defs.insert(name);
     if (kind == "declare-const" || kind == "declare-parameterized-const"
@@ -288,6 +312,18 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
     d_owner[d] = d_blocks.size();
   }
   d_blocks.push_back(b);
+}
+
+const DefsAggregate* DefsFile::aggregateNamed(const std::string& name) const
+{
+  for (const DefsAggregate& a : d_aggregates)
+  {
+    if (a.d_name == name)
+    {
+      return &a;
+    }
+  }
+  return nullptr;
 }
 
 const DefsAggregate* DefsFile::aggregateOf(const std::string& name) const
@@ -382,6 +418,9 @@ void DefsFile::readHead(const std::string& head)
 {
   std::istringstream lines(head);
   std::string line;
+  // The marker of each aggregate that takes general cases, which a line of
+  // its own says, see DefsAggregate::d_general.
+  std::map<std::string, std::string> general;
   while (std::getline(lines, line))
   {
     std::istringstream words(line);
@@ -416,6 +455,17 @@ void DefsFile::readHead(const std::string& head)
       words >> dt.d_into;
       d_embedDatatypes.push_back(dt);
     }
+    else if (kind == "$eoc-general")
+    {
+      std::string name, marker;
+      if (!(words >> name >> marker))
+      {
+        EO_FATAL() << "DefsFile: general cases are written `; $eoc-general "
+                      "<name> <marker>`, got: "
+                   << line;
+      }
+      general[name] = marker;
+    }
     else if (kind == "$eoc-helper")
     {
       DefsHelper h;
@@ -427,6 +477,20 @@ void DefsFile::readHead(const std::string& head)
       }
       d_helpers.push_back(h);
     }
+  }
+  for (DefsAggregate& a : d_aggregates)
+  {
+    std::map<std::string, std::string>::iterator it = general.find(a.d_name);
+    if (it != general.end())
+    {
+      a.d_general = it->second;
+      general.erase(it);
+    }
+  }
+  if (!general.empty())
+  {
+    EO_FATAL() << "DefsFile: general cases of " << general.begin()->first
+               << ", which is no aggregate";
   }
   // Longest case first, which is what aggregateOf takes the first match of.
   std::stable_sort(d_aggregates.begin(),
