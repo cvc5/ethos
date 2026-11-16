@@ -9,6 +9,7 @@
 
 #include "model_smt.h"
 
+#include <cctype>
 #include <fstream>
 #include <set>
 #include <sstream>
@@ -288,7 +289,50 @@ void ModelSmt::finalize()
     replacePlaceholder(finalSmt, at, own + d_at[at].str());
   };
   marker("$SMT_HELPER_PROGS$", d_helperProgs.str());
-  marker("$EO_TO_SMT_AUX$", d_eoToSmtAux.str());
+  // The generic application of $eo_to_smt looks ahead for a beta-redex, see
+  // plugins/model_smt/model_smt.eo, by calling two programs a signature with
+  // a binder to reduce defines. A signature that defines neither, e.g. one
+  // that has no such binder or a reduced one its binder was trimmed from,
+  // gets the ones that say no application is a redex.
+  std::string eoAux = d_eoToSmtAux.str();
+  auto defines = [&eoAux](const std::string& prog) {
+    const std::string head = "(program " + prog;
+    for (size_t pos = eoAux.find(head); pos != std::string::npos;
+         pos = eoAux.find(head, pos + 1))
+    {
+      size_t end = pos + head.size();
+      if (end < eoAux.size() && std::isspace(eoAux[end]))
+      {
+        return true;
+      }
+    }
+    return false;
+  };
+  const bool hasBetaVars = defines("$eo_to_smt_beta_vars");
+  const bool hasBeta = defines("$eo_to_smt_beta");
+  if (hasBetaVars != hasBeta)
+  {
+    EO_FATAL() << "ModelSmt: a signature defines one of $eo_to_smt_beta_vars "
+                  "and $eo_to_smt_beta without the other";
+  }
+  if (!hasBeta)
+  {
+    eoAux +=
+        "(program $eo_to_smt_beta_vars ((T Type) (t T) (as $eo_List))\n"
+        "  :signature (T $eo_List) $eo_List\n"
+        "  (\n"
+        "  (($eo_to_smt_beta_vars t as) $eo_List_nil)\n"
+        "  )\n"
+        ")\n"
+        "(program $eo_to_smt_beta\n"
+        "  ((T Type) (t T) (vs $eo_List) (sa $smt_Term) (d $smt_Term))\n"
+        "  :signature (T $eo_List $smt_Term $smt_Term) $smt_Term\n"
+        "  (\n"
+        "  (($eo_to_smt_beta t vs sa d) d)\n"
+        "  )\n"
+        ")\n";
+  }
+  marker("$EO_TO_SMT_AUX$", eoAux);
   marker("$SMT_CANONICAL_AUX$", d_smtCanonicalAux.str());
   // Each marker once: two datatypes may be written at one, a regular language
   // standing with the values.
