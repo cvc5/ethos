@@ -30,7 +30,9 @@ class Parser
    * @param isSignature Whether we are parsing a signature file
    * @param isReference Whether we are parsing a reference file
    */
-  Parser(State& s, bool isSignature = false, bool isReference = false);
+  Parser(State& s,
+         bool isSignature = false,
+         bool isReference = false);
   virtual ~Parser() {}
   
   /** Set the input for the given file.

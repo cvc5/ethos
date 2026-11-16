@@ -1,0 +1,15 @@
+(include "push-pop-setup.eo")
+
+(push)
+(declare-const a Bool)
+(step @p0 (= a a) :rule refl :args (a))
+(pop)
+
+(push 2)
+(declare-const a Bool)
+(step @p0 (= a a) :rule refl :args (a))
+(pop)
+
+(declare-const a Int)
+(step @p0 (= a a) :rule refl :args (a))
+(step @p1 (= b b) :rule refl :args (b))

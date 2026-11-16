@@ -1,4 +1,4 @@
-; regression: push and pop are not supported in reference files
+; regression: an assertion discarded by pop cannot be assumed
 (declare-const Int Type)
 (declare-const > (-> Int Int Bool))
 (declare-const < (-> Int Int Bool))
