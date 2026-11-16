@@ -967,18 +967,25 @@ def apply_native(node, name, args, scope, entry, ctx, level):
       if args else '($native_apply_0 "%s")' % name
 
 
-# The aggregates a set compiles its cases *into*. A file never names one: a
+# The aggregates a set compiles its cases *into*. A case never names one: a
 # name of the input stands for what it transforms into wherever the embedding
 # is wanted, and an argument of an :eval-case stands for its value, both by the
 # place they stand in. Naming one is a case reaching for the thing it is a part
 # of, so it is answered with the reading to rely on instead.
+#
+# The second reading is of an :eval-case only. A program stands for nothing it
+# is not written as, so one that walks a term and evaluates what it finds --
+# the value of a beta-redex, which is the body under binders pushed one by one
+# -- names the evaluator as any other program it calls, and so may. What is
+# said of each is that reading, and whether a program has it too.
 AGGREGATES = {
-    '$eo_to_smt': 'a name of the input stands for what it transforms into '
-                  'wherever a term of the embedding is wanted',
-    '$eo_to_smt_type': 'a name of the input stands for what it transforms into '
-                       'wherever a type of the embedding is wanted',
-    '$smtx_model_eval': 'an argument of an :eval-case stands for its value in '
-                        'the model',
+    '$eo_to_smt': ('a name of the input stands for what it transforms into '
+                   'wherever a term of the embedding is wanted', True),
+    '$eo_to_smt_type': ('a name of the input stands for what it transforms '
+                        'into wherever a type of the embedding is wanted',
+                        True),
+    '$smtx_model_eval': ('an argument of an :eval-case stands for its value in '
+                         'the model', False),
 }
 
 
@@ -991,9 +998,10 @@ def embedded(name, entry, ctx):
   so is naming a native, which the configuration names in quotes, or an
   aggregate, which the place a name stands in already says.
   """
-  if name in AGGREGATES:
+  if name in AGGREGATES and (AGGREGATES[name][1]
+                             or not isinstance(entry, Program)):
     die('%s: %s is the aggregate this case is a part of, so no case names it: '
-        '%s' % (entry.name, name, AGGREGATES[name]))
+        '%s' % (entry.name, name, AGGREGATES[name][0]))
   if name.startswith('$emb_') and name in ctx.macros:
     die('%s: write %s, the macro of the embedding, rather than the '
         'constructor %s it applies' % (entry.name, ctx.macros[name], name))

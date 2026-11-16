@@ -2233,6 +2233,31 @@ decreasing_by
   :typeof ($smtx_typeof_sets_op_2_ret a b Bool)
   :eval (a b) (= (set.inter a b) a))
 
+; -- application
+; An application no symbol claims, e.g. of an uninterpreted function, is the
+; application of what the function is to what the argument is. These are
+; general cases of the two aggregates rather than cases of a symbol: they stand
+; after every symbol's case and after the cases the template writes for itself,
+; e.g. for the selectors and testers of a datatype, see DefsBlock::d_general
+; in plugins/model_smt/defs_reader.h. They are the default ones, so a block
+; taken that gives its own stands in their place, e.g. one whose binder reduces
+; a redex.
+(program $smtx_typeof ((f SmtTerm) (x1 SmtTerm))
+  :default
+  :signature (SmtTerm) SmtType
+  (
+  (($smtx_typeof (apply f x1)) ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
+  )
+)
+
+(program $smtx_model_eval ((M SmtModel) (f SmtTerm) (x1 SmtTerm))
+  :signature (SmtModel SmtTerm) SmtValue
+  (
+  (($smtx_model_eval M (apply f x1))
+    (apply M ($smtx_model_eval M f) ($smtx_model_eval M x1)))
+  )
+)
+
 ;-----------------------------------------------------------------------------
 (section "The binders")
 ;-----------------------------------------------------------------------------

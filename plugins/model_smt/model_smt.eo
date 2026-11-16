@@ -291,6 +291,7 @@
 
 (program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
 (program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
+(program $smtx_typeof () :signature ($smt_Term) $smt_Type)
 
 ; The helpers over datatype declarations, whose bodies the target writes: what
 ; a datatype *means* is said in tools/eoc/semantics/smt.eos, and what stands
@@ -484,24 +485,22 @@
   :signature ($smt_Model $smt_Term) $smt_Value
   (
 
-  ; evaluation of standard SMT symbols
-  ; These calls will reference helper methods above, e.g. of the form
-  ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
-;$SMT_EVAL_CASES$
   ; datatypes
   (($smtx_model_eval M ($sm_DtCons s dd i)) ($vsm_DtCons s dd i))
   (($smtx_model_eval M ($sm_apply ($sm_DtSel s dd i j) x1))
     ($smtx_model_eval_dt_sel M s dd i j ($smtx_model_eval M x1)))
   (($smtx_model_eval M ($sm_apply ($sm_DtTester s dd i) x1))
     ($smtx_model_eval_dt_tester s dd i ($smtx_model_eval M x1)))
-  ; Apply case. We evaluate f and x1 separately and then call the
-  ; $smtx_model_eval_apply above. We expect f to be an uninterpreted
-  ; function whose model evaluation is an SMT-LIB map in this case.
-  ; All interpreted f should be handled in the evaluation cases above.
-  (($smtx_model_eval M ($sm_apply f x1))
-    ($smtx_model_eval_apply M ($smtx_model_eval M f) ($smtx_model_eval M x1)))
   (($smtx_model_eval M ($sm_Var s T))     ($native_apply_3 "model_var_lookup" M s T))
   (($smtx_model_eval M ($sm_UConst s T))  ($native_apply_3 "model_lookup" M s T))
+  ; evaluation of standard SMT symbols
+  ; These calls will reference helper methods above, e.g. of the form
+  ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
+  ; After them come the general cases of the signature, i.e. what no symbol
+  ; claims, e.g. an application of an uninterpreted function, which may
+  ; overlap the cases above and so stand after them; see
+  ; DefsBlock::d_general.
+;$SMT_EVAL_CASES$
   (($smtx_model_eval M x1)   $vsm_NotValue)
   )
 )
@@ -522,7 +521,6 @@
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Term) $smt_Type
   (
-;$SMT_TYPEOF_CASES$
   ; datatypes
   (($smtx_typeof ($sm_DtCons s dd i))
     ($smtx_typeof_guard_wf ($tsm_Datatype s dd)
@@ -541,9 +539,13 @@
         ($tsm_FunType ($tsm_Datatype s dd) $tsm_Bool)
         ($smtx_typeof x1))))
   ; other
-  (($smtx_typeof ($sm_apply f x1))  ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof x1)))
   (($smtx_typeof ($sm_Var s T))     ($smtx_typeof_guard_wf T T))
   (($smtx_typeof ($sm_UConst s T))  ($smtx_typeof_guard_wf T T))
+  ; The cases of the symbols, and after them the general cases of the
+  ; signature, e.g. an application of an uninterpreted function, which may
+  ; overlap the cases above and so stand after them; see
+  ; DefsBlock::d_general.
+;$SMT_TYPEOF_CASES$
   (($smtx_typeof x1)   $tsm_none)
   )
 )
