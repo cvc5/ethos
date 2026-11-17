@@ -227,6 +227,138 @@ std::set<std::string> RustMetaReduce::reachable() const
   return seen;
 }
 
+void RustMetaReduce::selectCaches(const std::set<std::string>& names)
+{
+  // Only bodies contribute call edges. A case's pattern is headed by its
+  // owning program too, but that is not a recursive call.
+  std::map<std::string, std::set<std::string>> calls;
+  size_t id = 0;
+  for (const std::string& name : names)
+  {
+    d_programIds[name] = id++;
+    d_cacheKinds[name] = CacheKind::NONE;
+    const Expr& body = d_programs.at(name).body;
+    std::vector<Expr> todo;
+    if (body.getKind() == Kind::PROGRAM)
+    {
+      for (size_t i = 0; i < body.getNumChildren(); ++i)
+      {
+        todo.push_back(body[i][1]);
+      }
+    }
+    else
+    {
+      todo.push_back(body);
+    }
+    std::set<Expr> visited;
+    while (!todo.empty())
+    {
+      Expr term = todo.back();
+      todo.pop_back();
+      if (!visited.insert(term).second)
+      {
+        continue;
+      }
+      std::string callee;
+      Kind operation = term.getKind();
+      if (term.getKind() == Kind::PROGRAM_CONST)
+      {
+        callee = getName(term);
+        operation = builtin(callee);
+      }
+      else if (term.getKind() == Kind::EVAL_TYPE_OF)
+      {
+        callee = "$eo_typeof";
+      }
+      else if (term.getKind() == Kind::EVAL_NIL)
+      {
+        callee = "$eo_nil";
+      }
+      else if (term.getKind() == Kind::EVAL_DT_CONSTRUCTORS)
+      {
+        callee = "$eo_dt_constructors";
+      }
+      else if (term.getKind() == Kind::EVAL_DT_SELECTORS)
+      {
+        callee = "$eo_dt_selectors";
+      }
+      if (names.count(callee))
+      {
+        calls[name].insert(callee);
+      }
+      // Native list operations consult compiled signature metadata too.
+      if (isListLiteralOp(operation))
+      {
+        for (const char* metadata :
+             {"$eo_typeof", "$eo_nil", "$eo_is_list_nil"})
+        {
+          if (names.count(metadata))
+          {
+            calls[name].insert(metadata);
+          }
+        }
+      }
+      for (size_t i = 0; i < term.getNumChildren(); ++i)
+      {
+        todo.push_back(term[i]);
+      }
+    }
+  }
+  for (const std::string& name : names)
+  {
+    const Program& program = d_programs.at(name);
+    if (program.body.getKind() != Kind::PROGRAM || program.isDefine)
+    {
+      continue;
+    }
+    Expr type = program.symbol.getType();
+    if ((name == "$eo_typeof" || name == "$smtx_typeof")
+        && type.getNumChildren() == 2)
+    {
+      d_cacheKinds[name] =
+          name == "$eo_typeof" ? CacheKind::EO_TYPE : CacheKind::SMT_TYPE;
+      continue;
+    }
+    bool termArgument = false, checker = false;
+    for (size_t i = 0; i < type.getNumChildren(); ++i)
+    {
+      MetaKind kind = getTypeMetaKindFor(type[i], MetaKind::EUNOIA, true);
+      checker |= isCheckerMetaKind(kind);
+      if (i + 1 < type.getNumChildren() && kind != MetaKind::SMT_BUILTIN
+          && kind != MetaKind::PROOF)
+      {
+        termArgument = true;
+      }
+    }
+    if (!termArgument || checker)
+    {
+      continue;
+    }
+    // Membership in a call-graph cycle includes mutual recursion. Keeping
+    // tiny nonrecursive helpers out avoids a lookup on every generated call.
+    std::set<std::string> visited;
+    std::vector<std::string> todo(calls[name].begin(), calls[name].end());
+    while (!todo.empty())
+    {
+      std::string callee = todo.back();
+      todo.pop_back();
+      if (callee == name)
+      {
+        d_cacheKinds[name] = CacheKind::PROGRAM;
+        break;
+      }
+      if (!visited.insert(callee).second)
+      {
+        continue;
+      }
+      for (const std::string& next : calls[callee])
+      {
+        todo.push_back(next);
+      }
+    }
+  }
+}
+
 std::string RustMetaReduce::schema() const
 {
   std::ostringstream out;
@@ -603,7 +735,39 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
   {
     out << (loop ? ", mut a" : ", a") << i << ": Term";
   }
-  out << ") -> CheckResult<Term> {\ns.enter()?;\nlet result = (|| {\n";
+  out << ") -> CheckResult<Term> {\ns.enter()?;\n";
+  CacheKind cache = d_cacheKinds.at(name);
+  std::string cachePut;
+  if (cache != CacheKind::NONE)
+  {
+    // Tail-call loops overwrite a<i>; retain the original application key.
+    out << "let cache_args = [";
+    for (size_t i = 0; i < nargs; ++i)
+    {
+      out << (i == 0 ? "" : ", ") << "a" << i;
+    }
+    out << "];\n";
+    std::string get;
+    if (cache == CacheKind::PROGRAM)
+    {
+      std::string id =
+          "ProgramId(" + std::to_string(d_programIds.at(name)) + ")";
+      get = "s.cached_program(" + id + ", &cache_args)";
+      cachePut = "s.cache_program(" + id + ", &cache_args, value)?;";
+    }
+    else
+    {
+      std::string kind = cache == CacheKind::EO_TYPE ? "TypeCacheKind::Eunoia"
+                                                     : "TypeCacheKind::Smt";
+      get = "s.cached_type(" + kind + ", cache_args[0])";
+      cachePut = "s.cache_type(" + kind + ", cache_args[0], value)?;";
+    }
+    out << "match " << get << " {\n"
+        << "Ok(Some(value)) => { s.leave(); return Ok(value); },\n"
+        << "Ok(None) => {},\n"
+        << "Err(error) => { s.leave(); return Err(error); },\n}\n";
+  }
+  out << "let result = (|| {\n";
   if (loop)
   {
     out << "'recur: loop {\ns.tick()?;\n";
@@ -678,7 +842,12 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
     std::string v = e.expr(p.body);
     out << "Ok(" << v << ")\n";
   }
-  out << "})();\ns.leave();\nresult\n}\n";
+  out << "})();\ns.leave();\n";
+  if (!cachePut.empty())
+  {
+    out << "if let Ok(value) = result { " << cachePut << " }\n";
+  }
+  out << "result\n}\n";
   return out.str();
 }
 
@@ -701,6 +870,7 @@ void RustMetaReduce::finalize()
                   "whole checker";
   }
   auto names = reachable();
+  selectCaches(names);
   std::ostringstream code, manifest;
   code << "use crate::*;\n";
   manifest << "source\trust\tlean_identifier\n";
@@ -808,6 +978,23 @@ void RustMetaReduce::finalize()
   output("src/generated.rs", code.str());
   output("src/schema.rs", schema());
   output("functions.tsv", manifest.str());
+  std::ostringstream caches;
+  caches << "source\tcache\tprogram_id\n";
+  for (const auto& name : names)
+  {
+    CacheKind kind = d_cacheKinds.at(name);
+    const char* policy = kind == CacheKind::EO_TYPE    ? "eo-type"
+                         : kind == CacheKind::SMT_TYPE ? "smt-type"
+                         : kind == CacheKind::PROGRAM  ? "program"
+                                                       : "none";
+    caches << name << '\t' << policy << '\t';
+    if (kind == CacheKind::PROGRAM)
+    {
+      caches << d_programIds.at(name);
+    }
+    caches << '\n';
+  }
+  output("caches.tsv", caches.str());
   std::ostringstream constructors;
   constructors << "source\trust\tarity\n";
   for (const auto& c : d_constructors)
@@ -816,8 +1003,13 @@ void RustMetaReduce::finalize()
                  << '\n';
   }
   output("constructors.tsv", constructors.str());
-  for (const char* file :
-       {"num.rs", "eostring.rs", "bitvec.rs", "lit.rs", "kind.rs", "codec.rs"})
+  for (const char* file : {"cache.rs",
+                           "num.rs",
+                           "eostring.rs",
+                           "bitvec.rs",
+                           "lit.rs",
+                           "kind.rs",
+                           "codec.rs"})
   {
     output(std::string("src/") + file,
            read(getResourcePath(std::string("plugins/rust_meta/runtime/")

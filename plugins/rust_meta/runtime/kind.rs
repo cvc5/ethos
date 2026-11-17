@@ -1,5 +1,3 @@
-// Copied from daniel-larraz/pathos at f77aff7a457a73fb1708b8867d76f21e50fef081.
-// BSD-3-Clause; see LICENSE.pathos. Local changes belong to this backend.
 //! The kinds of terms.
 //!
 //! Ethos has one flat `Kind` enum. Here the kinds are grouped by what a term

@@ -8,6 +8,7 @@
 #![allow(non_snake_case)]
 
 mod bitvec;
+mod cache;
 pub mod codec;
 mod eostring;
 #[allow(unreachable_code, unused_labels, unused_variables)]
@@ -26,6 +27,8 @@ mod num;
 mod schema;
 
 pub use bitvec::BitVec;
+pub use cache::CacheStats;
+use cache::{Caches, ProgramId, TypeCacheKind};
 pub use eostring::{EoString, NUM_CODES};
 pub use kind::{EvalOp, LitKind};
 pub use lit::Lit;
@@ -89,6 +92,7 @@ impl Default for Limits {
 pub struct Store {
     nodes: Vec<TermData>,
     intern: HashMap<TermData, Term>,
+    caches: Caches,
     limits: Limits,
     calls: u64,
     depth: u32,
@@ -106,6 +110,7 @@ impl Store {
         Self {
             nodes: vec![stuck],
             intern,
+            caches: Caches::new(limits.terms as usize),
             limits,
             calls: 0,
             depth: 0,
@@ -130,7 +135,65 @@ impl Store {
         let t = Term(n);
         self.intern.insert(data.clone(), t);
         self.nodes.push(data);
+        self.caches.push_term();
         Ok(t)
+    }
+    /// Caches contain only completed pure results and remain valid as the
+    /// arena grows and across proof checks. Disable them to measure a baseline.
+    pub fn set_caching(&mut self, enabled: bool) {
+        self.caches.set_enabled(enabled);
+    }
+    pub fn clear_caches(&mut self) {
+        self.caches.clear();
+    }
+    pub fn cache_stats(&self) -> CacheStats {
+        self.caches.stats()
+    }
+    pub(crate) fn cached_type(
+        &mut self,
+        kind: TypeCacheKind,
+        term: Term,
+    ) -> CheckResult<Option<Term>> {
+        self.view(term)?;
+        Ok(self.caches.type_get(kind, term))
+    }
+    pub(crate) fn cache_type(
+        &mut self,
+        kind: TypeCacheKind,
+        term: Term,
+        result: Term,
+    ) -> CheckResult<()> {
+        self.view(term)?;
+        self.view(result)?;
+        self.caches.type_insert(kind, term, result);
+        Ok(())
+    }
+    pub(crate) fn cached_program(
+        &mut self,
+        program: ProgramId,
+        args: &[Term],
+    ) -> CheckResult<Option<Term>> {
+        let mut i = 0;
+        while i < args.len() {
+            self.view(args[i])?;
+            i += 1;
+        }
+        Ok(self.caches.program_get(program, args))
+    }
+    pub(crate) fn cache_program(
+        &mut self,
+        program: ProgramId,
+        args: &[Term],
+        result: Term,
+    ) -> CheckResult<()> {
+        let mut i = 0;
+        while i < args.len() {
+            self.view(args[i])?;
+            i += 1;
+        }
+        self.view(result)?;
+        self.caches.program_insert(program, args, result);
+        Ok(())
     }
     pub fn literal(&mut self, lit: Lit) -> CheckResult<Term> {
         // Logos has one rational and one binary constructor.
@@ -547,11 +610,7 @@ impl Store {
                 if n.sgn() < 0 {
                     return Err(CheckError::InvalidNative);
                 }
-                let prefix = if op == "uconst_id" {
-                    "@u."
-                } else {
-                    "@c."
-                };
+                let prefix = if op == "uconst_id" { "@u." } else { "@c." };
                 return self.raw(Lit::String(EoString::parse(&format!("{prefix}{n}"), false)));
             }
             ("string_valid", &[x]) => {
@@ -889,4 +948,26 @@ fn parse_int(s: &str) -> CheckResult<Integer> {
 }
 pub fn parse_rat(s: &str) -> CheckResult<Rational> {
     Rational::parse(s).ok_or(CheckError::InvalidNative)
+}
+
+#[cfg(test)]
+mod cache_tests {
+    use super::*;
+
+    #[test]
+    fn invalid_cached_call_restores_depth_and_never_caches_an_error() {
+        let mut s = Store::default();
+        assert_eq!(
+            generated::@$eo_typeof@(&mut s, Term(u32::MAX)),
+            Err(CheckError::InvalidHandle)
+        );
+        assert_eq!(s.depth, 0);
+        assert_eq!(s.cache_stats().type_entries, 0);
+        let stuck = s.stuck();
+        assert_eq!(generated::@$eo_typeof@(&mut s, stuck), Ok(stuck));
+        let hits = s.cache_stats().type_hits;
+        assert_eq!(generated::@$eo_typeof@(&mut s, stuck), Ok(stuck));
+        assert_eq!(s.cache_stats().type_hits, hits + 1);
+        assert_eq!(s.depth, 0);
+    }
 }

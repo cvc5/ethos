@@ -43,6 +43,14 @@ fn checks_a_complete_refutation_and_rejects_wrong_premises() {
     assert_eq!(s.check_refutation(assumptions, bad), Ok(false));
     let empty = n(&mut s, "$emb_cmdl.nil", &[]);
     assert_eq!(s.check_refutation(assumptions, empty), Ok(false));
+    // The optional optimization must preserve both accepted and rejected
+    // proofs, even after the arena has grown and across separate checks.
+    s.set_caching(false);
+    assert_eq!(s.check_refutation(assumptions, commands), Ok(true));
+    assert_eq!(s.check_proof(assumptions, commands), Ok(expected));
+    assert_eq!(s.check_refutation(assumptions, bad), Ok(false));
+    s.set_caching(true);
+    assert_eq!(s.check_refutation(assumptions, commands), Ok(true));
 }
 
 #[test]
@@ -203,6 +211,34 @@ fn indexed_operators_have_the_logos_wrapper_view() {
 }
 
 #[test]
+fn program_keys_include_the_environment() {
+    let mut s = Store::default();
+    let ty = n(&mut s, "$emb_Bool", &[]);
+    let name = s.literal(Lit::String(EoString::parse("x", false))).unwrap();
+    let variable = n(&mut s, "$emb_Var", &[name, ty]);
+    let empty = n(&mut s, "$eo_List_nil", &[]);
+    let cons = n(&mut s, "$eo_List_cons", &[]);
+    let head = s.apply(cons, variable).unwrap();
+    let bound = s.apply(head, empty).unwrap();
+    let yes = s.boolean(true).unwrap();
+    let no = s.boolean(false).unwrap();
+    assert_eq!(
+        generated::eo__24eo_5fis_5fclosed_5frec(&mut s, variable, empty),
+        Ok(no)
+    );
+    assert_eq!(
+        generated::eo__24eo_5fis_5fclosed_5frec(&mut s, variable, bound),
+        Ok(yes)
+    );
+    let hits = s.cache_stats().program_hits;
+    assert_eq!(
+        generated::eo__24eo_5fis_5fclosed_5frec(&mut s, variable, empty),
+        Ok(no)
+    );
+    assert_eq!(s.cache_stats().program_hits, hits + 1);
+}
+
+#[test]
 fn nonlinear_patterns_requirements_and_lazy_branches() {
     let mut s = Store::new(Limits {
         calls: 1000,
@@ -225,6 +261,7 @@ fn nonlinear_patterns_requirements_and_lazy_branches() {
         generated::eo__24eo_5fprog_5flazy(&mut s, no),
         Err(CheckError::Limit)
     );
+    assert_eq!(s.cache_stats().program_entries, 0);
     // A failed call must restore the depth counter (and the call budget
     // remains exhausted until a new proof starts).
     let assumptions = n(&mut s, "$emb_al.nil", &[]);
@@ -236,4 +273,95 @@ fn nonlinear_patterns_requirements_and_lazy_branches() {
         generated::eo__24eo_5fprog_5fswap(&mut s, one, yes, no),
         Ok(no)
     );
+    let hits = s.cache_stats().program_hits;
+    assert_eq!(
+        generated::eo__24eo_5fprog_5fswap(&mut s, one, yes, no),
+        Ok(no)
+    );
+    assert_eq!(s.cache_stats().program_hits, hits + 1);
+}
+
+fn shared_dag(s: &mut Store, depth: usize) -> Term {
+    let and = n(s, "and", &[]);
+    let mut t = s.boolean(true).unwrap();
+    for _ in 0..depth {
+        let head = s.apply(and, t).unwrap();
+        t = s.apply(head, t).unwrap();
+    }
+    t
+}
+
+#[test]
+fn type_memoization_traverses_shared_terms_once() {
+    let mut s = Store::new(Limits {
+        calls: 1000,
+        ..Limits::default()
+    });
+    let dag = shared_dag(&mut s, 40);
+    let ty = n(&mut s, "$emb_Bool", &[]);
+    assert_eq!(generated::eo__24eo_5ftypeof(&mut s, dag), Ok(ty));
+    let stats = s.cache_stats();
+    assert!(stats.type_hits >= 40);
+    assert!(stats.type_misses < 100);
+    // New arena nodes do not invalidate old results or overwrite their slots.
+    let new_node = s.numeral(Integer::from(99u32)).unwrap();
+    let _ = generated::eo__24eo_5ftypeof(&mut s, new_node).unwrap();
+    assert_eq!(generated::eo__24eo_5ftypeof(&mut s, dag), Ok(ty));
+    assert!(s.cache_stats().type_hits > stats.type_hits);
+    s.clear_caches();
+    assert_eq!(s.cache_stats(), CacheStats::default());
+    s.set_caching(false);
+    // Same DAG, same budget: unfolding its 2^40 occurrences cannot finish.
+    assert_eq!(
+        generated::eo__24eo_5ftypeof(&mut s, dag),
+        Err(CheckError::Limit)
+    );
+}
+
+#[test]
+fn program_memoization_uses_exact_keys_and_only_successful_results() {
+    let mut s = Store::new(Limits {
+        calls: 1000,
+        ..Limits::default()
+    });
+    let dag = shared_dag(&mut s, 40);
+    let yes = s.boolean(true).unwrap();
+    let no = s.boolean(false).unwrap();
+    assert_eq!(generated::eo__24eo_5fprog_5fdag(&mut s, dag), Ok(yes));
+    let stats = s.cache_stats();
+    assert!(stats.program_hits >= 40);
+    assert!(stats.program_misses < 100);
+    // Same arguments, different program ID: results must not alias.
+    assert_eq!(
+        generated::eo__24eo_5fprog_5fdag_5ffalse(&mut s, dag),
+        Ok(no)
+    );
+    let small = shared_dag(&mut s, 6);
+    s.set_caching(false);
+    assert_eq!(generated::eo__24eo_5fprog_5fdag(&mut s, small), Ok(yes));
+    s.clear_caches();
+    assert_eq!(
+        generated::eo__24eo_5fprog_5fdag(&mut s, dag),
+        Err(CheckError::Limit)
+    );
+    assert_eq!(s.cache_stats().program_entries, 0);
+}
+
+#[test]
+fn mutual_recursion_is_memoized() {
+    let mut s = Store::default();
+    let dag = shared_dag(&mut s, 2);
+    let yes = s.boolean(true).unwrap();
+    let no = s.boolean(false).unwrap();
+    assert_eq!(
+        generated::eo__24eo_5fprog_5fmutual_5fa(&mut s, dag),
+        Ok(yes)
+    );
+    assert_eq!(generated::eo__24eo_5fprog_5fmutual_5fb(&mut s, dag), Ok(no));
+    let hits = s.cache_stats().program_hits;
+    assert_eq!(
+        generated::eo__24eo_5fprog_5fmutual_5fa(&mut s, dag),
+        Ok(yes)
+    );
+    assert_eq!(s.cache_stats().program_hits, hits + 1);
 }

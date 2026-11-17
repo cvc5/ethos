@@ -35,10 +35,18 @@ class RustMetaReduce : public MetaReducePlugin
     size_t arity;
     bool isObject;
   };
+  enum class CacheKind
+  {
+    NONE,
+    EO_TYPE,
+    SMT_TYPE,
+    PROGRAM
+  };
   class Emitter;
   bool isBuiltinMetaSymbol(const std::string& name) const override;
   void finalizeDecl(const Expr& e) override;
   std::set<std::string> reachable() const;
+  void selectCaches(const std::set<std::string>& names);
   std::string schema() const;
   std::string emitProgram(const std::string& name, const Program& p);
   void output(const std::string& file, const std::string& text) const;
@@ -50,6 +58,8 @@ class RustMetaReduce : public MetaReducePlugin
   std::vector<std::string> d_constructorOrder;
   std::map<std::string, Program> d_programs;
   std::set<std::string> d_leftAssoc;
+  std::map<std::string, CacheKind> d_cacheKinds;
+  std::map<std::string, size_t> d_programIds;
 };
 
 }  // namespace ethos

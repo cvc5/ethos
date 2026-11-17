@@ -55,8 +55,10 @@ The parser/elaborator adapter constructs terms and commands through:
 
 `Constructor::from_name` and `constructors.tsv` preserve EO names, including
 overload identities. `functions.tsv` maps source programs to Rust functions
-and their Lean counterparts. Identifiers escape punctuation and underscores
-injectively, so source names cannot collide with Rust keywords or each other.
+and their Lean counterparts. `caches.tsv` records which functions are cached
+and their artifact-local program IDs. Identifiers escape punctuation and
+underscores injectively, so source names cannot collide with Rust keywords
+or each other.
 
 The public checking entry points take the generated `CArgList` and
 `CCmdList` representations as arena handles:
@@ -86,6 +88,42 @@ The default recursive-depth bound is conservative; Pathos can configure it
 for its corpus. Allocation failure or stack overflow cannot produce an
 acceptance.
 
+## Evaluation caches
+
+All memoization lives in `Store`, behind the small interface implemented by
+`runtime/cache.rs`. It uses `Vec` tables and explicit loops, with no closures
+or `HashMap`. The existing arena interner still uses its
+original implementation; the broader Aeneas restructuring is separate.
+
+Each term handle has one type-cache row with separate EO and SMT slots for
+`$eo_typeof` and `$smtx_typeof`. Keeping these slots separate prevents two
+different typing functions from sharing a result, including on `Stuck`.
+Program applications use an open-addressed table keyed by the generated
+program ID and **all** argument handles, including environments and fuel.
+Hash collisions are resolved by checking the full key.
+
+The generator caches programs in recursive call-graph cycles, including
+mutual recursion, when they have a term or embedded-datatype argument. It
+excludes checking-state functions, macros and nonrecursive helpers. This
+keeps lookup overhead off ordinary rule dispatch and small helper calls.
+`caches.tsv` makes this selection inspectable. Tail-call loops keep their
+original arguments as the cache key.
+
+Only completed `Ok` results are stored; an `Ok(Stuck)` is a legitimate
+result, while errors, exhausted budgets and unfinished calls are never
+cached. The cache invariant is that each entry equals the pure function's
+result on the decoded argument handles. Arena growth preserves that
+invariant, so entries survive across proof checks. Program entries are
+bounded by `Limits::terms`; reaching that bound stops new insertions without
+changing evaluation. Type rows grow with the arena.
+
+`Store::cache_stats()` exposes hits, misses and entry counts for measurement.
+`set_caching(false)` bypasses reads and writes; `clear_caches()` clears
+entries and resets statistics without changing terms. Cache hits still
+consume a generated-function call from the evaluation budget. Memoization
+can turn an otherwise budget-exhausting traversal into a successful check;
+successful results retain the same meaning.
+
 ## Verification boundary
 
 This is an executable backend, **not a completed Rust verification**. The
@@ -99,7 +137,8 @@ holds checker states and native fields; the relation is indexed by the
 generated type. Per-function proofs then relate the compiled cases to the
 functions named in the manifest. Tail-call loops need the corresponding
 iteration invariant. Translation masks and runtime operations need their
-own refinement proofs.
+own refinement proofs. Cache refinement additionally requires the entry
+invariant above; the table's hash layout is irrelevant to decoded results.
 
 Literal and list operations follow Ethos/Pathos, with explicit stuck results,
 lazy conditionals, ordered nonlinear matching and no fall-through after a
@@ -116,8 +155,12 @@ program names alone is insufficient. Unsupported native operations fail
 with an error, never an accepting default. The parser and its translation
 to this representation remain outside the proof, as requested.
 
-The copied runtime's provenance and BSD license are recorded in each source
-and `LICENSE.pathos`. The artifact includes `Cargo.lock` and the Pathos
+The six copied files (`num.rs`, `lit.rs`, `kind.rs`, `bitvec.rs`,
+`eostring.rs`, `codec.rs`) are byte-for-byte copies of `crates/pathos-term/src`
+at Pathos `f77aff7a457a73fb1708b8867d76f21e50fef081`. They retain that format so
+fixes can flow both ways; cache changes are confined to this backend's own
+runtime. The BSD license is in `LICENSE.pathos`.
+The artifact includes `Cargo.lock` and the Pathos
 dependency audit in `DEPENDENCIES.md`. Its own Rust forbids `unsafe`; the
 audited transitive dependencies retain Pathos's existing safety boundary.
 
@@ -137,5 +180,10 @@ refutation, incorrect premises, assumption discharge, open scopes,
 ill-typed assumptions, builtin lists and arithmetic, nonlinear matching,
 lazy recursion, tail-call argument swapping, long command lists and resource
 limits. The existing driver tests and compiler regressions still apply.
+Cache regressions include a 40-level shared DAG (exponential as a tree),
+mutual recursion, distinct program IDs and environments, collisions and
+rehashing, arena growth, bounded insertion and cleanup after errors. They
+also compare cached and uncached proof results. The shared DAG completes
+within a 1,000-call budget with caching and exhausts that budget without it.
 The CPC run also compares the mask table with that checkout's
 `Cpc/TranslationChecks.lean` when the file is available.

@@ -1,5 +1,3 @@
-// Copied from daniel-larraz/pathos at f77aff7a457a73fb1708b8867d76f21e50fef081.
-// BSD-3-Clause; see LICENSE.pathos. Local changes belong to this backend.
 //! Fixed-width bit-vectors, as `util/bitvector.cpp` in Ethos.
 
 use crate::num::Integer;

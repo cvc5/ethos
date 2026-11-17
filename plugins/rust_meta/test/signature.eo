@@ -29,3 +29,20 @@
 (program $eo_prog_swap ((n Int) (x Bool) (y Bool)) :signature (Int Bool Bool) Bool (
   (($eo_prog_swap 0 x y) x)
   (($eo_prog_swap n x y) ($eo_prog_swap 0 y x))))
+
+; These traverse a DAG as a tree unless applications are memoized.
+(program $eo_prog_dag ((x Bool) (y Bool :list)) :signature (Bool) Bool (
+  (($eo_prog_dag (and x y)) (eo::and ($eo_prog_dag x) ($eo_prog_dag y)))
+  (($eo_prog_dag x) true)))
+(program $eo_prog_dag_false ((x Bool) (y Bool :list)) :signature (Bool) Bool (
+  (($eo_prog_dag_false (and x y)) (eo::or ($eo_prog_dag_false x) ($eo_prog_dag_false y)))
+  (($eo_prog_dag_false x) false)))
+
+; Cycle detection must include mutual recursion, not just self calls.
+(program $eo_prog_mutual_a () :signature (Bool) Bool)
+(program $eo_prog_mutual_b ((x Bool) (y Bool :list)) :signature (Bool) Bool (
+  (($eo_prog_mutual_b (and x y)) ($eo_prog_mutual_a x))
+  (($eo_prog_mutual_b x) false)))
+(program $eo_prog_mutual_a ((x Bool) (y Bool :list)) :signature (Bool) Bool (
+  (($eo_prog_mutual_a (and x y)) ($eo_prog_mutual_b x))
+  (($eo_prog_mutual_a x) true)))

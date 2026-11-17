@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate, compile, lint and execute an independent parser-free checker."""
 import argparse
+import csv
 import os
 from pathlib import Path
 import re
@@ -48,6 +49,17 @@ def main():
             tests = tests.split("#[test]\nfn nonlinear_patterns_requirements_and_lazy_branches")[0]
         (crate / "tests/checker.rs").write_text(tests)
         source = (crate / "src/generated.rs").read_text()
+        with (crate / "caches.tsv").open() as f:
+            policies = {row["source"]: row["cache"] for row in csv.DictReader(f, delimiter="\t")}
+        assert policies["$eo_typeof"] == "eo-type"
+        assert policies["$eo_invoke_cmd_list"] == "none"
+        if args.cpc:
+            assert policies["$smtx_typeof"] == "smt-type"
+        else:
+            for name in ["$eo_prog_dag", "$eo_prog_dag_false", "$eo_prog_swap",
+                         "$eo_prog_mutual_a", "$eo_prog_mutual_b"]:
+                assert policies[name] == "program", name
+            assert policies["$eo_prog_nonlin"] == "none"
         assert 's.operator("add"' in source or 's.operator("list_concat"' in source
         assert "EO program \"$eo_add\"" not in source
         assert not any(p.name.lower().startswith("parser") for p in crate.rglob("*"))
