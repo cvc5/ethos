@@ -50,6 +50,7 @@ def main():
             (crate / "tests/cpc.rs").write_text(Path(__file__).with_name("cpc.rs").read_text())
         (crate / "tests/checker.rs").write_text(tests)
         source = (crate / "src/generated.rs").read_text()
+        assert '"$eo_invoke_assume_list", compiled to an iterative guarded fold' in source
         with (crate / "caches.tsv").open() as f:
             policies = {row["source"]: row["cache"] for row in csv.DictReader(f, delimiter="\t")}
         assert policies["$eo_typeof"] == "eo-type"

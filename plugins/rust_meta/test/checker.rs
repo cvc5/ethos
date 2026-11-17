@@ -224,6 +224,103 @@ fn long_command_lists_use_a_loop() {
     assert_eq!(s.check_refutation(assumptions, cmds), Ok(true));
 }
 
+fn contradiction_commands(s: &mut Store) -> Term {
+    let args = n(s, "$emb_al.nil", &[]);
+    let zero = index(s, 0);
+    let one = index(s, 1);
+    let premises = list(s, "$emb_indl.nil", "$emb_indl.cons", &[zero, one]);
+    let contra = n(s, "$emb_r.contra", &[]);
+    let step = n(s, "$emb_cmd.step", &[contra, args, premises]);
+    list(s, "$emb_cmdl.nil", "$emb_cmdl.cons", &[step])
+}
+
+#[test]
+fn default_limits_check_deep_terms() {
+    let mut s = Store::default();
+    let yes = s.boolean(true).unwrap();
+    let mut formula = s.boolean(false).unwrap();
+    let or = n(&mut s, "or", &[]);
+    for _ in 0..3000 {
+        let head = s.apply(or, yes).unwrap();
+        formula = s.apply(head, formula).unwrap();
+    }
+    let not = n(&mut s, "not", &[]);
+    let denial = s.apply(not, formula).unwrap();
+    let assumptions = list(&mut s, "$emb_al.nil", "$emb_al.cons", &[formula, denial]);
+    let commands = contradiction_commands(&mut s);
+    assert_eq!(s.check_refutation(assumptions, commands), Ok(true));
+    let expected = if Constructor::from_name("$emb_tsm.None").is_some() {
+        Verdict::Correct
+    } else {
+        Verdict::Incomplete
+    };
+    assert_eq!(s.check_proof(assumptions, commands), Ok(expected));
+    // Going beyond the default still returns a recoverable resource error.
+    // Start with uncached outer nodes so the earlier check cannot hide depth.
+    let mut too_deep = formula;
+    for _ in 0..20_000 {
+        let head = s.apply(or, yes).unwrap();
+        too_deep = s.apply(head, too_deep).unwrap();
+    }
+    let deep_assumptions = list(&mut s, "$emb_al.nil", "$emb_al.cons", &[too_deep]);
+    assert_eq!(
+        s.check_refutation(deep_assumptions, commands),
+        Err(CheckError::Limit)
+    );
+    assert_eq!(s.check_refutation(assumptions, commands), Ok(true));
+}
+
+#[test]
+fn assumption_count_does_not_consume_recursive_depth() {
+    let mut s = Store::new(Limits {
+        depth: 128,
+        ..Limits::default()
+    });
+    let yes = s.boolean(true).unwrap();
+    let not = n(&mut s, "not", &[]);
+    let denial = s.apply(not, yes).unwrap();
+    let mut assumptions = list(&mut s, "$emb_al.nil", "$emb_al.cons", &vec![yes; 120_000]);
+    assumptions = n(&mut s, "$emb_al.cons", &[denial, assumptions]);
+    assumptions = n(&mut s, "$emb_al.cons", &[yes, assumptions]);
+    // Preserving the order matters: contra needs true at 0 and not true at 1.
+    let commands = contradiction_commands(&mut s);
+    assert_eq!(s.check_refutation(assumptions, commands), Ok(true));
+}
+
+#[test]
+fn assumption_fold_preserves_guards_and_malformed_tails() {
+    let mut s = Store::default();
+    let yes = s.boolean(true).unwrap();
+    let empty = n(&mut s, "$emb_al.nil", &[]);
+    let initial = n(&mut s, "$emb_s.nil", &[]);
+    let invoke = generated::eo__24eo_5finvoke_5fassume_5flist;
+    assert_eq!(invoke(&mut s, initial, empty), Ok(initial));
+    let numeral = s.numeral(Integer::one()).unwrap();
+    let name = s.literal(Lit::String(EoString::parse("x", false))).unwrap();
+    let ty = n(&mut s, "$emb_Bool", &[]);
+    let variable = n(&mut s, "$emb_Var", &[name, ty]);
+    let bad_state = n(&mut s, "$emb_s.Stuck", &[]);
+    // An ill-typed assumption, an open assumption and Stuck all fail the guard.
+    for bad in [numeral, variable, s.stuck()] {
+        let args = list(&mut s, "$emb_al.nil", "$emb_al.cons", &[bad]);
+        assert_eq!(invoke(&mut s, initial, args), Ok(bad_state));
+    }
+    // A malformed tail evaluates to term Stuck; the outer guarded pushes
+    // still happen, exactly as in the recursive EO definition.
+    let malformed = n(&mut s, "$emb_al.cons", &[yes, numeral]);
+    let entry = n(&mut s, "$emb_so.assume", &[yes]);
+    let stuck = s.stuck();
+    let expected = n(&mut s, "$emb_s.cons", &[entry, stuck]);
+    assert_eq!(invoke(&mut s, initial, malformed), Ok(expected));
+    let again = list(&mut s, "$emb_al.nil", "$emb_al.cons", &[yes]);
+    assert_eq!(invoke(&mut s, expected, empty), Ok(expected));
+    let expected_again = n(&mut s, "$emb_s.cons", &[entry, expected]);
+    assert_eq!(invoke(&mut s, expected, again), Ok(expected_again));
+    let args = list(&mut s, "$emb_al.nil", "$emb_al.cons", &[yes, numeral]);
+    let expected = n(&mut s, "$emb_s.cons", &[entry, bad_state]);
+    assert_eq!(invoke(&mut s, initial, args), Ok(expected));
+}
+
 #[test]
 fn indexed_operators_have_the_logos_wrapper_view() {
     let mut s = Store::default();

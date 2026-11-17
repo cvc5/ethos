@@ -83,10 +83,22 @@ not be transferred between arenas.
 
 Bad shapes and resource exhaustion are `Result` errors. Calls, recursive
 depth and arena size are bounded by `Limits`; tail calls become loops,
-including command invocation. Checking runs on a 64 MiB scoped-thread stack.
-The default recursive-depth bound is conservative; Pathos can configure it
-for its corpus. Allocation failure or stack overflow cannot produce an
-acceptance.
+including command invocation. Checking runs on a 64 MiB scoped-thread stack,
+with a default depth limit of 4,096 generated calls, budgeting 16 KiB of that
+stack per call. Programs with eight or more cases emit separate case
+helpers and reuse one dispatch result, so unoptimized recursive calls do
+not reserve temporaries for every case. The depth regressions check both
+successful deep terms and recovery after exceeding the limit in debug and
+release builds. Stack use still depends on the signature, compiler and
+target; the limit is configurable, not a universal stack-size proof.
+
+The assumption-list program is recognized by its two-case guarded-fold
+shape and compiled to a loop. Guards are evaluated head to tail and saved
+with their terms; pushes run tail to head, preserving premise indices,
+failed guards and malformed-tail results. One budget tick replaces each
+recursive call, without increasing recursive depth. The refinement target
+is the original EO function; Logos's `invoke_assume_list_eq_fold` in
+`Cpc/ApiChecks.lean` proves the corresponding fold equality for its API.
 
 ## Evaluation caches
 
@@ -181,6 +193,10 @@ ill-typed assumptions, builtin lists and arithmetic, nonlinear matching,
 lazy recursion, tail-call argument swapping, long command lists and resource
 limits. All six builtin recognizers are checked on `Stuck` and literal/variable
 inputs. The existing driver tests and compiler regressions still apply.
+Depth regressions include a 3,000-level right-nested `or`, a term beyond the
+default depth budget, and 120,000 assumptions with an explicit depth limit
+of 128. Fold regressions check failed guards, initial states, input order
+and malformed tails.
 Cache regressions include a 40-level shared DAG (exponential as a tree),
 mutual recursion, distinct program IDs and environments, collisions and
 rehashing, arena growth, bounded insertion and cleanup after errors. They

@@ -26,8 +26,16 @@
 (program $eo_prog_lazy ((x Bool)) :signature (Bool) Bool (
   (($eo_prog_lazy x) (eo::ite x true ($loop x)))))
 
+; Enough distinct cases to exercise the small case helpers, including a
+; tail call whose next arguments must all be read before any are overwritten.
 (program $eo_prog_swap ((n Int) (x Bool) (y Bool)) :signature (Int Bool Bool) Bool (
   (($eo_prog_swap 0 x y) x)
+  (($eo_prog_swap 2 x y) y)
+  (($eo_prog_swap 3 x y) y)
+  (($eo_prog_swap 4 x y) y)
+  (($eo_prog_swap 5 x y) y)
+  (($eo_prog_swap 6 x y) y)
+  (($eo_prog_swap 7 x y) y)
   (($eo_prog_swap n x y) ($eo_prog_swap 0 y x))))
 
 ; These traverse a DAG as a tree unless applications are memoized.

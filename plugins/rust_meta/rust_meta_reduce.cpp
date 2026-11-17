@@ -747,6 +747,58 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
         << ");\ns.leave();\nresult\n}\n";
     return out.str();
   }
+  // Recognize the checking loop's guarded right fold, rather than relying
+  // on its name alone. Check guards in source order and save their results;
+  // unwind the pending pushes in reverse order, just as the recursive EO
+  // definition does. Logos's invoke_assume_list_eq_fold (Cpc/ApiChecks.lean)
+  // is the corresponding refinement statement for well-formed input lists.
+  if (name == "$eo_invoke_assume_list" && cases && !p.isDefine && nargs == 2
+      && p.body.getNumChildren() == 2
+      && d_cacheKinds.at(name) == CacheKind::NONE)
+  {
+    Expr base = p.body[0][0], step = p.body[1][0], body = p.body[1][1];
+    if (base.getNumChildren() == 3 && step.getNumChildren() == 3
+        && base[1].getKind() == Kind::PARAM && p.body[0][1] == base[1]
+        && base[2].getNumChildren() == 0 && getName(base[2]) == "$emb_al.nil"
+        && step[1].getKind() == Kind::PARAM
+        && step[2].getKind() == Kind::APPLY_OPAQUE
+        && step[2].getNumChildren() == 3
+        && getName(step[2][0]) == "$emb_al.cons"
+        && step[2][1].getKind() == Kind::PARAM
+        && step[2][2].getKind() == Kind::PARAM && body.getKind() == Kind::APPLY
+        && body.getNumChildren() == 4
+        && body[0].getKind() == Kind::PROGRAM_CONST
+        && getName(body[0]) == "$eo_push_input_assume_check"
+        && body[2] == step[2][1] && body[3].getKind() == Kind::APPLY
+        && body[3].getNumChildren() == 3 && body[3][0] == p.symbol
+        && body[3][1] == step[1] && body[3][2] == step[2][2])
+    {
+      out << "// EO program " << quote(name)
+          << ", compiled to an iterative guarded fold\npub fn " << ident(name)
+          << "(s: &mut Store, a0: Term, a1: Term) -> CheckResult<Term> {\n"
+          << "s.enter()?;\nlet result = (|| {\n"
+          << "let mut pending = Vec::new();\nlet mut args = a1;\n"
+          << "let mut state = 'scan: loop {\n'case0: {\n";
+      e.pattern(base[1], "a0", 0);
+      e.pattern(base[2], "args", 0);
+      out << "break 'scan a0;\n}\n'case1: {\n";
+      e.vars.clear();
+      e.pattern(step[1], "a0", 1);
+      e.pattern(step[2], "args", 1);
+      std::string guard = e.expr(body[1]), term = e.expr(body[2]);
+      out << "pending.push((" << guard << ", " << term << "));\n";
+      std::string tail = e.expr(body[3][2]);
+      // One tick replaces each recursive enter, keeping the call budget
+      // while making the depth independent of the number of assumptions.
+      out << "args = " << tail << ";\ns.tick()?;\ncontinue 'scan;\n}\n"
+          << "break 'scan s.stuck();\n};\n"
+          << "while let Some((guard, term)) = pending.pop() {\n"
+          << "state = " << ident(getName(body[0]))
+          << "(s, guard, term, state)?;\n}\nOk(state)\n})();\n"
+          << "s.leave();\nresult\n}\n";
+      return out.str();
+    }
+  }
   out << "// EO program " << quote(name) << "\npub fn " << ident(name)
       << "(s: &mut Store";
   for (size_t i = 0; i < nargs; ++i)
@@ -816,8 +868,31 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
       }
     }
   }
+  std::ostringstream helpers;
   if (cases)
   {
+    // Large sequential matches otherwise give every recursive invocation
+    // one debug-build stack frame containing temporaries for every case.
+    // Keep those temporaries in separate, small helpers. They do not enter
+    // the evaluator again: budgets, caching and case order stay in this
+    // function, and each helper implements exactly one source case.
+    bool splitCases = p.body.getNumChildren() >= 8;
+    Emitter helperEmitter(*this, helpers);
+    std::string caseResult = "case_result_" + ident(name);
+    std::string noMatch = loop ? caseResult + "::NoMatch" : "None";
+    if (splitCases)
+    {
+      if (loop)
+      {
+        helpers << "#[allow(dead_code)]\nenum " << caseResult
+                << " { NoMatch, Value(Term), Tail([Term; " << nargs << "]) }\n";
+      }
+      // One match result shared by all cases avoids a separate debug-build
+      // result slot for every helper call in this recursive frame.
+      out << "let mut case_index = 0_usize;\nwhile case_index < "
+          << p.body.getNumChildren() << " {\n"
+          << "let matched = match case_index {\n";
+    }
     for (size_t c = 0; c < p.body.getNumChildren(); ++c)
     {
       Expr pat = p.body[c][0];
@@ -825,33 +900,89 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
       {
         EO_FATAL() << "rust-meta: bad pattern arity for " << name;
       }
-      out << "'case" << c << ": {\n";
-      e.vars.clear();
+      Expr body = p.body[c][1];
+      bool tail = loop && tailCall(body);
+      std::ostream& co = splitCases ? helpers : out;
+      Emitter& ce = splitCases ? helperEmitter : e;
+      if (splitCases)
+      {
+        std::string helper = "case_" + std::to_string(c) + "_" + ident(name);
+        helpers << "fn " << helper << "(s: &mut Store";
+        out << c << " => " << helper << "(s";
+        for (size_t j = 0; j < nargs; ++j)
+        {
+          helpers << ", a" << j << ": Term";
+          out << ", a" << j;
+        }
+        helpers << ") -> CheckResult<" << (loop ? caseResult : "Option<Term>")
+                << "> {\n";
+        out << "),\n";
+      }
+      co << "'case" << c << ": {\n";
+      ce.vars.clear();
       for (size_t j = 0; j < nargs; ++j)
       {
-        e.pattern(pat[j + 1], "a" + std::to_string(j), c);
+        ce.pattern(pat[j + 1], "a" + std::to_string(j), c);
       }
-      Expr body = p.body[c][1];
-      if (loop && tailCall(body))
+      if (tail)
       {
         std::vector<std::string> next;
         for (size_t j = 1; j <= nargs; ++j)
         {
-          std::string value = e.expr(body[j]);
-          next.push_back(e.val(value));
+          std::string value = ce.expr(body[j]);
+          next.push_back(ce.val(value));
         }
-        // Evaluate every argument before overwriting any of the inputs.
-        for (size_t j = 0; j < nargs; ++j)
+        if (splitCases)
         {
-          out << "a" << j << " = " << next[j] << ";\n";
+          co << "return Ok(" << caseResult << "::Tail([";
+          for (size_t j = 0; j < nargs; ++j)
+          {
+            co << (j == 0 ? "" : ", ") << next[j];
+          }
+          co << "]));\n}\n";
         }
-        out << "continue 'recur;\n}\n";
+        else
+        {
+          // Evaluate every argument before overwriting any of the inputs.
+          for (size_t j = 0; j < nargs; ++j)
+          {
+            co << "a" << j << " = " << next[j] << ";\n";
+          }
+          co << "continue 'recur;\n}\n";
+        }
       }
       else
       {
-        std::string v = e.expr(body);
-        out << "return Ok(" << v << ");\n}\n";
+        std::string v = ce.expr(body);
+        co << "return Ok("
+           << (splitCases ? (loop ? caseResult + "::Value(" : "Some(") : "")
+           << v << (splitCases ? ")" : "") << ");\n}\n";
       }
+      if (splitCases)
+      {
+        helpers << "Ok(" << noMatch << ")\n}\n";
+      }
+    }
+    if (splitCases)
+    {
+      out << "_ => Ok(" << noMatch << "),\n}?;\n";
+      if (loop)
+      {
+        out << "match matched {\n"
+            << caseResult << "::NoMatch => {},\n"
+            << caseResult << "::Value(value) => return Ok(value),\n"
+            << caseResult << "::Tail(next) => {\n";
+        for (size_t j = 0; j < nargs; ++j)
+        {
+          out << "a" << j << " = next[" << j << "];\n";
+        }
+        out << "continue 'recur;\n}\n}\n";
+      }
+      else
+      {
+        out << "if let Some(value) = matched { return Ok(value); }\n";
+      }
+      out << "case_index += 1;\n}\n";
     }
     out << (loop ? "return Ok(s.stuck());\n}\n" : "Ok(s.stuck())\n");
   }
@@ -865,7 +996,8 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
   {
     out << "if let Ok(value) = result { " << cachePut << " }\n";
   }
-  out << "result\n}\n";
+  // Helpers are module items; emit them after closing the main function.
+  out << "result\n}\n" << helpers.str();
   return out.str();
 }
 
