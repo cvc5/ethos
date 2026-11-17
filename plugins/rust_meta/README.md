@@ -179,11 +179,14 @@ as errors, and runs debug and release tests. Coverage includes a complete
 refutation, incorrect premises, assumption discharge, open scopes,
 ill-typed assumptions, builtin lists and arithmetic, nonlinear matching,
 lazy recursion, tail-call argument swapping, long command lists and resource
-limits. The existing driver tests and compiler regressions still apply.
+limits. All six builtin recognizers are checked on `Stuck` and literal/variable
+inputs. The existing driver tests and compiler regressions still apply.
 Cache regressions include a 40-level shared DAG (exponential as a tree),
 mutual recursion, distinct program IDs and environments, collisions and
 rehashing, arena growth, bounded insertion and cleanup after errors. They
 also compare cached and uncached proof results. The shared DAG completes
 within a 1,000-call budget with caching and exhausts that budget without it.
 The CPC run also compares the mask table with that checkout's
-`Cpc/TranslationChecks.lean` when the file is available.
+`Cpc/TranslationChecks.lean` when the file is available, and checks the
+`arith_poly_norm` refutation of `(not (= x x))` for a real constant with
+caching enabled and disabled.

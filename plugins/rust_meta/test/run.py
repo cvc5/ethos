@@ -47,6 +47,7 @@ def main():
         tests = Path(__file__).with_name("checker.rs").read_text()
         if args.cpc:
             tests = tests.split("#[test]\nfn nonlinear_patterns_requirements_and_lazy_branches")[0]
+            (crate / "tests/cpc.rs").write_text(Path(__file__).with_name("cpc.rs").read_text())
         (crate / "tests/checker.rs").write_text(tests)
         source = (crate / "src/generated.rs").read_text()
         with (crate / "caches.tsv").open() as f:

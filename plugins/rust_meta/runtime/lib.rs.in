@@ -633,7 +633,7 @@ impl Store {
     }
 
     /// Ethos-style primitive evaluation over already evaluated values.
-    /// Stuck is explicit; IsOk/IsEq inspect it instead of propagating it.
+    /// Stuck is explicit; recognizers and IsOk/IsEq return false on it.
     pub(crate) fn operator(&mut self, name: &str, args: &[Term]) -> CheckResult<Term> {
         let op = EvalOp::ALL
             .iter()
@@ -712,9 +712,7 @@ impl Store {
                 self.stuck()
             });
         }
-        if args.iter().any(|&a| self.is_stuck(a).unwrap_or(true)) {
-            return Ok(self.stuck());
-        }
+        // Logos's recognizers are total predicates, including on Stuck.
         if matches!(
             op,
             EvalOp::IsZ
@@ -733,6 +731,9 @@ impl Store {
                     | (EvalOp::IsBool, TermData::Literal(Lit::Bool(_)))
             ) || (op == EvalOp::IsVar && self.is_named(x, "$emb_Var")?);
             return self.boolean(b);
+        }
+        if args.iter().any(|&a| self.is_stuck(a).unwrap_or(true)) {
+            return Ok(self.stuck());
         }
         if op == EvalOp::NameOf {
             return Ok(match self.view(x)? {

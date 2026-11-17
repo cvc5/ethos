@@ -133,6 +133,41 @@ fn primitive_edge_cases_and_interning() {
 }
 
 #[test]
+fn recognizers_return_booleans_including_on_stuck() {
+    let mut s = Store::default();
+    let ty = n(&mut s, "Real", &[]);
+    let name = s.literal(Lit::String(EoString::parse("x", false))).unwrap();
+    let variable = n(&mut s, "$emb_Var", &[name, ty]);
+    let numeral = s.numeral(Integer::one()).unwrap();
+    let rational = s
+        .literal(Lit::Rational(Rational::from_integer(&Integer::one())))
+        .unwrap();
+    let binary = s
+        .literal(Lit::Binary(BitVec::new(1, &Integer::one())))
+        .unwrap();
+    let boolean = s.boolean(true).unwrap();
+    let no = s.boolean(false).unwrap();
+    let stuck = s.stuck();
+    // This failed conversion is the input to is_q in arithmetic normalization.
+    assert_eq!(s.builtin(EvalOp::ToRat, &[variable]), Ok(stuck));
+    for (op, matching) in [
+        (EvalOp::IsZ, numeral),
+        (EvalOp::IsQ, rational),
+        (EvalOp::IsBin, binary),
+        (EvalOp::IsStr, name),
+        (EvalOp::IsBool, boolean),
+        (EvalOp::IsVar, variable),
+    ] {
+        assert_eq!(s.builtin(op, &[stuck]), Ok(no), "{op:?} on Stuck");
+        for arg in [numeral, rational, binary, name, boolean, variable] {
+            let expected = s.boolean(arg == matching).unwrap();
+            assert_eq!(s.builtin(op, &[arg]), Ok(expected), "{op:?} on {arg:?}");
+        }
+    }
+    assert_eq!(s.builtin(EvalOp::Not, &[stuck]), Ok(stuck));
+}
+
+#[test]
 fn primitive_lists_preserve_order_and_multiplicity() {
     let mut s = Store::default();
     let t = s.boolean(true).unwrap();
