@@ -729,6 +729,24 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
       loop |= tailCall(p.body[i][1]);
     }
   }
+  // The checking loop's premise lookup walks the state list one element at
+  // a time, creating and interning a native numeral at each one. Where the
+  // loop's constructors are the expected ones, it is compiled to the
+  // runtime's Store::state_proven_nth, which gives the same results with a
+  // machine counter (see its documentation in runtime/lib.rs.in).
+  if (name == "$eo_state_proven_nth" && cases && nargs == 2
+      && d_cacheKinds.at(name) == CacheKind::NONE
+      && d_constructors.count("$emb_s.cons") > 0
+      && d_programs.count("$eo_StateObj_proven") > 0)
+  {
+    out << "// EO program " << quote(name)
+        << ", compiled to Store::state_proven_nth\npub fn " << ident(name)
+        << "(s: &mut Store, a0: Term, a1: Term) -> CheckResult<Term> {\n"
+        << "s.enter()?;\nlet result = s.state_proven_nth(Constructor::"
+        << ident("$emb_s.cons") << ", a0, a1, " << ident("$eo_StateObj_proven")
+        << ");\ns.leave();\nresult\n}\n";
+    return out.str();
+  }
   out << "// EO program " << quote(name) << "\npub fn " << ident(name)
       << "(s: &mut Store";
   for (size_t i = 0; i < nargs; ++i)
