@@ -47,13 +47,19 @@ impl BitVec {
         &self.value
     }
 
-    /// The digits in `base`. Binary output is padded to the width;
-    /// hexadecimal output is not, as in Ethos.
+    /// The digits in `base`. Binary and hexadecimal output is padded to the
+    /// number of digits the width asks for, so that `#x0f` and `#x00f`
+    /// print differently.
     pub fn to_string_base(&self, base: u8) -> String {
         let s = self.value.to_string_base(base);
-        let size = self.size as usize;
-        if base == 2 && size > s.len() {
-            let mut out = "0".repeat(size - s.len());
+        let ndigits = match base {
+            2 => self.size as usize,
+            // in Ethos's 32-bit arithmetic
+            16 => (self.size.wrapping_add(3) / 4) as usize,
+            _ => 0,
+        };
+        if ndigits > s.len() {
+            let mut out = "0".repeat(ndigits - s.len());
             out.push_str(&s);
             out
         } else if self.size == 0 {
@@ -143,8 +149,8 @@ mod tests {
             BitVec::parse("0f", 16).unwrap().to_string_base(2),
             "00001111"
         );
-        // hexadecimal output is not padded
-        assert_eq!(BitVec::parse("0f", 16).unwrap().to_string_base(16), "f");
+        // hexadecimal output is padded to the digits the width asks for
+        assert_eq!(BitVec::parse("0f", 16).unwrap().to_string_base(16), "0f");
         assert_eq!(BitVec::zero(0).to_string_base(2), "");
     }
 
