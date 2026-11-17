@@ -33,7 +33,6 @@ class RustMetaReduce : public MetaReducePlugin
   struct Constructor
   {
     size_t arity;
-    bool isObject;
   };
   enum class CacheKind
   {
@@ -47,6 +46,8 @@ class RustMetaReduce : public MetaReducePlugin
   void finalizeDecl(const Expr& e) override;
   std::set<std::string> reachable() const;
   void selectCaches(const std::set<std::string>& names);
+  /** Whether a constructor is a user symbol, not an embedding or meta one. */
+  static bool isUserConstructor(const std::string& name);
   std::string schema() const;
   std::string emitProgram(const std::string& name, const Program& p);
   void output(const std::string& file, const std::string& text) const;

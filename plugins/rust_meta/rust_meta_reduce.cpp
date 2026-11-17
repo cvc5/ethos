@@ -68,13 +68,14 @@ std::string RustMetaReduce::quote(const std::string& text)
     {
       out << '\\' << c;
     }
-    else if (c >= 32 && c <= 126)
+    else if (c < 32 || c == 127)
     {
-      out << c;
+      out << "\\u{" << std::hex << unsigned(c) << std::dec << '}';
     }
     else
     {
-      out << "\\u{" << std::hex << unsigned(c) << '}';
+      // Rust source is UTF-8, so multi-byte sequences pass through unchanged.
+      out << c;
     }
   }
   out << '"';
@@ -120,10 +121,8 @@ void RustMetaReduce::finalizeDecl(const Expr& e)
   size_t arity = d_state.getAttributeKind(e.getValue()) == Attr::OPAQUE
                      ? ty.getNumChildren() - 1
                      : 0;
-  bool object = !starts(name, "$emb_")
-                || (name.find('.') == std::string::npos && name != "$eo_pf");
   d_constructorOrder.push_back(name);
-  d_constructors.emplace(name, Constructor{arity, object});
+  d_constructors.emplace(name, Constructor{arity});
 }
 
 void RustMetaReduce::defineProgram(const Expr& v, const Expr& prog)
@@ -359,6 +358,12 @@ void RustMetaReduce::selectCaches(const std::set<std::string>& names)
   }
 }
 
+bool RustMetaReduce::isUserConstructor(const std::string& name)
+{
+  return !starts(name, "$emb_") && !starts(name, "$eo_")
+         && !starts(name, "$smt_");
+}
+
 std::string RustMetaReduce::schema() const
 {
   std::ostringstream out;
@@ -380,19 +385,19 @@ std::string RustMetaReduce::schema() const
   {
     out << quote(c.first) << " => Self::" << ident(c.first) << ",\n";
   }
-  out << "_ => return None, }) }\npub fn is_user(self) -> bool { let n = "
-         "self.name(); !n.starts_with(\"$emb_\") && !n.starts_with(\"$eo_\") "
-         "&& !n.starts_with(\"$smt_\") }\npub fn arity(self) -> usize { match "
-         "self {\n";
+  out << "_ => return None, }) }\npub fn is_user(self) -> bool { match self "
+         "{\n";
+  for (const auto& c : d_constructors)
+  {
+    if (isUserConstructor(c.first))
+    {
+      out << "Self::" << ident(c.first) << " => true,\n";
+    }
+  }
+  out << "_ => false, }}\npub fn arity(self) -> usize { match self {\n";
   for (const auto& c : d_constructors)
   {
     out << "Self::" << ident(c.first) << " => " << c.second.arity << ",\n";
-  }
-  out << "}}\npub fn is_object(self) -> bool { match self {\n";
-  for (const auto& c : d_constructors)
-  {
-    out << "Self::" << ident(c.first) << " => "
-        << (c.second.isObject ? "true" : "false") << ",\n";
   }
   out << "}}\npub fn is_left_assoc(self) -> bool { match self.name() {\n";
   for (const auto& n : d_leftAssoc)
@@ -413,8 +418,12 @@ std::string RustMetaReduce::schema() const
       tags[name] = next++;
     }
   }
+  // Users without a wrapper sort after every $eo_Term constructor. Remaining
+  // constructors (datatype constructors, meta types) take fresh tags after
+  // that, so tags are unique across datatypes while keeping each datatype's
+  // declaration order.
+  const size_t unwrappedUser = next++;
   std::map<size_t, size_t> users;
-  std::map<std::string, size_t> datatypes;
   for (const std::string& name : d_constructorOrder)
   {
     size_t arity = d_constructors.at(name).arity;
@@ -423,16 +432,16 @@ std::string RustMetaReduce::schema() const
     {
       tag = tags.at(name);
     }
-    else if (!starts(name, "$emb_") && !starts(name, "$eo_"))
+    else if (isUserConstructor(name))
     {
       std::string wrapper =
           "$emb_UOp" + (arity == 0 ? "" : std::to_string(arity));
-      tag = tags.count(wrapper) ? tags.at(wrapper) : next;
+      tag = tags.count(wrapper) ? tags.at(wrapper) : unwrappedUser;
       subtag = users[arity]++;
     }
     else
     {
-      tag = datatypes[name.substr(0, name.find('.'))]++;
+      tag = next++;
     }
     out << "Self::" << ident(name) << " => (" << tag << ", " << subtag
         << "),\n";
@@ -1014,10 +1023,21 @@ void RustMetaReduce::output(const std::string& file,
 
 void RustMetaReduce::finalize()
 {
-  if (!d_programs.count("$eo_checker_is_refutation"))
+  // The runtime template and op() call these directly; require them here so
+  // a bad input fails now rather than as a cargo build error.
+  for (const char* n : {"$eo_checker_is_refutation",
+                        "$eo_typeof",
+                        "$eo_nil",
+                        "$eo_is_list_nil",
+                        "$eo_dt_constructors",
+                        "$eo_dt_selectors"})
   {
-    EO_FATAL() << "rust-meta: expected structural desugar output including the "
-                  "whole checker";
+    if (!d_programs.count(n))
+    {
+      EO_FATAL() << "rust-meta: expected structural desugar output including "
+                    "the whole checker (missing "
+                 << n << ")";
+    }
   }
   auto names = reachable();
   selectCaches(names);

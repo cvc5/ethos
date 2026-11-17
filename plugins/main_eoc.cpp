@@ -233,7 +233,8 @@ int main(int argc, char* argv[])
   }
   if (!generateParser && pluginName != "lean-meta" && pluginName != "rust-meta")
   {
-    EO_FATAL() << "Error: --no-parser requires --plugin.lean-meta";
+    EO_FATAL() << "Error: --no-parser requires --plugin.lean-meta or "
+                  "--plugin.rust-meta";
   }
   if (!defsFile.empty() && pluginName != "model-smt")
   {
