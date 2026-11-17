@@ -218,6 +218,19 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     cattr = it->second.first;
     cattrCons = it->second.second;
   }
+  if (cattr == Attr::LEFT_ASSOC_NIL || cattr == Attr::LEFT_ASSOC_NS_NIL)
+  {
+    // The list operators this stage defines take lists apart in the right
+    // associative direction only, where the evaluator also supports left
+    // associative lists. We reject these operators rather than give them a
+    // semantics that disagrees with the evaluator.
+    EO_FATAL() << "Desugar: the operator " << e << " is declared "
+               << (cattr == Attr::LEFT_ASSOC_NIL
+                       ? ":left-assoc-nil"
+                       : ":left-assoc-non-singleton-nil")
+               << ", which is not supported, since left associative lists are "
+                  "not modelled by the semantics of the eo:: list operators";
+  }
   // Assign the emitted name before generating any attribute-specific cases so
   // every reference below uses the same overload suffix as the declaration.
   std::stringstream cnss;
@@ -1358,7 +1371,17 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
     case Kind::BINARY: eoss << "Binary"; break;
     case Kind::STRING: eoss << "String"; break;
     case Kind::DECIMAL:
-    case Kind::HEXADECIMAL: break;
+    case Kind::HEXADECIMAL:
+      // The semantics of the eo:: operators this stage defines has one kind
+      // of rational and one kind of binary, where the evaluator distinguishes
+      // decimals from rationals and hexadecimals from binaries. A signature
+      // with these literals would be given a semantics that disagrees with
+      // the evaluator, hence we reject it.
+      EO_FATAL() << "Desugar: "
+                 << (k == Kind::DECIMAL ? "<decimal>" : "<hexadecimal>")
+                 << " literals are not supported, since they are not modelled by the "
+                    "semantics of the eo:: operators";
+      break;
     default: EO_FATAL() << "Unknown literal type rule" << k << std::endl; break;
   }
   // declared at the top
