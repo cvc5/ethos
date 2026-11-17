@@ -450,7 +450,8 @@ $EO_LITERAL_TYPE_DECL$
   :signature ((-> T U V) T $eo_Numeral) V
   (
   (($eo_list_repeat f a ($eot_numeral i))
-    ($native_ite ($native_zlt i $native_z_zero)
+    ; the count must be a 32-bit numeral, i.e. in [0, 2^32)
+    ($native_ite ($native_or ($native_zlt i $native_z_zero) ($native_zleq $native_z_max_width i))
       $eot_stuck
       ($eo_list_repeat_rec f a ($native_z_to_n i))))
   )

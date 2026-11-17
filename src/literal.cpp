@@ -563,6 +563,11 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
           return Literal(args[0]->d_rat>args[1]->d_rat);
         case Kind::HEXADECIMAL:
         case Kind::BINARY:
+          // bitwise values are only compared if they have the same bitwidth
+          if (!allSameBitWidth(args))
+          {
+            return Literal();
+          }
           return Literal(args[0]->d_bv.toInteger()>args[1]->d_bv.toInteger());
         default: break;
       }

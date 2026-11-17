@@ -182,6 +182,7 @@ set(ethos_test_file_list
     list-nth-non-list.eo
     eo-list-ops.eo
     eo-list-ops-napply.eo
+    eval-issue-273.eo
     curry-nary.eo
     arg-list-cong.eo
     arg-list-distinct-elim.eo
