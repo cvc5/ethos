@@ -934,68 +934,77 @@ impl Store {
         }
         self.check_handles(args)?;
         let x = args[0];
-        if op == EvalOp::IsOk {
-            let stuck = self.is_stuck(x)?;
-            return self.boolean(!stuck);
-        }
-        if op == EvalOp::IsEq {
-            let equal = !self.is_stuck(x)? && !self.is_stuck(args[1])? && x == args[1];
-            return self.boolean(equal);
-        }
-        if op == EvalOp::Eq {
-            return if self.any_stuck(args) {
-                Ok(self.stuck())
-            } else {
-                self.boolean(x == args[1])
-            };
-        }
-        if op == EvalOp::IfThenElse {
-            return Ok(match self.boolean_value(x, false)? {
+        match op {
+            EvalOp::IsOk => {
+                let stuck = self.is_stuck(x)?;
+                self.boolean(!stuck)
+            }
+            EvalOp::IsEq => {
+                let equal = !self.is_stuck(x)? && !self.is_stuck(args[1])? && x == args[1];
+                self.boolean(equal)
+            }
+            EvalOp::Eq => {
+                if self.any_stuck(args) {
+                    Ok(self.stuck())
+                } else {
+                    self.boolean(x == args[1])
+                }
+            }
+            EvalOp::IfThenElse => Ok(match self.boolean_value(x, false)? {
                 Some(true) => args[1],
                 Some(false) => args[2],
                 None => self.stuck(),
-            });
-        }
-        if op == EvalOp::Requires {
-            return Ok(if x == args[1] && !self.is_stuck(x)? {
+            }),
+            EvalOp::Requires => Ok(if x == args[1] && !self.is_stuck(x)? {
                 args[2]
             } else {
                 self.stuck()
-            });
-        }
-        // Logos's recognizers are total predicates, including on Stuck.
-        let recognizer = match op {
+            }),
+            // Logos's recognizers are total predicates, including on Stuck.
             EvalOp::IsZ
             | EvalOp::IsQ
             | EvalOp::IsBin
             | EvalOp::IsStr
             | EvalOp::IsBool
-            | EvalOp::IsVar => true,
-            _ => false,
-        };
-        if recognizer {
-            let b = self.recognizes(op, x)?;
-            return self.boolean(b);
+            | EvalOp::IsVar => {
+                let b = self.recognizes(op, x)?;
+                self.boolean(b)
+            }
+            _ => self.builtin_strict(op, args),
         }
+    }
+    /// The operators that are stuck when an argument is.
+    fn builtin_strict(&mut self, op: EvalOp, args: &[Term]) -> CheckResult<Term> {
         if self.any_stuck(args) {
             return Ok(self.stuck());
         }
-        if op == EvalOp::NameOf {
-            if !self.is_variable(x)? {
-                return Ok(self.stuck());
+        match op {
+            EvalOp::NameOf => self.name_of(args[0]),
+            EvalOp::Compare => {
+                let order = self.compare(args[0], args[1])?;
+                self.boolean(is_less(order))
             }
-            return Ok(match self.view(x)? {
-                TermData::Node(_, fields) => fields[0],
-                _ => self.stuck(),
-            });
+            _ => {
+                if op.is_list_op() {
+                    self.list_builtin(op, args)
+                } else {
+                    self.builtin_literal(op, args)
+                }
+            }
         }
-        if op == EvalOp::Compare {
-            let order = self.compare(x, args[1])?;
-            return self.boolean(is_less(order));
+    }
+    /// The name of a variable, which is its first field.
+    fn name_of(&mut self, x: Term) -> CheckResult<Term> {
+        if !self.is_variable(x)? {
+            return Ok(self.stuck());
         }
-        if op.is_list_op() {
-            return self.list_builtin(op, args);
-        }
+        Ok(match self.view(x)? {
+            TermData::Node(_, fields) => fields[0],
+            _ => self.stuck(),
+        })
+    }
+    /// An operator on literals.
+    fn builtin_literal(&mut self, op: EvalOp, args: &[Term]) -> CheckResult<Term> {
         let lits = match self.literals(args) {
             Some(lits) => lits,
             None => return Ok(self.stuck()),
@@ -1147,106 +1156,152 @@ impl Store {
     }
     fn list_builtin(&mut self, op: EvalOp, a: &[Term]) -> CheckResult<Term> {
         let f = a[0];
-        if op == EvalOp::Nil {
-            return generated::@$eo_nil@(self, f, a[1]);
+        match op {
+            EvalOp::Nil => generated::@$eo_nil@(self, f, a[1]),
+            EvalOp::ListRepeat => self.list_repeat(f, a[1], a[2]),
+            EvalOp::Cons => self.list_cons_op(f, a[1], a[2]),
+            EvalOp::ListConcat => self.list_concat(f, a[1], a[2]),
+            EvalOp::ListMinclude | EvalOp::ListMeq => self.list_inclusion(op, f, a[1], a[2]),
+            EvalOp::ListDiff | EvalOp::ListInter => self.list_selection(op, f, a[1], a[2]),
+            _ => self.list_of_one(op, f, a),
         }
-        if op == EvalOp::ListRepeat {
-            let Some(n) = self.object_index(a[2])? else {
-                return Ok(self.stuck());
-            };
-            if u64::from(n) > self.limits.calls {
-                return Err(CheckError::Limit);
-            }
-            let ty = generated::@$eo_typeof@(self, a[1])?;
-            let nil = generated::@$eo_nil@(self, f, ty)?;
-            let elems = vec![a[1]; n as usize];
-            return self.list_build(f, &elems, nil);
-        }
-        if op == EvalOp::Cons {
-            let Some((tail, nil)) = self.list_parts(f, a[2])? else {
-                return Ok(self.stuck());
-            };
-            let mut elems = Vec::with_capacity(tail.len() + 1);
-            elems.push(a[1]);
-            append_terms(&mut elems, &tail);
-            return self.list_build(f, &elems, nil);
-        }
-        let Some((xs, nil)) = self.list_parts(f, a[1])? else {
-            if op == EvalOp::ListSingletonIntro {
-                let ty = generated::@$eo_typeof@(self, a[1])?;
-                let nil = generated::@$eo_nil@(self, f, ty)?;
-                return self.list_build(f, &[a[1]], nil);
-            }
+    }
+    /// The list of `f` that is empty for elements of the type of `x`.
+    fn list_nil_for(&mut self, f: Term, x: Term) -> CheckResult<Term> {
+        let ty = generated::@$eo_typeof@(self, x)?;
+        generated::@$eo_nil@(self, f, ty)
+    }
+    fn list_repeat(&mut self, f: Term, x: Term, count: Term) -> CheckResult<Term> {
+        let Some(n) = self.object_index(count)? else {
             return Ok(self.stuck());
         };
-        let result = match op {
-            EvalOp::ListLength => return self.numeral(Integer::from(xs.len())),
-            EvalOp::ListNth => {
-                return Ok(match self.object_index(a[2])? {
-                    Some(n) => {
-                        if (n as usize) < xs.len() {
-                            xs[n as usize]
-                        } else {
-                            self.stuck()
-                        }
-                    }
-                    None => self.stuck(),
-                });
-            }
-            EvalOp::ListFind => {
-                return self.numeral(match position(&xs, a[2]) {
-                    Some(i) => Integer::from(i),
-                    None => Integer::one().neg(),
-                });
-            }
-            EvalOp::ListRev => reversed(&xs),
-            EvalOp::ListSingletonElim => return Ok(if xs.len() == 1 { xs[0] } else { a[1] }),
-            EvalOp::ListSingletonIntro => return Ok(a[1]),
-            EvalOp::ListErase => without_first(&xs, a[2]),
-            EvalOp::ListEraseAll => without(&xs, a[2]),
-            EvalOp::ListSetof => first_occurrences(&xs),
-            EvalOp::ListConcat
-            | EvalOp::ListMinclude
-            | EvalOp::ListMeq
-            | EvalOp::ListDiff
-            | EvalOp::ListInter => {
-                let Some((ys, other_nil)) = self.list_parts(f, a[2])? else {
-                    return Ok(self.stuck());
-                };
-                if other_nil != nil {
-                    return Ok(self.stuck());
-                }
-                if op == EvalOp::ListConcat {
-                    let left = self.is_left_assoc(f)?;
-                    let mut both = Vec::with_capacity(xs.len() + ys.len());
-                    if left {
-                        append_terms(&mut both, &ys);
-                        append_terms(&mut both, &xs);
-                    } else {
-                        append_terms(&mut both, &xs);
-                        append_terms(&mut both, &ys);
-                    }
-                    both
-                } else if op == EvalOp::ListMinclude || op == EvalOp::ListMeq {
-                    let (foreign, contained) = multiset_inclusion(&xs, &ys);
-                    if foreign && op == EvalOp::ListMeq {
-                        return self.boolean(false);
-                    }
-                    if op == EvalOp::ListMeq && contained {
-                        let ys = match self.list_parts(f, a[2])? {
-                            Some((ys, _)) => ys,
-                            None => return Err(CheckError::InvalidConstructor),
-                        };
-                        return self.boolean(xs.len() == ys.len());
-                    }
-                    return self.boolean(contained);
-                } else {
-                    multiset_select(&xs, &ys, op == EvalOp::ListInter)
-                }
-            }
-            _ => return Ok(self.stuck()),
+        if u64::from(n) > self.limits.calls {
+            return Err(CheckError::Limit);
+        }
+        let nil = self.list_nil_for(f, x)?;
+        let elems = vec![x; n as usize];
+        self.list_build(f, &elems, nil)
+    }
+    fn list_cons_op(&mut self, f: Term, x: Term, list: Term) -> CheckResult<Term> {
+        let Some((tail, nil)) = self.list_parts(f, list)? else {
+            return Ok(self.stuck());
         };
-        self.list_build(f, &result, nil)
+        let mut elems = Vec::with_capacity(tail.len() + 1);
+        elems.push(x);
+        append_terms(&mut elems, &tail);
+        self.list_build(f, &elems, nil)
+    }
+    /// The elements of two lists of `f` that end in the same nil, with
+    /// that nil; `None` if one is not a list or the ends differ.
+    #[allow(clippy::type_complexity)]
+    fn list_pair(
+        &mut self,
+        f: Term,
+        x: Term,
+        y: Term,
+    ) -> CheckResult<Option<(Vec<Term>, Vec<Term>, Term)>> {
+        let Some((xs, nil)) = self.list_parts(f, x)? else {
+            return Ok(None);
+        };
+        let Some((ys, other_nil)) = self.list_parts(f, y)? else {
+            return Ok(None);
+        };
+        if other_nil != nil {
+            return Ok(None);
+        }
+        Ok(Some((xs, ys, nil)))
+    }
+    fn list_concat(&mut self, f: Term, x: Term, y: Term) -> CheckResult<Term> {
+        let Some((xs, ys, nil)) = self.list_pair(f, x, y)? else {
+            return Ok(self.stuck());
+        };
+        let left = self.is_left_assoc(f)?;
+        let mut both = Vec::with_capacity(xs.len() + ys.len());
+        if left {
+            append_terms(&mut both, &ys);
+            append_terms(&mut both, &xs);
+        } else {
+            append_terms(&mut both, &xs);
+            append_terms(&mut both, &ys);
+        }
+        self.list_build(f, &both, nil)
+    }
+    /// `list_minclude` and `list_meq`: whether the second list is included
+    /// in the first as a multiset, or equal to it.
+    fn list_inclusion(&mut self, op: EvalOp, f: Term, x: Term, y: Term) -> CheckResult<Term> {
+        let Some((xs, ys, _)) = self.list_pair(f, x, y)? else {
+            return Ok(self.stuck());
+        };
+        let (foreign, contained) = multiset_inclusion(&xs, &ys);
+        let equality = match op {
+            EvalOp::ListMeq => true,
+            _ => false,
+        };
+        if !equality {
+            return self.boolean(contained);
+        }
+        if foreign {
+            return self.boolean(false);
+        }
+        if !contained {
+            return self.boolean(false);
+        }
+        let ys = match self.list_parts(f, y)? {
+            Some((ys, _)) => ys,
+            None => return Err(CheckError::InvalidConstructor),
+        };
+        self.boolean(xs.len() == ys.len())
+    }
+    /// `list_inter` and `list_diff`.
+    fn list_selection(&mut self, op: EvalOp, f: Term, x: Term, y: Term) -> CheckResult<Term> {
+        let Some((xs, ys, nil)) = self.list_pair(f, x, y)? else {
+            return Ok(self.stuck());
+        };
+        let paired = match op {
+            EvalOp::ListInter => true,
+            _ => false,
+        };
+        let kept = multiset_select(&xs, &ys, paired);
+        self.list_build(f, &kept, nil)
+    }
+    /// The list operators on one list, `a[1]`.
+    fn list_of_one(&mut self, op: EvalOp, f: Term, a: &[Term]) -> CheckResult<Term> {
+        let Some((xs, nil)) = self.list_parts(f, a[1])? else {
+            return match op {
+                EvalOp::ListSingletonIntro => {
+                    let nil = self.list_nil_for(f, a[1])?;
+                    self.list_build(f, &[a[1]], nil)
+                }
+                _ => Ok(self.stuck()),
+            };
+        };
+        match op {
+            EvalOp::ListLength => self.numeral(Integer::from(xs.len())),
+            EvalOp::ListNth => self.list_nth(&xs, a[2]),
+            EvalOp::ListFind => self.numeral(match position(&xs, a[2]) {
+                Some(i) => Integer::from(i),
+                None => Integer::one().neg(),
+            }),
+            EvalOp::ListRev => self.list_build(f, &reversed(&xs), nil),
+            EvalOp::ListSingletonElim => Ok(if xs.len() == 1 { xs[0] } else { a[1] }),
+            EvalOp::ListSingletonIntro => Ok(a[1]),
+            EvalOp::ListErase => self.list_build(f, &without_first(&xs, a[2]), nil),
+            EvalOp::ListEraseAll => self.list_build(f, &without(&xs, a[2]), nil),
+            EvalOp::ListSetof => self.list_build(f, &first_occurrences(&xs), nil),
+            _ => Ok(self.stuck()),
+        }
+    }
+    fn list_nth(&mut self, xs: &[Term], index: Term) -> CheckResult<Term> {
+        Ok(match self.object_index(index)? {
+            Some(n) => {
+                if (n as usize) < xs.len() {
+                    xs[n as usize]
+                } else {
+                    self.stuck()
+                }
+            }
+            None => self.stuck(),
+        })
     }
 
     /// Check the entire proof state machine, including typing, assumptions,
