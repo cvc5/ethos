@@ -609,9 +609,16 @@ class RustMetaReduce::Emitter
   }
   /**
    * A call of the runtime or of a generated function that can fail, with
-   * the error returned to the caller.
+   * the error returned to the caller. Written as a match, not as `call?`:
+   * `?` goes through the `Try` and `From` traits, which is more for the
+   * verification tools to translate at each of the many calls and leaves
+   * a call of `Try::branch` and a match on `ControlFlow` in their output
+   * where this is a match on the result.
    */
-  static std::string attempt(const std::string& call) { return call + "?"; }
+  static std::string attempt(const std::string& call)
+  {
+    return "match " + call + " { Ok(v) => v, Err(e) => return Err(e) }";
+  }
   /** `let v<n> = rhs;`, where an `rhs` that ends in `?` is such a call. */
   std::string val(const std::string& rhs)
   {
