@@ -94,6 +94,21 @@ pub enum Embedding {
     Data,
 }
 
+/// What a round of a generated loop gives: the result, or the arguments of
+/// the next round. (A program that calls itself last is compiled to a loop.)
+pub enum Next<T> {
+    Done(Term),
+    Again(T),
+}
+
+/// What a step down the list of assumptions gives (the generated
+/// `$eo_invoke_assume_list`): the state the list ends in, or a guard and a
+/// term to push on the way back, with the rest of the list.
+pub enum FoldStep {
+    Done(Term),
+    Push(Term, Term, Term),
+}
+
 /// An arena-local handle. Obtain handles through Store's constructors.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Term(u32);

@@ -65,7 +65,6 @@ class RustMetaReduce : public MetaReducePlugin
   void output(const std::string& file, const std::string& text) const;
   static std::string ident(const std::string& name);
   static std::string quote(const std::string& text);
-  static std::string literal(const Expr& e);
   static Kind builtin(const std::string& name);
   std::map<std::string, Constructor> d_constructors;
   std::vector<std::string> d_constructorOrder;
