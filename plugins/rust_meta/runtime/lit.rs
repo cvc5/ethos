@@ -4,8 +4,6 @@
 //! acae6aa), without the writing and reading of literals for snapshots,
 //! which the compiled checker does not use.
 
-use std::fmt;
-
 use crate::bitvec::BitVec;
 use crate::eostring::{EoString, NUM_CODES};
 use crate::kind::{EvalOp, LitKind};
@@ -410,22 +408,6 @@ fn integer_floor_log(base: &Integer, value: &Integer) -> Integer {
     }
     result
 }
-
-impl fmt::Display for Lit {
-    /// The text of the literal without any decoration: no `#b` prefix and no
-    /// quotes. This is `Literal::toString` in Ethos.
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Lit::Bool(b) => f.write_str(if *b { "true" } else { "false" }),
-            Lit::Numeral(i) => write!(f, "{i}"),
-            Lit::Decimal(r) | Lit::Rational(r) => write!(f, "{r}"),
-            Lit::Hex(b) => f.write_str(&b.to_string_base(16)),
-            Lit::Binary(b) => f.write_str(&b.to_string_base(2)),
-            Lit::String(s) => write!(f, "{s}"),
-        }
-    }
-}
-
 
 #[cfg(test)]
 mod tests {

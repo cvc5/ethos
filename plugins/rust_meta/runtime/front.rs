@@ -9,8 +9,11 @@
 #[path = "names.rs"]
 mod names;
 
-use crate::{CheckError, CheckResult, Constructor, EoString, Integer, Lit, Store, Term, TermData};
-use std::fmt;
+use crate::{
+    BitVec, CheckError, CheckResult, Constructor, EoString, Integer, Lit, NUM_CODES, Store, Term,
+    TermData,
+};
+use std::fmt::{self, Write};
 
 impl CheckError {
     /// The name of the operation or constant of `UnsupportedNative`.
@@ -86,5 +89,169 @@ impl Store {
     pub fn named(&mut self, name: &str, args: &[Term]) -> CheckResult<Term> {
         let c = Constructor::from_name(name).ok_or(CheckError::InvalidConstructor)?;
         self.construct(c, args)
+    }
+}
+
+// Strings, bit-vectors and literals as text.
+
+fn is_hex_digit(c: char) -> bool {
+    c.is_ascii_hexdigit()
+}
+
+/// Characters outside printable ASCII are dropped, as in Ethos, whose
+/// `addCharToInternal` builds an error message for them and then discards it.
+fn add_char(c: char, out: &mut Vec<u32>) {
+    let code = u32::from(c);
+    if (32..=127).contains(&code) {
+        out.push(code);
+    }
+}
+
+impl EoString {
+    /// Converts text to a string. With `use_escapes`, the SMT-LIB escape
+    /// sequences `폒d1d0` and `\u{d0}` to `\u{d4d3d2d1d0}` denote single
+    /// code points; malformed or out-of-range sequences are kept verbatim.
+    pub fn parse(s: &str, use_escapes: bool) -> EoString {
+        let chars: Vec<char> = s.chars().collect();
+        let mut out = Vec::with_capacity(chars.len());
+        let mut i = 0;
+        while i < chars.len() {
+            let mut si = chars[i];
+            if si != '\\' || !use_escapes {
+                add_char(si, &mut out);
+                i += 1;
+                continue;
+            }
+            // The characters read so far, in case this is not an escape.
+            let mut non_esc = Vec::new();
+            add_char(si, &mut non_esc);
+            i += 1;
+            let mut is_escape = true;
+            let mut hex = String::new();
+            if i >= chars.len() || chars[i] != 'u' {
+                is_escape = false;
+            } else {
+                add_char(chars[i], &mut non_esc);
+                i += 1;
+                let mut is_start = true;
+                let mut is_end = false;
+                let mut has_brace = false;
+                while i < chars.len() {
+                    si = chars[i];
+                    if is_start {
+                        is_start = false;
+                        if si == '{' {
+                            has_brace = true;
+                            add_char(si, &mut non_esc);
+                            i += 1;
+                            continue;
+                        }
+                    } else if si == '}' {
+                        // only ends an escape opened by a brace, with a digit
+                        is_escape = has_brace && !hex.is_empty();
+                        is_end = true;
+                        add_char(si, &mut non_esc);
+                        i += 1;
+                        break;
+                    }
+                    if !is_hex_digit(si) {
+                        is_escape = false;
+                        break;
+                    }
+                    hex.push(si);
+                    add_char(si, &mut non_esc);
+                    i += 1;
+                    if !has_brace && hex.len() == 4 {
+                        is_end = true;
+                        break;
+                    } else if has_brace && hex.len() > 5 {
+                        is_escape = false;
+                        break;
+                    }
+                }
+                if !is_end {
+                    is_escape = false;
+                }
+            }
+            if is_escape {
+                match u32::from_str_radix(&hex, 16) {
+                    Ok(val) if val < NUM_CODES => out.push(val),
+                    _ => is_escape = false,
+                }
+            }
+            if !is_escape {
+                out.extend_from_slice(&non_esc);
+            }
+        }
+        EoString::from_code_points(out)
+    }
+}
+
+impl fmt::Display for EoString {
+    /// Printable ASCII is printed as is, except the backslash; everything
+    /// else is printed as `\u{<hex>}`.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for &c in self.code_points() {
+            if (32..=126).contains(&c) && c != u32::from(b'\\') {
+                f.write_char(char::from_u32(c).unwrap_or('?'))?;
+            } else {
+                write!(f, "\\u{{{c:x}}}")?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl BitVec {
+    /// Parses a string of binary (base 2) or hexadecimal (base 16) digits;
+    /// the width follows from the number of digits. (For the tests here and
+    /// in lit.rs: the compiled checker reads no bit-vector from text.)
+    #[cfg(test)]
+    pub fn parse(num: &str, base: u8) -> Option<BitVec> {
+        let value = Integer::parse(num, base)?;
+        let digits = u32::try_from(num.len()).ok()?;
+        let size = if base == 16 {
+            digits.checked_mul(4)?
+        } else {
+            digits
+        };
+        Some(BitVec { size, value })
+    }
+
+    /// The digits in `base`. Binary and hexadecimal output is padded to the
+    /// number of digits the width asks for, so that `#x0f` and `#x00f`
+    /// print differently.
+    pub fn to_string_base(&self, base: u8) -> String {
+        let s = self.value.to_string_base(base);
+        let ndigits = match base {
+            2 => self.size as usize,
+            // in Ethos's 32-bit arithmetic
+            16 => (self.size.wrapping_add(3) / 4) as usize,
+            _ => 0,
+        };
+        if ndigits > s.len() {
+            let mut out = "0".repeat(ndigits - s.len());
+            out.push_str(&s);
+            out
+        } else if self.size == 0 {
+            String::new()
+        } else {
+            s
+        }
+    }
+}
+
+impl fmt::Display for Lit {
+    /// The text of the literal without any decoration: no `#b` prefix and no
+    /// quotes. This is `Literal::toString` in Ethos.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Lit::Bool(b) => f.write_str(if *b { "true" } else { "false" }),
+            Lit::Numeral(i) => write!(f, "{i}"),
+            Lit::Decimal(r) | Lit::Rational(r) => write!(f, "{r}"),
+            Lit::Hex(b) => f.write_str(&b.to_string_base(16)),
+            Lit::Binary(b) => f.write_str(&b.to_string_base(2)),
+            Lit::String(s) => write!(f, "{s}"),
+        }
     }
 }

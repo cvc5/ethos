@@ -8,8 +8,8 @@ use crate::num::Integer;
 /// A bit-vector: a width and a non-negative value below `2^width`.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct BitVec {
-    size: u32,
-    value: Integer,
+    pub(crate) size: u32,
+    pub(crate) value: Integer,
 }
 
 impl BitVec {
@@ -29,49 +29,12 @@ impl BitVec {
         }
     }
 
-    /// Parses a string of binary (base 2) or hexadecimal (base 16) digits;
-    /// the width follows from the number of digits. (For the tests here and
-    /// in lit.rs: the compiled checker reads no bit-vector from text.)
-    #[cfg(test)]
-    pub fn parse(num: &str, base: u8) -> Option<BitVec> {
-        let value = Integer::parse(num, base)?;
-        let digits = u32::try_from(num.len()).ok()?;
-        let size = if base == 16 {
-            digits.checked_mul(4)?
-        } else {
-            digits
-        };
-        Some(BitVec { size, value })
-    }
-
     pub fn size(&self) -> u32 {
         self.size
     }
 
     pub fn value(&self) -> &Integer {
         &self.value
-    }
-
-    /// The digits in `base`. Binary and hexadecimal output is padded to the
-    /// number of digits the width asks for, so that `#x0f` and `#x00f`
-    /// print differently.
-    pub fn to_string_base(&self, base: u8) -> String {
-        let s = self.value.to_string_base(base);
-        let ndigits = match base {
-            2 => self.size as usize,
-            // in Ethos's 32-bit arithmetic
-            16 => (self.size.wrapping_add(3) / 4) as usize,
-            _ => 0,
-        };
-        if ndigits > s.len() {
-            let mut out = "0".repeat(ndigits - s.len());
-            out.push_str(&s);
-            out
-        } else if self.size == 0 {
-            String::new()
-        } else {
-            s
-        }
     }
 
     pub fn concat(&self, other: &BitVec) -> BitVec {
