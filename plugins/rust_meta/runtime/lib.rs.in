@@ -230,10 +230,10 @@ impl Store {
             TermData::Stuck => 0,
             TermData::Literal(lit) => mix(1, lit.hash_code()),
             TermData::Native(lit) => mix(2, lit.hash_code()),
-            TermData::UserOp(c) => mix(3, *c as u64),
+            TermData::UserOp(c) => mix(3, u64::from(c.code())),
             TermData::Apply(f, a) => mix(mix(4, u64::from(f.0)), u64::from(a.0)),
             TermData::Node(c, fields) => {
-                let mut h = mix(5, *c as u64);
+                let mut h = mix(5, u64::from(c.code()));
                 let mut i = 0;
                 while i < fields.len() {
                     h = mix(h, u64::from(fields[i].0));
@@ -260,7 +260,7 @@ impl Store {
                 _ => false,
             },
             TermData::UserOp(c) => match b {
-                TermData::UserOp(d) => *c as u32 == *d as u32,
+                TermData::UserOp(d) => c.code() == d.code(),
                 _ => false,
             },
             TermData::Apply(f, x) => match b {
@@ -268,7 +268,7 @@ impl Store {
                 _ => false,
             },
             TermData::Node(c, xs) => match b {
-                TermData::Node(d, ys) => *c as u32 == *d as u32 && Self::same_terms(xs, ys),
+                TermData::Node(d, ys) => c.code() == d.code() && Self::same_terms(xs, ys),
                 _ => false,
             },
         }
@@ -436,7 +436,7 @@ impl Store {
     /// constructor the signature does not have.
     pub(crate) fn is_node(&self, t: Term, c: Option<Constructor>) -> CheckResult<bool> {
         Ok(match (self.view(t)?, c) {
-            (TermData::Node(d, _), Some(c)) => *d == c,
+            (TermData::Node(d, _), Some(c)) => d.code() == c.code(),
             _ => false,
         })
     }
@@ -447,7 +447,7 @@ impl Store {
         c: Option<Constructor>,
     ) -> CheckResult<Option<Vec<Term>>> {
         Ok(match (self.view(t)?, c) {
-            (TermData::Node(d, fs), Some(c)) if *d == c => Some(fs.clone()),
+            (TermData::Node(d, fs), Some(c)) if d.code() == c.code() => Some(fs.clone()),
             _ => None,
         })
     }
@@ -542,7 +542,7 @@ impl Store {
                 _ => Hit::Done(None),
             },
             TermData::Literal(lit) => Self::destruct_literal(e, lit),
-            TermData::Node(d, fields) if c == *d => Hit::Done(Some(fields.clone())),
+            TermData::Node(d, fields) if c.code() == d.code() => Hit::Done(Some(fields.clone())),
             _ => Hit::Done(None),
         };
         match hit {
@@ -661,7 +661,9 @@ impl Store {
     /// The tail of a `cons` node, or None if `t` is not one.
     fn state_tail(&self, cons: Constructor, t: Term) -> CheckResult<Option<Term>> {
         Ok(match self.view(t)? {
-            TermData::Node(c, fields) if *c == cons && fields.len() == 2 => Some(fields[1]),
+            TermData::Node(c, fields) if c.code() == cons.code() && fields.len() == 2 => {
+                Some(fields[1])
+            }
             _ => None,
         })
     }

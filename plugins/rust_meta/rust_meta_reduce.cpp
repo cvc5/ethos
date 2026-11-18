@@ -367,14 +367,25 @@ bool RustMetaReduce::isUserConstructor(const std::string& name)
 std::string RustMetaReduce::schema() const
 {
   std::ostringstream out;
-  out << "use crate::Embedding;\n#[derive(Copy, Clone, Debug, PartialEq, Eq)]\n"
+  out << "use crate::Embedding;\n#[derive(Copy, Clone)]\n"
          "pub enum Constructor {\n";
   for (const auto& c : d_constructors)
   {
     out << ident(c.first) << ",\n";
   }
-  out << "}\nimpl Constructor {\npub fn is_user(self) -> bool { match self "
-         "{\n";
+  // Two constructors are compared by their numbers. A cast or a derived
+  // `==` would do, but a verification tool that follows every path through
+  // a function then follows one for each pair of constructors.
+  out << "}\nimpl PartialEq for Constructor {\nfn eq(&self, other: &Self) -> "
+         "bool { self.code() == other.code() }\n}\nimpl Eq for Constructor "
+         "{}\nimpl Constructor {\n/// The place of the constructor in the "
+         "enum.\npub fn code(self) -> u32 { match self {\n";
+  size_t code = 0;
+  for (const auto& c : d_constructors)
+  {
+    out << "Self::" << ident(c.first) << " => " << code++ << ",\n";
+  }
+  out << "}}\npub fn is_user(self) -> bool { match self {\n";
   for (const auto& c : d_constructors)
   {
     if (isUserConstructor(c.first))
@@ -497,7 +508,15 @@ std::string RustMetaReduce::constructorNames() const
   {
     out << quote(c.first) << " => Self::" << ident(c.first) << ",\n";
   }
-  out << "_ => return None, }) }\n}\n"
+  out << "_ => return None, }) }\n}\nimpl std::fmt::Debug for Constructor {\n"
+         "fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result "
+         "{ f.write_str(match self {\n";
+  for (const auto& c : d_constructors)
+  {
+    out << "Self::" << ident(c.first) << " => " << quote(ident(c.first))
+        << ",\n";
+  }
+  out << "}) }\n}\n"
          "/// The names and constants that generated code passes to the\n"
          "/// runtime as numbers: their places in this list.\n"
          "pub(crate) const NATIVE_TEXTS: &[&str] = &[\n";
