@@ -6,11 +6,17 @@
 #![forbid(unsafe_code)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
+// The checking functions are written in the plain subset of Rust that the
+// verification tools translate: explicit matches and loops, not macros,
+// closures or iterator adaptors.
+#![allow(clippy::match_like_matches_macro, clippy::manual_map)]
 
 mod bitvec;
 mod cache;
 pub mod codec;
 mod eostring;
+#[allow(dead_code)] // Until the generator names operations by `NativeOp`.
+mod front;
 #[allow(unreachable_code, unused_labels, unused_variables)]
 // Uniform temporaries make evaluation order and refinement obligations explicit.
 #[allow(
@@ -22,6 +28,8 @@ mod eostring;
 pub mod generated;
 pub mod kind;
 mod lit;
+#[allow(dead_code)] // Until the generator names operations by `NativeOp`.
+mod native;
 mod num;
 #[allow(clippy::match_like_matches_macro)]
 mod schema;
@@ -32,6 +40,7 @@ use cache::{Caches, ProgramId, TypeCacheKind};
 pub use eostring::{EoString, NUM_CODES};
 pub use kind::{EvalOp, LitKind};
 pub use lit::Lit;
+pub use native::NativeOp;
 pub use num::{Integer, Rational};
 pub use schema::Constructor;
 use std::collections::HashMap;
@@ -75,24 +84,44 @@ impl TermHasher {
     }
 }
 type TermBuildHasher = std::hash::BuildHasherDefault<TermHasher>;
-use std::fmt;
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CheckError {
     InvalidHandle,
     InvalidConstructor,
     InvalidNative,
-    UnsupportedNative(String),
+    /// An operation the runtime does not have, by its name.
+    UnsupportedNative(&'static str),
     Limit,
     Worker,
 }
-impl fmt::Display for CheckError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{self:?}")
-    }
-}
 impl std::error::Error for CheckError {}
 pub type CheckResult<T> = Result<T, CheckError>;
+
+/// How the store represents the terms a constructor builds. The generator
+/// says which it is for each constructor (`Constructor::embedding`), from
+/// the constructor's name in the embedding of terms; the runtime compares no
+/// names.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Embedding {
+    /// `$emb_Stuck`: the stuck term.
+    Stuck,
+    /// `$emb_Apply`: an application.
+    Apply,
+    /// `$emb_Boolean`, `$emb_Numeral`, `$emb_Rational`, `$emb_String`,
+    /// `$emb_Binary`: an object literal, built from native values.
+    Boolean,
+    Numeral,
+    Rational,
+    String,
+    Binary,
+    /// `$emb_UOp`, `$emb_UOp1`, ...: the view of a user operator with its
+    /// indices as an operator applied to them.
+    UOp,
+    /// `$emb_Var`: a variable, which is data.
+    Var,
+    /// Any other constructor: data.
+    Data,
+}
 
 /// An arena-local handle. Obtain handles through Store's constructors.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -133,6 +162,13 @@ impl Default for Limits {
             depth: DEFAULT_DEPTH,
         }
     }
+}
+
+/// What `destruct` found, before the native fields are interned.
+enum Hit {
+    Done(Option<Vec<Term>>),
+    Raw(Lit),
+    Binary(Integer, Integer),
 }
 
 /// Monotonically growing, hash-consed arena. Hashes select buckets only;
@@ -296,15 +332,34 @@ impl Store {
             _ => None,
         })
     }
-    pub fn is_named(&self, t: Term, name: &str) -> CheckResult<bool> {
-        Ok(match self.view(t)? {
-            TermData::Node(c, _) => c.name() == name,
+    /// Whether `t` is built by the constructor `c`, as data. `None` is a
+    /// constructor the signature does not have.
+    pub(crate) fn is_node(&self, t: Term, c: Option<Constructor>) -> CheckResult<bool> {
+        Ok(match (self.view(t)?, c) {
+            (TermData::Node(d, _), Some(c)) => *d == c,
             _ => false,
         })
     }
-    pub fn named(&mut self, name: &str, args: &[Term]) -> CheckResult<Term> {
-        let c = Constructor::from_name(name).ok_or(CheckError::InvalidConstructor)?;
-        self.construct(c, args)
+    /// The fields of `t` if it is built by the constructor `c`, as data.
+    pub(crate) fn node_fields(
+        &self,
+        t: Term,
+        c: Option<Constructor>,
+    ) -> CheckResult<Option<Vec<Term>>> {
+        Ok(match (self.view(t)?, c) {
+            (TermData::Node(d, fs), Some(c)) if *d == c => Some(fs.clone()),
+            _ => None,
+        })
+    }
+    /// Whether `t` is a variable (`$emb_Var`).
+    fn is_variable(&self, t: Term) -> CheckResult<bool> {
+        Ok(match self.view(t)? {
+            TermData::Node(c, _) => match c.embedding() {
+                Embedding::Var => true,
+                _ => false,
+            },
+            _ => false,
+        })
     }
     pub fn construct(&mut self, c: Constructor, args: &[Term]) -> CheckResult<Term> {
         if c.arity() != args.len() {
@@ -313,87 +368,114 @@ impl Store {
         for &t in args {
             self.view(t)?;
         }
-        if c.name().starts_with("$emb_UOp") {
-            let Some((&op, fields)) = args.split_first() else {
-                return Err(CheckError::InvalidConstructor);
-            };
-            let TermData::UserOp(user) = self.view(op)? else {
-                return Err(CheckError::InvalidConstructor);
-            };
-            return self.construct(*user, fields);
-        }
-        match (c.name(), args) {
-            ("$emb_Stuck", []) => Ok(self.stuck()),
-            ("$emb_Apply", &[f, a]) => self.apply(f, a),
-            ("$emb_Boolean" | "$emb_Numeral" | "$emb_Rational" | "$emb_String", &[v]) => {
-                let TermData::Native(lit) = self.view(v)? else {
-                    return Err(CheckError::InvalidNative);
-                };
-                let valid = matches!(
-                    (c.name(), lit),
-                    ("$emb_Boolean", Lit::Bool(_))
-                        | ("$emb_Numeral", Lit::Numeral(_))
-                        | ("$emb_Rational", Lit::Rational(_))
-                        | ("$emb_String", Lit::String(_))
-                );
-                if !valid {
-                    return Err(CheckError::InvalidNative);
-                }
-                self.literal(lit.clone())
+        let e = c.embedding();
+        match e {
+            Embedding::UOp => self.construct_user(args),
+            Embedding::Stuck if args.is_empty() => Ok(self.stuck()),
+            Embedding::Apply if args.len() == 2 => self.apply(args[0], args[1]),
+            Embedding::Boolean | Embedding::Numeral | Embedding::Rational | Embedding::String
+                if args.len() == 1 =>
+            {
+                self.construct_literal(e, args[0])
             }
-            ("$emb_Binary", &[w, v]) => {
-                let w = self.raw_int(w)?;
-                let v = self.raw_int(v)?;
-                if !w.fits_u32() {
-                    return Err(CheckError::Limit);
-                }
-                self.literal(Lit::Binary(BitVec::new(w.to_u32(), &v)))
-            }
+            Embedding::Binary if args.len() == 2 => self.construct_binary(args[0], args[1]),
             // All other constructors are data, including CState.Stuck.
             _ => self.intern(TermData::Node(c, args.to_vec())),
         }
     }
+    /// A user operator from its wrapper view: the operator, then its fields.
+    fn construct_user(&mut self, args: &[Term]) -> CheckResult<Term> {
+        if args.is_empty() {
+            return Err(CheckError::InvalidConstructor);
+        }
+        let user = match self.view(args[0])? {
+            TermData::UserOp(user) => *user,
+            _ => return Err(CheckError::InvalidConstructor),
+        };
+        self.construct(user, &args[1..])
+    }
+    /// An object literal from the native value `v` of its kind.
+    fn construct_literal(&mut self, e: Embedding, v: Term) -> CheckResult<Term> {
+        let lit = match self.view(v)? {
+            TermData::Native(lit) => lit,
+            _ => return Err(CheckError::InvalidNative),
+        };
+        let valid = match (e, lit) {
+            (Embedding::Boolean, Lit::Bool(_)) => true,
+            (Embedding::Numeral, Lit::Numeral(_)) => true,
+            (Embedding::Rational, Lit::Rational(_)) => true,
+            (Embedding::String, Lit::String(_)) => true,
+            _ => false,
+        };
+        if !valid {
+            return Err(CheckError::InvalidNative);
+        }
+        let lit = lit.clone();
+        self.literal(lit)
+    }
+    /// A binary literal from its native width and value.
+    fn construct_binary(&mut self, w: Term, v: Term) -> CheckResult<Term> {
+        let w = self.raw_int(w)?;
+        let v = self.raw_int(v)?;
+        if !w.fits_u32() {
+            return Err(CheckError::Limit);
+        }
+        self.literal(Lit::Binary(BitVec::new(w.to_u32(), &v)))
+    }
     pub fn destruct(&mut self, c: Constructor, t: Term) -> CheckResult<Option<Vec<Term>>> {
         // Matching by reference: only what is returned is copied.
-        if c.name().starts_with("$emb_UOp") {
-            let (user, fields) = match self.view(t)? {
-                TermData::Node(user, fields) if user.is_user() && fields.len() + 1 == c.arity() => {
-                    (*user, fields.clone())
+        let e = c.embedding();
+        if let Embedding::UOp = e {
+            return self.destruct_user(c, t);
+        }
+        let hit = match self.view(t)? {
+            TermData::Stuck => match e {
+                Embedding::Stuck => Hit::Done(Some(Vec::new())),
+                _ => Hit::Done(None),
+            },
+            TermData::Apply(f, a) => match e {
+                Embedding::Apply => Hit::Done(Some(vec![*f, *a])),
+                _ => Hit::Done(None),
+            },
+            TermData::Literal(lit) => match (e, lit) {
+                (Embedding::Boolean, Lit::Bool(_))
+                | (Embedding::Numeral, Lit::Numeral(_))
+                | (Embedding::Rational, Lit::Rational(_))
+                | (Embedding::String, Lit::String(_)) => Hit::Raw(lit.clone()),
+                (Embedding::Binary, Lit::Binary(b)) => {
+                    Hit::Binary(Integer::from(b.size()), b.value().clone())
                 }
-                _ => return Ok(None),
-            };
-            let op = self.intern(TermData::UserOp(user))?;
-            let mut args = Vec::with_capacity(fields.len() + 1);
-            args.push(op);
-            args.extend_from_slice(&fields);
-            return Ok(Some(args));
-        }
-        enum Hit {
-            Done(Option<Vec<Term>>),
-            Raw(Lit),
-            Binary(Integer, Integer),
-        }
-        let hit = match (c.name(), self.view(t)?) {
-            ("$emb_Stuck", TermData::Stuck) => Hit::Done(Some(vec![])),
-            ("$emb_Apply", TermData::Apply(f, a)) => Hit::Done(Some(vec![*f, *a])),
-            ("$emb_Boolean", TermData::Literal(lit @ Lit::Bool(_)))
-            | ("$emb_Numeral", TermData::Literal(lit @ Lit::Numeral(_)))
-            | ("$emb_Rational", TermData::Literal(lit @ Lit::Rational(_)))
-            | ("$emb_String", TermData::Literal(lit @ Lit::String(_))) => Hit::Raw(lit.clone()),
-            ("$emb_Binary", TermData::Literal(Lit::Binary(b))) => {
-                Hit::Binary(Integer::from(b.size()), b.value().clone())
-            }
-            (_, TermData::Node(d, fields)) if c == *d => Hit::Done(Some(fields.clone())),
+                _ => Hit::Done(None),
+            },
+            TermData::Node(d, fields) if c == *d => Hit::Done(Some(fields.clone())),
             _ => Hit::Done(None),
         };
-        Ok(match hit {
-            Hit::Done(r) => r,
-            Hit::Raw(lit) => Some(vec![self.raw(lit)?]),
-            Hit::Binary(size, value) => Some(vec![
-                self.raw(Lit::Numeral(size))?,
-                self.raw(Lit::Numeral(value))?,
-            ]),
-        })
+        match hit {
+            Hit::Done(r) => Ok(r),
+            Hit::Raw(lit) => {
+                let v = self.raw(lit)?;
+                Ok(Some(vec![v]))
+            }
+            Hit::Binary(size, value) => {
+                let size = self.raw(Lit::Numeral(size))?;
+                let value = self.raw(Lit::Numeral(value))?;
+                Ok(Some(vec![size, value]))
+            }
+        }
+    }
+    /// The wrapper view of a user operator: the operator, then its fields.
+    fn destruct_user(&mut self, c: Constructor, t: Term) -> CheckResult<Option<Vec<Term>>> {
+        let (user, fields) = match self.view(t)? {
+            TermData::Node(user, fields) if user.is_user() && fields.len() + 1 == c.arity() => {
+                (*user, fields.clone())
+            }
+            _ => return Ok(None),
+        };
+        let op = self.intern(TermData::UserOp(user))?;
+        let mut args = Vec::with_capacity(fields.len() + 1);
+        args.push(op);
+        args.extend_from_slice(&fields);
+        Ok(Some(args))
     }
     /// `$eo_state_proven_nth` of the checking loop (eo_desugar_checker.eo),
     /// which the generator compiles to this call. The program walks the
@@ -559,27 +641,29 @@ impl Store {
             _ => None,
         })
     }
+    /// The place of a term's constructor in LogosTermOrder.
+    fn order_key(d: &TermData) -> CheckResult<(usize, usize)> {
+        let e = match d {
+            TermData::Stuck => Embedding::Stuck,
+            TermData::Apply(..) => Embedding::Apply,
+            TermData::Literal(Lit::Bool(_)) => Embedding::Boolean,
+            TermData::Literal(Lit::Numeral(_)) => Embedding::Numeral,
+            TermData::Literal(Lit::Rational(_) | Lit::Decimal(_)) => Embedding::Rational,
+            TermData::Literal(Lit::String(_)) => Embedding::String,
+            TermData::Literal(Lit::Binary(_) | Lit::Hex(_)) => Embedding::Binary,
+            TermData::Node(c, _) => return Ok(c.order_key()),
+            TermData::Native(_) => return Ok((0, 0)),
+            TermData::UserOp(c) => return Ok(c.order_key()),
+        };
+        match Constructor::of_embedding(e) {
+            Some(c) => Ok(c.order_key()),
+            None => Err(CheckError::InvalidConstructor),
+        }
+    }
     /// LogosTermOrder: constructor index, then fields from left to right.
     /// It does not depend on insertion order in the arena or hash values.
     pub fn compare(&self, a: Term, b: Term) -> CheckResult<std::cmp::Ordering> {
         use std::cmp::Ordering;
-        let key = |d: &TermData| -> CheckResult<(usize, usize)> {
-            let name = match d {
-                TermData::Stuck => "$emb_Stuck",
-                TermData::Apply(..) => "$emb_Apply",
-                TermData::Literal(Lit::Bool(_)) => "$emb_Boolean",
-                TermData::Literal(Lit::Numeral(_)) => "$emb_Numeral",
-                TermData::Literal(Lit::Rational(_) | Lit::Decimal(_)) => "$emb_Rational",
-                TermData::Literal(Lit::String(_)) => "$emb_String",
-                TermData::Literal(Lit::Binary(_) | Lit::Hex(_)) => "$emb_Binary",
-                TermData::Node(c, _) => return Ok(c.order_key()),
-                TermData::Native(_) => return Ok((0, 0)),
-                TermData::UserOp(c) => return Ok(c.order_key()),
-            };
-            Ok(Constructor::from_name(name)
-                .ok_or(CheckError::InvalidConstructor)?
-                .order_key())
-        };
         let literal_cmp = |a: &Lit, b: &Lit| -> CheckResult<Ordering> {
             Ok(match (a, b) {
                 (Lit::Bool(a), Lit::Bool(b)) => a.cmp(b),
@@ -605,7 +689,7 @@ impl Store {
                 continue;
             }
             let (a, b) = (self.view(a)?, self.view(b)?);
-            let tags = key(a)?.cmp(&key(b)?);
+            let tags = Self::order_key(a)?.cmp(&Self::order_key(b)?);
             if tags != Ordering::Equal {
                 return Ok(tags);
             }
@@ -649,212 +733,8 @@ impl Store {
         self.depth -= 1;
     }
 
-    /// Match the only native algebraic constructors (Nat.zero/succ), or
-    /// a native literal. Arithmetic functions are never used as patterns.
-    pub(crate) fn native_pattern(&mut self, op: &str, t: Term) -> CheckResult<Option<Vec<Term>>> {
-        if op == "nat.succ" {
-            let n = self.raw_int(t)?;
-            return if n.sgn() > 0 {
-                Ok(Some(vec![
-                    self.raw(Lit::Numeral(n.add(&Integer::one().neg())))?,
-                ]))
-            } else {
-                Ok(None)
-            };
-        }
-        let expected = self.native(op, &[])?;
-        Ok((expected == t).then(Vec::new))
-    }
-
-    pub(crate) fn native(&mut self, op: &str, a: &[Term]) -> CheckResult<Term> {
-        if a.is_empty() {
-            let lit = if op == "true" || op == "false" {
-                Lit::Bool(op == "true")
-            } else if op == "nat.zero" {
-                Lit::Numeral(Integer::zero())
-            } else if let Some(n) = Integer::parse(op, 10) {
-                Lit::Numeral(n)
-            } else if op.starts_with('"') && op.ends_with('"') && op.len() >= 2 {
-                Lit::String(EoString::parse(
-                    &op[1..op.len() - 1].replace("\"\"", "\""),
-                    true,
-                ))
-            } else {
-                return Err(CheckError::UnsupportedNative(op.to_string()));
-            };
-            return self.raw(lit);
-        }
-        match (op, a) {
-            ("teq" | "Teq", &[x, y]) => return self.raw(Lit::Bool(x == y)),
-            ("tcmp", &[x, y]) => return self.raw(Lit::Bool(self.compare(x, y)?.is_lt())),
-            ("is_ok", &[x]) => return self.raw(Lit::Bool(!self.is_stuck(x)?)),
-            ("not", &[x]) => {
-                let Some(b) = self.boolean_value(x, true)? else {
-                    return Err(CheckError::InvalidNative);
-                };
-                return self.raw(Lit::Bool(!b));
-            }
-            ("and" | "or" | "iff", &[x, y]) => {
-                let (Some(x), Some(y)) =
-                    (self.boolean_value(x, true)?, self.boolean_value(y, true)?)
-                else {
-                    return Err(CheckError::InvalidNative);
-                };
-                return self.raw(Lit::Bool(match op {
-                    "and" => x && y,
-                    "or" => x || y,
-                    _ => x == y,
-                }));
-            }
-            ("nat.succ", &[x]) => {
-                return self.raw(Lit::Numeral(self.raw_int(x)?.add(&Integer::one())));
-            }
-            ("nat.pred", &[x]) => {
-                let n = self.raw_int(x)?;
-                return self.raw(Lit::Numeral(if n.sgn() > 0 {
-                    n.add(&Integer::one().neg())
-                } else {
-                    Integer::zero()
-                }));
-            }
-            ("nat.to_int" | "Int.ofNat", &[x]) => {
-                self.raw_int(x)?;
-                return Ok(x);
-            }
-            ("int.to_nat" | "Int.toNat", &[x]) => {
-                let n = self.raw_int(x)?;
-                return self.raw(Lit::Numeral(if n.sgn() < 0 { Integer::zero() } else { n }));
-            }
-            ("zeq" | "nateq" | "zlt" | "zleq" | "nat.lt", &[x, y]) => {
-                let (x, y) = (self.raw_int(x)?, self.raw_int(y)?);
-                return self.raw(Lit::Bool(match op {
-                    "zeq" | "nateq" => x == y,
-                    "zleq" => x <= y,
-                    _ => x < y,
-                }));
-            }
-            (
-                "zplus" | "zmult" | "zdiv_total" | "div_total" | "mod_total" | "zmod_total"
-                | "zexp_total" | "binary_and" | "binary_or" | "binary_xor",
-                &[x, y],
-            ) => {
-                let (x, y) = (self.raw_int(x)?, self.raw_int(y)?);
-                let n = match op {
-                    "zplus" => x.add(&y),
-                    "zmult" => x.mul(&y),
-                    "binary_and" => x.bitwise_and(&y),
-                    "binary_or" => x.bitwise_or(&y),
-                    "binary_xor" => x.bitwise_xor(&y),
-                    "zexp_total" => {
-                        if y.sgn() < 0 {
-                            Integer::zero()
-                        } else if y.fits_u32() {
-                            x.pow(y.to_u32())
-                        } else {
-                            return Err(CheckError::Limit);
-                        }
-                    }
-                    _ if y.sgn() == 0 => {
-                        if op == "zmod_total" || op == "mod_total" {
-                            x
-                        } else {
-                            Integer::zero()
-                        }
-                    }
-                    "zdiv_total" | "div_total" => x.euclidean_qr(&y).0,
-                    _ => x.euclidean_qr(&y).1,
-                };
-                return self.raw(Lit::Numeral(n));
-            }
-            ("zneg" | "zabs", &[x]) => {
-                let x = self.raw_int(x)?;
-                return self.raw(Lit::Numeral(if op == "zneg" || x.sgn() < 0 {
-                    x.neg()
-                } else {
-                    x
-                }));
-            }
-            ("qeq" | "qlt" | "qleq", &[x, y]) => {
-                let (x, y) = (self.raw_rat(x)?, self.raw_rat(y)?);
-                return self.raw(Lit::Bool(match op {
-                    "qeq" => x == y,
-                    "qleq" => x <= y,
-                    _ => x < y,
-                }));
-            }
-            ("qplus" | "qmult" | "qdiv_total", &[x, y]) => {
-                let (x, y) = (self.raw_rat(x)?, self.raw_rat(y)?);
-                return self.raw(Lit::Rational(match op {
-                    "qplus" => x.add(&y),
-                    "qmult" => x.mul(&y),
-                    _ if y.sgn() == 0 => Rational::from_integer(&Integer::zero()),
-                    _ => x.div(&y),
-                }));
-            }
-            ("qneg" | "qabs", &[x]) => {
-                let x = self.raw_rat(x)?;
-                return self.raw(Lit::Rational(if op == "qneg" || x.sgn() < 0 {
-                    x.neg()
-                } else {
-                    x
-                }));
-            }
-            ("mk_rational", &[n, d]) => {
-                let q = Rational::from_integers(&self.raw_int(n)?, &self.raw_int(d)?)
-                    .ok_or(CheckError::InvalidNative)?;
-                return self.raw(Lit::Rational(q));
-            }
-            ("to_int", &[x]) => return self.raw(Lit::Numeral(self.raw_rat(x)?.floor())),
-            ("to_real", &[x]) => {
-                return self.raw(Lit::Rational(Rational::from_integer(&self.raw_int(x)?)));
-            }
-            ("streq", &[x, y]) => return self.raw(Lit::Bool(self.view(x)? == self.view(y)?)),
-            ("int.pow2", &[x]) => {
-                let n = self.raw_int(x)?;
-                if n.sgn() < 0 {
-                    return self.raw(Lit::Numeral(Integer::zero()));
-                }
-                if !n.fits_u32() {
-                    return Err(CheckError::Limit);
-                }
-                return self.raw(Lit::Numeral(Integer::from(2u32).pow(n.to_u32())));
-            }
-            ("uconst_id" | "const_id", &[x]) => {
-                let n = self.raw_int(x)?;
-                if n.sgn() < 0 {
-                    return Err(CheckError::InvalidNative);
-                }
-                let prefix = if op == "uconst_id" { "@u." } else { "@c." };
-                return self.raw(Lit::String(EoString::parse(&format!("{prefix}{n}"), false)));
-            }
-            ("string_valid", &[x]) => {
-                let TermData::Native(Lit::String(s)) = self.view(x)? else {
-                    return Err(CheckError::InvalidNative);
-                };
-                return self.raw(Lit::Bool(s.code_points().iter().all(|&c| c < NUM_CODES)));
-            }
-            ("string_prefix_eq", &[x, y]) => {
-                let (TermData::Native(Lit::String(x)), TermData::Native(Lit::String(y))) =
-                    (self.view(x)?, self.view(y)?)
-                else {
-                    return Err(CheckError::InvalidNative);
-                };
-                return self.raw(Lit::Bool(y.code_points().starts_with(x.code_points())));
-            }
-            _ => {}
-        }
-        Err(CheckError::UnsupportedNative(op.to_string()))
-    }
-
     /// Ethos-style primitive evaluation over already evaluated values.
     /// Stuck is explicit; recognizers and IsOk/IsEq return false on it.
-    pub(crate) fn operator(&mut self, name: &str, args: &[Term]) -> CheckResult<Term> {
-        let op = EvalOp::ALL
-            .iter()
-            .find_map(|&(op, n)| (n == name).then_some(op))
-            .ok_or_else(|| CheckError::UnsupportedNative(name.to_string()))?;
-        self.builtin(op, args)
-    }
     pub fn builtin(&mut self, op: EvalOp, args: &[Term]) -> CheckResult<Term> {
         let arity = match op {
             EvalOp::IsOk
@@ -943,15 +823,18 @@ impl Store {
                     | (EvalOp::IsBin, TermData::Literal(Lit::Binary(_)))
                     | (EvalOp::IsStr, TermData::Literal(Lit::String(_)))
                     | (EvalOp::IsBool, TermData::Literal(Lit::Bool(_)))
-            ) || (op == EvalOp::IsVar && self.is_named(x, "$emb_Var")?);
+            ) || (op == EvalOp::IsVar && self.is_variable(x)?);
             return self.boolean(b);
         }
         if args.iter().any(|&a| self.is_stuck(a).unwrap_or(true)) {
             return Ok(self.stuck());
         }
         if op == EvalOp::NameOf {
+            if !self.is_variable(x)? {
+                return Ok(self.stuck());
+            }
             return Ok(match self.view(x)? {
-                TermData::Node(c, fields) if c.name() == "$emb_Var" => fields[0],
+                TermData::Node(_, fields) => fields[0],
                 _ => self.stuck(),
             });
         }

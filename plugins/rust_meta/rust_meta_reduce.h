@@ -49,6 +49,12 @@ class RustMetaReduce : public MetaReducePlugin
   /** Whether a constructor is a user symbol, not an embedding or meta one. */
   static bool isUserConstructor(const std::string& name);
   std::string schema() const;
+  /** The constructors by name, for the runtime's front part. */
+  std::string constructorNames() const;
+  /** `Some(Constructor::X)` for a constructor of the signature, else `None`. */
+  std::string constructorOption(const std::string& name) const;
+  /** A runtime template with each `@ctor:NAME@` replaced by that. */
+  std::string expandConstructors(std::string text) const;
   std::string emitProgram(const std::string& name, const Program& p);
   void output(const std::string& file, const std::string& text) const;
   static std::string ident(const std::string& name);

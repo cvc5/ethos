@@ -7,6 +7,20 @@ pub enum Verdict {
     Incomplete,
 }
 
+/// What a translation mask asks of an argument (Logos's
+/// `ArgTranslationKind`). `Unknown` is a word of the table of masks that
+/// is none of them.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[allow(dead_code)] // A signature without masks builds none.
+enum ArgKind {
+    Term,
+    Type,
+    WfTerm,
+    WfElem,
+    List,
+    Unknown,
+}
+
 impl Store {
     pub fn check_proof(&mut self, assumptions: Term, commands: Term) -> CheckResult<Verdict> {
         with_checker_stack(|| self.check_proof_inner(assumptions, commands))
@@ -23,26 +37,23 @@ impl Store {
         }
         let mut list = commands;
         loop {
-            if self.is_named(list, "$emb_cmdl.nil")? {
+            if self.is_node(list, @ctor:$emb_cmdl.nil@)? {
                 return Ok(Verdict::Correct);
             }
-            let Some(cs) = self.named_fields(list, "$emb_cmdl.cons")? else {
+            let Some(cs) = self.node_fields(list, @ctor:$emb_cmdl.cons@)? else {
                 return Ok(Verdict::Incorrect);
             };
             let c = cs[0];
-            if let Some(fs) = self.named_fields(c, "$emb_cmd.assume_push")? {
+            if let Some(fs) = self.node_fields(c, @ctor:$emb_cmd.assume_push@)? {
                 if !self.has_translation(fs[0])? {
                     return Ok(Verdict::Incomplete);
                 }
-            } else if let Some(fs) = self.named_fields(c, "$emb_cmd.step")? {
-                let mask: Option<&[&str]> = match self.view(fs[0])? {
-                    TermData::Node(rule, _) => match rule.name() {
-                        @TRANSLATION_MASKS@
-                        _ => None,
-                    },
+            } else if let Some(fs) = self.node_fields(c, @ctor:$emb_cmd.step@)? {
+                let rule = match self.view(fs[0])? {
+                    TermData::Node(rule, _) => *rule,
                     _ => return Ok(Verdict::Incorrect),
                 };
-                if !self.arguments_translate(fs[1], mask)? {
+                if !self.arguments_translate(fs[1], Some(rule))? {
                     return Ok(Verdict::Incomplete);
                 }
             }
@@ -50,11 +61,21 @@ impl Store {
         }
     }
 
-    fn named_fields(&self, t: Term, name: &str) -> CheckResult<Option<Vec<Term>>> {
-        Ok(match self.view(t)? {
-            TermData::Node(c, fs) if c.name() == name => Some(fs.clone()),
+    /// The number of arguments of a rule whose arguments have a mask.
+    #[allow(clippy::match_single_binding)]
+    fn mask_len(rule: Constructor) -> Option<usize> {
+        match rule {
+            @TRANSLATION_MASK_LENGTHS@
             _ => None,
-        })
+        }
+    }
+    /// What the mask of `rule` asks of its `i`-th argument.
+    #[allow(clippy::match_single_binding)]
+    fn mask_kind(rule: Constructor, i: usize) -> Option<ArgKind> {
+        match rule {
+            @TRANSLATION_MASK_KINDS@
+            _ => None,
+        }
     }
 
     fn translation_type(&mut self, t: Term) -> CheckResult<Term> {
@@ -68,30 +89,30 @@ impl Store {
     }
     fn has_translation(&mut self, t: Term) -> CheckResult<bool> {
         let ty = self.translation_type(t)?;
-        Ok(!self.is_stuck(ty)? && !self.is_named(ty, "$emb_tsm.None")?)
+        Ok(!self.is_stuck(ty)? && !self.is_node(ty, @ctor:$emb_tsm.None@)?)
     }
-    fn argument_translates(&mut self, t: Term, kind: &str) -> CheckResult<bool> {
+    fn argument_translates(&mut self, t: Term, kind: ArgKind) -> CheckResult<bool> {
         match kind {
-            "term" => self.has_translation(t),
-            "type" => {
+            ArgKind::Term => self.has_translation(t),
+            ArgKind::Type => {
                 let ty = self.translation_sort(t)?;
                 self.translation_type_wf(ty, false)
             }
-            "wfTerm" => {
+            ArgKind::WfTerm => {
                 if !self.has_translation(t)? {
                     return Ok(false);
                 }
                 let ty = self.translation_type(t)?;
                 self.translation_type_wf(ty, false)
             }
-            "wfElem" => {
+            ArgKind::WfElem => {
                 let ty = self.translation_type(t)?;
                 self.translation_type_wf(ty, true)
             }
-            "list" => {
+            ArgKind::List => {
                 let mut list = t;
                 loop {
-                    if self.is_named(list, "$eo_List_nil")? {
+                    if self.is_node(list, @ctor:$eo_List_nil@)? {
                         return Ok(true);
                     }
                     let Some((fx, tail)) = self.unapply(list)? else {
@@ -100,30 +121,46 @@ impl Store {
                     let Some((f, x)) = self.unapply(fx)? else {
                         return Ok(false);
                     };
-                    if !self.is_named(f, "$eo_List_cons")? || !self.has_translation(x)? {
+                    if !self.is_node(f, @ctor:$eo_List_cons@)? || !self.has_translation(x)? {
                         return Ok(false);
                     }
                     list = tail;
                 }
             }
-            _ => Err(CheckError::InvalidConstructor),
+            ArgKind::Unknown => Err(CheckError::InvalidConstructor),
         }
     }
-    fn arguments_translate(&mut self, mut args: Term, mask: Option<&[&str]>) -> CheckResult<bool> {
+    /// Whether the arguments translate: each as a term, or, for a rule
+    /// with a mask, as its mask says.
+    fn arguments_translate(
+        &mut self,
+        mut args: Term,
+        rule: Option<Constructor>,
+    ) -> CheckResult<bool> {
+        let mask = match rule {
+            Some(rule) => match Self::mask_len(rule) {
+                Some(len) => Some((rule, len)),
+                None => None,
+            },
+            None => None,
+        };
         let mut i = 0;
         loop {
-            if self.is_named(args, "$emb_al.nil")? {
-                return Ok(mask.is_none_or(|m| i == m.len()));
+            if self.is_node(args, @ctor:$emb_al.nil@)? {
+                return Ok(match mask {
+                    Some((_, len)) => i == len,
+                    None => true,
+                });
             }
-            let Some(fs) = self.named_fields(args, "$emb_al.cons")? else {
+            let Some(fs) = self.node_fields(args, @ctor:$emb_al.cons@)? else {
                 return Ok(false);
             };
             let kind = match mask {
-                Some(m) => match m.get(i) {
-                    Some(&k) => k,
+                Some((rule, _)) => match Self::mask_kind(rule, i) {
+                    Some(k) => k,
                     None => return Ok(false),
                 },
-                None => "term",
+                None => ArgKind::Term,
             };
             if !self.argument_translates(fs[0], kind)? {
                 return Ok(false);

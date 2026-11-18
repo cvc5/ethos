@@ -367,25 +367,13 @@ bool RustMetaReduce::isUserConstructor(const std::string& name)
 std::string RustMetaReduce::schema() const
 {
   std::ostringstream out;
-  out << "#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, "
-         "Ord)]\npub enum Constructor {\n";
+  out << "use crate::Embedding;\n#[derive(Copy, Clone, Debug, PartialEq, Eq, "
+         "Hash, PartialOrd, Ord)]\npub enum Constructor {\n";
   for (const auto& c : d_constructors)
   {
     out << ident(c.first) << ",\n";
   }
-  out << "}\nimpl Constructor {\npub fn name(self) -> &'static str { match "
-         "self {\n";
-  for (const auto& c : d_constructors)
-  {
-    out << "Self::" << ident(c.first) << " => " << quote(c.first) << ",\n";
-  }
-  out << "}}\npub fn from_name(name: &str) -> Option<Self> { Some(match name "
-         "{\n";
-  for (const auto& c : d_constructors)
-  {
-    out << quote(c.first) << " => Self::" << ident(c.first) << ",\n";
-  }
-  out << "_ => return None, }) }\npub fn is_user(self) -> bool { match self "
+  out << "}\nimpl Constructor {\npub fn is_user(self) -> bool { match self "
          "{\n";
   for (const auto& c : d_constructors)
   {
@@ -399,10 +387,13 @@ std::string RustMetaReduce::schema() const
   {
     out << "Self::" << ident(c.first) << " => " << c.second.arity << ",\n";
   }
-  out << "}}\npub fn is_left_assoc(self) -> bool { match self.name() {\n";
+  out << "}}\npub fn is_left_assoc(self) -> bool { match self {\n";
   for (const auto& n : d_leftAssoc)
   {
-    out << quote(n) << " => true,\n";
+    if (d_constructors.count(n) != 0)
+    {
+      out << "Self::" << ident(n) << " => true,\n";
+    }
   }
   out << "_ => false, }}\npub fn order_key(self) -> (usize, usize) { match "
          "self {\n";
@@ -446,8 +437,94 @@ std::string RustMetaReduce::schema() const
     out << "Self::" << ident(name) << " => (" << tag << ", " << subtag
         << "),\n";
   }
-  out << "}}\n}\n";
+  // How the runtime represents what each constructor builds, decided here
+  // from the constructor's name in the embedding of terms, so that the
+  // runtime compares no names.
+  static const std::vector<std::pair<std::string, std::string>> embeddings{
+      {"$emb_Stuck", "Stuck"},
+      {"$emb_Apply", "Apply"},
+      {"$emb_Boolean", "Boolean"},
+      {"$emb_Numeral", "Numeral"},
+      {"$emb_Rational", "Rational"},
+      {"$emb_String", "String"},
+      {"$emb_Binary", "Binary"},
+      {"$emb_Var", "Var"}};
+  out << "}}\npub fn embedding(self) -> Embedding { match self {\n";
+  for (const auto& c : d_constructors)
+  {
+    std::string embedding = starts(c.first, "$emb_UOp") ? "UOp" : "";
+    for (const auto& e : embeddings)
+    {
+      if (c.first == e.first)
+      {
+        embedding = e.second;
+      }
+    }
+    if (!embedding.empty())
+    {
+      out << "Self::" << ident(c.first) << " => Embedding::" << embedding
+          << ",\n";
+    }
+  }
+  out << "_ => Embedding::Data, }}\n"
+         "/// The constructor of an embedding that has exactly one.\n"
+         "pub fn of_embedding(e: Embedding) -> Option<Self> { match e {\n";
+  for (const auto& e : embeddings)
+  {
+    if (d_constructors.count(e.first) != 0)
+    {
+      out << "Embedding::" << e.second << " => Some(Self::" << ident(e.first)
+          << "),\n";
+    }
+  }
+  out << "_ => None, }}\n}\n";
   return out.str();
+}
+
+std::string RustMetaReduce::constructorNames() const
+{
+  std::ostringstream out;
+  out << "//! The constructors by name.\nuse crate::Constructor;\n"
+         "impl Constructor {\npub fn name(self) -> &'static str { match "
+         "self {\n";
+  for (const auto& c : d_constructors)
+  {
+    out << "Self::" << ident(c.first) << " => " << quote(c.first) << ",\n";
+  }
+  out << "}}\npub fn from_name(name: &str) -> Option<Self> { Some(match name "
+         "{\n";
+  for (const auto& c : d_constructors)
+  {
+    out << quote(c.first) << " => Self::" << ident(c.first) << ",\n";
+  }
+  out << "_ => return None, }) }\n}\n";
+  return out.str();
+}
+
+std::string RustMetaReduce::constructorOption(const std::string& name) const
+{
+  return d_constructors.count(name) != 0
+             ? "Some(Constructor::" + ident(name) + ")"
+             : "None";
+}
+
+std::string RustMetaReduce::expandConstructors(std::string text) const
+{
+  // "@ctor:NAME@" in a runtime template is the constructor of that name, as
+  // an Option: None where the signature has none.
+  const std::string open = "@ctor:";
+  size_t at;
+  while ((at = text.find(open)) != std::string::npos)
+  {
+    size_t end = text.find('@', at + open.size());
+    if (end == std::string::npos)
+    {
+      EO_FATAL() << "rust-meta: unterminated @ctor: in a runtime template";
+    }
+    std::string name = text.substr(at + open.size(), end - at - open.size());
+    text.replace(at, end + 1 - at, constructorOption(name));
+  }
+  return text;
 }
 
 std::string RustMetaReduce::literal(const Expr& e)
@@ -1101,7 +1178,7 @@ void RustMetaReduce::finalize()
       replace_all(checks, "@HAS_TRANSLATION@", translation ? "true" : "false");
   const std::string unavailable =
       "let _ = t; Err(CheckError::UnsupportedNative(\"SMT translation is "
-      "unavailable\".into()))";
+      "unavailable\"))";
   checks = replace_all(checks,
                        "@TRANSLATION_TYPE@",
                        translation ? "let t = generated::" + ident("$eo_to_smt")
@@ -1124,7 +1201,13 @@ void RustMetaReduce::finalize()
           : "let _ = component; " + unavailable);
   std::istringstream masks(
       read(getResourcePath("plugins/rust_meta/cpc_translation_masks.txt")));
-  std::ostringstream maskCode;
+  std::ostringstream maskLengths, maskKinds;
+  static const std::map<std::string, std::string> argKinds{
+      {"term", "Term"},
+      {"type", "Type"},
+      {"wfTerm", "WfTerm"},
+      {"wfElem", "WfElem"},
+      {"list", "List"}};
   std::string line;
   while (std::getline(masks, line))
   {
@@ -1135,18 +1218,32 @@ void RustMetaReduce::finalize()
     std::istringstream words(line);
     std::string rule, kind;
     words >> rule;
-    maskCode << quote("$emb_r." + rule) << " => Some(&[";
+    rule = "$emb_r." + rule;
+    if (d_constructors.count(rule) == 0)
+    {
+      // not a rule of this signature
+      continue;
+    }
+    size_t n = 0;
+    maskKinds << "Constructor::" << ident(rule) << " => match i {\n";
     while (words >> kind)
     {
-      maskCode << quote(kind) << ",";
+      auto it = argKinds.find(kind);
+      maskKinds << n++ << " => Some(ArgKind::"
+                << (it == argKinds.end() ? "Unknown" : it->second) << "),\n";
     }
-    maskCode << "]),\n";
+    maskKinds << "_ => None,\n},\n";
+    maskLengths << "Constructor::" << ident(rule) << " => Some(" << n
+                << "),\n";
   }
-  checks = replace_all(checks, "@TRANSLATION_MASKS@", maskCode.str());
+  checks =
+      replace_all(checks, "@TRANSLATION_MASK_LENGTHS@", maskLengths.str());
+  checks = replace_all(checks, "@TRANSLATION_MASK_KINDS@", maskKinds.str());
   lib += checks;
-  output("src/lib.rs", lib);
+  output("src/lib.rs", expandConstructors(lib));
   output("src/generated.rs", code.str());
   output("src/schema.rs", schema());
+  output("src/names.rs", constructorNames());
   output("functions.tsv", manifest.str());
   std::ostringstream caches;
   caches << "source\tcache\tprogram_id\n";
@@ -1174,6 +1271,8 @@ void RustMetaReduce::finalize()
   }
   output("constructors.tsv", constructors.str());
   for (const char* file : {"cache.rs",
+                           "front.rs",
+                           "native.rs",
                            "num.rs",
                            "eostring.rs",
                            "bitvec.rs",
