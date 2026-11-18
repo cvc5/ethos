@@ -15,7 +15,6 @@ mod bitvec;
 mod cache;
 pub mod codec;
 mod eostring;
-#[allow(dead_code)] // Until the generator names operations by `NativeOp`.
 mod front;
 #[allow(unreachable_code, unused_labels, unused_variables)]
 // Uniform temporaries make evaluation order and refinement obligations explicit.
@@ -28,7 +27,7 @@ mod front;
 pub mod generated;
 pub mod kind;
 mod lit;
-#[allow(dead_code)] // Until the generator names operations by `NativeOp`.
+#[allow(dead_code)] // A signature need not use every native operation.
 mod native;
 mod num;
 #[allow(clippy::match_like_matches_macro)]
