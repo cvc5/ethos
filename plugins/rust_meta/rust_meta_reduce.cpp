@@ -578,6 +578,135 @@ class RustMetaReduce::Emitter
     }
     return "Constructor::" + ident(name);
   }
+  /** The runtime's `EvalOp` of a kind: `EVAL_IS_OK` is `IsOk`. */
+  static std::string evalOp(Kind k)
+  {
+    std::ostringstream name;
+    name << k;
+    std::string ret;
+    bool upper = true;
+    for (char c : name.str().substr(5))
+    {
+      if (c == '_')
+      {
+        upper = true;
+        continue;
+      }
+      ret += upper ? c : static_cast<char>(std::tolower(c));
+      upper = false;
+    }
+    return ret;
+  }
+  /**
+   * A call of a native operation. The runtime names its operations by an
+   * enum (NativeOp in runtime/native.rs); a name it does not have, or a
+   * number of arguments the operation does not take, is the runtime's
+   * UnsupportedNative error, as when the runtime compared the names.
+   */
+  std::string native(const std::string& name,
+                     size_t nargs,
+                     const std::string& as)
+  {
+    static const std::map<std::string, std::pair<std::string, size_t>> ops{
+        {"teq", {"Teq", 2}},
+        {"Teq", {"Teq", 2}},
+        {"tcmp", {"Tcmp", 2}},
+        {"is_ok", {"IsOk", 1}},
+        {"not", {"Not", 1}},
+        {"and", {"And", 2}},
+        {"or", {"Or", 2}},
+        {"iff", {"Iff", 2}},
+        {"nat.succ", {"NatSucc", 1}},
+        {"nat.pred", {"NatPred", 1}},
+        {"nat.to_int", {"NatToInt", 1}},
+        {"Int.ofNat", {"NatToInt", 1}},
+        {"int.to_nat", {"IntToNat", 1}},
+        {"Int.toNat", {"IntToNat", 1}},
+        {"zeq", {"Zeq", 2}},
+        {"nateq", {"Nateq", 2}},
+        {"zlt", {"Zlt", 2}},
+        {"zleq", {"Zleq", 2}},
+        {"nat.lt", {"NatLt", 2}},
+        {"zplus", {"Zplus", 2}},
+        {"zmult", {"Zmult", 2}},
+        {"zdiv_total", {"ZdivTotal", 2}},
+        {"div_total", {"DivTotal", 2}},
+        {"mod_total", {"ModTotal", 2}},
+        {"zmod_total", {"ZmodTotal", 2}},
+        {"zexp_total", {"ZexpTotal", 2}},
+        {"binary_and", {"BinaryAnd", 2}},
+        {"binary_or", {"BinaryOr", 2}},
+        {"binary_xor", {"BinaryXor", 2}},
+        {"zneg", {"Zneg", 1}},
+        {"zabs", {"Zabs", 1}},
+        {"qeq", {"Qeq", 2}},
+        {"qlt", {"Qlt", 2}},
+        {"qleq", {"Qleq", 2}},
+        {"qplus", {"Qplus", 2}},
+        {"qmult", {"Qmult", 2}},
+        {"qdiv_total", {"QdivTotal", 2}},
+        {"qneg", {"Qneg", 1}},
+        {"qabs", {"Qabs", 1}},
+        {"mk_rational", {"MkRational", 2}},
+        {"to_int", {"ToInt", 1}},
+        {"to_real", {"ToReal", 1}},
+        {"streq", {"Streq", 2}},
+        {"int.pow2", {"IntPow2", 1}},
+        {"uconst_id", {"UconstId", 1}},
+        {"const_id", {"ConstId", 1}},
+        {"string_valid", {"StringValid", 1}},
+        {"string_prefix_eq", {"StringPrefixEq", 2}}};
+    if (nargs == 0)
+    {
+      // a constant
+      if (name == "true" || name == "false")
+      {
+        return "s.native_bool(" + name + ")?";
+      }
+      if (name == "nat.zero")
+      {
+        return "s.native_nat_zero()?";
+      }
+      // a numeral or a string, which the runtime reads
+      return "s.native_constant(" + quote(name) + ")?";
+    }
+    auto it = ops.find(name);
+    if (it == ops.end() || it->second.second != nargs)
+    {
+      return "s.unsupported_native(" + quote(name) + ")?";
+    }
+    return "s.native_op(NativeOp::" + it->second.first + ", &[" + as + "])?";
+  }
+  /** A native constructor or constant as a pattern for `value`. */
+  std::string nativePattern(const std::string& name, const std::string& value)
+  {
+    if (name == "nat.succ")
+    {
+      return "s.native_pattern_succ(" + value + ")?";
+    }
+    if (name == "true" || name == "false")
+    {
+      return "s.native_pattern_bool(" + name + ", " + value + ")?";
+    }
+    if (name == "nat.zero")
+    {
+      return "s.native_pattern_nat_zero(" + value + ")?";
+    }
+    return "s.native_pattern_constant(" + quote(name) + ", " + value + ")?";
+  }
+  /**
+   * The term of the constructor `name` of the embedding, which a signature
+   * may lack; without it, the runtime's InvalidConstructor error, as when
+   * the runtime looked the name up.
+   */
+  std::string named(const std::string& name, const std::string& as)
+  {
+    if (m.d_constructors.count(name) == 0)
+    {
+      return "s.missing_constructor()?";
+    }
+    return "s.construct(Constructor::" + ident(name) + ", &[" + as + "])?";
+  }
   std::string args(const Expr& t, size_t start, const std::string& sep = ", ")
   {
     std::string ret;
@@ -629,10 +758,9 @@ class RustMetaReduce::Emitter
     {
       return val(ident("$eo_" + kindToTerm(k).substr(4)) + "(s, " + as + ")?");
     }
-    // Match by EO name, so the C++ and Rust enum declaration orders are
-    // independent. The generated runtime validates arities itself.
-    return val("s.operator(" + quote(kindToTerm(k).substr(4)) + ", &[" + as
-               + "])?");
+    // Name the runtime's operator, so the C++ and Rust enum declaration
+    // orders are independent. The runtime validates arities itself.
+    return val("s.builtin(EvalOp::" + evalOp(k) + ", &[" + as + "])?");
   }
   std::string expr(const Expr& t)
   {
@@ -672,7 +800,7 @@ class RustMetaReduce::Emitter
           return conditional(t[2], t[3], t[4], true);
         }
         std::string as = args(t, 2);
-        return val("s.native(" + quote(name) + ", &[" + as + "])?");
+        return val(native(name, t.getNumChildren() - 2, as));
       }
       std::string as = args(t, 1);
       return val("s.construct(" + ctor(n) + ", &[" + as + "])?");
@@ -699,7 +827,7 @@ class RustMetaReduce::Emitter
       for (size_t i = n - 1; i > 0; --i)
       {
         std::string a = expr(t[i - 1]);
-        std::string h = val("s.named(\"$emb_FunType\", &[])?");
+        std::string h = val(named("$emb_FunType", ""));
         std::string f = val("s.apply(" + h + ", " + a + ")?");
         tail = val("s.apply(" + f + ", " + tail + ")?");
       }
@@ -713,7 +841,7 @@ class RustMetaReduce::Emitter
     if (k == Kind::VARIABLE)
     {
       std::string as = args(t, 0);
-      return val("s.named(\"$emb_Var\", &[" + as + "])?");
+      return val(named("$emb_Var", as));
     }
     EO_FATAL() << "rust-meta: unsupported expression " << t << " (" << k << ")";
     return "";
@@ -742,7 +870,8 @@ class RustMetaReduce::Emitter
       std::string r = val("r");
       std::string f = val("s.unapply(f)?");
       o << "let Some((op, l)) = " << f << " else" << fail << ";\n"
-        << "if !s.is_named(op, \"$emb_FunType\")?" << fail;
+        << "if !s.is_node(op, " << m.constructorOption("$emb_FunType")
+        << ")?" << fail;
       std::string l = val("l");
       pattern(t[0], l, c);
       pattern(t[1], r, c);
@@ -764,8 +893,7 @@ class RustMetaReduce::Emitter
       std::string fields;
       if (starts(n, "$native_apply_"))
       {
-        fields = val("s.native_pattern(" + quote(getName(t[1])) + ", " + value
-                     + ")?");
+        fields = val(nativePattern(getName(t[1]), value));
         start = 2;
       }
       else

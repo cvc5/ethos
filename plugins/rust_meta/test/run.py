@@ -62,7 +62,7 @@ def main():
                          "$eo_prog_mutual_a", "$eo_prog_mutual_b"]:
                 assert policies[name] == "program", name
             assert policies["$eo_prog_nonlin"] == "none"
-        assert 's.operator("add"' in source or 's.operator("list_concat"' in source
+        assert 's.builtin(EvalOp::Add' in source or 's.builtin(EvalOp::ListConcat' in source
         assert "EO program \"$eo_add\"" not in source
         assert not any(p.name.lower().startswith("parser") for p in crate.rglob("*"))
         env = os.environ.copy()
