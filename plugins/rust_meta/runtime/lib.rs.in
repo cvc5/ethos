@@ -503,9 +503,10 @@ impl Store {
         if c.arity() != args.len() {
             return Err(CheckError::InvalidConstructor);
         }
-        for &t in args {
-            self.view(t)?;
-        }
+        // (not a loop here: `construct` calls itself through
+        // `construct_user`, and Aeneas's Lean does not take a loop whose
+        // function is called again from inside it)
+        self.check_handles(args)?;
         let e = c.embedding();
         match e {
             Embedding::UOp => self.construct_user(args),
