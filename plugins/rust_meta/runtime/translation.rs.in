@@ -1,27 +1,15 @@
-/// The Logos verdict, including its translation side conditions. Returning
-/// Correct is an executable result; formal Rust refinement remains separate.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Verdict {
-    Correct,
-    Incorrect,
-    Incomplete,
-}
-
-/// What a translation mask asks of an argument (Logos's
-/// `ArgTranslationKind`). `Unknown` is a word of the table of masks that
-/// is none of them.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[allow(dead_code)] // A signature without masks builds none.
-enum ArgKind {
-    Term,
-    Type,
-    WfTerm,
-    WfElem,
-    List,
-    Unknown,
-}
-
+// The entry points of checking, to be called on the checker's stack (see
+// front.rs): they call generated functions, and nothing generated calls
+// them, so the generator puts them after all the generated functions.
 impl Store {
+    /// Check the entire proof state machine, including typing, assumptions,
+    /// step-pop, premise lookup and the final closed refutation test. To be
+    /// called on the checker's stack: see `Store::check_refutation`.
+    pub(crate) fn check_refutation_inner(&mut self, assumptions: Term, commands: Term) -> CheckResult<bool> {
+        self.calls = 0;
+        let answer = generated::@$eo_checker_is_refutation@(self, assumptions, commands)?;
+        self.is_native_true(answer)
+    }
     /// The verdict on a proof. To be called on the checker's stack: see
     /// `Store::check_proof`.
     pub(crate) fn check_proof_inner(&mut self, assumptions: Term, commands: Term) -> CheckResult<Verdict> {

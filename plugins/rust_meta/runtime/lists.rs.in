@@ -1,0 +1,249 @@
+// The list operators. They ask generated functions whether a term ends a
+// list and for the empty list of a type (`$eo_is_list_nil`, `$eo_nil`,
+// `$eo_typeof`), so this is not part of the runtime that the generated
+// code rests on: the generator puts it among the generated functions,
+// after those three and before the functions that use a list operator.
+impl Store {
+    /// Ethos-style primitive evaluation over already evaluated values:
+    /// any operator. (Generated code calls `builtin_core` or
+    /// `builtin_list`, whichever its operator needs.)
+    pub fn builtin(&mut self, op: EvalOp, args: &[Term]) -> CheckResult<Term> {
+        if op.is_list_op() {
+            self.builtin_list(op, args)
+        } else {
+            self.builtin_core(op, args)
+        }
+    }
+    /// A list operator.
+    pub(crate) fn builtin_list(&mut self, op: EvalOp, args: &[Term]) -> CheckResult<Term> {
+        if !Self::takes(op, args.len()) {
+            return Ok(self.stuck());
+        }
+        self.check_handles(args)?;
+        if self.any_stuck(args) {
+            return Ok(self.stuck());
+        }
+        self.list_builtin(op, args)
+    }
+    /// Whether the list constructor `f` nests to the left.
+    fn is_left_assoc(&self, f: Term) -> CheckResult<bool> {
+        Ok(match self.view(f)? {
+            TermData::Node(c, _) => c.is_left_assoc(),
+            _ => false,
+        })
+    }
+    /// The next element of a list of `f` and the rest of the list, or
+    /// `None` where the list of applications of `f` ends. `count` is the
+    /// number of elements taken so far.
+    fn list_step(
+        &self,
+        f: Term,
+        left: bool,
+        list: Term,
+        count: usize,
+    ) -> CheckResult<Option<(Term, Term)>> {
+        let Some((g, b)) = self.unapply(list)? else {
+            return Ok(None);
+        };
+        let Some((head, a)) = self.unapply(g)? else {
+            return Ok(None);
+        };
+        if f != head {
+            return Ok(None);
+        }
+        if count as u64 >= self.limits.calls {
+            return Err(CheckError::Limit);
+        }
+        Ok(Some(if left { (b, a) } else { (a, b) }))
+    }
+    /// The elements of a list of `f`, and where its applications of `f` end.
+    fn list_elements(&self, f: Term, left: bool, list: Term) -> CheckResult<(Vec<Term>, Term)> {
+        let mut out = Vec::new();
+        let mut list = list;
+        let mut more = true;
+        while more {
+            match self.list_step(f, left, list, out.len())? {
+                Some((element, rest)) => {
+                    out.push(element);
+                    list = rest;
+                }
+                None => more = false,
+            }
+        }
+        Ok((out, list))
+    }
+    fn list_parts(&mut self, f: Term, list: Term) -> CheckResult<Option<(Vec<Term>, Term)>> {
+        let left = self.is_left_assoc(f)?;
+        let (out, list) = self.list_elements(f, left, list)?;
+        let is_nil = generated::@$eo_is_list_nil@(self, f, list)?;
+        match self.boolean_value(is_nil, false)? {
+            Some(true) => {}
+            _ => return Ok(None),
+        }
+        Ok(Some((out, list)))
+    }
+    /// The list of `f` with the element `e` before `tail`.
+    fn list_cons(&mut self, f: Term, left: bool, e: Term, tail: Term) -> CheckResult<Term> {
+        let first = self.apply(f, if left { tail } else { e })?;
+        self.apply(first, if left { e } else { tail })
+    }
+    fn list_build(&mut self, f: Term, elems: &[Term], nil: Term) -> CheckResult<Term> {
+        let left = self.is_left_assoc(f)?;
+        let mut list = nil;
+        let mut i = elems.len();
+        while i > 0 {
+            i -= 1;
+            list = self.list_cons(f, left, elems[i], list)?;
+        }
+        Ok(list)
+    }
+    fn list_builtin(&mut self, op: EvalOp, a: &[Term]) -> CheckResult<Term> {
+        let f = a[0];
+        match op {
+            EvalOp::Nil => generated::@$eo_nil@(self, f, a[1]),
+            EvalOp::ListRepeat => self.list_repeat(f, a[1], a[2]),
+            EvalOp::Cons => self.list_cons_op(f, a[1], a[2]),
+            EvalOp::ListConcat => self.list_concat(f, a[1], a[2]),
+            EvalOp::ListMinclude | EvalOp::ListMeq => self.list_inclusion(op, f, a[1], a[2]),
+            EvalOp::ListDiff | EvalOp::ListInter => self.list_selection(op, f, a[1], a[2]),
+            _ => self.list_of_one(op, f, a),
+        }
+    }
+    /// The list of `f` that is empty for elements of the type of `x`.
+    fn list_nil_for(&mut self, f: Term, x: Term) -> CheckResult<Term> {
+        let ty = generated::@$eo_typeof@(self, x)?;
+        generated::@$eo_nil@(self, f, ty)
+    }
+    fn list_repeat(&mut self, f: Term, x: Term, count: Term) -> CheckResult<Term> {
+        let Some(n) = self.object_index(count)? else {
+            return Ok(self.stuck());
+        };
+        if u64::from(n) > self.limits.calls {
+            return Err(CheckError::Limit);
+        }
+        let nil = self.list_nil_for(f, x)?;
+        let elems = vec![x; n as usize];
+        self.list_build(f, &elems, nil)
+    }
+    fn list_cons_op(&mut self, f: Term, x: Term, list: Term) -> CheckResult<Term> {
+        let Some((tail, nil)) = self.list_parts(f, list)? else {
+            return Ok(self.stuck());
+        };
+        let mut elems = Vec::with_capacity(tail.len() + 1);
+        elems.push(x);
+        append_terms(&mut elems, &tail);
+        self.list_build(f, &elems, nil)
+    }
+    /// The elements of two lists of `f` that end in the same nil, with
+    /// that nil; `None` if one is not a list or the ends differ.
+    #[allow(clippy::type_complexity)]
+    fn list_pair(
+        &mut self,
+        f: Term,
+        x: Term,
+        y: Term,
+    ) -> CheckResult<Option<(Vec<Term>, Vec<Term>, Term)>> {
+        let Some((xs, nil)) = self.list_parts(f, x)? else {
+            return Ok(None);
+        };
+        let Some((ys, other_nil)) = self.list_parts(f, y)? else {
+            return Ok(None);
+        };
+        if other_nil != nil {
+            return Ok(None);
+        }
+        Ok(Some((xs, ys, nil)))
+    }
+    fn list_concat(&mut self, f: Term, x: Term, y: Term) -> CheckResult<Term> {
+        let Some((xs, ys, nil)) = self.list_pair(f, x, y)? else {
+            return Ok(self.stuck());
+        };
+        let left = self.is_left_assoc(f)?;
+        let mut both = Vec::with_capacity(xs.len() + ys.len());
+        if left {
+            append_terms(&mut both, &ys);
+            append_terms(&mut both, &xs);
+        } else {
+            append_terms(&mut both, &xs);
+            append_terms(&mut both, &ys);
+        }
+        self.list_build(f, &both, nil)
+    }
+    /// `list_minclude` and `list_meq`: whether the second list is included
+    /// in the first as a multiset, or equal to it.
+    fn list_inclusion(&mut self, op: EvalOp, f: Term, x: Term, y: Term) -> CheckResult<Term> {
+        let Some((xs, ys, _)) = self.list_pair(f, x, y)? else {
+            return Ok(self.stuck());
+        };
+        let (foreign, contained) = multiset_inclusion(&xs, &ys);
+        let equality = match op {
+            EvalOp::ListMeq => true,
+            _ => false,
+        };
+        if !equality {
+            return self.boolean(contained);
+        }
+        if foreign {
+            return self.boolean(false);
+        }
+        if !contained {
+            return self.boolean(false);
+        }
+        let ys = match self.list_parts(f, y)? {
+            Some((ys, _)) => ys,
+            None => return Err(CheckError::InvalidConstructor),
+        };
+        self.boolean(xs.len() == ys.len())
+    }
+    /// `list_inter` and `list_diff`.
+    fn list_selection(&mut self, op: EvalOp, f: Term, x: Term, y: Term) -> CheckResult<Term> {
+        let Some((xs, ys, nil)) = self.list_pair(f, x, y)? else {
+            return Ok(self.stuck());
+        };
+        let paired = match op {
+            EvalOp::ListInter => true,
+            _ => false,
+        };
+        let kept = multiset_select(&xs, &ys, paired);
+        self.list_build(f, &kept, nil)
+    }
+    /// The list operators on one list, `a[1]`.
+    fn list_of_one(&mut self, op: EvalOp, f: Term, a: &[Term]) -> CheckResult<Term> {
+        let Some((xs, nil)) = self.list_parts(f, a[1])? else {
+            return match op {
+                EvalOp::ListSingletonIntro => {
+                    let nil = self.list_nil_for(f, a[1])?;
+                    self.list_build(f, &[a[1]], nil)
+                }
+                _ => Ok(self.stuck()),
+            };
+        };
+        match op {
+            EvalOp::ListLength => self.numeral(Integer::from(xs.len())),
+            EvalOp::ListNth => self.list_nth(&xs, a[2]),
+            EvalOp::ListFind => self.numeral(match position(&xs, a[2]) {
+                Some(i) => Integer::from(i),
+                None => Integer::one().neg(),
+            }),
+            EvalOp::ListRev => self.list_build(f, &reversed(&xs), nil),
+            EvalOp::ListSingletonElim => Ok(if xs.len() == 1 { xs[0] } else { a[1] }),
+            EvalOp::ListSingletonIntro => Ok(a[1]),
+            EvalOp::ListErase => self.list_build(f, &without_first(&xs, a[2]), nil),
+            EvalOp::ListEraseAll => self.list_build(f, &without(&xs, a[2]), nil),
+            EvalOp::ListSetof => self.list_build(f, &first_occurrences(&xs), nil),
+            _ => Ok(self.stuck()),
+        }
+    }
+    fn list_nth(&mut self, xs: &[Term], index: Term) -> CheckResult<Term> {
+        Ok(match self.object_index(index)? {
+            Some(n) => {
+                if (n as usize) < xs.len() {
+                    xs[n as usize]
+                } else {
+                    self.stuck()
+                }
+            }
+            None => self.stuck(),
+        })
+    }
+}

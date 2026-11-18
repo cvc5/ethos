@@ -1028,7 +1028,11 @@ class RustMetaReduce::Emitter
     }
     // Name the runtime's operator, so the C++ and Rust enum declaration
     // orders are independent. The runtime validates arities itself.
-    return val("s.builtin(EvalOp::" + evalOp(k) + ", &[" + as + "])?");
+    // The list operators are above the functions they call; the others
+    // are in the runtime that all generated code rests on.
+    bool list = k == Kind::EVAL_CONS || starts(evalOp(k), "List");
+    return val(std::string(list ? "s.builtin_list" : "s.builtin_core")
+               + "(EvalOp::" + evalOp(k) + ", &[" + as + "])?");
   }
   std::string expr(const Expr& t)
   {
@@ -1558,39 +1562,55 @@ void RustMetaReduce::finalize()
   }
   auto names = reachable();
   selectCaches(names);
-  // The generated functions are written into a fixed number of modules,
-  // generated::part0 and so on. A program's module follows from its name
-  // alone, so it changes only when that number does: the verification
-  // tools take time and memory in proportion to the code they are given,
-  // and can be run on one module with the others left opaque.
-  const size_t numParts = 8;
-  std::vector<std::ostringstream> parts(numParts);
-  auto partOf = [&](const std::string& n) {
-    // FNV-1a
-    uint32_t h = 2166136261u;
-    for (unsigned char c : n)
+  // Every function written for the programs, in the order written, to be
+  // put into modules below.
+  struct Function
+  {
+    std::string name;
+    std::string text;
+    size_t lines = 0;
+    std::vector<size_t> calls;
+  };
+  std::vector<Function> functions;
+  std::map<std::string, size_t> functionIndex;
+  auto collect = [&](const std::string& text) {
+    // A function begins at its `fn` line, or at the comment before it.
+    std::istringstream in(text);
+    std::string line;
+    bool commented = false;
+    while (std::getline(in, line))
     {
-      h = (h ^ c) * 16777619u;
+      bool comment = starts(line, "// EO program ");
+      bool head = starts(line, "pub fn ") || starts(line, "fn ");
+      if (comment || (head && !commented))
+      {
+        functions.emplace_back();
+      }
+      commented = comment;
+      if (head)
+      {
+        size_t at = line.find("fn ") + 3;
+        functions.back().name = line.substr(at, line.find('(') - at);
+        functionIndex[functions.back().name] = functions.size() - 1;
+        // every function can be called from another module of the crate's
+        // `generated`, and from nowhere else unless it is a program
+        if (starts(line, "fn "))
+        {
+          line = "pub(super) " + line;
+        }
+      }
+      functions.back().text += line + "\n";
+      functions.back().lines++;
     }
-    return h % numParts;
   };
   std::ostringstream code, manifest;
-  code << "//! The generated functions, in " << numParts
-       << " modules (see part0).\n";
-  for (size_t k = 0; k < numParts; ++k)
-  {
-    code << "#[path = \"generated_part" << k << ".rs\"]\nmod part" << k
-         << ";\npub use part" << k << "::*;\n";
-    parts[k] << "//! Generated functions: those whose name has the hash " << k
-             << " modulo " << numParts
-             << ".\n#[allow(unused_imports)]\nuse super::*;\nuse crate::*;\n";
-  }
-  manifest << "source\trust\tlean_identifier\n";
+  std::vector<std::pair<std::string, std::string>> manifestRows;
+  manifest << "source\trust\tlean_identifier\tmodule\n";
   // Complete generation before opening outputs, so unsupported constructs
   // cannot leave behind a partially generated checker.
   for (const auto& n : names)
   {
-    parts[partOf(n)] << emitProgram(n, d_programs.at(n));
+    collect(emitProgram(n, d_programs.at(n)));
     std::string lean = replace_all(n, "-", "_");
     if (lean == "end" || lean == "variable")
     {
@@ -1617,17 +1637,28 @@ void RustMetaReduce::finalize()
         lean = replace_all(lean, replacement.first, replacement.second);
       }
     }
-    manifest << n << '\t' << ident(n) << '\t' << lean << '\n';
+    manifestRows.emplace_back(n, lean);
   }
   std::string lib =
       read(getResourcePath("plugins/rust_meta/runtime/lib.rs.in"));
-  for (const char* n : {"$eo_typeof",
-                        "$eo_nil",
-                        "$eo_is_list_nil",
-                        "$eo_checker_is_refutation"})
-  {
-    lib = replace_all(lib, "@" + std::string(n) + "@", ident(n));
-  }
+  // The two parts of the runtime that call generated functions: the list
+  // operators, and the entry points of checking with the translation
+  // checks. They are written among the generated functions (below).
+  std::string lists =
+      read(getResourcePath("plugins/rust_meta/runtime/lists.rs.in"));
+  auto named = [&](std::string text) {
+    for (const char* n : {"$eo_typeof",
+                          "$eo_nil",
+                          "$eo_is_list_nil",
+                          "$eo_checker_is_refutation"})
+    {
+      text = replace_all(text, "@" + std::string(n) + "@", ident(n));
+    }
+    return text;
+  };
+  lists = named(lists);
+  // (the runtime's own tests call generated functions)
+  lib = named(lib);
   bool translation = true;
   for (const char* n : {"$eo_to_smt",
                         "$eo_to_smt_type",
@@ -1704,12 +1735,188 @@ void RustMetaReduce::finalize()
   checks =
       replace_all(checks, "@TRANSLATION_MASK_LENGTHS@", maskLengths.str());
   checks = replace_all(checks, "@TRANSLATION_MASK_KINDS@", maskKinds.str());
-  lib += checks;
+  checks = named(checks);
+  for (const auto& block :
+       std::vector<std::pair<std::string, std::string>>{
+           {"builtin_list", lists}, {"check_proof_inner", checks}})
+  {
+    // one function of the call graph each: the block is not divided
+    functions.emplace_back();
+    functions.back().name = block.first;
+    functions.back().text = expandConstructors(block.second);
+    functions.back().lines =
+        std::count(block.second.begin(), block.second.end(), '\n');
+    functionIndex[block.first] = functions.size() - 1;
+  }
+  // The modules. The functions are grouped so that proofs about them can
+  // be made module by module: the tools that translate this code take time
+  // and memory in proportion to what they are given (so they are run on
+  // one module at a time, the others opaque), and what they produce is
+  // imported module by module, which must not go in a circle. So:
+  // functions that call each other, directly or through others, are in
+  // one module (a strongly connected component of the call graph is never
+  // split); a module calls only itself, earlier modules and the runtime;
+  // and a module is closed when the next component would take it past a
+  // number of lines. The order is that of Tarjan's algorithm over the
+  // functions as written, which gives a component after all it calls.
+  auto wordChar = [](char c) {
+    return std::isalnum(static_cast<unsigned char>(c)) || c == '_';
+  };
+  for (Function& f : functions)
+  {
+    std::set<size_t> calls;
+    const std::string& text = f.text;
+    for (size_t i = 0; i < text.size();)
+    {
+      size_t j = i;
+      while (j < text.size() && wordChar(text[j]))
+      {
+        ++j;
+      }
+      if (j == i)
+      {
+        ++i;
+        continue;
+      }
+      // a call of a generated function: its name, then `(s` (the store
+      // is the first argument); a use of a list operator: a call of the
+      // method `builtin_list`
+      std::string word = text.substr(i, j - i);
+      bool defined = i >= 3 && text.compare(i - 3, 3, "fn ") == 0;
+      if (!defined
+          && (text.compare(j, 2, "(s") == 0
+              || (word == "builtin_list" && text.compare(j, 1, "(") == 0)))
+      {
+        auto it = functionIndex.find(word);
+        if (it != functionIndex.end())
+        {
+          calls.insert(it->second);
+        }
+      }
+      i = j;
+    }
+    f.calls.assign(calls.begin(), calls.end());
+  }
+  const size_t none = static_cast<size_t>(-1);
+  std::vector<size_t> index(functions.size(), none), low(functions.size(), 0);
+  std::vector<bool> onStack(functions.size(), false);
+  std::vector<size_t> stack;
+  std::vector<std::vector<size_t>> components;
+  size_t counter = 0;
+  for (size_t root = 0; root < functions.size(); ++root)
+  {
+    if (index[root] != none)
+    {
+      continue;
+    }
+    // (function, the next of its calls to look at)
+    std::vector<std::pair<size_t, size_t>> work{{root, 0}};
+    index[root] = low[root] = counter++;
+    stack.push_back(root);
+    onStack[root] = true;
+    while (!work.empty())
+    {
+      size_t v = work.back().first;
+      bool descended = false;
+      while (work.back().second < functions[v].calls.size())
+      {
+        size_t w = functions[v].calls[work.back().second++];
+        if (index[w] == none)
+        {
+          index[w] = low[w] = counter++;
+          stack.push_back(w);
+          onStack[w] = true;
+          work.emplace_back(w, 0);
+          descended = true;
+          break;
+        }
+        if (onStack[w])
+        {
+          low[v] = std::min(low[v], index[w]);
+        }
+      }
+      if (descended)
+      {
+        continue;
+      }
+      work.pop_back();
+      if (!work.empty())
+      {
+        low[work.back().first] = std::min(low[work.back().first], low[v]);
+      }
+      if (low[v] == index[v])
+      {
+        components.emplace_back();
+        size_t w;
+        do
+        {
+          w = stack.back();
+          stack.pop_back();
+          onStack[w] = false;
+          components.back().push_back(w);
+        } while (w != v);
+        // as written
+        std::sort(components.back().begin(), components.back().end());
+      }
+    }
+  }
+  const size_t partLines = 10000;
+  std::vector<std::ostringstream> parts(1);
+  std::vector<size_t> partOf(functions.size(), 0);
+  size_t lines = 0;
+  for (const std::vector<size_t>& component : components)
+  {
+    size_t size = 0;
+    for (size_t f : component)
+    {
+      size += functions[f].lines;
+    }
+    if (lines != 0 && lines + size > partLines)
+    {
+      parts.emplace_back();
+      lines = 0;
+    }
+    lines += size;
+    for (size_t f : component)
+    {
+      partOf[f] = parts.size() - 1;
+      parts.back() << functions[f].text;
+    }
+  }
+  for (const Function& f : functions)
+  {
+    for (size_t callee : f.calls)
+    {
+      if (partOf[callee] > partOf[functionIndex.at(f.name)])
+      {
+        EO_FATAL() << "rust-meta: " << f.name << " calls a later module";
+      }
+    }
+  }
+  const size_t numParts = parts.size();
+  code << "//! The generated functions, in " << numParts
+       << " modules. A module's functions call only that module, earlier\n"
+          "//! modules and the runtime, and functions that call each other are\n"
+          "//! in one module.\n";
+  for (size_t k = 0; k < numParts; ++k)
+  {
+    code << "#[path = \"generated_part" << k << ".rs\"]\nmod part" << k
+         << ";\npub use part" << k << "::*;\n";
+  }
+  for (const auto& row : manifestRows)
+  {
+    manifest << row.first << '\t' << ident(row.first) << '\t' << row.second
+             << "\tpart" << partOf[functionIndex.at(ident(row.first))] << '\n';
+  }
   output("src/lib.rs", expandConstructors(lib));
   output("src/generated.rs", code.str());
   for (size_t k = 0; k < numParts; ++k)
   {
-    output("src/generated_part" + std::to_string(k) + ".rs", parts[k].str());
+    output("src/generated_part" + std::to_string(k) + ".rs",
+           "//! Generated functions, module " + std::to_string(k) + " of "
+               + std::to_string(numParts)
+               + ".\n#[allow(unused_imports)]\nuse super::*;\nuse crate::*;\n"
+               + parts[k].str());
   }
   output("src/schema.rs", schema());
   output("src/names.rs", constructorNames());
