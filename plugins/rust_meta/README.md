@@ -169,7 +169,7 @@ to this representation remain outside the proof, as requested.
 
 The six copied files (`num.rs`, `lit.rs`, `kind.rs`, `bitvec.rs`,
 `eostring.rs`, `codec.rs`) are byte-for-byte copies of `crates/pathos-term/src`
-at Pathos `09fdaeffc5c9e935974f112f615a14801534e97d`. They retain that format so
+at Pathos `acae6aa1e2d4525c33c11c6aa74c725566be1ff5`. They retain that format so
 fixes can flow both ways; cache changes are confined to this backend's own
 runtime. The BSD license is in `LICENSE.pathos`.
 The artifact includes `Cargo.lock` and the Pathos
