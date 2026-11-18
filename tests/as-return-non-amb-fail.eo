@@ -1,0 +1,4 @@
+; regression: `as` annotating a return type that the application does not have
+(declare-datatypes ((Pair 2) (Color 0))
+  ((par (T S) ((pair (first T) (second S)))) ((red) (blue))))
+(define x () ((as pair (Pair Color Bool)) red blue) :type (Pair Color Bool))

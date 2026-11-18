@@ -689,6 +689,22 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     Assert(!children.empty());
     // see if there is a special way of building terms for the head
     ExprValue* hd = vchildren[0];
+    if (hd->getKind() == Kind::AS_RETURN && hd->getNumChildren() == 2)
+    {
+      // ((as f T) t1 ... tn), where f is not ambiguous, is (f t1 ... tn),
+      // provided the latter has type T (SMT-LIB 2.6, qualified identifiers).
+      // Otherwise, we fall through and construct the bogus application.
+      std::vector<Expr> achildren(children.begin(), children.end());
+      achildren[0] = Expr((*hd)[0]);
+      Expr app = mkExpr(Kind::APPLY, achildren);
+      Expr atype = d_tc.getType(app);
+      if (!atype.isNull() && atype.getValue() == (*hd)[1])
+      {
+        Trace("overload") << "...return-annotated application " << app
+                          << std::endl;
+        return app;
+      }
+    }
     AppInfo* ai = getAppInfo(hd);
     if (ai!=nullptr)
     {
@@ -833,8 +849,21 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
       return mkExpr(Kind::APPLY_OPAQUE, {children[0], children[1]});
     }
-    // note we don't support other uses of `as` for symbol disambiguation yet,
-    // we fallthrough and construct the bogus term of kind AS_RETURN.
+    if (children.size() == 2)
+    {
+      // (as c T), where c is a constant of type T, is c.
+      Expr c = children[0];
+      Expr ctype = d_tc.getType(c);
+      if (!ctype.isNull() && ctype == children[1])
+      {
+        Trace("overload") << "...return-annotated constant" << std::endl;
+        return c;
+      }
+    }
+    // Otherwise, e.g. (as f T) where f is a function whose applications have
+    // type T, we construct the term of kind AS_RETURN. Its applications are
+    // resolved when the arguments are known (see the case for APPLY above).
+    // Other uses remain ill-typed.
   }
   else if (k==Kind::AS)
   {

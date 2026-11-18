@@ -1,0 +1,15 @@
+; regression: `as` annotating the return type of a symbol that is not
+; ambiguous (SMT-LIB 2.6 qualified identifiers), including a parametric
+; constructor whose type parameters are a datatype of the same block.
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+(declare-datatypes ((Pair 2) (Color 0))
+  ((par (T S) ((pair (first T) (second S)))) ((red) (blue))))
+(declare-const p1 (Pair Color Color))
+(define x () ((as pair (Pair Color Color)) (first p1) (second p1)) :type (Pair Color Color))
+(define y () (pair red blue) :type (Pair Color Color))
+(define z () (as red Color) :type Color)
+(assume @a (= y x))
+(assume @b (= z (first x)))
+; ambiguous constructors are unchanged
+(declare-datatypes ((L 1)) ((par (X) ((nil) (cons (hd X) (tl (L X)))))))
+(define w () (cons red (as nil (L Color))) :type (L Color))
