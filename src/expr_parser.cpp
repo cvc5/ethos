@@ -352,6 +352,15 @@ Expr ExprParser::parseExpr()
         {
           d_lex.parseError("Expected two arguments to eo::var");
         }
+        // (as t T), where t is not ambiguous, is resolved when it is
+        // constructed, and thus requires T to be ground.
+        if (ret.getKind() == Kind::AS_RETURN && ret.getNumChildren() == 2
+            && !ret[1].isGround())
+        {
+          d_lex.parseError(
+              "Expected a ground type for as on a symbol that is not "
+              "ambiguous");
+        }
         //typeCheck(ret);
         // pop the stack
         sf.pop(d_state);

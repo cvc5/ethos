@@ -1,0 +1,7 @@
+; regression: `as` on a symbol that is not ambiguous requires a ground type
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-const f (-> Int Int))
+(program mk ((T Type) (x Int))
+  :signature (Type Int) T
+  (((mk T x) ((as f T) x))))

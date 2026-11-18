@@ -14,6 +14,7 @@ ethos 0.2.6
 - A quoted parameter `(eo::quote x)` in a program signature must now agree with the binding of `x` from the types of earlier arguments.
 - Hexadecimal literals are printed with their leading zeros, and in binary if their width is not a positive multiple of 4, e.g. the result of `eo::extract`.
 - Missing input, include and reference files, and directories given as such files, are now reported as errors on all platforms.
+- The SMT-LIB syntax `as` can now annotate the return type of symbols that are not ambiguous, following SMT-LIB 2.6 qualified identifiers, e.g. `(as c T)` and `((as f T) t1 ... tn)`. If the symbol is overloaded, the annotation chooses the overload. In this case, the type `T` must be ground.
 - Fixes crashes on builtin operators applied to too few arguments, and on several malformed literals and inputs.
 - Fixes a bug where deleting a term could remove other live terms from the term table, so that syntactically equal terms were treated as distinct.
 
