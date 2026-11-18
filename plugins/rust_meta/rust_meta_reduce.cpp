@@ -1463,14 +1463,39 @@ void RustMetaReduce::finalize()
   }
   auto names = reachable();
   selectCaches(names);
+  // The generated functions are written into a fixed number of modules,
+  // generated::part0 and so on. A program's module follows from its name
+  // alone, so it changes only when that number does: the verification
+  // tools take time and memory in proportion to the code they are given,
+  // and can be run on one module with the others left opaque.
+  const size_t numParts = 8;
+  std::vector<std::ostringstream> parts(numParts);
+  auto partOf = [&](const std::string& n) {
+    // FNV-1a
+    uint32_t h = 2166136261u;
+    for (unsigned char c : n)
+    {
+      h = (h ^ c) * 16777619u;
+    }
+    return h % numParts;
+  };
   std::ostringstream code, manifest;
-  code << "use crate::*;\n";
+  code << "//! The generated functions, in " << numParts
+       << " modules (see part0).\n";
+  for (size_t k = 0; k < numParts; ++k)
+  {
+    code << "#[path = \"generated_part" << k << ".rs\"]\nmod part" << k
+         << ";\npub use part" << k << "::*;\n";
+    parts[k] << "//! Generated functions: those whose name has the hash " << k
+             << " modulo " << numParts
+             << ".\n#[allow(unused_imports)]\nuse super::*;\nuse crate::*;\n";
+  }
   manifest << "source\trust\tlean_identifier\n";
   // Complete generation before opening outputs, so unsupported constructs
   // cannot leave behind a partially generated checker.
   for (const auto& n : names)
   {
-    code << emitProgram(n, d_programs.at(n));
+    parts[partOf(n)] << emitProgram(n, d_programs.at(n));
     std::string lean = replace_all(n, "-", "_");
     if (lean == "end" || lean == "variable")
     {
@@ -1587,6 +1612,10 @@ void RustMetaReduce::finalize()
   lib += checks;
   output("src/lib.rs", expandConstructors(lib));
   output("src/generated.rs", code.str());
+  for (size_t k = 0; k < numParts; ++k)
+  {
+    output("src/generated_part" + std::to_string(k) + ".rs", parts[k].str());
+  }
   output("src/schema.rs", schema());
   output("src/names.rs", constructorNames());
   output("functions.tsv", manifest.str());
