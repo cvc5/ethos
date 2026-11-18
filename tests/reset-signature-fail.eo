@@ -1,0 +1,3 @@
+; regression: (reset) is not allowed in signature files.
+(declare-const a Bool)
+(reset)

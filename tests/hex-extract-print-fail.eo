@@ -1,0 +1,7 @@
+; regression: a hexadecimal value whose width is not a multiple of 4 is printed
+; in binary, so that its width is preserved.
+(declare-const BV Type)
+(declare-consts <hexadecimal> BV)
+(declare-const Int Type)
+(declare-const f (-> Int Int))
+(define x () (f (eo::extract #x0F 0 4)) :type Int)

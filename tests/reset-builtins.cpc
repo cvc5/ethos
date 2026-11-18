@@ -1,0 +1,6 @@
+; regression: (reset) does not remove the builtin symbols.
+(declare-const a Bool)
+(reset)
+(declare-const f (-> Bool Bool))
+(define c () true :is_eq (eo::not false))
+(declare-const a Bool)

@@ -1,0 +1,3 @@
+; regression: eo::var with one argument is an error, not an out-of-bounds read.
+(declare-const Int Type)
+(define y () (eo::var Int) :type Int)

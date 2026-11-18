@@ -1,0 +1,2 @@
+; regression: control characters are not permitted in quoted symbols.
+(declare-const |ab| Bool)

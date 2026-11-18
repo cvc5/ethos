@@ -1,0 +1,11 @@
+; (reset) clears the reference, which can hence be given again, and the
+; included files, which can hence be included again.
+(include "reference-include-fail-sig.eo")
+(reference "reset-reference.smt2")
+(reset)
+(include "reference-include-fail-sig.eo")
+(declare-const c Bool)
+(assume @p0 c)
+(reset)
+(reference "reset-reference.smt2")
+(assume @p1 b)

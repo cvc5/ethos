@@ -1,0 +1,4 @@
+; regression: eo::var with one argument is an error even if the term is not
+; type checked.
+(declare-const Int Type)
+(define x () (eo::var Int))
