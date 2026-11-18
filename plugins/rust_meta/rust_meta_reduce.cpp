@@ -1582,6 +1582,14 @@ void RustMetaReduce::finalize()
     {
       bool comment = starts(line, "// EO program ");
       bool head = starts(line, "pub fn ") || starts(line, "fn ");
+      if (!comment && (starts(line, "//") || starts(line, "#[")))
+      {
+        // It would be taken for the end of the function before it, which
+        // may go to another module than the function it belongs to.
+        EO_FATAL() << "rust-meta: a comment or an attribute that the "
+                      "division into functions does not know: "
+                   << line;
+      }
       if (comment || (head && !commented))
       {
         functions.emplace_back();
