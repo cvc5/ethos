@@ -78,8 +78,8 @@ impl Store {
         let ty = self.translation_type(t)?;
         Ok(!self.is_stuck(ty)? && !self.is_node(ty, @ctor:$emb_tsm.None@)?)
     }
-    fn argument_translates(&mut self, t: Term, kind: ArgKind) -> CheckResult<bool> {
-        match kind {
+    fn argument_translates(&mut self, t: Term, which: ArgKind) -> CheckResult<bool> {
+        match which {
             ArgKind::Term => self.has_translation(t),
             ArgKind::Type => {
                 let ty = self.translation_sort(t)?;
@@ -142,14 +142,14 @@ impl Store {
             let Some(fs) = self.node_fields(args, @ctor:$emb_al.cons@)? else {
                 return Ok(false);
             };
-            let kind = match mask {
+            let which = match mask {
                 Some((rule, _)) => match Self::mask_kind(rule, i) {
                     Some(k) => k,
                     None => return Ok(false),
                 },
                 None => ArgKind::Term,
             };
-            if !self.argument_translates(fs[0], kind)? {
+            if !self.argument_translates(fs[0], which)? {
                 return Ok(false);
             }
             args = fs[1];

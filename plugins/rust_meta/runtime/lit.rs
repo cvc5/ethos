@@ -62,16 +62,16 @@ impl Lit {
         }
     }
 
-    fn rational(kind: LitKind, r: Rational) -> Lit {
-        if kind == LitKind::Decimal {
+    fn rational(which: LitKind, r: Rational) -> Lit {
+        if which == LitKind::Decimal {
             Lit::Decimal(r)
         } else {
             Lit::Rational(r)
         }
     }
 
-    fn bitvec(kind: LitKind, b: BitVec) -> Lit {
-        if kind == LitKind::Hexadecimal {
+    fn bitvec(which: LitKind, b: BitVec) -> Lit {
+        if which == LitKind::Hexadecimal {
             Lit::Hex(b)
         } else {
             Lit::Binary(b)

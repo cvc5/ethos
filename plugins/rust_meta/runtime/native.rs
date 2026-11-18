@@ -111,8 +111,8 @@ impl Store {
     /// numeral or a string literal. `text` stands for what is written (see
     /// `CheckError`).
     pub(crate) fn native_constant(&mut self, text: u32) -> CheckResult<Term> {
-        let lit = crate::front::native_literal(text)?;
-        self.raw(lit)
+        let literal = crate::front::native_literal(text)?;
+        self.raw(literal)
     }
 
     /// Match the only native algebraic constructors (Nat.zero/succ), or
