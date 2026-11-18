@@ -13,7 +13,6 @@
 
 mod bitvec;
 mod cache;
-pub mod codec;
 mod eostring;
 mod front;
 #[allow(unreachable_code, unused_labels, unused_variables)]

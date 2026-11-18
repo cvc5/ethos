@@ -1,4 +1,7 @@
 //! Fixed-width bit-vectors, as `util/bitvector.cpp` in Ethos.
+//!
+//! From `crates/pathos-term/src/bitvec.rs` of pathos (as of its commit
+//! acae6aa); `parse` is kept for tests only.
 
 use crate::num::Integer;
 
@@ -27,7 +30,9 @@ impl BitVec {
     }
 
     /// Parses a string of binary (base 2) or hexadecimal (base 16) digits;
-    /// the width follows from the number of digits.
+    /// the width follows from the number of digits. (For the tests here and
+    /// in lit.rs: the compiled checker reads no bit-vector from text.)
+    #[cfg(test)]
     pub fn parse(num: &str, base: u8) -> Option<BitVec> {
         let value = Integer::parse(num, base)?;
         let digits = u32::try_from(num.len()).ok()?;

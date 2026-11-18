@@ -167,10 +167,15 @@ program names alone is insufficient. Unsupported native operations fail
 with an error, never an accepting default. The parser and its translation
 to this representation remain outside the proof, as requested.
 
-The six copied files (`num.rs`, `lit.rs`, `kind.rs`, `bitvec.rs`,
-`eostring.rs`, `codec.rs`) are byte-for-byte copies of `crates/pathos-term/src`
-at Pathos `acae6aa1e2d4525c33c11c6aa74c725566be1ff5`. They retain that format so
-fixes can flow both ways; cache changes are confined to this backend's own
+Five files of the runtime (`num.rs`, `lit.rs`, `kind.rs`, `bitvec.rs`,
+`eostring.rs`) come from `crates/pathos-term/src` at Pathos
+`acae6aa1e2d4525c33c11c6aa74c725566be1ff5`. `eostring.rs` is a byte-for-byte
+copy. The others are that code without what the compiled checker does not
+use (the kinds of symbols and compound terms and the flat `Kind`, the
+writing and reading of snapshots, a few functions on numbers), and are
+being rewritten in the subset of Rust that the verification tools
+translate; the header of each says what it holds. Cache changes are
+confined to this backend's own
 runtime. The BSD license is in `LICENSE.pathos`.
 The artifact includes `Cargo.lock` and the Pathos
 dependency audit in `DEPENDENCIES.md`. Its own Rust forbids `unsafe`; the

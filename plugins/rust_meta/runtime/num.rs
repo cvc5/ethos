@@ -1,5 +1,10 @@
 //! Arbitrary-precision integers and rationals.
 //!
+//! From `crates/pathos-term/src/num.rs` of pathos (as of its commit
+//! acae6aa), without what the compiled checker does not use
+//! (`Integer::length`, `Rational::from_decimal`, `Rational::is_integral`),
+//! and with `hash_code` added.
+//!
 //! These wrap `malachite` so the library can be swapped (design decision 9).
 //! Every operation mirrors what Ethos does with GMP in `util/integer.cpp` and
 //! `util/rational.h`, including rounding directions.
@@ -11,7 +16,6 @@ use std::hash::{Hash, Hasher};
 use malachite_base::num::arithmetic::traits::{DivMod, Floor, ModPowerOf2, Pow, Sign};
 use malachite_base::num::basic::traits::{One, Zero};
 use malachite_base::num::conversion::traits::{FromStringBase, ToStringBase};
-use malachite_base::num::logic::traits::SignificantBits;
 use malachite_nz::integer::Integer as MInt;
 use malachite_q::Rational as MRat;
 
@@ -177,15 +181,6 @@ impl Integer {
         u32::try_from(&self.0).unwrap_or(0)
     }
 
-    /// The number of bits of the absolute value; 1 for zero.
-    pub fn length(&self) -> u64 {
-        if self.sgn() == 0 {
-            1
-        } else {
-            self.0.significant_bits()
-        }
-    }
-
     pub fn to_string_base(&self, base: u8) -> String {
         self.0.to_string_base(base)
     }
@@ -249,22 +244,6 @@ impl Rational {
         }
     }
 
-    /// Parses a decimal such as `-12.50`.
-    pub fn from_decimal(dec: &str) -> Option<Rational> {
-        match dec.find('.') {
-            Some(i) => {
-                let mut digits = String::with_capacity(dec.len());
-                digits.push_str(&dec[..i]);
-                digits.push_str(&dec[i + 1..]);
-                let numerator = Integer::parse(&digits, 10)?;
-                let places = u32::try_from(dec.len() - (i + 1)).ok()?;
-                let denominator = Integer::from(10u32).pow(places);
-                Rational::from_integers(&numerator, &denominator)
-            }
-            None => Rational::parse(dec),
-        }
-    }
-
     pub fn sgn(&self) -> i32 {
         match self.0.sign() {
             Ordering::Less => -1,
@@ -298,9 +277,6 @@ impl Rational {
         Rational((&self.0).pow(u64::from(exp)))
     }
 
-    pub fn is_integral(&self) -> bool {
-        *self.0.denominator_ref() == 1u32
-    }
 }
 
 impl fmt::Display for Rational {
@@ -355,8 +331,6 @@ mod tests {
         assert_eq!(int("5").bitwise_not(), int("-6"));
         assert_eq!(int("182").extract_bit_range(3, 2), int("5"));
         assert_eq!(int("1").one_extend(1, 3), int("15"));
-        assert_eq!(int("0").length(), 1);
-        assert_eq!(int("8").length(), 4);
         assert!(int("4294967295").fits_u32());
         assert!(!int("4294967296").fits_u32());
         assert!(!int("-1").fits_u32());
@@ -368,8 +342,6 @@ mod tests {
         assert_eq!(Rational::parse("-6/3").unwrap().to_string(), "-2/1");
         assert_eq!(Rational::parse("5").unwrap().to_string(), "5/1");
         assert!(Rational::parse("1/0").is_none());
-        assert_eq!(Rational::from_decimal("-1.50").unwrap().to_string(), "-3/2");
-        assert_eq!(Rational::from_decimal("-.5").unwrap().to_string(), "-1/2");
         assert_eq!(Rational::parse("-7/2").unwrap().floor(), int("-4"));
         assert_eq!(Rational::parse("7/2").unwrap().floor(), int("3"));
         assert_eq!(Rational::parse("2/3").unwrap().pow(2).to_string(), "4/9");

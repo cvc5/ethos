@@ -1,4 +1,8 @@
 //! Literal values and the `eo::` operators on them (`literal.cpp` in Ethos).
+//!
+//! From `crates/pathos-term/src/lit.rs` of pathos (as of its commit
+//! acae6aa), without the writing and reading of literals for snapshots,
+//! which the compiled checker does not use.
 
 use std::fmt;
 
@@ -422,65 +426,6 @@ impl fmt::Display for Lit {
     }
 }
 
-impl Lit {
-    /// Writes the value, for snapshots.
-    pub fn write_to(&self, w: &mut crate::codec::Writer) {
-        w.u8(self.kind() as u8);
-        match self {
-            Lit::Bool(b) => w.bool(*b),
-            Lit::Numeral(i) => w.str(&i.to_string()),
-            Lit::Decimal(q) | Lit::Rational(q) => w.str(&q.to_string()),
-            Lit::Hex(bv) | Lit::Binary(bv) => {
-                w.u32(bv.size());
-                w.str(&bv.value().to_string());
-            }
-            Lit::String(s) => {
-                w.len(s.len());
-                for &c in s.code_points() {
-                    w.u32(c);
-                }
-            }
-        }
-    }
-
-    /// Reads a value written by [`Lit::write_to`]. `None` if the input is
-    /// not one.
-    pub fn read_from(r: &mut crate::codec::Reader) -> Option<Lit> {
-        let kind = LitKind::from_index(r.u8()? as usize)?;
-        Some(match kind {
-            LitKind::Boolean => Lit::Bool(r.bool()?),
-            LitKind::Numeral => Lit::Numeral(Integer::parse(r.str()?, 10)?),
-            LitKind::Decimal => Lit::Decimal(Rational::parse(r.str()?)?),
-            LitKind::Rational => Lit::Rational(Rational::parse(r.str()?)?),
-            LitKind::Hexadecimal | LitKind::Binary => {
-                let size = r.u32()?;
-                let value = Integer::parse(r.str()?, 10)?;
-                // a value that does not fit the width is not one we wrote
-                if value.sgn() < 0 || (value.sgn() > 0 && value.length() > u64::from(size)) {
-                    return None;
-                }
-                let bv = BitVec::new(size, &value);
-                if kind == LitKind::Binary {
-                    Lit::Binary(bv)
-                } else {
-                    Lit::Hex(bv)
-                }
-            }
-            LitKind::String => {
-                let n = r.len(4)?;
-                let mut codes = Vec::with_capacity(n);
-                for _ in 0..n {
-                    let c = r.u32()?;
-                    if c >= crate::NUM_CODES {
-                        return None;
-                    }
-                    codes.push(c);
-                }
-                Lit::String(EoString::from_code_points(codes))
-            }
-        })
-    }
-}
 
 #[cfg(test)]
 mod tests {

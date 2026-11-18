@@ -1429,9 +1429,7 @@ void RustMetaReduce::finalize()
                            "bitvec.rs",
                            "lit.rs",
                            "kind.rs",
-                           "table.rs",
-                           "table.rs",
-                           "codec.rs"})
+                           "table.rs"})
   {
     output(std::string("src/") + file,
            read(getResourcePath(std::string("plugins/rust_meta/runtime/")
