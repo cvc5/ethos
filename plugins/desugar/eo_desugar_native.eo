@@ -4,6 +4,11 @@
 ; Embedding into native operators, which defines $native_*, $native_apply_* etc.
 (include "native_embed.eo")
 
+; Is x a 32-bit numeral, i.e. in [0, 2^32)? This mirrors fitsUnsignedInt(),
+; which ethos uses to bound e.g. exponents, bitwidths and repeat counts.
+(define $native_z_fits_u32 ((x $native_Int))
+  ($native_and ($native_zleq $native_z_zero x) ($native_zlt x $native_z_max_width)))
+
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term).
 ; Opaque arguments of a symbol X will be an argument of the constructor eo.X.
@@ -389,11 +394,11 @@ $EO_UOP_DECLS$
   (
   ; the exponent must be a 32-bit numeral, i.e. in [0, 2^32)
   (($eo_pow ($eot_numeral n1) ($eot_numeral n2))
-    ($native_ite ($native_and ($native_zleq $native_z_zero n2) ($native_zlt n2 $native_z_max_width))
+    ($native_ite ($native_z_fits_u32 n2)
       ($eot_numeral ($native_zexp_total n1 n2))
       $eot_stuck))
   (($eo_pow ($eot_rational r1) ($eot_numeral n2))
-    ($native_ite ($native_and ($native_zleq $native_z_zero n2) ($native_zlt n2 $native_z_max_width))
+    ($native_ite ($native_z_fits_u32 n2)
       ($eot_rational ($native_qexp_total r1 n2))
       $eot_stuck))
   )
@@ -578,13 +583,13 @@ $EO_UOP_DECLS$
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_to_bin ($eot_numeral w) ($eot_numeral n1))
-    ; the upper bound is enforced here, the width must be a 32-bit numeral
-    ($native_ite ($native_zlt w $native_z_max_width)
+    ; the width must be a 32-bit numeral
+    ($native_ite ($native_z_fits_u32 w)
       ($eo_mk_binary w n1)
       $eot_stuck))
   (($eo_to_bin ($eot_numeral w) ($eot_binary w1 n1))
-    ; the upper bound is enforced here, the width must be a 32-bit numeral
-    ($native_ite ($native_zlt w $native_z_max_width)
+    ; the width must be a 32-bit numeral
+    ($native_ite ($native_z_fits_u32 w)
       ($eo_mk_binary w n1)
       $eot_stuck))
   )

@@ -451,9 +451,9 @@ $EO_LITERAL_TYPE_DECL$
   (
   (($eo_list_repeat f a ($eot_numeral i))
     ; the count must be a 32-bit numeral, i.e. in [0, 2^32)
-    ($native_ite ($native_or ($native_zlt i $native_z_zero) ($native_zleq $native_z_max_width i))
-      $eot_stuck
-      ($eo_list_repeat_rec f a ($native_z_to_n i))))
+    ($native_ite ($native_z_fits_u32 i)
+      ($eo_list_repeat_rec f a ($native_z_to_n i))
+      $eot_stuck))
   )
 )
 

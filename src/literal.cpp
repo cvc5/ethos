@@ -454,14 +454,15 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
           case Kind::BINARY:
           {
             Integer dsize(args[0]->d_bv.getSize());
-            if (i1.sgn()<0 || i2.sgn()<0 || i1>dsize || dsize.sgn()==0)
+            if (i1.sgn()<0 || i2.sgn()<0 || i1>=dsize || dsize.sgn()==0)
             {
               return Literal(ka, BitVector(0));
             }
             Assert (i1.fitsUnsignedInt() && dsize.fitsUnsignedInt());
             uint32_t v1 = i1.toUnsignedInt();
             uint32_t vs = dsize.toUnsignedInt();
-            uint32_t v2 = i2>dsize ? vs-1 : i2.toUnsignedInt();
+            // the upper index is cut to the last bit, as for strings
+            uint32_t v2 = i2>=dsize ? vs-1 : i2.toUnsignedInt();
             if (v1>v2)
             {
               return Literal(ka, BitVector(0));
