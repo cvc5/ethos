@@ -6,6 +6,7 @@
 
 use std::cmp::Ordering;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 use malachite_base::num::arithmetic::traits::{DivMod, Floor, ModPowerOf2, Pow, Sign};
 use malachite_base::num::basic::traits::{One, Zero};
@@ -14,11 +15,56 @@ use malachite_base::num::logic::traits::SignificantBits;
 use malachite_nz::integer::Integer as MInt;
 use malachite_q::Rational as MRat;
 
+/// A cheap multiply-rotate hash for `hash_code`: the hash only says where a
+/// search of the store's table of terms starts, and the search compares the
+/// numbers, so SipHash's protection against chosen collisions is not needed.
+#[derive(Default, Clone, Copy)]
+struct TermHasher(u64);
+impl std::hash::Hasher for TermHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+    fn write(&mut self, bytes: &[u8]) {
+        let (chunks, rest) = bytes.as_chunks::<8>();
+        for c in chunks {
+            self.add(u64::from_le_bytes(*c));
+        }
+        for &b in rest {
+            self.add(u64::from(b));
+        }
+    }
+    fn write_u8(&mut self, i: u8) {
+        self.add(u64::from(i))
+    }
+    fn write_u32(&mut self, i: u32) {
+        self.add(u64::from(i))
+    }
+    fn write_u64(&mut self, i: u64) {
+        self.add(i)
+    }
+    fn write_usize(&mut self, i: usize) {
+        self.add(i as u64)
+    }
+}
+impl TermHasher {
+    #[inline]
+    fn add(&mut self, w: u64) {
+        self.0 = (self.0.rotate_left(5) ^ w).wrapping_mul(0x517c_c1b7_2722_0a95);
+    }
+}
+
 /// An arbitrary-precision integer.
 #[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub struct Integer(MInt);
 
 impl Integer {
+    /// A hash of the number: equal numbers have equal hashes.
+    pub fn hash_code(&self) -> u64 {
+        let mut h = TermHasher::default();
+        self.0.hash(&mut h);
+        h.finish()
+    }
+
     pub fn zero() -> Integer {
         Integer(MInt::ZERO)
     }
@@ -174,6 +220,13 @@ impl fmt::Display for Integer {
 pub struct Rational(MRat);
 
 impl Rational {
+    /// A hash of the number: equal numbers have equal hashes.
+    pub fn hash_code(&self) -> u64 {
+        let mut h = TermHasher::default();
+        self.0.hash(&mut h);
+        h.finish()
+    }
+
     /// `n / d`, or `None` when `d` is zero.
     pub fn from_integers(n: &Integer, d: &Integer) -> Option<Rational> {
         if d.sgn() == 0 {

@@ -1429,6 +1429,8 @@ void RustMetaReduce::finalize()
                            "bitvec.rs",
                            "lit.rs",
                            "kind.rs",
+                           "table.rs",
+                           "table.rs",
                            "codec.rs"})
   {
     output(std::string("src/") + file,

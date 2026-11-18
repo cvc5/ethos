@@ -32,6 +32,7 @@ mod native;
 mod num;
 #[allow(clippy::match_like_matches_macro)]
 mod schema;
+mod table;
 
 pub use bitvec::BitVec;
 pub use cache::CacheStats;
@@ -42,47 +43,8 @@ pub use lit::Lit;
 pub use native::NativeOp;
 pub use num::{Integer, Rational};
 pub use schema::Constructor;
-use std::collections::HashMap;
+use table::{TermCounts, fold, mix, slots_for};
 
-/// A cheap multiply-rotate hash for the interning table. Its keys are the
-/// checker's own terms and lookups compare the full key, so the hash only
-/// affects speed; SipHash's protection against chosen collisions is not
-/// needed here.
-#[derive(Default, Clone, Copy)]
-struct TermHasher(u64);
-impl std::hash::Hasher for TermHasher {
-    fn finish(&self) -> u64 {
-        self.0
-    }
-    fn write(&mut self, bytes: &[u8]) {
-        let (chunks, rest) = bytes.as_chunks::<8>();
-        for c in chunks {
-            self.add(u64::from_le_bytes(*c));
-        }
-        for &b in rest {
-            self.add(u64::from(b));
-        }
-    }
-    fn write_u8(&mut self, i: u8) {
-        self.add(u64::from(i))
-    }
-    fn write_u32(&mut self, i: u32) {
-        self.add(u64::from(i))
-    }
-    fn write_u64(&mut self, i: u64) {
-        self.add(i)
-    }
-    fn write_usize(&mut self, i: usize) {
-        self.add(i as u64)
-    }
-}
-impl TermHasher {
-    #[inline]
-    fn add(&mut self, w: u64) {
-        self.0 = (self.0.rotate_left(5) ^ w).wrapping_mul(0x517c_c1b7_2722_0a95);
-    }
-}
-type TermBuildHasher = std::hash::BuildHasherDefault<TermHasher>;
 #[derive(Clone, PartialEq, Eq)]
 pub enum CheckError {
     InvalidHandle,
@@ -172,11 +134,18 @@ enum Hit {
     Binary(Integer, Integer),
 }
 
-/// Monotonically growing, hash-consed arena. Hashes select buckets only;
-/// equality is always checked, so collisions cannot identify different terms.
+/// Monotonically growing, hash-consed arena. Hashes only say where a search
+/// starts; equality is always checked, so collisions cannot identify
+/// different terms.
 pub struct Store {
     nodes: Vec<TermData>,
-    intern: HashMap<TermData, Term, TermBuildHasher>,
+    /// The hash of each node's data, as its search uses it.
+    hashes: Vec<u32>,
+    /// The table of all terms, by their data: open addressing with linear
+    /// probing. A slot is 0 or one more than a handle. The number of slots
+    /// is a power of two and at least twice the number of nodes, so every
+    /// search ends at an empty slot.
+    slots: Vec<u32>,
     caches: Caches,
     limits: Limits,
     calls: u64,
@@ -201,17 +170,19 @@ impl Default for Store {
 impl Store {
     pub fn new(limits: Limits) -> Self {
         let stuck = TermData::Stuck;
-        let mut intern: HashMap<TermData, Term, TermBuildHasher> = HashMap::default();
-        intern.insert(stuck.clone(), Term(0));
-        Self {
+        let hash = Self::data_hash(&stuck);
+        let mut store = Self {
             nodes: vec![stuck],
-            intern,
+            hashes: vec![hash],
+            slots: vec![0; slots_for(1)],
             caches: Caches::new(limits.terms as usize),
             limits,
             calls: 0,
             depth: 0,
             state_jumps: Vec::new(),
-        }
+        };
+        store.place(Term(0), hash);
+        store
     }
     pub fn stuck(&self) -> Term {
         Term(0)
@@ -222,18 +193,131 @@ impl Store {
             .ok_or(CheckError::InvalidHandle)
     }
     fn intern(&mut self, data: TermData) -> CheckResult<Term> {
-        if let Some(&t) = self.intern.get(&data) {
+        let hash = Self::data_hash(&data);
+        if let Some(t) = self.find(&data, hash) {
             return Ok(t);
         }
-        let n = u32::try_from(self.nodes.len()).map_err(|_| CheckError::Limit)?;
+        // A slot holds a handle plus one, so the last handle is not used.
+        if self.nodes.len() >= u32::MAX as usize {
+            return Err(CheckError::Limit);
+        }
+        let n = self.nodes.len() as u32;
         if n >= self.limits.terms {
             return Err(CheckError::Limit);
         }
         let t = Term(n);
-        self.intern.insert(data.clone(), t);
         self.nodes.push(data);
+        self.hashes.push(hash);
+        if self.slots.len() / 2 < self.nodes.len() {
+            self.grow();
+        } else {
+            self.place(t, hash);
+        }
         self.caches.push_term();
         Ok(t)
+    }
+    /// The hash of a term's data. Equal data has equal hashes.
+    fn data_hash(data: &TermData) -> u32 {
+        let h = match data {
+            TermData::Stuck => 0,
+            TermData::Literal(lit) => mix(1, lit.hash_code()),
+            TermData::Native(lit) => mix(2, lit.hash_code()),
+            TermData::UserOp(c) => mix(3, *c as u64),
+            TermData::Apply(f, a) => mix(mix(4, u64::from(f.0)), u64::from(a.0)),
+            TermData::Node(c, fields) => {
+                let mut h = mix(5, *c as u64);
+                let mut i = 0;
+                while i < fields.len() {
+                    h = mix(h, u64::from(fields[i].0));
+                    i += 1;
+                }
+                h
+            }
+        };
+        fold(h)
+    }
+    /// Whether two terms have the same data.
+    fn same_data(a: &TermData, b: &TermData) -> bool {
+        match a {
+            TermData::Stuck => match b {
+                TermData::Stuck => true,
+                _ => false,
+            },
+            TermData::Literal(x) => match b {
+                TermData::Literal(y) => x == y,
+                _ => false,
+            },
+            TermData::Native(x) => match b {
+                TermData::Native(y) => x == y,
+                _ => false,
+            },
+            TermData::UserOp(c) => match b {
+                TermData::UserOp(d) => *c as u32 == *d as u32,
+                _ => false,
+            },
+            TermData::Apply(f, x) => match b {
+                TermData::Apply(g, y) => f.0 == g.0 && x.0 == y.0,
+                _ => false,
+            },
+            TermData::Node(c, xs) => match b {
+                TermData::Node(d, ys) => *c as u32 == *d as u32 && Self::same_terms(xs, ys),
+                _ => false,
+            },
+        }
+    }
+    fn same_terms(a: &[Term], b: &[Term]) -> bool {
+        if a.len() != b.len() {
+            return false;
+        }
+        let mut same = true;
+        let mut i = 0;
+        while i < a.len() {
+            if a[i].0 != b[i].0 {
+                same = false;
+            }
+            i += 1;
+        }
+        same
+    }
+    /// The term with this data, if the store has it. `hash` is the data's.
+    fn find(&self, data: &TermData, hash: u32) -> Option<Term> {
+        let mask = self.slots.len() - 1;
+        let mut i = (hash as usize) & mask;
+        let mut found = None;
+        let mut searching = true;
+        while searching {
+            let s = self.slots[i];
+            if s == 0 {
+                searching = false;
+            } else {
+                let t = (s - 1) as usize;
+                if self.hashes[t] == hash && Self::same_data(&self.nodes[t], data) {
+                    found = Some(Term(s - 1));
+                    searching = false;
+                } else {
+                    i = (i + 1) & mask;
+                }
+            }
+        }
+        found
+    }
+    /// Puts a term that is not in the table into it.
+    fn place(&mut self, t: Term, hash: u32) {
+        let mask = self.slots.len() - 1;
+        let mut i = (hash as usize) & mask;
+        while self.slots[i] != 0 {
+            i = (i + 1) & mask;
+        }
+        self.slots[i] = t.0 + 1;
+    }
+    /// Twice the slots, with every node placed again.
+    fn grow(&mut self) {
+        self.slots = vec![0; self.slots.len() * 2];
+        let mut t = 0;
+        while t < self.hashes.len() {
+            self.place(Term(t as u32), self.hashes[t]);
+            t += 1;
+        }
     }
     /// Caches contain only completed pure results and remain valid as the
     /// arena grows and across proof checks. Disable them to measure a baseline.
@@ -972,8 +1056,18 @@ impl Store {
             }
             EvalOp::ListEraseAll => xs.retain(|&x| x != a[2]),
             EvalOp::ListSetof => {
-                let mut seen = std::collections::HashSet::new();
-                xs.retain(|&x| seen.insert(x));
+                // the first occurrence of each element, in order
+                let mut seen = TermCounts::new(xs.len());
+                let mut kept = Vec::new();
+                let mut i = 0;
+                while i < xs.len() {
+                    if seen.entry(xs[i]).is_none() {
+                        seen.add(xs[i]);
+                        kept.push(xs[i]);
+                    }
+                    i += 1;
+                }
+                xs = kept;
             }
             EvalOp::ListConcat
             | EvalOp::ListMinclude
@@ -999,19 +1093,28 @@ impl Store {
                         xs.extend(ys);
                     }
                 } else {
-                    let mut counts = HashMap::<Term, usize>::new();
-                    for y in ys {
-                        *counts.entry(y).or_default() += 1;
+                    // the elements of the second list, as a multiset
+                    let mut counts = TermCounts::new(ys.len());
+                    let mut i = 0;
+                    while i < ys.len() {
+                        counts.add(ys[i]);
+                        i += 1;
                     }
                     if op == EvalOp::ListMinclude || op == EvalOp::ListMeq {
-                        for &x in &xs {
-                            if let Some(n) = counts.get_mut(&x) {
-                                *n = n.saturating_sub(1);
-                            } else if op == EvalOp::ListMeq {
-                                return self.boolean(false);
+                        // take each element of the first list out of it
+                        let mut foreign = false;
+                        let mut i = 0;
+                        while i < xs.len() {
+                            match counts.entry(xs[i]) {
+                                Some(place) => counts.remove_one(place),
+                                None => foreign = true,
                             }
+                            i += 1;
                         }
-                        let contained = counts.values().all(|&n| n == 0);
+                        if foreign && op == EvalOp::ListMeq {
+                            return self.boolean(false);
+                        }
+                        let contained = counts.all_zero();
                         if op == EvalOp::ListMeq && contained {
                             let ys = self
                                 .list_parts(f, a[2])?
@@ -1021,12 +1124,25 @@ impl Store {
                         }
                         return self.boolean(contained);
                     }
-                    xs.retain(|x| {
-                        let n = counts.entry(*x).or_default();
-                        let found = *n > 0;
-                        *n = n.saturating_sub(1);
-                        found == (op == EvalOp::ListInter)
-                    });
+                    // the first list's elements that pair off with one of
+                    // the second (the intersection), or the others
+                    let mut kept = Vec::new();
+                    let mut i = 0;
+                    while i < xs.len() {
+                        let found = match counts.entry(xs[i]) {
+                            Some(place) => {
+                                let left = counts.count(place) > 0;
+                                counts.remove_one(place);
+                                left
+                            }
+                            None => false,
+                        };
+                        if found == (op == EvalOp::ListInter) {
+                            kept.push(xs[i]);
+                        }
+                        i += 1;
+                    }
+                    xs = kept;
                 }
             }
             _ => return Ok(self.stuck()),
@@ -1069,6 +1185,40 @@ pub fn parse_rat(s: &str) -> CheckResult<Rational> {
 #[cfg(test)]
 mod cache_tests {
     use super::*;
+
+    #[test]
+    fn the_table_of_terms_finds_every_term_again_after_growing() {
+        let mut s = Store::default();
+        let slots = s.slots.len();
+        let mut terms = Vec::new();
+        for n in 0..5000u32 {
+            let lit = s.numeral(Integer::from(n)).unwrap();
+            let raw = s.raw(Lit::Numeral(Integer::from(n))).unwrap();
+            let app = s.apply(lit, raw).unwrap();
+            terms.push((lit, raw, app));
+        }
+        assert!(s.slots.len() > slots);
+        assert!(s.slots.len() >= 2 * s.nodes.len());
+        assert_eq!(s.nodes.len(), s.hashes.len());
+        let nodes = s.nodes.len();
+        for (n, &(lit, raw, app)) in terms.iter().enumerate() {
+            let n = n as u32;
+            assert_eq!(s.numeral(Integer::from(n)), Ok(lit));
+            assert_eq!(s.raw(Lit::Numeral(Integer::from(n))), Ok(raw));
+            assert_eq!(s.apply(lit, raw), Ok(app));
+            assert_ne!(lit, raw);
+        }
+        assert_eq!(s.nodes.len(), nodes);
+        // every handle is in exactly one slot
+        let mut seen = vec![false; nodes];
+        for &slot in &s.slots {
+            if slot != 0 {
+                assert!(!seen[(slot - 1) as usize]);
+                seen[(slot - 1) as usize] = true;
+            }
+        }
+        assert!(seen.iter().all(|&b| b));
+    }
 
     #[test]
     fn invalid_cached_call_restores_depth_and_never_caches_an_error() {

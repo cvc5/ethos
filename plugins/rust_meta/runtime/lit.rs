@@ -5,6 +5,7 @@ use std::fmt;
 use crate::bitvec::BitVec;
 use crate::eostring::{EoString, NUM_CODES};
 use crate::kind::{EvalOp, LitKind};
+use crate::table::mix;
 use crate::num::{Integer, Rational};
 
 /// A literal value.
@@ -23,6 +24,28 @@ pub enum Lit {
 }
 
 impl Lit {
+    /// A hash of the literal, for the store's table of terms: equal
+    /// literals have equal hashes.
+    pub(crate) fn hash_code(&self) -> u64 {
+        match self {
+            Lit::Bool(b) => mix(1, u64::from(*b)),
+            Lit::Numeral(n) => mix(2, n.hash_code()),
+            Lit::Decimal(q) => mix(3, q.hash_code()),
+            Lit::Rational(q) => mix(4, q.hash_code()),
+            Lit::Hex(b) => mix(mix(5, u64::from(b.size())), b.value().hash_code()),
+            Lit::Binary(b) => mix(mix(6, u64::from(b.size())), b.value().hash_code()),
+            Lit::String(s) => {
+                let codes = s.code_points();
+                let mut h = mix(7, codes.len() as u64);
+                let mut i = 0;
+                while i < codes.len() {
+                    h = mix(h, u64::from(codes[i]));
+                    i += 1;
+                }
+                h
+            }
+        }
+    }
     pub fn kind(&self) -> LitKind {
         match self {
             Lit::Bool(_) => LitKind::Boolean,
