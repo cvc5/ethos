@@ -83,8 +83,8 @@ not be transferred between arenas.
 
 Bad shapes and resource exhaustion are `Result` errors. Calls, recursive
 depth and arena size are bounded by `Limits`; tail calls become loops,
-including command invocation. Checking runs on a 64 MiB scoped-thread stack,
-with a default depth limit of 4,096 generated calls, budgeting 16 KiB of that
+including command invocation. Checking runs on a 256 MiB scoped-thread stack,
+with a default depth limit of 16,384 generated calls, budgeting 16 KiB of that
 stack per call. Programs with eight or more cases emit separate case
 helpers and reuse one dispatch result, so unoptimized recursive calls do
 not reserve temporaries for every case. The depth regressions check both
@@ -193,7 +193,7 @@ ill-typed assumptions, builtin lists and arithmetic, nonlinear matching,
 lazy recursion, tail-call argument swapping, long command lists and resource
 limits. All six builtin recognizers are checked on `Stuck` and literal/variable
 inputs. The existing driver tests and compiler regressions still apply.
-Depth regressions include a 3,000-level right-nested `or`, a term beyond the
+Depth regressions include a 15,000-level right-nested `or`, a term beyond the
 default depth budget, and 120,000 assumptions with an explicit depth limit
 of 128. Fold regressions check failed guards, initial states, input order
 and malformed tails.

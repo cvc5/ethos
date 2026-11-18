@@ -240,7 +240,7 @@ fn default_limits_check_deep_terms() {
     let yes = s.boolean(true).unwrap();
     let mut formula = s.boolean(false).unwrap();
     let or = n(&mut s, "or", &[]);
-    for _ in 0..3000 {
+    for _ in 0..15_000 {
         let head = s.apply(or, yes).unwrap();
         formula = s.apply(head, formula).unwrap();
     }

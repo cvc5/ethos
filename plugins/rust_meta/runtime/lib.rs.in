@@ -118,7 +118,7 @@ pub struct Limits {
     pub depth: u32,
 }
 
-const CHECKER_STACK_SIZE: usize = 64 * 1024 * 1024;
+const CHECKER_STACK_SIZE: usize = 256 * 1024 * 1024;
 // A conservative space budget for each generated call, including its case
 // helper and runtime calls. This is a default, not a static frame-size bound.
 const DEFAULT_DEPTH: u32 = (CHECKER_STACK_SIZE / (16 * 1024)) as u32;
@@ -128,7 +128,7 @@ impl Default for Limits {
         Self {
             terms: 10_000_000,
             calls: 10_000_000,
-            // Allow ordinary deep terms on the 64 MiB checker stack.
+            // Allow ordinary deep terms on the 256 MiB checker stack.
             // Covered by deep-term regressions in debug and release builds.
             depth: DEFAULT_DEPTH,
         }
