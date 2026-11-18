@@ -819,6 +819,33 @@ class Pipeline:
             generate_parser=generate_parser,
         )
 
+    def run_rust(self, input_name: str, *, build_first: bool) -> Path:
+        """Compile the whole checking loop, preserving primitive operators.
+
+        Structural desugaring supplies the term embedding, typing metadata
+        and command invocation. rust-meta replaces builtin implementations
+        with the Rust runtime; it never emits an interpreter or a parser.
+        """
+        if build_first:
+            self.build()
+        stem = self.stage_name(input_name)
+        structural = self.stage_out_dir / f"rust-{stem}-desugar.eo"
+        self.desugar(input_name, structural, use_vc_plugin=False,
+                     deps=LEAN_ALL_DEPS, plugin_label="rust-meta")
+        final_defs = structural
+        if self.defs_file is not None:
+            final_defs = self.stage_out_dir / f"rust-{stem}-final.eo"
+            self.model_smt(structural, final_defs)
+        self.ethos(["--plugin.rust-meta", self.binary_path_arg(final_defs)],
+                   quiet=True)
+        generated = self.plugin_generated("rust_meta/checker")
+        destination = self.final_out_dir / "rust"
+        if destination.exists():
+            shutil.rmtree(destination)
+        shutil.copytree(generated, destination)
+        report.step(f"Rust checker written to {report.rel(destination)}")
+        return destination
+
     def run_desugar(self, input_name: str, *, build_first: bool,
                     natives: str = "embed") -> Path:
         if build_first:
@@ -1077,6 +1104,10 @@ def main(argv: list[str]) -> int:
         ),
     )
 
+    rust = subparsers.add_parser("rust", help="Emit a standalone Rust checker without a parser.")
+    add_common_args(rust)
+    rust.add_argument("input")
+
     desugar = subparsers.add_parser("desugar", help="Generate a desugared EO file.")
     add_common_args(desugar)
     desugar.add_argument("input")
@@ -1160,7 +1191,7 @@ def main(argv: list[str]) -> int:
         else:
             final_out_dir = DEFAULT_FINAL_OUT_DIR
 
-    need_cvc5 = not getattr(args, "skip_cvc5", False) or getattr(args, "solve", False)
+    need_cvc5 = (args.command != "rust" and not getattr(args, "skip_cvc5", False)) or getattr(args, "solve", False)
     cvc5 = resolve_cvc5(getattr(args, "cvc5", None), cwd=invocation_cwd) if need_cvc5 else None
     try:
         solve_args = shlex.split(getattr(args, "solve_args", "") or "")
@@ -1249,6 +1280,8 @@ def main(argv: list[str]) -> int:
                 generate_parser=not args.no_parser,
                 calc_name=args.calc_name,
             )
+        elif args.command == "rust":
+            pipeline.run_rust(args.input, build_first=False)
         elif args.command == "desugar":
             pipeline.run_desugar(args.input, build_first=False,
                                  natives=args.natives)

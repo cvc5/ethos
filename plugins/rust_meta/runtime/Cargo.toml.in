@@ -1,0 +1,17 @@
+[package]
+name = "pathos-compiled-checker"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "BSD-3-Clause"
+
+# This is a standalone artifact, even inside another Cargo workspace.
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[dependencies]
+malachite-base = "=0.14.0"
+malachite-nz = "=0.14.0"
+malachite-q = "=0.14.0"
