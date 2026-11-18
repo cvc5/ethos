@@ -724,13 +724,16 @@ class RustMetaReduce::Emitter
    * the rest and gets the variables the rest uses. A function with
    * hundreds of fallible calls in a row is more than the tools this code
    * is translated with take (Charon's reconstruction of the control flow
-   * nests once per call).
+   * nests once per call), and in the Lean that Aeneas writes the rest of
+   * a function is nested once more at each such call and each pattern:
+   * past about seventeen levels its printer breaks a line where Lean
+   * cannot read it.
    */
   std::string close(const std::string& body,
                     const std::string& result,
                     const std::string& ret)
   {
-    const size_t limit = 24;
+    const size_t limit = 12;
     size_t cut = std::string::npos, seen = 0;
     for (size_t i = 0; i < body.size(); ++i)
     {
@@ -1439,30 +1442,39 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
     to << "if let Some(found) = " << attempt(fn + "(s" + args + ")")
        << (group ? " { return Ok(Some(found)); }\n" : " { return Ok(found); }\n");
   };
-  // A program with many cases tries them in groups, so that the function
-  // that tries them stays short.
-  const size_t groupSize = 8;
-  if (ncases <= groupSize)
+  // A program with many cases tries them in groups of four, the groups in
+  // groups of four, and so on, so that no function tries more than four
+  // things in a row (each try nests the rest of its function twice in the
+  // Lean, see `close`).
+  const size_t groupSize = 4;
+  std::vector<std::string> level;
+  for (size_t c = 0; c < ncases; ++c)
   {
-    for (size_t c = 0; c < ncases; ++c)
-    {
-      attemptCase(tries, "case_" + std::to_string(c) + "_" + id, false);
-    }
+    level.push_back("case_" + std::to_string(c) + "_" + id);
   }
-  else
+  for (size_t depth = 0; level.size() > groupSize; ++depth)
   {
-    for (size_t g = 0; g * groupSize < ncases; ++g)
+    std::vector<std::string> above;
+    for (size_t g = 0; g * groupSize < level.size(); ++g)
     {
-      std::string group = "cases_" + std::to_string(g) + "_" + id;
-      attemptCase(tries, group, false);
+      std::string group = "cases_" + std::to_string(depth) + "_"
+                          + std::to_string(g) + "_" + id;
+      above.push_back(group);
       helpers << "fn " << group << "(s: &mut Store" << params
               << ") -> CheckResult<Option<" << result << ">> {\n";
-      for (size_t c = g * groupSize; c < ncases && c < (g + 1) * groupSize; ++c)
+      for (size_t c = g * groupSize;
+           c < level.size() && c < (g + 1) * groupSize;
+           ++c)
       {
-        attemptCase(helpers, "case_" + std::to_string(c) + "_" + id, true);
+        attemptCase(helpers, level[c], true);
       }
       helpers << "Ok(None)\n}\n";
     }
+    level = above;
+  }
+  for (const std::string& fn : level)
+  {
+    attemptCase(tries, fn, false);
   }
   if (loop)
   {
