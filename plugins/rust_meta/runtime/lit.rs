@@ -233,6 +233,10 @@ impl Lit {
                             return Some(Lit::Bool(a > b));
                         }
                         let (a, b) = (first.as_bv()?, second.as_bv()?);
+                        // bitwise values are only compared at the same width
+                        if a.size() != b.size() {
+                            return None;
+                        }
                         Some(Lit::Bool(a.value() > b.value()))
                     }
                 }
@@ -330,17 +334,16 @@ impl Lit {
             Lit::Hex(b) | Lit::Binary(b) => {
                 let ka = s.kind();
                 let dsize = Integer::from(b.size());
-                if i1.sgn() < 0 || i2.sgn() < 0 || *i1 > dsize || dsize.sgn() == 0 {
+                if i1.sgn() < 0 || i2.sgn() < 0 || *i1 >= dsize || dsize.sgn() == 0 {
                     return Some(Lit::bitvec(ka, BitVec::zero(0)));
                 }
                 let v1 = i1.to_u32();
                 let vs = b.size();
-                let v2 = if *i2 > dsize { vs - 1 } else { i2.to_u32() };
+                // the upper index is cut to the last bit, as for strings
+                let v2 = if *i2 >= dsize { vs - 1 } else { i2.to_u32() };
                 if v1 > v2 {
                     return Some(Lit::bitvec(ka, BitVec::zero(0)));
                 }
-                // Ethos reads past the width when v2 == size; the bits there
-                // are zero, so extracting them from the value is the same.
                 Some(Lit::bitvec(ka, b.extract(v2, v1)))
             }
             Lit::String(st) => {
@@ -549,6 +552,22 @@ mod tests {
             Lit::evaluate(EvalOp::Extract, &[&bin("10110"), &num("1"), &num("3")]),
             Some(bin("011"))
         );
+        // an upper index at or past the width is cut to the last bit, and
+        // a lower index at the width gives the empty bit-vector
+        assert_eq!(
+            Lit::evaluate(EvalOp::Extract, &[&bin("101"), &num("1"), &num("3")]),
+            Some(bin("10"))
+        );
+        assert_eq!(
+            Lit::evaluate(EvalOp::Extract, &[&bin("101"), &num("3"), &num("5")]),
+            Some(Lit::Binary(BitVec::zero(0)))
+        );
+        // bit-vectors are compared only at the same width
+        assert_eq!(
+            Lit::evaluate(EvalOp::Gt, &[&bin("10"), &bin("01")]),
+            Some(Lit::Bool(true))
+        );
+        assert_eq!(Lit::evaluate(EvalOp::Gt, &[&bin("10"), &bin("001")]), None);
         assert_eq!(
             Lit::evaluate(EvalOp::ToBin, &[&num("4"), &num("-1")]),
             Some(bin("1111"))
