@@ -57,13 +57,13 @@ fn native_text(code: u32) -> &'static str {
 pub(crate) fn native_literal(code: u32) -> CheckResult<Lit> {
     let op = native_text(code);
     Ok(if op == "true" || op == "false" {
-        Lit::Bool(op == "true")
+        Lit::Boolean(op == "true")
     } else if op == "nat.zero" {
         Lit::Numeral(Integer::zero())
     } else if let Some(n) = Integer::parse(op, 10) {
         Lit::Numeral(n)
     } else if op.starts_with('"') && op.ends_with('"') && op.len() >= 2 {
-        Lit::String(EoString::parse(
+        Lit::Str(EoString::parse(
             &op[1..op.len() - 1].replace("\"\"", "\""),
             true,
         ))
@@ -289,12 +289,12 @@ impl fmt::Display for Lit {
     /// quotes. This is `Literal::toString` in Ethos.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Lit::Bool(b) => f.write_str(if *b { "true" } else { "false" }),
+            Lit::Boolean(b) => f.write_str(if *b { "true" } else { "false" }),
             Lit::Numeral(i) => write!(f, "{i}"),
             Lit::Decimal(r) | Lit::Rational(r) => write!(f, "{r}"),
             Lit::Hex(b) => f.write_str(&b.to_string_base(16)),
             Lit::Binary(b) => f.write_str(&b.to_string_base(2)),
-            Lit::String(s) => write!(f, "{s}"),
+            Lit::Str(s) => write!(f, "{s}"),
         }
     }
 }

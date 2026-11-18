@@ -10,19 +10,21 @@ use crate::kind::{EvalOp, LitKind};
 use crate::table::mix;
 use crate::num::{Integer, Rational};
 
-/// A literal value.
+/// A literal value. (`Boolean` and `Str`, not `Bool` and `String`: in the
+/// Lean that Aeneas writes, a variant of that name hides the type of the
+/// same name in every definition about `Lit`.)
 ///
 /// Decimal and rational literals hold the same values but are distinct terms,
 /// as are hexadecimal and binary literals.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Lit {
-    Bool(bool),
+    Boolean(bool),
     Numeral(Integer),
     Decimal(Rational),
     Rational(Rational),
     Hex(BitVec),
     Binary(BitVec),
-    String(EoString),
+    Str(EoString),
 }
 
 impl Lit {
@@ -30,13 +32,13 @@ impl Lit {
     /// literals have equal hashes.
     pub(crate) fn hash_code(&self) -> u64 {
         match self {
-            Lit::Bool(b) => mix(1, u64::from(*b)),
+            Lit::Boolean(b) => mix(1, u64::from(*b)),
             Lit::Numeral(n) => mix(2, n.hash_code()),
             Lit::Decimal(q) => mix(3, q.hash_code()),
             Lit::Rational(q) => mix(4, q.hash_code()),
             Lit::Hex(b) => mix(mix(5, u64::from(b.size())), b.value().hash_code()),
             Lit::Binary(b) => mix(mix(6, u64::from(b.size())), b.value().hash_code()),
-            Lit::String(s) => {
+            Lit::Str(s) => {
                 let codes = s.code_points();
                 let mut h = mix(7, codes.len() as u64);
                 let mut i = 0;
@@ -50,13 +52,13 @@ impl Lit {
     }
     pub fn kind(&self) -> LitKind {
         match self {
-            Lit::Bool(_) => LitKind::Boolean,
+            Lit::Boolean(_) => LitKind::Boolean,
             Lit::Numeral(_) => LitKind::Numeral,
             Lit::Decimal(_) => LitKind::Decimal,
             Lit::Rational(_) => LitKind::Rational,
             Lit::Hex(_) => LitKind::Hexadecimal,
             Lit::Binary(_) => LitKind::Binary,
-            Lit::String(_) => LitKind::String,
+            Lit::Str(_) => LitKind::Str,
         }
     }
 
@@ -77,7 +79,7 @@ impl Lit {
     }
 
     fn as_bool(&self) -> Option<bool> {
-        if let Lit::Bool(b) = self {
+        if let Lit::Boolean(b) = self {
             Some(*b)
         } else {
             None
@@ -107,7 +109,7 @@ impl Lit {
     }
 
     fn as_str(&self) -> Option<&EoString> {
-        if let Lit::String(s) = self {
+        if let Lit::Str(s) = self {
             Some(s)
         } else {
             None
@@ -176,13 +178,13 @@ impl Lit {
             EvalOp::IntDiv | EvalOp::IntMod => Lit::evaluate_int_div(op, first, ka, args),
             EvalOp::RatDiv => Lit::evaluate_rat_div(first, args),
             EvalOp::IsNeg => match first {
-                Lit::Numeral(i) => Some(Lit::Bool(i.sgn() == -1)),
-                Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::Bool(r.sgn() == -1)),
+                Lit::Numeral(i) => Some(Lit::Boolean(i.sgn() == -1)),
+                Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::Boolean(r.sgn() == -1)),
                 _ => None,
             },
             EvalOp::Length => match first {
                 Lit::Binary(b) => Some(Lit::Numeral(Integer::from(b.size()))),
-                Lit::String(s) => Some(Lit::Numeral(Integer::from(s.len()))),
+                Lit::Str(s) => Some(Lit::Numeral(Integer::from(s.len()))),
                 _ => None,
             },
             EvalOp::Extract => {
@@ -222,7 +224,7 @@ impl Lit {
 
     fn evaluate_not(first: &Lit, ka: LitKind) -> Option<Lit> {
         match first {
-            Lit::Bool(b) => Some(Lit::Bool(!*b)),
+            Lit::Boolean(b) => Some(Lit::Boolean(!*b)),
             Lit::Hex(b) | Lit::Binary(b) => Some(Lit::bitvec(ka, b.not())),
             _ => None,
         }
@@ -333,7 +335,7 @@ impl Lit {
             Lit::Numeral(_) => Some(first.clone()),
             Lit::Binary(b) => Some(Lit::Numeral(b.value().clone())),
             // a string of length one gives its code point
-            Lit::String(s) => {
+            Lit::Str(s) => {
                 if s.len() == 1 {
                     Some(Lit::Numeral(Integer::from(s.code_points()[0])))
                 } else {
@@ -367,12 +369,12 @@ impl Lit {
             // a code point gives the string of that one character
             Lit::Numeral(i) => {
                 if i.fits_u32() && i.to_u32() < NUM_CODES {
-                    Some(Lit::String(EoString::from_code_points(vec![i.to_u32()])))
+                    Some(Lit::Str(EoString::from_code_points(vec![i.to_u32()])))
                 } else {
                     None
                 }
             }
-            Lit::String(_) => Some(first.clone()),
+            Lit::Str(_) => Some(first.clone()),
             _ => None,
         }
     }
@@ -383,12 +385,12 @@ impl Lit {
         };
         if let Lit::Numeral(a) = first {
             if let Lit::Numeral(b) = second {
-                return Some(Lit::Bool(a > b));
+                return Some(Lit::Boolean(a > b));
             }
         }
         if let Some(a) = first.as_rat() {
             if let Some(b) = second.as_rat() {
-                return Some(Lit::Bool(a > b));
+                return Some(Lit::Boolean(a > b));
             }
         }
         let Some(a) = first.as_bv() else {
@@ -401,18 +403,18 @@ impl Lit {
         if a.size() != b.size() {
             return None;
         }
-        Some(Lit::Bool(a.value() > b.value()))
+        Some(Lit::Boolean(a.value() > b.value()))
     }
 
     /// An operator of two or more arguments, all of the kind `ka` of the
     /// first: the arguments are folded from the left.
     fn evaluate_nary(op: EvalOp, ka: LitKind, args: &[Lit]) -> Option<Lit> {
         match &args[0] {
-            Lit::Bool(b) => Lit::fold_bool(op, *b, args),
+            Lit::Boolean(b) => Lit::fold_bool(op, *b, args),
             Lit::Numeral(i) => Lit::fold_int(op, i, args),
             Lit::Decimal(r) | Lit::Rational(r) => Lit::fold_rat(op, ka, r, args),
             Lit::Hex(b) | Lit::Binary(b) => Lit::fold_bv(op, ka, b, args),
-            Lit::String(s) => Lit::fold_str(op, s, args),
+            Lit::Str(s) => Lit::fold_str(op, s, args),
         }
     }
 
@@ -435,7 +437,7 @@ impl Lit {
             i += 1;
         }
         match res {
-            Some(r) => Some(Lit::Bool(r)),
+            Some(r) => Some(Lit::Boolean(r)),
             None => None,
         }
     }
@@ -558,7 +560,7 @@ impl Lit {
             i += 1;
         }
         match res {
-            Some(r) => Some(Lit::String(r)),
+            Some(r) => Some(Lit::Str(r)),
             None => None,
         }
     }
@@ -581,10 +583,10 @@ impl Lit {
                 }
                 Some(Lit::bitvec(ka, b.extract(v2, v1)))
             }
-            Lit::String(st) => {
+            Lit::Str(st) => {
                 let dsize = Integer::from(st.len());
                 if i1.sgn() < 0 || i2.sgn() < 0 || *i1 > dsize || dsize.sgn() == 0 {
-                    return Some(Lit::String(EoString::from_code_points(Vec::new())));
+                    return Some(Lit::Str(EoString::from_code_points(Vec::new())));
                 }
                 let v1 = i1.to_u32() as usize;
                 let vs = st.len();
@@ -594,7 +596,7 @@ impl Lit {
                     i2.to_u32() as usize
                 };
                 let esize = if v2 >= v1 { v2 + 1 - v1 } else { 0 };
-                Some(Lit::String(
+                Some(Lit::Str(
                     st.substr(v1.min(vs), esize.min(vs - v1.min(vs))),
                 ))
             }
@@ -628,7 +630,7 @@ mod tests {
     }
 
     fn string(s: &str) -> Lit {
-        Lit::String(EoString::parse(s, true))
+        Lit::Str(EoString::parse(s, true))
     }
 
     fn bin(s: &str) -> Lit {
@@ -652,10 +654,10 @@ mod tests {
         assert_eq!(Lit::evaluate(EvalOp::IntDiv, &[num("7"), num("0")]), None);
         assert_eq!(
             Lit::evaluate(EvalOp::IsNeg, &[num("-1")]),
-            Some(Lit::Bool(true))
+            Some(Lit::Boolean(true))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::Add, &[num("1"), Lit::Bool(true)]),
+            Lit::evaluate(EvalOp::Add, &[num("1"), Lit::Boolean(true)]),
             None
         );
         assert_eq!(
@@ -725,7 +727,7 @@ mod tests {
         // bit-vectors are compared only at the same width
         assert_eq!(
             Lit::evaluate(EvalOp::Gt, &[bin("10"), bin("01")]),
-            Some(Lit::Bool(true))
+            Some(Lit::Boolean(true))
         );
         assert_eq!(Lit::evaluate(EvalOp::Gt, &[bin("10"), bin("001")]), None);
         assert_eq!(

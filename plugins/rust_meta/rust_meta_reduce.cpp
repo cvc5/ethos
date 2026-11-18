@@ -457,7 +457,7 @@ std::string RustMetaReduce::schema() const
       {"$emb_Boolean", "Boolean"},
       {"$emb_Numeral", "Numeral"},
       {"$emb_Rational", "Rational"},
-      {"$emb_String", "String"},
+      {"$emb_String", "Str"},
       {"$emb_Binary", "Binary"},
       {"$emb_Var", "Var"}};
   out << "}}\npub fn embedding(self) -> Embedding { match self {\n";
@@ -787,7 +787,7 @@ class RustMetaReduce::Emitter
     switch (e.getKind())
     {
       case Kind::BOOLEAN:
-        return l->d_bool ? "Lit::Bool(true)" : "Lit::Bool(false)";
+        return l->d_bool ? "Lit::Boolean(true)" : "Lit::Boolean(false)";
       case Kind::NUMERAL:
         return "Lit::Numeral("
                + part("parse_int(" + quote(l->d_int.toString()) + ")?") + ")";
@@ -805,7 +805,7 @@ class RustMetaReduce::Emitter
       case Kind::STRING:
       {
         std::ostringstream out;
-        out << "Lit::String(EoString::from_code_points(vec![";
+        out << "Lit::Str(EoString::from_code_points(vec![";
         for (unsigned c : l->d_str.getVec())
         {
           out << c << ',';

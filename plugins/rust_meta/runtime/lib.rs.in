@@ -83,7 +83,7 @@ pub enum Embedding {
     Boolean,
     Numeral,
     Rational,
-    String,
+    Str,
     Binary,
     /// `$emb_UOp`, `$emb_UOp1`, ...: the view of a user operator with its
     /// indices as an operator applied to them.
@@ -435,7 +435,7 @@ impl Store {
         self.intern(TermData::Native(lit))
     }
     pub fn boolean(&mut self, b: bool) -> CheckResult<Term> {
-        self.literal(Lit::Bool(b))
+        self.literal(Lit::Boolean(b))
     }
     pub fn numeral(&mut self, n: Integer) -> CheckResult<Term> {
         self.literal(Lit::Numeral(n))
@@ -445,7 +445,7 @@ impl Store {
     }
     pub fn boolean_value(&self, t: Term, native: bool) -> CheckResult<Option<bool>> {
         Ok(match (native, self.view(t)?) {
-            (false, TermData::Literal(Lit::Bool(b))) | (true, TermData::Native(Lit::Bool(b))) => {
+            (false, TermData::Literal(Lit::Boolean(b))) | (true, TermData::Native(Lit::Boolean(b))) => {
                 Some(*b)
             }
             _ => None,
@@ -511,7 +511,7 @@ impl Store {
             Embedding::UOp => self.construct_user(args),
             Embedding::Stuck if args.is_empty() => Ok(self.stuck()),
             Embedding::Apply if args.len() == 2 => self.apply(args[0], args[1]),
-            Embedding::Boolean | Embedding::Numeral | Embedding::Rational | Embedding::String
+            Embedding::Boolean | Embedding::Numeral | Embedding::Rational | Embedding::Str
                 if args.len() == 1 =>
             {
                 self.construct_literal(e, args[0])
@@ -539,10 +539,10 @@ impl Store {
             _ => return Err(CheckError::InvalidNative),
         };
         let kind = match lit {
-            Lit::Bool(_) => Embedding::Boolean,
+            Lit::Boolean(_) => Embedding::Boolean,
             Lit::Numeral(_) => Embedding::Numeral,
             Lit::Rational(_) => Embedding::Rational,
-            Lit::String(_) => Embedding::String,
+            Lit::Str(_) => Embedding::Str,
             _ => Embedding::Data,
         };
         let valid = match e {
@@ -599,10 +599,10 @@ impl Store {
     /// The native fields of an object literal, if `e` is its kind.
     fn destruct_literal(e: Embedding, lit: &Lit) -> Hit {
         let kind = match lit {
-            Lit::Bool(_) => Embedding::Boolean,
+            Lit::Boolean(_) => Embedding::Boolean,
             Lit::Numeral(_) => Embedding::Numeral,
             Lit::Rational(_) => Embedding::Rational,
-            Lit::String(_) => Embedding::String,
+            Lit::Str(_) => Embedding::Str,
             Lit::Binary(_) => Embedding::Binary,
             _ => Embedding::Data,
         };
@@ -812,10 +812,10 @@ impl Store {
         let e = match d {
             TermData::Stuck => Embedding::Stuck,
             TermData::Apply(..) => Embedding::Apply,
-            TermData::Literal(Lit::Bool(_)) => Embedding::Boolean,
+            TermData::Literal(Lit::Boolean(_)) => Embedding::Boolean,
             TermData::Literal(Lit::Numeral(_)) => Embedding::Numeral,
             TermData::Literal(Lit::Rational(_) | Lit::Decimal(_)) => Embedding::Rational,
-            TermData::Literal(Lit::String(_)) => Embedding::String,
+            TermData::Literal(Lit::Str(_)) => Embedding::Str,
             TermData::Literal(Lit::Binary(_) | Lit::Hex(_)) => Embedding::Binary,
             TermData::Node(c, _) => return Ok(c.order_key()),
             TermData::Native(_) => return Ok((0, 0)),
@@ -1108,8 +1108,8 @@ impl Store {
                 Lit::Numeral(_) => op == EvalOp::IsZ,
                 Lit::Rational(_) => op == EvalOp::IsQ,
                 Lit::Binary(_) => op == EvalOp::IsBin,
-                Lit::String(_) => op == EvalOp::IsStr,
-                Lit::Bool(_) => op == EvalOp::IsBool,
+                Lit::Str(_) => op == EvalOp::IsStr,
+                Lit::Boolean(_) => op == EvalOp::IsBool,
                 _ => false,
             },
             _ => false,
@@ -1137,8 +1137,8 @@ impl Store {
 fn literal_cmp(a: &Lit, b: &Lit) -> CheckResult<std::cmp::Ordering> {
     use std::cmp::Ordering;
     match a {
-        Lit::Bool(a) => match b {
-            Lit::Bool(b) => Ok(if *a == *b {
+        Lit::Boolean(a) => match b {
+            Lit::Boolean(b) => Ok(if *a == *b {
                 Ordering::Equal
             } else if *b {
                 Ordering::Less
@@ -1158,8 +1158,8 @@ fn literal_cmp(a: &Lit, b: &Lit) -> CheckResult<std::cmp::Ordering> {
             }),
             _ => Err(CheckError::InvalidNative),
         },
-        Lit::String(a) => match b {
-            Lit::String(b) => Ok(code_points_cmp(a.code_points(), b.code_points())),
+        Lit::Str(a) => match b {
+            Lit::Str(b) => Ok(code_points_cmp(a.code_points(), b.code_points())),
             _ => Err(CheckError::InvalidNative),
         },
         Lit::Binary(a) => match b {

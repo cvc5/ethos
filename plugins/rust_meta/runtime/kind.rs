@@ -15,7 +15,7 @@ pub enum LitKind {
     Rational,
     Hexadecimal,
     Binary,
-    String,
+    Str,
 }
 
 /// The builtin `eo::` operators.
