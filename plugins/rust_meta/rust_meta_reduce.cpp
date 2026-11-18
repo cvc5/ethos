@@ -595,18 +595,12 @@ class RustMetaReduce::Emitter
         m(parent.m),
         o(out),
         d_shared(parent.d_shared),
-        next(parent.next),
-        d_fields(parent.d_fields),
-        d_inner(true)
+        next(parent.next)
   {
   }
   std::map<Expr, std::string> vars;
   /** Starts the body of another function: no variable is known. */
-  void clear()
-  {
-    vars.clear();
-    d_fields.clear();
-  }
+  void clear() { vars.clear(); }
   /**
    * A call of the runtime or of a generated function that can fail, with
    * the error returned to the caller. Written as a match, not as `call?`:
@@ -620,29 +614,157 @@ class RustMetaReduce::Emitter
     return "match " + call + " { Ok(v) => v, Err(e) => return Err(e) }";
   }
   /** `let v<n> = rhs;`, where an `rhs` that ends in `?` is such a call. */
-  std::string val(const std::string& rhs)
+  std::string val(const std::string& rhs) { return let(rhs, true); }
+  /**
+   * The same for a value that is not a term (a number, an optional pair,
+   * the fields of a term), which the next statement uses up: a function
+   * does not end between the two.
+   */
+  std::string part(const std::string& rhs) { return let(rhs, false); }
+  std::string let(const std::string& rhs, bool whole)
   {
-    std::string n = "v" + std::to_string(next++);
+    std::string n = fresh();
     bool fallible = !rhs.empty() && rhs.back() == '?';
     o << "let " << n << " = "
       << (fallible ? attempt(rhs.substr(0, rhs.size() - 1)) : rhs) << ";\n";
+    if (whole)
+    {
+      o << CUT;
+    }
     return n;
+  }
+  /** The name of a new temporary. */
+  std::string fresh() { return "v" + std::to_string(next++); }
+  /**
+   * Marks, in what an emitter writes, the end of a statement after which
+   * a function may end and another go on (see `close`). It is not part
+   * of the Rust text.
+   */
+  static constexpr char CUT = '\x1f';
+  /** What is written, without the marks. */
+  static std::string plain(const std::string& text)
+  {
+    std::string ret;
+    for (char c : text)
+    {
+      if (c != CUT)
+      {
+        ret += c;
+      }
+    }
+    return ret;
+  }
+  /**
+   * The parameters of a function whose body is `text`, and the arguments
+   * of a call of it: the variables `text` mentions and does not make
+   * itself. All are terms: the arguments of the program (a<i>) and the
+   * temporaries (v<i>).
+   */
+  static std::pair<std::string, std::string> parameters(const std::string& text)
+  {
+    auto wordChar = [](char c) {
+      return std::isalnum(static_cast<unsigned char>(c)) || c == '_';
+    };
+    auto variable = [](const std::string& w) {
+      return w.size() >= 2 && (w[0] == 'a' || w[0] == 'v')
+             && w.find_first_not_of("0123456789", 1) == std::string::npos;
+    };
+    // what `text` makes: the variables between a `let` and its `=`
+    std::set<std::string> made;
+    for (size_t at = text.find("let "); at != std::string::npos;
+         at = text.find("let ", at + 1))
+    {
+      if (at > 0 && wordChar(text[at - 1]))
+      {
+        continue;
+      }
+      size_t end = text.find('=', at);
+      for (size_t i = at + 4; i < end && i < text.size();)
+      {
+        size_t j = i;
+        while (j < end && wordChar(text[j]))
+        {
+          ++j;
+        }
+        if (j > i && variable(text.substr(i, j - i)))
+        {
+          made.insert(text.substr(i, j - i));
+        }
+        i = j > i ? j : i + 1;
+      }
+    }
+    std::string params, args;
+    std::set<std::string> seen;
+    for (size_t i = 0; i < text.size();)
+    {
+      size_t j = i;
+      while (j < text.size() && wordChar(text[j]))
+      {
+        ++j;
+      }
+      if (j == i)
+      {
+        ++i;
+        continue;
+      }
+      std::string word = text.substr(i, j - i);
+      i = j;
+      if (variable(word) && made.count(word) == 0 && seen.insert(word).second)
+      {
+        params += ", " + word + ": Term";
+        args += ", " + word;
+      }
+    }
+    return {params, args};
+  }
+  /**
+   * The end of a function that returns `ret`: the statements `body` and
+   * then the expression `result`. A long body is cut: the function ends
+   * with a call of a new function of this program, which goes on with
+   * the rest and gets the variables the rest uses. A function with
+   * hundreds of fallible calls in a row is more than the tools this code
+   * is translated with take (Charon's reconstruction of the control flow
+   * nests once per call).
+   */
+  std::string close(const std::string& body,
+                    const std::string& result,
+                    const std::string& ret)
+  {
+    const size_t limit = 24;
+    size_t cut = std::string::npos, seen = 0;
+    for (size_t i = 0; i < body.size(); ++i)
+    {
+      if (body[i] == CUT && ++seen == limit)
+      {
+        cut = i + 1;
+        break;
+      }
+    }
+    if (cut == std::string::npos || cut >= body.size())
+    {
+      return plain(body) + result + "\n";
+    }
+    std::string rest = body.substr(cut);
+    std::string name = "more_" + std::to_string(d_shared.count++) + "_"
+                       + d_shared.name;
+    auto pa = parameters(plain(rest) + " " + result);
+    std::string tail = close(rest, result, ret);
+    d_shared.helpers << "fn " << name << "(s: &mut Store" << pa.first << ") -> "
+                     << ret << " {\n"
+                     << tail << "}\n";
+    return plain(body.substr(0, cut)) + name + "(s" + pa.second + ")\n";
   }
   /** What a pattern that does not match does: the case does not apply. */
   const std::string fail = " { return Ok(None); }\n";
   /**
-   * A function of this program for `body`, which computes a term from
-   * the variables it mentions, and the call of it. `extra` are further
-   * parameters with their arguments; `mentions` is the text whose
-   * variables are the function's other parameters: those of the function
-   * being written (a<i>) and the temporaries made before `first`.
+   * A function of this program with the body `body`, which computes a
+   * term, and the call of it. `extra` are parameters with their
+   * arguments; the others are the variables the body uses.
    */
   std::string helper(const std::string& kind,
                      const std::vector<std::pair<std::string, std::string>>&
                          extra,
-                     const std::string& body,
-                     const std::string& mentions,
-                     size_t first)
+                     const std::string& body)
   {
     std::string name = kind + "_" + std::to_string(d_shared.count++) + "_"
                        + d_shared.name;
@@ -652,48 +774,11 @@ class RustMetaReduce::Emitter
       params += ", " + x.first + ": Term";
       args += ", " + x.second;
     }
-    std::set<std::string> seen;
-    for (size_t i = 0; i < mentions.size();)
-    {
-      if (!std::isalnum(static_cast<unsigned char>(mentions[i]))
-          && mentions[i] != '_')
-      {
-        ++i;
-        continue;
-      }
-      size_t j = i;
-      while (j < mentions.size()
-             && (std::isalnum(static_cast<unsigned char>(mentions[j]))
-                 || mentions[j] == '_'))
-      {
-        ++j;
-      }
-      std::string word = mentions.substr(i, j - i);
-      i = j;
-      if (word.size() < 2 || (word[0] != 'a' && word[0] != 'v')
-          || word.find_first_not_of("0123456789", 1) != std::string::npos)
-      {
-        continue;
-      }
-      if (word[0] == 'v' && std::stoull(word.substr(1)) >= first)
-      {
-        // made in the body
-        continue;
-      }
-      if (!seen.insert(word).second)
-      {
-        continue;
-      }
-      // The fields of a destructed term are a vector where they were
-      // taken, and a slice in a function they were passed to.
-      bool fields = d_fields.count(word) != 0;
-      params += ", " + word + (fields ? ": &[Term]" : ": Term");
-      args += ", " + ((fields && !d_inner) ? "&" + word : word);
-    }
-    d_shared.helpers << "fn " << name << "(s: &mut Store" << params
+    auto pa = parameters(body);
+    d_shared.helpers << "fn " << name << "(s: &mut Store" << params << pa.first
                      << ") -> CheckResult<Term> {\n"
                      << body << "}\n";
-    return name + "(s" + args + ")";
+    return name + "(s" + args + pa.second + ")";
   }
   /** The value of a literal; a number is read by a statement of its own. */
   std::string literal(const Expr& e)
@@ -705,16 +790,16 @@ class RustMetaReduce::Emitter
         return l->d_bool ? "Lit::Bool(true)" : "Lit::Bool(false)";
       case Kind::NUMERAL:
         return "Lit::Numeral("
-               + val("parse_int(" + quote(l->d_int.toString()) + ")?") + ")";
+               + part("parse_int(" + quote(l->d_int.toString()) + ")?") + ")";
       case Kind::RATIONAL:
       case Kind::DECIMAL:
         return "Lit::Rational("
-               + val("parse_rat(" + quote(l->d_rat.toString()) + ")?") + ")";
+               + part("parse_rat(" + quote(l->d_rat.toString()) + ")?") + ")";
       case Kind::BINARY:
       case Kind::HEXADECIMAL:
         return "Lit::Binary(BitVec::new("
                + std::to_string(l->d_bv.getSize()) + ", &"
-               + val("parse_int(" + quote(l->d_bv.getValue().toString())
+               + part("parse_int(" + quote(l->d_bv.getValue().toString())
                      + ")?")
                + "))";
       case Kind::STRING:
@@ -892,7 +977,6 @@ class RustMetaReduce::Emitter
                           bool native)
   {
     std::string cv = expr(c);
-    size_t first = next;
     std::ostringstream ys, ns;
     Emitter ye(*this, ys);
     std::string a = ye.expr(yes);
@@ -900,19 +984,16 @@ class RustMetaReduce::Emitter
     Emitter ne(*this, ns);
     std::string b = ne.expr(no);
     next = ne.next;
+    const std::string ret = "CheckResult<Term>";
     std::string body =
         "let branch = "
         + attempt(std::string("s.boolean_value(condition, ")
                   + (native ? "true" : "false") + ")")
-        + ";\nmatch branch {\nSome(true) => {\n" + ys.str() + "Ok(" + a
-        + ")\n}\nSome(false) => {\n" + ns.str() + "Ok(" + b
-        + ")\n}\nNone => Ok(s.stuck()),\n}\n";
-    return val(helper("if",
-                      {{"condition", cv}},
-                      body,
-                      ys.str() + " " + a + " " + ns.str() + " " + b,
-                      first)
-               + "?");
+        + ";\nmatch branch {\nSome(true) => {\n"
+        + close(ys.str(), "Ok(" + a + ")", ret) + "}\nSome(false) => {\n"
+        + close(ns.str(), "Ok(" + b + ")", ret)
+        + "}\nNone => Ok(s.stuck()),\n}\n";
+    return val(helper("if", {{"condition", cv}}, body) + "?");
   }
   std::string op(Kind k, const Expr& t, size_t start)
   {
@@ -928,7 +1009,6 @@ class RustMetaReduce::Emitter
     {
       // A function of its own, as a conditional is.
       std::string a = expr(t[start]), b = expr(t[start + 1]);
-      size_t first = next;
       std::ostringstream rs;
       Emitter re(*this, rs);
       std::string r = re.expr(t[start + 2]);
@@ -936,11 +1016,9 @@ class RustMetaReduce::Emitter
       std::string body = "if " + a + " != " + b
                          + " { return Ok(s.stuck()); }\nlet stuck = "
                          + attempt("s.is_stuck(" + a + ")")
-                         + ";\nif stuck { return Ok(s.stuck()); }\n" + rs.str()
-                         + "Ok(" + r + ")\n";
-      return val(
-          helper("requires", {}, body, a + " " + b + " " + rs.str() + " " + r, first)
-          + "?");
+                         + ";\nif stuck { return Ok(s.stuck()); }\n"
+                         + close(rs.str(), "Ok(" + r + ")", "CheckResult<Term>");
+      return val(helper("requires", {}, body) + "?");
     }
     std::string as = args(t, start);
     if (k == Kind::EVAL_TYPE_OF || k == Kind::EVAL_NIL
@@ -1044,7 +1122,7 @@ class RustMetaReduce::Emitter
       auto it = vars.find(t);
       if (it != vars.end())
       {
-        o << "if " << value << " != " << it->second << fail;
+        o << "if " << value << " != " << it->second << fail << CUT;
       }
       else
       {
@@ -1054,24 +1132,30 @@ class RustMetaReduce::Emitter
     }
     if (k == Kind::FUNCTION_TYPE && t.getNumChildren() == 2)
     {
-      std::string fields = val("s.unapply(" + value + ")?");
-      o << "let Some((f, r)) = " << fields << " else" << fail << ";\n";
-      std::string r = val("r");
-      std::string f = val("s.unapply(f)?");
-      o << "let Some((op, l)) = " << f << " else" << fail << ";\n";
-      std::string fun = val("s.is_node(op, "
+      std::string outer = part("s.unapply(" + value + ")?");
+      std::string f = fresh(), r = fresh();
+      o << "let Some((" << f << ", " << r << ")) = " << outer << " else" << fail
+        << ";\n"
+        << CUT;
+      std::string inner = part("s.unapply(" + f + ")?");
+      std::string op = fresh(), l = fresh();
+      o << "let Some((" << op << ", " << l << ")) = " << inner << " else"
+        << fail << ";\n"
+        << CUT;
+      std::string fun = part("s.is_node(" + op + ", "
                             + m.constructorOption("$emb_FunType") + ")?");
-      o << "if !" << fun << fail;
-      std::string l = val("l");
+      o << "if !" << fun << fail << CUT;
       pattern(t[0], l);
       pattern(t[1], r);
       return;
     }
     if (k == Kind::APPLY && t.getNumChildren() == 2)
     {
-      std::string fields = val("s.unapply(" + value + ")?");
-      o << "let Some((f, a)) = " << fields << " else" << fail << ";\n";
-      std::string f = val("f"), a = val("a");
+      std::string parts = part("s.unapply(" + value + ")?");
+      std::string f = fresh(), a = fresh();
+      o << "let Some((" << f << ", " << a << ")) = " << parts << " else" << fail
+        << ";\n"
+        << CUT;
       pattern(t[0], f);
       pattern(t[1], a);
       return;
@@ -1080,29 +1164,36 @@ class RustMetaReduce::Emitter
     {
       size_t start = k == Kind::VARIABLE ? 0 : 1;
       std::string n = k == Kind::VARIABLE ? "$emb_Var" : getName(t[0]);
-      std::string fields;
+      std::string found;
       if (starts(n, "$native_apply_"))
       {
-        fields = val(nativePattern(getName(t[1]), value));
+        found = part(nativePattern(getName(t[1]), value));
         start = 2;
       }
       else
       {
-        fields = val("s.destruct(" + ctor(n) + ", " + value + ")?");
+        found = part("s.destruct(" + ctor(n) + ", " + value + ")?");
       }
-      o << "let Some(fields) = " << fields << " else" << fail << ";\n";
-      fields = val("fields");
-      d_fields.insert(fields);
+      // The fields are taken out at once, each into a variable, so that
+      // every variable of the generated code is a term.
+      o << "let Some(fields) = " << found << " else" << fail << ";\n";
+      std::vector<std::string> fields;
       for (size_t i = start; i < t.getNumChildren(); ++i)
       {
-        pattern(t[i], fields + "[" + std::to_string(i - start) + "]");
+        fields.push_back(fresh());
+        o << "let " << fields.back() << " = fields[" << (i - start) << "];\n";
+      }
+      o << CUT;
+      for (size_t i = start; i < t.getNumChildren(); ++i)
+      {
+        pattern(t[i], fields[i - start]);
       }
       return;
     }
     if (isLiteral(k) || t.getNumChildren() == 0)
     {
       std::string expected = expr(t);
-      o << "if " << value << " != " << expected << fail;
+      o << "if " << value << " != " << expected << fail << CUT;
       return;
     }
     EO_FATAL() << "rust-meta: unsupported pattern " << t;
@@ -1113,10 +1204,6 @@ class RustMetaReduce::Emitter
   std::ostream& o;
   Shared& d_shared;
   size_t next = 0;
-  /** The temporaries that hold the fields of a destructed term. */
-  std::set<std::string> d_fields;
-  /** Whether this writes a function that a case function calls. */
-  bool d_inner = false;
 };
 
 std::string RustMetaReduce::emitProgram(const std::string& name,
@@ -1223,30 +1310,37 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
              "pending.push((guard, term));\nargs = tail;\n}\n"
              "Err(e) => return Err(e),\n}\n}\n}\n"
           << "fn step_" << id
-          << "(s: &mut Store, a0: Term, args: Term) -> CheckResult<FoldStep> "
+          << "(s: &mut Store, a0: Term, a1: Term) -> CheckResult<FoldStep> "
              "{\nif let Some(step) = "
-          << attempt("case_0_" + id + "(s, a0, args)")
+          << attempt("case_0_" + id + "(s, a0, a1)")
           << " { return Ok(step); }\nif let Some(step) = "
-          << attempt("case_1_" + id + "(s, a0, args)")
+          << attempt("case_1_" + id + "(s, a0, a1)")
           << " { return Ok(step); }\nOk(FoldStep::Done(s.stuck()))\n}\n"
           << "fn case_0_" << id
-          << "(s: &mut Store, a0: Term, args: Term) -> "
+          << "(s: &mut Store, a0: Term, a1: Term) -> "
              "CheckResult<Option<FoldStep>> {\n";
-      Emitter e(*this, out, shared);
-      e.pattern(base[1], "a0");
-      e.pattern(base[2], "args");
-      out << "Ok(Some(FoldStep::Done(a0)))\n}\nfn case_1_" << id
-          << "(s: &mut Store, a0: Term, args: Term) -> "
+      const std::string ret = "CheckResult<Option<FoldStep>>";
+      std::ostringstream c0, c1;
+      Emitter e0(*this, c0, shared);
+      e0.pattern(base[1], "a0");
+      e0.pattern(base[2], "a1");
+      out << e0.close(c0.str(), "Ok(Some(FoldStep::Done(a0)))", ret)
+          << "}\nfn case_1_" << id
+          << "(s: &mut Store, a0: Term, a1: Term) -> "
              "CheckResult<Option<FoldStep>> {\n";
-      e.clear();
+      Emitter e(*this, c1, shared);
       e.pattern(step[1], "a0");
-      e.pattern(step[2], "args");
+      e.pattern(step[2], "a1");
       std::string guard = e.expr(body[1]), term = e.expr(body[2]);
       std::string tail = e.expr(body[3][2]);
       // One tick replaces each recursive enter, keeping the call budget
       // while making the depth independent of the number of assumptions.
-      out << attempt("s.tick()") << ";\nOk(Some(FoldStep::Push(" << guard
-          << ", " << term << ", " << tail << ")))\n}\n"
+      c1 << attempt("s.tick()") << ";\n" << Emitter::CUT;
+      out << e.close(c1.str(),
+                     "Ok(Some(FoldStep::Push(" + guard + ", " + term + ", "
+                         + tail + ")))",
+                     ret)
+          << "}\n"
           << "fn unwind_" << id
           << "(s: &mut Store, state: Term, pending: &[(Term, Term)]) -> "
              "CheckResult<Term> {\nlet mut state = state;\n"
@@ -1300,9 +1394,11 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
   if (!cases)
   {
     out << "fn body_" << id << "(s: &mut Store) -> CheckResult<Term> {\n";
-    Emitter e(*this, out, shared);
+    std::ostringstream body;
+    Emitter e(*this, body, shared);
     std::string v = e.expr(p.body);
-    out << "Ok(" << v << ")\n}\n" << helpers.str();
+    out << e.close(body.str(), "Ok(" + v + ")", "CheckResult<Term>") << "}\n"
+        << helpers.str();
     return out.str();
   }
   // What a case gives: a term, or, for a program whose tail calls are a
@@ -1399,33 +1495,32 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
       EO_FATAL() << "rust-meta: bad pattern arity for " << name;
     }
     Expr body = p.body[c][1];
-    out << "fn case_" << c << "_" << id << "(s: &mut Store" << params
-        << ") -> CheckResult<Option<" << result << ">> {\n";
-    Emitter e(*this, out, shared);
+    const std::string ret = "CheckResult<Option<" + result + ">>";
+    out << "fn case_" << c << "_" << id << "(s: &mut Store" << params << ") -> "
+        << ret << " {\n";
+    std::ostringstream cs;
+    Emitter e(*this, cs, shared);
     for (size_t j = 0; j < nargs; ++j)
     {
       e.pattern(pat[j + 1], "a" + std::to_string(j));
     }
+    std::string value;
     if (loop && tailCall(body))
     {
       // Every argument is evaluated before the next round has any.
-      std::vector<std::string> next;
+      value = "Next::Again([";
       for (size_t j = 1; j <= nargs; ++j)
       {
-        next.push_back(e.expr(body[j]));
+        value += (j == 1 ? "" : ", ") + e.expr(body[j]);
       }
-      out << "Ok(Some(Next::Again([";
-      for (size_t j = 0; j < nargs; ++j)
-      {
-        out << (j == 0 ? "" : ", ") << next[j];
-      }
-      out << "])))\n}\n";
+      value += "])";
     }
     else
     {
       std::string v = e.expr(body);
-      out << "Ok(Some(" << (loop ? "Next::Done(" + v + ")" : v) << "))\n}\n";
+      value = loop ? "Next::Done(" + v + ")" : v;
     }
+    out << e.close(cs.str(), "Ok(Some(" + value + "))", ret) << "}\n";
   }
   // Helpers are module items; emit them after the functions that call them.
   out << helpers.str();
