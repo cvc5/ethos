@@ -367,8 +367,8 @@ bool RustMetaReduce::isUserConstructor(const std::string& name)
 std::string RustMetaReduce::schema() const
 {
   std::ostringstream out;
-  out << "use crate::Embedding;\n#[derive(Copy, Clone, Debug, PartialEq, Eq, "
-         "Hash, PartialOrd, Ord)]\npub enum Constructor {\n";
+  out << "use crate::Embedding;\n#[derive(Copy, Clone, Debug, PartialEq, Eq)]\n"
+         "pub enum Constructor {\n";
   for (const auto& c : d_constructors)
   {
     out << ident(c.first) << ",\n";
@@ -969,7 +969,7 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
   // The checking loop's premise lookup walks the state list one element at
   // a time, creating and interning a native numeral at each one. Where the
   // loop's constructors are the expected ones, it is compiled to the
-  // runtime's Store::state_proven_nth, which gives the same results with a
+  // runtime's Store::state_nth, which finds the same element with a
   // machine counter (see its documentation in runtime/lib.rs.in).
   if (name == "$eo_state_proven_nth" && cases && nargs == 2
       && d_cacheKinds.at(name) == CacheKind::NONE
@@ -977,11 +977,13 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
       && d_programs.count("$eo_StateObj_proven") > 0)
   {
     out << "// EO program " << quote(name)
-        << ", compiled to Store::state_proven_nth\npub fn " << ident(name)
+        << ", compiled to Store::state_nth\npub fn " << ident(name)
         << "(s: &mut Store, a0: Term, a1: Term) -> CheckResult<Term> {\n"
-        << "s.enter()?;\nlet result = s.state_proven_nth(Constructor::"
-        << ident("$emb_s.cons") << ", a0, a1, " << ident("$eo_StateObj_proven")
-        << ");\ns.leave();\nresult\n}\n";
+        << "s.enter()?;\nlet result = match s.state_nth(Constructor::"
+        << ident("$emb_s.cons") << ", a0, a1) {\nOk(Some(element)) => "
+        << ident("$eo_StateObj_proven")
+        << "(s, element),\nOk(None) => s.boolean(true),\nErr(e) => Err(e),\n"
+        << "};\ns.leave();\nresult\n}\n";
     return out.str();
   }
   // Recognize the checking loop's guarded right fold, rather than relying
@@ -1348,7 +1350,7 @@ void RustMetaReduce::finalize()
           ? "let b = if component { generated::"
                 + ident("$smtx_type_wf_component")
                 + "(self, t)? } else { generated::" + ident("$smtx_type_wf")
-                + "(self, t)? }; Ok(self.boolean_value(b, true)? == Some(true))"
+                + "(self, t)? }; self.is_native_true(b)"
           : "let _ = component; " + unavailable);
   std::istringstream masks(
       read(getResourcePath("plugins/rust_meta/cpc_translation_masks.txt")));

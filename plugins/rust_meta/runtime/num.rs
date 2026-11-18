@@ -230,6 +230,17 @@ impl Rational {
         Some(Rational(MRat::from_integers_ref(&n.0, &d.0)))
     }
 
+    /// The numerator of the number in lowest terms, with its sign.
+    pub fn numerator(&self) -> Integer {
+        let n = MInt::from(self.0.numerator_ref());
+        Integer(if self.0.sign() == Ordering::Less { -n } else { n })
+    }
+
+    /// The denominator of the number in lowest terms, which is positive.
+    pub fn denominator(&self) -> Integer {
+        Integer(MInt::from(self.0.denominator_ref()))
+    }
+
     pub fn from_integer(n: &Integer) -> Rational {
         Rational(MRat::from(&n.0))
     }

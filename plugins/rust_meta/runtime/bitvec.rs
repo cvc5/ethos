@@ -6,7 +6,7 @@
 use crate::num::Integer;
 
 /// A bit-vector: a width and a non-negative value below `2^width`.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct BitVec {
     pub(crate) size: u32,
     pub(crate) value: Integer,

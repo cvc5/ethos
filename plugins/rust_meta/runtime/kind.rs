@@ -7,7 +7,7 @@
 //! later sync with pathos copies only what is here.
 
 /// The kinds of literals.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum LitKind {
     Boolean,
     Numeral,
@@ -19,7 +19,7 @@ pub enum LitKind {
 }
 
 /// The builtin `eo::` operators.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum EvalOp {
     // core
     IsOk,

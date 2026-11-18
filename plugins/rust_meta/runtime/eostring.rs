@@ -10,7 +10,7 @@
 pub const NUM_CODES: u32 = 196_608;
 
 /// A string literal: a sequence of code points below [`NUM_CODES`].
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Default)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct EoString(Vec<u32>);
 
 impl EoString {

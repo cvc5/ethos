@@ -34,6 +34,40 @@ pub(crate) fn slots_for(n: usize) -> usize {
     slots
 }
 
+/// A stack of pairs of terms. Popping only moves `len`, so that the stack
+/// uses nothing of `Vec` but `push`, `len` and indexing.
+pub(crate) struct PairStack {
+    items: Vec<(Term, Term)>,
+    /// The number of pairs on the stack: the first `len` of `items`.
+    len: usize,
+}
+
+impl PairStack {
+    pub(crate) fn new() -> PairStack {
+        PairStack {
+            items: Vec::new(),
+            len: 0,
+        }
+    }
+    pub(crate) fn push(&mut self, pair: (Term, Term)) {
+        if self.len < self.items.len() {
+            self.items[self.len] = pair;
+        } else {
+            self.items.push(pair);
+        }
+        self.len += 1;
+    }
+    /// Takes the pair pushed last off the stack.
+    pub(crate) fn pop(&mut self) -> Option<(Term, Term)> {
+        if self.len == 0 {
+            None
+        } else {
+            self.len -= 1;
+            Some(self.items[self.len])
+        }
+    }
+}
+
 /// How many times each term of a list occurs. Made for at most a given
 /// number of different terms, which its user knows.
 pub(crate) struct TermCounts {
@@ -44,7 +78,9 @@ pub(crate) struct TermCounts {
 }
 
 impl TermCounts {
-    /// An empty table for up to `n` different terms.
+    /// An empty table for up to `n` different terms. Its user must not add
+    /// more than `n` different terms: the table does not grow, and a search
+    /// of a full table would not end.
     pub(crate) fn new(n: usize) -> TermCounts {
         TermCounts {
             slots: vec![0; slots_for(n)],

@@ -198,7 +198,7 @@ impl Store {
 
     fn native_tcmp(&mut self, x: Term, y: Term) -> CheckResult<Term> {
         let order = self.compare(x, y)?;
-        self.native_bool(order.is_lt())
+        self.native_bool(is_less(order))
     }
     fn native_is_ok(&mut self, x: Term) -> CheckResult<Term> {
         let stuck = self.is_stuck(x)?;
@@ -401,6 +401,14 @@ impl Store {
         let y = self.native_string(y)?;
         let prefix = is_prefix(x.code_points(), y.code_points());
         self.native_bool(prefix)
+    }
+}
+
+/// Whether an order is "less".
+pub(crate) fn is_less(order: std::cmp::Ordering) -> bool {
+    match order {
+        std::cmp::Ordering::Less => true,
+        _ => false,
     }
 }
 

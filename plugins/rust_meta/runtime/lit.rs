@@ -14,7 +14,7 @@ use crate::num::{Integer, Rational};
 ///
 /// Decimal and rational literals hold the same values but are distinct terms,
 /// as are hexadecimal and binary literals.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Lit {
     Bool(bool),
     Numeral(Integer),
@@ -114,94 +114,67 @@ impl Lit {
         }
     }
 
+    /// The `i`-th argument, if there is one.
+    fn arg(args: &[Lit], i: usize) -> Option<&Lit> {
+        if i < args.len() { Some(&args[i]) } else { None }
+    }
+
+    /// The `i`-th argument, if it is an integer.
+    fn int_arg(args: &[Lit], i: usize) -> Option<&Integer> {
+        match Lit::arg(args, i) {
+            Some(a) => a.as_int(),
+            None => None,
+        }
+    }
+
+    /// The `i`-th argument, if it is a string.
+    fn str_arg(args: &[Lit], i: usize) -> Option<&EoString> {
+        match Lit::arg(args, i) {
+            Some(a) => a.as_str(),
+            None => None,
+        }
+    }
+
+    /// Whether every argument is of the kind `ka`.
+    fn all_of_kind(args: &[Lit], ka: LitKind) -> bool {
+        let mut all = true;
+        let mut i = 0;
+        while i < args.len() {
+            if args[i].kind() != ka {
+                all = false;
+            }
+            i += 1;
+        }
+        all
+    }
+
     /// Applies `op` to literal arguments. Returns `None` when the operator
     /// does not evaluate on them. The caller has checked the arity, and
     /// handles `eo::is_eq`, `eo::ite` and `eo::requires` itself.
-    pub fn evaluate(op: EvalOp, args: &[&Lit]) -> Option<Lit> {
-        let first = *args.first()?;
+    pub fn evaluate(op: EvalOp, args: &[Lit]) -> Option<Lit> {
+        if args.is_empty() {
+            return None;
+        }
+        let first = &args[0];
         // Most operators need all arguments to be of one kind.
-        let mixed = matches!(
-            op,
-            EvalOp::Extract | EvalOp::ToBin | EvalOp::Pow | EvalOp::Log
-        );
+        let mixed = match op {
+            EvalOp::Extract | EvalOp::ToBin | EvalOp::Pow | EvalOp::Log => true,
+            _ => false,
+        };
         let ka = first.kind();
-        if !mixed && args.iter().any(|a| a.kind() != ka) {
+        if !mixed && !Lit::all_of_kind(args, ka) {
             return None;
         }
         match op {
-            EvalOp::Not => match first {
-                Lit::Bool(b) => Some(Lit::Bool(!b)),
-                Lit::Hex(b) | Lit::Binary(b) => Some(Lit::bitvec(ka, b.not())),
-                _ => None,
-            },
+            EvalOp::Not => Lit::evaluate_not(first, ka),
             EvalOp::And | EvalOp::Or | EvalOp::Xor | EvalOp::Add | EvalOp::Mul | EvalOp::Concat => {
                 Lit::evaluate_nary(op, ka, args)
             }
-            EvalOp::Neg => match first {
-                Lit::Numeral(i) => Some(Lit::Numeral(i.neg())),
-                Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::rational(ka, r.neg())),
-                Lit::Hex(b) | Lit::Binary(b) => Some(Lit::bitvec(ka, b.neg())),
-                _ => None,
-            },
-            EvalOp::Pow => {
-                let exp = args.get(1)?.as_int().filter(|e| e.fits_u32())?.to_u32();
-                match first {
-                    Lit::Numeral(i) => Some(Lit::Numeral(i.pow(exp))),
-                    Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::rational(ka, r.pow(exp))),
-                    _ => None,
-                }
-            }
-            EvalOp::Log => {
-                let base = first.as_int()?;
-                let value = match args.get(1)? {
-                    Lit::Numeral(i) => i.clone(),
-                    Lit::Decimal(r) | Lit::Rational(r) => r.floor(),
-                    _ => return None,
-                };
-                Some(Lit::Numeral(integer_floor_log(base, &value)))
-            }
-            EvalOp::IntDiv | EvalOp::IntMod => {
-                let is_div = op == EvalOp::IntDiv;
-                let second = *args.get(1)?;
-                match (first, second) {
-                    (Lit::Numeral(n), Lit::Numeral(d)) => {
-                        if d.sgn() == 0 {
-                            return None;
-                        }
-                        let (q, r) = n.euclidean_qr(d);
-                        Some(Lit::Numeral(if is_div { q } else { r }))
-                    }
-                    _ => {
-                        let (a, b) = (first.as_bv()?, second.as_bv()?);
-                        if a.size() != b.size() {
-                            return None;
-                        }
-                        Some(Lit::bitvec(
-                            ka,
-                            if is_div {
-                                a.unsigned_div_total(b)
-                            } else {
-                                a.unsigned_rem_total(b)
-                            },
-                        ))
-                    }
-                }
-            }
-            EvalOp::RatDiv => {
-                let second = *args.get(1)?;
-                match (first, second) {
-                    (Lit::Numeral(n), Lit::Numeral(d)) => {
-                        Rational::from_integers(n, d).map(Lit::Rational)
-                    }
-                    _ => {
-                        let (n, d) = (first.as_rat()?, second.as_rat()?);
-                        if d.sgn() == 0 {
-                            return None;
-                        }
-                        Some(Lit::Rational(n.div(d)))
-                    }
-                }
-            }
+            EvalOp::Neg => Lit::evaluate_neg(first, ka),
+            EvalOp::Pow => Lit::evaluate_pow(first, ka, args),
+            EvalOp::Log => Lit::evaluate_log(first, args),
+            EvalOp::IntDiv | EvalOp::IntMod => Lit::evaluate_int_div(op, first, ka, args),
+            EvalOp::RatDiv => Lit::evaluate_rat_div(first, args),
             EvalOp::IsNeg => match first {
                 Lit::Numeral(i) => Some(Lit::Bool(i.sgn() == -1)),
                 Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::Bool(r.sgn() == -1)),
@@ -213,61 +186,31 @@ impl Lit {
                 _ => None,
             },
             EvalOp::Extract => {
-                let i1 = args.get(1)?.as_int()?;
-                let i2 = args.get(2)?.as_int()?;
+                let Some(i1) = Lit::int_arg(args, 1) else {
+                    return None;
+                };
+                let Some(i2) = Lit::int_arg(args, 2) else {
+                    return None;
+                };
                 Lit::evaluate_extract(first, i1, i2)
             }
-            EvalOp::ToInt => match first {
-                Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::Numeral(r.floor())),
-                Lit::Numeral(_) => Some(first.clone()),
-                Lit::Binary(b) => Some(Lit::Numeral(b.value().clone())),
-                // a string of length one gives its code point
-                Lit::String(s) if s.len() == 1 => {
-                    Some(Lit::Numeral(Integer::from(s.code_points()[0])))
-                }
-                _ => None,
-            },
+            EvalOp::ToInt => Lit::evaluate_to_int(first),
             EvalOp::ToRat => match first {
                 Lit::Rational(_) => Some(first.clone()),
                 Lit::Decimal(r) => Some(Lit::Rational(r.clone())),
                 Lit::Numeral(i) => Some(Lit::Rational(Rational::from_integer(i))),
                 _ => None,
             },
-            EvalOp::ToBin => {
-                let size = first.as_int().filter(|s| s.fits_u32())?.to_u32();
-                match args.get(1)? {
-                    Lit::Numeral(i) => Some(Lit::Binary(BitVec::new(size, i))),
-                    Lit::Hex(b) | Lit::Binary(b) => Some(Lit::Binary(BitVec::new(size, b.value()))),
-                    _ => None,
-                }
-            }
-            EvalOp::ToString => match first {
-                // a code point gives the string of that one character
-                Lit::Numeral(i) if i.fits_u32() && i.to_u32() < NUM_CODES => {
-                    Some(Lit::String(EoString::from_code_points(vec![i.to_u32()])))
-                }
-                Lit::String(_) => Some(first.clone()),
-                _ => None,
-            },
-            EvalOp::Gt => {
-                let second = *args.get(1)?;
-                match (first, second) {
-                    (Lit::Numeral(a), Lit::Numeral(b)) => Some(Lit::Bool(a > b)),
-                    _ => {
-                        if let (Some(a), Some(b)) = (first.as_rat(), second.as_rat()) {
-                            return Some(Lit::Bool(a > b));
-                        }
-                        let (a, b) = (first.as_bv()?, second.as_bv()?);
-                        // bitwise values are only compared at the same width
-                        if a.size() != b.size() {
-                            return None;
-                        }
-                        Some(Lit::Bool(a.value() > b.value()))
-                    }
-                }
-            }
+            EvalOp::ToBin => Lit::evaluate_to_bin(first, args),
+            EvalOp::ToString => Lit::evaluate_to_string(first),
+            EvalOp::Gt => Lit::evaluate_gt(first, args),
             EvalOp::Find => {
-                let (s, t) = (first.as_str()?, args.get(1)?.as_str()?);
+                let Some(s) = first.as_str() else {
+                    return None;
+                };
+                let Some(t) = Lit::str_arg(args, 1) else {
+                    return None;
+                };
                 Some(Lit::Numeral(match s.find(t) {
                     Some(i) => Integer::from(i),
                     None => Integer::one().neg(),
@@ -277,79 +220,346 @@ impl Lit {
         }
     }
 
-    fn evaluate_nary(op: EvalOp, ka: LitKind, args: &[&Lit]) -> Option<Lit> {
-        let rest = &args[1..];
-        match args[0] {
-            Lit::Bool(b) => {
-                let mut res = *b;
-                for a in rest {
-                    let a = a.as_bool()?;
-                    res = match op {
-                        EvalOp::And => res && a,
-                        EvalOp::Or => res || a,
-                        EvalOp::Xor => res != a,
-                        _ => return None,
-                    };
-                }
-                Some(Lit::Bool(res))
-            }
-            Lit::Numeral(i) => {
-                let mut res = i.clone();
-                for a in rest {
-                    let a = a.as_int()?;
-                    res = match op {
-                        EvalOp::Add => res.add(a),
-                        EvalOp::Mul => res.mul(a),
-                        _ => return None,
-                    };
-                }
-                Some(Lit::Numeral(res))
-            }
-            Lit::Decimal(r) | Lit::Rational(r) => {
-                let mut res = r.clone();
-                for a in rest {
-                    let a = a.as_rat()?;
-                    res = match op {
-                        EvalOp::Add => res.add(a),
-                        EvalOp::Mul => res.mul(a),
-                        _ => return None,
-                    };
-                }
-                Some(Lit::rational(ka, res))
-            }
-            Lit::Hex(b) | Lit::Binary(b) => {
-                if op != EvalOp::Concat
-                    && rest
-                        .iter()
-                        .any(|a| a.as_bv().map(BitVec::size) != Some(b.size()))
-                {
+    fn evaluate_not(first: &Lit, ka: LitKind) -> Option<Lit> {
+        match first {
+            Lit::Bool(b) => Some(Lit::Bool(!*b)),
+            Lit::Hex(b) | Lit::Binary(b) => Some(Lit::bitvec(ka, b.not())),
+            _ => None,
+        }
+    }
+
+    fn evaluate_neg(first: &Lit, ka: LitKind) -> Option<Lit> {
+        match first {
+            Lit::Numeral(i) => Some(Lit::Numeral(i.neg())),
+            Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::rational(ka, r.neg())),
+            Lit::Hex(b) | Lit::Binary(b) => Some(Lit::bitvec(ka, b.neg())),
+            _ => None,
+        }
+    }
+
+    fn evaluate_pow(first: &Lit, ka: LitKind, args: &[Lit]) -> Option<Lit> {
+        let Some(exp) = Lit::int_arg(args, 1) else {
+            return None;
+        };
+        if !exp.fits_u32() {
+            return None;
+        }
+        let exp = exp.to_u32();
+        match first {
+            Lit::Numeral(i) => Some(Lit::Numeral(i.pow(exp))),
+            Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::rational(ka, r.pow(exp))),
+            _ => None,
+        }
+    }
+
+    fn evaluate_log(first: &Lit, args: &[Lit]) -> Option<Lit> {
+        let Some(base) = first.as_int() else {
+            return None;
+        };
+        let Some(second) = Lit::arg(args, 1) else {
+            return None;
+        };
+        let value = match second {
+            Lit::Numeral(i) => i.clone(),
+            Lit::Decimal(r) | Lit::Rational(r) => r.floor(),
+            _ => return None,
+        };
+        Some(Lit::Numeral(integer_floor_log(base, &value)))
+    }
+
+    fn evaluate_int_div(op: EvalOp, first: &Lit, ka: LitKind, args: &[Lit]) -> Option<Lit> {
+        let is_div = match op {
+            EvalOp::IntDiv => true,
+            _ => false,
+        };
+        let Some(second) = Lit::arg(args, 1) else {
+            return None;
+        };
+        if let Lit::Numeral(n) = first {
+            if let Lit::Numeral(d) = second {
+                if d.sgn() == 0 {
                     return None;
                 }
-                let mut res = b.clone();
-                for a in rest {
-                    let a = a.as_bv()?;
-                    res = match op {
-                        EvalOp::And => res.and(a),
-                        EvalOp::Or => res.or(a),
-                        EvalOp::Xor => res.xor(a),
-                        EvalOp::Add => res.add(a),
-                        EvalOp::Mul => res.mul(a),
-                        EvalOp::Concat => res.concat(a),
-                        _ => return None,
-                    };
-                }
-                Some(Lit::bitvec(ka, res))
+                let (q, r) = n.euclidean_qr(d);
+                return Some(Lit::Numeral(if is_div { q } else { r }));
             }
+        }
+        let Some(a) = first.as_bv() else {
+            return None;
+        };
+        let Some(b) = second.as_bv() else {
+            return None;
+        };
+        if a.size() != b.size() {
+            return None;
+        }
+        Some(Lit::bitvec(
+            ka,
+            if is_div {
+                a.unsigned_div_total(b)
+            } else {
+                a.unsigned_rem_total(b)
+            },
+        ))
+    }
+
+    fn evaluate_rat_div(first: &Lit, args: &[Lit]) -> Option<Lit> {
+        let Some(second) = Lit::arg(args, 1) else {
+            return None;
+        };
+        if let Lit::Numeral(n) = first {
+            if let Lit::Numeral(d) = second {
+                return match Rational::from_integers(n, d) {
+                    Some(q) => Some(Lit::Rational(q)),
+                    None => None,
+                };
+            }
+        }
+        let Some(n) = first.as_rat() else {
+            return None;
+        };
+        let Some(d) = second.as_rat() else {
+            return None;
+        };
+        if d.sgn() == 0 {
+            return None;
+        }
+        Some(Lit::Rational(n.div(d)))
+    }
+
+    fn evaluate_to_int(first: &Lit) -> Option<Lit> {
+        match first {
+            Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::Numeral(r.floor())),
+            Lit::Numeral(_) => Some(first.clone()),
+            Lit::Binary(b) => Some(Lit::Numeral(b.value().clone())),
+            // a string of length one gives its code point
             Lit::String(s) => {
-                if op != EvalOp::Concat {
-                    return None;
+                if s.len() == 1 {
+                    Some(Lit::Numeral(Integer::from(s.code_points()[0])))
+                } else {
+                    None
                 }
-                let mut res = s.clone();
-                for a in rest {
-                    res = res.concat(a.as_str()?);
-                }
-                Some(Lit::String(res))
             }
+            _ => None,
+        }
+    }
+
+    fn evaluate_to_bin(first: &Lit, args: &[Lit]) -> Option<Lit> {
+        let Some(size) = first.as_int() else {
+            return None;
+        };
+        if !size.fits_u32() {
+            return None;
+        }
+        let size = size.to_u32();
+        let Some(second) = Lit::arg(args, 1) else {
+            return None;
+        };
+        match second {
+            Lit::Numeral(i) => Some(Lit::Binary(BitVec::new(size, i))),
+            Lit::Hex(b) | Lit::Binary(b) => Some(Lit::Binary(BitVec::new(size, b.value()))),
+            _ => None,
+        }
+    }
+
+    fn evaluate_to_string(first: &Lit) -> Option<Lit> {
+        match first {
+            // a code point gives the string of that one character
+            Lit::Numeral(i) => {
+                if i.fits_u32() && i.to_u32() < NUM_CODES {
+                    Some(Lit::String(EoString::from_code_points(vec![i.to_u32()])))
+                } else {
+                    None
+                }
+            }
+            Lit::String(_) => Some(first.clone()),
+            _ => None,
+        }
+    }
+
+    fn evaluate_gt(first: &Lit, args: &[Lit]) -> Option<Lit> {
+        let Some(second) = Lit::arg(args, 1) else {
+            return None;
+        };
+        if let Lit::Numeral(a) = first {
+            if let Lit::Numeral(b) = second {
+                return Some(Lit::Bool(a > b));
+            }
+        }
+        if let Some(a) = first.as_rat() {
+            if let Some(b) = second.as_rat() {
+                return Some(Lit::Bool(a > b));
+            }
+        }
+        let Some(a) = first.as_bv() else {
+            return None;
+        };
+        let Some(b) = second.as_bv() else {
+            return None;
+        };
+        // bitwise values are only compared at the same width
+        if a.size() != b.size() {
+            return None;
+        }
+        Some(Lit::Bool(a.value() > b.value()))
+    }
+
+    /// An operator of two or more arguments, all of the kind `ka` of the
+    /// first: the arguments are folded from the left.
+    fn evaluate_nary(op: EvalOp, ka: LitKind, args: &[Lit]) -> Option<Lit> {
+        match &args[0] {
+            Lit::Bool(b) => Lit::fold_bool(op, *b, args),
+            Lit::Numeral(i) => Lit::fold_int(op, i, args),
+            Lit::Decimal(r) | Lit::Rational(r) => Lit::fold_rat(op, ka, r, args),
+            Lit::Hex(b) | Lit::Binary(b) => Lit::fold_bv(op, ka, b, args),
+            Lit::String(s) => Lit::fold_str(op, s, args),
+        }
+    }
+
+    fn fold_bool(op: EvalOp, first: bool, args: &[Lit]) -> Option<Lit> {
+        let mut res = Some(first);
+        let mut i = 1;
+        while i < args.len() {
+            res = match res {
+                Some(r) => match args[i].as_bool() {
+                    Some(a) => match op {
+                        EvalOp::And => Some(r && a),
+                        EvalOp::Or => Some(r || a),
+                        EvalOp::Xor => Some((r && !a) || (!r && a)),
+                        _ => None,
+                    },
+                    None => None,
+                },
+                None => None,
+            };
+            i += 1;
+        }
+        match res {
+            Some(r) => Some(Lit::Bool(r)),
+            None => None,
+        }
+    }
+
+    fn fold_int(op: EvalOp, first: &Integer, args: &[Lit]) -> Option<Lit> {
+        let mut res = Some(first.clone());
+        let mut i = 1;
+        while i < args.len() {
+            res = match res {
+                Some(r) => match args[i].as_int() {
+                    Some(a) => match op {
+                        EvalOp::Add => Some(r.add(a)),
+                        EvalOp::Mul => Some(r.mul(a)),
+                        _ => None,
+                    },
+                    None => None,
+                },
+                None => None,
+            };
+            i += 1;
+        }
+        match res {
+            Some(r) => Some(Lit::Numeral(r)),
+            None => None,
+        }
+    }
+
+    fn fold_rat(op: EvalOp, ka: LitKind, first: &Rational, args: &[Lit]) -> Option<Lit> {
+        let mut res = Some(first.clone());
+        let mut i = 1;
+        while i < args.len() {
+            res = match res {
+                Some(r) => match args[i].as_rat() {
+                    Some(a) => match op {
+                        EvalOp::Add => Some(r.add(a)),
+                        EvalOp::Mul => Some(r.mul(a)),
+                        _ => None,
+                    },
+                    None => None,
+                },
+                None => None,
+            };
+            i += 1;
+        }
+        match res {
+            Some(r) => Some(Lit::rational(ka, r)),
+            None => None,
+        }
+    }
+
+    fn is_bv_of_size(&self, size: u32) -> bool {
+        match self.as_bv() {
+            Some(b) => b.size() == size,
+            None => false,
+        }
+    }
+
+    /// Whether every argument after the first is a bit-vector of `size` bits.
+    fn all_of_size(args: &[Lit], size: u32) -> bool {
+        let mut all = true;
+        let mut i = 1;
+        while i < args.len() {
+            if !args[i].is_bv_of_size(size) {
+                all = false;
+            }
+            i += 1;
+        }
+        all
+    }
+
+    fn fold_bv(op: EvalOp, ka: LitKind, first: &BitVec, args: &[Lit]) -> Option<Lit> {
+        let concat = match op {
+            EvalOp::Concat => true,
+            _ => false,
+        };
+        if !concat && !Lit::all_of_size(args, first.size()) {
+            return None;
+        }
+        let mut res = Some(first.clone());
+        let mut i = 1;
+        while i < args.len() {
+            res = match res {
+                Some(r) => match args[i].as_bv() {
+                    Some(a) => match op {
+                        EvalOp::And => Some(r.and(a)),
+                        EvalOp::Or => Some(r.or(a)),
+                        EvalOp::Xor => Some(r.xor(a)),
+                        EvalOp::Add => Some(r.add(a)),
+                        EvalOp::Mul => Some(r.mul(a)),
+                        EvalOp::Concat => Some(r.concat(a)),
+                        _ => None,
+                    },
+                    None => None,
+                },
+                None => None,
+            };
+            i += 1;
+        }
+        match res {
+            Some(r) => Some(Lit::bitvec(ka, r)),
+            None => None,
+        }
+    }
+
+    fn fold_str(op: EvalOp, first: &EoString, args: &[Lit]) -> Option<Lit> {
+        match op {
+            EvalOp::Concat => {}
+            _ => return None,
+        }
+        let mut res = Some(first.clone());
+        let mut i = 1;
+        while i < args.len() {
+            res = match res {
+                Some(r) => match args[i].as_str() {
+                    Some(a) => Some(r.concat(a)),
+                    None => None,
+                },
+                None => None,
+            };
+            i += 1;
+        }
+        match res {
+            Some(r) => Some(Lit::String(r)),
+            None => None,
         }
     }
 
@@ -374,7 +584,7 @@ impl Lit {
             Lit::String(st) => {
                 let dsize = Integer::from(st.len());
                 if i1.sgn() < 0 || i2.sgn() < 0 || *i1 > dsize || dsize.sgn() == 0 {
-                    return Some(Lit::String(EoString::default()));
+                    return Some(Lit::String(EoString::from_code_points(Vec::new())));
                 }
                 let v1 = i1.to_u32() as usize;
                 let vs = st.len();
@@ -428,38 +638,38 @@ mod tests {
     #[test]
     fn arithmetic() {
         assert_eq!(
-            Lit::evaluate(EvalOp::Add, &[&num("1"), &num("2")]),
+            Lit::evaluate(EvalOp::Add, &[num("1"), num("2")]),
             Some(num("3"))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::IntDiv, &[&num("-7"), &num("2")]),
+            Lit::evaluate(EvalOp::IntDiv, &[num("-7"), num("2")]),
             Some(num("-4"))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::IntMod, &[&num("-7"), &num("2")]),
+            Lit::evaluate(EvalOp::IntMod, &[num("-7"), num("2")]),
             Some(num("1"))
         );
-        assert_eq!(Lit::evaluate(EvalOp::IntDiv, &[&num("7"), &num("0")]), None);
+        assert_eq!(Lit::evaluate(EvalOp::IntDiv, &[num("7"), num("0")]), None);
         assert_eq!(
-            Lit::evaluate(EvalOp::IsNeg, &[&num("-1")]),
+            Lit::evaluate(EvalOp::IsNeg, &[num("-1")]),
             Some(Lit::Bool(true))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::Add, &[&num("1"), &Lit::Bool(true)]),
+            Lit::evaluate(EvalOp::Add, &[num("1"), Lit::Bool(true)]),
             None
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::RatDiv, &[&num("6"), &num("4")])
+            Lit::evaluate(EvalOp::RatDiv, &[num("6"), num("4")])
                 .unwrap()
                 .to_string(),
             "3/2"
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::Log, &[&num("2"), &num("9")]),
+            Lit::evaluate(EvalOp::Log, &[num("2"), num("9")]),
             Some(num("3"))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::Pow, &[&num("2"), &num("10")]),
+            Lit::evaluate(EvalOp::Pow, &[num("2"), num("10")]),
             Some(num("1024"))
         );
     }
@@ -467,31 +677,31 @@ mod tests {
     #[test]
     fn strings() {
         assert_eq!(
-            Lit::evaluate(EvalOp::Concat, &[&string("ab"), &string("c")]),
+            Lit::evaluate(EvalOp::Concat, &[string("ab"), string("c")]),
             Some(string("abc"))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::Extract, &[&string("hello"), &num("1"), &num("3")]),
+            Lit::evaluate(EvalOp::Extract, &[string("hello"), num("1"), num("3")]),
             Some(string("ell"))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::Extract, &[&string("hello"), &num("3"), &num("99")]),
+            Lit::evaluate(EvalOp::Extract, &[string("hello"), num("3"), num("99")]),
             Some(string("lo"))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::Extract, &[&string("hello"), &num("5"), &num("9")]),
+            Lit::evaluate(EvalOp::Extract, &[string("hello"), num("5"), num("9")]),
             Some(string(""))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::Find, &[&string("abc"), &string("z")]),
+            Lit::evaluate(EvalOp::Find, &[string("abc"), string("z")]),
             Some(num("-1"))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::ToInt, &[&string("A")]),
+            Lit::evaluate(EvalOp::ToInt, &[string("A")]),
             Some(num("65"))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::ToString, &[&num("65")]),
+            Lit::evaluate(EvalOp::ToString, &[num("65")]),
             Some(string("A"))
         );
     }
@@ -499,33 +709,33 @@ mod tests {
     #[test]
     fn bitvectors() {
         assert_eq!(
-            Lit::evaluate(EvalOp::Extract, &[&bin("10110"), &num("1"), &num("3")]),
+            Lit::evaluate(EvalOp::Extract, &[bin("10110"), num("1"), num("3")]),
             Some(bin("011"))
         );
         // an upper index at or past the width is cut to the last bit, and
         // a lower index at the width gives the empty bit-vector
         assert_eq!(
-            Lit::evaluate(EvalOp::Extract, &[&bin("101"), &num("1"), &num("3")]),
+            Lit::evaluate(EvalOp::Extract, &[bin("101"), num("1"), num("3")]),
             Some(bin("10"))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::Extract, &[&bin("101"), &num("3"), &num("5")]),
+            Lit::evaluate(EvalOp::Extract, &[bin("101"), num("3"), num("5")]),
             Some(Lit::Binary(BitVec::zero(0)))
         );
         // bit-vectors are compared only at the same width
         assert_eq!(
-            Lit::evaluate(EvalOp::Gt, &[&bin("10"), &bin("01")]),
+            Lit::evaluate(EvalOp::Gt, &[bin("10"), bin("01")]),
             Some(Lit::Bool(true))
         );
-        assert_eq!(Lit::evaluate(EvalOp::Gt, &[&bin("10"), &bin("001")]), None);
+        assert_eq!(Lit::evaluate(EvalOp::Gt, &[bin("10"), bin("001")]), None);
         assert_eq!(
-            Lit::evaluate(EvalOp::ToBin, &[&num("4"), &num("-1")]),
+            Lit::evaluate(EvalOp::ToBin, &[num("4"), num("-1")]),
             Some(bin("1111"))
         );
         assert_eq!(
-            Lit::evaluate(EvalOp::Length, &[&bin("0000")]),
+            Lit::evaluate(EvalOp::Length, &[bin("0000")]),
             Some(num("4"))
         );
-        assert_eq!(Lit::evaluate(EvalOp::Add, &[&bin("01"), &bin("001")]), None);
+        assert_eq!(Lit::evaluate(EvalOp::Add, &[bin("01"), bin("001")]), None);
     }
 }

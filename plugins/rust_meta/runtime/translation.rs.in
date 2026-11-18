@@ -22,10 +22,9 @@ enum ArgKind {
 }
 
 impl Store {
-    pub fn check_proof(&mut self, assumptions: Term, commands: Term) -> CheckResult<Verdict> {
-        with_checker_stack(|| self.check_proof_inner(assumptions, commands))
-    }
-    fn check_proof_inner(&mut self, assumptions: Term, commands: Term) -> CheckResult<Verdict> {
+    /// The verdict on a proof. To be called on the checker's stack: see
+    /// `Store::check_proof`.
+    pub(crate) fn check_proof_inner(&mut self, assumptions: Term, commands: Term) -> CheckResult<Verdict> {
         if !self.check_refutation_inner(assumptions, commands)? {
             return Ok(Verdict::Incorrect);
         }

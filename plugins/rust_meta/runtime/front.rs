@@ -10,8 +10,8 @@
 mod names;
 
 use crate::{
-    BitVec, CheckError, CheckResult, Constructor, EoString, Integer, Lit, NUM_CODES, Store, Term,
-    TermData,
+    BitVec, CHECKER_STACK_SIZE, CheckError, CheckResult, Constructor, EoString, Integer, Lit,
+    NUM_CODES, Rational, Store, Term, TermData, Verdict,
 };
 use std::fmt::{self, Write};
 
@@ -89,6 +89,49 @@ impl Store {
     pub fn named(&mut self, name: &str, args: &[Term]) -> CheckResult<Term> {
         let c = Constructor::from_name(name).ok_or(CheckError::InvalidConstructor)?;
         self.construct(c, args)
+    }
+}
+
+// The checker's thread, and the entry points that start it.
+
+/// Keep recursive rule code on a deliberately sized stack. Errors and worker
+/// failures remain values. Resource limits are checked before recursive calls.
+pub fn with_checker_stack<T: Send>(f: impl FnOnce() -> CheckResult<T> + Send) -> CheckResult<T> {
+    std::thread::scope(|scope| {
+        std::thread::Builder::new()
+            .stack_size(CHECKER_STACK_SIZE)
+            .spawn_scoped(scope, f)
+            .map_err(|_| CheckError::Worker)?
+            .join()
+            .map_err(|_| CheckError::Worker)?
+    })
+}
+
+pub(crate) fn parse_int(s: &str) -> CheckResult<Integer> {
+    Integer::parse(s, 10).ok_or(CheckError::InvalidNative)
+}
+pub fn parse_rat(s: &str) -> CheckResult<Rational> {
+    Rational::parse(s).ok_or(CheckError::InvalidNative)
+}
+
+impl Store {
+    /// Check the entire proof state machine, including typing, assumptions,
+    /// step-pop, premise lookup and the final closed refutation test.
+    pub fn check_refutation(&mut self, assumptions: Term, commands: Term) -> CheckResult<bool> {
+        with_checker_stack(|| self.check_refutation_inner(assumptions, commands))
+    }
+    /// The verdict on a proof: `check_refutation` and Logos's translation
+    /// side conditions.
+    pub fn check_proof(&mut self, assumptions: Term, commands: Term) -> CheckResult<Verdict> {
+        with_checker_stack(|| self.check_proof_inner(assumptions, commands))
+    }
+}
+
+// A handle as a key of the hash maps of the program that builds the
+// checker's input.
+impl std::hash::Hash for Term {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write_u32(self.0);
     }
 }
 

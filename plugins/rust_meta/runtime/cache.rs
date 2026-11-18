@@ -165,7 +165,7 @@ impl ProgramCache {
     }
 
     fn clear(&mut self) {
-        self.entries.clear();
+        self.entries = Vec::new();
         let mut i = 0;
         while i < self.slots.len() {
             self.slots[i] = 0;
@@ -221,7 +221,11 @@ impl Caches {
         if !self.enabled {
             return None;
         }
-        let entry = self.types.get(term.0 as usize)?;
+        let i = term.0 as usize;
+        if i >= self.types.len() {
+            return None;
+        }
+        let entry = &self.types[i];
         let result = match kind {
             TypeCacheKind::Eunoia => entry.eo,
             TypeCacheKind::Smt => entry.smt,
