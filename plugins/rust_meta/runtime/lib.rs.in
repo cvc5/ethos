@@ -83,13 +83,15 @@ impl TermHasher {
     }
 }
 type TermBuildHasher = std::hash::BuildHasherDefault<TermHasher>;
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum CheckError {
     InvalidHandle,
     InvalidConstructor,
     InvalidNative,
-    /// An operation the runtime does not have, by its name.
-    UnsupportedNative(&'static str),
+    /// An operation or a constant the runtime does not have. The number
+    /// stands for its name, which `CheckError::unsupported_name` gives and
+    /// which the error is printed with.
+    UnsupportedNative(u32),
     Limit,
     Worker,
 }
@@ -399,12 +401,16 @@ impl Store {
             TermData::Native(lit) => lit,
             _ => return Err(CheckError::InvalidNative),
         };
-        let valid = match (e, lit) {
-            (Embedding::Boolean, Lit::Bool(_)) => true,
-            (Embedding::Numeral, Lit::Numeral(_)) => true,
-            (Embedding::Rational, Lit::Rational(_)) => true,
-            (Embedding::String, Lit::String(_)) => true,
-            _ => false,
+        let kind = match lit {
+            Lit::Bool(_) => Embedding::Boolean,
+            Lit::Numeral(_) => Embedding::Numeral,
+            Lit::Rational(_) => Embedding::Rational,
+            Lit::String(_) => Embedding::String,
+            _ => Embedding::Data,
+        };
+        let valid = match e {
+            Embedding::Data => false,
+            _ => e == kind,
         };
         if !valid {
             return Err(CheckError::InvalidNative);
@@ -436,16 +442,7 @@ impl Store {
                 Embedding::Apply => Hit::Done(Some(vec![*f, *a])),
                 _ => Hit::Done(None),
             },
-            TermData::Literal(lit) => match (e, lit) {
-                (Embedding::Boolean, Lit::Bool(_))
-                | (Embedding::Numeral, Lit::Numeral(_))
-                | (Embedding::Rational, Lit::Rational(_))
-                | (Embedding::String, Lit::String(_)) => Hit::Raw(lit.clone()),
-                (Embedding::Binary, Lit::Binary(b)) => {
-                    Hit::Binary(Integer::from(b.size()), b.value().clone())
-                }
-                _ => Hit::Done(None),
-            },
+            TermData::Literal(lit) => Self::destruct_literal(e, lit),
             TermData::Node(d, fields) if c == *d => Hit::Done(Some(fields.clone())),
             _ => Hit::Done(None),
         };
@@ -460,6 +457,28 @@ impl Store {
                 let value = self.raw(Lit::Numeral(value))?;
                 Ok(Some(vec![size, value]))
             }
+        }
+    }
+    /// The native fields of an object literal, if `e` is its kind.
+    fn destruct_literal(e: Embedding, lit: &Lit) -> Hit {
+        let kind = match lit {
+            Lit::Bool(_) => Embedding::Boolean,
+            Lit::Numeral(_) => Embedding::Numeral,
+            Lit::Rational(_) => Embedding::Rational,
+            Lit::String(_) => Embedding::String,
+            Lit::Binary(_) => Embedding::Binary,
+            _ => Embedding::Data,
+        };
+        let hit = match e {
+            Embedding::Data => false,
+            _ => e == kind,
+        };
+        if !hit {
+            return Hit::Done(None);
+        }
+        match lit {
+            Lit::Binary(b) => Hit::Binary(Integer::from(b.size()), b.value().clone()),
+            _ => Hit::Raw(lit.clone()),
         }
     }
     /// The wrapper view of a user operator: the operator, then its fields.

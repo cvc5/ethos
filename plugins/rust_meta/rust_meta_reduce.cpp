@@ -497,8 +497,29 @@ std::string RustMetaReduce::constructorNames() const
   {
     out << quote(c.first) << " => Self::" << ident(c.first) << ",\n";
   }
-  out << "_ => return None, }) }\n}\n";
+  out << "_ => return None, }) }\n}\n"
+         "/// The names and constants that generated code passes to the\n"
+         "/// runtime as numbers: their places in this list.\n"
+         "pub(crate) const NATIVE_TEXTS: &[&str] = &[\n";
+  for (const std::string& text : d_nativeTexts)
+  {
+    out << quote(text) << ",\n";
+  }
+  out << "];\n";
   return out.str();
+}
+
+size_t RustMetaReduce::nativeText(const std::string& text)
+{
+  for (size_t i = 0; i < d_nativeTexts.size(); ++i)
+  {
+    if (d_nativeTexts[i] == text)
+    {
+      return i;
+    }
+  }
+  d_nativeTexts.push_back(text);
+  return d_nativeTexts.size() - 1;
 }
 
 std::string RustMetaReduce::constructorOption(const std::string& name) const
@@ -668,12 +689,13 @@ class RustMetaReduce::Emitter
         return "s.native_nat_zero()?";
       }
       // a numeral or a string, which the runtime reads
-      return "s.native_constant(" + quote(name) + ")?";
+      return "s.native_constant(" + std::to_string(m.nativeText(name)) + ")?";
     }
     auto it = ops.find(name);
     if (it == ops.end() || it->second.second != nargs)
     {
-      return "s.unsupported_native(" + quote(name) + ")?";
+      return "s.unsupported_native(" + std::to_string(m.nativeText(name))
+             + ")?";
     }
     return "s.native_op(NativeOp::" + it->second.first + ", &[" + as + "])?";
   }
@@ -692,7 +714,8 @@ class RustMetaReduce::Emitter
     {
       return "s.native_pattern_nat_zero(" + value + ")?";
     }
-    return "s.native_pattern_constant(" + quote(name) + ", " + value + ")?";
+    return "s.native_pattern_constant(" + std::to_string(m.nativeText(name))
+           + ", " + value + ")?";
   }
   /**
    * The term of the constructor `name` of the embedding, which a signature
@@ -1305,8 +1328,8 @@ void RustMetaReduce::finalize()
   checks =
       replace_all(checks, "@HAS_TRANSLATION@", translation ? "true" : "false");
   const std::string unavailable =
-      "let _ = t; Err(CheckError::UnsupportedNative(\"SMT translation is "
-      "unavailable\"))";
+      "let _ = t; Err(CheckError::UnsupportedNative("
+      + std::to_string(nativeText("SMT translation is unavailable")) + "))";
   checks = replace_all(checks,
                        "@TRANSLATION_TYPE@",
                        translation ? "let t = generated::" + ident("$eo_to_smt")

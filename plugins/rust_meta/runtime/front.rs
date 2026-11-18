@@ -12,16 +12,47 @@ mod names;
 use crate::{CheckError, CheckResult, Constructor, EoString, Integer, Lit, Store, Term, TermData};
 use std::fmt;
 
+impl CheckError {
+    /// The name of the operation or constant of `UnsupportedNative`.
+    pub fn unsupported_name(&self) -> Option<&'static str> {
+        match self {
+            CheckError::UnsupportedNative(name) => Some(native_text(*name)),
+            _ => None,
+        }
+    }
+}
+impl fmt::Debug for CheckError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CheckError::InvalidHandle => f.write_str("InvalidHandle"),
+            CheckError::InvalidConstructor => f.write_str("InvalidConstructor"),
+            CheckError::InvalidNative => f.write_str("InvalidNative"),
+            CheckError::UnsupportedNative(name) => {
+                write!(f, "UnsupportedNative({:?})", native_text(*name))
+            }
+            CheckError::Limit => f.write_str("Limit"),
+            CheckError::Worker => f.write_str("Worker"),
+        }
+    }
+}
 impl fmt::Display for CheckError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{self:?}")
     }
 }
 
+/// The text a number stands for in `CheckError::UnsupportedNative` and
+/// in the calls for native constants: the generator numbers the names and
+/// constants it passes to the runtime.
+fn native_text(code: u32) -> &'static str {
+    names::NATIVE_TEXTS.get(code as usize).copied().unwrap_or("")
+}
+
 /// A native constant as the EO definitions write it: `true`, `false`,
 /// `nat.zero`, a numeral or a string literal.
 #[allow(dead_code)] // A signature need not have such a constant.
-pub(crate) fn native_literal(op: &'static str) -> CheckResult<Lit> {
+pub(crate) fn native_literal(code: u32) -> CheckResult<Lit> {
+    let op = native_text(code);
     Ok(if op == "true" || op == "false" {
         Lit::Bool(op == "true")
     } else if op == "nat.zero" {
@@ -34,7 +65,7 @@ pub(crate) fn native_literal(op: &'static str) -> CheckResult<Lit> {
             true,
         ))
     } else {
-        return Err(CheckError::UnsupportedNative(op));
+        return Err(CheckError::UnsupportedNative(code));
     })
 }
 

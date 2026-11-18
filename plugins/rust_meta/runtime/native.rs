@@ -90,8 +90,8 @@ impl NativeOp {
 impl Store {
     /// What generated code calls in the place of an operation whose name
     /// the runtime does not have, or with a number of arguments it does
-    /// not take.
-    pub(crate) fn unsupported_native(&mut self, name: &'static str) -> CheckResult<Term> {
+    /// not take. `name` stands for the name (see `CheckError`).
+    pub(crate) fn unsupported_native(&mut self, name: u32) -> CheckResult<Term> {
         Err(CheckError::UnsupportedNative(name))
     }
     /// What generated code calls in the place of a constructor of the
@@ -108,8 +108,9 @@ impl Store {
         self.raw(Lit::Numeral(Integer::zero()))
     }
     /// Another native constant, written as in the EO definitions: a
-    /// numeral or a string literal.
-    pub(crate) fn native_constant(&mut self, text: &'static str) -> CheckResult<Term> {
+    /// numeral or a string literal. `text` stands for what is written (see
+    /// `CheckError`).
+    pub(crate) fn native_constant(&mut self, text: u32) -> CheckResult<Term> {
         let lit = crate::front::native_literal(text)?;
         self.raw(lit)
     }
@@ -139,7 +140,7 @@ impl Store {
     }
     pub(crate) fn native_pattern_constant(
         &mut self,
-        text: &'static str,
+        text: u32,
         t: Term,
     ) -> CheckResult<Option<Vec<Term>>> {
         let expected = self.native_constant(text)?;
@@ -394,20 +395,27 @@ impl Store {
     }
     fn native_string_prefix_eq(&mut self, x: Term, y: Term) -> CheckResult<Term> {
         // Both strings are read before either is refused.
-        let (TermData::Native(Lit::String(x)), TermData::Native(Lit::String(y))) =
-            (self.view(x)?, self.view(y)?)
-        else {
-            return Err(CheckError::InvalidNative);
-        };
-        let (x, y) = (x.code_points(), y.code_points());
-        let mut prefix = x.len() <= y.len();
-        let mut i = 0;
-        while prefix && i < x.len() {
-            if x[i] != y[i] {
-                prefix = false;
-            }
-            i += 1;
-        }
+        self.view(x)?;
+        self.view(y)?;
+        let x = self.native_string(x)?;
+        let y = self.native_string(y)?;
+        let prefix = is_prefix(x.code_points(), y.code_points());
         self.native_bool(prefix)
     }
+}
+
+/// Whether `y` begins with `x`.
+fn is_prefix(x: &[u32], y: &[u32]) -> bool {
+    if x.len() > y.len() {
+        return false;
+    }
+    let mut prefix = true;
+    let mut i = 0;
+    while i < x.len() {
+        if x[i] != y[i] {
+            prefix = false;
+        }
+        i += 1;
+    }
+    prefix
 }

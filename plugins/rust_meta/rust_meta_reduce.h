@@ -51,6 +51,12 @@ class RustMetaReduce : public MetaReducePlugin
   std::string schema() const;
   /** The constructors by name, for the runtime's front part. */
   std::string constructorNames() const;
+  /**
+   * The number that stands for `text` in the calls of generated code: a
+   * name or a constant the runtime is given only to read or to report.
+   */
+  size_t nativeText(const std::string& text);
+  std::vector<std::string> d_nativeTexts;
   /** `Some(Constructor::X)` for a constructor of the signature, else `None`. */
   std::string constructorOption(const std::string& name) const;
   /** A runtime template with each `@ctor:NAME@` replaced by that. */
