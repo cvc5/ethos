@@ -1,0 +1,29 @@
+; Cases where ethos must agree with the definitions of the desugar plugin.
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-const BitVec (-> Int Type))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
+
+; bitwise values of different bitwidths are not compared
+(declare-const test01 (eo::requires (eo::is_ok (eo::gt #b10 #b001)) false Bool))
+(declare-const test02 (eo::requires (eo::gt #b10 #b01) true Bool))
+
+; list operators do not evaluate on arguments that are not values
+(declare-const fr (-> Int Int Int) :right-assoc-nil 0)
+(declare-const a Int)
+(declare-const test03 (eo::requires (eo::is_ok (eo::list_find fr (fr a (eo::zdiv 1 0)) (eo::zdiv 1 0))) false Bool))
+(declare-const test04 (eo::requires (eo::is_ok (eo::list_len fr (fr a (eo::zdiv 1 0)))) false Bool))
+(declare-const test05 (eo::requires (eo::is_ok (eo::list_erase fr (fr a (eo::zdiv 1 0)) a)) false Bool))
+(declare-const test06 (eo::requires (eo::is_ok (eo::cons fr (eo::zdiv 1 0) (fr a))) false Bool))
+(declare-const test07 (eo::requires (eo::list_find fr (fr a (eo::zdiv 1 1)) 1) 1 Bool))
+
+; the upper index of extract is cut to the last bit
+(declare-const test09 (eo::requires (eo::extract #b101 0 3) #b101 Bool))
+(declare-const test10 (eo::requires (eo::extract #b101 1 3) #b10 Bool))
+(declare-const test11 (eo::requires (eo::extract #b101 2 2) #b1 Bool))
+(declare-const test12 (eo::requires (eo::len (eo::extract #b101 3 5)) 0 Bool))
+(declare-const test13 (eo::requires (eo::extract "abc" 0 3) "abc" Bool))
+
+; the width of to_bin must be a 32-bit numeral
+(declare-const test14 (eo::requires (eo::is_ok (eo::to_bin 4294967296 0)) false Bool))
+(declare-const test15 (eo::requires (eo::to_bin 2 1) #b01 Bool))

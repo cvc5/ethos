@@ -1420,6 +1420,17 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   {
     return d_null;
   }
+  // list operators only evaluate if their arguments are values, i.e. none of
+  // them contain an operator or program that failed to evaluate
+  for (ExprValue* e : args)
+  {
+    if (e->isEvaluatable())
+    {
+      Trace("type_checker") << "...does not evaluate (list, non-value)"
+                            << std::endl;
+      return d_null;
+    }
+  }
   // otherwise, maybe a list operation
   ExprValue* op = args[0];
   // strip off parameterized to look up AppInfo

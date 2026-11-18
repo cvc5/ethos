@@ -218,6 +218,19 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     cattr = it->second.first;
     cattrCons = it->second.second;
   }
+  if (cattr == Attr::LEFT_ASSOC_NIL || cattr == Attr::LEFT_ASSOC_NS_NIL)
+  {
+    // The list operators this stage defines take lists apart in the right
+    // associative direction only, where the evaluator also supports left
+    // associative lists. We reject these operators rather than give them a
+    // semantics that disagrees with the evaluator.
+    EO_FATAL() << "Desugar: the operator " << e << " is declared "
+               << (cattr == Attr::LEFT_ASSOC_NIL
+                       ? ":left-assoc-nil"
+                       : ":left-assoc-non-singleton-nil")
+               << ", which is not supported, since left associative lists are "
+                  "not modelled by the semantics of the eo:: list operators";
+  }
   // Assign the emitted name before generating any attribute-specific cases so
   // every reference below uses the same overload suffix as the declaration.
   std::stringstream cnss;
@@ -1358,66 +1371,73 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
     case Kind::BINARY: eoss << "Binary"; break;
     case Kind::STRING: eoss << "String"; break;
     case Kind::DECIMAL:
-    case Kind::HEXADECIMAL: break;
+    case Kind::HEXADECIMAL:
+      // The semantics of the eo:: operators this stage defines has one kind
+      // of rational and one kind of binary, where the evaluator distinguishes
+      // decimals from rationals and hexadecimals from binaries. A signature
+      // with these literals would be given a semantics that disagrees with
+      // the evaluator, hence we reject it.
+      EO_FATAL() << "Desugar: "
+                 << (k == Kind::DECIMAL ? "<decimal>" : "<hexadecimal>")
+                 << " literals are not supported, since they are not modelled by the "
+                    "semantics of the eo:: operators";
+      break;
     default: EO_FATAL() << "Unknown literal type rule" << k << std::endl; break;
   }
   // declared at the top
-  if (!eoss.str().empty())
+  // get the symbols and declare them in the preamble
+  std::vector<Expr> syms = getSubtermsKind(Kind::CONST, t);
+  for (const Expr& s : syms)
   {
-    // get the symbols and declare them in the preamble
-    std::vector<Expr> syms = getSubtermsKind(Kind::CONST, t);
-    for (const Expr& s : syms)
+    if (d_ltDeclProcessed.find(s) != d_ltDeclProcessed.end())
     {
-      if (d_ltDeclProcessed.find(s) != d_ltDeclProcessed.end())
-      {
-        continue;
-      }
-      d_ltDeclProcessed.insert(s);
-      finalizeDeclaration(s, d_litTypeDecl);
+      continue;
     }
+    d_ltDeclProcessed.insert(s);
+    finalizeDeclaration(s, d_litTypeDecl);
+  }
+  d_litTypeDecl << "; type-rules: " << k << std::endl;
+  d_litTypeDecl << "(declare-consts " << literalKindToString(k) << " ";
+  printTerm(t, d_litTypeDecl);
+  d_litTypeDecl << ")" << std::endl;
+  // A literal type may be non-ground if it uses eo::self.
+  // For consistency, we always define the program $eo_lit_type_X, even
+  // if the type is ground. We additionally always define the nullary type
+  // $eo_X, even if the type is non-ground, in which case we arbitrarily
+  // instantiate it with getGroundTermForLiteralKind.
+  Expr ltinst = t;
+  Expr ltg = t;
+  if (t.isGround())
+  {
     d_litTypeDecl << "; type-rules: " << k << std::endl;
-    d_litTypeDecl << "(declare-consts " << literalKindToString(k) << " ";
-    printTerm(t, d_litTypeDecl);
-    d_litTypeDecl << ")" << std::endl;
-    // A literal type may be non-ground if it uses eo::self.
-    // For consistency, we always define the program $eo_lit_type_X, even
-    // if the type is ground. We additionally always define the nullary type
-    // $eo_X, even if the type is non-ground, in which case we arbitrarily
-    // instantiate it with getGroundTermForLiteralKind.
-    Expr ltinst = t;
-    Expr ltg = t;
-    if (t.isGround())
-    {
-      d_litTypeDecl << "; type-rules: " << k << std::endl;
-    }
-    else
-    {
-      Expr ty = d_state.mkSymbol(Kind::CONST, "t", d_state.mkAny());
-      Expr gt = getGroundTermForLiteralKind(k);
-      ltg = d_tc.getLiteralTypeRule(k, gt.getValue());
-      ltinst = d_tc.getLiteralTypeRule(k, ty.getValue());
-      d_litTypeDecl << "; (approx) type-rules: " << k << std::endl;
-    }
-    d_litTypeDecl << "(define $eo_" << eoss.str() << " () ";
-    printTerm(ltg, d_litTypeDecl);
-    d_litTypeDecl << ")" << std::endl;
-    d_litTypeProg << "(program $eo_lit_type_" << eoss.str()
-                  << " ((T Type) (t T))" << std::endl;
-    d_litTypeProg << "  :signature (T) Type" << std::endl;
-    d_litTypeProg << "  (" << std::endl;
-    d_litTypeProg << "  (($eo_lit_type_" << eoss.str() << " t) ";
-    printTerm(ltinst, d_litTypeProg);
-    d_litTypeProg << ")" << std::endl;
-    d_litTypeProg << "  )" << std::endl;
-    d_litTypeProg << ")" << std::endl;
-    // since $eo_Numeral is used to define the type rules for builtin
-    // operators, it must have a ground type. It is ltg rather than t that
-    // is defined as $eo_Numeral, and the branch above is what makes it
-    // ground where t, using eo::self, is not.
-    if (k == Kind::NUMERAL)
-    {
-      Assert(ltg.isGround()) << "Must have a ground type for <numeral>.";
-    }
+  }
+  else
+  {
+    Expr ty = d_state.mkSymbol(Kind::CONST, "t", d_state.mkAny());
+    Expr gt = getGroundTermForLiteralKind(k);
+    ltg = d_tc.getLiteralTypeRule(k, gt.getValue());
+    ltinst = d_tc.getLiteralTypeRule(k, ty.getValue());
+    d_litTypeDecl << "; (approx) type-rules: " << k << std::endl;
+  }
+  d_litTypeDecl << "(define $eo_" << eoss.str() << " () ";
+  printTerm(ltg, d_litTypeDecl);
+  d_litTypeDecl << ")" << std::endl;
+  d_litTypeProg << "(program $eo_lit_type_" << eoss.str()
+                << " ((T Type) (t T))" << std::endl;
+  d_litTypeProg << "  :signature (T) Type" << std::endl;
+  d_litTypeProg << "  (" << std::endl;
+  d_litTypeProg << "  (($eo_lit_type_" << eoss.str() << " t) ";
+  printTerm(ltinst, d_litTypeProg);
+  d_litTypeProg << ")" << std::endl;
+  d_litTypeProg << "  )" << std::endl;
+  d_litTypeProg << ")" << std::endl;
+  // since $eo_Numeral is used to define the type rules for builtin
+  // operators, it must have a ground type. It is ltg rather than t that
+  // is defined as $eo_Numeral, and the branch above is what makes it
+  // ground where t, using eo::self, is not.
+  if (k == Kind::NUMERAL)
+  {
+    Assert(ltg.isGround()) << "Must have a ground type for <numeral>.";
   }
 }
 
