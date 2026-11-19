@@ -3,9 +3,9 @@
 # compiled. This is what says the bytes have not moved; run that
 # file with --update to write this one.
 f6d0f1a3ddaffcc01b59d18943056324adc56e9382a133e553798349bac3413e  Booleans-rules/eo.eo
-32b8f346b3ea70776df02664ab461135ebc5ea06bb06e30442d446f06c9ca35f  Booleans-rules/lean-booleans-rules-defs.eo
+767849403a8a6db260d732888c1e620f19e14a3d94d6147b27b2d362c8757e8d  Booleans-rules/lean-booleans-rules-defs.eo
 7269e6f36d372e3fd5a639638f6eb9699e3069a9b09c6cd7b292a5301125e9b7  Booleans-rules/lean-booleans-rules-desugar.eo
-e7bf5078de4e4bbe1fae21a11ddb208787931a35a7b61809420da515685617f8  Booleans-rules/lean-booleans-rules-final.eo
+40fd7842fd80b33bc1ddf4e46faaca1b55348734a7435eacbffa3a961a969ad3  Booleans-rules/lean-booleans-rules-final.eo
 d63e0890c8c6b9f3c3d3c784de6c80d93c0d188b0b450302e8b4b6cd6a97bf36  Booleans-rules/lean-booleans-rules-trim.eo
 ca7c15eea3ec8779faff71a18f5a46246b80697c9fad24fd2fda01df58a61cc1  Booleans-rules/lean/Logos.lean
 700d3bad296a3bad9ef66c91d57dcb60f52001182726af2f7538ebd224271183  Booleans-rules/lean/LogosTerm.lean
@@ -26,12 +26,12 @@ de23ce5350fb101be274b81db7d2ae85540771c016bc54d13e99afabae4b714a  Booleans-rules
 6436b5358d7e033ae2b3e500ebb1925527f85a06ed2bd305f3e5a8e8a1fb4d06  Booleans-rules/trim-booleans-rules.eo
 0226004609a369db39977d9c921a818afb5d27482e2c71cf823905024b70e737  Booleans-rules/trim-d-booleans-rules.eo
 6b03bcab587f6065c25de4054a55c0bec71753ea34781be08559c58ba14c4a32  Booleans-rules/vc/final-booleans-rules-and_intro.smt2
-d4fbd331b55837b2d54510386de556b745c791eca7a0572b46d22c50101bbb2b  Booleans-rules/vcm-def-booleans-rules.eo
-0f990bf8728e87e2b6dbe16660c22d41c38de4c35b13604dc21584964365e18d  Booleans-rules/vcmt-def-booleans-rules.eo
+07a27ed6426a8d164a7cfa2c0562aa3b69c49da80fdee896c187ad1ed7682136  Booleans-rules/vcm-def-booleans-rules.eo
+ec8af608a03c64dd3b2dfd5f0359a47dc24d2f2b66f8d546b316e4a5f76b6795  Booleans-rules/vcmt-def-booleans-rules.eo
 894a6eaa3f207d0b8451f6e85c06d3b5b094584a9a8b69c26892fc774a1bea17  nary-nil/eo.eo
-4963e4e31cf883926fd81502f89d208c7a4f079452645998e96c0c14c2231c0c  nary-nil/lean-nary-nil-defs.eo
+634f0bed66b2a02d051adaac4ca3fdba00c694f14f59b2c289a7a4fe774d6602  nary-nil/lean-nary-nil-defs.eo
 7419ed565625b9574000808722c5c0ac1a29e25c144ebdaa16e1756ad1e46ba9  nary-nil/lean-nary-nil-desugar.eo
-8311adc38a400ae9fa8020becd5419cbc916de35a64eb8d67b9323f6b640ba4e  nary-nil/lean-nary-nil-final.eo
+b7327fe1ef77195be908eaac572607e206d028b4a3f1c76eb84ef16f593e7247  nary-nil/lean-nary-nil-final.eo
 eb43d78dec91fa0e22772cd6ee3b9c1a09bd3dae900e565e55e0f0c9c9fd2f5d  nary-nil/lean-nary-nil-trim.eo
 a7efa87ca5e6cee60aa3be9a20f6830e1469156b82c71cf78c3e4f009979e01d  nary-nil/lean/Logos.lean
 e4a605fad094d964d568e610b3686159240541d8cf5af6425f98fed448663f4a  nary-nil/lean/LogosTerm.lean
@@ -52,5 +52,5 @@ f2b5ed4249e4b171c72a20240639fe4a3ac6246a211e61923f2a0fa462608852  nary-nil/sygus
 b8145d428fba427030c6bc6a9e5c331880e43fec1a1bfcf818a28ae728339869  nary-nil/trim-d-nary-nil.eo
 1165630e3d0a7978fa988ead29fd7c14afe24adae21deb68083a32c3c75de601  nary-nil/trim-nary-nil.eo
 edd7c64dd3a987a45f4641cdaca6cf4f4ac0d1bcf7f8edf2cbd08f654e012969  nary-nil/vc/final-nary-nil-str_concat_lprefix.smt2
-70372d04b708bc84f0b884110dbf948892a818a6decf711213444c2e29447922  nary-nil/vcm-def-nary-nil.eo
-1b38c70367618b006a9d06933a02575a9069cbdb9bfa36aee27544aa5853cdaf  nary-nil/vcmt-def-nary-nil.eo
+3c3ce8aec3ee8352670c1c502a4abbd7c8e710e2c48265405a3a27f8d5533e70  nary-nil/vcm-def-nary-nil.eo
+492560a3d9bd8e88bd788b9bdbc6f00fe931e9fef1ffddaa414060cf4f0f30a2  nary-nil/vcmt-def-nary-nil.eo

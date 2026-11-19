@@ -256,18 +256,19 @@ its cases are written at. Those lines are compiled from
 `tools/eoc/compiler/sem_target.py`, and this stage needs no change and no
 rebuild.
 
-One aggregate of the input is asked of an application rather than of a
-symbol: `:apply` says what an application `(f y)` whose head `f` is itself an
-application of the symbol becomes, which is how a redex of a binder of the
-input is transformed. Its cases are given `arg`, what `y` transforms into, and
-`app`, what the application is in the embedding, and say what they match of
-`f`. The template writes `$eo_to_smt_apply`, and routes an application through
-it, only where some symbol of the input says an `:apply` case (the
-`;$IF_APPLY$` regions of `model_smt.eo`), so a calculus without one is
-transformed exactly as before. The aggregate is declared `:late`: what its
-cases name (the `bind` a redex becomes, say) is not moved ahead of the symbol
-whose case it is, so the cases of the target's aggregates, and the equation
-lemmas Lean numbers them by, stand where they would were no redex transformed.
+A signature may also give an aggregate cases of its own, by a program named
+after the aggregate itself, e.g. `(program $eo_to_smt ...)`. Its cases are
+written after the case of every symbol, and before what the template says of
+whatever is left, so a case that matches more than one symbol applied to its
+arguments is tried only once every symbol's own case has been. Its parameters
+are ones the aggregate declares in `model_smt.eo`. The program stands in the
+block of the symbol it is written after, so it is taken only where that symbol
+is, and what it calls is placed where the rest of the input places it, not
+moved ahead of that symbol, so the cases of the other aggregates, and the
+equation lemmas Lean numbers them by, stand where they would without it. A
+case may put back together what it matched of the input, e.g. `(f x1)` for a
+pattern `(_ (f x1) y)`, which is transformed where a term is wanted, as a name
+of the input is.
 
 A body may evaluate a term in a model other than the one it is given by naming
 the evaluator with both, `($smtx_model_eval N t)`, which is what the parallel
@@ -433,8 +434,8 @@ prove them or build the package.
 - **Proof-level lambda on its own.** A lambda transforms into no term: SMT-LIB
   has none. What does have a meaning is a beta-redex, an application spine
   headed by one, which Logos's `install/defs/Cpc.eos` transforms into the
-  parallel `let` (`bind`) of its body through the `:apply` cases of `lambda`,
-  see `$eo_to_smt_apply` in `plugins/model_smt/model_smt.eo`.
+  parallel `let` (`bind`) of its body by a case of `$eo_to_smt` of its own,
+  written after the case of every symbol.
 - **Parametric datatypes.** The model embedding's datatype declarations have
   no type parameters. A source signature accepted by Ethos can therefore be
   outside this compiler's model.

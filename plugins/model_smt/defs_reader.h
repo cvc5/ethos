@@ -42,12 +42,6 @@ struct DefsAggregate
   std::string d_case;
   /** The marker of the template what is taken from it is written at. */
   std::string d_into;
-  /**
-   * Whether what its cases name stays where the rest of the input places it
-   * rather than moving ahead of the symbol whose case it is, which `late` at
-   * the end of the line says. See orderByDeclarations.
-   */
-  bool d_late = false;
 };
 
 /**
@@ -114,10 +108,13 @@ struct DefsBlock
   /** The names it uses that it does not define. */
   std::set<std::string> d_uses;
   /**
-   * Those of d_uses that only the cases of a late aggregate name, which do not
-   * move what they name ahead of the block, see DefsAggregate::d_late.
+   * Those of d_uses that only the cases of d_last name. Those cases are
+   * written after every block's, so what they name is placed where the rest
+   * of the input places it rather than ahead of this block, and the cases of
+   * the other aggregates stand in the order they would without them. See
+   * orderByDeclarations.
    */
-  std::set<std::string> d_lateUses;
+  std::set<std::string> d_lastUses;
   /**
    * Whether the block stands whether or not the input declares its symbol,
    * which `(echo "eoc-keep symbol X")` is what says. A few symbols are the
@@ -183,6 +180,14 @@ struct DefsBlock
    * and nothing in this stage says which.
    */
   std::map<std::string, std::vector<std::string>> d_at;
+  /**
+   * The cases the block gives an aggregate by a program of that aggregate's
+   * own name, keyed by the aggregate's marker as d_at is. They are written
+   * after the cases every block contributes, so a case that matches more than
+   * a symbol applied to its arguments, e.g. any application of a certain
+   * shape, is tried only once every symbol's own case has been.
+   */
+  std::map<std::string, std::vector<std::string>> d_last;
 };
 
 /**
@@ -242,6 +247,8 @@ class DefsFile
    * $eoc_transform_ whatever order the head declares them in.
    */
   const DefsAggregate* aggregateOf(const std::string& name) const;
+  /** Whether name is the name of an aggregate itself, e.g. $eo_to_smt. */
+  bool isAggregate(const std::string& name) const;
   /** The same, for a program written over values. */
   const DefsHelper* helperOf(const std::string& name) const;
   /**

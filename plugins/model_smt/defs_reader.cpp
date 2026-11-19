@@ -230,8 +230,9 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
   // names its block after the symbol instead, and is the embedding's own by
   // the datatype being so. See DefsBlock::d_own and DefsBlock::d_literal.
   const bool namedAfterConstant = embedDatatypeOf(sym) != nullptr;
-  // What the cases of a late aggregate name, and what everything else does.
-  std::set<std::string> lateUses, otherUses;
+  // What the cases the block gives an aggregate itself name, and what the
+  // rest of it does, see DefsBlock::d_lastUses.
+  std::set<std::string> lastUses, otherUses;
   for (const std::string& f : forms(text))
   {
     const std::string kind = formKind(f);
@@ -249,11 +250,14 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
     }
     const std::string name = formName(f);
     namesOf(f, b.d_uses);
+    namesOf(f, isAggregate(name) ? lastUses : otherUses);
+    // A program of an aggregate's own name gives it cases rather than
+    // defining it, see DefsBlock::d_last, so what calls the aggregate does
+    // not need the block.
+    if (!isAggregate(name))
     {
-      const DefsAggregate* a = aggregateOf(name);
-      namesOf(f, a != nullptr && a->d_late ? lateUses : otherUses);
+      b.d_defs.insert(name);
     }
-    b.d_defs.insert(name);
     if (kind == "declare-const" || kind == "declare-parameterized-const"
         || kind == "define")
     {
@@ -289,11 +293,11 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
   {
     b.d_uses.erase(d);
   }
-  for (const std::string& u : lateUses)
+  for (const std::string& u : lastUses)
   {
     if (b.d_uses.count(u) != 0 && otherUses.count(u) == 0)
     {
-      b.d_lateUses.insert(u);
+      b.d_lastUses.insert(u);
     }
   }
   for (const std::string& d : b.d_defs)
@@ -301,6 +305,18 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
     d_owner[d] = d_blocks.size();
   }
   d_blocks.push_back(b);
+}
+
+bool DefsFile::isAggregate(const std::string& name) const
+{
+  for (const DefsAggregate& a : d_aggregates)
+  {
+    if (a.d_name == name)
+    {
+      return true;
+    }
+  }
+  return false;
 }
 
 const DefsAggregate* DefsFile::aggregateOf(const std::string& name) const
@@ -353,6 +369,19 @@ void DefsFile::classifyProgram(DefsBlock& b,
   // aggregate it feeds takes, or an auxiliary one the cases call, which is
   // copied as it stands. Which aggregate a per-symbol program belongs to, and
   // where what is taken from it goes, is what the head of the file says.
+  // A program of the aggregate's own name gives cases of that aggregate
+  // rather than of one symbol, which are written after all of those, see
+  // DefsBlock::d_last.
+  for (const DefsAggregate& agg : d_aggregates)
+  {
+    if (agg.d_name == name)
+    {
+      std::vector<std::string> cases = casesOf(f, name, name);
+      std::vector<std::string>& out = b.d_last[agg.d_into];
+      out.insert(out.end(), cases.begin(), cases.end());
+      return;
+    }
+  }
   const DefsAggregate* a = aggregateOf(name);
   if (a != nullptr)
   {
@@ -409,18 +438,8 @@ void DefsFile::readHead(const std::string& head)
       if (!(words >> a.d_name >> a.d_case >> a.d_into))
       {
         EO_FATAL() << "DefsFile: an aggregate is written `; $eoc-aggregate "
-                      "<name> <case> <into> [late]`, got: "
+                      "<name> <case> <into>`, got: "
                    << line;
-      }
-      std::string flag;
-      if (words >> flag)
-      {
-        if (flag != "late")
-        {
-          EO_FATAL() << "DefsFile: unknown flag " << flag
-                     << " of an aggregate, got: " << line;
-        }
-        a.d_late = true;
       }
       d_aggregates.push_back(a);
     }
@@ -586,9 +605,9 @@ std::vector<const DefsBlock*> orderByDeclarations(
       [&](const DefsBlock* b) {
         for (const std::string& u : b->d_uses)
         {
-          // What only the cases of a late aggregate name is placed where the
-          // rest of the input places it, see DefsAggregate::d_late.
-          if (b->d_lateUses.count(u) != 0)
+          // What only cases written after every block name need not stand
+          // before this one, see DefsBlock::d_lastUses.
+          if (b->d_lastUses.count(u) != 0)
           {
             continue;
           }

@@ -898,6 +898,12 @@ def cast(expr, scope, entry, ctx, level):
                         level)
   if h.kind != 'sym':
     die('%s: the head of an application is a name or a native' % entry.name)
+  if h.val in scope.surface:
+    # An application of what a case matched of the input, i.e. a term of the
+    # input the case puts back together, which reads the way a name of the
+    # input does: transformed where the embedding is wanted.
+    text = input_term(expr, scope, entry)
+    return scope.into[level] % text if level in scope.into else text
   if h.val in EXPLICIT_AGGREGATES and len(expr.items) == 3:
     # The evaluator applied to a model *and* a term: a body that evaluates a
     # term in a model other than the one it is given, which a let does.
@@ -908,6 +914,17 @@ def cast(expr, scope, entry, ctx, level):
   return expr.laid_out([head] + [
       cast(a, scope, entry, ctx, ctx.vocab.arg_level(head, i, level))
       for i, a in enumerate(expr.items[1:])])
+
+
+def input_term(expr, scope, entry):
+  """A term of the input built of what a case matched of it, as written."""
+  if expr.kind == 'sym' and expr.val in scope.surface:
+    scope.used.setdefault(expr.val, set()).add(None)
+    return expr.val
+  if expr.kind == 'list' and expr.items:
+    return expr.laid_out([input_term(a, scope, entry) for a in expr.items])
+  die('%s: a term of the input is put back together only from what the case '
+      'matched of it, not %s' % (entry.name, expr.raw))
 
 
 def numeral_wrap(native, level, entry):

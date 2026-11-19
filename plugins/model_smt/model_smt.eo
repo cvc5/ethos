@@ -6,10 +6,6 @@
 ; signature be written in the vocabulary it declares, see
 ; plugins/model_smt/smt.eo. A substitution replaces the comment character along
 ; with the placeholder, so the generated content takes the whole line.
-; A region between ;$IF_APPLY$ and ;$END_APPLY$ is written only where some
-; symbol of the input says an :apply case, and one between ;$ELSE_APPLY$ and
-; ;$END_APPLY$ only where none does, so that a calculus with no binder of its
-; own is transformed as it was.
 ; The programs in this file operate on datatypes that correspond to
 ; a deep embedding of SMT-LIB values.
 ; In particular, we use the following types:
@@ -625,25 +621,6 @@
   )
 )
 
-;$IF_APPLY$
-; What an application (f y) transforms into, given arg, what y transforms into,
-; and app, what the application would be in the embedding: app, unless a symbol
-; of the input says otherwise of an application headed by f, as a binder of the
-; input does of a redex of it. arg is given transformed so that whatever a case
-; transforms is a subterm of f, which is what says the transformation
-; terminates.
-(program $eo_to_smt_apply
-  ((arg $smt_Term) (app $smt_Term)
-   (T Type) (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
-   (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5) (f T))
-  :signature ($smt_Term $smt_Term T) $smt_Term
-  (
-;$EO_TO_SMT_APPLY_CASES$
-  (($eo_to_smt_apply arg app f)     app)
-  )
-)
-
-;$END_APPLY$
 (program $eo_to_smt
   ((b $native_Bool) (n $native_Int) (m $native_Int) (r $native_Rat)
    (s $native_String) (w $native_Int) (dd $eo_DatatypeDecl)
@@ -667,16 +644,7 @@
       ($sm_DtSel s ($eo_to_smt_datatype_decl dd) i j)))
   (($eo_to_smt ($eot_UConst i T))    ($sm_UConst ($native_uconst_id i) ($eo_to_smt_type T)))
 ;$EO_TO_SMT_CASES$
-  ; An application of anything else, which is what the signature of the input
-  ; says an application headed by f is, see $eo_to_smt_apply. Where no symbol
-  ; says anything of one, it is the application of the embedding.
-;$IF_APPLY$
-  (($eo_to_smt (f y))
-    (eo::define ((sy ($eo_to_smt y)))
-      ($eo_to_smt_apply sy ($sm_apply ($eo_to_smt f) sy) f)))
-;$ELSE_APPLY$
   (($eo_to_smt (f y))               ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
-;$END_APPLY$
   (($eo_to_smt y)                   $sm_none)
   )
 )
