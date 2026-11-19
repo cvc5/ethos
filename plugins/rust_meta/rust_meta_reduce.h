@@ -49,11 +49,22 @@ class RustMetaReduce : public MetaReducePlugin
   /** Whether a constructor is a user symbol, not an embedding or meta one. */
   static bool isUserConstructor(const std::string& name);
   std::string schema() const;
+  /** The constructors by name, for the runtime's front part. */
+  std::string constructorNames() const;
+  /**
+   * The number that stands for `text` in the calls of generated code: a
+   * name or a constant the runtime is given only to read or to report.
+   */
+  size_t nativeText(const std::string& text);
+  std::vector<std::string> d_nativeTexts;
+  /** `Some(Constructor::X)` for a constructor of the signature, else `None`. */
+  std::string constructorOption(const std::string& name) const;
+  /** A runtime template with each `@ctor:NAME@` replaced by that. */
+  std::string expandConstructors(std::string text) const;
   std::string emitProgram(const std::string& name, const Program& p);
   void output(const std::string& file, const std::string& text) const;
   static std::string ident(const std::string& name);
   static std::string quote(const std::string& text);
-  static std::string literal(const Expr& e);
   static Kind builtin(const std::string& name);
   std::map<std::string, Constructor> d_constructors;
   std::vector<std::string> d_constructorOrder;

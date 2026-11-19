@@ -1,109 +1,21 @@
 //! Strings of Unicode code points, as `util/string.cpp` in Ethos.
-
-use std::fmt::Write;
+//!
+//! From `crates/pathos-term/src/eostring.rs` of pathos (as of its commit
+//! acae6aa). The reading of a string from text (`parse`) and its printing
+//! are in front.rs; the operations here are written with loops over the
+//! code points.
 
 /// The number of code points a string character can take: the first three
 /// planes of Unicode, as in the SMT-LIB theory of strings.
 pub const NUM_CODES: u32 = 196_608;
 
 /// A string literal: a sequence of code points below [`NUM_CODES`].
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Default)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct EoString(Vec<u32>);
-
-fn is_hex_digit(c: char) -> bool {
-    c.is_ascii_hexdigit()
-}
-
-/// Characters outside printable ASCII are dropped, as in Ethos, whose
-/// `addCharToInternal` builds an error message for them and then discards it.
-fn add_char(c: char, out: &mut Vec<u32>) {
-    let code = u32::from(c);
-    if (32..=127).contains(&code) {
-        out.push(code);
-    }
-}
 
 impl EoString {
     pub fn from_code_points(v: Vec<u32>) -> EoString {
         EoString(v)
-    }
-
-    /// Converts text to a string. With `use_escapes`, the SMT-LIB escape
-    /// sequences `폒d1d0` and `\u{d0}` to `\u{d4d3d2d1d0}` denote single
-    /// code points; malformed or out-of-range sequences are kept verbatim.
-    pub fn parse(s: &str, use_escapes: bool) -> EoString {
-        let chars: Vec<char> = s.chars().collect();
-        let mut out = Vec::with_capacity(chars.len());
-        let mut i = 0;
-        while i < chars.len() {
-            let mut si = chars[i];
-            if si != '\\' || !use_escapes {
-                add_char(si, &mut out);
-                i += 1;
-                continue;
-            }
-            // The characters read so far, in case this is not an escape.
-            let mut non_esc = Vec::new();
-            add_char(si, &mut non_esc);
-            i += 1;
-            let mut is_escape = true;
-            let mut hex = String::new();
-            if i >= chars.len() || chars[i] != 'u' {
-                is_escape = false;
-            } else {
-                add_char(chars[i], &mut non_esc);
-                i += 1;
-                let mut is_start = true;
-                let mut is_end = false;
-                let mut has_brace = false;
-                while i < chars.len() {
-                    si = chars[i];
-                    if is_start {
-                        is_start = false;
-                        if si == '{' {
-                            has_brace = true;
-                            add_char(si, &mut non_esc);
-                            i += 1;
-                            continue;
-                        }
-                    } else if si == '}' {
-                        // only ends an escape opened by a brace, with a digit
-                        is_escape = has_brace && !hex.is_empty();
-                        is_end = true;
-                        add_char(si, &mut non_esc);
-                        i += 1;
-                        break;
-                    }
-                    if !is_hex_digit(si) {
-                        is_escape = false;
-                        break;
-                    }
-                    hex.push(si);
-                    add_char(si, &mut non_esc);
-                    i += 1;
-                    if !has_brace && hex.len() == 4 {
-                        is_end = true;
-                        break;
-                    } else if has_brace && hex.len() > 5 {
-                        is_escape = false;
-                        break;
-                    }
-                }
-                if !is_end {
-                    is_escape = false;
-                }
-            }
-            if is_escape {
-                match u32::from_str_radix(&hex, 16) {
-                    Ok(val) if val < NUM_CODES => out.push(val),
-                    _ => is_escape = false,
-                }
-            }
-            if !is_escape {
-                out.extend_from_slice(&non_esc);
-            }
-        }
-        EoString(out)
     }
 
     pub fn len(&self) -> usize {
@@ -119,8 +31,9 @@ impl EoString {
     }
 
     pub fn concat(&self, other: &EoString) -> EoString {
-        let mut v = self.0.clone();
-        v.extend_from_slice(&other.0);
+        let mut v = Vec::with_capacity(self.0.len() + other.0.len());
+        append(&mut v, &self.0);
+        append(&mut v, &other.0);
         EoString(v)
     }
 
@@ -132,29 +45,53 @@ impl EoString {
         if y.is_empty() {
             return Some(0);
         }
-        self.0.windows(y.len()).position(|w| w == y.0.as_slice())
+        let last = self.len() - y.len();
+        let mut found = None;
+        let mut i = 0;
+        while i <= last {
+            if occurs_at(&self.0, &y.0, i) {
+                found = Some(i);
+                i = last;
+            }
+            i += 1;
+        }
+        found
     }
 
     /// The substring of `len` code points starting at `start`. Requires
     /// `start + len <= self.len()`.
     pub fn substr(&self, start: usize, len: usize) -> EoString {
-        EoString(self.0[start..start + len].to_vec())
+        let mut v = Vec::with_capacity(len);
+        let mut i = 0;
+        while i < len {
+            v.push(self.0[start + i]);
+            i += 1;
+        }
+        EoString(v)
     }
 }
 
-impl std::fmt::Display for EoString {
-    /// Printable ASCII is printed as is, except the backslash; everything
-    /// else is printed as `\u{<hex>}`.
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for &c in &self.0 {
-            if (32..=126).contains(&c) && c != u32::from(b'\\') {
-                f.write_char(char::from_u32(c).unwrap_or('?'))?;
-            } else {
-                write!(f, "\\u{{{c:x}}}")?;
-            }
-        }
-        Ok(())
+/// Adds the code points of `from` to `to`.
+fn append(to: &mut Vec<u32>, from: &[u32]) {
+    let mut i = 0;
+    while i < from.len() {
+        to.push(from[i]);
+        i += 1;
     }
+}
+
+/// Whether `y` occurs in `x` at position `at`. Requires
+/// `at + y.len() <= x.len()`.
+fn occurs_at(x: &[u32], y: &[u32], at: usize) -> bool {
+    let mut same = true;
+    let mut i = 0;
+    while i < y.len() {
+        if x[at + i] != y[i] {
+            same = false;
+        }
+        i += 1;
+    }
+    same
 }
 
 #[cfg(test)]
