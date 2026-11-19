@@ -202,10 +202,11 @@ LEAN_GENERATED = """\
 -- all the same clause; prose may be written between blocks, since a clause is
 -- Lean text and holds no comment of its own.
 --
--- A line `-- unordered Name` says instead that the datatype of the embedding
--- Name has no order, so the lean-meta plugin writes it no ordering key. It is
--- what the declare-embed-datatype entry of that datatype says under
--- :unordered, and it comes out in the file of the deep embedding only.
+-- A line `-- ordered Name` says instead that values are ordered over the
+-- datatype of the embedding Name, so the lean-meta plugin writes it an
+-- ordering key. It is what the declare-embed-datatype entry of that datatype
+-- says under :ordered, and it comes out in the file of the deep embedding
+-- only.
 --
 -- A clause may not name the native layer. It is appended to a generated
 -- definition rather than written into a resource, so it is not one of the
@@ -252,11 +253,11 @@ def render_lean(config):
       out.append('\n'.join(('-- ' + d).rstrip() for d in doc))
     out.append('-- %s\n%s' % (' '.join(names), text))
   # The datatypes of the embedding are the target's, so it is the file of the
-  # target that says which of them are unordered.
+  # target that says which of them are ordered.
   if config.is_target:
     for dt in read_embed_datatypes().values():
-      if dt.unordered:
-        out.append('-- unordered %s' % dt.name)
+      if dt.ordered:
+        out.append('-- ordered %s' % dt.name)
   # A blank line between blocks, which is what ends one for the stage that
   # reads them and what a paragraph of prose stands apart by.
   return '\n\n'.join(out) + '\n'
@@ -731,14 +732,14 @@ class EmbedDatatype:
   plugins/model_smt/model_smt.eos.
   """
 
-  def __init__(self, name, cons, macro, own_into, into, unordered=False):
+  def __init__(self, name, cons, macro, own_into, into, ordered=False):
     self.name = name            # named as a type is, e.g. SmtRegLan
     self.cons = cons            # the constant a constructor is declared as
     self.macro = macro          # the macro that applies it
     self.own_into = own_into    # where the embedding's own are written
     self.into = into            # where a signature's are, or None
-    # Whether it has no order, e.g. since it holds a term, and so no key.
-    self.unordered = unordered
+    # Whether values are ordered over it, and so it has an ordering key.
+    self.ordered = ordered
 
   @property
   def own(self):
@@ -777,7 +778,7 @@ def read_embed_datatypes(path=AGGREGATE_CONFIG):
       entry = EmbedDatatype(e.name, e.get('cons').val, e.get('macro').val,
                             e.get('own-into').val,
                             e.get('into').val if e.has('into') else None,
-                            e.has('unordered'))
+                            e.has('ordered'))
       if entry.type is None:
         die('%s: a datatype of the embedding is named as a type of it is, '
             'e.g. SmtRegLan for $smt_RegLan' % what)

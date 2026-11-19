@@ -120,13 +120,15 @@
 (declare-embed-datatype SmtType
   :cons      $emb_tsm.
   :macro     $tsm_
-  :own-into  $SMT_TYPE_CONSTRUCTORS$)
+  :own-into  $SMT_TYPE_CONSTRUCTORS$
+  :ordered)
 
 ; A value, i.e. what a term of a signature evaluates to in a model.
 (declare-embed-datatype SmtValue
   :cons      $emb_vsm.
   :macro     $vsm_
-  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+  :own-into  $SMT_VALUE_CONSTRUCTORS$
+  :ordered)
 
 ; A regular language, which a RegLan value holds. Its base elements are
 ; values, so the constructors that hold one say SmtValue and the rest are of
@@ -134,20 +136,23 @@
 (declare-embed-datatype SmtRegLan
   :cons      $emb_rsm.
   :macro     $rsm_
-  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+  :own-into  $SMT_VALUE_CONSTRUCTORS$
+  :ordered)
 
 ; A map, which is what an array and a set both are: entries in the order
 ; $native_vcmp gives, none of them repeating the default.
 (declare-embed-datatype SmtMap
   :cons      $emb_msm.
   :macro     $msm_
-  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+  :own-into  $SMT_VALUE_CONSTRUCTORS$
+  :ordered)
 
 ; A sequence, which is what a string is.
 (declare-embed-datatype SmtSeq
   :cons      $emb_ssm.
   :macro     $ssm_
-  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+  :own-into  $SMT_VALUE_CONSTRUCTORS$
+  :ordered)
 
 ; The three a datatype declaration is built from: the arguments of one
 ; constructor, the constructors of one datatype, and the datatypes of one
@@ -155,24 +160,25 @@
 (declare-embed-datatype SmtDatatypeCons
   :cons      $emb_dtc.
   :macro     $dtc_
-  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+  :own-into  $SMT_VALUE_CONSTRUCTORS$
+  :ordered)
 
 (declare-embed-datatype SmtDatatype
   :cons      $emb_dt.
   :macro     $dt_
-  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+  :own-into  $SMT_VALUE_CONSTRUCTORS$
+  :ordered)
 
 (declare-embed-datatype SmtDatatypeDecl
   :cons      $emb_dd.
   :macro     $dd_
-  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+  :own-into  $SMT_VALUE_CONSTRUCTORS$
+  :ordered)
 
 ; The bindings of a let, each a name, the type it is declared with and the
 ; term it is bound to. A binder of the target that binds several variables at
-; once is written over one. It holds a term, which has no order, so neither
-; does it.
+; once is written over one.
 (declare-embed-datatype SmtBindings
   :cons      $emb_sbd.
   :macro     $sbd_
-  :own-into  $SMT_VALUE_CONSTRUCTORS$
-  :unordered)
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)

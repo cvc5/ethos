@@ -844,13 +844,13 @@ NATIVE_TYPE_DECLS = Shape([], keyword='declare-native-type', noun='native type',
 # as, the macro that applies it, and the marker of the template those are
 # written at. What a constructor returns is the datatype itself, so nothing
 # states that twice -- the entry is named as the type is named everywhere, i.e.
-# SmtRegLan for $smt_RegLan. It may also say :unordered, i.e. that it has no
-# order, e.g. since it holds a term, so that a backend gives it no ordering
-# key.
+# SmtRegLan for $smt_RegLan. It may also say :ordered, i.e. that values are
+# ordered over it, which is what a backend gives it an ordering key for: a
+# value or a type, and whatever one of those holds.
 EMBED_DATATYPES = Shape([], keyword='declare-embed-datatype',
                         noun='datatype of the embedding', params=False,
                         extra_attrs={'cons': 1, 'macro': 1, 'into': 1,
-                                     'own-into': 1, 'unordered': 0})
+                                     'own-into': 1, 'ordered': 0})
 
 AGGREGATES = Shape([], keyword='declare-aggregate-method', noun='aggregate',
                    params=False,

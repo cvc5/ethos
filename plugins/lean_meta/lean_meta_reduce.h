@@ -84,7 +84,7 @@ class LeanMetaReduce : public MetaReducePlugin
                          const std::vector<std::string>& argTypes,
                          size_t tag,
                          std::ostream& os) const;
-  /** Return the name of the ordering-key method for Lean type t, if any. */
+  /** Return the name of the ordering-key method for Lean type t. */
   static std::string getOrderKeyMethod(const std::string& t);
   using MetaReducePlugin::getName;
   using MetaReducePlugin::isEmbedCons;
@@ -193,10 +193,10 @@ class LeanMetaReduce : public MetaReducePlugin
    */
   bool namesModelType(const Expr& t) const;
   /**
-   * The ordering keys of the same, as the text of the $LEAN_SMT_EMBED_KEY$
-   * hole, see d_embedKey.
+   * The ordering keys of the datatypes the configuration says are ordered, as
+   * the text of the $LEAN_SMT_KEYS$ hole, see d_key.
    */
-  std::string printEmbedKeys() const;
+  std::string printKeys() const;
   /** Emit the Lean checker definitions. */
   void finalizeChecker();
   /** Emit the generated, signature-specific Logos parser configuration. */
@@ -241,10 +241,9 @@ class LeanMetaReduce : public MetaReducePlugin
    *
    * A block runs from a line naming one or more programs, written
    * `-- $name ...`, to the next such line; what lies between is the clause.
-   * A line `-- unordered Name` instead puts the datatype of the embedding
-   * Name in d_embedUnordered. The files read are generated from what a
-   * semantics configuration says under :lean and :unordered, see
-   * tools/eoc/out/smt_termination.lean.
+   * A line `-- ordered Name` instead puts the datatype Name in d_ordered. The
+   * files read are generated from what a semantics configuration says under
+   * :lean and :ordered, see tools/eoc/out/smt_termination.lean.
    */
   void readTerminationClauses(const std::string& path);
   /** The scope of the module the text written to os comes out in. */
@@ -286,21 +285,19 @@ class LeanMetaReduce : public MetaReducePlugin
    * sequence, the regular language and the three a datatype declaration is
    * made of. Each gets an inductive of its own, named as the type its
    * constructors return, and they are kept by that name rather than one to a
-   * member because which of them there are is the target's to say. Their
-   * ordering keys are generated beside them, see d_embedKey.
+   * member because which of them there are is the target's to say.
    */
   std::map<std::string, std::stringstream> d_embedDt;
-  /** The ordering key of each, keyed as above. */
-  std::map<std::string, std::stringstream> d_embedKey;
-  /** How many constructors each has so far, which is the tag of the next. */
-  std::map<std::string, size_t> d_embedNcons;
-  /** The types the constructors of each take, keyed as above. */
-  std::map<std::string, std::set<std::string>> d_embedArgTypes;
   /**
-   * The datatypes of d_embedDt the configuration says are unordered, which
-   * are given no ordering key, see readTerminationClauses.
+   * The datatypes the configuration says are ordered, by the name of their
+   * Lean inductive, e.g. SmtValue, see readTerminationClauses. Each of them,
+   * and nothing else, is given an ordering key.
    */
-  std::set<std::string> d_embedUnordered;
+  std::set<std::string> d_ordered;
+  /** The ordering-key cases of each of d_ordered, see printOrderKeyCase. */
+  std::map<std::string, std::stringstream> d_key;
+  /** How many constructors each has so far, which is the tag of the next. */
+  std::map<std::string, size_t> d_keyNcons;
   /**
    * The greatest number of indices an operator may take, i.e. the length of
    * the UserOp ladder the embedding declares. It is the embedding that fixes
@@ -335,14 +332,6 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_smtTypeDt;
   /** SMT value datatype cases. */
   std::stringstream d_smtValueDt;
-  /** SMT type ordering-key cases, see printOrderKeyCase. */
-  std::stringstream d_smtTypeKey;
-  /** SMT value ordering-key cases, see printOrderKeyCase. */
-  std::stringstream d_smtValueKey;
-  /** Number of constructors emitted for the SMT type datatype. */
-  size_t d_smtTypeNcons = 0;
-  /** Number of constructors emitted for the SMT value datatype. */
-  size_t d_smtValueNcons = 0;
   /** Checker command datatype cases. */
   std::stringstream d_cmdDt;
   /** Checker rule datatype cases. */
