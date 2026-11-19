@@ -660,6 +660,11 @@ $EO_IS_CLOSED_UOP_CASES$
 
 $EO_CHECKER$
 
+; The translation side conditions of a proof are written over both the
+; checker's commands and the model's translation, so they are included here,
+; after both, when the model is; see plugins/model_smt/translation_checks.eo.
+(echo "include translation_checks")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 
 $EO_VC$

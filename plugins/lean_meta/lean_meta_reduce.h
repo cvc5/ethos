@@ -271,6 +271,13 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_eoIsObjDefs;
   /** As above, for programs with simple (non-recursive) definitions. */
   std::stringstream d_eoIsObjDefsSimple;
+  /**
+   * The translation side conditions of a proof, i.e. the programs
+   * $eo_translatable_* of plugins/model_smt/translation_checks.eo. They are
+   * over both the checker's commands and the translation, so they come out in
+   * a module of their own that imports both.
+   */
+  std::stringstream d_cmdTranslation;
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
   /**

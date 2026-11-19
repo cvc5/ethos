@@ -70,10 +70,12 @@ let verdict: Verdict = store.check_proof(assumptions, commands)?;
 
 `check_refutation` checks derivability. `check_proof` returns `Correct`,
 `Incorrect` or `Incomplete`, and includes Logos's assumption/command
-translation checks. Without generated SMT translation it returns
-`Incomplete` for an accepted refutation. CPC's 32 special argument masks
-are recorded in `cpc_translation_masks.txt`, with the corresponding Logos
-revision. Keep that table synchronized with `Cpc/TranslationChecks.lean`.
+translation checks. Those are generated like the rest of the checker: they
+are `$eo_translatable_proof` of `plugins/model_smt/translation_checks.eo`,
+whose per-rule cases come from the semantics (`define-rule <rule> :args
+(<kind> ...)` in CPC's `Cpc.eos`), and the Lean backend writes the same
+definitions to `CmdTranslation.lean`. Without generated SMT translation
+`check_proof` returns `Incomplete` for an accepted refutation.
 
 `Term` is a private `u32` handle local to one monotonically growing,
 hash-consed `Store`. Generated constructor arities are checked. Object
@@ -148,7 +150,7 @@ and structural equality iff handle equality. The arena's tagged sum also
 holds checker states and native fields; the relation is indexed by the
 generated type. Per-function proofs then relate the compiled cases to the
 functions named in the manifest. Tail-call loops need the corresponding
-iteration invariant. Translation masks and runtime operations need their
+iteration invariant. Runtime operations need their
 own refinement proofs. Cache refinement additionally requires the entry
 invariant above; the table's hash layout is irrelevant to decoded results.
 
@@ -202,7 +204,9 @@ mutual recursion, distinct program IDs and environments, collisions and
 rehashing, arena growth, bounded insertion and cleanup after errors. They
 also compare cached and uncached proof results. The shared DAG completes
 within a 1,000-call budget with caching and exhausts that budget without it.
-The CPC run also compares the mask table with that checkout's
-`Cpc/TranslationChecks.lean` when the file is available, and checks the
+The CPC run also compares the `:args` of the sibling `Cpc.eos` with that
+checkout's `Cpc/TranslationChecks.lean` while that file still writes its
+masks by hand, tests each argument kind and an arity mismatch through the
+generated `$eo_translatable_rule_args`, and checks the
 `arith_poly_norm` refutation of `(not (= x x))` for a real constant with
 caching enabled and disabled.

@@ -15,121 +15,19 @@ impl Store {
         if !self.check_refutation_inner(assumptions, commands)? {
             return Ok(Verdict::Incorrect);
         }
-        if !@HAS_TRANSLATION@ {
+        // The side conditions are compiled from Eunoia like the checker is:
+        // they are $eo_translatable_proof of
+        // plugins/model_smt/translation_checks.eo, whose per-rule cases are
+        // what the input's semantics says with `define-rule ... :args`. A
+        // result that is not true, a stuck one included, is not a proof of
+        // the translated formula.
+        if !self.translatable(assumptions, commands)? {
             return Ok(Verdict::Incomplete);
         }
-        if !self.arguments_translate(assumptions, None)? {
-            return Ok(Verdict::Incomplete);
-        }
-        let mut list = commands;
-        loop {
-            if self.is_named(list, "$emb_cmdl.nil")? {
-                return Ok(Verdict::Correct);
-            }
-            let Some(cs) = self.named_fields(list, "$emb_cmdl.cons")? else {
-                return Ok(Verdict::Incorrect);
-            };
-            let c = cs[0];
-            if let Some(fs) = self.named_fields(c, "$emb_cmd.assume_push")? {
-                if !self.has_translation(fs[0])? {
-                    return Ok(Verdict::Incomplete);
-                }
-            } else if let Some(fs) = self.named_fields(c, "$emb_cmd.step")? {
-                let mask: Option<&[&str]> = match self.view(fs[0])? {
-                    TermData::Node(rule, _) => match rule.name() {
-                        @TRANSLATION_MASKS@
-                        _ => None,
-                    },
-                    _ => return Ok(Verdict::Incorrect),
-                };
-                if !self.arguments_translate(fs[1], mask)? {
-                    return Ok(Verdict::Incomplete);
-                }
-            }
-            list = cs[1];
-        }
+        Ok(Verdict::Correct)
     }
 
-    fn named_fields(&self, t: Term, name: &str) -> CheckResult<Option<Vec<Term>>> {
-        Ok(match self.view(t)? {
-            TermData::Node(c, fs) if c.name() == name => Some(fs.clone()),
-            _ => None,
-        })
-    }
-
-    fn translation_type(&mut self, t: Term) -> CheckResult<Term> {
-        @TRANSLATION_TYPE@
-    }
-    fn translation_sort(&mut self, t: Term) -> CheckResult<Term> {
-        @TRANSLATION_SORT@
-    }
-    fn translation_type_wf(&mut self, t: Term, component: bool) -> CheckResult<bool> {
-        @TRANSLATION_WF@
-    }
-    fn has_translation(&mut self, t: Term) -> CheckResult<bool> {
-        let ty = self.translation_type(t)?;
-        Ok(!self.is_stuck(ty)? && !self.is_named(ty, "$emb_tsm.None")?)
-    }
-    fn argument_translates(&mut self, t: Term, kind: &str) -> CheckResult<bool> {
-        match kind {
-            "term" => self.has_translation(t),
-            "type" => {
-                let ty = self.translation_sort(t)?;
-                self.translation_type_wf(ty, false)
-            }
-            "wfTerm" => {
-                if !self.has_translation(t)? {
-                    return Ok(false);
-                }
-                let ty = self.translation_type(t)?;
-                self.translation_type_wf(ty, false)
-            }
-            "wfElem" => {
-                let ty = self.translation_type(t)?;
-                self.translation_type_wf(ty, true)
-            }
-            "list" => {
-                let mut list = t;
-                loop {
-                    if self.is_named(list, "$eo_List_nil")? {
-                        return Ok(true);
-                    }
-                    let Some((fx, tail)) = self.unapply(list)? else {
-                        return Ok(false);
-                    };
-                    let Some((f, x)) = self.unapply(fx)? else {
-                        return Ok(false);
-                    };
-                    if !self.is_named(f, "$eo_List_cons")? || !self.has_translation(x)? {
-                        return Ok(false);
-                    }
-                    list = tail;
-                }
-            }
-            _ => Err(CheckError::InvalidConstructor),
-        }
-    }
-    fn arguments_translate(&mut self, mut args: Term, mask: Option<&[&str]>) -> CheckResult<bool> {
-        let mut i = 0;
-        loop {
-            if self.is_named(args, "$emb_al.nil")? {
-                return Ok(mask.is_none_or(|m| i == m.len()));
-            }
-            let Some(fs) = self.named_fields(args, "$emb_al.cons")? else {
-                return Ok(false);
-            };
-            let kind = match mask {
-                Some(m) => match m.get(i) {
-                    Some(&k) => k,
-                    None => return Ok(false),
-                },
-                None => "term",
-            };
-            if !self.argument_translates(fs[0], kind)? {
-                return Ok(false);
-            }
-            args = fs[1];
-            i += 1;
-        }
+    fn translatable(&mut self, assumptions: Term, commands: Term) -> CheckResult<bool> {
+        @TRANSLATABLE@
     }
 }

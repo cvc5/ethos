@@ -255,6 +255,38 @@ literally: the compiler neither checks that a name exists nor computes a
 dependency closure, so every declaration that goes with an omitted one says so
 for itself.
 
+## What a proof rule asks of its arguments
+
+A refutation the checker accepts says something of the SMT-LIB formula its
+assumptions translate to only if what the proof says translates as well: each
+assumption it pushes, and each argument of each step. By default a rule asks of
+every argument that it have a translation. A rule that asks something else says
+so on `define-rule`, one kind to an argument and in order:
+
+```lisp
+(define-rule chain_resolution :args (list list))
+(define-rule exists_string_length :args (type term term))
+(define-rule seq-nth-unit :args (wf_elem))
+```
+
+A kind `k` is the program `$eo_translatable_k` of
+[`plugins/model_smt/translation_checks.eo`](../../plugins/model_smt/translation_checks.eo),
+which defines `term`, `list`, `type`, `wf_term` and `wf_elem`; a kind is added
+by adding a program there that takes one argument of any type to a
+`$native_Bool`. The compiler writes each rule's kinds into the head of the
+generated signature (`; $eoc-rule-args <rule> <kind>...`), and
+`translation_checks` in the driver compiles them into the cases of
+`$eo_translatable_rule_args` and splices the template in after the checker,
+where the desugar stage leaves `(echo "include translation_checks")`, since
+the checks are over both the checker's commands and the model's translation.
+A rule that says `:args` and is given another number of arguments fails.
+
+The entry point is `$eo_translatable_proof`, over the arguments of
+`$eo_checker_is_refutation`. The rust-meta backend calls it from
+`check_proof`, and the lean-meta backend writes these definitions to
+`CmdTranslation.lean`, which imports both `Logos.lean` and `SmtTranslate.lean`.
+A run that trims the signature to some rules leaves the checks out.
+
 ## Why the generated Lean terminates
 
 Lean has to be told why a recursive definition terminates whenever it cannot

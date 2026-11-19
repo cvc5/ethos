@@ -180,7 +180,8 @@ std::set<std::string> RustMetaReduce::reachable() const
                                     "$eo_to_smt_type",
                                     "$smtx_typeof",
                                     "$smtx_type_wf",
-                                    "$smtx_type_wf_component"};
+                                    "$smtx_type_wf_component",
+                                    "$eo_translatable_proof"};
   std::vector<std::string> todo;
   for (const auto& p : d_programs)
   {
@@ -1086,63 +1087,20 @@ void RustMetaReduce::finalize()
   {
     lib = replace_all(lib, "@" + std::string(n) + "@", ident(n));
   }
-  bool translation = true;
-  for (const char* n : {"$eo_to_smt",
-                        "$eo_to_smt_type",
-                        "$smtx_typeof",
-                        "$smtx_type_wf",
-                        "$smtx_type_wf_component"})
-  {
-    translation &= names.count(n) != 0;
-  }
+  // The translation side conditions are a program of the signature like any
+  // other, compiled from plugins/model_smt/translation_checks.eo, which the
+  // eoc driver splices in when the input has semantics. Without them there is
+  // nothing to decide them with, and an accepted refutation is incomplete.
   std::string checks =
       read(getResourcePath("plugins/rust_meta/runtime/translation.rs.in"));
-  checks =
-      replace_all(checks, "@HAS_TRANSLATION@", translation ? "true" : "false");
-  const std::string unavailable =
-      "let _ = t; Err(CheckError::UnsupportedNative(\"SMT translation is "
-      "unavailable\".into()))";
-  checks = replace_all(checks,
-                       "@TRANSLATION_TYPE@",
-                       translation ? "let t = generated::" + ident("$eo_to_smt")
-                                         + "(self, t)?; generated::"
-                                         + ident("$smtx_typeof") + "(self, t)"
-                                   : unavailable);
   checks = replace_all(
       checks,
-      "@TRANSLATION_SORT@",
-      translation ? "generated::" + ident("$eo_to_smt_type") + "(self, t)"
-                  : unavailable);
-  checks = replace_all(
-      checks,
-      "@TRANSLATION_WF@",
-      translation
-          ? "let b = if component { generated::"
-                + ident("$smtx_type_wf_component")
-                + "(self, t)? } else { generated::" + ident("$smtx_type_wf")
-                + "(self, t)? }; Ok(self.boolean_value(b, true)? == Some(true))"
-          : "let _ = component; " + unavailable);
-  std::istringstream masks(
-      read(getResourcePath("plugins/rust_meta/cpc_translation_masks.txt")));
-  std::ostringstream maskCode;
-  std::string line;
-  while (std::getline(masks, line))
-  {
-    if (line.empty() || line[0] == '#')
-    {
-      continue;
-    }
-    std::istringstream words(line);
-    std::string rule, kind;
-    words >> rule;
-    maskCode << quote("$emb_r." + rule) << " => Some(&[";
-    while (words >> kind)
-    {
-      maskCode << quote(kind) << ",";
-    }
-    maskCode << "]),\n";
-  }
-  checks = replace_all(checks, "@TRANSLATION_MASKS@", maskCode.str());
+      "@TRANSLATABLE@",
+      names.count("$eo_translatable_proof") != 0
+          ? "let b = generated::" + ident("$eo_translatable_proof")
+                + "(self, assumptions, commands)?; "
+                  "Ok(self.boolean_value(b, true)? == Some(true))"
+          : "let _ = (assumptions, commands); Ok(false)");
   lib += checks;
   output("src/lib.rs", lib);
   output("src/generated.rs", code.str());

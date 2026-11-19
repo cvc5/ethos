@@ -888,6 +888,12 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     out = isSimple ? &d_eoIsObjDefsSimple : &d_eoIsObjDefs;
   }
+  // exception: the translation side conditions of a proof are over both the
+  // checker and the translation, so they come out in a module importing both.
+  if (vname.compare(0, 16, "$eo_translatable") == 0)
+  {
+    out = &d_cmdTranslation;
+  }
   if (vname == "$smtx_model_eval")
   {
     decl << "noncomputable ";
@@ -2139,6 +2145,12 @@ void LeanMetaReduce::finalizeSpec()
       {{"$LEAN_EO_IS_OBJ_DEFS$", d_eoIsObjDefs.str()},
        {"$LEAN_EO_IS_OBJ_SIMPLE_DEFS$", d_eoIsObjDefsSimple.str()}});
   Trace("lean-meta") << "Write lean-translate " << outPathTranslate
+                     << std::endl;
+  const std::string outPathCmdTranslation = emitResourceFile(
+      "plugins/lean_meta/lean_meta_cmd_translation.lean",
+      "plugins/lean_meta/lean_meta_cmd_translation_gen.lean",
+      {{"$LEAN_CMD_TRANSLATION_DEFS$", d_cmdTranslation.str()}});
+  Trace("lean-meta") << "Write lean-cmd-translation " << outPathCmdTranslation
                      << std::endl;
   const std::string outPath =
       emitResourceFile("plugins/lean_meta/lean_meta_spec.lean",

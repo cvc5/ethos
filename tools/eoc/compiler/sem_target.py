@@ -794,8 +794,15 @@ TYPE_INHABITED = Aggregate(
 # text the lean-meta stage puts after the definition it writes, and `:exclude`.
 METHODS = Shape([], keyword='define-method', noun='method', params=False)
 
-# A proof rule of the input, which says only that it is left out.
-RULES = Shape([], keyword='define-rule', noun='rule', params=False)
+# A proof rule of the input, which says that it is left out, or what it asks
+# of its arguments for the formula a proof concludes with it to translate:
+# `:args (k1 ... kn)`, one kind to an argument, where a kind k is the program
+# $eo_translatable_k of plugins/model_smt/translation_checks.eo. It writes
+# nothing into the definitions file; the head of it carries what the rule says,
+# see rule_args, and the eoc driver compiles that into the cases of
+# $eo_translatable_rule_args.
+RULES = Shape([], keyword='define-rule', noun='rule', params=False,
+              extra_attrs={'args': 1})
 
 # One definition of the native layer, i.e. what the generated Lean is written
 # over and no compiler writes. It compiles to nothing of the model: what it

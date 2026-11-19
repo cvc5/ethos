@@ -48,7 +48,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import report  # noqa: E402
 import sem_target  # noqa: E402
-from sem_lang import (counts, defined_names, die,  # noqa: E402
+from sem_lang import (counts, defined_names, die, rule_args,  # noqa: E402
                       excludes, lean_clauses, read_config, read_macros,
                       read_text, read_vocabulary, smt_type, write_text)
 
@@ -261,6 +261,7 @@ def summary(config):
            for k in nouns if c[k]]
   said = ['%d %s' % (c[k], w) for k, w in (('keep', 'kept'),
                                            ('exclude', 'left out'),
+                                           ('args', 'with argument kinds'),
                                            ('lean', 'annotated')) if c[k]]
   return ', '.join(kinds) + ('; ' + ', '.join(said) if said else '')
 
@@ -326,6 +327,8 @@ class Config:
     # how much of each thing it holds.
     self.clauses = []
     self.excludes = []
+    # What its proof rules ask of their arguments, see rule_args.
+    self.rule_args = []
     self.counts = {}
     # The blocks it writes for the desugar stage, which are rendered beside the
     # ones above and kept here because they go to a file of their own; see
@@ -652,6 +655,12 @@ def head_lines(config, blocks):
   out = []
   for name, kind in config.excludes:
     out.append('; $eoc-exclude %s %s' % (kind, name))
+  # What a proof rule asks of its arguments, which is said to the eoc driver
+  # rather than to a stage: it is compiled into the translation side
+  # conditions, which stand after the checker, see translation_checks in
+  # tools/eoc/driver.py.
+  for name, kinds in config.rule_args:
+    out.append('; $eoc-rule-args %s %s' % (name, ' '.join(kinds)))
   if not config.is_target:
     for sym, text in list(blocks) + config.desugar_blocks:
       named = depends(sym, text)
@@ -953,6 +962,7 @@ def compile_config(config, vocab, macros):
   ctx.check()
   config.clauses = lean_clauses(blocks)
   config.excludes = excludes(blocks)
+  config.rule_args = rule_args(blocks)
   config.counts = counts(blocks)
   return out
 

@@ -24,17 +24,27 @@ def main():
         out = Path(temp)
         signature = args.cpc.resolve() if args.cpc else Path(__file__).with_name("signature.eo")
         if args.cpc:
+            # What a rule asks of its arguments is said once, by the semantics
+            # (`define-rule ... :args`), and compiled into the checker. While
+            # Logos still writes its masks by hand, say whether the two agree.
             checks = signature.parents[2] / "Cpc/TranslationChecks.lean"
-            if checks.is_file():
-                text = checks.read_text().split("def cmdTranslationOk : CCmd -> Prop", 1)[1]
+            text = checks.read_text() if checks.is_file() else ""
+            if "def cmdTranslationOk : CCmd -> Prop" in text:
+                text = text.split("def cmdTranslationOk : CCmd -> Prop", 1)[1]
                 text = text.split("/--", 1)[0]
-                masks = [rule + " " + " ".join(re.findall(r"ArgTranslationKind\.(\w+)", mask))
-                         for rule, mask in re.findall(
-                             r"\| CCmd.step CRule\.(\w+) args _ =>\s*cArgListTranslationOkMask \[(.*?)\] args",
-                             text, re.S)]
-                expected = (ROOT / "plugins/rust_meta/cpc_translation_masks.txt").read_text()
-                expected = [line for line in expected.splitlines() if line and not line.startswith("#")]
-                assert masks == expected, "CPC translation masks differ from the selected Logos checkout"
+                lean_kind = {"wfTerm": "wf_term", "wfElem": "wf_elem"}
+                lean = [(rule, [lean_kind.get(k, k)
+                                for k in re.findall(r"ArgTranslationKind\.(\w+)", mask)])
+                        for rule, mask in re.findall(
+                            r"\| CCmd.step CRule\.(\w+) args _ =>\s*cArgListTranslationOkMask \[(.*?)\] args",
+                            text, re.S)]
+                eos = [(rule.replace("-", "_"), kinds.split())
+                       for rule, kinds in re.findall(
+                           r"^\(define-rule\s+(\S+)\s+:args\s+\(([^)]*)\)\)",
+                           (signature.parent / "Cpc.eos").read_text(), re.M)]
+                assert sorted(lean) == sorted(eos), (
+                    "the :args of Cpc.eos differ from the masks of the selected "
+                    "Logos checkout's Cpc/TranslationChecks.lean")
         semantics = (["--semantics", str(signature.parent / "Cpc.eos"),
                       "--smt-semantics", str(signature.parent / "smt.eos")]
                      if args.cpc else [])

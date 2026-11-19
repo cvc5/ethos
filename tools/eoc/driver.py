@@ -61,6 +61,7 @@ LEAN_OUTPUTS: tuple[tuple[str, str], ...] = (
     ("lean_meta/lean_meta_smt_syntax_gen.lean", "SmtSyntax.lean"),
     ("lean_meta/lean_meta_smt_typing_gen.lean", "SmtTyping.lean"),
     ("lean_meta/lean_meta_smt_translate_gen.lean", "SmtTranslate.lean"),
+    ("lean_meta/lean_meta_cmd_translation_gen.lean", "CmdTranslation.lean"),
     ("lean_meta/lean_meta_smt_model_defs_gen.lean", "SmtModelDefs.lean"),
     ("lean_meta/lean_meta_smt_value_order_gen.lean", "SmtValueOrder.lean"),
     ("lean_meta/lean_meta_smt_model_gen.lean", "SmtModel.lean"),
@@ -268,6 +269,78 @@ def splice_matching_line(path: Path, needle: str, replacement_path: Path) -> Non
         else:
             out_lines.append(line)
     path.write_text("".join(out_lines))
+
+
+TRANSLATION_CHECKS = REPO_ROOT / "plugins" / "model_smt" / "translation_checks.eo"
+TRANSLATION_CHECKS_NEEDLE = '(echo "include translation_checks")'
+TRANSLATION_CHECKS_MARK = ";$EO_TRANSLATABLE_RULE_ARGS_CASES$"
+# The most arguments a case of $eo_translatable_rule_args binds, which is how
+# many the template declares.
+TRANSLATION_CHECKS_MAX_ARGS = 10
+
+
+def translation_check_kinds(template: str) -> list[str]:
+    """The kinds a rule may ask of an argument: the programs
+    $eo_translatable_<kind> of the template that take one argument of any type
+    to a native Boolean. Adding one there is adding a kind."""
+    return re.findall(
+        r"^\(program \$eo_translatable_(\w+) [^\n]*\n\s*:signature \(T\) \$native_Bool",
+        template, re.M)
+
+
+def translation_checks(path: Path, rule_args: list[tuple[str, list[str]]],
+                       *, whole_signature: bool) -> None:
+    """Splice the translation side conditions of a proof into a signature.
+
+    They are plugins/model_smt/translation_checks.eo, together with one pair
+    of cases of $eo_translatable_rule_args for each rule the input's semantics
+    says :args of (see rule_args in tools/eoc/compiler/sem_lang.py): what the
+    kinds it gives ask of its arguments, and false for any other number of
+    them. They stand where the desugar stage left `include translation_checks`,
+    after both the checker and the model, since they are over both.
+
+    A rule the signature does not declare has no case: a signature trimmed to
+    other rules has nothing to say of it. Over a whole signature that is a
+    rule the semantics misnames, and it is an error.
+    """
+    template = TRANSLATION_CHECKS.read_text()
+    kinds = translation_check_kinds(template)
+    text = path.read_text()
+    declared = set(re.findall(r"^\(declare-const \$emb_r\.(\S+) \$eo_Rule\)",
+                              text, re.M))
+    cases: list[str] = []
+    for rule, asks in rule_args:
+        name = rule.replace("-", "_")
+        if name not in declared:
+            if whole_signature:
+                raise RuntimeError(
+                    f"the semantics says :args of the rule {rule}, which "
+                    f"the signature does not declare")
+            continue
+        unknown = [k for k in asks if k not in kinds]
+        if unknown:
+            raise RuntimeError(
+                f"{rule}: :args names {' '.join(unknown)}, which "
+                f"{TRANSLATION_CHECKS.relative_to(REPO_ROOT)} does not "
+                f"define; the kinds are {' '.join(kinds)}")
+        if len(asks) > TRANSLATION_CHECKS_MAX_ARGS:
+            raise RuntimeError(
+                f"{rule}: :args gives {len(asks)} kinds; at most "
+                f"{TRANSLATION_CHECKS_MAX_ARGS} are supported")
+        pattern = "$emb_al.nil"
+        for i in reversed(range(len(asks))):
+            pattern = f"($emb_al.cons a{i + 1} {pattern})"
+        body = f"($eo_translatable_{asks[-1]} a{len(asks)})"
+        for i in reversed(range(len(asks) - 1)):
+            body = f"($native_and ($eo_translatable_{asks[i]} a{i + 1}) {body})"
+        cases.append(f"  ; -- {rule}\n"
+                     f"  (($eo_translatable_rule_args $emb_r.{name} {pattern})\n"
+                     f"    {body})\n"
+                     f"  (($eo_translatable_rule_args $emb_r.{name} args) $native_false)\n")
+    if TRANSLATION_CHECKS_MARK not in template:
+        raise RuntimeError(f"{TRANSLATION_CHECKS} has no {TRANSLATION_CHECKS_MARK}")
+    checks = template.replace(TRANSLATION_CHECKS_MARK + "\n", "".join(cases))
+    replace_all(path, [(TRANSLATION_CHECKS_NEEDLE, checks.rstrip("\n"))])
 
 
 class Pipeline:
@@ -481,6 +554,13 @@ class Pipeline:
         return [(w[1], w[2]) for w in self.defs_head()
                 if w[0] == "$eoc-exclude"]
 
+    def defs_rule_args(self) -> list[tuple[str, list[str]]]:
+        """What each proof rule of the input asks of its arguments, as the
+        rule and the kinds it gives, one to an argument. See
+        translation_checks, which compiles them."""
+        return [(w[1], w[2:]) for w in self.defs_head()
+                if w[0] == "$eoc-rule-args"]
+
     def defs_excluded_rules(self) -> set[str]:
         """Those of the exclusions that are proof rules.
 
@@ -589,7 +669,9 @@ class Pipeline:
             replace_all(output_file, [('(include "user_desugar.eo")', "")])
         return output_file
 
-    def model_smt(self, input_file: Path, output_file: Path) -> Path:
+    def model_smt(self, input_file: Path, output_file: Path, *,
+                  checks: bool = False,
+                  whole_signature: bool = False) -> Path:
         # The signature of the input written in the deep embedding, which says
         # what its symbols mean to the model. This stage alone reads it, so it
         # is named here rather than being part of the input; see the
@@ -610,6 +692,14 @@ class Pipeline:
             'include model_smt',
             self.plugin_generated("model_smt/model_smt_gen.eo"),
         )
+        # The translation side conditions of a proof, which a backend that
+        # checks proofs compiles beside the checker; a verification condition
+        # asks nothing of them.
+        if checks:
+            translation_checks(output_file, self.defs_rule_args(),
+                               whole_signature=whole_signature)
+        else:
+            replace_all(output_file, [(TRANSLATION_CHECKS_NEEDLE, "")])
         return output_file
 
     def smt_meta(
@@ -775,7 +865,8 @@ class Pipeline:
                 plugin_label="lean-meta",
             )
             report.stage(2, 4, "model-smt", final_defs)
-            self.model_smt(init_desugar, final_defs)
+            self.model_smt(init_desugar, final_defs, checks=True,
+                           whole_signature=True)
             report.stage(3, 4, "parse", final_defs, gives=False)
             self.parse_file(final_defs)
             report.stage(4, 4, "lean", self.final_out_dir / 'lean')
@@ -835,7 +926,8 @@ class Pipeline:
         final_defs = structural
         if self.defs_file is not None:
             final_defs = self.stage_out_dir / f"rust-{stem}-final.eo"
-            self.model_smt(structural, final_defs)
+            self.model_smt(structural, final_defs, checks=True,
+                           whole_signature=True)
         self.ethos(["--plugin.rust-meta", self.binary_path_arg(final_defs)],
                    quiet=True)
         generated = self.plugin_generated("rust_meta/checker")

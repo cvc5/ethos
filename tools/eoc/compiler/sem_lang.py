@@ -819,6 +819,33 @@ def excludes(blocks):
           if isinstance(e, Symbol) and e.has('exclude')]
 
 
+def rule_args(blocks):
+  """What each proof rule that says :args asks of its arguments, as the name
+  of the rule and the kinds it gives, one to an argument and in order.
+
+  A kind is the name of a program of plugins/model_smt/translation_checks.eo
+  rather than anything this compiler knows, so it is only checked to be a
+  name here; the eoc driver says which there are when it compiles them into
+  $eo_translatable_rule_args. A rule left out of the compilation asks nothing
+  of a proof that cannot use it, so the two are refused together.
+  """
+  out = []
+  for b in blocks:
+    for e in b.entries():
+      if not (isinstance(e, Symbol) and e.has('args')):
+        continue
+      if e.has('exclude'):
+        die('%s: a rule that says :exclude asks nothing of its arguments, '
+            'so it says no :args' % e.name)
+      v = e.get('args')
+      if v.kind != 'list' or not v.items or any(
+          k.kind != 'sym' for k in v.items):
+        die('%s: :args is written as a list of kinds, one to an argument, '
+            'e.g. :args (term list); got %s' % (e.name, v.raw))
+      out.append((e.name, [k.val for k in v.items]))
+  return out
+
+
 def counts(blocks):
   """How much of each thing a set holds, for a run to say what it compiled."""
   out = collections.Counter()
@@ -828,7 +855,7 @@ def counts(blocks):
         out['programs'] += 1
         continue
       out[e.decls.noun + 's'] += 1
-      for a in ('exclude', 'lean'):
+      for a in ('exclude', 'lean', 'args'):
         if e.has(a):
           out[a] += 1
       if e.has('keep') or e.decls.keep:
@@ -1520,10 +1547,12 @@ class Symbol(Entry):
     if not out:
       # What it says may reach a file other than the definitions one -- the
       # Lean text of a method does, and so does what it says to a stage other
-      # than the model; what says nothing at all is an error.
+      # than the model, and what a rule asks of its arguments, which the head
+      # of the file says, see rule_args; what says nothing at all is an error.
       if not model:
         return ''
-      if self.has('lean') or any(self.says_at(st) for st in OTHER_STAGES):
+      if (self.has('lean') or self.has('args')
+          or any(self.says_at(st) for st in OTHER_STAGES)):
         return ''
       die('%s: says nothing, so nothing is written for it' % self.name)
     return '\n'.join(out)
