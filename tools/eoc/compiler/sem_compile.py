@@ -48,7 +48,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import report  # noqa: E402
 import sem_target  # noqa: E402
-from sem_lang import (counts, defined_names, die,  # noqa: E402
+from sem_lang import (aggregate_programs, counts,  # noqa: E402
+                      defined_names, die,
                       excludes, lean_clauses, read_config, read_macros,
                       read_text, read_vocabulary, smt_type, write_text)
 
@@ -1071,7 +1072,7 @@ def template_forward_decls(path):
   return set(FWD_RE.findall(read_text(path)))
 
 
-def check_order(blocks, name, exempt=(), declared=()):
+def check_order(blocks, name, exempt=(), declared=(), aggregates=()):
   """Every name a block uses must be defined by that block or an earlier one.
 
   This is what the ordering of a definitions file is for, and the only thing
@@ -1086,11 +1087,17 @@ def check_order(blocks, name, exempt=(), declared=()):
 
   `declared` names what the template forward declares, which stands ahead of
   every block; see template_forward_decls.
+
+  `aggregates` names the programs the cases of a set are spliced into. Those
+  are the template's, so a block that writes a program of one of those names,
+  which is what a fallback compiles to, adds cases to it rather than defining
+  it, see Symbol._fallback and DefsBlock::d_last.
   """
   owner = {d: -1 for d in declared}
   for i, (_sym, text) in enumerate(blocks):
     for d in DEF_RE.findall(text):
-      owner.setdefault(d, i)
+      if d not in aggregates:
+        owner.setdefault(d, i)
   bad = 0
   for i, (sym, text) in enumerate(blocks):
     # A name in a comment is not a use: what the block says about itself may
@@ -1456,7 +1463,8 @@ def main():
       bad += check_order(blocks, report.rel(config.target),
                          config.decls.helper_prefixes()
                          + config.decls.constructor_prefixes(),
-                         template_forward_decls(AGGREGATE_TEMPLATE))
+                         template_forward_decls(AGGREGATE_TEMPLATE),
+                         aggregate_programs(config.decls))
       for text, target, what in written(blocks, config):
         state, wrong = check_current(text, target)
         done.append((report.rel(target), state, None if wrong else what))
