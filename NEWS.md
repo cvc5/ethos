@@ -3,6 +3,7 @@ This file contains a summary of important user-visible changes.
 ethos 0.2.6
 ===========
 
+- Removes the option `--reference-define-fun`. Expanding definitions in reference files substituted without avoiding capture of bound variables, so the reference assertions could differ from the input (#279). `define-fun` and `define-const` in reference files are always read as reference equations.
 - An operator marked `:right-assoc` or `:left-assoc` applied to one argument is now a partial application, as documented, instead of the argument itself.
 - An `include` after a `reference` no longer disables the checks that assumptions are among the referenced assertions.
 - `(reset)` is no longer permitted in signature (`*.eo`) files. It no longer removes the builtin symbols, and now forgets the included files and the reference, so that both can be given again.

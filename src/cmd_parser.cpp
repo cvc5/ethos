@@ -583,9 +583,7 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> impls;
       std::vector<Expr> opaques;
       std::map<ExprValue*, AttrMap> pattrMap;
-      bool defineAsReferenceAssert =
-          tok != Token::DEFINE && d_isReference
-          && !d_state.getOptions().d_referenceDefineFun;
+      bool defineAsReferenceAssert = tok != Token::DEFINE && d_isReference;
       std::vector<Expr> vars;
       if (tok != Token::DEFINE_CONST)
       {
