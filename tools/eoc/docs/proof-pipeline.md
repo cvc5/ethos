@@ -270,11 +270,13 @@ case may put back together what it matched of the input, e.g. `(f x1)` for a
 pattern `(_ (f x1) y)`, which is transformed where a term is wanted, as a name
 of the input is.
 
-A body may evaluate a term in a model other than the one it is given by naming
-the evaluator with both, `($smtx_model_eval N t)`, which is what the parallel
-`let` of the SMT-LIB semantics does: it evaluates its body in the model
-extended by `$smtx_model_push_bindings`. A program of the model that calls the
-evaluator stands with it in one `mutual` block of the generated Lean.
+The parallel `let` of the SMT-LIB semantics, `bind`, is evaluated by the
+native `eval_bind`, as `exists`, `forall` and `choice` are by theirs: its
+bindings are of the embedding's datatype `SmtBindings`, each bound term is
+evaluated in the model the `let` is, and the body in that model extended with
+all of them. In Lean the native is a macro whose model is built by a `let rec`
+over the bindings, `__smtx_model_eval.push_bindings`, so the evaluator stays a
+single definition by structural recursion.
 
 A block may also say that the compilation has no place for its symbol. The
 configuration writes `:exclude` on the symbol, the method or the rule; the

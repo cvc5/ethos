@@ -326,11 +326,6 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_smtTypingDefs;
   /** Generated Lean SMT helper definitions. */
   std::stringstream d_smt;
-  /**
-   * Whether d_smt holds a definition beside the evaluator, i.e. a program of
-   * the model that evaluates a term itself, so that d_smt is a mutual block.
-   */
-  bool d_smtMutual = false;
   /** SMT term datatype cases. */
   std::stringstream d_smtDt;
   /** SMT theory-operator datatype cases. */

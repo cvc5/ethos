@@ -893,22 +893,6 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     decl << "noncomputable ";
     out = &d_smt;
   }
-  else if (out == &d_smtDefs)
-  {
-    // A program of the model that evaluates a term itself, e.g. the one that
-    // extends a model with the bindings of a let, is recursive with the
-    // evaluator, so it stands beside it, in one mutual block.
-    for (const Expr& e : calls)
-    {
-      if (getName(e) == "$smtx_model_eval")
-      {
-        decl << "noncomputable ";
-        out = &d_smt;
-        d_smtMutual = true;
-        break;
-      }
-    }
-  }
   // Which module this program comes out in is settled, so a native it names
   // is named from there, see NativeLayer::use.
   d_scope = scopeOf(out);
@@ -2156,9 +2140,7 @@ void LeanMetaReduce::finalizeSmtModel()
       emitResourceFile("plugins/lean_meta/lean_meta_smt_model.lean",
                        "plugins/lean_meta/lean_meta_smt_model_gen.lean",
                        {{"$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str()},
-                        {"$LEAN_SMT_EVAL$",
-                         d_smtMutual ? "mutual\n\n" + d_smt.str() + "end\n"
-                                     : d_smt.str()},
+                        {"$LEAN_SMT_EVAL$", d_smt.str()},
                         {"$NATIVE_DEFS$", d_natives.defs("Smtm")}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }

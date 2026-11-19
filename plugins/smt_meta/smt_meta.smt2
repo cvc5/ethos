@@ -131,6 +131,8 @@ $NATIVE_EMBED_DEFS$
 (declare-fun eval_exists (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_forall (SmtModel String tsm.Type sm.Term) vsm.Value)
 (declare-fun eval_choice (SmtModel String tsm.Type sm.Term) vsm.Value)
+(declare-fun model_push_bindings (SmtModel SmtModel SmtBindings) SmtModel)
+(declare-fun eval_bind (SmtModel SmtBindings sm.Term) vsm.Value)
 (declare-fun eval_fun_apply (SmtModel ModelId tsm.Type tsm.Type vsm.Value) vsm.Value)
 ; whether two (e.g. map) value are extensionally equal
 (declare-fun veq_ext (msm.Map msm.Map) Bool)
@@ -210,6 +212,27 @@ $SM_DEFS$
          (vsm.Boolean true)))
   :pattern ((eval_choice M s T F))))
   :named smtx.tchoice.def))
+
+; bind
+; The model N extended with the bindings of a let, each bound term evaluated in
+; M, the model the let is evaluated in; and the body evaluated in M so
+; extended.
+(assert (! (forall ((M SmtModel) (N SmtModel))
+  (! (= (model_push_bindings M N sbd.nil) N)
+  :pattern ((model_push_bindings M N sbd.nil))))
+  :named smtx.push_bindings_nil.def))
+
+(assert (! (forall ((M SmtModel) (N SmtModel) (s String) (T tsm.Type) (t sm.Term) (bs SmtBindings))
+  (! (= (model_push_bindings M N (sbd.cons s T t bs))
+        (model_push_bindings M (model_push N s T ($smtx_model_eval M t)) bs))
+  :pattern ((model_push_bindings M N (sbd.cons s T t bs)))))
+  :named smtx.push_bindings_cons.def))
+
+(assert (! (forall ((M SmtModel) (bs SmtBindings) (F sm.Term))
+  (! (= (eval_bind M bs F)
+        ($smtx_model_eval (model_push_bindings M M bs) F))
+  :pattern ((eval_bind M bs F))))
+  :named smtx.tbind.def))
 
 ; whether two map values are extensionally equal
 (assert (! (forall ((v1 msm.Map) (v2 msm.Map))
