@@ -80,6 +80,21 @@
   :case $eoc_transform_type_
   :into $EO_TO_SMT_TYPE_CASES$)
 
+; What an application headed by something other than a symbol becomes, i.e.
+; one whose head is itself an application, which no case of $eo_to_smt matches
+; by its symbol: a redex of a binder of the input is one. A symbol says what an
+; application headed by an application of it becomes; one that says nothing
+; leaves it the application of the embedding.
+;
+; :late says that what its cases name does not move ahead of the symbol whose
+; case it is: a symbol of the target a redex transforms into keeps the place
+; the rest of the input gives it, so the cases of the target's aggregates stand
+; in the order they would were no redex transformed.
+(declare-aggregate-method $eo_to_smt_apply
+  :case $eoc_apply_
+  :into $EO_TO_SMT_APPLY_CASES$
+  :late)
+
 ;-----------------------------------------------------------------------------
 (section "The datatypes of the embedding")
 ;-----------------------------------------------------------------------------
@@ -165,4 +180,12 @@
 (declare-embed-datatype SmtDatatypeDecl
   :cons      $emb_dd.
   :macro     $dd_
+  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+
+; The bindings of a let, each a name, the type it is declared with and the
+; term it is bound to. A binder of the target that binds several variables at
+; once is written over one.
+(declare-embed-datatype SmtBindings
+  :cons      $emb_sbd.
+  :macro     $sbd_
   :own-into  $SMT_VALUE_CONSTRUCTORS$)

@@ -230,6 +230,8 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
   // names its block after the symbol instead, and is the embedding's own by
   // the datatype being so. See DefsBlock::d_own and DefsBlock::d_literal.
   const bool namedAfterConstant = embedDatatypeOf(sym) != nullptr;
+  // What the cases of a late aggregate name, and what everything else does.
+  std::set<std::string> lateUses, otherUses;
   for (const std::string& f : forms(text))
   {
     const std::string kind = formKind(f);
@@ -247,6 +249,10 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
     }
     const std::string name = formName(f);
     namesOf(f, b.d_uses);
+    {
+      const DefsAggregate* a = aggregateOf(name);
+      namesOf(f, a != nullptr && a->d_late ? lateUses : otherUses);
+    }
     b.d_defs.insert(name);
     if (kind == "declare-const" || kind == "declare-parameterized-const"
         || kind == "define")
@@ -282,6 +288,13 @@ void DefsFile::addBlock(const std::string& sym, const std::string& text)
   for (const std::string& d : b.d_defs)
   {
     b.d_uses.erase(d);
+  }
+  for (const std::string& u : lateUses)
+  {
+    if (b.d_uses.count(u) != 0 && otherUses.count(u) == 0)
+    {
+      b.d_lateUses.insert(u);
+    }
   }
   for (const std::string& d : b.d_defs)
   {
@@ -396,8 +409,18 @@ void DefsFile::readHead(const std::string& head)
       if (!(words >> a.d_name >> a.d_case >> a.d_into))
       {
         EO_FATAL() << "DefsFile: an aggregate is written `; $eoc-aggregate "
-                      "<name> <case> <into>`, got: "
+                      "<name> <case> <into> [late]`, got: "
                    << line;
+      }
+      std::string flag;
+      if (words >> flag)
+      {
+        if (flag != "late")
+        {
+          EO_FATAL() << "DefsFile: unknown flag " << flag
+                     << " of an aggregate, got: " << line;
+        }
+        a.d_late = true;
       }
       d_aggregates.push_back(a);
     }
@@ -563,6 +586,12 @@ std::vector<const DefsBlock*> orderByDeclarations(
       [&](const DefsBlock* b) {
         for (const std::string& u : b->d_uses)
         {
+          // What only the cases of a late aggregate name is placed where the
+          // rest of the input places it, see DefsAggregate::d_late.
+          if (b->d_lateUses.count(u) != 0)
+          {
+            continue;
+          }
           std::map<std::string, const DefsBlock*>::const_iterator it =
               owner.find(u);
           if (it != owner.end() && declared.count(it->second->d_sym) == 0

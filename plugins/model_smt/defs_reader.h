@@ -42,6 +42,12 @@ struct DefsAggregate
   std::string d_case;
   /** The marker of the template what is taken from it is written at. */
   std::string d_into;
+  /**
+   * Whether what its cases name stays where the rest of the input places it
+   * rather than moving ahead of the symbol whose case it is, which `late` at
+   * the end of the line says. See orderByDeclarations.
+   */
+  bool d_late = false;
 };
 
 /**
@@ -107,6 +113,11 @@ struct DefsBlock
   std::set<std::string> d_defs;
   /** The names it uses that it does not define. */
   std::set<std::string> d_uses;
+  /**
+   * Those of d_uses that only the cases of a late aggregate name, which do not
+   * move what they name ahead of the block, see DefsAggregate::d_late.
+   */
+  std::set<std::string> d_lateUses;
   /**
    * Whether the block stands whether or not the input declares its symbol,
    * which `(echo "eoc-keep symbol X")` is what says. A few symbols are the

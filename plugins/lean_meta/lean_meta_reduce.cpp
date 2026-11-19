@@ -893,6 +893,22 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     decl << "noncomputable ";
     out = &d_smt;
   }
+  else if (out == &d_smtDefs)
+  {
+    // A program of the model that evaluates a term itself, e.g. the one that
+    // extends a model with the bindings of a let, is recursive with the
+    // evaluator, so it stands beside it, in one mutual block.
+    for (const Expr& e : calls)
+    {
+      if (getName(e) == "$smtx_model_eval")
+      {
+        decl << "noncomputable ";
+        out = &d_smt;
+        d_smtMutual = true;
+        break;
+      }
+    }
+  }
   // Which module this program comes out in is settled, so a native it names
   // is named from there, see NativeLayer::use.
   d_scope = scopeOf(out);
@@ -1328,6 +1344,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   // order, so that the tag of a constructor is its index in the datatype.
   if (!embedName.empty())
   {
+    d_embedArgTypes[embedName].insert(argTypes.begin(), argTypes.end());
     printOrderKeyCase(cname, argTypes, d_embedNcons[embedName],
                       d_embedKey[embedName]);
     d_embedNcons[embedName]++;
@@ -2004,6 +2021,10 @@ std::string LeanMetaReduce::printEmbedKeys() const
   std::stringstream keys;
   for (const std::pair<const std::string, std::stringstream>& dt : d_embedKey)
   {
+    if (embedHoldsTerm(dt.first))
+    {
+      continue;
+    }
     keys << "@[expose] def " << getOrderKeyMethod(dt.first) << " : "
          << dt.first << " -> Key" << std::endl
          << dt.second.str() << std::endl;
@@ -2021,6 +2042,14 @@ bool LeanMetaReduce::isSyntaxDatatype(const std::string& name) const
       d_embedDt.find(name);
   return it != d_embedDt.end()
          && it->second.str().find("SmtValue") == std::string::npos;
+}
+
+bool LeanMetaReduce::embedHoldsTerm(const std::string& name) const
+{
+  std::map<std::string, std::set<std::string>>::const_iterator it =
+      d_embedArgTypes.find(name);
+  return it != d_embedArgTypes.end()
+         && it->second.find("SmtTerm") != it->second.end();
 }
 
 bool LeanMetaReduce::namesModelType(const Expr& t) const
@@ -2076,8 +2105,9 @@ std::string LeanMetaReduce::printEmbedDatatypes(bool syntax) const
          << dt.second.str()
          // What holds a value holds a real, whose equality is classical and
          // which has neither a Repr nor an Ord.
-         << (syntax ? "deriving Repr, DecidableEq, Inhabited, Ord"
-                    : "deriving DecidableEq, Inhabited")
+         << (!syntax ? "deriving DecidableEq, Inhabited"
+             : embedHoldsTerm(dt.first) ? "deriving Repr, DecidableEq, Inhabited"
+                                        : "deriving Repr, DecidableEq, Inhabited, Ord")
          << std::endl
          << std::endl;
   }
@@ -2126,7 +2156,9 @@ void LeanMetaReduce::finalizeSmtModel()
       emitResourceFile("plugins/lean_meta/lean_meta_smt_model.lean",
                        "plugins/lean_meta/lean_meta_smt_model_gen.lean",
                        {{"$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str()},
-                        {"$LEAN_SMT_EVAL$", d_smt.str()},
+                        {"$LEAN_SMT_EVAL$",
+                         d_smtMutual ? "mutual\n\n" + d_smt.str() + "end\n"
+                                     : d_smt.str()},
                         {"$NATIVE_DEFS$", d_natives.defs("Smtm")}});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
 }

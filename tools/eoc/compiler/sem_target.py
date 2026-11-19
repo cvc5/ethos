@@ -153,6 +153,7 @@ SLOT_BY_TYPE = {
     '$smt_Datatype': 'd',
     '$smt_DatatypeCons': 'dc',
     '$smt_DatatypeDecl': 'dd',
+    '$smt_Bindings': 'bs',
 }
 
 
@@ -167,8 +168,13 @@ class Aggregate:
   def __init__(self, key, of, declares, signature, stands_for, level,
                matches=None, context=(), own=(), default=None,
                primary=False, sole=False, helper_attr=None,
-               helper_arg=None, helper_gives=None, otherwise=None, slots=None):
+               helper_arg=None, helper_gives=None, otherwise=None, slots=None,
+               transforms=True):
     self.key = key                  # the attribute a symbol writes
+    # Whether this is what a name of the input becomes where its level is
+    # wanted, see Shape.transform_into; one that is given more than the name is
+    # not.
+    self.transforms = transforms
     # The entry of plugins/model_smt/model_smt.eos this is written by, which
     # says the three things a stage of the pipeline agrees with this compiler
     # about: the aggregate the cases are spliced into, the name the case is
@@ -410,7 +416,8 @@ class Shape:
     """What a name of the input becomes where the embedding is wanted, i.e. the
     aggregate of that level applied to it."""
     return {a.level: '(%s %%s)' % a.program
-            for a in self.aggregates.values() if a.program is not None}
+            for a in self.aggregates.values()
+            if a.program is not None and a.transforms}
 
   def prefixes(self):
     """The name the per-symbol program of each attribute is given, up to the
@@ -684,6 +691,27 @@ TERM = Aggregate(
     default='$sm_',
     level='term')
 
+# What an application (f y) of the input becomes where f is itself an
+# application, which no case of TERM matches by its symbol: a redex of a binder
+# of the input is one, (_ (lambda vs body) y). A case is given arg, what y
+# transforms into, and app, what the application would be in the embedding,
+# and says what it matches of f, since f is not the symbol applied to its
+# arguments: (lambda vs body) for f the binder itself, or a pattern written
+# with the symbol's parameters for a longer spine. A symbol that says nothing
+# about it contributes nothing, and the application is app. y is given
+# transformed so that what a case transforms is a subterm of f.
+APPLY = Aggregate(
+    key='apply',
+    of='$eo_to_smt_apply',
+    context=[('arg', '$smt_Term'), ('app', '$smt_Term')],
+    own=[('T', 'Type')],
+    declares=['(T{i} Type)', '(x{i} T{i})'],
+    signature=('($smt_Term $smt_Term T)', '$smt_Term'),
+    stands_for={'plain': '($eo_to_smt %s)', 'type': '($eo_to_smt_type %s)',
+                'raw': INPUT},
+    level='term',
+    transforms=False)
+
 # What a type constructor of the input becomes. A symbol that says a case of
 # this says one of nothing else, since a type constructor is not a symbol of
 # terms.
@@ -852,7 +880,7 @@ EMBED_DATATYPES = Shape([], keyword='declare-embed-datatype',
 AGGREGATES = Shape([], keyword='declare-aggregate-method', noun='aggregate',
                    params=False,
                    extra_attrs={'case': 1, 'into': 1, 'helper': 1,
-                                'forward': 1})
+                                'forward': 1, 'late': 0})
 
 # ---------------------------------------------------------------------------
 # The values of the SMT-LIB signature, which stand in the same file
@@ -950,7 +978,7 @@ VALUES = Shape([VALUE_TYPEOF, VALUE_CANONICAL], constructor=None,
 TYPES = Shape([TYPE_WF, TYPE_BOUNDED, TYPE_DEFAULT, TYPE_INHABITED], constructor=TYPE_CONSTANT,
               keyword='define-sort', noun='type', keep=True)
 
-INPUT_SYMBOLS = Shape([TERM, TYPE, IS_LIST_NIL])
+INPUT_SYMBOLS = Shape([TERM, TYPE, IS_LIST_NIL, APPLY])
 
 TARGET = Shapes(SYMBOLS, LITERALS, TYPES, VALUES, METHODS)
 INPUT_SET = Shapes(INPUT_SYMBOLS, METHODS, RULES)

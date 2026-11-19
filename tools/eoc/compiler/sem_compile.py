@@ -680,8 +680,12 @@ class AggregateEntry:
   stage agree on about one aggregate. How a case of it is *written* is no part
   of that and is said in sem_target.py, see sem_target.bind."""
 
-  def __init__(self, name, case, into, helper, forward, stage):
+  def __init__(self, name, case, into, helper, forward, stage, late=False):
     self.name = name
+    # Whether what its cases name is placed where the input would place it
+    # anyway, rather than before the symbol whose case it is, see
+    # orderByDeclarations in plugins/model_smt/defs_reader.cpp.
+    self.late = late
     self.case = case            # what a symbol's case is named, up to the symbol
     self.into = into            # the marker of the template the cases go at
     self.helper = helper        # the programs written over values, if any
@@ -705,7 +709,8 @@ class AggregateEntry:
     """
     if not self.is_model:
       return []
-    out = ['; $eoc-aggregate %s %s %s' % (self.name, self.case, self.into)]
+    out = ['; $eoc-aggregate %s %s %s%s' % (self.name, self.case, self.into,
+                                             ' late' if self.late else '')]
     if self.helper is not None:
       out.append('; $eoc-helper %s %s' % (self.helper, self.forward))
     return out
@@ -826,7 +831,8 @@ def read_aggregates(sets=AGGREGATE_SETS):
             e.get('into').val if model else None,
             e.get('helper').val if e.has('helper') else None,
             e.get('forward').val if e.has('forward') else None,
-            stage)
+            stage,
+            e.has('late'))
         for marker in (entry.into, entry.forward):
           if marker is not None and marker not in template:
             die('%s: %s names %s, which %s does not have'

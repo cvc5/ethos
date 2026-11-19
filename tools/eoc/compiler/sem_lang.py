@@ -898,8 +898,13 @@ def cast(expr, scope, entry, ctx, level):
                         level)
   if h.kind != 'sym':
     die('%s: the head of an application is a name or a native' % entry.name)
-  head = (embedded(h.val, entry, ctx) if h.val.startswith('$')
-          else named(h.val, level, entry))
+  if h.val in EXPLICIT_AGGREGATES and len(expr.items) == 3:
+    # The evaluator applied to a model *and* a term: a body that evaluates a
+    # term in a model other than the one it is given, which a let does.
+    head = h.val
+  else:
+    head = (embedded(h.val, entry, ctx) if h.val.startswith('$')
+            else named(h.val, level, entry))
   return expr.laid_out([head] + [
       cast(a, scope, entry, ctx, ctx.vocab.arg_level(head, i, level))
       for i, a in enumerate(expr.items[1:])])
@@ -978,8 +983,16 @@ AGGREGATES = {
     '$eo_to_smt_type': 'a name of the input stands for what it transforms into '
                        'wherever a type of the embedding is wanted',
     '$smtx_model_eval': 'an argument of an :eval-case stands for its value in '
-                        'the model',
+                        'the model; a term is evaluated in another model by '
+                        'naming that model and the term, as in '
+                        '($smtx_model_eval N t)',
 }
+
+# The aggregates a body may still name when it says everything they are given,
+# i.e. the evaluator applied to a model and a term: what an argument stands for
+# is its value in the model of the case, and a binder that evaluates its body
+# in a model it builds -- a let -- has no other way to say so.
+EXPLICIT_AGGREGATES = {'$smtx_model_eval'}
 
 
 def embedded(name, entry, ctx):

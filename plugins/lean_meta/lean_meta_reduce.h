@@ -186,6 +186,12 @@ class LeanMetaReduce : public MetaReducePlugin
    */
   bool isSyntaxDatatype(const std::string& name) const;
   /**
+   * Whether a constructor of the datatype name of d_embedDt holds a term, e.g.
+   * the bindings of a let. A term has neither an order nor an ordering key, so
+   * such a datatype derives no Ord and is given no key: no value holds one.
+   */
+  bool embedHoldsTerm(const std::string& name) const;
+  /**
    * Whether the signature t names a value or a model, which is what puts an
    * SMT-LIB definition in SmtModel rather than the static interface the
    * checker is built on, SmtTyping. Lean reports a definition that reaches
@@ -292,6 +298,8 @@ class LeanMetaReduce : public MetaReducePlugin
   std::map<std::string, std::stringstream> d_embedKey;
   /** How many constructors each has so far, which is the tag of the next. */
   std::map<std::string, size_t> d_embedNcons;
+  /** The types the constructors of each take, keyed as above. */
+  std::map<std::string, std::set<std::string>> d_embedArgTypes;
   /**
    * The greatest number of indices an operator may take, i.e. the length of
    * the UserOp ladder the embedding declares. It is the embedding that fixes
@@ -318,6 +326,11 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_smtTypingDefs;
   /** Generated Lean SMT helper definitions. */
   std::stringstream d_smt;
+  /**
+   * Whether d_smt holds a definition beside the evaluator, i.e. a program of
+   * the model that evaluates a term itself, so that d_smt is a mutual block.
+   */
+  bool d_smtMutual = false;
   /** SMT term datatype cases. */
   std::stringstream d_smtDt;
   /** SMT theory-operator datatype cases. */

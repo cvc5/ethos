@@ -225,6 +225,49 @@ void ModelSmt::loadDefs()
   }
 }
 
+namespace {
+
+/**
+ * Keep, of each region ;$IF_<name>$ ... [;$ELSE_<name>$ ...] ;$END_<name>$ of
+ * txt, the lines before the ELSE if keep and those after it otherwise, and
+ * drop the marker lines themselves.
+ */
+void selectRegions(std::string& txt, const std::string& name, bool keep)
+{
+  const std::string ifTag = ";$IF_" + name + "$";
+  const std::string elseTag = ";$ELSE_" + name + "$";
+  const std::string endTag = ";$END_" + name + "$";
+  std::istringstream in(txt);
+  std::ostringstream out;
+  std::string line;
+  // 0 outside a region, 1 in its first half, 2 in its second
+  int at = 0;
+  while (std::getline(in, line))
+  {
+    if (line == ifTag || line == elseTag || line == endTag)
+    {
+      int next = line == ifTag ? 1 : line == elseTag ? 2 : 0;
+      if ((next == 1) != (at == 0) || (next == 2 && at != 1))
+      {
+        EO_FATAL() << "ModelSmt: misplaced " << line << " in the template";
+      }
+      at = next;
+      continue;
+    }
+    if (at == 0 || (at == 1) == keep)
+    {
+      out << line << '\n';
+    }
+  }
+  if (at != 0)
+  {
+    EO_FATAL() << "ModelSmt: unterminated " << ifTag << " in the template";
+  }
+  txt = out.str();
+}
+
+}  // namespace
+
 void ModelSmt::finalize()
 {
   // What each symbol of the signatures written in the deep embedding says,
@@ -268,6 +311,11 @@ void ModelSmt::finalize()
     EO_FATAL() << "ModelSmt: failed to read resource " << templatePath;
   }
   std::string finalSmt = sss.str();
+  // Whether some symbol says what an application headed by an application of
+  // it becomes. Where none does, what the template writes for one is dropped
+  // and the application is that of the embedding, as it was before any did;
+  // see the ;$IF_APPLY$ regions of the template.
+  const bool hasApply = !d_at["$EO_TO_SMT_APPLY_CASES$"].str().empty();
   // What the signatures said about their symbols, each at the marker the
   // aggregate it belongs to names. A marker no block wrote anything at is
   // written all the same, since the template has to be left with no
@@ -303,6 +351,7 @@ void ModelSmt::finalize()
       }
     }
   }
+  selectRegions(finalSmt, "APPLY", hasApply);
   if (finalSmt.find("$eoc_") != std::string::npos)
   {
     EO_FATAL() << "ModelSmt: generated output contains an unexpanded $eoc_ "

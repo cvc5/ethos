@@ -256,6 +256,25 @@ its cases are written at. Those lines are compiled from
 `tools/eoc/compiler/sem_target.py`, and this stage needs no change and no
 rebuild.
 
+One aggregate of the input is asked of an application rather than of a
+symbol: `:apply` says what an application `(f y)` whose head `f` is itself an
+application of the symbol becomes, which is how a redex of a binder of the
+input is transformed. Its cases are given `arg`, what `y` transforms into, and
+`app`, what the application is in the embedding, and say what they match of
+`f`. The template writes `$eo_to_smt_apply`, and routes an application through
+it, only where some symbol of the input says an `:apply` case (the
+`;$IF_APPLY$` regions of `model_smt.eo`), so a calculus without one is
+transformed exactly as before. The aggregate is declared `:late`: what its
+cases name (the `bind` a redex becomes, say) is not moved ahead of the symbol
+whose case it is, so the cases of the target's aggregates, and the equation
+lemmas Lean numbers them by, stand where they would were no redex transformed.
+
+A body may evaluate a term in a model other than the one it is given by naming
+the evaluator with both, `($smtx_model_eval N t)`, which is what the parallel
+`let` of the SMT-LIB semantics does: it evaluates its body in the model
+extended by `$smtx_model_push_bindings`. A program of the model that calls the
+evaluator stands with it in one `mutual` block of the generated Lean.
+
 A block may also say that the compilation has no place for its symbol. The
 configuration writes `:exclude` on the symbol, the method or the rule; the
 compiler turns that into an `eoc-exclude` directive, and the desugar stage
@@ -411,9 +430,11 @@ prove them or build the package.
 
 ### What this compilation does not cover
 
-- **Proof-level lambda.** Logos's `install/defs/Cpc.eos` excludes `lambda`, related
-  helper methods and `beta-reduce` explicitly. Exclusions are not closed under
-  dependency automatically.
+- **Proof-level lambda on its own.** A lambda transforms into no term: SMT-LIB
+  has none. What does have a meaning is a beta-redex, an application spine
+  headed by one, which Logos's `install/defs/Cpc.eos` transforms into the
+  parallel `let` (`bind`) of its body through the `:apply` cases of `lambda`,
+  see `$eo_to_smt_apply` in `plugins/model_smt/model_smt.eo`.
 - **Parametric datatypes.** The model embedding's datatype declarations have
   no type parameters. A source signature accepted by Ethos can therefore be
   outside this compiler's model.
