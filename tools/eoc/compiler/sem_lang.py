@@ -1347,7 +1347,17 @@ class Program(Entry):
     body = cast(ret, scope, self, ctx, lv) if lv else ret.raw
     return case.laid_out([args.laid_out([self.name] + parts), body])
 
+  # Whether it is the one case a symbol gave by :<key>-fallback, which is the
+  # one way a program may be named after an aggregate, see Symbol._fallback.
+  fallback = False
+
   def render(self, ctx):
+    key = aggregate_programs(ctx.decls).get(self.name)
+    if not self.fallback and key is not None:
+      die('%s: a program may not be named after an aggregate; a case of %s '
+          'that matches more than one symbol is given by the symbol it is '
+          'about, as :%s (binder...) <pattern> <return>'
+          % (self.name, self.name, fallback_attr(key)))
     parts = ['program', self.name, declared_type(self.node.items[2], self, ctx),
              ':signature', declared_type(self.sig, self, ctx),
              declared_type(self.ret, self, ctx),
@@ -1360,6 +1370,19 @@ class Program(Entry):
       # input declares.
       out.append('(echo "eoc-keep symbol %s")' % self.name)
     return '\n'.join(out + [self.node.laid_out(parts)])
+
+
+def fallback_attr(key):
+  """The attribute that gives a fallback case of the aggregate of `key`, e.g.
+  :term-fallback for $eo_to_smt."""
+  return key + '-fallback'
+
+
+def aggregate_programs(decls):
+  """The aggregates a set's cases are spliced into, each by the name of its
+  program, with the attribute a symbol gives a case of it under."""
+  return {a.program: a.key for s in decls.shapes
+          for a in s.aggregates.values() if a.program is not None}
 
 
 def parse_program(node, path, macros):
@@ -1534,6 +1557,11 @@ class Symbol(Entry):
         out.append(self._case(agg, ctx))
       elif self._defaulted(key):
         out.append(self._default(agg, ctx))
+    for key in self.decls.order:
+      agg = self.decls.aggregates[key]
+      if agg.stage == stage:
+        out.extend(self._fallback(agg, ctx, f)
+                   for f in self.get(fallback_attr(key), ()))
     if not out:
       # What it says may reach a file other than the definitions one -- the
       # Lean text of a method does, and so does what it says to a stage other
@@ -1605,6 +1633,46 @@ class Symbol(Entry):
               for v in self.params]
     rhs = applied(agg.default + self.name, stands)
     return agg.render(self, [(agg.head(self, xs), rhs)], ctx, n)
+
+  # -- a case of an aggregate not headed by the symbol ------------------------
+
+  def _fallback(self, agg, ctx, given):
+    """A case the symbol gives an aggregate that matches more than the symbol
+    applied to its arguments, e.g. any application headed by a lambda.
+
+    It is written `:<key>-fallback (binder...) <pattern> <return>`. The stage
+    splices it into the aggregate after every symbol's own case, so what
+    matches a symbol is never taken by it, and it is the symbol's: it is
+    written exactly when the symbol is. The binders are what says which names
+    of the case are variables; they are names the aggregate's program declares
+    in the template, since a case is spliced into that program and its own
+    declarations are not, see plugins/model_smt/model_smt.eo.
+
+    It compiles to a program of the aggregate's own name, holding the one
+    case, which is how the stage is told a case goes after the others, see
+    DefsBlock::d_last.
+    """
+    binders, pat, body = given
+    if agg.program is None:
+      die('%s: :%s gives a case of %s, which the model does not splice'
+          % (self.name, fallback_attr(agg.key), agg.of))
+    if binders.kind != 'list':
+      die('%s: :%s is written (binder...) <pattern> <return>'
+          % (self.name, fallback_attr(agg.key)))
+    # What a case of the aggregate is given beside its subject, the model of an
+    # evaluation, is declared and matched here too.
+    # It is read as a program of the set is, so the types the aggregate is
+    # declared over are named as a set names them, SmtTerm for $smt_Term.
+    def surface(t):
+      return re.sub(r'\$smt_(\w)', lambda m: 'Smt' + m.group(1).upper(), t)
+    context = ''.join('(%s %s) ' % (v, surface(t)) for v, t in agg.context)
+    given_ctx = ''.join('%s ' % v for v, _ in agg.context)
+    text = ('(program %s (%s%s)\n  :signature %s %s\n  (\n  ((%s %s%s)\n    %s)\n  )\n)'
+            % (agg.program, context, binders.raw[1:-1], surface(agg.takes),
+               surface(agg.gives), agg.program, given_ctx, pat.raw, body.raw))
+    prog = parse_program(Reader(text, self.name).read_all()[0][1], self.name, {})
+    prog.fallback = True
+    return prog.render(ctx)
 
   # -- the program written over what the arguments evaluate to ----------------
 

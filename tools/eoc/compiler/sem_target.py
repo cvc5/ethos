@@ -22,7 +22,7 @@ and `%s` in a `stands_for` for the parameter one argument was given. The two
 shapes themselves are at the foot of the file.
 """
 
-from sem_lang import FAMILY, applied, declared_type, die
+from sem_lang import FAMILY, applied, declared_type, die, fallback_attr
 
 
 # What an argument written as the input wrote it stands for: itself where the
@@ -503,6 +503,10 @@ class Shape:
       out[k] = _case_arity
       if a.helper is not None:
         out[a.helper_attr] = _case_arity
+      # A case of the aggregate that is not headed by the symbol, tried after
+      # every symbol's own case: what it binds, what it matches and what it
+      # returns. See Symbol._fallback.
+      out[fallback_attr(k)] = 3
     # What the compilation has no place for at all. What says so is written on
     # the thing itself: a symbol, and the methods and the proof rules that
     # dropping one would leave behind.
@@ -543,6 +547,7 @@ class Shape:
     out = set(self.aggregates)
     out.update(a.helper_attr for a in self.aggregates.values()
                if a.helper_attr is not None)
+    out.update(fallback_attr(k) for k in self.aggregates)
     return out
 
 
