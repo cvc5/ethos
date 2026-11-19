@@ -241,11 +241,10 @@ class LeanMetaReduce : public MetaReducePlugin
    *
    * A block runs from a line naming one or more programs, written
    * `-- $name ...`, to the next such line; what lies between is the clause.
-   * A block headed `-- inductive Name` is instead the deriving clause of the
-   * datatype of the embedding Name, which goes into d_embedDeriving, and a
-   * line `-- no-key Name` puts Name in d_embedNoKey. The files read are
-   * generated from what a semantics configuration says under :lean,
-   * :lean-deriving and :lean-no-key, see tools/eoc/out/smt_termination.lean.
+   * A line `-- unordered Name` instead puts the datatype of the embedding
+   * Name in d_embedUnordered. The files read are generated from what a
+   * semantics configuration says under :lean and :unordered, see
+   * tools/eoc/out/smt_termination.lean.
    */
   void readTerminationClauses(const std::string& path);
   /** The scope of the module the text written to os comes out in. */
@@ -298,16 +297,10 @@ class LeanMetaReduce : public MetaReducePlugin
   /** The types the constructors of each take, keyed as above. */
   std::map<std::string, std::set<std::string>> d_embedArgTypes;
   /**
-   * The deriving clause of each datatype of d_embedDt the configuration gives
-   * one, keyed as above, see readTerminationClauses. One it gives none derives
-   * what printEmbedDatatypes says by default.
+   * The datatypes of d_embedDt the configuration says are unordered, which
+   * are given no ordering key, see readTerminationClauses.
    */
-  std::map<std::string, std::string> d_embedDeriving;
-  /**
-   * The datatypes of d_embedDt the configuration gives no ordering key, see
-   * readTerminationClauses.
-   */
-  std::set<std::string> d_embedNoKey;
+  std::set<std::string> d_embedUnordered;
   /**
    * The greatest number of indices an operator may take, i.e. the length of
    * the UserOp ladder the embedding declares. It is the embedding that fixes

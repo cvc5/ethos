@@ -129,10 +129,8 @@ void LeanMetaReduce::readTerminationClauses(const std::string& path)
     EO_FATAL() << "LeanMetaReduce: could not read the termination clauses at "
                << path;
   }
-  // the programs the block being read is of, or the datatype if it is a
-  // deriving clause, and the text of the clause
+  // the programs the block being read is of, and the text of the clause
   std::vector<std::string> names;
-  bool isDeriving = false;
   std::stringstream body;
   // A block ends where the next one begins, so what has been read is taken
   // once the whole of it is known, here and again at the end of the file.
@@ -140,11 +138,7 @@ void LeanMetaReduce::readTerminationClauses(const std::string& path)
     std::string text = body.str();
     size_t e = text.find_last_not_of(" \t\n");
     text = (e == std::string::npos ? "" : text.substr(0, e + 1));
-    if (!text.empty() && isDeriving)
-    {
-      d_embedDeriving[names[0]] = text;
-    }
-    else if (!text.empty())
+    if (!text.empty())
     {
       // A clause is appended to a generated definition rather than written
       // into a resource, so it is not one of the blocks the native layer is
@@ -165,7 +159,6 @@ void LeanMetaReduce::readTerminationClauses(const std::string& path)
       }
     }
     names.clear();
-    isDeriving = false;
     body.str("");
   };
   std::string line;
@@ -177,21 +170,9 @@ void LeanMetaReduce::readTerminationClauses(const std::string& path)
     if (line.compare(0, 2, "--") == 0)
     {
       take();
-      if (line.compare(0, 10, "-- no-key ") == 0)
+      if (line.compare(0, 13, "-- unordered ") == 0)
       {
-        d_embedNoKey.insert(line.substr(10));
-      }
-      else if (line.compare(0, 13, "-- inductive ") == 0)
-      {
-        std::stringstream ls(line.substr(13));
-        std::string name;
-        if (!(ls >> name))
-        {
-          EO_FATAL() << "LeanMetaReduce: a deriving clause in " << path
-                     << " is headed `-- inductive <Name>`, got: " << line;
-        }
-        names.push_back(name);
-        isDeriving = true;
+        d_embedUnordered.insert(line.substr(13));
       }
       else if (line.compare(0, 4, "-- $") == 0)
       {
@@ -2028,7 +2009,7 @@ std::string LeanMetaReduce::printEmbedKeys() const
   std::stringstream keys;
   for (const std::pair<const std::string, std::stringstream>& dt : d_embedKey)
   {
-    if (d_embedNoKey.find(dt.first) != d_embedNoKey.end())
+    if (d_embedUnordered.find(dt.first) != d_embedUnordered.end())
     {
       continue;
     }
@@ -2097,21 +2078,16 @@ std::string LeanMetaReduce::printEmbedDatatypes(bool syntax) const
     {
       continue;
     }
-    // What the configuration says it derives, under :lean-deriving, or else
-    // what one of its kind can: what holds a value holds a real, whose
-    // equality is classical and which has neither a Repr nor an Ord.
-    std::map<std::string, std::string>::const_iterator itd =
-        d_embedDeriving.find(dt.first);
-    std::string deriving =
-        itd != d_embedDeriving.end()
-            ? itd->second
-            : (syntax ? "deriving Repr, DecidableEq, Inhabited, Ord"
-                      : "deriving DecidableEq, Inhabited");
     defs << "/-" << std::endl
          << "The " << dt.first << " of the embedding." << std::endl
          << "-/" << std::endl
          << "inductive " << dt.first << " : Type where" << std::endl
-         << dt.second.str() << deriving << std::endl
+         << dt.second.str()
+         // What holds a value holds a real, whose equality is classical and
+         // which has no Repr.
+         << (syntax ? "deriving Repr, DecidableEq, Inhabited"
+                    : "deriving DecidableEq, Inhabited")
+         << std::endl
          << std::endl;
   }
   return defs.str();
