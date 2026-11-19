@@ -202,6 +202,13 @@ LEAN_GENERATED = """\
 -- all the same clause; prose may be written between blocks, since a clause is
 -- Lean text and holds no comment of its own.
 --
+-- A block headed `-- inductive Name` is instead the deriving clause of the
+-- datatype of the embedding Name, which the lean-meta plugin writes in place
+-- of the one it would derive for it. It is what the declare-embed-datatype
+-- entry of that datatype says under :lean-deriving, and it comes out in the
+-- file of the deep embedding only. A line `-- no-key Name` says the plugin
+-- writes no ordering key for it, which is what :lean-no-key says.
+--
 -- A clause may not name the native layer. It is appended to a generated
 -- definition rather than written into a resource, so it is not one of the
 -- blocks that layer is trimmed by and a name it gave would keep nothing
@@ -246,6 +253,14 @@ def render_lean(config):
     if doc:
       out.append('\n'.join(('-- ' + d).rstrip() for d in doc))
     out.append('-- %s\n%s' % (' '.join(names), text))
+  # The datatypes of the embedding are the target's, so it is the file of the
+  # target that says what they derive.
+  if config.is_target:
+    for dt in read_embed_datatypes().values():
+      if dt.lean_deriving is not None:
+        out.append('-- inductive %s\nderiving %s' % (dt.name, dt.lean_deriving))
+      if dt.lean_no_key:
+        out.append('-- no-key %s' % dt.name)
   # A blank line between blocks, which is what ends one for the stage that
   # reads them and what a paragraph of prose stands apart by.
   return '\n\n'.join(out) + '\n'
@@ -720,12 +735,18 @@ class EmbedDatatype:
   plugins/model_smt/model_smt.eos.
   """
 
-  def __init__(self, name, cons, macro, own_into, into):
+  def __init__(self, name, cons, macro, own_into, into, lean_deriving=None,
+               lean_no_key=False):
     self.name = name            # named as a type is, e.g. SmtRegLan
     self.cons = cons            # the constant a constructor is declared as
     self.macro = macro          # the macro that applies it
     self.own_into = own_into    # where the embedding's own are written
     self.into = into            # where a signature's are, or None
+    # What its Lean inductive derives, e.g. "Repr, DecidableEq", or None for
+    # what the lean-meta stage derives for one of its kind.
+    self.lean_deriving = lean_deriving
+    # Whether the lean-meta stage writes no ordering key for it.
+    self.lean_no_key = lean_no_key
 
   @property
   def own(self):
@@ -763,7 +784,10 @@ def read_embed_datatypes(path=AGGREGATE_CONFIG):
           die('%s: a datatype of the embedding says :%s' % (what, a))
       entry = EmbedDatatype(e.name, e.get('cons').val, e.get('macro').val,
                             e.get('own-into').val,
-                            e.get('into').val if e.has('into') else None)
+                            e.get('into').val if e.has('into') else None,
+                            e.get('lean-deriving').val
+                            if e.has('lean-deriving') else None,
+                            e.has('lean-no-key'))
       if entry.type is None:
         die('%s: a datatype of the embedding is named as a type of it is, '
             'e.g. SmtRegLan for $smt_RegLan' % what)

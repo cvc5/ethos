@@ -844,11 +844,15 @@ NATIVE_TYPE_DECLS = Shape([], keyword='declare-native-type', noun='native type',
 # as, the macro that applies it, and the marker of the template those are
 # written at. What a constructor returns is the datatype itself, so nothing
 # states that twice -- the entry is named as the type is named everywhere, i.e.
-# SmtRegLan for $smt_RegLan.
+# SmtRegLan for $smt_RegLan. It may also say, under :lean-deriving, what its
+# Lean inductive derives, e.g. "Repr, DecidableEq", where what the lean-meta
+# stage derives for one of its kind does not do, and under :lean-no-key that
+# the stage writes it no ordering key.
 EMBED_DATATYPES = Shape([], keyword='declare-embed-datatype',
                         noun='datatype of the embedding', params=False,
                         extra_attrs={'cons': 1, 'macro': 1, 'into': 1,
-                                     'own-into': 1})
+                                     'own-into': 1, 'lean-deriving': 1,
+                                     'lean-no-key': 0})
 
 AGGREGATES = Shape([], keyword='declare-aggregate-method', noun='aggregate',
                    params=False,

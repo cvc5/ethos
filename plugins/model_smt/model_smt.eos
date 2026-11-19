@@ -169,8 +169,11 @@
 
 ; The bindings of a let, each a name, the type it is declared with and the
 ; term it is bound to. A binder of the target that binds several variables at
-; once is written over one.
+; once is written over one. It holds a term, which has no order, so it derives
+; no Ord and has no ordering key.
 (declare-embed-datatype SmtBindings
   :cons      $emb_sbd.
   :macro     $sbd_
-  :own-into  $SMT_VALUE_CONSTRUCTORS$)
+  :own-into  $SMT_VALUE_CONSTRUCTORS$
+  :lean-deriving "Repr, DecidableEq, Inhabited"
+  :lean-no-key)
