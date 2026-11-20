@@ -157,15 +157,21 @@ jobs:
 
     - name: Install Packages (macOS)
       if: runner.os == 'macOS'
-      env:
-        HOMEBREW_DEVELOPER: 1 # Required by Brew >= 4.6.4. See https://github.com/Homebrew/brew/pull/20414
       run: |
-        # Install GMP 6.3.0 bottle for macOS 12.0 (monterey)
-        # Ensure compatibility with older versions of macOS
+        # Use the GMP 6.3.0 bottle built for macOS 12.0 (monterey), so that
+        # the statically linked libgmp.a is compatible with older versions of
+        # macOS. Recent versions of brew no longer install a bottle from a
+        # local file, so we unpack it ourselves and point CMake at it. Only
+        # libgmp.a is used (macOS builds are always --static); the dylibs are
+        # removed because their install names still hold brew placeholders.
         GMP_BOTTLE=gmp-6.3.0.${{ matrix.bottle-suffix }}.bottle.tar.gz
-        curl -L -H "Authorization: Bearer QQ==" -o $GMP_BOTTLE \
+        curl -fL -H "Authorization: Bearer QQ==" -o "$RUNNER_TEMP/$GMP_BOTTLE" \
           https://ghcr.io/v2/homebrew/core/gmp/blobs/sha256:${{ matrix.gmp-sha256 }}
-        brew reinstall -f $GMP_BOTTLE
+        echo "${{ matrix.gmp-sha256 }}  $RUNNER_TEMP/$GMP_BOTTLE" | shasum -a 256 -c -
+        tar -xzf "$RUNNER_TEMP/$GMP_BOTTLE" -C "$RUNNER_TEMP"
+        GMP_DIR="$RUNNER_TEMP/gmp/6.3.0"
+        rm -f "$GMP_DIR"/lib/*.dylib
+        echo "CMAKE_PREFIX_PATH=$GMP_DIR" >> $GITHUB_ENV
 
     - name: Install Packages (Linux)
       if: runner.os == 'Linux'
