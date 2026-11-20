@@ -1160,7 +1160,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     {
       return d_null;
     }
-    Literal lmax(Integer(String::maxCodePoint()));
+    Integer imax(String::maxCodePoint());
+    Literal lmax(imax);
     return Expr(d_state.mkLiteralInternal(lmax));
   }
   Assert (!args.empty());
