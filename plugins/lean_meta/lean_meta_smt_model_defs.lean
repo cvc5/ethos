@@ -15,7 +15,7 @@ namespace Smtm
 open SmtEval
 
 -- $ Equality of the reals is classical, so what is derived from it is
--- $ noncomputable and there is neither a Repr nor an Ord to derive.
+-- $ noncomputable and there is no Repr to derive.
 noncomputable section
 
 mutual

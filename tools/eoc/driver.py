@@ -470,8 +470,8 @@ class Pipeline:
         """What the signature of the input leaves out of the compilation.
 
         A set may say that the compilation has no place for one of its
-        entities, as it does for lambda: SMT-LIB gives a proof-level binder no
-        meaning, so rather than a model the set says :exclude. The desugar
+        entities, e.g. a proof-level symbol SMT-LIB gives no meaning, so
+        rather than a model the set says :exclude. The desugar
         stage is what drops what they name, see Desugar::echo, so they are
         collected here and given to it.
 

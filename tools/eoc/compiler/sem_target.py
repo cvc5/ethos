@@ -22,7 +22,7 @@ and `%s` in a `stands_for` for the parameter one argument was given. The two
 shapes themselves are at the foot of the file.
 """
 
-from sem_lang import FAMILY, applied, declared_type, die
+from sem_lang import FAMILY, applied, declared_type, die, fallback_attr
 
 
 # What an argument written as the input wrote it stands for: itself where the
@@ -153,6 +153,7 @@ SLOT_BY_TYPE = {
     '$smt_Datatype': 'd',
     '$smt_DatatypeCons': 'dc',
     '$smt_DatatypeDecl': 'dd',
+    '$smt_Bindings': 'bs',
 }
 
 
@@ -502,6 +503,10 @@ class Shape:
       out[k] = _case_arity
       if a.helper is not None:
         out[a.helper_attr] = _case_arity
+      # A case of the aggregate that is not headed by the symbol, tried after
+      # every symbol's own case: what it binds, what it matches and what it
+      # returns. See Symbol._fallback.
+      out[fallback_attr(k)] = 3
     # What the compilation has no place for at all. What says so is written on
     # the thing itself: a symbol, and the methods and the proof rules that
     # dropping one would leave behind.
@@ -542,6 +547,7 @@ class Shape:
     out = set(self.aggregates)
     out.update(a.helper_attr for a in self.aggregates.values()
                if a.helper_attr is not None)
+    out.update(fallback_attr(k) for k in self.aggregates)
     return out
 
 
@@ -843,11 +849,13 @@ NATIVE_TYPE_DECLS = Shape([], keyword='declare-native-type', noun='native type',
 # as, the macro that applies it, and the marker of the template those are
 # written at. What a constructor returns is the datatype itself, so nothing
 # states that twice -- the entry is named as the type is named everywhere, i.e.
-# SmtRegLan for $smt_RegLan.
+# SmtRegLan for $smt_RegLan. It may also say :ordered, i.e. that values are
+# ordered over it, which is what a backend gives it an ordering key for: a
+# value or a type, and whatever one of those holds.
 EMBED_DATATYPES = Shape([], keyword='declare-embed-datatype',
                         noun='datatype of the embedding', params=False,
                         extra_attrs={'cons': 1, 'macro': 1, 'into': 1,
-                                     'own-into': 1})
+                                     'own-into': 1, 'ordered': 0})
 
 AGGREGATES = Shape([], keyword='declare-aggregate-method', noun='aggregate',
                    params=False,

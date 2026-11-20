@@ -116,6 +116,11 @@ class ModelSmt : public StdPlugin
    */
   std::map<std::string, std::stringstream> d_at;
   /**
+   * The cases given an aggregate by a program of its own name, which are
+   * written at its marker after everything in d_at; see DefsBlock::d_last.
+   */
+  std::map<std::string, std::stringstream> d_last;
+  /**
    * Those of the markers that take the cases of an aggregate rather than
    * whole programs, which are the ones written under the aggregate they feed
    * and so indented by two.

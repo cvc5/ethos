@@ -256,6 +256,40 @@ its cases are written at. Those lines are compiled from
 `tools/eoc/compiler/sem_target.py`, and this stage needs no change and no
 rebuild.
 
+A symbol may also give an aggregate a case that is not headed by the symbol,
+by `:<key>-fallback (binder...) <pattern> <return>`, where `<key>` is the
+attribute of the aggregate, e.g. `:term-fallback` for `$eo_to_smt`:
+
+```
+(define-symbol lambda ((! vs :raw) body)
+  :term (lambda vs body) none
+  :term-fallback ((T Type) (U Type) (T1 Type) (f (-> U T)) (y U) (x1 T1))
+    (_ (f x1) y)
+    ($eo_to_smt_lambda_spine (f x1) y (apply (f x1) y)))
+```
+
+Such a case is written after the case of every symbol, and before what the
+template says of whatever is left, so a case that matches more than one symbol
+applied to its arguments is tried only once every symbol's own case has been.
+Its binders say which names of the case are variables, and are names the
+aggregate declares in `model_smt.eo`, since the case is spliced into that
+program. It is the symbol's, so it is taken only where that symbol is, and what
+it calls is placed where the rest of the input places it, not moved ahead of
+that symbol, so the cases of the other aggregates, and the equation lemmas Lean
+numbers them by, stand where they would without it. A case may put back
+together what it matched of the input, e.g. `(f x1)` for a pattern
+`(_ (f x1) y)`, which is transformed where a term is wanted, as a name of the
+input is. The compiler writes it to this stage as a program named after the
+aggregate, e.g. `(program $eo_to_smt ...)`, which a set may not write itself.
+
+The parallel `let` of the SMT-LIB semantics, `bind`, is evaluated by the
+native `eval_bind`, as `exists`, `forall` and `choice` are by theirs: its
+bindings are of the embedding's datatype `SmtBindings`, each bound term is
+evaluated in the model the `let` is, and the body in that model extended with
+all of them. In Lean the native is a macro whose model is built by a `let rec`
+over the bindings, `__smtx_model_eval.push_bindings`, so the evaluator stays a
+single definition by structural recursion.
+
 A block may also say that the compilation has no place for its symbol. The
 configuration writes `:exclude` on the symbol, the method or the rule; the
 compiler turns that into an `eoc-exclude` directive, and the desugar stage
@@ -411,9 +445,11 @@ prove them or build the package.
 
 ### What this compilation does not cover
 
-- **Proof-level lambda.** Logos's `install/defs/Cpc.eos` excludes `lambda`, related
-  helper methods and `beta-reduce` explicitly. Exclusions are not closed under
-  dependency automatically.
+- **Proof-level lambda on its own.** A lambda transforms into no term: SMT-LIB
+  has none. What does have a meaning is a beta-redex, an application spine
+  headed by one, which Logos's `install/defs/Cpc.eos` transforms into the
+  parallel `let` (`bind`) of its body by a case of `$eo_to_smt` of its own,
+  written after the case of every symbol.
 - **Parametric datatypes.** The model embedding's datatype declarations have
   no type parameters. A source signature accepted by Ethos can therefore be
   outside this compiler's model.
