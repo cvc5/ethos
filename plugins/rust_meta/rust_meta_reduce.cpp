@@ -786,20 +786,49 @@ class RustMetaReduce::Emitter
   /**
    * The integer whose decimal text is `text`, as a value: `Integer::from`
    * of a `u32`, negated if need be, which the proofs take from the specs of
-   * `from` and `neg`; a number that does not fit is parsed at run time.
+   * `from` and `neg`. A number that does not fit is built from 32-bit
+   * limbs, the most significant first (`x * 2^32 + limb`); no signature
+   * has one today.
    */
   std::string integer(const std::string& text)
   {
     bool neg = !text.empty() && text[0] == '-';
     std::string digits = neg ? text.substr(1) : text;
-    bool fits = !digits.empty() && digits.size() <= 10
-                && digits.find_first_not_of("0123456789") == std::string::npos
-                && std::stoull(digits) <= 4294967295ULL;
-    if (!fits)
+    if (digits.empty()
+        || digits.find_first_not_of("0123456789") != std::string::npos)
     {
-      return part("parse_int(" + quote(text) + ")?");
+      EO_FATAL() << "rust-meta: not an integer: " << text;
     }
-    std::string v = "Integer::from(" + std::to_string(std::stoull(digits)) + "u32)";
+    // the limbs, by long division of the decimal digits by 2^32
+    std::vector<uint32_t> limbs;
+    std::string rest = digits;
+    while (rest != "0" && !rest.empty())
+    {
+      std::string q;
+      uint64_t r = 0;
+      for (char c : rest)
+      {
+        r = r * 10 + static_cast<uint64_t>(c - '0');
+        uint64_t d = r >> 32;
+        if (!q.empty() || d != 0)
+        {
+          q += static_cast<char>('0' + d);
+        }
+        r &= 0xffffffffULL;
+      }
+      limbs.push_back(static_cast<uint32_t>(r));
+      rest = q.empty() ? "0" : q;
+    }
+    if (limbs.empty())
+    {
+      limbs.push_back(0);
+    }
+    std::string v = "Integer::from(" + std::to_string(limbs.back()) + "u32)";
+    for (size_t i = limbs.size() - 1; i > 0; --i)
+    {
+      v = v + ".mul(&Integer::from(65536u32).mul(&Integer::from(65536u32))).add(&Integer::from("
+          + std::to_string(limbs[i - 1]) + "u32))";
+    }
     return neg ? v + ".neg()" : v;
   }
   /** The code points of a string written as `"…"` in a signature. */

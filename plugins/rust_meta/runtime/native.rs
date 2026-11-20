@@ -107,12 +107,11 @@ impl Store {
     pub(crate) fn native_nat_zero(&mut self) -> CheckResult<Term> {
         self.raw(Lit::Numeral(Integer::zero()))
     }
-    /// Another native constant, written as in the EO definitions: a
-    /// numeral or a string literal. `text` stands for what is written (see
-    /// `CheckError`).
+    /// Another native constant: generated code builds Booleans, `nat.zero`,
+    /// numerals and string literals as values, so the runtime refuses any
+    /// other. `text` stands for what is written (see `CheckError`).
     pub(crate) fn native_constant(&mut self, text: u32) -> CheckResult<Term> {
-        let literal = crate::front::native_literal(text)?;
-        self.raw(literal)
+        Err(CheckError::UnsupportedNative(text))
     }
 
     /// Match the only native algebraic constructors (Nat.zero/succ), or

@@ -43,9 +43,7 @@ pub use bitvec::BitVec;
 pub use cache::CacheStats;
 use cache::{Caches, ProgramId, TypeCacheKind};
 pub use eostring::{EoString, NUM_CODES};
-#[allow(unused_imports)]
-pub(crate) use front::parse_int;
-pub use front::{parse_rat, with_checker_stack};
+pub use front::with_checker_stack;
 pub use kind::{EvalOp, LitKind};
 pub use lit::Lit;
 pub use native::NativeOp;
