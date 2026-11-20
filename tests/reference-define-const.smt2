@@ -1,5 +1,0 @@
-(set-logic QF_UF)
-(declare-const x Bool)
-(define-const p Bool x)
-(assert p)
-(check-sat)
