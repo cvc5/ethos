@@ -157,6 +157,8 @@ set(ethos_test_file_list
     unstuck-eval-bv-example.eo
     param-dt-parse.eo
     param-dt-parse-amb-fun.eo
+    as-return-non-amb.eo
+    as-return-overload.eo
     datatypes-split-rule-param.eo
     datatypes-split-rule-param-uinst.eo
     overload-define.eo
@@ -225,6 +227,12 @@ foreach(file ${ethos_test_file_list})
   ethos_test(${file})
 endforeach()
 
+ethos_fail_test(as-return-non-amb-fail.eo
+                "Encountered bad type for as")
+ethos_fail_test(as-return-overload-fail.eo
+                "Encountered bad type for as")
+ethos_fail_test(as-return-non-ground-fail.eo
+                "Expected a ground type for as")
 ethos_fail_test(parser-overflow-declare-sort.eo
                 "Numerals must fit into 32-bit unsigned integers")
 ethos_fail_test(check-sat-assuming-reference-fail.eo

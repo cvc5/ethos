@@ -1,0 +1,7 @@
+; regression: `as` on an overloaded symbol where no overload has the
+; annotated return type
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-const f (-> Int Int))
+(declare-const f (-> Int Bool))
+(define x () ((as f Int) 1 2) :type Int)
