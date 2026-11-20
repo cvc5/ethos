@@ -836,9 +836,14 @@ class Pipeline:
         if self.defs_file is not None:
             final_defs = self.stage_out_dir / f"rust-{stem}-final.eo"
             self.model_smt(structural, final_defs)
+        generated = self.plugin_generated("rust_meta/checker")
+        # The whole directory is copied below. A file that an earlier run
+        # wrote and this one does not (another generator, a signature with
+        # fewer files) must not be part of the checker.
+        if generated.exists():
+            shutil.rmtree(generated)
         self.ethos(["--plugin.rust-meta", self.binary_path_arg(final_defs)],
                    quiet=True)
-        generated = self.plugin_generated("rust_meta/checker")
         destination = self.final_out_dir / "rust"
         if destination.exists():
             shutil.rmtree(destination)

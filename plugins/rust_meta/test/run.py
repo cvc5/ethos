@@ -49,7 +49,7 @@ def main():
             tests = tests.split("#[test]\nfn nonlinear_patterns_requirements_and_lazy_branches")[0]
             (crate / "tests/cpc.rs").write_text(Path(__file__).with_name("cpc.rs").read_text())
         (crate / "tests/checker.rs").write_text(tests)
-        source = (crate / "src/generated.rs").read_text()
+        source = "".join(p.read_text() for p in sorted((crate / "src").glob("generated*.rs")))
         assert '"$eo_invoke_assume_list", compiled to an iterative guarded fold' in source
         with (crate / "caches.tsv").open() as f:
             policies = {row["source"]: row["cache"] for row in csv.DictReader(f, delimiter="\t")}
@@ -62,7 +62,7 @@ def main():
                          "$eo_prog_mutual_a", "$eo_prog_mutual_b"]:
                 assert policies[name] == "program", name
             assert policies["$eo_prog_nonlin"] == "none"
-        assert 's.operator("add"' in source or 's.operator("list_concat"' in source
+        assert 's.builtin_core(EvalOp::Add' in source or 's.builtin_list(EvalOp::ListConcat' in source
         assert "EO program \"$eo_add\"" not in source
         assert not any(p.name.lower().startswith("parser") for p in crate.rglob("*"))
         env = os.environ.copy()

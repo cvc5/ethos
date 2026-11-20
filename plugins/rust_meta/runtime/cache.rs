@@ -165,7 +165,7 @@ impl ProgramCache {
     }
 
     fn clear(&mut self) {
-        self.entries.clear();
+        self.entries = Vec::new();
         let mut i = 0;
         while i < self.slots.len() {
             self.slots[i] = 0;
@@ -217,12 +217,16 @@ impl Caches {
         self.stats = CacheStats::default();
     }
 
-    pub(crate) fn type_get(&mut self, kind: TypeCacheKind, term: Term) -> Option<Term> {
+    pub(crate) fn type_get(&mut self, which: TypeCacheKind, term: Term) -> Option<Term> {
         if !self.enabled {
             return None;
         }
-        let entry = self.types.get(term.0 as usize)?;
-        let result = match kind {
+        let i = term.0 as usize;
+        if i >= self.types.len() {
+            return None;
+        }
+        let entry = &self.types[i];
+        let result = match which {
             TypeCacheKind::Eunoia => entry.eo,
             TypeCacheKind::Smt => entry.smt,
         };
@@ -234,14 +238,14 @@ impl Caches {
         result
     }
 
-    pub(crate) fn type_insert(&mut self, kind: TypeCacheKind, term: Term, result: Term) {
+    pub(crate) fn type_insert(&mut self, which: TypeCacheKind, term: Term, result: Term) {
         if !self.enabled {
             return;
         }
         let Some(entry) = self.types.get_mut(term.0 as usize) else {
             return;
         };
-        let slot = match kind {
+        let slot = match which {
             TypeCacheKind::Eunoia => &mut entry.eo,
             TypeCacheKind::Smt => &mut entry.smt,
         };

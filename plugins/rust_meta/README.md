@@ -54,8 +54,9 @@ The parser/elaborator adapter constructs terms and commands through:
   `Store::construct(Constructor, fields)` for generated constructors.
 
 `Constructor::from_name` and `constructors.tsv` preserve EO names, including
-overload identities. `functions.tsv` maps source programs to Rust functions
-and their Lean counterparts. `caches.tsv` records which functions are cached
+overload identities. `functions.tsv` maps source programs to Rust functions,
+their Lean counterparts and the module each is in (see "Verification
+boundary"). `caches.tsv` records which functions are cached
 and their artifact-local program IDs. Identifiers escape punctuation and
 underscores injectively, so source names cannot collide with Rust keywords
 or each other.
@@ -85,9 +86,13 @@ Bad shapes and resource exhaustion are `Result` errors. Calls, recursive
 depth and arena size are bounded by `Limits`; tail calls become loops,
 including command invocation. Checking runs on a 256 MiB scoped-thread stack,
 with a default depth limit of 16,384 generated calls, budgeting 16 KiB of that
-stack per call. Programs with eight or more cases emit separate case
-helpers and reuse one dispatch result, so unoptimized recursive calls do
-not reserve temporaries for every case. The depth regressions check both
+stack per call. Every case of a program is a function of its own, the cases
+are tried in nested groups of four, and a case's body goes on in a further
+function after twelve statements. A call of a program is therefore a short
+chain of small frames (the program, a group function for each level of
+nesting, the case and its continuations) rather than one frame with the
+temporaries of every case, in unoptimized builds too. The depth limit
+counts calls of programs, not these frames. The depth regressions check both
 successful deep terms and recovery after exceeding the limit in debug and
 release builds. Stack use still depends on the signature, compiler and
 target; the limit is configurable, not a universal stack-size proof.
@@ -104,8 +109,12 @@ is the original EO function; Logos's `invoke_assume_list_eq_fold` in
 
 All memoization lives in `Store`, behind the small interface implemented by
 `runtime/cache.rs`. It uses `Vec` tables and explicit loops, with no closures
-or `HashMap`. The existing arena interner still uses its
-original implementation; the broader Aeneas restructuring is separate.
+or `HashMap`. The arena's interner is written the same way, in `Store`
+itself: each term's hash is kept beside its data, and an open-addressed
+vector of handles with linear probing, at most half full and doubled when
+it would be fuller, finds a term from its data. A search compares the
+data it finds with the data it looks for, so the hash function
+(`runtime/table.rs`) matters only for speed.
 
 Each term handle has one type-cache row with separate EO and SMT slots for
 `$eo_typeof` and `$smtx_typeof`. Keeping these slots separate prevents two
@@ -142,6 +151,30 @@ This is an executable backend, **not a completed Rust verification**. The
 function manifest supports a subsequent Charon/Aeneas refinement project in
 Logos. No generated theorem asserts that this Rust is already sound.
 
+What holds now is that Charon and Aeneas translate the whole checker to
+Lean without an error, and that for CPC each module's Lean file compiles.
+The generator and the runtime are written in
+the subset of Rust the two accept, and the generated functions are in
+modules `generated::part<k>` (`src/generated_part<k>.rs`) made from the
+call graph: functions that call each other are in one module, and a module
+calls only itself, earlier modules and the runtime. The runtime's list
+operators and checking entry points, which call generated functions, are
+placed in that graph with them. One module can so be translated at a time,
+with the others opaque; their Lean files have not been put together into
+one development. Aeneas needs two options:
+
+- `-loops-to-rec`, because a loop written with its `loop` combinator does
+  not compile in Lean when the function it is in is called again from
+  inside the loop;
+- `-max-heartbeats` above its default, for large groups of functions that
+  call each other, which Lean elaborates as one definition.
+
+Two parts of the runtime are not translated, and their functions are
+axioms of the Lean: `num.rs`, the integers and rationals over Malachite;
+and of `front.rs`, which holds what works on text for the program around
+the checker, the four pure functions the checking code calls (`parse_int`,
+`parse_rat`, `native_literal`, `constant_name`).
+
 The intended store relation maps each handle to its Logos term or native
 field. Its obligations are constructor/view correctness, monotone extension
 and structural equality iff handle equality. The arena's tagged sum also
@@ -167,11 +200,16 @@ program names alone is insufficient. Unsupported native operations fail
 with an error, never an accepting default. The parser and its translation
 to this representation remain outside the proof, as requested.
 
-The six copied files (`num.rs`, `lit.rs`, `kind.rs`, `bitvec.rs`,
-`eostring.rs`, `codec.rs`) are byte-for-byte copies of `crates/pathos-term/src`
-at Pathos `acae6aa1e2d4525c33c11c6aa74c725566be1ff5`. They retain that format so
-fixes can flow both ways; cache changes are confined to this backend's own
-runtime. The BSD license is in `LICENSE.pathos`.
+Five files of the runtime (`num.rs`, `lit.rs`, `kind.rs`, `bitvec.rs`,
+`eostring.rs`) come from `crates/pathos-term/src` at Pathos
+`acae6aa1e2d4525c33c11c6aa74c725566be1ff5`. `eostring.rs` is a byte-for-byte
+copy. The others are that code without what the compiled checker does not
+use (the kinds of symbols and compound terms and the flat `Kind`, the
+writing and reading of snapshots, a few functions on numbers), rewritten
+in the subset of Rust that the verification tools translate; the header
+of each says what it holds. The other runtime files (`cache.rs`,
+`table.rs`, `native.rs`, `front.rs` and the `.in` templates) are this
+backend's own. The BSD license is in `LICENSE.pathos`.
 The artifact includes `Cargo.lock` and the Pathos
 dependency audit in `DEPENDENCIES.md`. Its own Rust forbids `unsafe`; the
 audited transitive dependencies retain Pathos's existing safety boundary.
@@ -187,7 +225,9 @@ python3 plugins/rust_meta/test/run.py --build-dir build-eoc \
 ```
 
 This generates an independent crate, runs Rustfmt and Clippy with warnings
-as errors, and runs debug and release tests. Coverage includes a complete
+as errors, and runs debug and release tests. (The runtime allows a few
+Clippy lints by name, those that ask for an idiom the verification tools
+do not translate.) Coverage includes a complete
 refutation, incorrect premises, assumption discharge, open scopes,
 ill-typed assumptions, builtin lists and arithmetic, nonlinear matching,
 lazy recursion, tail-call argument swapping, long command lists and resource

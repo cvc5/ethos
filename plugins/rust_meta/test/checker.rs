@@ -136,7 +136,7 @@ fn primitive_edge_cases_and_interning() {
 fn recognizers_return_booleans_including_on_stuck() {
     let mut s = Store::default();
     let ty = n(&mut s, "Real", &[]);
-    let name = s.literal(Lit::String(EoString::parse("x", false))).unwrap();
+    let name = s.literal(Lit::Str(EoString::parse("x", false))).unwrap();
     let variable = n(&mut s, "$emb_Var", &[name, ty]);
     let numeral = s.numeral(Integer::one()).unwrap();
     let rational = s
@@ -296,7 +296,7 @@ fn assumption_fold_preserves_guards_and_malformed_tails() {
     let invoke = generated::eo__24eo_5finvoke_5fassume_5flist;
     assert_eq!(invoke(&mut s, initial, empty), Ok(initial));
     let numeral = s.numeral(Integer::one()).unwrap();
-    let name = s.literal(Lit::String(EoString::parse("x", false))).unwrap();
+    let name = s.literal(Lit::Str(EoString::parse("x", false))).unwrap();
     let ty = n(&mut s, "$emb_Bool", &[]);
     let variable = n(&mut s, "$emb_Var", &[name, ty]);
     let bad_state = n(&mut s, "$emb_s.Stuck", &[]);
@@ -330,7 +330,7 @@ fn indexed_operators_have_the_logos_wrapper_view() {
         "extract"
     };
     let ty = n(&mut s, "Int", &[]);
-    let name_term = s.literal(Lit::String(EoString::parse("x", false))).unwrap();
+    let name_term = s.literal(Lit::Str(EoString::parse("x", false))).unwrap();
     let variable = n(&mut s, "$emb_Var", &[name_term, ty]);
     let zero = s.numeral(Integer::zero()).unwrap();
     let indexed = n(&mut s, name, &[variable, zero]);
@@ -346,7 +346,7 @@ fn indexed_operators_have_the_logos_wrapper_view() {
 fn program_keys_include_the_environment() {
     let mut s = Store::default();
     let ty = n(&mut s, "$emb_Bool", &[]);
-    let name = s.literal(Lit::String(EoString::parse("x", false))).unwrap();
+    let name = s.literal(Lit::Str(EoString::parse("x", false))).unwrap();
     let variable = n(&mut s, "$emb_Var", &[name, ty]);
     let empty = n(&mut s, "$eo_List_nil", &[]);
     let cons = n(&mut s, "$eo_List_cons", &[]);

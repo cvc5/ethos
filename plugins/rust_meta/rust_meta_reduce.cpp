@@ -367,26 +367,25 @@ bool RustMetaReduce::isUserConstructor(const std::string& name)
 std::string RustMetaReduce::schema() const
 {
   std::ostringstream out;
-  out << "#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, "
-         "Ord)]\npub enum Constructor {\n";
+  out << "use crate::Embedding;\n#[derive(Copy, Clone)]\n"
+         "pub enum Constructor {\n";
   for (const auto& c : d_constructors)
   {
     out << ident(c.first) << ",\n";
   }
-  out << "}\nimpl Constructor {\npub fn name(self) -> &'static str { match "
-         "self {\n";
+  // Two constructors are compared by their numbers. A cast or a derived
+  // `==` would do, but a verification tool that follows every path through
+  // a function then follows one for each pair of constructors.
+  out << "}\nimpl PartialEq for Constructor {\nfn eq(&self, other: &Self) -> "
+         "bool { self.code() == other.code() }\n}\nimpl Eq for Constructor "
+         "{}\nimpl Constructor {\n/// The place of the constructor in the "
+         "enum.\npub fn code(self) -> u32 { match self {\n";
+  size_t code = 0;
   for (const auto& c : d_constructors)
   {
-    out << "Self::" << ident(c.first) << " => " << quote(c.first) << ",\n";
+    out << "Self::" << ident(c.first) << " => " << code++ << ",\n";
   }
-  out << "}}\npub fn from_name(name: &str) -> Option<Self> { Some(match name "
-         "{\n";
-  for (const auto& c : d_constructors)
-  {
-    out << quote(c.first) << " => Self::" << ident(c.first) << ",\n";
-  }
-  out << "_ => return None, }) }\npub fn is_user(self) -> bool { match self "
-         "{\n";
+  out << "}}\npub fn is_user(self) -> bool { match self {\n";
   for (const auto& c : d_constructors)
   {
     if (isUserConstructor(c.first))
@@ -399,10 +398,13 @@ std::string RustMetaReduce::schema() const
   {
     out << "Self::" << ident(c.first) << " => " << c.second.arity << ",\n";
   }
-  out << "}}\npub fn is_left_assoc(self) -> bool { match self.name() {\n";
+  out << "}}\npub fn is_left_assoc(self) -> bool { match self {\n";
   for (const auto& n : d_leftAssoc)
   {
-    out << quote(n) << " => true,\n";
+    if (d_constructors.count(n) != 0)
+    {
+      out << "Self::" << ident(n) << " => true,\n";
+    }
   }
   out << "_ => false, }}\npub fn order_key(self) -> (usize, usize) { match "
          "self {\n";
@@ -446,52 +448,377 @@ std::string RustMetaReduce::schema() const
     out << "Self::" << ident(name) << " => (" << tag << ", " << subtag
         << "),\n";
   }
-  out << "}}\n}\n";
+  // How the runtime represents what each constructor builds, decided here
+  // from the constructor's name in the embedding of terms, so that the
+  // runtime compares no names.
+  static const std::vector<std::pair<std::string, std::string>> embeddings{
+      {"$emb_Stuck", "Stuck"},
+      {"$emb_Apply", "Apply"},
+      {"$emb_Boolean", "Boolean"},
+      {"$emb_Numeral", "Numeral"},
+      {"$emb_Rational", "Rational"},
+      {"$emb_String", "Str"},
+      {"$emb_Binary", "Binary"},
+      {"$emb_Var", "Var"}};
+  out << "}}\npub fn embedding(self) -> Embedding { match self {\n";
+  for (const auto& c : d_constructors)
+  {
+    std::string embedding = starts(c.first, "$emb_UOp") ? "UOp" : "";
+    for (const auto& e : embeddings)
+    {
+      if (c.first == e.first)
+      {
+        embedding = e.second;
+      }
+    }
+    if (!embedding.empty())
+    {
+      out << "Self::" << ident(c.first) << " => Embedding::" << embedding
+          << ",\n";
+    }
+  }
+  out << "_ => Embedding::Data, }}\n"
+         "/// The constructor of an embedding that has exactly one.\n"
+         "pub fn of_embedding(e: Embedding) -> Option<Self> { match e {\n";
+  for (const auto& e : embeddings)
+  {
+    if (d_constructors.count(e.first) != 0)
+    {
+      out << "Embedding::" << e.second << " => Some(Self::" << ident(e.first)
+          << "),\n";
+    }
+  }
+  out << "_ => None, }}\n}\n";
   return out.str();
 }
 
-std::string RustMetaReduce::literal(const Expr& e)
+std::string RustMetaReduce::constructorNames() const
 {
-  const Literal* l = e.getValue()->asLiteral();
   std::ostringstream out;
-  switch (e.getKind())
+  out << "//! The constructors by name.\nuse crate::Constructor;\n"
+         "impl Constructor {\npub fn name(self) -> &'static str { match "
+         "self {\n";
+  for (const auto& c : d_constructors)
   {
-    case Kind::BOOLEAN:
-      return l->d_bool ? "Lit::Bool(true)" : "Lit::Bool(false)";
-    case Kind::NUMERAL:
-      return "Lit::Numeral(parse_int(" + quote(l->d_int.toString()) + ")?)";
-    case Kind::RATIONAL:
-    case Kind::DECIMAL:
-      return "Lit::Rational(parse_rat(" + quote(l->d_rat.toString()) + ")?)";
-    case Kind::BINARY:
-    case Kind::HEXADECIMAL:
-      out << "Lit::Binary(BitVec::new(" << l->d_bv.getSize() << ", &parse_int("
-          << quote(l->d_bv.getValue().toString()) << ")?))";
-      return out.str();
-    case Kind::STRING:
-      out << "Lit::String(EoString::from_code_points(vec![";
-      for (unsigned c : l->d_str.getVec())
-      {
-        out << c << ',';
-      }
-      out << "]))";
-      return out.str();
-    default: EO_FATAL() << "rust-meta: unsupported literal " << e;
+    out << "Self::" << ident(c.first) << " => " << quote(c.first) << ",\n";
   }
-  return "";
+  out << "}}\npub fn from_name(name: &str) -> Option<Self> { Some(match name "
+         "{\n";
+  for (const auto& c : d_constructors)
+  {
+    out << quote(c.first) << " => Self::" << ident(c.first) << ",\n";
+  }
+  out << "_ => return None, }) }\n}\nimpl std::fmt::Debug for Constructor {\n"
+         "fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result "
+         "{ f.write_str(match self {\n";
+  for (const auto& c : d_constructors)
+  {
+    out << "Self::" << ident(c.first) << " => " << quote(ident(c.first))
+        << ",\n";
+  }
+  out << "}) }\n}\n"
+         "/// The names and constants that generated code passes to the\n"
+         "/// runtime as numbers: their places in this list.\n"
+         "pub(crate) const NATIVE_TEXTS: &[&str] = &[\n";
+  for (const std::string& text : d_nativeTexts)
+  {
+    out << quote(text) << ",\n";
+  }
+  out << "];\n";
+  return out.str();
+}
+
+size_t RustMetaReduce::nativeText(const std::string& text)
+{
+  for (size_t i = 0; i < d_nativeTexts.size(); ++i)
+  {
+    if (d_nativeTexts[i] == text)
+    {
+      return i;
+    }
+  }
+  d_nativeTexts.push_back(text);
+  return d_nativeTexts.size() - 1;
+}
+
+std::string RustMetaReduce::constructorOption(const std::string& name) const
+{
+  return d_constructors.count(name) != 0
+             ? "Some(Constructor::" + ident(name) + ")"
+             : "None";
+}
+
+std::string RustMetaReduce::expandConstructors(std::string text) const
+{
+  // "@ctor:NAME@" in a runtime template is the constructor of that name, as
+  // an Option: None where the signature has none.
+  const std::string open = "@ctor:";
+  size_t at;
+  while ((at = text.find(open)) != std::string::npos)
+  {
+    size_t end = text.find('@', at + open.size());
+    if (end == std::string::npos)
+    {
+      EO_FATAL() << "rust-meta: unterminated @ctor: in a runtime template";
+    }
+    std::string name = text.substr(at + open.size(), end - at - open.size());
+    text.replace(at, end + 1 - at, constructorOption(name));
+  }
+  return text;
 }
 
 /** Emits temporaries in evaluation order; no nested mutable borrows. */
 class RustMetaReduce::Emitter
 {
  public:
-  Emitter(RustMetaReduce& meta, std::ostream& out) : m(meta), o(out) {}
-  std::map<Expr, std::string> vars;
-  std::string val(const std::string& rhs)
+  /**
+   * What the functions written for one program share: where its helper
+   * functions go, its Rust name, and the number of helpers so far.
+   */
+  struct Shared
   {
-    std::string n = "v" + std::to_string(next++);
-    o << "let " << n << " = " << rhs << ";\n";
+    std::ostream& helpers;
+    std::string name;
+    size_t count = 0;
+  };
+  Emitter(RustMetaReduce& meta, std::ostream& out, Shared& shared)
+      : m(meta), o(out), d_shared(shared)
+  {
+  }
+  /**
+   * An emitter for a part of what `parent` is writing that becomes a
+   * function of its own (a branch of a conditional): it knows the
+   * parent's variables and goes on with its numbering.
+   */
+  Emitter(Emitter& parent, std::ostream& out)
+      : vars(parent.vars),
+        m(parent.m),
+        o(out),
+        d_shared(parent.d_shared),
+        next(parent.next)
+  {
+  }
+  std::map<Expr, std::string> vars;
+  /** Starts the body of another function: no variable is known. */
+  void clear() { vars.clear(); }
+  /**
+   * A call of the runtime or of a generated function that can fail, with
+   * the error returned to the caller. Written as a match, not as `call?`:
+   * `?` goes through the `Try` and `From` traits, which is more for the
+   * verification tools to translate at each of the many calls and leaves
+   * a call of `Try::branch` and a match on `ControlFlow` in their output
+   * where this is a match on the result.
+   */
+  static std::string attempt(const std::string& call)
+  {
+    return "match " + call + " { Ok(v) => v, Err(e) => return Err(e) }";
+  }
+  /** `let v<n> = rhs;`, where an `rhs` that ends in `?` is such a call. */
+  std::string val(const std::string& rhs) { return let(rhs, true); }
+  /**
+   * The same for a value that is not a term (a number, an optional pair,
+   * the fields of a term), which the next statement uses up: a function
+   * does not end between the two.
+   */
+  std::string part(const std::string& rhs) { return let(rhs, false); }
+  std::string let(const std::string& rhs, bool whole)
+  {
+    std::string n = fresh();
+    bool fallible = !rhs.empty() && rhs.back() == '?';
+    o << "let " << n << " = "
+      << (fallible ? attempt(rhs.substr(0, rhs.size() - 1)) : rhs) << ";\n";
+    if (whole)
+    {
+      o << CUT;
+    }
     return n;
+  }
+  /** The name of a new temporary. */
+  std::string fresh() { return "v" + std::to_string(next++); }
+  /**
+   * Marks, in what an emitter writes, the end of a statement after which
+   * a function may end and another go on (see `close`). It is not part
+   * of the Rust text.
+   */
+  static constexpr char CUT = '\x1f';
+  /** What is written, without the marks. */
+  static std::string plain(const std::string& text)
+  {
+    std::string ret;
+    for (char c : text)
+    {
+      if (c != CUT)
+      {
+        ret += c;
+      }
+    }
+    return ret;
+  }
+  /**
+   * The parameters of a function whose body is `text`, and the arguments
+   * of a call of it: the variables `text` mentions and does not make
+   * itself. All are terms: the arguments of the program (a<i>) and the
+   * temporaries (v<i>).
+   */
+  static std::pair<std::string, std::string> parameters(const std::string& text)
+  {
+    auto wordChar = [](char c) {
+      return std::isalnum(static_cast<unsigned char>(c)) || c == '_';
+    };
+    auto variable = [](const std::string& w) {
+      return w.size() >= 2 && (w[0] == 'a' || w[0] == 'v')
+             && w.find_first_not_of("0123456789", 1) == std::string::npos;
+    };
+    // what `text` makes: the variables between a `let` and its `=`
+    std::set<std::string> made;
+    for (size_t at = text.find("let "); at != std::string::npos;
+         at = text.find("let ", at + 1))
+    {
+      if (at > 0 && wordChar(text[at - 1]))
+      {
+        continue;
+      }
+      size_t end = text.find('=', at);
+      for (size_t i = at + 4; i < end && i < text.size();)
+      {
+        size_t j = i;
+        while (j < end && wordChar(text[j]))
+        {
+          ++j;
+        }
+        if (j > i && variable(text.substr(i, j - i)))
+        {
+          made.insert(text.substr(i, j - i));
+        }
+        i = j > i ? j : i + 1;
+      }
+    }
+    std::string params, args;
+    std::set<std::string> seen;
+    for (size_t i = 0; i < text.size();)
+    {
+      size_t j = i;
+      while (j < text.size() && wordChar(text[j]))
+      {
+        ++j;
+      }
+      if (j == i)
+      {
+        ++i;
+        continue;
+      }
+      std::string word = text.substr(i, j - i);
+      i = j;
+      if (variable(word) && made.count(word) == 0 && seen.insert(word).second)
+      {
+        params += ", " + word + ": Term";
+        args += ", " + word;
+      }
+    }
+    return {params, args};
+  }
+  /**
+   * The end of a function that returns `ret`: the statements `body` and
+   * then the expression `result`. A long body is cut: the function ends
+   * with a call of a new function of this program, which goes on with
+   * the rest and gets the variables the rest uses. A function with
+   * hundreds of fallible calls in a row is more than the tools this code
+   * is translated with take (Charon's reconstruction of the control flow
+   * nests once per call), and in the Lean that Aeneas writes the rest of
+   * a function is nested once more at each such call and each pattern:
+   * past about seventeen levels its printer breaks a line where Lean
+   * cannot read it.
+   */
+  std::string close(const std::string& body,
+                    const std::string& result,
+                    const std::string& ret)
+  {
+    const size_t limit = 12;
+    size_t cut = std::string::npos, seen = 0;
+    for (size_t i = 0; i < body.size(); ++i)
+    {
+      if (body[i] == CUT && ++seen == limit)
+      {
+        cut = i + 1;
+        break;
+      }
+    }
+    if (cut == std::string::npos || cut >= body.size())
+    {
+      return plain(body) + result + "\n";
+    }
+    std::string rest = body.substr(cut);
+    std::string name = "more_" + std::to_string(d_shared.count++) + "_"
+                       + d_shared.name;
+    auto pa = parameters(plain(rest) + " " + result);
+    std::string tail = close(rest, result, ret);
+    d_shared.helpers << "fn " << name << "(s: &mut Store" << pa.first << ") -> "
+                     << ret << " {\n"
+                     << tail << "}\n";
+    return plain(body.substr(0, cut)) + name + "(s" + pa.second + ")\n";
+  }
+  /** What a pattern that does not match does: the case does not apply. */
+  const std::string fail = " { return Ok(None); }\n";
+  /**
+   * A function of this program with the body `body`, which computes a
+   * term, and the call of it. `extra` are parameters with their
+   * arguments; the others are the variables the body uses.
+   */
+  std::string helper(const std::string& kind,
+                     const std::vector<std::pair<std::string, std::string>>&
+                         extra,
+                     const std::string& body)
+  {
+    std::string name = kind + "_" + std::to_string(d_shared.count++) + "_"
+                       + d_shared.name;
+    std::string params, args;
+    for (const auto& x : extra)
+    {
+      params += ", " + x.first + ": Term";
+      args += ", " + x.second;
+    }
+    auto pa = parameters(body);
+    d_shared.helpers << "fn " << name << "(s: &mut Store" << params << pa.first
+                     << ") -> CheckResult<Term> {\n"
+                     << body << "}\n";
+    return name + "(s" + args + pa.second + ")";
+  }
+  /** The value of a literal; a number is read by a statement of its own. */
+  std::string literal(const Expr& e)
+  {
+    const Literal* l = e.getValue()->asLiteral();
+    switch (e.getKind())
+    {
+      case Kind::BOOLEAN:
+        return l->d_bool ? "Lit::Boolean(true)" : "Lit::Boolean(false)";
+      case Kind::NUMERAL:
+        return "Lit::Numeral("
+               + part("parse_int(" + quote(l->d_int.toString()) + ")?") + ")";
+      case Kind::RATIONAL:
+      case Kind::DECIMAL:
+        return "Lit::Rational("
+               + part("parse_rat(" + quote(l->d_rat.toString()) + ")?") + ")";
+      case Kind::BINARY:
+      case Kind::HEXADECIMAL:
+        return "Lit::Binary(BitVec::new("
+               + std::to_string(l->d_bv.getSize()) + ", &"
+               + part("parse_int(" + quote(l->d_bv.getValue().toString())
+                     + ")?")
+               + "))";
+      case Kind::STRING:
+      {
+        std::ostringstream out;
+        out << "Lit::Str(EoString::from_code_points(vec![";
+        for (unsigned c : l->d_str.getVec())
+        {
+          out << c << ',';
+        }
+        out << "]))";
+        return out.str();
+      }
+      default: EO_FATAL() << "rust-meta: unsupported literal " << e;
+    }
+    return "";
   }
   std::string ctor(const std::string& name)
   {
@@ -500,6 +827,137 @@ class RustMetaReduce::Emitter
       EO_FATAL() << "rust-meta: unknown constructor " << name;
     }
     return "Constructor::" + ident(name);
+  }
+  /** The runtime's `EvalOp` of a kind: `EVAL_IS_OK` is `IsOk`. */
+  static std::string evalOp(Kind k)
+  {
+    std::ostringstream name;
+    name << k;
+    std::string ret;
+    bool upper = true;
+    for (char c : name.str().substr(5))
+    {
+      if (c == '_')
+      {
+        upper = true;
+        continue;
+      }
+      ret += upper ? c : static_cast<char>(std::tolower(c));
+      upper = false;
+    }
+    return ret;
+  }
+  /**
+   * A call of a native operation. The runtime names its operations by an
+   * enum (NativeOp in runtime/native.rs); a name it does not have, or a
+   * number of arguments the operation does not take, is the runtime's
+   * UnsupportedNative error, as when the runtime compared the names.
+   */
+  std::string native(const std::string& name,
+                     size_t nargs,
+                     const std::string& as)
+  {
+    static const std::map<std::string, std::pair<std::string, size_t>> ops{
+        {"teq", {"Teq", 2}},
+        {"Teq", {"Teq", 2}},
+        {"tcmp", {"Tcmp", 2}},
+        {"is_ok", {"IsOk", 1}},
+        {"not", {"Not", 1}},
+        {"and", {"And", 2}},
+        {"or", {"Or", 2}},
+        {"iff", {"Iff", 2}},
+        {"nat.succ", {"NatSucc", 1}},
+        {"nat.pred", {"NatPred", 1}},
+        {"nat.to_int", {"NatToInt", 1}},
+        {"Int.ofNat", {"NatToInt", 1}},
+        {"int.to_nat", {"IntToNat", 1}},
+        {"Int.toNat", {"IntToNat", 1}},
+        {"zeq", {"Zeq", 2}},
+        {"nateq", {"Nateq", 2}},
+        {"zlt", {"Zlt", 2}},
+        {"zleq", {"Zleq", 2}},
+        {"nat.lt", {"NatLt", 2}},
+        {"zplus", {"Zplus", 2}},
+        {"zmult", {"Zmult", 2}},
+        {"zdiv_total", {"ZdivTotal", 2}},
+        {"div_total", {"DivTotal", 2}},
+        {"mod_total", {"ModTotal", 2}},
+        {"zmod_total", {"ZmodTotal", 2}},
+        {"zexp_total", {"ZexpTotal", 2}},
+        {"binary_and", {"BinaryAnd", 2}},
+        {"binary_or", {"BinaryOr", 2}},
+        {"binary_xor", {"BinaryXor", 2}},
+        {"zneg", {"Zneg", 1}},
+        {"zabs", {"Zabs", 1}},
+        {"qeq", {"Qeq", 2}},
+        {"qlt", {"Qlt", 2}},
+        {"qleq", {"Qleq", 2}},
+        {"qplus", {"Qplus", 2}},
+        {"qmult", {"Qmult", 2}},
+        {"qdiv_total", {"QdivTotal", 2}},
+        {"qneg", {"Qneg", 1}},
+        {"qabs", {"Qabs", 1}},
+        {"mk_rational", {"MkRational", 2}},
+        {"to_int", {"ToInt", 1}},
+        {"to_real", {"ToReal", 1}},
+        {"streq", {"Streq", 2}},
+        {"int.pow2", {"IntPow2", 1}},
+        {"uconst_id", {"UconstId", 1}},
+        {"const_id", {"ConstId", 1}},
+        {"string_valid", {"StringValid", 1}},
+        {"string_prefix_eq", {"StringPrefixEq", 2}}};
+    if (nargs == 0)
+    {
+      // a constant
+      if (name == "true" || name == "false")
+      {
+        return "s.native_bool(" + name + ")?";
+      }
+      if (name == "nat.zero")
+      {
+        return "s.native_nat_zero()?";
+      }
+      // a numeral or a string, which the runtime reads
+      return "s.native_constant(" + std::to_string(m.nativeText(name)) + ")?";
+    }
+    auto it = ops.find(name);
+    if (it == ops.end() || it->second.second != nargs)
+    {
+      return "s.unsupported_native(" + std::to_string(m.nativeText(name))
+             + ")?";
+    }
+    return "s.native_op(NativeOp::" + it->second.first + ", &[" + as + "])?";
+  }
+  /** A native constructor or constant as a pattern for `value`. */
+  std::string nativePattern(const std::string& name, const std::string& value)
+  {
+    if (name == "nat.succ")
+    {
+      return "s.native_pattern_succ(" + value + ")?";
+    }
+    if (name == "true" || name == "false")
+    {
+      return "s.native_pattern_bool(" + name + ", " + value + ")?";
+    }
+    if (name == "nat.zero")
+    {
+      return "s.native_pattern_nat_zero(" + value + ")?";
+    }
+    return "s.native_pattern_constant(" + std::to_string(m.nativeText(name))
+           + ", " + value + ")?";
+  }
+  /**
+   * The term of the constructor `name` of the embedding, which a signature
+   * may lack; without it, the runtime's InvalidConstructor error, as when
+   * the runtime looked the name up.
+   */
+  std::string named(const std::string& name, const std::string& as)
+  {
+    if (m.d_constructors.count(name) == 0)
+    {
+      return "s.missing_constructor()?";
+    }
+    return "s.construct(Constructor::" + ident(name) + ", &[" + as + "])?";
   }
   std::string args(const Expr& t, size_t start, const std::string& sep = ", ")
   {
@@ -511,20 +969,34 @@ class RustMetaReduce::Emitter
     }
     return ret;
   }
+  /**
+   * A conditional is a function of its own, called here: its branches
+   * compute, and can fail, and written in place they would be arms of a
+   * match that the rest of the case follows.
+   */
   std::string conditional(const Expr& c,
                           const Expr& yes,
                           const Expr& no,
                           bool native)
   {
     std::string cv = expr(c);
-    std::string n = "v" + std::to_string(next++);
-    o << "let " << n << " = match s.boolean_value(" << cv << ", "
-      << (native ? "true" : "false") << ")? {\nSome(true) => {\n";
-    std::string a = expr(yes);
-    o << a << "\n}, Some(false) => {\n";
-    std::string b = expr(no);
-    o << b << "\n}, None => s.stuck(),\n};\n";
-    return n;
+    std::ostringstream ys, ns;
+    Emitter ye(*this, ys);
+    std::string a = ye.expr(yes);
+    next = ye.next;
+    Emitter ne(*this, ns);
+    std::string b = ne.expr(no);
+    next = ne.next;
+    const std::string ret = "CheckResult<Term>";
+    std::string body =
+        "let branch = "
+        + attempt(std::string("s.boolean_value(condition, ")
+                  + (native ? "true" : "false") + ")")
+        + ";\nmatch branch {\nSome(true) => {\n"
+        + close(ys.str(), "Ok(" + a + ")", ret) + "}\nSome(false) => {\n"
+        + close(ns.str(), "Ok(" + b + ")", ret)
+        + "}\nNone => Ok(s.stuck()),\n}\n";
+    return val(helper("if", {{"condition", cv}}, body) + "?");
   }
   std::string op(Kind k, const Expr& t, size_t start)
   {
@@ -538,13 +1010,18 @@ class RustMetaReduce::Emitter
     }
     if (k == Kind::EVAL_REQUIRES)
     {
+      // A function of its own, as a conditional is.
       std::string a = expr(t[start]), b = expr(t[start + 1]);
-      std::string n = "v" + std::to_string(next++);
-      o << "let " << n << " = if " << a << " == " << b << " && !s.is_stuck("
-        << a << ")? {\n";
-      std::string r = expr(t[start + 2]);
-      o << r << "\n} else { s.stuck() };\n";
-      return n;
+      std::ostringstream rs;
+      Emitter re(*this, rs);
+      std::string r = re.expr(t[start + 2]);
+      next = re.next;
+      std::string body = "if " + a + " != " + b
+                         + " { return Ok(s.stuck()); }\nlet stuck = "
+                         + attempt("s.is_stuck(" + a + ")")
+                         + ";\nif stuck { return Ok(s.stuck()); }\n"
+                         + close(rs.str(), "Ok(" + r + ")", "CheckResult<Term>");
+      return val(helper("requires", {}, body) + "?");
     }
     std::string as = args(t, start);
     if (k == Kind::EVAL_TYPE_OF || k == Kind::EVAL_NIL
@@ -552,10 +1029,13 @@ class RustMetaReduce::Emitter
     {
       return val(ident("$eo_" + kindToTerm(k).substr(4)) + "(s, " + as + ")?");
     }
-    // Match by EO name, so the C++ and Rust enum declaration orders are
-    // independent. The generated runtime validates arities itself.
-    return val("s.operator(" + quote(kindToTerm(k).substr(4)) + ", &[" + as
-               + "])?");
+    // Name the runtime's operator, so the C++ and Rust enum declaration
+    // orders are independent. The runtime validates arities itself.
+    // The list operators are above the functions they call; the others
+    // are in the runtime that all generated code rests on.
+    bool list = k == Kind::EVAL_CONS || starts(evalOp(k), "List");
+    return val(std::string(list ? "s.builtin_list" : "s.builtin_core")
+               + "(EvalOp::" + evalOp(k) + ", &[" + as + "])?");
   }
   std::string expr(const Expr& t)
   {
@@ -595,7 +1075,7 @@ class RustMetaReduce::Emitter
           return conditional(t[2], t[3], t[4], true);
         }
         std::string as = args(t, 2);
-        return val("s.native(" + quote(name) + ", &[" + as + "])?");
+        return val(native(name, t.getNumChildren() - 2, as));
       }
       std::string as = args(t, 1);
       return val("s.construct(" + ctor(n) + ", &[" + as + "])?");
@@ -622,7 +1102,7 @@ class RustMetaReduce::Emitter
       for (size_t i = n - 1; i > 0; --i)
       {
         std::string a = expr(t[i - 1]);
-        std::string h = val("s.named(\"$emb_FunType\", &[])?");
+        std::string h = val(named("$emb_FunType", ""));
         std::string f = val("s.apply(" + h + ", " + a + ")?");
         tail = val("s.apply(" + f + ", " + tail + ")?");
       }
@@ -636,21 +1116,20 @@ class RustMetaReduce::Emitter
     if (k == Kind::VARIABLE)
     {
       std::string as = args(t, 0);
-      return val("s.named(\"$emb_Var\", &[" + as + "])?");
+      return val(named("$emb_Var", as));
     }
     EO_FATAL() << "rust-meta: unsupported expression " << t << " (" << k << ")";
     return "";
   }
-  void pattern(const Expr& t, const std::string& value, size_t c)
+  void pattern(const Expr& t, const std::string& value)
   {
-    const std::string fail = " { break 'case" + std::to_string(c) + "; }\n";
     Kind k = t.getKind();
     if (k == Kind::PARAM)
     {
       auto it = vars.find(t);
       if (it != vars.end())
       {
-        o << "if " << value << " != " << it->second << fail;
+        o << "if " << value << " != " << it->second << fail << CUT;
       }
       else
       {
@@ -660,53 +1139,68 @@ class RustMetaReduce::Emitter
     }
     if (k == Kind::FUNCTION_TYPE && t.getNumChildren() == 2)
     {
-      std::string fields = val("s.unapply(" + value + ")?");
-      o << "let Some((f, r)) = " << fields << " else" << fail << ";\n";
-      std::string r = val("r");
-      std::string f = val("s.unapply(f)?");
-      o << "let Some((op, l)) = " << f << " else" << fail << ";\n"
-        << "if !s.is_named(op, \"$emb_FunType\")?" << fail;
-      std::string l = val("l");
-      pattern(t[0], l, c);
-      pattern(t[1], r, c);
+      std::string outer = part("s.unapply(" + value + ")?");
+      std::string f = fresh(), r = fresh();
+      o << "let Some((" << f << ", " << r << ")) = " << outer << " else" << fail
+        << ";\n"
+        << CUT;
+      std::string inner = part("s.unapply(" + f + ")?");
+      std::string op = fresh(), l = fresh();
+      o << "let Some((" << op << ", " << l << ")) = " << inner << " else"
+        << fail << ";\n"
+        << CUT;
+      std::string fun = part("s.is_node(" + op + ", "
+                            + m.constructorOption("$emb_FunType") + ")?");
+      o << "if !" << fun << fail << CUT;
+      pattern(t[0], l);
+      pattern(t[1], r);
       return;
     }
     if (k == Kind::APPLY && t.getNumChildren() == 2)
     {
-      std::string fields = val("s.unapply(" + value + ")?");
-      o << "let Some((f, a)) = " << fields << " else" << fail << ";\n";
-      std::string f = val("f"), a = val("a");
-      pattern(t[0], f, c);
-      pattern(t[1], a, c);
+      std::string parts = part("s.unapply(" + value + ")?");
+      std::string f = fresh(), a = fresh();
+      o << "let Some((" << f << ", " << a << ")) = " << parts << " else" << fail
+        << ";\n"
+        << CUT;
+      pattern(t[0], f);
+      pattern(t[1], a);
       return;
     }
     if (k == Kind::APPLY_OPAQUE || k == Kind::VARIABLE)
     {
       size_t start = k == Kind::VARIABLE ? 0 : 1;
       std::string n = k == Kind::VARIABLE ? "$emb_Var" : getName(t[0]);
-      std::string fields;
+      std::string found;
       if (starts(n, "$native_apply_"))
       {
-        fields = val("s.native_pattern(" + quote(getName(t[1])) + ", " + value
-                     + ")?");
+        found = part(nativePattern(getName(t[1]), value));
         start = 2;
       }
       else
       {
-        fields = val("s.destruct(" + ctor(n) + ", " + value + ")?");
+        found = part("s.destruct(" + ctor(n) + ", " + value + ")?");
       }
-      o << "let Some(fields) = " << fields << " else" << fail << ";\n";
-      fields = val("fields");
+      // The fields are taken out at once, each into a variable, so that
+      // every variable of the generated code is a term.
+      o << "let Some(fields) = " << found << " else" << fail << ";\n";
+      std::vector<std::string> fields;
       for (size_t i = start; i < t.getNumChildren(); ++i)
       {
-        pattern(t[i], fields + "[" + std::to_string(i - start) + "]", c);
+        fields.push_back(fresh());
+        o << "let " << fields.back() << " = fields[" << (i - start) << "];\n";
+      }
+      o << CUT;
+      for (size_t i = start; i < t.getNumChildren(); ++i)
+      {
+        pattern(t[i], fields[i - start]);
       }
       return;
     }
     if (isLiteral(k) || t.getNumChildren() == 0)
     {
       std::string expected = expr(t);
-      o << "if " << value << " != " << expected << fail;
+      o << "if " << value << " != " << expected << fail << CUT;
       return;
     }
     EO_FATAL() << "rust-meta: unsupported pattern " << t;
@@ -715,14 +1209,23 @@ class RustMetaReduce::Emitter
  private:
   RustMetaReduce& m;
   std::ostream& o;
+  Shared& d_shared;
   size_t next = 0;
 };
 
 std::string RustMetaReduce::emitProgram(const std::string& name,
                                         const Program& p)
 {
-  std::ostringstream out;
-  Emitter e(*this, out);
+  // A program is a public function that keeps the budgets and the cache,
+  // and calls `body_<name>` for the result. A program with cases has one
+  // function per case, which returns `None` where its patterns do not
+  // match, and the body tries them in order. Nothing here is a closure, a
+  // labelled block or a labelled loop, and no function is long because
+  // the program has many cases: the verification tools this code is
+  // translated with follow every path through a function.
+  std::ostringstream out, helpers;
+  const std::string id = ident(name);
+  Emitter::Shared shared{helpers, id};
   bool cases = p.body.getKind() == Kind::PROGRAM;
   Expr ty = cases ? p.symbol.getType() : Expr();
   size_t nargs = cases ? ty.getNumChildren() - 1 : 0;
@@ -738,10 +1241,17 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
       loop |= tailCall(p.body[i][1]);
     }
   }
+  std::string params, args;
+  for (size_t i = 0; i < nargs; ++i)
+  {
+    params += ", a" + std::to_string(i) + ": Term";
+    args += ", a" + std::to_string(i);
+  }
+  auto attempt = [](const std::string& call) { return Emitter::attempt(call); };
   // The checking loop's premise lookup walks the state list one element at
   // a time, creating and interning a native numeral at each one. Where the
   // loop's constructors are the expected ones, it is compiled to the
-  // runtime's Store::state_proven_nth, which gives the same results with a
+  // runtime's Store::state_nth, which finds the same element with a
   // machine counter (see its documentation in runtime/lib.rs.in).
   if (name == "$eo_state_proven_nth" && cases && nargs == 2
       && d_cacheKinds.at(name) == CacheKind::NONE
@@ -749,11 +1259,14 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
       && d_programs.count("$eo_StateObj_proven") > 0)
   {
     out << "// EO program " << quote(name)
-        << ", compiled to Store::state_proven_nth\npub fn " << ident(name)
+        << ", compiled to Store::state_nth\npub fn " << id
         << "(s: &mut Store, a0: Term, a1: Term) -> CheckResult<Term> {\n"
-        << "s.enter()?;\nlet result = s.state_proven_nth(Constructor::"
-        << ident("$emb_s.cons") << ", a0, a1, " << ident("$eo_StateObj_proven")
-        << ");\ns.leave();\nresult\n}\n";
+        << attempt("s.enter()")
+        << ";\nlet result = match s.state_nth(Constructor::"
+        << ident("$emb_s.cons") << ", a0, a1) {\nOk(Some(element)) => "
+        << ident("$eo_StateObj_proven")
+        << "(s, element),\nOk(None) => s.boolean(true),\nErr(e) => Err(e),\n"
+        << "};\ns.leave();\nresult\n}\n";
     return out.str();
   }
   // Recognize the checking loop's guarded right fold, rather than relying
@@ -782,44 +1295,77 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
         && body[3].getNumChildren() == 3 && body[3][0] == p.symbol
         && body[3][1] == step[1] && body[3][2] == step[2][2])
     {
+      // `scan` goes down the list of arguments, a step at a time, keeping
+      // each guard with its term; `unwind` then pushes them from the last
+      // to the first.
       out << "// EO program " << quote(name)
-          << ", compiled to an iterative guarded fold\npub fn " << ident(name)
+          << ", compiled to an iterative guarded fold\npub fn " << id
           << "(s: &mut Store, a0: Term, a1: Term) -> CheckResult<Term> {\n"
-          << "s.enter()?;\nlet result = (|| {\n"
-          << "let mut pending = Vec::new();\nlet mut args = a1;\n"
-          << "let mut state = 'scan: loop {\n'case0: {\n";
-      e.pattern(base[1], "a0", 0);
-      e.pattern(base[2], "args", 0);
-      out << "break 'scan a0;\n}\n'case1: {\n";
-      e.vars.clear();
-      e.pattern(step[1], "a0", 1);
-      e.pattern(step[2], "args", 1);
+          << attempt("s.enter()") << ";\nlet result = body_" << id
+          << "(s, a0, a1);\ns.leave();\nresult\n}\n"
+          << "fn body_" << id
+          << "(s: &mut Store, a0: Term, a1: Term) -> CheckResult<Term> {\n"
+          << "let scanned = " << attempt("scan_" + id + "(s, a0, a1)")
+          << ";\nunwind_" << id << "(s, scanned.0, &scanned.1)\n}\n"
+          << "fn scan_" << id
+          << "(s: &mut Store, a0: Term, a1: Term) -> CheckResult<(Term, "
+             "Vec<(Term, Term)>)> {\nlet mut pending = Vec::new();\n"
+             "let mut args = a1;\nloop {\nmatch step_"
+          << id
+          << "(s, a0, args) {\nOk(FoldStep::Done(state)) => return Ok((state, "
+             "pending)),\nOk(FoldStep::Push(guard, term, tail)) => {\n"
+             "pending.push((guard, term));\nargs = tail;\n}\n"
+             "Err(e) => return Err(e),\n}\n}\n}\n"
+          << "fn step_" << id
+          << "(s: &mut Store, a0: Term, a1: Term) -> CheckResult<FoldStep> "
+             "{\nif let Some(step) = "
+          << attempt("case_0_" + id + "(s, a0, a1)")
+          << " { return Ok(step); }\nif let Some(step) = "
+          << attempt("case_1_" + id + "(s, a0, a1)")
+          << " { return Ok(step); }\nOk(FoldStep::Done(s.stuck()))\n}\n"
+          << "fn case_0_" << id
+          << "(s: &mut Store, a0: Term, a1: Term) -> "
+             "CheckResult<Option<FoldStep>> {\n";
+      const std::string ret = "CheckResult<Option<FoldStep>>";
+      std::ostringstream c0, c1;
+      Emitter e0(*this, c0, shared);
+      e0.pattern(base[1], "a0");
+      e0.pattern(base[2], "a1");
+      out << e0.close(c0.str(), "Ok(Some(FoldStep::Done(a0)))", ret)
+          << "}\nfn case_1_" << id
+          << "(s: &mut Store, a0: Term, a1: Term) -> "
+             "CheckResult<Option<FoldStep>> {\n";
+      Emitter e(*this, c1, shared);
+      e.pattern(step[1], "a0");
+      e.pattern(step[2], "a1");
       std::string guard = e.expr(body[1]), term = e.expr(body[2]);
-      out << "pending.push((" << guard << ", " << term << "));\n";
       std::string tail = e.expr(body[3][2]);
       // One tick replaces each recursive enter, keeping the call budget
       // while making the depth independent of the number of assumptions.
-      out << "args = " << tail << ";\ns.tick()?;\ncontinue 'scan;\n}\n"
-          << "break 'scan s.stuck();\n};\n"
-          << "while let Some((guard, term)) = pending.pop() {\n"
-          << "state = " << ident(getName(body[0]))
-          << "(s, guard, term, state)?;\n}\nOk(state)\n})();\n"
-          << "s.leave();\nresult\n}\n";
+      c1 << attempt("s.tick()") << ";\n" << Emitter::CUT;
+      out << e.close(c1.str(),
+                     "Ok(Some(FoldStep::Push(" + guard + ", " + term + ", "
+                         + tail + ")))",
+                     ret)
+          << "}\n"
+          << "fn unwind_" << id
+          << "(s: &mut Store, state: Term, pending: &[(Term, Term)]) -> "
+             "CheckResult<Term> {\nlet mut state = state;\n"
+             "let mut i = pending.len();\nwhile i > 0 {\ni -= 1;\n"
+             "let (guard, term) = pending[i];\nstate = "
+          << attempt(ident(getName(body[0])) + "(s, guard, term, state)")
+          << ";\n}\nOk(state)\n}\n"
+          << helpers.str();
       return out.str();
     }
   }
-  out << "// EO program " << quote(name) << "\npub fn " << ident(name)
-      << "(s: &mut Store";
-  for (size_t i = 0; i < nargs; ++i)
-  {
-    out << (loop ? ", mut a" : ", a") << i << ": Term";
-  }
-  out << ") -> CheckResult<Term> {\ns.enter()?;\n";
+  out << "// EO program " << quote(name) << "\npub fn " << id << "(s: &mut Store"
+      << params << ") -> CheckResult<Term> {\n"
+      << attempt("s.enter()") << ";\n";
   CacheKind cache = d_cacheKinds.at(name);
   std::string cachePut;
   if (cache != CacheKind::NONE)
   {
-    // Tail-call loops overwrite a<i>; retain the original application key.
     out << "let cache_args = [";
     for (size_t i = 0; i < nargs; ++i)
     {
@@ -829,29 +1375,48 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
     std::string get;
     if (cache == CacheKind::PROGRAM)
     {
-      std::string id =
+      std::string pid =
           "ProgramId(" + std::to_string(d_programIds.at(name)) + ")";
-      get = "s.cached_program(" + id + ", &cache_args)";
-      cachePut = "s.cache_program(" + id + ", &cache_args, value)?;";
+      get = "s.cached_program(" + pid + ", &cache_args)";
+      cachePut = attempt("s.cache_program(" + pid + ", &cache_args, value)") + ";";
     }
     else
     {
       std::string kind = cache == CacheKind::EO_TYPE ? "TypeCacheKind::Eunoia"
                                                      : "TypeCacheKind::Smt";
       get = "s.cached_type(" + kind + ", cache_args[0])";
-      cachePut = "s.cache_type(" + kind + ", cache_args[0], value)?;";
+      cachePut = attempt("s.cache_type(" + kind + ", cache_args[0], value)") + ";";
     }
     out << "match " << get << " {\n"
         << "Ok(Some(value)) => { s.leave(); return Ok(value); },\n"
         << "Ok(None) => {},\n"
         << "Err(error) => { s.leave(); return Err(error); },\n}\n";
   }
-  out << "let result = (|| {\n";
-  if (loop)
+  out << "let result = body_" << id << "(s" << args << ");\ns.leave();\n";
+  if (!cachePut.empty())
   {
-    out << "'recur: loop {\ns.tick()?;\n";
+    out << "if let Ok(value) = result { " << cachePut << " }\n";
   }
-  if (cases && !p.isDefine)
+  out << "result\n}\n";
+  if (!cases)
+  {
+    out << "fn body_" << id << "(s: &mut Store) -> CheckResult<Term> {\n";
+    std::ostringstream body;
+    Emitter e(*this, body, shared);
+    std::string v = e.expr(p.body);
+    out << e.close(body.str(), "Ok(" + v + ")", "CheckResult<Term>") << "}\n"
+        << helpers.str();
+    return out.str();
+  }
+  // What a case gives: a term, or, for a program whose tail calls are a
+  // loop, a term or the arguments of the next round.
+  const std::string result =
+      loop ? "Next<[Term; " + std::to_string(nargs) + "]>" : "Term";
+  const std::string stuck = loop ? "Next::Done(s.stuck())" : "s.stuck()";
+  const size_t ncases = p.body.getNumChildren();
+  // Where the body tries the cases: in order, the first that applies.
+  std::ostringstream tries;
+  if (!p.isDefine)
   {
     std::vector<MetaKind> kinds;
     bool checker = false;
@@ -862,151 +1427,119 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
     }
     if (!checker && kinds.back() == MetaKind::EUNOIA)
     {
-      std::string test;
       for (size_t i = 0; i < nargs; ++i)
       {
         if (kinds[i] == MetaKind::EUNOIA)
         {
-          test += (test.empty() ? "" : " || ") + std::string("s.is_stuck(a")
-                  + std::to_string(i) + ")?";
+          tries << "let stuck" << i << " = "
+                << attempt("s.is_stuck(a" + std::to_string(i) + ")")
+                << ";\nif stuck" << i << " { return Ok(" << stuck << "); }\n";
         }
-      }
-      if (!test.empty())
-      {
-        out << "if " << test << " { return Ok(s.stuck()); }\n";
       }
     }
   }
-  std::ostringstream helpers;
-  if (cases)
+  auto attemptCase = [&](std::ostream& to, const std::string& fn, bool group) {
+    to << "if let Some(found) = " << attempt(fn + "(s" + args + ")")
+       << (group ? " { return Ok(Some(found)); }\n" : " { return Ok(found); }\n");
+  };
+  // A program with many cases tries them in groups of four, the groups in
+  // groups of four, and so on, so that no function tries more than four
+  // things in a row (each try nests the rest of its function twice in the
+  // Lean, see `close`).
+  const size_t groupSize = 4;
+  std::vector<std::string> level;
+  for (size_t c = 0; c < ncases; ++c)
   {
-    // Large sequential matches otherwise give every recursive invocation
-    // one debug-build stack frame containing temporaries for every case.
-    // Keep those temporaries in separate, small helpers. They do not enter
-    // the evaluator again: budgets, caching and case order stay in this
-    // function, and each helper implements exactly one source case.
-    bool splitCases = p.body.getNumChildren() >= 8;
-    Emitter helperEmitter(*this, helpers);
-    std::string caseResult = "case_result_" + ident(name);
-    std::string noMatch = loop ? caseResult + "::NoMatch" : "None";
-    if (splitCases)
+    level.push_back("case_" + std::to_string(c) + "_" + id);
+  }
+  for (size_t depth = 0; level.size() > groupSize; ++depth)
+  {
+    std::vector<std::string> above;
+    for (size_t g = 0; g * groupSize < level.size(); ++g)
     {
-      if (loop)
+      std::string group = "cases_" + std::to_string(depth) + "_"
+                          + std::to_string(g) + "_" + id;
+      above.push_back(group);
+      helpers << "fn " << group << "(s: &mut Store" << params
+              << ") -> CheckResult<Option<" << result << ">> {\n";
+      for (size_t c = g * groupSize;
+           c < level.size() && c < (g + 1) * groupSize;
+           ++c)
       {
-        helpers << "#[allow(dead_code)]\nenum " << caseResult
-                << " { NoMatch, Value(Term), Tail([Term; " << nargs << "]) }\n";
+        attemptCase(helpers, level[c], true);
       }
-      // One match result shared by all cases avoids a separate debug-build
-      // result slot for every helper call in this recursive frame.
-      out << "let mut case_index = 0_usize;\nwhile case_index < "
-          << p.body.getNumChildren() << " {\n"
-          << "let matched = match case_index {\n";
+      helpers << "Ok(None)\n}\n";
     }
-    for (size_t c = 0; c < p.body.getNumChildren(); ++c)
+    level = above;
+  }
+  for (const std::string& fn : level)
+  {
+    attemptCase(tries, fn, false);
+  }
+  if (loop)
+  {
+    // A tail call is the next round of a loop: a round is `step_<name>`,
+    // which gives the result or the arguments of the next round.
+    out << "fn body_" << id << "(s: &mut Store";
+    for (size_t i = 0; i < nargs; ++i)
     {
-      Expr pat = p.body[c][0];
-      if (pat.getNumChildren() != nargs + 1)
-      {
-        EO_FATAL() << "rust-meta: bad pattern arity for " << name;
-      }
-      Expr body = p.body[c][1];
-      bool tail = loop && tailCall(body);
-      std::ostream& co = splitCases ? helpers : out;
-      Emitter& ce = splitCases ? helperEmitter : e;
-      if (splitCases)
-      {
-        std::string helper = "case_" + std::to_string(c) + "_" + ident(name);
-        helpers << "fn " << helper << "(s: &mut Store";
-        out << c << " => " << helper << "(s";
-        for (size_t j = 0; j < nargs; ++j)
-        {
-          helpers << ", a" << j << ": Term";
-          out << ", a" << j;
-        }
-        helpers << ") -> CheckResult<" << (loop ? caseResult : "Option<Term>")
-                << "> {\n";
-        out << "),\n";
-      }
-      co << "'case" << c << ": {\n";
-      ce.vars.clear();
-      for (size_t j = 0; j < nargs; ++j)
-      {
-        ce.pattern(pat[j + 1], "a" + std::to_string(j), c);
-      }
-      if (tail)
-      {
-        std::vector<std::string> next;
-        for (size_t j = 1; j <= nargs; ++j)
-        {
-          std::string value = ce.expr(body[j]);
-          next.push_back(ce.val(value));
-        }
-        if (splitCases)
-        {
-          co << "return Ok(" << caseResult << "::Tail([";
-          for (size_t j = 0; j < nargs; ++j)
-          {
-            co << (j == 0 ? "" : ", ") << next[j];
-          }
-          co << "]));\n}\n";
-        }
-        else
-        {
-          // Evaluate every argument before overwriting any of the inputs.
-          for (size_t j = 0; j < nargs; ++j)
-          {
-            co << "a" << j << " = " << next[j] << ";\n";
-          }
-          co << "continue 'recur;\n}\n";
-        }
-      }
-      else
-      {
-        std::string v = ce.expr(body);
-        co << "return Ok("
-           << (splitCases ? (loop ? caseResult + "::Value(" : "Some(") : "")
-           << v << (splitCases ? ")" : "") << ");\n}\n";
-      }
-      if (splitCases)
-      {
-        helpers << "Ok(" << noMatch << ")\n}\n";
-      }
+      out << ", mut a" << i << ": Term";
     }
-    if (splitCases)
+    out << ") -> CheckResult<Term> {\nloop {\nmatch step_" << id << "(s" << args
+        << ") {\nOk(Next::Done(value)) => return Ok(value),\n"
+        << "Ok(Next::Again(next)) => {\n";
+    for (size_t i = 0; i < nargs; ++i)
     {
-      out << "_ => Ok(" << noMatch << "),\n}?;\n";
-      if (loop)
-      {
-        out << "match matched {\n"
-            << caseResult << "::NoMatch => {},\n"
-            << caseResult << "::Value(value) => return Ok(value),\n"
-            << caseResult << "::Tail(next) => {\n";
-        for (size_t j = 0; j < nargs; ++j)
-        {
-          out << "a" << j << " = next[" << j << "];\n";
-        }
-        out << "continue 'recur;\n}\n}\n";
-      }
-      else
-      {
-        out << "if let Some(value) = matched { return Ok(value); }\n";
-      }
-      out << "case_index += 1;\n}\n";
+      out << "a" << i << " = next[" << i << "];\n";
     }
-    out << (loop ? "return Ok(s.stuck());\n}\n" : "Ok(s.stuck())\n");
+    out << "}\nErr(e) => return Err(e),\n}\n}\n}\nfn step_" << id
+        << "(s: &mut Store" << params << ") -> CheckResult<" << result
+        << "> {\n"
+        << attempt("s.tick()") << ";\n";
   }
   else
   {
-    std::string v = e.expr(p.body);
-    out << "Ok(" << v << ")\n";
+    out << "fn body_" << id << "(s: &mut Store" << params
+        << ") -> CheckResult<Term> {\n";
   }
-  out << "})();\ns.leave();\n";
-  if (!cachePut.empty())
+  out << tries.str() << "Ok(" << stuck << ")\n}\n";
+  for (size_t c = 0; c < ncases; ++c)
   {
-    out << "if let Ok(value) = result { " << cachePut << " }\n";
+    Expr pat = p.body[c][0];
+    if (pat.getNumChildren() != nargs + 1)
+    {
+      EO_FATAL() << "rust-meta: bad pattern arity for " << name;
+    }
+    Expr body = p.body[c][1];
+    const std::string ret = "CheckResult<Option<" + result + ">>";
+    out << "fn case_" << c << "_" << id << "(s: &mut Store" << params << ") -> "
+        << ret << " {\n";
+    std::ostringstream cs;
+    Emitter e(*this, cs, shared);
+    for (size_t j = 0; j < nargs; ++j)
+    {
+      e.pattern(pat[j + 1], "a" + std::to_string(j));
+    }
+    std::string value;
+    if (loop && tailCall(body))
+    {
+      // Every argument is evaluated before the next round has any.
+      value = "Next::Again([";
+      for (size_t j = 1; j <= nargs; ++j)
+      {
+        value += (j == 1 ? "" : ", ") + e.expr(body[j]);
+      }
+      value += "])";
+    }
+    else
+    {
+      std::string v = e.expr(body);
+      value = loop ? "Next::Done(" + v + ")" : v;
+    }
+    out << e.close(cs.str(), "Ok(Some(" + value + "))", ret) << "}\n";
   }
-  // Helpers are module items; emit them after closing the main function.
-  out << "result\n}\n" << helpers.str();
+  // Helpers are module items; emit them after the functions that call them.
+  out << helpers.str();
   return out.str();
 }
 
@@ -1041,14 +1574,63 @@ void RustMetaReduce::finalize()
   }
   auto names = reachable();
   selectCaches(names);
+  // Every function written for the programs, in the order written, to be
+  // put into modules below.
+  struct Function
+  {
+    std::string name;
+    std::string text;
+    size_t lines = 0;
+    std::vector<size_t> calls;
+  };
+  std::vector<Function> functions;
+  std::map<std::string, size_t> functionIndex;
+  auto collect = [&](const std::string& text) {
+    // A function begins at its `fn` line, or at the comment before it.
+    std::istringstream in(text);
+    std::string line;
+    bool commented = false;
+    while (std::getline(in, line))
+    {
+      bool comment = starts(line, "// EO program ");
+      bool head = starts(line, "pub fn ") || starts(line, "fn ");
+      if (!comment && (starts(line, "//") || starts(line, "#[")))
+      {
+        // It would be taken for the end of the function before it, which
+        // may go to another module than the function it belongs to.
+        EO_FATAL() << "rust-meta: a comment or an attribute that the "
+                      "division into functions does not know: "
+                   << line;
+      }
+      if (comment || (head && !commented))
+      {
+        functions.emplace_back();
+      }
+      commented = comment;
+      if (head)
+      {
+        size_t at = line.find("fn ") + 3;
+        functions.back().name = line.substr(at, line.find('(') - at);
+        functionIndex[functions.back().name] = functions.size() - 1;
+        // every function can be called from another module of the crate's
+        // `generated`, and from nowhere else unless it is a program
+        if (starts(line, "fn "))
+        {
+          line = "pub(super) " + line;
+        }
+      }
+      functions.back().text += line + "\n";
+      functions.back().lines++;
+    }
+  };
   std::ostringstream code, manifest;
-  code << "use crate::*;\n";
-  manifest << "source\trust\tlean_identifier\n";
+  std::vector<std::pair<std::string, std::string>> manifestRows;
+  manifest << "source\trust\tlean_identifier\tmodule\n";
   // Complete generation before opening outputs, so unsupported constructs
   // cannot leave behind a partially generated checker.
   for (const auto& n : names)
   {
-    code << emitProgram(n, d_programs.at(n));
+    collect(emitProgram(n, d_programs.at(n)));
     std::string lean = replace_all(n, "-", "_");
     if (lean == "end" || lean == "variable")
     {
@@ -1075,17 +1657,28 @@ void RustMetaReduce::finalize()
         lean = replace_all(lean, replacement.first, replacement.second);
       }
     }
-    manifest << n << '\t' << ident(n) << '\t' << lean << '\n';
+    manifestRows.emplace_back(n, lean);
   }
   std::string lib =
       read(getResourcePath("plugins/rust_meta/runtime/lib.rs.in"));
-  for (const char* n : {"$eo_typeof",
-                        "$eo_nil",
-                        "$eo_is_list_nil",
-                        "$eo_checker_is_refutation"})
-  {
-    lib = replace_all(lib, "@" + std::string(n) + "@", ident(n));
-  }
+  // The two parts of the runtime that call generated functions: the list
+  // operators, and the entry points of checking with the translation
+  // checks. They are written among the generated functions (below).
+  std::string lists =
+      read(getResourcePath("plugins/rust_meta/runtime/lists.rs.in"));
+  auto named = [&](std::string text) {
+    for (const char* n : {"$eo_typeof",
+                          "$eo_nil",
+                          "$eo_is_list_nil",
+                          "$eo_checker_is_refutation"})
+    {
+      text = replace_all(text, "@" + std::string(n) + "@", ident(n));
+    }
+    return text;
+  };
+  lists = named(lists);
+  // (the runtime's own tests call generated functions)
+  lib = named(lib);
   bool translation = true;
   for (const char* n : {"$eo_to_smt",
                         "$eo_to_smt_type",
@@ -1100,8 +1693,8 @@ void RustMetaReduce::finalize()
   checks =
       replace_all(checks, "@HAS_TRANSLATION@", translation ? "true" : "false");
   const std::string unavailable =
-      "let _ = t; Err(CheckError::UnsupportedNative(\"SMT translation is "
-      "unavailable\".into()))";
+      "let _ = t; Err(CheckError::UnsupportedNative("
+      + std::to_string(nativeText("SMT translation is unavailable")) + "))";
   checks = replace_all(checks,
                        "@TRANSLATION_TYPE@",
                        translation ? "let t = generated::" + ident("$eo_to_smt")
@@ -1120,11 +1713,17 @@ void RustMetaReduce::finalize()
           ? "let b = if component { generated::"
                 + ident("$smtx_type_wf_component")
                 + "(self, t)? } else { generated::" + ident("$smtx_type_wf")
-                + "(self, t)? }; Ok(self.boolean_value(b, true)? == Some(true))"
+                + "(self, t)? }; self.is_native_true(b)"
           : "let _ = component; " + unavailable);
   std::istringstream masks(
       read(getResourcePath("plugins/rust_meta/cpc_translation_masks.txt")));
-  std::ostringstream maskCode;
+  std::ostringstream maskLengths, maskKinds;
+  static const std::map<std::string, std::string> argKinds{
+      {"term", "Term"},
+      {"type", "Type"},
+      {"wfTerm", "WfTerm"},
+      {"wfElem", "WfElem"},
+      {"list", "List"}};
   std::string line;
   while (std::getline(masks, line))
   {
@@ -1135,18 +1734,212 @@ void RustMetaReduce::finalize()
     std::istringstream words(line);
     std::string rule, kind;
     words >> rule;
-    maskCode << quote("$emb_r." + rule) << " => Some(&[";
+    rule = "$emb_r." + rule;
+    if (d_constructors.count(rule) == 0)
+    {
+      // not a rule of this signature
+      continue;
+    }
+    size_t n = 0;
+    maskKinds << "Constructor::" << ident(rule) << " => match i {\n";
     while (words >> kind)
     {
-      maskCode << quote(kind) << ",";
+      auto it = argKinds.find(kind);
+      maskKinds << n++ << " => Some(ArgKind::"
+                << (it == argKinds.end() ? "Unknown" : it->second) << "),\n";
     }
-    maskCode << "]),\n";
+    maskKinds << "_ => None,\n},\n";
+    maskLengths << "Constructor::" << ident(rule) << " => Some(" << n
+                << "),\n";
   }
-  checks = replace_all(checks, "@TRANSLATION_MASKS@", maskCode.str());
-  lib += checks;
-  output("src/lib.rs", lib);
+  checks =
+      replace_all(checks, "@TRANSLATION_MASK_LENGTHS@", maskLengths.str());
+  checks = replace_all(checks, "@TRANSLATION_MASK_KINDS@", maskKinds.str());
+  checks = named(checks);
+  for (const auto& block :
+       std::vector<std::pair<std::string, std::string>>{
+           {"builtin_list", lists}, {"check_proof_inner", checks}})
+  {
+    // one function of the call graph each: the block is not divided
+    functions.emplace_back();
+    functions.back().name = block.first;
+    functions.back().text = expandConstructors(block.second);
+    functions.back().lines =
+        std::count(block.second.begin(), block.second.end(), '\n');
+    functionIndex[block.first] = functions.size() - 1;
+  }
+  // The modules. The functions are grouped so that proofs about them can
+  // be made module by module: the tools that translate this code take time
+  // and memory in proportion to what they are given (so they are run on
+  // one module at a time, the others opaque), and what they produce is
+  // imported module by module, which must not go in a circle. So:
+  // functions that call each other, directly or through others, are in
+  // one module (a strongly connected component of the call graph is never
+  // split); a module calls only itself, earlier modules and the runtime;
+  // and a module is closed when the next component would take it past a
+  // number of lines. The order is that of Tarjan's algorithm over the
+  // functions as written, which gives a component after all it calls.
+  auto wordChar = [](char c) {
+    return std::isalnum(static_cast<unsigned char>(c)) || c == '_';
+  };
+  for (Function& f : functions)
+  {
+    std::set<size_t> calls;
+    const std::string& text = f.text;
+    for (size_t i = 0; i < text.size();)
+    {
+      size_t j = i;
+      while (j < text.size() && wordChar(text[j]))
+      {
+        ++j;
+      }
+      if (j == i)
+      {
+        ++i;
+        continue;
+      }
+      // a call of a generated function: its name, then `(s` (the store
+      // is the first argument); a use of a list operator: a call of the
+      // method `builtin_list`
+      std::string word = text.substr(i, j - i);
+      bool defined = i >= 3 && text.compare(i - 3, 3, "fn ") == 0;
+      if (!defined
+          && (text.compare(j, 2, "(s") == 0
+              || (word == "builtin_list" && text.compare(j, 1, "(") == 0)))
+      {
+        auto it = functionIndex.find(word);
+        if (it != functionIndex.end())
+        {
+          calls.insert(it->second);
+        }
+      }
+      i = j;
+    }
+    f.calls.assign(calls.begin(), calls.end());
+  }
+  const size_t none = static_cast<size_t>(-1);
+  std::vector<size_t> index(functions.size(), none), low(functions.size(), 0);
+  std::vector<bool> onStack(functions.size(), false);
+  std::vector<size_t> stack;
+  std::vector<std::vector<size_t>> components;
+  size_t counter = 0;
+  for (size_t root = 0; root < functions.size(); ++root)
+  {
+    if (index[root] != none)
+    {
+      continue;
+    }
+    // (function, the next of its calls to look at)
+    std::vector<std::pair<size_t, size_t>> work{{root, 0}};
+    index[root] = low[root] = counter++;
+    stack.push_back(root);
+    onStack[root] = true;
+    while (!work.empty())
+    {
+      size_t v = work.back().first;
+      bool descended = false;
+      while (work.back().second < functions[v].calls.size())
+      {
+        size_t w = functions[v].calls[work.back().second++];
+        if (index[w] == none)
+        {
+          index[w] = low[w] = counter++;
+          stack.push_back(w);
+          onStack[w] = true;
+          work.emplace_back(w, 0);
+          descended = true;
+          break;
+        }
+        if (onStack[w])
+        {
+          low[v] = std::min(low[v], index[w]);
+        }
+      }
+      if (descended)
+      {
+        continue;
+      }
+      work.pop_back();
+      if (!work.empty())
+      {
+        low[work.back().first] = std::min(low[work.back().first], low[v]);
+      }
+      if (low[v] == index[v])
+      {
+        components.emplace_back();
+        size_t w;
+        do
+        {
+          w = stack.back();
+          stack.pop_back();
+          onStack[w] = false;
+          components.back().push_back(w);
+        } while (w != v);
+        // as written
+        std::sort(components.back().begin(), components.back().end());
+      }
+    }
+  }
+  const size_t partLines = 10000;
+  std::vector<std::ostringstream> parts(1);
+  std::vector<size_t> partOf(functions.size(), 0);
+  size_t lines = 0;
+  for (const std::vector<size_t>& component : components)
+  {
+    size_t size = 0;
+    for (size_t f : component)
+    {
+      size += functions[f].lines;
+    }
+    if (lines != 0 && lines + size > partLines)
+    {
+      parts.emplace_back();
+      lines = 0;
+    }
+    lines += size;
+    for (size_t f : component)
+    {
+      partOf[f] = parts.size() - 1;
+      parts.back() << functions[f].text;
+    }
+  }
+  for (const Function& f : functions)
+  {
+    for (size_t callee : f.calls)
+    {
+      if (partOf[callee] > partOf[functionIndex.at(f.name)])
+      {
+        EO_FATAL() << "rust-meta: " << f.name << " calls a later module";
+      }
+    }
+  }
+  const size_t numParts = parts.size();
+  code << "//! The generated functions, in " << numParts
+       << " modules. A module's functions call only that module, earlier\n"
+          "//! modules and the runtime, and functions that call each other are\n"
+          "//! in one module.\n";
+  for (size_t k = 0; k < numParts; ++k)
+  {
+    code << "#[path = \"generated_part" << k << ".rs\"]\nmod part" << k
+         << ";\npub use part" << k << "::*;\n";
+  }
+  for (const auto& row : manifestRows)
+  {
+    manifest << row.first << '\t' << ident(row.first) << '\t' << row.second
+             << "\tpart" << partOf[functionIndex.at(ident(row.first))] << '\n';
+  }
+  output("src/lib.rs", expandConstructors(lib));
   output("src/generated.rs", code.str());
+  for (size_t k = 0; k < numParts; ++k)
+  {
+    output("src/generated_part" + std::to_string(k) + ".rs",
+           "//! Generated functions, module " + std::to_string(k) + " of "
+               + std::to_string(numParts)
+               + ".\n#[allow(unused_imports)]\nuse super::*;\nuse crate::*;\n"
+               + parts[k].str());
+  }
   output("src/schema.rs", schema());
+  output("src/names.rs", constructorNames());
   output("functions.tsv", manifest.str());
   std::ostringstream caches;
   caches << "source\tcache\tprogram_id\n";
@@ -1174,12 +1967,14 @@ void RustMetaReduce::finalize()
   }
   output("constructors.tsv", constructors.str());
   for (const char* file : {"cache.rs",
+                           "front.rs",
+                           "native.rs",
                            "num.rs",
                            "eostring.rs",
                            "bitvec.rs",
                            "lit.rs",
                            "kind.rs",
-                           "codec.rs"})
+                           "table.rs"})
   {
     output(std::string("src/") + file,
            read(getResourcePath(std::string("plugins/rust_meta/runtime/")
