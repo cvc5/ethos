@@ -1,0 +1,13 @@
+; Run with --max-code-point=0x10FFFF, i.e. the full Unicode range.
+(declare-const t1 (eo::requires eo::max_code_point 1114111 Bool))
+(declare-const t2 (eo::requires (eo::len "\u{10ffff}") 1 Bool))
+(declare-const t3 (eo::requires (eo::to_z "\u{10FFFF}") eo::max_code_point Bool))
+(declare-const t4 (eo::requires (eo::len "\u{30000}") 1 Bool))
+(declare-const t5 (eo::requires (eo::to_z "\u{30000}") 196608 Bool))
+; out of range, so not an escape sequence
+(declare-const t6 (eo::requires (eo::len "\u{110000}") 10 Bool))
+; 6 digits are now permitted in braces, but not 7
+(declare-const t7 (eo::requires "\u{000041}" "A" Bool))
+(declare-const t8 (eo::requires (eo::len "\u{0000041}") 11 Bool))
+(declare-const t9 (eo::requires (eo::to_str 1114111) "\u{10ffff}" Bool))
+(declare-const t10 (eo::requires (eo::is_str (eo::to_str 1114112)) false Bool))

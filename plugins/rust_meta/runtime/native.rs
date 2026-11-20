@@ -8,7 +8,8 @@
 //! another number is a mistake of the caller (`InvalidNative`).
 
 use crate::{
-    CheckError, CheckResult, EoString, Integer, Lit, NUM_CODES, Rational, Store, Term, TermData,
+    CheckError, CheckResult, EoString, Integer, Lit, MAX_CODE_POINT, Rational, Store, Term,
+    TermData,
 };
 
 /// A native operation with arguments. `Teq` is also `teq`, `NatToInt` also
@@ -110,6 +111,10 @@ impl Store {
     /// Another native constant, written as in the EO definitions: a
     /// numeral or a string literal. `text` stands for what is written (see
     /// `CheckError`).
+    /// The native maximum code point, see [`crate::MAX_CODE_POINT`].
+    pub(crate) fn native_max_code_point(&mut self) -> CheckResult<Term> {
+        self.raw(Lit::Numeral(Integer::from(MAX_CODE_POINT)))
+    }
     pub(crate) fn native_constant(&mut self, text: u32) -> CheckResult<Term> {
         let literal = crate::front::native_literal(text)?;
         self.raw(literal)
@@ -386,7 +391,7 @@ impl Store {
         let mut valid = true;
         let mut i = 0;
         while i < codes.len() {
-            if codes[i] >= NUM_CODES {
+            if codes[i] > MAX_CODE_POINT {
                 valid = false;
             }
             i += 1;

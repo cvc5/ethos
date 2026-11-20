@@ -19,6 +19,28 @@
 
 namespace ethos {
 
+unsigned String::s_maxCodePoint = String::defaultMaxCodePoint();
+
+bool String::setMaxCodePoint(unsigned m)
+{
+  if (m < minMaxCodePoint() || m > maxMaxCodePoint())
+  {
+    return false;
+  }
+  s_maxCodePoint = m;
+  return true;
+}
+
+size_t String::maxEscDigits()
+{
+  size_t ndigits = 0;
+  for (unsigned m = s_maxCodePoint; m > 0; m = m >> 4)
+  {
+    ndigits++;
+  }
+  return ndigits < 5 ? 5 : ndigits;
+}
+
 //static_assert(std::UCHAR_MAX == 255, "Unsigned char is assumed to have 256 values.");
 
 String::String(const std::vector<unsigned> &s) : d_str(s)
@@ -72,6 +94,8 @@ std::vector<unsigned> String::toInternal(const std::string& s,
                                          bool useEscSequences)
 {
   std::vector<unsigned> str;
+  // the maximum number of digits in an escape sequence with braces
+  size_t maxDigits = maxEscDigits();
   unsigned i = 0;
   while (i < s.size())
   {
@@ -145,7 +169,7 @@ std::vector<unsigned> String::toInternal(const std::string& s,
           isEnd = true;
           break;
         }
-        else if (hasBrace && hexString.str().size() > 5)
+        else if (hasBrace && hexString.str().size() > maxDigits)
         {
           // too many digits enclosed in brace, not an escape sequence
           isEscapeSequence = false;
@@ -161,16 +185,19 @@ std::vector<unsigned> String::toInternal(const std::string& s,
     }
     if (isEscapeSequence)
     {
-      Assert(!hexString.str().empty() && hexString.str().size() <= 5);
+      Assert(!hexString.str().empty() && hexString.str().size() <= maxDigits);
       // Otherwise, we add the escaped character.
-      // This is guaranteed not to overflow due to the length of hstr.
+      // This is guaranteed not to overflow due to the length of hstr, which
+      // is at most 6 since the maximum code point is at most 0x10FFFF.
       uint32_t val;
       hexString >> std::hex >> val;
       if (val >= num_codes())
       {
-        // Failed due to being out of range. This can happen for strings of
-        // the form \ u { d_4 d_3 d_2 d_1 d_0 } where d_4 is a hexadecimal not
-        // in the range [0-2].
+        // Failed due to being out of range, i.e. the value exceeds the
+        // maximum code point. For example, with the default maximum code
+        // point, this happens for strings of the form
+        // \ u { d_4 d_3 d_2 d_1 d_0 } where d_4 is a hexadecimal not in the
+        // range [0-2].
         isEscapeSequence = false;
       }
       else

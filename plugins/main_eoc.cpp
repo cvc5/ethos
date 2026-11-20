@@ -170,6 +170,20 @@ int main(int argc, char* argv[])
       leanConfigFile = arg.substr(14);
       continue;
     }
+    if (arg.compare(0, 17, "--max-code-point=") == 0)
+    {
+      // The maximum code point, which a compiled signature does not depend on
+      // since eo::max_code_point is left symbolic by every plugin, see below.
+      // It decides only which escape sequences of the input's string literals
+      // are valid.
+      std::string val = arg.substr(17);
+      if (!opts.setMaxCodePoint(val))
+      {
+        EO_FATAL() << "Error: invalid value for --max-code-point: \"" << val
+                   << "\"";
+      }
+      continue;
+    }
     bool isInclude = (arg.compare(0, 10, "--include=") == 0);
     if (isInclude || arg.compare(0, 12, "--reference=") == 0)
     {
@@ -248,6 +262,11 @@ int main(int argc, char* argv[])
   {
     EO_FATAL() << "Error: --lean-config requires --plugin.lean-meta";
   }
+  // A compiled signature refers to the maximum code point rather than to the
+  // value it has here, so that what it compiles to is what says the maximum.
+  // Each plugin hence sees eo::max_code_point as a constant of its own, which
+  // does not evaluate.
+  opts.d_symbolicMaxCodePoint = !pluginName.empty();
   // options are finalized, now initialize the state and the plugin
   Stats stats;
   State s(opts, stats);

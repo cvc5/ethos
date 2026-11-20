@@ -191,6 +191,7 @@ set(ethos_test_file_list
     list-non-singleton.eo
     list-non-singleton-left.eo
     code-point-oob.eo
+    max-code-point-default.eo
     homogeneous-list-ops.eo
     quant-sk-type.eo
     fwd-decl-nground.eo
@@ -220,6 +221,32 @@ macro(ethos_fail_test file regex)
   )
   set_tests_properties(${file} PROPERTIES TIMEOUT 40)
 endmacro()
+
+# a test that is run with the given command line options
+macro(ethos_test_opts file)
+  add_test(
+    NAME ${file}
+    COMMAND $<TARGET_FILE:ethos> ${ARGN} ${CMAKE_CURRENT_LIST_DIR}/${file}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  )
+  set_tests_properties(${file} PROPERTIES TIMEOUT 40)
+endmacro()
+
+ethos_test_opts(max-code-point-unicode.eo --max-code-point=0x10FFFF)
+ethos_test_opts(max-code-point-ascii.eo --max-code-point=127)
+
+add_test(
+  NAME max-code-point-invalid-fail.eo
+  COMMAND
+    ${CMAKE_COMMAND}
+    "-DTEST_BINARY=$<TARGET_FILE:ethos>"
+    "-DTEST_ARGS=--max-code-point=0x110000"
+    "-DTEST_FILE=${CMAKE_CURRENT_LIST_DIR}/max-code-point-invalid-fail.eo"
+    "-DTEST_WORKDIR=${CMAKE_SOURCE_DIR}"
+    "-DEXPECT_REGEX=invalid value for --max-code-point"
+    -P ${CMAKE_CURRENT_LIST_DIR}/expect_error.cmake
+)
+set_tests_properties(max-code-point-invalid-fail.eo PROPERTIES TIMEOUT 40)
 
 foreach(file ${ethos_test_file_list})
   ethos_test(${file})

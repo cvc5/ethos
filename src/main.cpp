@@ -47,6 +47,19 @@ int main( int argc, char* argv[] )
         continue;
       }
     }
+    if (arg.compare(0, 17, "--max-code-point=") == 0)
+    {
+      // a decimal value, or a hexadecimal value prefixed by 0x
+      std::string val = arg.substr(17);
+      if (!opts.setMaxCodePoint(val))
+      {
+        EO_FATAL() << "Error: invalid value for --max-code-point: \"" << val
+                   << "\", must be between " << String::minMaxCodePoint()
+                   << " and " << String::maxMaxCodePoint()
+                   << " (0x" << std::hex << String::maxMaxCodePoint() << ")";
+      }
+      continue;
+    }
     bool isInclude = (arg.compare(0, 10, "--include=") == 0);
     if (isInclude || arg.compare(0, 12, "--reference=") == 0)
     {
@@ -61,6 +74,7 @@ int main( int argc, char* argv[] )
       std::stringstream out;
       out << "        --include=X: includes the file specified by X." << std::endl;
       out << "             --help: displays this message." << std::endl;
+      out << " --max-code-point=X: sets the maximum code point of string characters to X (default 196607, at most 1114111, i.e. 0x10FFFF)." << std::endl;
       out << "    --normalize-num: treat numeral literals as syntax sugar for rational literals." << std::endl;
       out << " --no-normalize-dec: do not treat decimal literals as syntax sugar for rational literals." << std::endl;
       out << " --no-normalize-hex: do not treat hexadecimal literals as syntax sugar for binary literals." << std::endl;

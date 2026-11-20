@@ -97,7 +97,14 @@
 (declare-native id_zero ())
 
 ; strings
-(declare-native z_max_code () :op "196608")
+
+; The maximum code point of a string character, which is what eo::max_code_point
+; is and what bounds the characters of a string. It is no literal, unlike
+; z_zero, since its value is the target's to say rather than the compiler's:
+; a signature compiles to what refers to it, and each backend gives it the
+; value it has there, which by default is the 0x2FFFF of SMT-LIB. It is hence a
+; native of each backend, which also bounds its characters by it (char_valid).
+(declare-native z_max_code_point ())
 
 ; 2^32, an exclusive bound: a 32-bit numeral (e.g. a bitwidth) is below it.
 (declare-native z_max_width () :op "4294967296")

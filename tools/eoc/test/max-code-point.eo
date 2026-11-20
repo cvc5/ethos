@@ -1,0 +1,14 @@
+; A signature that names the maximum code point, which the compiler keeps as
+; the constant eo::max_code_point rather than its value, so that what it
+; compiles to says what the maximum is; see Options::d_symbolicMaxCodePoint.
+
+(include "../../../tests/Strings-theory.eo")
+
+; A string of one character is the string of its code point, which is at most
+; the maximum code point.
+(declare-rule str_code_point_inv ((s String))
+    :args (s)
+    :requires (((eo::len s) 1)
+               ((eo::gt (eo::to_z s) eo::max_code_point) false))
+    :conclusion (= s (eo::to_str (eo::to_z s)))
+)

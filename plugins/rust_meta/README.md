@@ -203,7 +203,9 @@ to this representation remain outside the proof, as requested.
 Five files of the runtime (`num.rs`, `lit.rs`, `kind.rs`, `bitvec.rs`,
 `eostring.rs`) come from `crates/pathos-term/src` at Pathos
 `acae6aa1e2d4525c33c11c6aa74c725566be1ff5`. `eostring.rs` is a byte-for-byte
-copy. The others are that code without what the compiled checker does not
+copy but for its test of an out-of-range escape, which is out of range only
+for the maximum code point the checker is generated for (`MAX_CODE_POINT`,
+see `ethos-eoc --max-code-point`). The others are that code without what the compiled checker does not
 use (the kinds of symbols and compound terms and the flat `Kind`, the
 writing and reading of snapshots, a few functions on numbers), rewritten
 in the subset of Rust that the verification tools translate; the header
