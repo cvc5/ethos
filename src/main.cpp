@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include <unistd.h>
+#include <cctype>
 #include <iomanip>
 #include <iostream>
 
@@ -47,6 +48,38 @@ int main( int argc, char* argv[] )
         continue;
       }
     }
+    if (arg.compare(0, 17, "--max-code-point=") == 0)
+    {
+      // a decimal value, or a hexadecimal value prefixed by 0x
+      std::string val = arg.substr(17);
+      bool isHex = val.compare(0, 2, "0x") == 0 || val.compare(0, 2, "0X") == 0;
+      std::string digits = isHex ? val.substr(2) : val;
+      size_t pos = 0;
+      unsigned long m = 0;
+      bool valid = !digits.empty()
+                   && std::isxdigit(static_cast<unsigned char>(digits[0]));
+      if (valid)
+      {
+        try
+        {
+          m = std::stoul(digits, &pos, isHex ? 16 : 10);
+        }
+        catch (...)
+        {
+          valid = false;
+        }
+      }
+      if (!valid || pos != digits.size() || m < String::minMaxCodePoint()
+          || m > String::maxMaxCodePoint())
+      {
+        EO_FATAL() << "Error: invalid value for --max-code-point: \"" << val
+                   << "\", must be between " << String::minMaxCodePoint()
+                   << " and " << String::maxMaxCodePoint()
+                   << " (0x" << std::hex << String::maxMaxCodePoint() << ")";
+      }
+      opts.d_maxCodePoint = static_cast<uint32_t>(m);
+      continue;
+    }
     bool isInclude = (arg.compare(0, 10, "--include=") == 0);
     if (isInclude || arg.compare(0, 12, "--reference=") == 0)
     {
@@ -61,6 +94,7 @@ int main( int argc, char* argv[] )
       std::stringstream out;
       out << "        --include=X: includes the file specified by X." << std::endl;
       out << "             --help: displays this message." << std::endl;
+      out << " --max-code-point=X: sets the maximum code point of string characters to X (default 196607, at most 1114111, i.e. 0x10FFFF)." << std::endl;
       out << "    --normalize-num: treat numeral literals as syntax sugar for rational literals." << std::endl;
       out << " --no-normalize-dec: do not treat decimal literals as syntax sugar for rational literals." << std::endl;
       out << " --no-normalize-hex: do not treat hexadecimal literals as syntax sugar for binary literals." << std::endl;

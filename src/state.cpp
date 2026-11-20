@@ -30,6 +30,7 @@ Options::Options()
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
   d_referenceDefineFun = false;
+  d_maxCodePoint = String::defaultMaxCodePoint();
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -102,6 +103,13 @@ State::State(Options& opts, Stats& stats)
       d_plugin(nullptr)
 {
   ExprValue::d_state = this;
+  // set the maximum code point before any strings are constructed
+  if (!String::setMaxCodePoint(opts.d_maxCodePoint))
+  {
+    EO_FATAL() << "Error: invalid maximum code point " << opts.d_maxCodePoint
+               << ", must be between " << String::minMaxCodePoint() << " and "
+               << String::maxMaxCodePoint();
+  }
 
   // lambda is not builtin?
   // forall, exists, choice?
@@ -185,6 +193,9 @@ State::State(Options& opts, Stats& stats)
   bind("true", d_true);
   d_false = Expr(new Literal(false));
   bind("false", d_false);
+  // the maximum code point, which is a numeral
+  bind("eo::max_code_point",
+       mkLiteral(Kind::NUMERAL, std::to_string(String::maxCodePoint())));
 
   // builtin lists
   d_listType = Expr(mkSymbolInternal(Kind::CONST, "eo::List", d_type));

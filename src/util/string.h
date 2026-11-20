@@ -26,15 +26,34 @@ class String
  public:
   /**
    * This is the cardinality of the alphabet that is representable by this
-   * class. Notice that this must be greater than or equal to the cardinality
-   * of the alphabet that the string theory reasons about.
+   * class, i.e. the code points of characters are 0, ..., num_codes()-1.
    *
-   * This must be strictly less than std::numeric_limits<unsigned>::max().
-   *
-   * As per the SMT-LIB standard for strings, we support the first 3 planes of
-   * Unicode characters, where 196608 = 3*16^4.
+   * By default, as per the SMT-LIB standard for strings, we support the first
+   * 3 planes of Unicode characters, where 196608 = 3*16^4. This can be changed
+   * via setMaxCodePoint.
    */
-  static inline unsigned num_codes() { return 196608; }
+  static inline unsigned num_codes() { return s_maxCodePoint + 1; }
+  /** The maximum code point, which is num_codes()-1. */
+  static inline unsigned maxCodePoint() { return s_maxCodePoint; }
+  /** The default maximum code point, as specified by SMT-LIB version 2.6. */
+  static constexpr unsigned defaultMaxCodePoint() { return 0x2FFFF; }
+  /**
+   * The largest value that may be given to setMaxCodePoint, which is the
+   * largest Unicode code point.
+   */
+  static constexpr unsigned maxMaxCodePoint() { return 0x10FFFF; }
+  /**
+   * The smallest value that may be given to setMaxCodePoint. All 7-bit ASCII
+   * characters must be representable, since printable characters appear
+   * unescaped in string literals.
+   */
+  static constexpr unsigned minMaxCodePoint() { return 0x7F; }
+  /**
+   * Set the maximum code point. This should be called before any strings are
+   * constructed. Returns false and does nothing if m is not in the range
+   * [minMaxCodePoint(), maxMaxCodePoint()].
+   */
+  static bool setMaxCodePoint(unsigned m);
   /** constructors for String
    *
    * Internally, a cvc5::internal::String is represented by a vector of unsigned
@@ -50,6 +69,11 @@ class String
    *  \u{d_3 d_2 d_1 d_0}
    *  \u{d_4 d_3 d_2 d_1 d_0}
    * where d_0 ... d_4 are hexadecimal digits, to the appropriate character.
+   * If the maximum code point requires more than 5 hexadecimal digits (e.g.
+   * it is 0x10FFFF), then escape sequences in braces may also have that many
+   * digits, e.g. \u{d_5 d_4 d_3 d_2 d_1 d_0}. An escape sequence whose value
+   * is greater than the maximum code point is not treated as an escape
+   * sequence, i.e. its characters are taken verbatim.
    *
    * If useEscSequences is false, then the characters of the constructed
    * cvc5::internal::String correspond one-to-one with the input string.
@@ -166,6 +190,14 @@ class String
    * positive number if *this > y.
    */
   int cmp(const String& y) const;
+  /**
+   * The maximum number of hexadecimal digits in an escape sequence of the
+   * form \u{...}, which is 5 or the number of digits of the maximum code
+   * point, whichever is larger.
+   */
+  static size_t maxEscDigits();
+  /** The maximum code point */
+  static unsigned s_maxCodePoint;
   /** The data */
   std::vector<unsigned> d_str;
 };

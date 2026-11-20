@@ -52,6 +52,12 @@ class Options
    * Eunoia-style definitions instead of translating them to reference assertions.
    */
   bool d_referenceDefineFun;
+  /**
+   * The maximum code point of string characters. This impacts which escape
+   * sequences in string literals are valid and the semantics of eo::to_str,
+   * and is the value of eo::max_code_point.
+   */
+  uint32_t d_maxCodePoint;
 };
 
 /**
