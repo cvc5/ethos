@@ -107,6 +107,9 @@ pub fn with_checker_stack<T: Send>(f: impl FnOnce() -> CheckResult<T> + Send) ->
     })
 }
 
+// Generated code builds its literals as values; these read the numbers
+// that a signature could still write as text (none does today).
+#[allow(dead_code)]
 pub(crate) fn parse_int(s: &str) -> CheckResult<Integer> {
     Integer::parse(s, 10).ok_or(CheckError::InvalidNative)
 }
