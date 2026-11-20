@@ -24,7 +24,7 @@ SMT-LIB types.
 -/
 inductive SmtType : Type where
 $LEAN_SMT_TYPE_DEF$
-deriving Repr, DecidableEq, Inhabited, Ord
+deriving Repr, DecidableEq, Inhabited
 
 /-
 SMT-LIB terms.

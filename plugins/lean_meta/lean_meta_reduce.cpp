@@ -170,7 +170,11 @@ void LeanMetaReduce::readTerminationClauses(const std::string& path)
     if (line.compare(0, 2, "--") == 0)
     {
       take();
-      if (line.compare(0, 4, "-- $") == 0)
+      if (line.compare(0, 11, "-- ordered ") == 0)
+      {
+        d_ordered.insert(line.substr(11));
+      }
+      else if (line.compare(0, 4, "-- $") == 0)
       {
         std::stringstream ls(line.substr(3));
         std::string name;
@@ -1317,36 +1321,23 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
     // sst.str() << "\" " << termKindToString(tk) << std::endl;
   }
-  if (!embedName.empty())
+  std::string dtName = embedName;
+  if (dtName.empty())
   {
-    (*out) << embedName;
+    std::stringstream ssk;
+    printMetaTypeKind(tk, ssk);
+    dtName = ssk.str();
   }
-  else
-  {
-    printMetaTypeKind(tk, *out);
-  }
-  (*out) << std::endl;
+  (*out) << dtName << std::endl;
   if (tk == MetaKind::EUNOIA)
   {
     d_termCons.emplace_back(cname, argTypes);
   }
   // the ordering key methods are generated in lockstep with the datatypes they
   // order, so that the tag of a constructor is its index in the datatype.
-  if (!embedName.empty())
+  if (d_ordered.find(dtName) != d_ordered.end())
   {
-    printOrderKeyCase(cname, argTypes, d_embedNcons[embedName],
-                      d_embedKey[embedName]);
-    d_embedNcons[embedName]++;
-  }
-  else if (tk == MetaKind::SMT_TYPE)
-  {
-    printOrderKeyCase(cname, argTypes, d_smtTypeNcons, d_smtTypeKey);
-    d_smtTypeNcons++;
-  }
-  else if (tk == MetaKind::SMT_VALUE)
-  {
-    printOrderKeyCase(cname, argTypes, d_smtValueNcons, d_smtValueKey);
-    d_smtValueNcons++;
+    printOrderKeyCase(cname, argTypes, d_keyNcons[dtName]++, d_key[dtName]);
   }
 }
 
@@ -1362,14 +1353,8 @@ std::string LeanMetaReduce::getOrderKeyMethod(const std::string& t)
   // Smt or native_ prefix, lowercase the first letter and append Key, e.g.
   // SmtDatatypeDecl is ordered by datatypeDeclKey and native_Int by intKey.
   // The methods for the types that are not generated are given by the
-  // lean_meta_smt_value_order.lean template.
-  // An identifier a model chooses is a real number, see SmtReal, and is ordered
-  // as one.
-  if (t == "ModelId")
-  {
-    return "realKey";
-  }
-  std::string base;
+  // lean_meta_smt_value_order.lean template, e.g. modelIdKey for ModelId.
+  std::string base = t;
   if (t.compare(0, 3, "Smt") == 0)
   {
     base = t.substr(3);
@@ -1377,10 +1362,6 @@ std::string LeanMetaReduce::getOrderKeyMethod(const std::string& t)
   else if (t.compare(0, 7, "native_") == 0)
   {
     base = t.substr(7);
-  }
-  if (base.empty())
-  {
-    return std::string();
   }
   base[0] = std::tolower(static_cast<unsigned char>(base[0]));
   return base + "Key";
@@ -1395,17 +1376,6 @@ void LeanMetaReduce::printOrderKeyCase(const std::string& cname,
   for (size_t i = 0, nargs = argTypes.size(); i < nargs; i++)
   {
     std::string method = getOrderKeyMethod(argTypes[i]);
-    if (method.empty())
-    {
-      // An argument whose type does not follow the naming convention, so that
-      // we cannot name its key method. This does not happen for the value and
-      // type datatypes; warn rather than silently emit Lean that will not
-      // compile.
-      Warning() << "Lean value order: constructor " << cname
-                << " has argument of type " << argTypes[i]
-                << ", which does not name an ordering key method" << std::endl;
-      method = "natKey";
-    }
     if (i > 0)
     {
       keys << ", ";
@@ -2003,12 +1973,12 @@ void LeanMetaReduce::finalizeParseDefs(const std::set<std::string>& opNames,
   }
 }
 
-std::string LeanMetaReduce::printEmbedKeys() const
+std::string LeanMetaReduce::printKeys() const
 {
   // The ordering key of each, named as getOrderKeyMethod names one and
-  // standing in the mutual block with the keys of the type and the value.
+  // standing in one mutual block.
   std::stringstream keys;
-  for (const std::pair<const std::string, std::stringstream>& dt : d_embedKey)
+  for (const std::pair<const std::string, std::stringstream>& dt : d_key)
   {
     keys << "@[expose] def " << getOrderKeyMethod(dt.first) << " : "
          << dt.first << " -> Key" << std::endl
@@ -2081,8 +2051,8 @@ std::string LeanMetaReduce::printEmbedDatatypes(bool syntax) const
          << "inductive " << dt.first << " : Type where" << std::endl
          << dt.second.str()
          // What holds a value holds a real, whose equality is classical and
-         // which has neither a Repr nor an Ord.
-         << (syntax ? "deriving Repr, DecidableEq, Inhabited, Ord"
+         // which has no Repr.
+         << (syntax ? "deriving Repr, DecidableEq, Inhabited"
                     : "deriving DecidableEq, Inhabited")
          << std::endl
          << std::endl;
@@ -2124,9 +2094,7 @@ void LeanMetaReduce::finalizeSmtModel()
   const std::string outPathOrder =
       emitResourceFile("plugins/lean_meta/lean_meta_smt_value_order.lean",
                        "plugins/lean_meta/lean_meta_smt_value_order_gen.lean",
-                       {{"$LEAN_SMT_TYPE_KEY$", d_smtTypeKey.str()},
-                        {"$LEAN_SMT_VALUE_KEY$", d_smtValueKey.str()},
-                        {"$LEAN_SMT_EMBED_KEY$", printEmbedKeys()}});
+                       {{"$LEAN_SMT_KEYS$", printKeys()}});
   Trace("lean-meta") << "Write lean-order " << outPathOrder << std::endl;
   const std::string outPath =
       emitResourceFile("plugins/lean_meta/lean_meta_smt_model.lean",

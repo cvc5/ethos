@@ -147,6 +147,14 @@ void ModelSmt::loadDefs()
                        << std::endl;
       }
     }
+    for (const std::pair<const std::string, std::vector<std::string>>& at :
+         b->d_last)
+    {
+      for (const std::string& l : at.second)
+      {
+        d_last[at.first] << "  " << l << std::endl;
+      }
+    }
   };
   // Whether every constructor of what the block builds is the embedding's
   // own, which is what the datatype says of itself: those stand in the order
@@ -269,12 +277,14 @@ void ModelSmt::finalize()
   }
   std::string finalSmt = sss.str();
   // What the signatures said about their symbols, each at the marker the
-  // aggregate it belongs to names. A marker no block wrote anything at is
+  // aggregate it belongs to names, and after those the cases a signature gave
+  // the aggregate itself. A marker no block wrote anything at is
   // written all the same, since the template has to be left with no
   // placeholder in it whatever an input reaches.
   for (const DefsAggregate& a : d_smtDefs.getAggregates())
   {
-    replacePlaceholder(finalSmt, a.d_into, d_at[a.d_into].str());
+    replacePlaceholder(finalSmt, a.d_into,
+                       d_at[a.d_into].str() + d_last[a.d_into].str());
   }
   for (const DefsHelper& h : d_smtDefs.getHelpers())
   {

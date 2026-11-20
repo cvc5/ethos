@@ -32,6 +32,9 @@
 ; A datatype declaration
 (define $smt_DatatypeDecl () ($native_embed_smt "SmtDatatypeDecl"))
 
+; The bindings of a let, each a name, a type and the term it is bound to
+(define $smt_Bindings () ($native_embed_smt "SmtBindings"))
+
 ; What the model says the constant of a type is called by an identifier, which
 ; is what a symbol with no meaning of its own reaches for. It is named here
 ; rather than applied raw so that a place beneath it has a level: the third
@@ -291,6 +294,7 @@
 
 (program $smtx_typeof_value () :signature ($smt_Value) $smt_Type)
 (program $smtx_model_eval () :signature ($smt_Model $smt_Term) $smt_Value)
+(program $smtx_typeof () :signature ($smt_Term) $smt_Type)
 
 ; The helpers over datatype declarations, whose bodies the target writes: what
 ; a datatype *means* is said in tools/eoc/semantics/smt.eos, and what stands
@@ -478,7 +482,7 @@
    ; type it is of and the place it stands at, see SLOT_BY_TYPE in
    ; tools/eoc/compiler/sem_target.py
    (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
-   (r1 $native_Rat) (s1 $native_String) (T2 $smt_Type)
+   (r1 $native_Rat) (s1 $native_String) (T2 $smt_Type) (bs1 $smt_Bindings)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Model $smt_Term) $smt_Value
@@ -517,7 +521,7 @@
    ; type it is of and the place it stands at, see SLOT_BY_TYPE in
    ; tools/eoc/compiler/sem_target.py
    (b1 $native_Bool) (i1 $native_Int) (i2 $native_Int)
-   (r1 $native_Rat) (s1 $native_String) (T2 $smt_Type)
+   (r1 $native_Rat) (s1 $native_String) (T2 $smt_Type) (bs1 $smt_Bindings)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Term) $smt_Type

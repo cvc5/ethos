@@ -48,7 +48,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import report  # noqa: E402
 import sem_target  # noqa: E402
-from sem_lang import (counts, defined_names, die,  # noqa: E402
+from sem_lang import (aggregate_programs, counts,  # noqa: E402
+                      defined_names, die,
                       excludes, lean_clauses, read_config, read_macros,
                       read_text, read_vocabulary, smt_type, write_text)
 
@@ -202,6 +203,12 @@ LEAN_GENERATED = """\
 -- all the same clause; prose may be written between blocks, since a clause is
 -- Lean text and holds no comment of its own.
 --
+-- A line `-- ordered Name` says instead that values are ordered over the
+-- datatype of the embedding Name, so the lean-meta plugin writes it an
+-- ordering key. It is what the declare-embed-datatype entry of that datatype
+-- says under :ordered, and it comes out in the file of the deep embedding
+-- only.
+--
 -- A clause may not name the native layer. It is appended to a generated
 -- definition rather than written into a resource, so it is not one of the
 -- blocks that layer is trimmed by and a name it gave would keep nothing
@@ -246,6 +253,12 @@ def render_lean(config):
     if doc:
       out.append('\n'.join(('-- ' + d).rstrip() for d in doc))
     out.append('-- %s\n%s' % (' '.join(names), text))
+  # The datatypes of the embedding are the target's, so it is the file of the
+  # target that says which of them are ordered.
+  if config.is_target:
+    for dt in read_embed_datatypes().values():
+      if dt.ordered:
+        out.append('-- ordered %s' % dt.name)
   # A blank line between blocks, which is what ends one for the stage that
   # reads them and what a paragraph of prose stands apart by.
   return '\n\n'.join(out) + '\n'
@@ -720,12 +733,14 @@ class EmbedDatatype:
   plugins/model_smt/model_smt.eos.
   """
 
-  def __init__(self, name, cons, macro, own_into, into):
+  def __init__(self, name, cons, macro, own_into, into, ordered=False):
     self.name = name            # named as a type is, e.g. SmtRegLan
     self.cons = cons            # the constant a constructor is declared as
     self.macro = macro          # the macro that applies it
     self.own_into = own_into    # where the embedding's own are written
     self.into = into            # where a signature's are, or None
+    # Whether values are ordered over it, and so it has an ordering key.
+    self.ordered = ordered
 
   @property
   def own(self):
@@ -763,7 +778,8 @@ def read_embed_datatypes(path=AGGREGATE_CONFIG):
           die('%s: a datatype of the embedding says :%s' % (what, a))
       entry = EmbedDatatype(e.name, e.get('cons').val, e.get('macro').val,
                             e.get('own-into').val,
-                            e.get('into').val if e.has('into') else None)
+                            e.get('into').val if e.has('into') else None,
+                            e.has('ordered'))
       if entry.type is None:
         die('%s: a datatype of the embedding is named as a type of it is, '
             'e.g. SmtRegLan for $smt_RegLan' % what)
@@ -1056,7 +1072,7 @@ def template_forward_decls(path):
   return set(FWD_RE.findall(read_text(path)))
 
 
-def check_order(blocks, name, exempt=(), declared=()):
+def check_order(blocks, name, exempt=(), declared=(), aggregates=()):
   """Every name a block uses must be defined by that block or an earlier one.
 
   This is what the ordering of a definitions file is for, and the only thing
@@ -1071,11 +1087,17 @@ def check_order(blocks, name, exempt=(), declared=()):
 
   `declared` names what the template forward declares, which stands ahead of
   every block; see template_forward_decls.
+
+  `aggregates` names the programs the cases of a set are spliced into. Those
+  are the template's, so a block that writes a program of one of those names,
+  which is what a fallback compiles to, adds cases to it rather than defining
+  it, see Symbol._fallback and DefsBlock::d_last.
   """
   owner = {d: -1 for d in declared}
   for i, (_sym, text) in enumerate(blocks):
     for d in DEF_RE.findall(text):
-      owner.setdefault(d, i)
+      if d not in aggregates:
+        owner.setdefault(d, i)
   bad = 0
   for i, (sym, text) in enumerate(blocks):
     # A name in a comment is not a use: what the block says about itself may
@@ -1441,7 +1463,8 @@ def main():
       bad += check_order(blocks, report.rel(config.target),
                          config.decls.helper_prefixes()
                          + config.decls.constructor_prefixes(),
-                         template_forward_decls(AGGREGATE_TEMPLATE))
+                         template_forward_decls(AGGREGATE_TEMPLATE),
+                         aggregate_programs(config.decls))
       for text, target, what in written(blocks, config):
         state, wrong = check_current(text, target)
         done.append((report.rel(target), state, None if wrong else what))
