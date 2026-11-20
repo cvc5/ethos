@@ -118,6 +118,8 @@ enum class Kind
   EVAL_CONCAT,
   EVAL_EXTRACT,
   EVAL_FIND,
+  // the maximum code point of string characters, which has no arguments
+  EVAL_MAX_CODE_POINT,
   // conversions
   EVAL_TO_INT,
   EVAL_TO_RAT,

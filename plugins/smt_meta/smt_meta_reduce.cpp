@@ -125,6 +125,12 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   {
     os << "eo.Bool";
   }
+  else if (k == Kind::EVAL_MAX_CODE_POINT)
+  {
+    // the numeral that is the maximum code point, which is what the native
+    // layer says, see z_max_code_point in plugins/desugar/natives.eos
+    os << "(eo.Numeral z_max_code_point)";
+  }
   else
   {
     const Literal* l = c.getValue()->asLiteral();

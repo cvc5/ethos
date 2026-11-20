@@ -5,7 +5,8 @@
 //! which the compiled checker does not use.
 
 use crate::bitvec::BitVec;
-use crate::eostring::{EoString, NUM_CODES};
+use crate::eostring::EoString;
+use crate::MAX_CODE_POINT;
 use crate::kind::{EvalOp, LitKind};
 use crate::table::mix;
 use crate::num::{Integer, Rational};
@@ -368,7 +369,7 @@ impl Lit {
         match first {
             // a code point gives the string of that one character
             Lit::Numeral(i) => {
-                if i.fits_u32() && i.to_u32() < NUM_CODES {
+                if i.fits_u32() && i.to_u32() <= MAX_CODE_POINT {
                     Some(Lit::Str(EoString::from_code_points(vec![i.to_u32()])))
                 } else {
                     None

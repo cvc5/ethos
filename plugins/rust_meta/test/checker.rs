@@ -497,3 +497,23 @@ fn mutual_recursion_is_memoized() {
     );
     assert_eq!(s.cache_stats().program_hits, hits + 1);
 }
+
+#[test]
+fn max_code_point_is_the_generated_one() {
+    let mut s = Store::new(Limits::default());
+    let zero = s.numeral(Integer::zero()).unwrap();
+    let max = s.numeral(Integer::from(MAX_CODE_POINT)).unwrap();
+    let above = s.numeral(Integer::from(MAX_CODE_POINT + 1)).unwrap();
+    let yes = s.boolean(true).unwrap();
+    let no = s.boolean(false).unwrap();
+    assert_eq!(MAX_CODE_POINT, 0x2FFFF);
+    assert_eq!(
+        generated::eo__24eo_5fprog_5fmax_5fcode(&mut s, zero),
+        Ok(max)
+    );
+    assert_eq!(generated::eo__24eo_5fprog_5fcode_5fstr(&mut s, max), Ok(yes));
+    assert_eq!(
+        generated::eo__24eo_5fprog_5fcode_5fstr(&mut s, above),
+        Ok(no)
+    );
+}

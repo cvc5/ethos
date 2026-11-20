@@ -8,6 +8,7 @@
  ******************************************************************************/
 #include "state.h"
 
+#include <cctype>
 #include <iostream>
 
 #include "base/check.h"
@@ -31,6 +32,34 @@ Options::Options()
   d_normalizeNumeral = false;
   d_referenceDefineFun = false;
   d_maxCodePoint = String::defaultMaxCodePoint();
+  d_symbolicMaxCodePoint = false;
+}
+
+bool Options::setMaxCodePoint(const std::string& val)
+{
+  bool isHex = val.compare(0, 2, "0x") == 0 || val.compare(0, 2, "0X") == 0;
+  std::string digits = isHex ? val.substr(2) : val;
+  if (digits.empty() || !std::isxdigit(static_cast<unsigned char>(digits[0])))
+  {
+    return false;
+  }
+  size_t pos = 0;
+  unsigned long m = 0;
+  try
+  {
+    m = std::stoul(digits, &pos, isHex ? 16 : 10);
+  }
+  catch (...)
+  {
+    return false;
+  }
+  if (pos != digits.size() || m < String::minMaxCodePoint()
+      || m > String::maxMaxCodePoint())
+  {
+    return false;
+  }
+  d_maxCodePoint = static_cast<uint32_t>(m);
+  return true;
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -193,9 +222,17 @@ State::State(Options& opts, Stats& stats)
   bind("true", d_true);
   d_false = Expr(new Literal(false));
   bind("false", d_false);
-  // the maximum code point, which is a numeral
-  bind("eo::max_code_point",
-       mkLiteral(Kind::NUMERAL, std::to_string(String::maxCodePoint())));
+  // the maximum code point, which is a numeral unless it is left symbolic
+  if (opts.d_symbolicMaxCodePoint)
+  {
+    bind("eo::max_code_point",
+         Expr(mkExprInternal(Kind::EVAL_MAX_CODE_POINT, {})));
+  }
+  else
+  {
+    bind("eo::max_code_point",
+         mkLiteral(Kind::NUMERAL, std::to_string(String::maxCodePoint())));
+  }
 
   // builtin lists
   d_listType = Expr(mkSymbolInternal(Kind::CONST, "eo::List", d_type));

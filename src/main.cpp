@@ -8,7 +8,6 @@
  ******************************************************************************/
 
 #include <unistd.h>
-#include <cctype>
 #include <iomanip>
 #include <iostream>
 
@@ -52,32 +51,13 @@ int main( int argc, char* argv[] )
     {
       // a decimal value, or a hexadecimal value prefixed by 0x
       std::string val = arg.substr(17);
-      bool isHex = val.compare(0, 2, "0x") == 0 || val.compare(0, 2, "0X") == 0;
-      std::string digits = isHex ? val.substr(2) : val;
-      size_t pos = 0;
-      unsigned long m = 0;
-      bool valid = !digits.empty()
-                   && std::isxdigit(static_cast<unsigned char>(digits[0]));
-      if (valid)
-      {
-        try
-        {
-          m = std::stoul(digits, &pos, isHex ? 16 : 10);
-        }
-        catch (...)
-        {
-          valid = false;
-        }
-      }
-      if (!valid || pos != digits.size() || m < String::minMaxCodePoint()
-          || m > String::maxMaxCodePoint())
+      if (!opts.setMaxCodePoint(val))
       {
         EO_FATAL() << "Error: invalid value for --max-code-point: \"" << val
                    << "\", must be between " << String::minMaxCodePoint()
                    << " and " << String::maxMaxCodePoint()
                    << " (0x" << std::hex << String::maxMaxCodePoint() << ")";
       }
-      opts.d_maxCodePoint = static_cast<uint32_t>(m);
       continue;
     }
     bool isInclude = (arg.compare(0, 10, "--include=") == 0);

@@ -819,12 +819,18 @@ class Pipeline:
             generate_parser=generate_parser,
         )
 
-    def run_rust(self, input_name: str, *, build_first: bool) -> Path:
+    def run_rust(self, input_name: str, *, build_first: bool,
+                 max_code_point: Optional[str] = None) -> Path:
         """Compile the whole checking loop, preserving primitive operators.
 
         Structural desugaring supplies the term embedding, typing metadata
         and command invocation. rust-meta replaces builtin implementations
         with the Rust runtime; it never emits an interpreter or a parser.
+
+        `max_code_point` is the maximum code point the checker is generated
+        for, which is a constant of its runtime (MAX_CODE_POINT); None leaves
+        it the default of SMT-LIB. No stage before rust-meta depends on it,
+        since each keeps eo::max_code_point as a constant of its own.
         """
         if build_first:
             self.build()
@@ -842,8 +848,10 @@ class Pipeline:
         # fewer files) must not be part of the checker.
         if generated.exists():
             shutil.rmtree(generated)
-        self.ethos(["--plugin.rust-meta", self.binary_path_arg(final_defs)],
-                   quiet=True)
+        mcp = ([f"--max-code-point={max_code_point}"]
+               if max_code_point is not None else [])
+        self.ethos(["--plugin.rust-meta", *mcp,
+                    self.binary_path_arg(final_defs)], quiet=True)
         destination = self.final_out_dir / "rust"
         if destination.exists():
             shutil.rmtree(destination)
@@ -1112,6 +1120,15 @@ def main(argv: list[str]) -> int:
     rust = subparsers.add_parser("rust", help="Emit a standalone Rust checker without a parser.")
     add_common_args(rust)
     rust.add_argument("input")
+    rust.add_argument(
+        "--max-code-point",
+        default=None,
+        help=(
+            "The maximum code point the checker is generated for, in decimal "
+            "or as hexadecimal prefixed by 0x, at most 0x10FFFF. Defaults to "
+            "0x2FFFF, as in SMT-LIB."
+        ),
+    )
 
     desugar = subparsers.add_parser("desugar", help="Generate a desugared EO file.")
     add_common_args(desugar)
@@ -1286,7 +1303,8 @@ def main(argv: list[str]) -> int:
                 calc_name=args.calc_name,
             )
         elif args.command == "rust":
-            pipeline.run_rust(args.input, build_first=False)
+            pipeline.run_rust(args.input, build_first=False,
+                              max_code_point=args.max_code_point)
         elif args.command == "desugar":
             pipeline.run_desugar(args.input, build_first=False,
                                  natives=args.natives)
