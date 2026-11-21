@@ -1,0 +1,9 @@
+; regression: an operator marked :right-assoc or :left-assoc applied to one
+; argument is a partial application.
+(declare-const or (-> Bool Bool Bool) :right-assoc)
+(declare-const and (-> Bool Bool Bool) :left-assoc)
+(declare-const a Bool)
+(define t1 () (or a) :type (-> Bool Bool))
+(define t2 () (and a) :type (-> Bool Bool))
+(define t3 () (or a a a) :type Bool)
+(define t4 () (and a a a) :type Bool)

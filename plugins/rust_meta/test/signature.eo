@@ -1,0 +1,55 @@
+(include "../../../tests/Booleans-rules.eo")
+
+(declare-parameterized-const test-index
+  ((hi Int :opaque) (lo Int :opaque)) Bool)
+
+(declare-rule scope ((F Bool) (G Bool))
+  :assumption F
+  :premises (G)
+  :conclusion (=> F G))
+
+; Nonlinear patterns fall through on an equality mismatch.
+(program $eo_prog_nonlin ((x Bool) (y Bool)) :signature (Bool Bool) Bool (
+  (($eo_prog_nonlin x x) true)
+  (($eo_prog_nonlin x y) false)))
+
+; Once a case matches, a failed requirement does not try the next case.
+(program $eo_prog_require_first ((x Bool)) :signature (Bool) Bool (
+  (($eo_prog_require_first x) (eo::requires x true false))
+  (($eo_prog_require_first x) true)))
+
+(program $loop ((x Bool)) :signature (Bool) Bool (
+  (($loop x) ($loop x))))
+
+; The unchosen branch must not be evaluated, including recursive calls.
+(program $eo_prog_lazy ((x Bool)) :signature (Bool) Bool (
+  (($eo_prog_lazy x) (eo::ite x true ($loop x)))))
+
+; Enough distinct cases to exercise the small case helpers, including a
+; tail call whose next arguments must all be read before any are overwritten.
+(program $eo_prog_swap ((n Int) (x Bool) (y Bool)) :signature (Int Bool Bool) Bool (
+  (($eo_prog_swap 0 x y) x)
+  (($eo_prog_swap 2 x y) y)
+  (($eo_prog_swap 3 x y) y)
+  (($eo_prog_swap 4 x y) y)
+  (($eo_prog_swap 5 x y) y)
+  (($eo_prog_swap 6 x y) y)
+  (($eo_prog_swap 7 x y) y)
+  (($eo_prog_swap n x y) ($eo_prog_swap 0 y x))))
+
+; These traverse a DAG as a tree unless applications are memoized.
+(program $eo_prog_dag ((x Bool) (y Bool :list)) :signature (Bool) Bool (
+  (($eo_prog_dag (and x y)) (eo::and ($eo_prog_dag x) ($eo_prog_dag y)))
+  (($eo_prog_dag x) true)))
+(program $eo_prog_dag_false ((x Bool) (y Bool :list)) :signature (Bool) Bool (
+  (($eo_prog_dag_false (and x y)) (eo::or ($eo_prog_dag_false x) ($eo_prog_dag_false y)))
+  (($eo_prog_dag_false x) false)))
+
+; Cycle detection must include mutual recursion, not just self calls.
+(program $eo_prog_mutual_a () :signature (Bool) Bool)
+(program $eo_prog_mutual_b ((x Bool) (y Bool :list)) :signature (Bool) Bool (
+  (($eo_prog_mutual_b (and x y)) ($eo_prog_mutual_a x))
+  (($eo_prog_mutual_b x) false)))
+(program $eo_prog_mutual_a ((x Bool) (y Bool :list)) :signature (Bool) Bool (
+  (($eo_prog_mutual_a (and x y)) ($eo_prog_mutual_b x))
+  (($eo_prog_mutual_a x) true)))

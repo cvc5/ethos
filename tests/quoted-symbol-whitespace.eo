@@ -1,0 +1,7 @@
+; whitespace is permitted in quoted symbols and string literals
+(declare-const String Type)
+(declare-consts <string> String)
+(declare-const |a	b
+c| Bool)
+(define s () "a	b
+c")

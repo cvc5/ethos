@@ -1,0 +1,159 @@
+// The entry points of checking, to be called on the checker's stack (see
+// front.rs): they call generated functions, and nothing generated calls
+// them, so the generator puts them after all the generated functions.
+impl Store {
+    /// Check the entire proof state machine, including typing, assumptions,
+    /// step-pop, premise lookup and the final closed refutation test. To be
+    /// called on the checker's stack: see `Store::check_refutation`.
+    pub(crate) fn check_refutation_inner(&mut self, assumptions: Term, commands: Term) -> CheckResult<bool> {
+        self.calls = 0;
+        let answer = generated::@$eo_checker_is_refutation@(self, assumptions, commands)?;
+        self.is_native_true(answer)
+    }
+    /// The verdict on a proof. To be called on the checker's stack: see
+    /// `Store::check_proof`.
+    pub(crate) fn check_proof_inner(&mut self, assumptions: Term, commands: Term) -> CheckResult<Verdict> {
+        if !self.check_refutation_inner(assumptions, commands)? {
+            return Ok(Verdict::Incorrect);
+        }
+        if !@HAS_TRANSLATION@ {
+            return Ok(Verdict::Incomplete);
+        }
+        if !self.arguments_translate(assumptions, None)? {
+            return Ok(Verdict::Incomplete);
+        }
+        let mut list = commands;
+        loop {
+            if self.is_node(list, @ctor:$emb_cmdl.nil@)? {
+                return Ok(Verdict::Correct);
+            }
+            let Some(cs) = self.node_fields(list, @ctor:$emb_cmdl.cons@)? else {
+                return Ok(Verdict::Incorrect);
+            };
+            let c = cs[0];
+            if let Some(fs) = self.node_fields(c, @ctor:$emb_cmd.assume_push@)? {
+                if !self.has_translation(fs[0])? {
+                    return Ok(Verdict::Incomplete);
+                }
+            } else if let Some(fs) = self.node_fields(c, @ctor:$emb_cmd.step@)? {
+                let rule = match self.view(fs[0])? {
+                    TermData::Node(rule, _) => *rule,
+                    _ => return Ok(Verdict::Incorrect),
+                };
+                if !self.arguments_translate(fs[1], Some(rule))? {
+                    return Ok(Verdict::Incomplete);
+                }
+            }
+            list = cs[1];
+        }
+    }
+
+    /// The number of arguments of a rule whose arguments have a mask.
+    #[allow(clippy::match_single_binding)]
+    fn mask_len(rule: Constructor) -> Option<usize> {
+        match rule {
+            @TRANSLATION_MASK_LENGTHS@
+            _ => None,
+        }
+    }
+    /// What the mask of `rule` asks of its `i`-th argument.
+    #[allow(clippy::match_single_binding)]
+    fn mask_kind(rule: Constructor, i: usize) -> Option<ArgKind> {
+        match rule {
+            @TRANSLATION_MASK_KINDS@
+            _ => None,
+        }
+    }
+
+    fn translation_type(&mut self, t: Term) -> CheckResult<Term> {
+        @TRANSLATION_TYPE@
+    }
+    fn translation_sort(&mut self, t: Term) -> CheckResult<Term> {
+        @TRANSLATION_SORT@
+    }
+    fn translation_type_wf(&mut self, t: Term, component: bool) -> CheckResult<bool> {
+        @TRANSLATION_WF@
+    }
+    fn has_translation(&mut self, t: Term) -> CheckResult<bool> {
+        let ty = self.translation_type(t)?;
+        Ok(!self.is_stuck(ty)? && !self.is_node(ty, @ctor:$emb_tsm.None@)?)
+    }
+    fn argument_translates(&mut self, t: Term, which: ArgKind) -> CheckResult<bool> {
+        match which {
+            ArgKind::Term => self.has_translation(t),
+            ArgKind::Type => {
+                let ty = self.translation_sort(t)?;
+                self.translation_type_wf(ty, false)
+            }
+            ArgKind::WfTerm => {
+                if !self.has_translation(t)? {
+                    return Ok(false);
+                }
+                let ty = self.translation_type(t)?;
+                self.translation_type_wf(ty, false)
+            }
+            ArgKind::WfElem => {
+                let ty = self.translation_type(t)?;
+                self.translation_type_wf(ty, true)
+            }
+            ArgKind::List => {
+                let mut list = t;
+                loop {
+                    if self.is_node(list, @ctor:$eo_List_nil@)? {
+                        return Ok(true);
+                    }
+                    let Some((fx, tail)) = self.unapply(list)? else {
+                        return Ok(false);
+                    };
+                    let Some((f, x)) = self.unapply(fx)? else {
+                        return Ok(false);
+                    };
+                    if !self.is_node(f, @ctor:$eo_List_cons@)? || !self.has_translation(x)? {
+                        return Ok(false);
+                    }
+                    list = tail;
+                }
+            }
+            ArgKind::Unknown => Err(CheckError::InvalidConstructor),
+        }
+    }
+    /// Whether the arguments translate: each as a term, or, for a rule
+    /// with a mask, as its mask says.
+    fn arguments_translate(
+        &mut self,
+        mut args: Term,
+        rule: Option<Constructor>,
+    ) -> CheckResult<bool> {
+        let mask = match rule {
+            Some(rule) => match Self::mask_len(rule) {
+                Some(len) => Some((rule, len)),
+                None => None,
+            },
+            None => None,
+        };
+        let mut i = 0;
+        loop {
+            if self.is_node(args, @ctor:$emb_al.nil@)? {
+                return Ok(match mask {
+                    Some((_, len)) => i == len,
+                    None => true,
+                });
+            }
+            let Some(fs) = self.node_fields(args, @ctor:$emb_al.cons@)? else {
+                return Ok(false);
+            };
+            let which = match mask {
+                Some((rule, _)) => match Self::mask_kind(rule, i) {
+                    Some(k) => k,
+                    None => return Ok(false),
+                },
+                None => ArgKind::Term,
+            };
+            if !self.argument_translates(fs[0], which)? {
+                return Ok(false);
+            }
+            args = fs[1];
+            i += 1;
+        }
+    }
+}

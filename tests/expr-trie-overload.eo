@@ -1,0 +1,13 @@
+; regression: dropping a failed overload candidate does not remove live terms
+; from the hash-consing trie.
+(declare-const Int Type)
+(declare-const BitVec (-> Type))
+(declare-const BitVec (-> Int Type))
+(declare-const n Int)
+(declare-const P (-> Type Bool))
+(define a () (BitVec n))
+(define j () (BitVec))
+(define b () (BitVec n))
+(declare-rule id ((T Type)) :premises ((P T)) :conclusion (P T))
+(assume h (P a))
+(step s (P b) :rule id :premises (h))

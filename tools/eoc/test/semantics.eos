@@ -17,6 +17,17 @@
 (define-symbol xor (x y))
 (define-symbol = (x y))
 
+; Not a symbol of any input: it is here only so that :term-fallback is
+; covered. It is kept whatever the input declares, gives no case of its own,
+; and its fallback gives what the generic application case of $eo_to_smt
+; gives, so the model says nothing new.
+(define-symbol dummy ()
+  :keep
+  :term none
+  :term-fallback ((T Type) (U Type) (T1 Type) (f (-> U T)) (y U) (x1 T1))
+    (_ (f x1) y)
+    (apply (f x1) y))
+
 ; Builtin-theory.eo declares lambda, which the model does not cover.
 (define-symbol lambda () :exclude)
 

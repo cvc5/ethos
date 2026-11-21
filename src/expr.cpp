@@ -347,7 +347,17 @@ void Expr::printDebugInternal(const Expr& e,
         {
           switch (k)
           {
-            case Kind::HEXADECIMAL:os << "#x" << l->toString();break;
+            case Kind::HEXADECIMAL:
+              // A hexadecimal literal whose width is not a positive multiple
+              // of 4 (e.g. the result of eo::extract) cannot be written in
+              // hexadecimal without changing its width, so we print it in
+              // binary below.
+              if (l->d_bv.getSize() > 0 && l->d_bv.getSize() % 4 == 0)
+              {
+                os << "#x" << l->toString();
+                break;
+              }
+              [[fallthrough]];
             case Kind::BINARY:
               if (l->d_bv.getSize() == 0)
               {
@@ -355,7 +365,7 @@ void Expr::printDebugInternal(const Expr& e,
               }
               else
               {
-                os << "#b" << l->toString();
+                os << "#b" << l->d_bv.toString(2);
               }
               break;
             case Kind::STRING:os << "\"" << l->toString() << "\"";break;

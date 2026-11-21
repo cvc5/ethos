@@ -99,6 +99,7 @@
 ; strings
 (declare-native z_max_code () :op "196608")
 
+; 2^32, an exclusive bound: a 32-bit numeral (e.g. a bitwidth) is below it.
 (declare-native z_max_width () :op "4294967296")
 
 (declare-native streq ((x1 <string>) (x2 <string>)))

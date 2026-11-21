@@ -84,7 +84,7 @@ class LeanMetaReduce : public MetaReducePlugin
                          const std::vector<std::string>& argTypes,
                          size_t tag,
                          std::ostream& os) const;
-  /** Return the name of the ordering-key method for Lean type t, if any. */
+  /** Return the name of the ordering-key method for Lean type t. */
   static std::string getOrderKeyMethod(const std::string& t);
   using MetaReducePlugin::getName;
   using MetaReducePlugin::isEmbedCons;
@@ -161,6 +161,20 @@ class LeanMetaReduce : public MetaReducePlugin
    */
   std::string printTheoryOpDefs() const;
   /**
+   * The generated parts of LogosTermOrder: the comparison of each UserOp
+   * inductive printTheoryOpDefs writes, as the text of the
+   * $LEAN_EO_USER_OP_CMPS$ hole, and the cases of termCmp, one per
+   * constructor of Term in d_termCons, as the text of $LEAN_TERM_CMP$.
+   */
+  std::string printUserOpCmps() const;
+  std::string printTermCmp() const;
+  /**
+   * The comparison a term-order case calls for an argument of Lean type t:
+   * the type with any native_ prefix dropped, its first letter lowered and
+   * Cmp appended, e.g. intCmp for native_Int and userOp1Cmp for UserOp1.
+   */
+  static std::string getTermCmpMethod(const std::string& t);
+  /**
    * The inductives of the datatypes the target declared the constructors of,
    * as the text of the $LEAN_SMT_EMBED_DEFS$ hole of SmtSyntax if syntax and
    * of SmtModelDefs otherwise, see d_embedDt and isSyntaxDatatype.
@@ -179,10 +193,10 @@ class LeanMetaReduce : public MetaReducePlugin
    */
   bool namesModelType(const Expr& t) const;
   /**
-   * The ordering keys of the same, as the text of the $LEAN_SMT_EMBED_KEY$
-   * hole, see d_embedKey.
+   * The ordering keys of the datatypes the configuration says are ordered, as
+   * the text of the $LEAN_SMT_KEYS$ hole, see d_key.
    */
-  std::string printEmbedKeys() const;
+  std::string printKeys() const;
   /** Emit the Lean checker definitions. */
   void finalizeChecker();
   /** Emit the generated, signature-specific Logos parser configuration. */
@@ -227,8 +241,9 @@ class LeanMetaReduce : public MetaReducePlugin
    *
    * A block runs from a line naming one or more programs, written
    * `-- $name ...`, to the next such line; what lies between is the clause.
-   * The files read are generated from what a semantics configuration says
-   * under :lean, see tools/eoc/out/smt_termination.lean.
+   * A line `-- ordered Name` instead puts the datatype Name in d_ordered. The
+   * files read are generated from what a semantics configuration says under
+   * :lean and :ordered, see tools/eoc/out/smt_termination.lean.
    */
   void readTerminationClauses(const std::string& path);
   /** The scope of the module the text written to os comes out in. */
@@ -260,19 +275,29 @@ class LeanMetaReduce : public MetaReducePlugin
   /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
   /**
+   * The constructors of Term in d_embedTermDt, in order, each with the Lean
+   * types of its arguments; what printTermCmp writes its cases from.
+   */
+  std::vector<std::pair<std::string, std::vector<std::string>>> d_termCons;
+  /**
    * The datatypes of the embedding the target declares the constructors of,
    * i.e. what a value is built over rather than a value: the map, the
    * sequence, the regular language and the three a datatype declaration is
    * made of. Each gets an inductive of its own, named as the type its
    * constructors return, and they are kept by that name rather than one to a
-   * member because which of them there are is the target's to say. Their
-   * ordering keys are generated beside them, see d_embedKey.
+   * member because which of them there are is the target's to say.
    */
   std::map<std::string, std::stringstream> d_embedDt;
-  /** The ordering key of each, keyed as above. */
-  std::map<std::string, std::stringstream> d_embedKey;
+  /**
+   * The datatypes the configuration says are ordered, by the name of their
+   * Lean inductive, e.g. SmtValue, see readTerminationClauses. Each of them,
+   * and nothing else, is given an ordering key.
+   */
+  std::set<std::string> d_ordered;
+  /** The ordering-key cases of each of d_ordered, see printOrderKeyCase. */
+  std::map<std::string, std::stringstream> d_key;
   /** How many constructors each has so far, which is the tag of the next. */
-  std::map<std::string, size_t> d_embedNcons;
+  std::map<std::string, size_t> d_keyNcons;
   /**
    * The greatest number of indices an operator may take, i.e. the length of
    * the UserOp ladder the embedding declares. It is the embedding that fixes
@@ -307,14 +332,6 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_smtTypeDt;
   /** SMT value datatype cases. */
   std::stringstream d_smtValueDt;
-  /** SMT type ordering-key cases, see printOrderKeyCase. */
-  std::stringstream d_smtTypeKey;
-  /** SMT value ordering-key cases, see printOrderKeyCase. */
-  std::stringstream d_smtValueKey;
-  /** Number of constructors emitted for the SMT type datatype. */
-  size_t d_smtTypeNcons = 0;
-  /** Number of constructors emitted for the SMT value datatype. */
-  size_t d_smtValueNcons = 0;
   /** Checker command datatype cases. */
   std::stringstream d_cmdDt;
   /** Checker rule datatype cases. */

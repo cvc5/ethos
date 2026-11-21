@@ -473,8 +473,17 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     else if (ck == Kind::FUNCTION_TYPE)
     {
       Assert(recTerm.getNumChildren() == 2);
-      // use the final deep embedding
-      os << "(eo.Apply (eo.Apply eo.FunType ";
+      // use the final deep embedding, propagating stuckness as for
+      // applications above if the function type is evaluatable, e.g. if its
+      // return type is a program application.
+      if (!recTerm.isEvaluatable())
+      {
+        os << "(eo.Apply (eo.Apply eo.FunType ";
+      }
+      else
+      {
+        os << "($eo_mk_apply ($eo_mk_apply eo.FunType ";
+      }
       cparen[key]++;
       // proactively insert a parenthesis after the first argument based on
       // the curried apply above.
@@ -923,12 +932,16 @@ bool SmtMetaReduce::echo(const std::string& msg)
     Expr vv = d_state.getVar(eosc);
     if (vv.isNull())
     {
-      Assert(false)
+      EO_FATAL()
           << "When making verification condition, could not find program "
           << eosc;
     }
     Expr def = d_state.getProgram(vv.getValue());
-    Assert(!def.isNull());
+    if (def.isNull() || def.getNumChildren() == 0)
+    {
+      EO_FATAL() << "When making verification condition, " << eosc
+                 << " is not a program with at least one case";
+    }
     Expr patCall = def[0][0];
     Assert(!patCall.isNull());
     // The conjecture stands at the end of the file, below everything.

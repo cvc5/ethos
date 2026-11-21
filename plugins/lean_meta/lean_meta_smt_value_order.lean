@@ -76,16 +76,15 @@ termination_by a b => sizeOf a + sizeOf b
   | [] => .atom 0
   | c :: cs => .pair (charKey c) (stringKey cs)
 
+-- An identifier a model chooses is a real number, see SmtReal, and is ordered
+-- as one.
+@[expose] def modelIdKey (r : ModelId) : Key := realKey r
+
 mutual
 
-@[expose] def typeKey : SmtType -> Key
-$LEAN_SMT_TYPE_KEY$
-@[expose] def valueKey : SmtValue -> Key
-$LEAN_SMT_VALUE_KEY$
--- $ The key of each datatype the target declares the constructors of, whose
--- $ tags are the order those constructors were declared in. Generated beside
--- $ the inductives themselves, see printEmbedDatatypes.
-$LEAN_SMT_EMBED_KEY$
+-- $ The key of each datatype the configuration says is :ordered, whose tags
+-- $ are the order its constructors were declared in, see printKeys.
+$LEAN_SMT_KEYS$
 end
 
 @[expose] def lt (a b : SmtValue) : Bool := Key.lt (valueKey a) (valueKey b)

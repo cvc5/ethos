@@ -36,6 +36,7 @@
 #include "desugar/desugar.h"
 #include "lean_meta/lean_meta_reduce.h"
 #include "model_smt/model_smt.h"
+#include "rust_meta/rust_meta_reduce.h"
 #include "smt_meta/smt_meta_reduce.h"
 #include "trim_defs/trim_defs.h"
 
@@ -85,6 +86,10 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
     return std::make_unique<LeanMetaReduce>(
         s, generateParser, leanConfigFile);
   }
+  if (name == "rust-meta")
+  {
+    return std::make_unique<RustMetaReduce>(s);
+  }
   if (name == "trim-defs")
   {
     return std::make_unique<TrimDefs>(s);
@@ -101,7 +106,7 @@ std::unique_ptr<Plugin> createPlugin(const std::string& name,
   }
   EO_FATAL() << "Error: unknown plugin \"" << name
              << "\" (available: desugar, desugar-vc, smt-meta, "
-                "smt-meta-sygus, lean-meta, trim-defs, model-smt)";
+                "smt-meta-sygus, lean-meta, rust-meta, trim-defs, model-smt)";
   return nullptr;
 }
 
@@ -226,9 +231,10 @@ int main(int argc, char* argv[])
   {
     EO_FATAL() << "Error: no input specified.";
   }
-  if (!generateParser && pluginName != "lean-meta")
+  if (!generateParser && pluginName != "lean-meta" && pluginName != "rust-meta")
   {
-    EO_FATAL() << "Error: --no-parser requires --plugin.lean-meta";
+    EO_FATAL() << "Error: --no-parser requires --plugin.lean-meta or "
+                  "--plugin.rust-meta";
   }
   if (!defsFile.empty() && pluginName != "model-smt")
   {

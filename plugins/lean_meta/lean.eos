@@ -34,6 +34,7 @@
   :lean-impl "abbrev native_Rat := Rat")
 
 (define-native-method Nat
+  :keep
   :lean-impl "abbrev native_Nat := Nat")
 
 (define-native-method Char
@@ -803,12 +804,23 @@ macro_rules
             else
               SmtValue.NotValue)")
 
+; The bindings of a let are evaluated in parallel: each bound term in the model
+; M the let is evaluated in, and a later binding of a name shadows an earlier
+; one. The extended model is __smtx_model_eval.push_bindings M M bs.
 (define-native-method eval_bind
   :lean-impl "macro_rules
-  | `(native_eval_bind $M $s $T $t $body) => do
+  | `(native_eval_bind $M $bs $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
-      `($evalId ($pushId $M $s $T ($evalId $M $t)) $body)")
+      let goId := Lean.mkIdent `push_bindings
+      let modelId := Lean.mkIdent `SmtModel
+      let bindingsId := Lean.mkIdent `SmtBindings
+      let nilId := Lean.mkIdent `SmtBindings.nil
+      let consId := Lean.mkIdent `SmtBindings.cons
+      `(let rec $goId:ident (N : $modelId) : $bindingsId -> $modelId
+          | $nilId => N
+          | $consId s T t bs => $goId ($pushId N s T ($evalId $M t)) bs;
+        $evalId ($goId $M $bs) $body)")
 
 (define-native-method unpack_seq
   :lean-impl "def native_unpack_seq : SmtSeq -> List SmtValue

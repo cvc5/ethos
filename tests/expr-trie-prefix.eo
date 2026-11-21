@@ -1,0 +1,9 @@
+; regression: deleting the term (f) does not remove the live term (f k) from
+; the hash-consing trie.
+(declare-const Int Type)
+(declare-const f (-> Int Int))
+(declare-const k Int)
+(define a () (f k))
+(define x () (eo::ite true k (f)))
+(define b () (f k))
+(declare-const z (eo::requires (eo::eq a b) true Int))

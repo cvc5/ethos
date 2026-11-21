@@ -1,0 +1,9 @@
+; regression: eo::extract with two arguments is an error, not an
+; out-of-bounds read.
+(declare-const T Type)
+(declare-rule r ((x T))
+  :args (x)
+  :requires (((eo::extract "abc" 1) "bc"))
+  :conclusion true)
+(declare-const c T)
+(step @p0 true :rule r :args (c))

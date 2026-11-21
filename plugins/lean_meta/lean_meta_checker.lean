@@ -1,7 +1,7 @@
 module
 
-public import $EO_CALC$.LogosTerm
-import all $EO_CALC$.LogosTerm
+public import $EO_CALC$.LogosTermOrder
+import all $EO_CALC$.LogosTermOrder
 public import $EO_CALC$.SmtEval
 import all $EO_CALC$.SmtEval
 
