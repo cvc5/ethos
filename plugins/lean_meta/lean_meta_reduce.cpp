@@ -664,8 +664,17 @@ void LeanMetaReduce::printEmbTermInternal(
     else if (ck == Kind::FUNCTION_TYPE)
     {
       Assert(recTerm.getNumChildren() == 2);
-      // use the final deep embedding
-      os << "(Term.Apply (Term.Apply Term.FunType ";
+      // use the final deep embedding, propagating stuckness as for
+      // applications above if the function type is evaluatable, e.g. if its
+      // return type is a program application.
+      if (!recTerm.isEvaluatable())
+      {
+        os << "(Term.Apply (Term.Apply Term.FunType ";
+      }
+      else
+      {
+        os << "(__eo_mk_apply (__eo_mk_apply Term.FunType ";
+      }
       cparen[key]++;
       // proactively insert a parenthesis after the first argument based on
       // the curried apply above.
