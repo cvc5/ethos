@@ -3,14 +3,14 @@
 //! printing of errors. It is for the program that builds the checker's
 //! input and reports its result, and it is the one part of this crate that
 //! is not meant to be translated for verification. The checking functions
-//! take from it only one pure function to text ([`constant_name`]).
+//! take nothing from it.
 
 #[path = "names.rs"]
 mod names;
 
 use crate::{
-    BitVec, CHECKER_STACK_SIZE, CheckError, CheckResult, Constructor, EoString, Integer, Lit,
-    NUM_CODES, Store, Term, TermData, Verdict,
+    BitVec, CHECKER_STACK_SIZE, CheckError, CheckResult, Constructor, EoString, Lit, NUM_CODES,
+    Store, Term, TermData, Verdict,
 };
 use std::fmt::{self, Write};
 
@@ -48,13 +48,6 @@ impl fmt::Display for CheckError {
 /// constants it passes to the runtime.
 fn native_text(code: u32) -> &'static str {
     names::NATIVE_TEXTS.get(code as usize).copied().unwrap_or("")
-}
-
-/// The name of the `n`-th constant: `@u.n` of an uninterpreted sort
-/// (`uninterpreted`), `@c.n` otherwise.
-pub(crate) fn constant_name(uninterpreted: bool, n: &Integer) -> EoString {
-    let prefix = if uninterpreted { "@u." } else { "@c." };
-    EoString::parse(&format!("{prefix}{n}"), false)
 }
 
 impl Store {
@@ -222,7 +215,7 @@ impl BitVec {
     /// in lit.rs: the compiled checker reads no bit-vector from text.)
     #[cfg(test)]
     pub fn parse(num: &str, base: u8) -> Option<BitVec> {
-        let value = Integer::parse(num, base)?;
+        let value = crate::Integer::parse(num, base)?;
         let digits = u32::try_from(num.len()).ok()?;
         let size = if base == 16 {
             digits.checked_mul(4)?
