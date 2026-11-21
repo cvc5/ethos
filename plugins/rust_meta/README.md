@@ -172,8 +172,8 @@ one development. Aeneas needs two options:
 Two parts of the runtime are not translated, and their functions are
 axioms of the Lean: `num.rs`, the integers and rationals over Malachite;
 and of `front.rs`, which holds what works on text for the program around
-the checker, the four pure functions the checking code calls (`parse_int`,
-`parse_rat`, `native_literal`, `constant_name`).
+the checker, the one pure function the checking code calls
+(`constant_name`). Literals and numerals are built as values.
 
 The intended store relation maps each handle to its Logos term or native
 field. Its obligations are constructor/view correctness, monotone extension

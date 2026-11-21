@@ -783,7 +783,71 @@ class RustMetaReduce::Emitter
                      << body << "}\n";
     return name + "(s" + args + pa.second + ")";
   }
-  /** The value of a literal; a number is read by a statement of its own. */
+  /**
+   * The integer whose decimal text is `text`, as a value: `Integer::from`
+   * of a `u32`, negated if need be, which the proofs take from the specs of
+   * `from` and `neg`. A number that does not fit is built from 32-bit
+   * limbs, the most significant first (`x * 2^32 + limb`); no signature
+   * has one today.
+   */
+  std::string integer(const std::string& text)
+  {
+    bool neg = !text.empty() && text[0] == '-';
+    std::string digits = neg ? text.substr(1) : text;
+    if (digits.empty()
+        || digits.find_first_not_of("0123456789") != std::string::npos)
+    {
+      EO_FATAL() << "rust-meta: not an integer: " << text;
+    }
+    // the limbs, by long division of the decimal digits by 2^32
+    std::vector<uint32_t> limbs;
+    std::string rest = digits;
+    while (rest != "0" && !rest.empty())
+    {
+      std::string q;
+      uint64_t r = 0;
+      for (char c : rest)
+      {
+        r = r * 10 + static_cast<uint64_t>(c - '0');
+        uint64_t d = r >> 32;
+        if (!q.empty() || d != 0)
+        {
+          q += static_cast<char>('0' + d);
+        }
+        r &= 0xffffffffULL;
+      }
+      limbs.push_back(static_cast<uint32_t>(r));
+      rest = q.empty() ? "0" : q;
+    }
+    if (limbs.empty())
+    {
+      limbs.push_back(0);
+    }
+    std::string v = "Integer::from(" + std::to_string(limbs.back()) + "u32)";
+    for (size_t i = limbs.size() - 1; i > 0; --i)
+    {
+      v = v + ".mul(&Integer::from(65536u32).mul(&Integer::from(65536u32))).add(&Integer::from("
+          + std::to_string(limbs[i - 1]) + "u32))";
+    }
+    return neg ? v + ".neg()" : v;
+  }
+  /** The code points of a string written as `"…"` in a signature. */
+  static std::string codePoints(const std::string& quoted)
+  {
+    std::string inner = quoted.substr(1, quoted.size() - 2);
+    inner = replace_all(inner, "\"\"", "\"");
+    std::ostringstream out;
+    out << "EoString::from_code_points(vec![";
+    // (the string must outlive the loop: `getVec` is a reference into it)
+    const String str(inner, true);
+    for (unsigned c : str.getVec())
+    {
+      out << c << ',';
+    }
+    out << "])";
+    return out.str();
+  }
+  /** The value of a literal. */
   std::string literal(const Expr& e)
   {
     const Literal* l = e.getValue()->asLiteral();
@@ -791,20 +855,27 @@ class RustMetaReduce::Emitter
     {
       case Kind::BOOLEAN:
         return l->d_bool ? "Lit::Boolean(true)" : "Lit::Boolean(false)";
-      case Kind::NUMERAL:
-        return "Lit::Numeral("
-               + part("parse_int(" + quote(l->d_int.toString()) + ")?") + ")";
+      case Kind::NUMERAL: return "Lit::Numeral(" + integer(l->d_int.toString()) + ")";
       case Kind::RATIONAL:
       case Kind::DECIMAL:
+      {
+        // `n/d` in lowest terms, `d` positive
+        std::string text = l->d_rat.toString();
+        size_t slash = text.find('/');
+        std::string n = text.substr(0, slash);
+        std::string d = slash == std::string::npos ? "1" : text.substr(slash + 1);
         return "Lit::Rational("
-               + part("parse_rat(" + quote(l->d_rat.toString()) + ")?") + ")";
+               + part("match Rational::from_integers(&" + integer(n) + ", &"
+                      + integer(d)
+                      + ") { Some(q) => q, None => return "
+                        "Err(CheckError::InvalidNative) }")
+               + ")";
+      }
       case Kind::BINARY:
       case Kind::HEXADECIMAL:
         return "Lit::Binary(BitVec::new("
                + std::to_string(l->d_bv.getSize()) + ", &"
-               + part("parse_int(" + quote(l->d_bv.getValue().toString())
-                     + ")?")
-               + "))";
+               + integer(l->d_bv.getValue().toString()) + "))";
       case Kind::STRING:
       {
         std::ostringstream out;
@@ -917,7 +988,17 @@ class RustMetaReduce::Emitter
       {
         return "s.native_nat_zero()?";
       }
-      // a numeral or a string, which the runtime reads
+      // a numeral or a string, as a value
+      if (!name.empty() && name.find_first_not_of("-0123456789") == std::string::npos
+          && name.find_first_of("0123456789") != std::string::npos)
+      {
+        return "s.raw(Lit::Numeral(" + integer(name) + "))?";
+      }
+      if (name.size() >= 2 && name.front() == '"' && name.back() == '"')
+      {
+        return "s.raw(Lit::Str(" + codePoints(name) + "))?";
+      }
+      // anything else the runtime reads (and refuses)
       return "s.native_constant(" + std::to_string(m.nativeText(name)) + ")?";
     }
     auto it = ops.find(name);

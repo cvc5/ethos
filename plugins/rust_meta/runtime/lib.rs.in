@@ -43,8 +43,7 @@ pub use bitvec::BitVec;
 pub use cache::CacheStats;
 use cache::{Caches, ProgramId, TypeCacheKind};
 pub use eostring::{EoString, NUM_CODES};
-pub(crate) use front::parse_int;
-pub use front::{parse_rat, with_checker_stack};
+pub use front::with_checker_stack;
 pub use kind::{EvalOp, LitKind};
 pub use lit::Lit;
 pub use native::NativeOp;
@@ -690,11 +689,14 @@ impl Store {
     /// `count` ticks at once, failing exactly when `count` calls of `tick`
     /// would.
     fn charge(&mut self, count: u64) -> CheckResult<()> {
-        if self.calls.saturating_add(count) > self.limits.calls {
+        let sum = self.calls.saturating_add(count);
+        if sum > self.limits.calls {
             self.calls = self.limits.calls;
             return Err(CheckError::Limit);
         }
-        self.calls += count;
+        // The sum that passed the test, not `+=`: with `limits.calls` at
+        // `u64::MAX` a saturated sum passes it, and `+=` would overflow.
+        self.calls = sum;
         Ok(())
     }
     /// The tail of a `cons` node, or None if `t` is not one.

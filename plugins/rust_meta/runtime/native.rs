@@ -107,12 +107,11 @@ impl Store {
     pub(crate) fn native_nat_zero(&mut self) -> CheckResult<Term> {
         self.raw(Lit::Numeral(Integer::zero()))
     }
-    /// Another native constant, written as in the EO definitions: a
-    /// numeral or a string literal. `text` stands for what is written (see
-    /// `CheckError`).
+    /// Another native constant: generated code builds Booleans, `nat.zero`,
+    /// numerals and string literals as values, so the runtime refuses any
+    /// other. `text` stands for what is written (see `CheckError`).
     pub(crate) fn native_constant(&mut self, text: u32) -> CheckResult<Term> {
-        let literal = crate::front::native_literal(text)?;
-        self.raw(literal)
+        Err(CheckError::UnsupportedNative(text))
     }
 
     /// Match the only native algebraic constructors (Nat.zero/succ), or
@@ -372,7 +371,7 @@ impl Store {
         if n.sgn() < 0 {
             return Err(CheckError::InvalidNative);
         }
-        let name = crate::front::constant_name(op == NativeOp::UconstId, &n);
+        let name = constant_name(op == NativeOp::UconstId, &n)?;
         self.raw(Lit::Str(name))
     }
     fn native_string(&self, x: Term) -> CheckResult<&EoString> {
@@ -426,4 +425,75 @@ fn is_prefix(x: &[u32], y: &[u32]) -> bool {
         i += 1;
     }
     prefix
+}
+
+/// The most digits a constant's name may have. The name is the prefix and
+/// the digits, in a vector of code points; the bound keeps every push in
+/// range, and a number with more digits could not be held in memory.
+const MAX_NAME_DIGITS: usize = usize::MAX - 8;
+
+/// The name of the `n`-th constant: `@u.n` of an uninterpreted sort
+/// (`uninterpreted`), `@c.n` otherwise, with `n` in decimal and a `-` before
+/// a negative one (the checker asks only for `n >= 0`). This is what
+/// `format!("{prefix}{n}")` writes, built from the digits so that its
+/// translation can be proved to spell it.
+pub(crate) fn constant_name(uninterpreted: bool, n: &Integer) -> CheckResult<EoString> {
+    let kind: u32 = if uninterpreted { 117 } else { 99 };
+    let negative = n.sgn() < 0;
+    let m = if negative { n.neg() } else { n.clone() };
+    let digits = decimal_digits(&m)?;
+    let mut codes: Vec<u32> = Vec::new();
+    codes.push(64);
+    codes.push(kind);
+    codes.push(46);
+    if negative {
+        codes.push(45);
+    }
+    let mut i = digits.len();
+    while i > 0 {
+        i -= 1;
+        codes.push(digits[i]);
+    }
+    Ok(EoString::from_code_points(codes))
+}
+
+/// The decimal digits of `m >= 0` as code points, the last first.
+fn decimal_digits(m: &Integer) -> CheckResult<Vec<u32>> {
+    let ten = Integer::from(10u32);
+    let mut digits: Vec<u32> = Vec::new();
+    let mut m = m.clone();
+    loop {
+        if digits.len() >= MAX_NAME_DIGITS {
+            return Err(CheckError::Limit);
+        }
+        let (q, r) = m.euclidean_qr(&ten);
+        digits.push(48 + r.to_u32());
+        if q.sgn() == 0 {
+            return Ok(digits);
+        }
+        m = q;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::constant_name;
+    use crate::{EoString, Integer};
+
+    /// The name is what `format!` of the number writes, for both prefixes.
+    #[test]
+    fn constant_names_are_the_decimal_numbers() {
+        let big = Integer::parse("123456789012345678901234567890", 10).unwrap();
+        let mut values: Vec<Integer> = (0u32..1100).map(Integer::from).collect();
+        values.push(Integer::from(u32::MAX));
+        values.push(big.clone());
+        values.push(big.neg());
+        values.push(Integer::from(7u32).neg());
+        for n in &values {
+            for (uninterpreted, prefix) in [(true, "@u."), (false, "@c.")] {
+                let expected = EoString::parse(&format!("{prefix}{n}"), false);
+                assert_eq!(constant_name(uninterpreted, n), Ok(expected), "{prefix}{n}");
+            }
+        }
+    }
 }

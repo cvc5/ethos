@@ -3,15 +3,14 @@
 //! printing of errors. It is for the program that builds the checker's
 //! input and reports its result, and it is the one part of this crate that
 //! is not meant to be translated for verification. The checking functions
-//! take from it only pure functions from text to values
-//! ([`native_literal`], [`constant_name`]).
+//! take nothing from it.
 
 #[path = "names.rs"]
 mod names;
 
 use crate::{
-    BitVec, CHECKER_STACK_SIZE, CheckError, CheckResult, Constructor, EoString, Integer, Lit,
-    NUM_CODES, Rational, Store, Term, TermData, Verdict,
+    BitVec, CHECKER_STACK_SIZE, CheckError, CheckResult, Constructor, EoString, Lit, NUM_CODES,
+    Store, Term, TermData, Verdict,
 };
 use std::fmt::{self, Write};
 
@@ -51,34 +50,6 @@ fn native_text(code: u32) -> &'static str {
     names::NATIVE_TEXTS.get(code as usize).copied().unwrap_or("")
 }
 
-/// A native constant as the EO definitions write it: `true`, `false`,
-/// `nat.zero`, a numeral or a string literal.
-#[allow(dead_code)] // A signature need not have such a constant.
-pub(crate) fn native_literal(code: u32) -> CheckResult<Lit> {
-    let op = native_text(code);
-    Ok(if op == "true" || op == "false" {
-        Lit::Boolean(op == "true")
-    } else if op == "nat.zero" {
-        Lit::Numeral(Integer::zero())
-    } else if let Some(n) = Integer::parse(op, 10) {
-        Lit::Numeral(n)
-    } else if op.starts_with('"') && op.ends_with('"') && op.len() >= 2 {
-        Lit::Str(EoString::parse(
-            &op[1..op.len() - 1].replace("\"\"", "\""),
-            true,
-        ))
-    } else {
-        return Err(CheckError::UnsupportedNative(code));
-    })
-}
-
-/// The name of the `n`-th constant: `@u.n` of an uninterpreted sort
-/// (`uninterpreted`), `@c.n` otherwise.
-pub(crate) fn constant_name(uninterpreted: bool, n: &Integer) -> EoString {
-    let prefix = if uninterpreted { "@u." } else { "@c." };
-    EoString::parse(&format!("{prefix}{n}"), false)
-}
-
 impl Store {
     pub fn is_named(&self, t: Term, name: &str) -> CheckResult<bool> {
         Ok(match self.view(t)? {
@@ -105,13 +76,6 @@ pub fn with_checker_stack<T: Send>(f: impl FnOnce() -> CheckResult<T> + Send) ->
             .join()
             .map_err(|_| CheckError::Worker)?
     })
-}
-
-pub(crate) fn parse_int(s: &str) -> CheckResult<Integer> {
-    Integer::parse(s, 10).ok_or(CheckError::InvalidNative)
-}
-pub fn parse_rat(s: &str) -> CheckResult<Rational> {
-    Rational::parse(s).ok_or(CheckError::InvalidNative)
 }
 
 impl Store {
@@ -251,7 +215,7 @@ impl BitVec {
     /// in lit.rs: the compiled checker reads no bit-vector from text.)
     #[cfg(test)]
     pub fn parse(num: &str, base: u8) -> Option<BitVec> {
-        let value = Integer::parse(num, base)?;
+        let value = crate::Integer::parse(num, base)?;
         let digits = u32::try_from(num.len()).ok()?;
         let size = if base == 16 {
             digits.checked_mul(4)?
