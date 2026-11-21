@@ -69,6 +69,12 @@ enum class MetaKind
 /** Get a human-readable name for the meta-kind k, e.g. "SMT_TYPE". */
 std::string metaKindToString(MetaKind k);
 /**
+ * The Rust identifier of an EO name, as rust-meta names a constructor or a
+ * program: `eo_` and the name with every character other than an ASCII
+ * letter or digit escaped as `_` and two hex digits. Injective.
+ */
+std::string rustIdent(const std::string& name);
+/**
  * Get the symbol-name prefix associated with meta-kind k, e.g. "eo." for
  * EUNOIA or "vsm." for SMT_VALUE. Returns a placeholder string for kinds
  * that have no dedicated prefix.

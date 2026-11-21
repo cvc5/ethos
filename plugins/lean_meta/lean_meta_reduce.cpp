@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cctype>
 #include <fstream>
+#include <functional>
 #include <sstream>
 #include <string>
 
@@ -729,6 +730,7 @@ void LeanMetaReduce::defineProgram(const Expr& v, const Expr& prog)
   {
     return;
   }
+  d_rawProgs.emplace_back(v, prog);
   // must linearize the patterns
   std::vector<std::pair<Expr, Expr>> linProgs =
       LinearPattern::linearize(d_state, v, prog);
@@ -749,6 +751,108 @@ void LeanMetaReduce::finalizePrograms()
     bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
     Expr def = d_progToDef[prog];
     finalizeProgram(prog, def, isDefine);
+  }
+  for (const std::pair<Expr, Expr>& p : d_rawProgs)
+  {
+    printCaseDefs(p.first, p.second);
+  }
+}
+
+void LeanMetaReduce::printCaseDefs(const Expr& v, const Expr& prog)
+{
+  std::string vname = getName(v);
+  // what finalizeProgram writes no definition for has no cases here either
+  if (prog.getKind() != Kind::PROGRAM || vname == "$eo_ite"
+      || vname == "$eo_hash" || vname.compare(0, 9, "$eo_model") == 0
+      || vname == "$smtx_model_eval")
+  {
+    return;
+  }
+  Expr vt = v.getType();
+  size_t nargs = vt.getNumChildren();
+  bool isCheckerDef = false;
+  MetaKind last = MetaKind::NONE;
+  for (size_t j = 0; j < nargs; j++)
+  {
+    last = getTypeMetaKind(vt[j]);
+    isCheckerDef |= isCheckerMetaKind(last);
+  }
+  MetaKind tmk = (!isCheckerDef && isSmtMetaKind(last)) ? MetaKind::SMT_TYPE
+                                                        : MetaKind::EUNOIA;
+  // A native that a case names is named from the module its program is
+  // in, as finalizeProgram decides it, so that writing the cases changes
+  // nothing of where the native layer comes out.
+  const std::ostream* home = &d_defsTotal;
+  if (isCheckerDef)
+  {
+    home = &d_eoChecker;
+  }
+  else if (isSmtMetaKind(last))
+  {
+    home = namesModelType(vt) ? &d_smtDefs : &d_smtTypingDefs;
+  }
+  if (vname.compare(0, 10, "$eo_to_smt") == 0)
+  {
+    home = &d_eoIsObjDefs;
+  }
+  d_scope = scopeOf(home);
+  std::stringstream sig;
+  for (size_t i = 1; i < nargs; i++)
+  {
+    printMetaType(vt[i - 1], sig, tmk);
+    sig << " -> ";
+  }
+  sig << "Option (";
+  printMetaType(vt[nargs - 1], sig, tmk);
+  sig << ")";
+  for (size_t i = 0, ncases = prog.getNumChildren(); i < ncases; i++)
+  {
+    std::vector<Expr> conds;
+    Expr hd = LinearPattern::linearizeCase(d_state, prog[i][0], conds);
+    std::stringstream ret;
+    printEmbTerm(prog[i][1], ret, tmk);
+    d_caseDefs << "def " << cleanId(vname) << ".case_" << i << " : "
+               << sig.str();
+    if (nargs == 1)
+    {
+      d_caseDefs << " :=" << std::endl
+                 << "  some (" << ret.str() << ")" << std::endl
+                 << std::endl;
+      continue;
+    }
+    d_caseDefs << std::endl << "  | ";
+    bool general = true;
+    for (size_t j = 1; j < nargs; j++)
+    {
+      d_caseDefs << (j > 1 ? ", " : "");
+      printEmbTerm(hd[j], d_caseDefs, tmk, false);
+      general = general && hd[j].getKind() == Kind::PARAM;
+    }
+    d_caseDefs << " => ";
+    for (const Expr& c : conds)
+    {
+      d_caseDefs << "if ";
+      printEmbTerm(c[0], d_caseDefs, tmk, false);
+      d_caseDefs << " = ";
+      printEmbTerm(c[1], d_caseDefs, tmk, false);
+      d_caseDefs << " then ";
+    }
+    d_caseDefs << "some (" << ret.str() << ")";
+    for (size_t k = 0; k < conds.size(); k++)
+    {
+      d_caseDefs << " else none";
+    }
+    d_caseDefs << std::endl;
+    if (!general)
+    {
+      d_caseDefs << "  | ";
+      for (size_t j = 1; j < nargs; j++)
+      {
+        d_caseDefs << (j > 1 ? ", _" : "_");
+      }
+      d_caseDefs << " => none" << std::endl;
+    }
+    d_caseDefs << std::endl;
   }
 }
 
@@ -1182,6 +1286,783 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
   }
 }
 
+void LeanMetaReduce::recordEmbedCtor(const Expr& e,
+                                     const std::string& sname,
+                                     const std::string& cnamek,
+                                     const std::string& cname,
+                                     MetaKind tk)
+{
+  if (tk == MetaKind::SMT_BUILTIN || tk == MetaKind::PROOF
+      || tk == MetaKind::NONE)
+  {
+    return;
+  }
+  Expr c = e;
+  Expr ct = d_tc.getType(c);
+  EmbedCtor rec;
+  rec.sname = sname;
+  rec.cname = cname;
+  size_t uarity = 0;
+  if (tk == MetaKind::EUNOIA && isAtomicEo(c, cnamek, uarity))
+  {
+    rec.userOp = true;
+    rec.type = "UserOp";
+    if (uarity > 0)
+    {
+      rec.unsupported = "an indexed user operator";
+    }
+    d_embedCtors.push_back(rec);
+    return;
+  }
+  if (tk == MetaKind::SMT && isAtomicSmt(c, cnamek))
+  {
+    rec.type = "SmtTerm";
+    rec.unsupported = "an SMT theory operator";
+    d_embedCtors.push_back(rec);
+    return;
+  }
+  Attr attr = d_state.getAttributeKind(e.getValue());
+  Expr ret = ct;
+  size_t n = 0;
+  if (attr == Attr::OPAQUE && ct.getKind() == Kind::FUNCTION_TYPE)
+  {
+    n = ct.getNumChildren() - 1;
+    ret = ct[n];
+  }
+  std::stringstream rs;
+  if (!printMetaTypeKind(tk, rs))
+  {
+    rs.str("");
+    if (!printMetaType(ret, rs, tk))
+    {
+      return;
+    }
+  }
+  rec.type = rs.str();
+  for (size_t i = 0; i < n; i++)
+  {
+    Expr typ = ct[i];
+    if (ct[i].getKind() == Kind::QUOTE_TYPE)
+    {
+      Expr targ = ct[i][0];
+      typ = d_tc.getType(targ);
+    }
+    std::stringstream fs;
+    if (!printMetaType(typ, fs, tk))
+    {
+      fs << "Term";
+    }
+    rec.fields.push_back(fs.str());
+  }
+  d_embedCtors.push_back(rec);
+}
+
+namespace {
+/** The codec in PathosProofs.Store.Tree of a native type, or "". */
+std::string nativeCodec(const std::string& t)
+{
+  if (t == "native_Bool") return "Bool";
+  if (t == "native_Int" || t == "CIndex") return "Int";
+  if (t == "native_Nat") return "Nat";
+  if (t == "native_Rat") return "Rat";
+  if (t == "native_String") return "Str";
+  return "";
+}
+/** The Lean name of a datatype of the embedding, with its namespace. */
+std::string qualified(const std::string& t)
+{
+  return (t.compare(0, 3, "Smt") == 0 ? "Smtm." : "Eo.") + t;
+}
+}  // namespace
+
+std::string LeanMetaReduce::printEmbedding(std::string& ctorSpecs) const
+{
+  // How the Rust runtime stores a term of one of these constructors
+  // (Constructor::embedding in rust-meta's schema): the rest are nodes of
+  // the constructor over their fields.
+  const std::set<std::string> lits{"$emb_Boolean",
+                                   "$emb_Numeral",
+                                   "$emb_Rational",
+                                   "$emb_String",
+                                   "$emb_Binary"};
+  std::map<std::string, std::vector<const EmbedCtor*>> byType;
+  std::vector<const EmbedCtor*> userOps;
+  std::set<std::string> dropped;
+  std::map<std::string, std::string> why;
+  for (const EmbedCtor& c : d_embedCtors)
+  {
+    if (c.userOp)
+    {
+      userOps.push_back(&c);
+      if (!c.unsupported.empty())
+      {
+        dropped.insert("Term");
+        why["Term"] = c.unsupported;
+      }
+      continue;
+    }
+    byType[c.type].push_back(&c);
+    if (!c.unsupported.empty() && dropped.insert(c.type).second)
+    {
+      why[c.type] = c.unsupported;
+    }
+  }
+  // a datatype is embedded if each of its fields is a native with a codec
+  // or an embedded datatype
+  for (bool changed = true; changed;)
+  {
+    changed = false;
+    for (const auto& ty : byType)
+    {
+      if (dropped.count(ty.first))
+      {
+        continue;
+      }
+      for (const EmbedCtor* c : ty.second)
+      {
+        for (const std::string& f : c->fields)
+        {
+          bool ok = (c->sname == "$emb_UOp" && f == "UserOp")
+                    || !nativeCodec(f).empty()
+                    || (byType.count(f) && !dropped.count(f));
+          if (!ok && dropped.insert(ty.first).second)
+          {
+            why[ty.first] = "the field " + f + " of " + c->cname;
+            changed = true;
+          }
+        }
+      }
+    }
+  }
+  std::vector<std::string> types;
+  for (const auto& ty : byType)
+  {
+    if (!dropped.count(ty.first))
+    {
+      types.push_back(ty.first);
+    }
+  }
+  // the datatypes that refer to each other, dependencies first (Tarjan)
+  std::map<std::string, size_t> index, low;
+  std::set<std::string> onStack;
+  std::vector<std::string> stack;
+  std::vector<std::vector<std::string>> sccs;
+  size_t counter = 0;
+  std::function<void(const std::string&)> visit = [&](const std::string& v) {
+    index[v] = low[v] = counter++;
+    stack.push_back(v);
+    onStack.insert(v);
+    std::set<std::string> succ;
+    for (const EmbedCtor* c : byType.at(v))
+    {
+      for (const std::string& f : c->fields)
+      {
+        if (byType.count(f) && !dropped.count(f))
+        {
+          succ.insert(f);
+        }
+      }
+    }
+    for (const std::string& w : succ)
+    {
+      if (!index.count(w))
+      {
+        visit(w);
+        low[v] = std::min(low[v], low[w]);
+      }
+      else if (onStack.count(w))
+      {
+        low[v] = std::min(low[v], index[w]);
+      }
+    }
+    if (low[v] == index[v])
+    {
+      std::vector<std::string> scc;
+      std::string w;
+      do
+      {
+        w = stack.back();
+        stack.pop_back();
+        onStack.erase(w);
+        scc.push_back(w);
+      } while (w != v);
+      std::sort(scc.begin(), scc.end());
+      sccs.push_back(scc);
+    }
+  };
+  for (const std::string& v : types)
+  {
+    if (!index.count(v))
+    {
+      visit(v);
+    }
+  }
+  std::ostringstream o;
+  o << "/-! Not embedded (a field or a constructor that has no encoding):\n";
+  for (const auto& w : why)
+  {
+    o << "- `" << w.first << "`: " << w.second << "\n";
+  }
+  o << "-/\n\n";
+  if (!dropped.count("Term"))
+  {
+    o << "/-- The constructor of the store for a user operator. -/\n"
+         "def uop : Eo.UserOp → schema.Constructor\n";
+    for (const EmbedCtor* u : userOps)
+    {
+      o << "  | Eo.UserOp." << u->cname << " => schema.Constructor."
+        << rustIdent(u->sname) << "\n";
+    }
+    o << "\n";
+  }
+  auto fieldEnc = [&](const std::string& f, const std::string& x) {
+    std::string n = nativeCodec(f);
+    return n.empty() ? "(enc_" + f + " " + x + ")"
+                     : "(Tree.enc" + n + " " + x + ")";
+  };
+  auto fieldDec = [&](const std::string& f) {
+    std::string n = nativeCodec(f);
+    return n.empty() ? "dec_" + f : "Tree.dec" + n;
+  };
+  auto fieldOk = [&](const std::string& f, const std::string& x) {
+    std::string n = nativeCodec(f);
+    return n.empty() ? "emb_" + f + " " + x : "Tree.ok" + n + " " + x;
+  };
+  auto fieldLemma =
+      [&](const std::string& f, const std::string& x, const std::string& h) {
+        std::string n = nativeCodec(f);
+        return n.empty() ? "dec_enc_" + f + " " + x + " " + h
+                         : "Tree.dec_enc" + n + " " + x + " " + h;
+      };
+  auto head = [&](const EmbedCtor* c, const std::string& q) {
+    std::string s = q + "." + c->cname;
+    for (size_t i = 0; i < c->fields.size(); i++)
+    {
+      s += " x" + std::to_string(i);
+    }
+    return s;
+  };
+  for (const std::vector<std::string>& scc : sccs)
+  {
+    // enc
+    o << "mutual\n";
+    for (const std::string& ty : scc)
+    {
+      std::string q = qualified(ty);
+      o << "/-- The tree of the store that a `" << ty
+        << "` is stored as. -/\ndef enc_" << ty << " : " << q << " → Tree\n";
+      for (const EmbedCtor* c : byType.at(ty))
+      {
+        o << "  | " << head(c, q) << " => ";
+        if (c->sname == "$emb_Stuck")
+        {
+          o << "Tree.stuck";
+        }
+        else if (c->sname == "$emb_Apply")
+        {
+          o << "Tree.apply " << fieldEnc(c->fields[0], "x0") << " "
+            << fieldEnc(c->fields[1], "x1");
+        }
+        else if (c->sname == "$emb_UOp")
+        {
+          o << "Tree.node (uop x0) []";
+        }
+        else if (c->sname == "$emb_Boolean")
+        {
+          o << "Tree.lit (lit.Lit.Boolean x0)";
+        }
+        else if (c->sname == "$emb_Numeral")
+        {
+          o << "Tree.lit (lit.Lit.Numeral (num.Integer.ofInt x0))";
+        }
+        else if (c->sname == "$emb_Rational")
+        {
+          o << "Tree.lit (lit.Lit.Rational (num.Rational.ofRat x0))";
+        }
+        else if (c->sname == "$emb_String")
+        {
+          o << "Tree.lit (lit.Lit.Str (Tree.strOf x0))";
+        }
+        else if (c->sname == "$emb_Binary")
+        {
+          o << "Tree.lit (lit.Lit.Binary (Tree.bvOf x0 x1))";
+        }
+        else
+        {
+          o << "Tree.node schema.Constructor." << rustIdent(c->sname) << " [";
+          for (size_t i = 0; i < c->fields.size(); i++)
+          {
+            o << (i == 0 ? "" : ", ")
+              << fieldEnc(c->fields[i], "x" + std::to_string(i));
+          }
+          o << "]";
+        }
+        o << "\n";
+      }
+    }
+    o << "end\n\n";
+    // dec
+    o << "mutual\n";
+    for (const std::string& ty : scc)
+    {
+      std::string q = qualified(ty);
+      o << "/-- The `" << ty << "` that a tree stands for. -/\ndef dec_" << ty
+        << " : Tree → Option " << q << "\n";
+      for (const EmbedCtor* c : byType.at(ty))
+      {
+        std::string k = q + "." + c->cname;
+        if (c->sname == "$emb_Stuck")
+        {
+          o << "  | Tree.stuck => some " << k << "\n";
+        }
+        else if (c->sname == "$emb_Apply")
+        {
+          o << "  | Tree.apply t0 t1 => do\n    let x0 ← "
+            << fieldDec(c->fields[0]) << " t0\n    let x1 ← "
+            << fieldDec(c->fields[1]) << " t1\n    some (" << k << " x0 x1)\n";
+        }
+        else if (c->sname == "$emb_UOp")
+        {
+          for (const EmbedCtor* u : userOps)
+          {
+            o << "  | Tree.node schema.Constructor." << rustIdent(u->sname)
+              << " [] => some (" << k << " Eo.UserOp." << u->cname << ")\n";
+          }
+        }
+        else if (c->sname == "$emb_Boolean")
+        {
+          o << "  | Tree.lit (lit.Lit.Boolean b) => some (" << k << " b)\n";
+        }
+        else if (c->sname == "$emb_Numeral")
+        {
+          o << "  | Tree.lit (lit.Lit.Numeral i) => some (" << k
+            << " i.toInt)\n";
+        }
+        else if (c->sname == "$emb_Rational")
+        {
+          o << "  | Tree.lit (lit.Lit.Rational r) => some (" << k
+            << " r.toRat)\n";
+        }
+        else if (c->sname == "$emb_String")
+        {
+          o << "  | Tree.lit (lit.Lit.Str v) => some (" << k
+            << " (Tree.strTo v))\n";
+        }
+        else if (c->sname == "$emb_Binary")
+        {
+          o << "  | Tree.lit (lit.Lit.Binary v) => some (" << k
+            << " (Tree.bvW v) (Tree.bvV v))\n";
+        }
+        else
+        {
+          o << "  | Tree.node schema.Constructor." << rustIdent(c->sname)
+            << " [";
+          for (size_t i = 0; i < c->fields.size(); i++)
+          {
+            o << (i == 0 ? "" : ", ") << "t" << i;
+          }
+          o << "] =>";
+          if (c->fields.empty())
+          {
+            o << " some " << k << "\n";
+            continue;
+          }
+          o << " do\n";
+          for (size_t i = 0; i < c->fields.size(); i++)
+          {
+            o << "    let x" << i << " ← " << fieldDec(c->fields[i]) << " t"
+              << i << "\n";
+          }
+          o << "    some (" << head(c, q) << ")\n";
+        }
+      }
+      o << "  | _ => none\n";
+    }
+    o << "end\n\n";
+    // emb
+    o << "mutual\n";
+    for (const std::string& ty : scc)
+    {
+      std::string q = qualified(ty);
+      o << "/-- A `" << ty
+        << "` that the store can hold: its natives fit the runtime's. -/\n"
+           "def emb_"
+        << ty << " : " << q << " → Prop\n";
+      for (const EmbedCtor* c : byType.at(ty))
+      {
+        o << "  | " << head(c, q) << " => ";
+        if (c->sname == "$emb_String")
+        {
+          o << "Tree.okStr x0";
+        }
+        else if (c->sname == "$emb_Binary")
+        {
+          o << "Tree.okBv x0 x1";
+        }
+        else if (lits.count(c->sname) || c->sname == "$emb_UOp"
+                 || c->fields.empty())
+        {
+          o << "True";
+        }
+        else
+        {
+          for (size_t i = 0; i < c->fields.size(); i++)
+          {
+            o << (i == 0 ? "" : " ∧ ")
+              << fieldOk(c->fields[i], "x" + std::to_string(i));
+          }
+        }
+        o << "\n";
+      }
+    }
+    o << "end\n\n";
+    // What a value's tree says of the value: the inversions of enc.
+    for (const std::string& ty : scc)
+    {
+      std::string q = qualified(ty);
+      // a user operator's tree is a node of the operator's own
+      // constructor: the cases of the operator tell it from the others
+      bool hasUOp = false;
+      for (const EmbedCtor* c : byType.at(ty))
+      {
+        hasUOp |= c->sname == "$emb_UOp";
+      }
+      std::string tac =
+          hasUOp ? "  cases x\n  case UOp y => cases y <;> simp_all [enc_" + ty
+                       + ", uop]\n  all_goals simp_all [enc_" + ty + "]\n"
+                 : "  cases x <;> simp_all [enc_" + ty + "]\n";
+      std::string litCases;
+      for (const EmbedCtor* c : byType.at(ty))
+      {
+        std::string k = q + "." + c->cname;
+        std::string vars, encs;
+        for (size_t i = 0; i < c->fields.size(); i++)
+        {
+          std::string x = "x" + std::to_string(i);
+          vars += " " + x;
+          encs += (i == 0 ? "" : ", ") + fieldEnc(c->fields[i], x);
+        }
+        if (c->sname == "$emb_Stuck")
+        {
+          o << "theorem inv_" << ty << "_Stuck {x : " << q << "} (h : enc_"
+            << ty << " x = Tree.stuck) : x = " << k << " := by\n"
+            << tac << "\n";
+        }
+        else if (c->sname == "$emb_Apply")
+        {
+          o << "theorem inv_" << ty << "_Apply {x : " << q
+            << "} {a b : Tree} (h : enc_" << ty
+            << " x = Tree.apply a b) :\n    ∃ x0 x1, x = " << k
+            << " x0 x1 ∧ a = " << fieldEnc(c->fields[0], "x0")
+            << " ∧ b = " << fieldEnc(c->fields[1], "x1") << " := by\n"
+            << tac << "\n";
+        }
+        else if (c->sname == "$emb_UOp")
+        {
+          o << "theorem inv_" << ty << "_UOp {x : " << q
+            << "} {op : Eo.UserOp} {ts : List Tree}\n    (h : enc_" << ty
+            << " x = Tree.node (uop op) ts) : x = " << k
+            << " op ∧ ts = [] := by\n  cases x\n  case UOp y => cases y <;> "
+               "cases op <;> simp_all [enc_"
+            << ty << ", uop]\n  all_goals cases op <;> simp_all [enc_" << ty
+            << ", uop]\n\n";
+        }
+        else if (lits.count(c->sname))
+        {
+          std::string l = c->sname == "$emb_Boolean" ? "lit.Lit.Boolean x0"
+                          : c->sname == "$emb_Numeral"
+                              ? "lit.Lit.Numeral (num.Integer.ofInt x0)"
+                          : c->sname == "$emb_Rational"
+                              ? "lit.Lit.Rational (num.Rational.ofRat x0)"
+                          : c->sname == "$emb_String"
+                              ? "lit.Lit.Str (Tree.strOf x0)"
+                              : "lit.Lit.Binary (Tree.bvOf x0 x1)";
+          litCases += std::string(litCases.empty() ? "" : " ∨\n      ") + "(∃"
+                      + vars + ", x = " + k + vars + " ∧ l = " + l + ")";
+        }
+        else
+        {
+          o << "theorem inv_" << ty << "_" << c->cname << " {x : " << q
+            << "} {ts : List Tree}\n    (h : enc_" << ty
+            << " x = Tree.node schema.Constructor." << rustIdent(c->sname)
+            << " ts) :\n    ";
+          if (c->fields.empty())
+          {
+            o << "x = " << k << " ∧ ts = []";
+          }
+          else
+          {
+            o << "∃" << vars << ", x = " << k << vars << " ∧ ts = [" << encs
+              << "]";
+          }
+          o << " := by\n" << tac << "\n";
+        }
+      }
+      if (!litCases.empty())
+      {
+        o << "theorem inv_" << ty << "_lit {x : " << q
+          << "} {l : lit.Lit} (h : enc_" << ty << " x = Tree.lit l) :\n    "
+          << litCases << " := by\n"
+          << tac << "\n";
+      }
+    }
+    // dec (enc x) = some x
+    o << "mutual\n";
+    for (const std::string& ty : scc)
+    {
+      std::string q = qualified(ty);
+      o << "theorem dec_enc_" << ty << " : (x : " << q << ") → emb_" << ty
+        << " x → dec_" << ty << " (enc_" << ty << " x) = some x\n";
+      for (const EmbedCtor* c : byType.at(ty))
+      {
+        o << "  | " << head(c, q) << ", h => by\n";
+        std::string lemmas;
+        if (c->sname == "$emb_UOp")
+        {
+          o << "    cases x0 <;> simp [enc_" << ty << ", dec_" << ty
+            << ", uop]\n";
+          continue;
+        }
+        if (c->sname == "$emb_String")
+        {
+          lemmas = ", Tree.strTo_strOf x0 h";
+        }
+        else if (c->sname == "$emb_Binary")
+        {
+          lemmas = ", Tree.bvW_bvOf x0 x1 h, Tree.bvV_bvOf x0 x1 h";
+        }
+        else if (c->sname == "$emb_Numeral")
+        {
+          lemmas = ", num.Integer.toInt_ofInt";
+        }
+        else if (c->sname == "$emb_Rational")
+        {
+          lemmas = ", num.Rational.toRat_ofRat";
+        }
+        else if (!lits.count(c->sname))
+        {
+          size_t k = c->fields.size();
+          if (k > 0)
+          {
+            o << "    simp only [emb_" << ty << "] at h\n";
+          }
+          if (k == 1)
+          {
+            o << "    have h0 := h\n";
+          }
+          else if (k > 1)
+          {
+            o << "    obtain ⟨";
+            for (size_t i = 0; i < k; i++)
+            {
+              o << (i == 0 ? "h" : ", h") << i;
+            }
+            o << "⟩ := h\n";
+          }
+          for (size_t i = 0; i < k; i++)
+          {
+            std::string s = std::to_string(i);
+            lemmas += ", " + fieldLemma(c->fields[i], "x" + s, "h" + s);
+          }
+        }
+        o << "    simp [enc_" << ty << ", dec_" << ty << lemmas << "]\n";
+      }
+    }
+    o << "end\n\n";
+    for (const std::string& ty : scc)
+    {
+      std::string q = qualified(ty);
+      o << "instance : Embedded " << q << " := ⟨enc_" << ty << ", dec_" << ty
+        << ", emb_" << ty << ", dec_enc_" << ty << "⟩\n\n"
+        << "@[simp] theorem embedded_enc_" << ty << " (x : " << q
+        << ") : Embedded.enc x = enc_" << ty << " x := rfl\n"
+        << "@[simp] theorem embedded_emb_" << ty << " (x : " << q
+        << ") : Embedded.emb x = emb_" << ty << " x := rfl\n\n";
+    }
+  }
+  // What `construct` and `destruct` do with each data constructor, in the
+  // form the generated proofs name (CtorSpec.<the Rust name>), from
+  // Store.construct_holds and Store.destruct_holds (pathos's
+  // Runtime/Node.lean) and the inversions above.
+  std::ostringstream cs;
+  auto fieldType = [&](const std::string& f) {
+    if (f == "CIndex")
+    {
+      return std::string("Eo.CIndex");
+    }
+    return nativeCodec(f).empty() ? qualified(f) : "SmtEval." + f;
+  };
+  auto emitConstruct = [&](const std::string& id,
+                           const std::string& ty,
+                           const std::string& value,
+                           const std::vector<std::string>& fields,
+                           const std::string& unfold) {
+    size_t k = fields.size();
+    // that the runtime stores the constructor as a node: as data, or (a
+    // variable) the same way
+    const std::string node =
+        id == rustIdent("$emb_Var") ? "(.inr rfl)" : "(.inl rfl)";
+    std::string binders, as, hs, xs, list, holds = "HoldsList.nil", embs;
+    for (size_t i = 0; i < k; i++)
+    {
+      std::string s = std::to_string(i);
+      binders +=
+          " {a" + s + " : Term} {x" + s + " : " + fieldType(fields[i]) + "}";
+      as += (i == 0 ? "a" : ", a") + s;
+      hs += " (h" + s + " : Represents.rep s a" + s + " x" + s + ")";
+      list += (i == 0 ? "" : ", ") + std::string("Embedded.enc x") + s;
+      embs += (i == 0 ? "h" : ", h") + s + ".2";
+    }
+    for (size_t i = k; i > 0; i--)
+    {
+      holds = "(HoldsList.cons _ _ _ _ h" + std::to_string(i - 1) + ".1 "
+              + holds + ")";
+    }
+    cs << "theorem CtorSpec." << id
+       << ".construct (s : Store) (args : Slice Term)" << binders
+       << "\n    (hargs : args.val = [" << as << "])" << hs
+       << " (hinv : s.Inv) (h64 : Platform64) :\n    Store.construct s "
+          "schema.Constructor."
+       << id
+       << " args ⦃ r s' =>\n      s'.Inv ∧ s.Grows s' ∧\n      match r with\n"
+          "      | core.result.Result.Ok t => Represents.rep s' t ("
+       << value
+       << ")\n      | core.result.Result.Err _ => True ⦄div := by\n"
+          "  apply WP.dspec_mono (Store.construct_holds s schema.Constructor."
+       << id << " args [" << list
+       << "] hinv h64 " << node << "\n    (by rw [hargs]; exact " << holds
+       << "))\n  rintro ⟨r, s'⟩ ⟨hinv', hg, hr⟩\n"
+          "  simp only [WP.uncurry'_pair] at hr ⊢\n"
+          "  refine ⟨hinv', hg, ?_⟩\n  cases r with\n  | Err e => trivial\n"
+          "  | Ok t =>\n    refine ⟨?_, ?_⟩\n    · simpa [Embed.embedded_enc_"
+       << ty << ", Embed.enc_" << ty << unfold << "] using hr\n";
+    if (k == 0)
+    {
+      cs << "    · simp [Embed.embedded_emb_" << ty << ", Embed.emb_" << ty
+         << "]\n\n";
+    }
+    else
+    {
+      cs << "    · simp only [Embed.embedded_emb_" << ty << ", Embed.emb_" << ty
+         << "]\n      exact " << (k == 1 ? embs : "⟨" + embs + "⟩") << "\n\n";
+    }
+  };
+  for (const std::string& ty : types)
+  {
+    std::string q = qualified(ty);
+    for (const EmbedCtor* c : byType.at(ty))
+    {
+      if (c->sname == "$emb_UOp")
+      {
+        for (const EmbedCtor* u : userOps)
+        {
+          cs << "/-- The user operator `" << u->sname << "`. -/\n";
+          emitConstruct(rustIdent(u->sname),
+                        ty,
+                        q + ".UOp Eo.UserOp." + u->cname,
+                        {},
+                        ", Embed.uop");
+        }
+        continue;
+      }
+      if (lits.count(c->sname) || c->sname == "$emb_Stuck"
+          || c->sname == "$emb_Apply")
+      {
+        // stored otherwise than as a node over the fields: these have
+        // lemmas written by hand, or none yet
+        continue;
+      }
+      std::string id = rustIdent(c->sname);
+      std::string k = q + "." + c->cname;
+      size_t n = c->fields.size();
+      std::string vars, ex, fs, reps, encs, forall, xsum;
+      for (size_t i = 0; i < n; i++)
+      {
+        std::string s = std::to_string(i);
+        vars += " x" + s;
+        ex += " (x" + s + " : " + fieldType(c->fields[i]) + ")";
+        fs += (i == 0 ? "f" : ", f") + s;
+        reps += " ∧ Represents.rep s f" + s + " x" + s;
+        encs += (i == 0 ? "" : ", ") + std::string("Embedded.enc x") + s;
+      }
+      cs << "/-- `" << c->sname << "`. -/\n";
+      emitConstruct(id, ty, k + vars, c->fields, "");
+      cs << "theorem CtorSpec." << id
+         << ".destruct {s : Store} {t : Term} {x : " << q
+         << "}\n    (h : Represents.rep s t x) :\n    (∃";
+      for (size_t i = 0; i < n; i++)
+      {
+        cs << " (f" << i << " : Term)";
+      }
+      cs << " (v : alloc.vec.Vec Term)" << ex << ", x = " << k << vars
+         << " ∧ v.val = [" << fs << "]" << reps
+         << " ∧\n      Store.destruct s schema.Constructor." << id
+         << " t = ok (core.result.Result.Ok (some v), s)) ∨\n    (("
+         << (n == 0 ? "" : "∀" + ex + ", ") << "x ≠ " << k << vars
+         << ") ∧\n      Store.destruct s schema.Constructor." << id
+         << " t = ok (core.result.Result.Ok none, s)) := by\n"
+         << "  rcases Store.destruct_holds schema.Constructor." << id << " "
+         << (c->sname == "$emb_Var" ? "(.inr rfl)" : "(.inl rfl)")
+         << " h.1 with\n    ⟨v, xs, hx, hl, hd⟩ | ⟨hne, hd⟩\n";
+      if (n == 0)
+      {
+        cs << "  · obtain ⟨rfl, rfl⟩ := Embed.inv_" << ty << "_" << c->cname
+           << " hx\n    generalize hvl : v.val = l at hl\n    cases hl\n"
+              "    exact Or.inl ⟨v, rfl, hvl, hd⟩\n";
+      }
+      else
+      {
+        std::string pat;
+        for (size_t i = 0; i < n; i++)
+        {
+          pat += "x" + std::to_string(i) + ", ";
+        }
+        cs << "  · obtain ⟨" << pat << "rfl, rfl⟩ := Embed.inv_" << ty << "_"
+           << c->cname << " hx\n";
+        cs << "    have he := h.2\n    simp only [Embed.embedded_emb_" << ty
+           << ", Embed.emb_" << ty
+           << "] at he\n    generalize hvl : v.val = l at hl\n";
+        std::string indent = "    ";
+        for (size_t i = 0; i < n; i++)
+        {
+          std::string s2 = std::to_string(i);
+          cs << indent << "cases "
+             << (i == 0 ? "hl" : "hn" + std::to_string(i - 1)) << " with\n"
+             << indent << "| cons f" << s2 << " _ _ _ h" << s2 << " hn" << s2
+             << " =>\n";
+          indent += "  ";
+        }
+        cs << indent << "cases hn" << n - 1 << "\n"
+           << indent << "exact Or.inl ⟨" << fs << ", v";
+        for (size_t i = 0; i < n; i++)
+        {
+          cs << ", x" << i;
+        }
+        cs << ", rfl, hvl";
+        for (size_t i = 0; i < n; i++)
+        {
+          std::string e = "he";
+          for (size_t j = 0; j < i; j++)
+          {
+            e += ".2";
+          }
+          if (i + 1 < n)
+          {
+            e += ".1";
+          }
+          cs << ", ⟨h" << i << ", " << e << "⟩";
+        }
+        cs << ", hd⟩\n";
+      }
+      cs << "  · exact Or.inr ⟨fun" << (n == 0 ? "" : vars) << " he => hne ["
+         << encs << "]\n      (by subst he; simp [Embed.embedded_enc_" << ty
+         << ", Embed.enc_" << ty << "]), hd⟩\n\n";
+    }
+  }
+  ctorSpecs = cs.str();
+  return o.str();
+}
+
 void LeanMetaReduce::finalizeDecl(const Expr& e)
 {
   // A declaration is a case of the datatypes of the embedding, and those stand
@@ -1199,6 +2080,19 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   std::string sname = ss.str();
   if (sname == "$eo_pf")
   {
+    // the proof of a formula: a node over it, written by hand in the
+    // templates (Proof.pf); Proof.Stuck is the stuck term
+    EmbedCtor pf;
+    pf.sname = sname;
+    pf.cname = "pf";
+    pf.type = "Proof";
+    pf.fields = {"Term"};
+    d_embedCtors.push_back(pf);
+    EmbedCtor stuck;
+    stuck.sname = "$emb_Stuck";
+    stuck.cname = "Stuck";
+    stuck.type = "Proof";
+    d_embedCtors.push_back(stuck);
     return;
   }
   std::stringstream* out = nullptr;
@@ -1208,6 +2102,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   // `$eoo_` names carry the overload identity. Keep them mangled so distinct
   // operators such as unary and binary `-` remain distinct Lean constructors.
   std::string cname = cleanSmtId(cnamek);
+  recordEmbedCtor(e, sname, cnamek, cname, tk);
   if (tk == MetaKind::EUNOIA)
   {
     out = &d_embedTermDt;
@@ -2122,6 +3017,17 @@ void LeanMetaReduce::finalizeSpec()
                        "plugins/lean_meta/lean_meta_spec_gen.lean",
                        {});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
+  emitResourceFile("plugins/lean_meta/lean_meta_case_defs.lean",
+                   "plugins/lean_meta/lean_meta_case_defs_gen.lean",
+                   {{"$LEAN_CASE_DEFS$", d_caseDefs.str()}});
+  std::string ctorSpecs;
+  std::string embedding = printEmbedding(ctorSpecs);
+  emitResourceFile("plugins/lean_meta/lean_meta_embed.lean",
+                   "plugins/lean_meta/lean_meta_embed_gen.lean",
+                   {{"$LEAN_EMBED$", embedding}});
+  emitResourceFile("plugins/lean_meta/lean_meta_ctors.lean",
+                   "plugins/lean_meta/lean_meta_ctors_gen.lean",
+                   {{"$LEAN_CTORS$", ctorSpecs}});
 }
 
 void LeanMetaReduce::finalizeLemmas()

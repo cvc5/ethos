@@ -9,11 +9,32 @@
 
 #include "utils.h"
 
+#include <iomanip>
 #include <sstream>
 
 #include "base/check.h"
 
 namespace ethos {
+
+std::string rustIdent(const std::string& name)
+{
+  std::ostringstream out;
+  out << "eo_";
+  for (unsigned char c : name)
+  {
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+        || (c >= '0' && c <= '9'))
+    {
+      out << c;
+    }
+    else
+    {
+      out << '_' << std::hex << std::setw(2) << std::setfill('0')
+          << unsigned(c);
+    }
+  }
+  return out.str();
+}
 
 std::string metaKindToString(MetaKind k)
 {

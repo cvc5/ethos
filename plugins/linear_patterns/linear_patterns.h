@@ -120,6 +120,17 @@ class LinearPattern
                                                       const Expr& prog,
                                                       const Expr& progDef);
 
+  /**
+   * The linear form of one case pattern, and the equalities between
+   * parameters that it stands for: each of `conds` is `(eo::eq x y)`,
+   * where `y` is the fresh parameter that replaced a further occurrence
+   * of `x`. For a consumer that keeps the program's cases as they are and
+   * treats a failed equality as "this case does not match".
+   */
+  static Expr linearizeCase(State& s,
+                            const Expr& pat,
+                            std::vector<Expr>& conds);
+
  private:
   /**
    * Returns the case pattern pat with prog as its head, which is pat itself if

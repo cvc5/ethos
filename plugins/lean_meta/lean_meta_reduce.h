@@ -129,6 +129,23 @@ class LeanMetaReduce : public MetaReducePlugin
   /** Emit all remembered program definitions. */
   void finalizePrograms();
   /**
+   * Writes, for the program `v` with the cases `prog` as they were written,
+   * one function per case to d_caseDefs:
+   *
+   *   def <name>.case_<i> : T1 -> ... -> Option R
+   *     | <pattern> => if x = x2 then some (<result>) else none
+   *     | _ => none
+   *
+   * where the pattern is the case's, made linear, and the `if`s are the
+   * equalities a repeated parameter stood for. This is the case as a
+   * backend that tries a program's cases in order and treats a failed
+   * equality as "no match" computes it (rust-meta does), in the terms of
+   * this backend; the definitions written for the program itself say the
+   * same in another shape, since there a failed equality is a requirement
+   * of the result or a call of a continuation.
+   */
+  void printCaseDefs(const Expr& v, const Expr& prog);
+  /**
    * Write program definition to d_defs. For consistency this is also called
    * for define commands.
    * @param v The program variable.
@@ -266,6 +283,41 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_defs;
   /** Generated mutually recursive total Lean definitions. */
   std::stringstream d_defsTotal;
+  /**
+   * The cases of the programs as they are written, before their patterns
+   * are linearized: one function per case (see printCaseDefs).
+   */
+  std::stringstream d_caseDefs;
+  /**
+   * A constructor of a datatype of the embedding, as recorded by
+   * finalizeDecl for printEmbedding: its EO name, its Lean name, the Lean
+   * name of its datatype and those of its fields. A user operator of the
+   * signature is recorded with `userOp` (the Lean constructor of UserOp).
+   */
+  struct EmbedCtor
+  {
+    std::string sname;
+    std::string cname;
+    std::string type;
+    std::vector<std::string> fields;
+    bool userOp = false;
+    std::string unsupported;
+  };
+  std::vector<EmbedCtor> d_embedCtors;
+  /** Records the constructor `e` for printEmbedding. */
+  void recordEmbedCtor(const Expr& e,
+                       const std::string& sname,
+                       const std::string& cnamek,
+                       const std::string& cname,
+                       MetaKind tk);
+  /**
+   * The embedding of the checker's values in the store of the Rust checker
+   * that rust-meta compiles: per datatype `enc`, `dec`, `emb` and the
+   * proof that `dec (enc x) = some x` for embeddable `x`.
+   */
+  std::string printEmbedding(std::string& ctorSpecs) const;
+  /** The programs as they were defined, in order, for printCaseDefs. */
+  std::vector<std::pair<Expr, Expr>> d_rawProgs;
   /** Whether any generated definitions have been seen. */
   bool d_hasDefs;
   /** Generated helper definitions for Eunoia-object membership. */

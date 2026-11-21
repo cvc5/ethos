@@ -61,6 +61,31 @@ and their artifact-local program IDs. Identifiers escape punctuation and
 underscores injectively, so source names cannot collide with Rust keywords
 or each other.
 
+Beside the crate the stage writes Lean about it, for the proofs of the
+pathos repository (`proofs/` there; the files name the modules they import
+by the placeholders `$CHECKER$`, `$CALC$` and `$CASES$`, which pathos
+fills in):
+
+- `proofs.lean`: for each program, the proof that its Rust functions, as
+  Aeneas translates them, compute what logos's function of the same name
+  does. The emitter records a line of proof with each line of Rust it
+  writes, in the tactics of pathos's `PathosProofs/Tactic.lean`: a theorem
+  for each case against the case's function in lean-meta's
+  `lean_meta_case_defs_gen.lean`, one for the body (the tests for the
+  stuck term, then the cases in order; for a tail-call loop, a round of it
+  and the induction over the loop), and one for the program between
+  `enter` and `leave`, with its cache. A lemma per program says that
+  logos's function is the first case that answers; it is proved, by
+  unfolding both sides, never assumed. Calls of programs use what is proved
+  of them at a smaller number of calls that may still be entered, and one
+  induction on that number closes all of them together.
+- `proofs.tsv`: for each program, whether it has a proof and, if not, the
+  first thing in it that the emitter has no line of proof for yet.
+- `cache_sem.lean`: for each cached program with a proof, what an entry of
+  its cache says; the store's invariant in the proofs is stated with it.
+
+The Rust is the same with or without these files.
+
 The public checking entry points take the generated `CArgList` and
 `CCmdList` representations as arena handles:
 
