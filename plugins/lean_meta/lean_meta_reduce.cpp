@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cctype>
 #include <fstream>
+#include <iomanip>
 #include <sstream>
 #include <string>
 
@@ -729,6 +730,7 @@ void LeanMetaReduce::defineProgram(const Expr& v, const Expr& prog)
   {
     return;
   }
+  d_rawProgs.emplace_back(v, prog);
   // must linearize the patterns
   std::vector<std::pair<Expr, Expr>> linProgs =
       LinearPattern::linearize(d_state, v, prog);
@@ -749,6 +751,108 @@ void LeanMetaReduce::finalizePrograms()
     bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
     Expr def = d_progToDef[prog];
     finalizeProgram(prog, def, isDefine);
+  }
+  for (const std::pair<Expr, Expr>& p : d_rawProgs)
+  {
+    printCaseDefs(p.first, p.second);
+  }
+}
+
+void LeanMetaReduce::printCaseDefs(const Expr& v, const Expr& prog)
+{
+  std::string vname = getName(v);
+  // what finalizeProgram writes no definition for has no cases here either
+  if (prog.getKind() != Kind::PROGRAM || vname == "$eo_ite"
+      || vname == "$eo_hash" || vname.compare(0, 9, "$eo_model") == 0
+      || vname == "$smtx_model_eval")
+  {
+    return;
+  }
+  Expr vt = v.getType();
+  size_t nargs = vt.getNumChildren();
+  bool isCheckerDef = false;
+  MetaKind last = MetaKind::NONE;
+  for (size_t j = 0; j < nargs; j++)
+  {
+    last = getTypeMetaKind(vt[j]);
+    isCheckerDef |= isCheckerMetaKind(last);
+  }
+  MetaKind tmk = (!isCheckerDef && isSmtMetaKind(last)) ? MetaKind::SMT_TYPE
+                                                        : MetaKind::EUNOIA;
+  // A native that a case names is named from the module its program is
+  // in, as finalizeProgram decides it, so that writing the cases changes
+  // nothing of where the native layer comes out.
+  const std::ostream* home = &d_defsTotal;
+  if (isCheckerDef)
+  {
+    home = &d_eoChecker;
+  }
+  else if (isSmtMetaKind(last))
+  {
+    home = namesModelType(vt) ? &d_smtDefs : &d_smtTypingDefs;
+  }
+  if (vname.compare(0, 10, "$eo_to_smt") == 0)
+  {
+    home = &d_eoIsObjDefs;
+  }
+  d_scope = scopeOf(home);
+  std::stringstream sig;
+  for (size_t i = 1; i < nargs; i++)
+  {
+    printMetaType(vt[i - 1], sig, tmk);
+    sig << " -> ";
+  }
+  sig << "Option (";
+  printMetaType(vt[nargs - 1], sig, tmk);
+  sig << ")";
+  for (size_t i = 0, ncases = prog.getNumChildren(); i < ncases; i++)
+  {
+    std::vector<Expr> conds;
+    Expr hd = LinearPattern::linearizeCase(d_state, prog[i][0], conds);
+    std::stringstream ret;
+    printEmbTerm(prog[i][1], ret, tmk);
+    d_caseDefs << "def " << cleanId(vname) << ".case_" << i << " : "
+               << sig.str();
+    if (nargs == 1)
+    {
+      d_caseDefs << " :=" << std::endl
+                 << "  some (" << ret.str() << ")" << std::endl
+                 << std::endl;
+      continue;
+    }
+    d_caseDefs << std::endl << "  | ";
+    bool general = true;
+    for (size_t j = 1; j < nargs; j++)
+    {
+      d_caseDefs << (j > 1 ? ", " : "");
+      printEmbTerm(hd[j], d_caseDefs, tmk, false);
+      general = general && hd[j].getKind() == Kind::PARAM;
+    }
+    d_caseDefs << " => ";
+    for (const Expr& c : conds)
+    {
+      d_caseDefs << "if ";
+      printEmbTerm(c[0], d_caseDefs, tmk, false);
+      d_caseDefs << " = ";
+      printEmbTerm(c[1], d_caseDefs, tmk, false);
+      d_caseDefs << " then ";
+    }
+    d_caseDefs << "some (" << ret.str() << ")";
+    for (size_t k = 0; k < conds.size(); k++)
+    {
+      d_caseDefs << " else none";
+    }
+    d_caseDefs << std::endl;
+    if (!general)
+    {
+      d_caseDefs << "  | ";
+      for (size_t j = 1; j < nargs; j++)
+      {
+        d_caseDefs << (j > 1 ? ", _" : "_");
+      }
+      d_caseDefs << " => none" << std::endl;
+    }
+    d_caseDefs << std::endl;
   }
 }
 
@@ -1182,6 +1286,126 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
   }
 }
 
+void LeanMetaReduce::recordEmbedCtor(const Expr& e,
+                                     const std::string& sname,
+                                     const std::string& cnamek,
+                                     const std::string& cname,
+                                     MetaKind tk)
+{
+  if (tk == MetaKind::SMT_BUILTIN || tk == MetaKind::PROOF
+      || tk == MetaKind::NONE)
+  {
+    return;
+  }
+  Expr c = e;
+  Expr ct = d_tc.getType(c);
+  EmbedCtor rec;
+  rec.sname = sname;
+  rec.cname = cname;
+  size_t uarity = 0;
+  if (tk == MetaKind::EUNOIA && isAtomicEo(c, cnamek, uarity))
+  {
+    rec.userOp = true;
+    rec.type = "UserOp";
+    if (uarity > 0)
+    {
+      rec.unsupported = "an indexed user operator";
+    }
+    d_embedCtors.push_back(rec);
+    return;
+  }
+  if (tk == MetaKind::SMT && isAtomicSmt(c, cnamek))
+  {
+    rec.type = "SmtTerm";
+    rec.unsupported = "an SMT theory operator";
+    d_embedCtors.push_back(rec);
+    return;
+  }
+  Attr attr = d_state.getAttributeKind(e.getValue());
+  Expr ret = ct;
+  size_t n = 0;
+  if (attr == Attr::OPAQUE && ct.getKind() == Kind::FUNCTION_TYPE)
+  {
+    n = ct.getNumChildren() - 1;
+    ret = ct[n];
+  }
+  std::stringstream rs;
+  if (!printMetaTypeKind(tk, rs))
+  {
+    rs.str("");
+    if (!printMetaType(ret, rs, tk))
+    {
+      return;
+    }
+  }
+  rec.type = rs.str();
+  for (size_t i = 0; i < n; i++)
+  {
+    Expr typ = ct[i];
+    if (ct[i].getKind() == Kind::QUOTE_TYPE)
+    {
+      Expr targ = ct[i][0];
+      typ = d_tc.getType(targ);
+    }
+    std::stringstream fs;
+    if (!printMetaType(typ, fs, tk))
+    {
+      fs << "Term";
+    }
+    rec.fields.push_back(fs.str());
+  }
+  d_embedCtors.push_back(rec);
+}
+
+namespace {
+/** `text` as a JSON string. */
+std::string jsonString(const std::string& text)
+{
+  std::ostringstream out;
+  out << '"';
+  for (unsigned char c : text)
+  {
+    if (c == '"' || c == '\\')
+    {
+      out << '\\' << c;
+    }
+    else if (c < 0x20)
+    {
+      out << "\\u" << std::hex << std::setw(4) << std::setfill('0')
+          << unsigned(c) << std::dec;
+    }
+    else
+    {
+      out << c;
+    }
+  }
+  out << '"';
+  return out.str();
+}
+}  // namespace
+
+std::string LeanMetaReduce::printEmbeddingTable() const
+{
+  // version 1 of the table: see the header
+  std::ostringstream o;
+  o << "{\n  \"version\": 1,\n  \"constructors\": [";
+  for (size_t i = 0; i < d_embedCtors.size(); ++i)
+  {
+    const EmbedCtor& c = d_embedCtors[i];
+    o << (i == 0 ? "\n" : ",\n") << "    {\"eo\": " << jsonString(c.sname)
+      << ", \"lean\": " << jsonString(c.cname)
+      << ", \"type\": " << jsonString(c.type) << ", \"fields\": [";
+    for (size_t j = 0; j < c.fields.size(); ++j)
+    {
+      o << (j == 0 ? "" : ", ") << jsonString(c.fields[j]);
+    }
+    o << "], \"user_op\": " << (c.userOp ? "true" : "false")
+      << ", \"unsupported\": " << jsonString(c.unsupported) << "}";
+  }
+  o << "\n  ]\n}\n";
+  return o.str();
+}
+
 void LeanMetaReduce::finalizeDecl(const Expr& e)
 {
   // A declaration is a case of the datatypes of the embedding, and those stand
@@ -1199,6 +1423,19 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   std::string sname = ss.str();
   if (sname == "$eo_pf")
   {
+    // the proof of a formula: a node over it, written by hand in the
+    // templates (Proof.pf); Proof.Stuck is the stuck term
+    EmbedCtor pf;
+    pf.sname = sname;
+    pf.cname = "pf";
+    pf.type = "Proof";
+    pf.fields = {"Term"};
+    d_embedCtors.push_back(pf);
+    EmbedCtor stuck;
+    stuck.sname = "$emb_Stuck";
+    stuck.cname = "Stuck";
+    stuck.type = "Proof";
+    d_embedCtors.push_back(stuck);
     return;
   }
   std::stringstream* out = nullptr;
@@ -1208,6 +1445,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   // `$eoo_` names carry the overload identity. Keep them mangled so distinct
   // operators such as unary and binary `-` remain distinct Lean constructors.
   std::string cname = cleanSmtId(cnamek);
+  recordEmbedCtor(e, sname, cnamek, cname, tk);
   if (tk == MetaKind::EUNOIA)
   {
     out = &d_embedTermDt;
@@ -2122,6 +2360,18 @@ void LeanMetaReduce::finalizeSpec()
                        "plugins/lean_meta/lean_meta_spec_gen.lean",
                        {});
   Trace("lean-meta") << "Write lean-defs " << outPath << std::endl;
+  emitResourceFile("plugins/lean_meta/lean_meta_case_defs.lean",
+                   "plugins/lean_meta/lean_meta_case_defs_gen.lean",
+                   {{"$LEAN_CASE_DEFS$", d_caseDefs.str()}});
+  // the constructors of the embedding, as data for a consumer that relates
+  // a backend's representation of the checker's values to this Lean
+  std::string tablePath =
+      getOutputPath("plugins/lean_meta/lean_meta_embedding_gen.json");
+  std::ofstream table(tablePath);
+  if (!table || !(table << printEmbeddingTable()))
+  {
+    EO_FATAL() << "lean-meta: cannot write " << tablePath;
+  }
 }
 
 void LeanMetaReduce::finalizeLemmas()

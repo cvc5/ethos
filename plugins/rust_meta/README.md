@@ -61,6 +61,18 @@ and their artifact-local program IDs. Identifiers escape punctuation and
 underscores injectively, so source names cannot collide with Rust keywords
 or each other.
 
+Beside the crate, in the build directory's `plugins/rust_meta/`, the stage
+writes `rust_meta_trace_gen.json`: a record of what it generated, for tools
+that relate the Rust to another rendering of the programs (pathos's
+`scripts/proofgen` proves from it that the functions compute what
+lean-meta's Lean does). Per program it gives its functions, and per case
+the nodes of its patterns and body, each with the Rust variable it
+computes; the format is documented with `d_trace` in
+`rust_meta_reduce.h`. It names nothing beyond the generated code and the
+signature. lean-meta writes the matching `lean_meta_case_defs_gen.lean`
+(each case of each program as a Lean function) and
+`lean_meta_embedding_gen.json` (the constructors of the embedding).
+
 The public checking entry points take the generated `CArgList` and
 `CCmdList` representations as arena handles:
 
