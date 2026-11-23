@@ -6,6 +6,7 @@
 
 #include <fstream>
 #include <iomanip>
+#include <memory>
 #include <sstream>
 
 #include "literal.h"
@@ -28,6 +29,79 @@ std::string read(const std::string& path)
   out << in.rdbuf();
   return out.str();
 }
+/** `text` as a JSON string. */
+std::string js(const std::string& text)
+{
+  std::ostringstream out;
+  out << '"';
+  for (unsigned char c : text)
+  {
+    if (c == '"' || c == '\\')
+    {
+      out << '\\' << c;
+    }
+    else if (c < 0x20)
+    {
+      out << "\\u" << std::hex << std::setw(4) << std::setfill('0')
+          << unsigned(c) << std::dec;
+    }
+    else
+    {
+      out << c;
+    }
+  }
+  out << '"';
+  return out.str();
+}
+/** A list of strings as a JSON array. */
+std::string jsList(const std::vector<std::string>& list)
+{
+  std::string ret = "[";
+  for (size_t i = 0; i < list.size(); ++i)
+  {
+    ret += (i == 0 ? "" : ", ") + js(list[i]);
+  }
+  return ret + "]";
+}
+/**
+ * A node of the trace of the generated code (see `d_trace` in the
+ * header): what one call of the emitter's `expr` or `pattern` wrote. Its
+ * fields are JSON text, in the order set; `sub` are the nodes of the
+ * calls it made, in order; `helpers` the functions that the text it wrote
+ * itself was cut into (see `close`).
+ */
+struct TraceNode
+{
+  std::vector<std::pair<std::string, std::string>> fields;
+  std::vector<std::unique_ptr<TraceNode>> sub;
+  std::vector<std::string> helpers;
+  void set(const std::string& key, const std::string& json)
+  {
+    fields.emplace_back(key, json);
+  }
+  std::string json() const
+  {
+    std::string ret = "{";
+    for (size_t i = 0; i < fields.size(); ++i)
+    {
+      ret += (i == 0 ? "" : ", ") + js(fields[i].first) + ": " + fields[i].second;
+    }
+    if (!helpers.empty())
+    {
+      ret += ", \"helpers\": " + jsList(helpers);
+    }
+    if (!sub.empty())
+    {
+      ret += ", \"sub\": [";
+      for (size_t i = 0; i < sub.size(); ++i)
+      {
+        ret += (i == 0 ? "" : ", ") + sub[i]->json();
+      }
+      ret += "]";
+    }
+    return ret + "}";
+  }
+};
 }  // namespace
 
 RustMetaReduce::RustMetaReduce(State& s) : MetaReducePlugin(s)
@@ -168,7 +242,8 @@ bool RustMetaReduce::echo(const std::string& msg)
   return false;
 }
 
-std::set<std::string> RustMetaReduce::reachable() const
+std::set<std::string> RustMetaReduce::reachable(
+    const std::set<std::string>& without) const
 {
   const std::set<std::string> roots{"$eo_checker_is_refutation",
                                     "$eo_invoke_cmd_list",
@@ -187,7 +262,8 @@ std::set<std::string> RustMetaReduce::reachable() const
   std::vector<std::string> todo;
   for (const auto& p : d_programs)
   {
-    if (starts(p.first, "$eo_prog_") || roots.count(p.first))
+    if ((starts(p.first, "$eo_prog_") || roots.count(p.first))
+        && !without.count(p.first))
     {
       todo.push_back(p.first);
     }
@@ -583,6 +659,41 @@ class RustMetaReduce::Emitter
     std::ostream& helpers;
     std::string name;
     size_t count = 0;
+    /**
+     * The trace of what the emitters write (see `TraceNode`): the nodes of
+     * the calls made from outside, the nodes being written, and the
+     * helpers that the text written outside every node was cut into.
+     */
+    std::vector<std::unique_ptr<TraceNode>> roots;
+    std::vector<TraceNode*> open;
+    std::vector<std::string> rootHelpers;
+    /**
+     * A case, from the roots so far, which are then dropped: the patterns
+     * of its `nargs` arguments, then what it gives (`body`), or for the
+     * next round of a loop the arguments of that round (`again`).
+     */
+    std::string takeCase(size_t nargs, bool again)
+    {
+      std::string ret = "\"patterns\": [";
+      for (size_t i = 0; i < nargs && i < roots.size(); ++i)
+      {
+        ret += (i == 0 ? "" : ", ") + roots[i]->json();
+      }
+      ret += again ? "], \"again\": [" : "], \"body\": ";
+      for (size_t i = nargs; i < roots.size(); ++i)
+      {
+        ret += (i == nargs ? "" : ", ") + roots[i]->json();
+      }
+      ret += (again ? "]" : "") + std::string(", \"helpers\": ")
+             + jsList(rootHelpers);
+      drop();
+      return ret;
+    }
+    void drop()
+    {
+      roots.clear();
+      rootHelpers.clear();
+    }
   };
   Emitter(RustMetaReduce& meta, std::ostream& out, Shared& shared)
       : m(meta), o(out), d_shared(shared)
@@ -604,6 +715,66 @@ class RustMetaReduce::Emitter
   std::map<Expr, std::string> vars;
   /** Starts the body of another function: no variable is known. */
   void clear() { vars.clear(); }
+  /** Opens the node of a call of `expr` or `pattern` (see `TraceNode`). */
+  void traceOpen()
+  {
+    auto n = std::make_unique<TraceNode>();
+    TraceNode* at = n.get();
+    if (d_shared.open.empty())
+    {
+      d_shared.roots.push_back(std::move(n));
+    }
+    else
+    {
+      d_shared.open.back()->sub.push_back(std::move(n));
+    }
+    d_shared.open.push_back(at);
+  }
+  /** The node being written. */
+  TraceNode& node() { return *d_shared.open.back(); }
+  /** The function and the arguments of `call`, `name(s, x, y)`. */
+  void traceCall(const std::string& call)
+  {
+    node().set("fn", js(call.substr(0, call.find('('))));
+    std::vector<std::string> as;
+    for (size_t i = call.find('(') + 2; i < call.size();)
+    {
+      size_t j = call.find_first_of(",)", i);
+      std::string arg = call.substr(i, j - i);
+      arg.erase(0, arg.find_first_not_of(' '));
+      if (!arg.empty())
+      {
+        as.push_back(arg);
+      }
+      i = j + 1;
+    }
+    node().set("args", jsList(as));
+  }
+  /**
+   * The variable of the value of `t`, after the statements that compute
+   * it. Its node in the trace says what was written for `t`, with the
+   * variable (`v`) and the nodes of the parts of `t`.
+   */
+  std::string expr(const Expr& t)
+  {
+    traceOpen();
+    std::string v = exprOf(t);
+    node().set("v", js(v));
+    d_shared.open.pop_back();
+    return v;
+  }
+  /**
+   * The statements that test that the term of `value` matches `t`, and
+   * bind its parameters. Its node in the trace says what was written for
+   * `t`, with `value` and the nodes of the parts of `t`.
+   */
+  void pattern(const Expr& t, const std::string& value)
+  {
+    traceOpen();
+    patternOf(t, value);
+    node().set("value", js(value));
+    d_shared.open.pop_back();
+  }
   /**
    * A call of the runtime or of a generated function that can fail, with
    * the error returned to the caller. Written as a match, not as `call?`:
@@ -754,6 +925,8 @@ class RustMetaReduce::Emitter
     std::string name = "more_" + std::to_string(d_shared.count++) + "_"
                        + d_shared.name;
     auto pa = parameters(plain(rest) + " " + result);
+    (d_shared.open.empty() ? d_shared.rootHelpers : d_shared.open.back()->helpers)
+        .push_back(name);
     std::string tail = close(rest, result, ret);
     d_shared.helpers << "fn " << name << "(s: &mut Store" << pa.first << ") -> "
                      << ret << " {\n"
@@ -786,7 +959,71 @@ class RustMetaReduce::Emitter
                      << body << "}\n";
     return name + "(s" + args + pa.second + ")";
   }
-  /** The value of a literal; a number is read by a statement of its own. */
+  /**
+   * The integer whose decimal text is `text`, as a value: `Integer::from`
+   * of a `u32`, negated if need be, which the proofs take from the specs of
+   * `from` and `neg`. A number that does not fit is built from 32-bit
+   * limbs, the most significant first (`x * 2^32 + limb`); no signature
+   * has one today.
+   */
+  std::string integer(const std::string& text)
+  {
+    bool neg = !text.empty() && text[0] == '-';
+    std::string digits = neg ? text.substr(1) : text;
+    if (digits.empty()
+        || digits.find_first_not_of("0123456789") != std::string::npos)
+    {
+      EO_FATAL() << "rust-meta: not an integer: " << text;
+    }
+    // the limbs, by long division of the decimal digits by 2^32
+    std::vector<uint32_t> limbs;
+    std::string rest = digits;
+    while (rest != "0" && !rest.empty())
+    {
+      std::string q;
+      uint64_t r = 0;
+      for (char c : rest)
+      {
+        r = r * 10 + static_cast<uint64_t>(c - '0');
+        uint64_t d = r >> 32;
+        if (!q.empty() || d != 0)
+        {
+          q += static_cast<char>('0' + d);
+        }
+        r &= 0xffffffffULL;
+      }
+      limbs.push_back(static_cast<uint32_t>(r));
+      rest = q.empty() ? "0" : q;
+    }
+    if (limbs.empty())
+    {
+      limbs.push_back(0);
+    }
+    std::string v = "Integer::from(" + std::to_string(limbs.back()) + "u32)";
+    for (size_t i = limbs.size() - 1; i > 0; --i)
+    {
+      v = v + ".mul(&Integer::from(65536u32).mul(&Integer::from(65536u32))).add(&Integer::from("
+          + std::to_string(limbs[i - 1]) + "u32))";
+    }
+    return neg ? v + ".neg()" : v;
+  }
+  /** The code points of a string written as `"…"` in a signature. */
+  static std::string codePoints(const std::string& quoted)
+  {
+    std::string inner = quoted.substr(1, quoted.size() - 2);
+    inner = replace_all(inner, "\"\"", "\"");
+    std::ostringstream out;
+    out << "EoString::from_code_points(vec![";
+    // (the string must outlive the loop: `getVec` is a reference into it)
+    const String str(inner, true);
+    for (unsigned c : str.getVec())
+    {
+      out << c << ',';
+    }
+    out << "])";
+    return out.str();
+  }
+  /** The value of a literal. */
   std::string literal(const Expr& e)
   {
     const Literal* l = e.getValue()->asLiteral();
@@ -794,20 +1031,27 @@ class RustMetaReduce::Emitter
     {
       case Kind::BOOLEAN:
         return l->d_bool ? "Lit::Boolean(true)" : "Lit::Boolean(false)";
-      case Kind::NUMERAL:
-        return "Lit::Numeral("
-               + part("parse_int(" + quote(l->d_int.toString()) + ")?") + ")";
+      case Kind::NUMERAL: return "Lit::Numeral(" + integer(l->d_int.toString()) + ")";
       case Kind::RATIONAL:
       case Kind::DECIMAL:
+      {
+        // `n/d` in lowest terms, `d` positive
+        std::string text = l->d_rat.toString();
+        size_t slash = text.find('/');
+        std::string n = text.substr(0, slash);
+        std::string d = slash == std::string::npos ? "1" : text.substr(slash + 1);
         return "Lit::Rational("
-               + part("parse_rat(" + quote(l->d_rat.toString()) + ")?") + ")";
+               + part("match Rational::from_integers(&" + integer(n) + ", &"
+                      + integer(d)
+                      + ") { Some(q) => q, None => return "
+                        "Err(CheckError::InvalidNative) }")
+               + ")";
+      }
       case Kind::BINARY:
       case Kind::HEXADECIMAL:
         return "Lit::Binary(BitVec::new("
                + std::to_string(l->d_bv.getSize()) + ", &"
-               + part("parse_int(" + quote(l->d_bv.getValue().toString())
-                     + ")?")
-               + "))";
+               + integer(l->d_bv.getValue().toString()) + "))";
       case Kind::STRING:
       {
         std::ostringstream out;
@@ -924,7 +1168,17 @@ class RustMetaReduce::Emitter
       {
         return "s.native_max_code_point()?";
       }
-      // a numeral or a string, which the runtime reads
+      // a numeral or a string, as a value
+      if (!name.empty() && name.find_first_not_of("-0123456789") == std::string::npos
+          && name.find_first_of("0123456789") != std::string::npos)
+      {
+        return "s.raw(Lit::Numeral(" + integer(name) + "))?";
+      }
+      if (name.size() >= 2 && name.front() == '"' && name.back() == '"')
+      {
+        return "s.raw(Lit::Str(" + codePoints(name) + "))?";
+      }
+      // anything else the runtime reads (and refuses)
       return "s.native_constant(" + std::to_string(m.nativeText(name)) + ")?";
     }
     auto it = ops.find(name);
@@ -987,6 +1241,8 @@ class RustMetaReduce::Emitter
                           bool native)
   {
     std::string cv = expr(c);
+    node().set("ite", native ? "\"native\"" : "\"eo\"");
+    node().set("next_var", std::to_string(next));
     std::ostringstream ys, ns;
     Emitter ye(*this, ys);
     std::string a = ye.expr(yes);
@@ -1003,10 +1259,13 @@ class RustMetaReduce::Emitter
         + close(ys.str(), "Ok(" + a + ")", ret) + "}\nSome(false) => {\n"
         + close(ns.str(), "Ok(" + b + ")", ret)
         + "}\nNone => Ok(s.stuck()),\n}\n";
-    return val(helper("if", {{"condition", cv}}, body) + "?");
+    std::string call = helper("if", {{"condition", cv}}, body);
+    traceCall(call);
+    return val(call + "?");
   }
   std::string op(Kind k, const Expr& t, size_t start)
   {
+    node().set("eval", js(evalOp(k)));
     if (k == Kind::EVAL_HASH)
     {
       EO_FATAL() << "rust-meta: eo::hash has no Logos specification";
@@ -1028,7 +1287,9 @@ class RustMetaReduce::Emitter
                          + attempt("s.is_stuck(" + a + ")")
                          + ";\nif stuck { return Ok(s.stuck()); }\n"
                          + close(rs.str(), "Ok(" + r + ")", "CheckResult<Term>");
-      return val(helper("requires", {}, body) + "?");
+      std::string call = helper("requires", {}, body);
+      traceCall(call);
+      return val(call + "?");
     }
     std::string as = args(t, start);
     if (k == Kind::EVAL_TYPE_OF || k == Kind::EVAL_NIL
@@ -1044,16 +1305,25 @@ class RustMetaReduce::Emitter
     return val(std::string(list ? "s.builtin_list" : "s.builtin_core")
                + "(EvalOp::" + evalOp(k) + ", &[" + as + "])?");
   }
-  std::string expr(const Expr& t)
+  std::string exprOf(const Expr& t)
   {
     auto var = vars.find(t);
     if (var != vars.end())
     {
+      node().set("op", "\"param\"");
       return var->second;
     }
     Kind k = t.getKind();
     if (isLiteral(k))
     {
+      std::ostringstream kind;
+      kind << k;
+      node().set("op", "\"literal\"");
+      node().set("kind", js(kind.str()));
+      if (k == Kind::BOOLEAN)
+      {
+        node().set("bool", t.getValue()->asLiteral()->d_bool ? "true" : "false");
+      }
       return val("s.literal(" + literal(t) + ")?");
     }
     if (k == Kind::EVAL_MAX_CODE_POINT)
@@ -1069,11 +1339,15 @@ class RustMetaReduce::Emitter
       }
       if (k == Kind::PROGRAM_CONST)
       {
+        node().set("op", "\"program_const\"");
+        node().set("program", js(getName(t)));
         return val(ident(getName(t)) + "(s)?");
       }
       std::string n = k == Kind::TYPE        ? "$emb_Type"
                       : k == Kind::BOOL_TYPE ? "$emb_Bool"
                                              : getName(t);
+      node().set("op", "\"constant\"");
+      node().set("ctor", js(n));
       return val("s.construct(" + ctor(n) + ", &[])?");
     }
     if (k == Kind::APPLY_OPAQUE)
@@ -1082,6 +1356,9 @@ class RustMetaReduce::Emitter
       if (starts(n, "$native_apply_"))
       {
         std::string name = getName(t[1]);
+        node().set("op", "\"native\"");
+        node().set("name", js(name));
+        node().set("nargs", std::to_string(t.getNumChildren() - 2));
         if (name == "ite" && t.getNumChildren() == 5)
         {
           return conditional(t[2], t[3], t[4], true);
@@ -1089,6 +1366,8 @@ class RustMetaReduce::Emitter
         std::string as = args(t, 2);
         return val(native(name, t.getNumChildren() - 2, as));
       }
+      node().set("op", "\"construct\"");
+      node().set("ctor", js(n));
       std::string as = args(t, 1);
       return val("s.construct(" + ctor(n) + ", &[" + as + "])?");
     }
@@ -1098,42 +1377,60 @@ class RustMetaReduce::Emitter
       Kind b = builtin(n);
       if (b != Kind::NONE)
       {
+        node().set("op", "\"builtin\"");
+        node().set("program", js(n));
         return op(b, t, 1);
       }
+      node().set("op", "\"call\"");
+      node().set("program", js(n));
       std::string as = args(t, 1);
       return val(ident(n) + "(s" + (as.empty() ? "" : ", " + as) + ")?");
     }
     if (isLiteralOp(k))
     {
+      node().set("op", "\"builtin\"");
       return op(k, t, 0);
     }
     if (k == Kind::FUNCTION_TYPE)
     {
       size_t n = t.getNumChildren();
+      // the result type first, then each argument type from the last, each
+      // applied to the arrows to its right: `rounds` names, for each, the
+      // constant, its application to the argument, and the whole
+      node().set("op", "\"funtype\"");
+      node().set("guarded", n == 2 && t.isEvaluatable() ? "true" : "false");
       std::string tail = expr(t[n - 1]);
+      std::string rounds = "[";
       for (size_t i = n - 1; i > 0; --i)
       {
         std::string a = expr(t[i - 1]);
         std::string h = val(named("$emb_FunType", ""));
         std::string f = val("s.apply(" + h + ", " + a + ")?");
         tail = val("s.apply(" + f + ", " + tail + ")?");
+        rounds += std::string(i == n - 1 ? "" : ", ") + "{\"fun\": " + js(h)
+                  + ", \"applied\": " + js(f) + ", \"v\": " + js(tail) + "}";
       }
+      node().set("rounds", rounds + "]");
       return tail;
     }
     if (k == Kind::APPLY && t.getNumChildren() == 2)
     {
+      // `guarded`: lean-meta writes the application with `__eo_mk_apply`
+      node().set("op", "\"apply\"");
+      node().set("guarded", t.isEvaluatable() ? "true" : "false");
       std::string f = expr(t[0]), a = expr(t[1]);
       return val("s.apply(" + f + ", " + a + ")?");
     }
     if (k == Kind::VARIABLE)
     {
+      node().set("op", "\"variable\"");
       std::string as = args(t, 0);
       return val(named("$emb_Var", as));
     }
     EO_FATAL() << "rust-meta: unsupported expression " << t << " (" << k << ")";
     return "";
   }
-  void pattern(const Expr& t, const std::string& value)
+  void patternOf(const Expr& t, const std::string& value)
   {
     Kind k = t.getKind();
     if (k == Kind::PARAM)
@@ -1141,10 +1438,14 @@ class RustMetaReduce::Emitter
       auto it = vars.find(t);
       if (it != vars.end())
       {
+        // a parameter the pattern has already bound: an equality test
+        node().set("pat", "\"same\"");
+        node().set("other", js(it->second));
         o << "if " << value << " != " << it->second << fail << CUT;
       }
       else
       {
+        node().set("pat", "\"param\"");
         vars[t] = value;
       }
       return;
@@ -1164,6 +1465,12 @@ class RustMetaReduce::Emitter
       std::string fun = part("s.is_node(" + op + ", "
                             + m.constructorOption("$emb_FunType") + ")?");
       o << "if !" << fun << fail << CUT;
+      // `value` is `(f r)`, `f` is `(op l)`, `op` the node of $emb_FunType
+      node().set("pat", "\"funtype\"");
+      node().set("f", js(f));
+      node().set("r", js(r));
+      node().set("op", js(op));
+      node().set("l", js(l));
       pattern(t[0], l);
       pattern(t[1], r);
       return;
@@ -1175,6 +1482,9 @@ class RustMetaReduce::Emitter
       o << "let Some((" << f << ", " << a << ")) = " << parts << " else" << fail
         << ";\n"
         << CUT;
+      node().set("pat", "\"apply\"");
+      node().set("f", js(f));
+      node().set("a", js(a));
       pattern(t[0], f);
       pattern(t[1], a);
       return;
@@ -1186,11 +1496,15 @@ class RustMetaReduce::Emitter
       std::string found;
       if (starts(n, "$native_apply_"))
       {
+        node().set("pat", "\"native\"");
+        node().set("name", js(getName(t[1])));
         found = part(nativePattern(getName(t[1]), value));
         start = 2;
       }
       else
       {
+        node().set("pat", "\"ctor\"");
+        node().set("ctor", js(n));
         found = part("s.destruct(" + ctor(n) + ", " + value + ")?");
       }
       // The fields are taken out at once, each into a variable, so that
@@ -1203,6 +1517,7 @@ class RustMetaReduce::Emitter
         o << "let " << fields.back() << " = fields[" << (i - start) << "];\n";
       }
       o << CUT;
+      node().set("fields", jsList(fields));
       for (size_t i = start; i < t.getNumChildren(); ++i)
       {
         pattern(t[i], fields[i - start]);
@@ -1211,6 +1526,8 @@ class RustMetaReduce::Emitter
     }
     if (isLiteral(k) || t.getNumChildren() == 0)
     {
+      // a value: an equality test with the term built
+      node().set("pat", "\"value\"");
       std::string expected = expr(t);
       o << "if " << value << " != " << expected << fail << CUT;
       return;
@@ -1260,6 +1577,38 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
     args += ", a" + std::to_string(i);
   }
   auto attempt = [](const std::string& call) { return Emitter::attempt(call); };
+  // The program's entry in the trace (see `d_trace`).
+  std::ostringstream tr;
+  tr << "\"name\": " << js(name) << ", \"id\": " << js(id);
+  auto typeOf = [&](const Expr& t) {
+    std::ostringstream text;
+    text << t;
+    return "{\"type\": " + js(text.str()) + ", \"meta\": "
+           + js(metaKindToString(getTypeMetaKindFor(t, MetaKind::EUNOIA, true)))
+           + "}";
+  };
+  if (cases)
+  {
+    tr << ", \"args\": [";
+    for (size_t i = 0; i < nargs; ++i)
+    {
+      tr << (i == 0 ? "" : ", ") << typeOf(ty[i]);
+    }
+    tr << "], \"ret\": " << typeOf(ty[nargs]);
+  }
+  switch (d_cacheKinds.at(name))
+  {
+    case CacheKind::NONE: tr << ", \"cache\": {\"kind\": \"none\"}"; break;
+    case CacheKind::PROGRAM:
+      tr << ", \"cache\": {\"kind\": \"program\", \"id\": "
+         << d_programIds.at(name) << "}";
+      break;
+    case CacheKind::EO_TYPE: tr << ", \"cache\": {\"kind\": \"eo_type\"}"; break;
+    default: tr << ", \"cache\": {\"kind\": \"smt_type\"}"; break;
+  }
+  auto record = [&](const std::string& rest) {
+    d_trace.emplace_back(name, tr.str() + rest);
+  };
   // The checking loop's premise lookup walks the state list one element at
   // a time, creating and interning a native numeral at each one. Where the
   // loop's constructors are the expected ones, it is compiled to the
@@ -1279,6 +1628,8 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
         << ident("$eo_StateObj_proven")
         << "(s, element),\nOk(None) => s.boolean(true),\nErr(e) => Err(e),\n"
         << "};\ns.leave();\nresult\n}\n";
+    record(", \"kind\": \"state_nth\", \"calls\": "
+           + jsList({"$eo_StateObj_proven"}));
     return out.str();
   }
   // Recognize the checking loop's guarded right fold, rather than relying
@@ -1368,6 +1719,33 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
           << attempt(ident(getName(body[0])) + "(s, guard, term, state)")
           << ";\n}\nOk(state)\n}\n"
           << helpers.str();
+      shared.drop();
+      // the guard, where it is the conjunction of two programs applied to
+      // the element (`guard_calls`), and the push
+      const Expr elem = step[2][1];
+      auto callee = [&](const Expr& x) {
+        return x.getKind() == Kind::APPLY && x.getNumChildren() == 2
+                       && x[0].getKind() == Kind::PROGRAM_CONST && x[1] == elem
+                   ? getName(x[0])
+                   : std::string();
+      };
+      Expr g = body[1];
+      size_t g0 = 0;
+      bool isAnd = g.getKind() == Kind::EVAL_AND && g.getNumChildren() == 2;
+      if (!isAnd && g.getKind() == Kind::APPLY && g.getNumChildren() == 3
+          && g[0].getKind() == Kind::PROGRAM_CONST
+          && builtin(getName(g[0])) == Kind::EVAL_AND)
+      {
+        isAnd = true;
+        g0 = 1;
+      }
+      std::string guardCalls = "null";
+      if (isAnd && !callee(g[g0]).empty() && !callee(g[g0 + 1]).empty())
+      {
+        guardCalls = jsList({callee(g[g0]), callee(g[g0 + 1])});
+      }
+      record(", \"kind\": \"assume_fold\", \"guard_calls\": " + guardCalls
+             + ", \"push\": " + js(getName(body[0])));
       return out.str();
     }
   }
@@ -1418,6 +1796,8 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
     std::string v = e.expr(p.body);
     out << e.close(body.str(), "Ok(" + v + ")", "CheckResult<Term>") << "}\n"
         << helpers.str();
+    shared.drop();
+    record(", \"kind\": \"define\"");
     return out.str();
   }
   // What a case gives: a term, or, for a program whose tail calls are a
@@ -1428,6 +1808,7 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
   const size_t ncases = p.body.getNumChildren();
   // Where the body tries the cases: in order, the first that applies.
   std::ostringstream tries;
+  std::vector<std::string> stuckArgs;
   if (!p.isDefine)
   {
     std::vector<MetaKind> kinds;
@@ -1443,6 +1824,7 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
       {
         if (kinds[i] == MetaKind::EUNOIA)
         {
+          stuckArgs.push_back(std::to_string(i));
           tries << "let stuck" << i << " = "
                 << attempt("s.is_stuck(a" + std::to_string(i) + ")")
                 << ";\nif stuck" << i << " { return Ok(" << stuck << "); }\n";
@@ -1460,18 +1842,44 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
   // Lean, see `close`).
   const size_t groupSize = 4;
   std::vector<std::string> level;
+  // for the trace: what each entry of `level` tries, as JSON (its name and
+  // the cases [lo, hi) it tries), and the groups written
+  std::vector<std::string> members;
+  std::vector<std::pair<size_t, size_t>> ranges;
+  std::string groups;
+  auto member = [&](const std::string& fn, size_t lo, size_t hi) {
+    return "{\"name\": " + js(fn) + ", \"lo\": " + std::to_string(lo)
+           + ", \"hi\": " + std::to_string(hi) + "}";
+  };
   for (size_t c = 0; c < ncases; ++c)
   {
     level.push_back("case_" + std::to_string(c) + "_" + id);
+    members.push_back(member(level.back(), c, c + 1));
+    ranges.emplace_back(c, c + 1);
   }
   for (size_t depth = 0; level.size() > groupSize; ++depth)
   {
-    std::vector<std::string> above;
+    std::vector<std::string> above, aboveMembers;
+    std::vector<std::pair<size_t, size_t>> aboveRanges;
     for (size_t g = 0; g * groupSize < level.size(); ++g)
     {
       std::string group = "cases_" + std::to_string(depth) + "_"
                           + std::to_string(g) + "_" + id;
       above.push_back(group);
+      size_t first = g * groupSize,
+             last = std::min(level.size(), (g + 1) * groupSize) - 1;
+      std::string tried;
+      for (size_t c = first; c <= last; ++c)
+      {
+        tried += (c == first ? "" : ", ") + members[c];
+      }
+      groups += std::string(groups.empty() ? "" : ", ") + "{\"name\": "
+                + js(group) + ", \"lo\": " + std::to_string(ranges[first].first)
+                + ", \"hi\": " + std::to_string(ranges[last].second)
+                + ", \"members\": [" + tried + "]}";
+      aboveMembers.push_back(
+          member(group, ranges[first].first, ranges[last].second));
+      aboveRanges.emplace_back(ranges[first].first, ranges[last].second);
       helpers << "fn " << group << "(s: &mut Store" << params
               << ") -> CheckResult<Option<" << result << ">> {\n";
       for (size_t c = g * groupSize;
@@ -1483,6 +1891,8 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
       helpers << "Ok(None)\n}\n";
     }
     level = above;
+    members = aboveMembers;
+    ranges = aboveRanges;
   }
   for (const std::string& fn : level)
   {
@@ -1515,6 +1925,7 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
         << ") -> CheckResult<Term> {\n";
   }
   out << tries.str() << "Ok(" << stuck << ")\n}\n";
+  std::string traced;
   for (size_t c = 0; c < ncases; ++c)
   {
     Expr pat = p.body[c][0];
@@ -1533,7 +1944,8 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
       e.pattern(pat[j + 1], "a" + std::to_string(j));
     }
     std::string value;
-    if (loop && tailCall(body))
+    const bool again = loop && tailCall(body);
+    if (again)
     {
       // Every argument is evaluated before the next round has any.
       value = "Next::Again([";
@@ -1549,7 +1961,22 @@ std::string RustMetaReduce::emitProgram(const std::string& name,
       value = loop ? "Next::Done(" + v + ")" : v;
     }
     out << e.close(cs.str(), "Ok(Some(" + value + "))", ret) << "}\n";
+    traced += std::string(c == 0 ? "" : ",\n      ") + "{"
+              + shared.takeCase(nargs, again) + "}";
   }
+  std::string top, stuckList;
+  for (size_t i = 0; i < members.size(); ++i)
+  {
+    top += (i == 0 ? "" : ", ") + members[i];
+  }
+  for (size_t i = 0; i < stuckArgs.size(); ++i)
+  {
+    stuckList += (i == 0 ? "" : ", ") + stuckArgs[i];
+  }
+  record(std::string(", \"kind\": \"cases\", \"loop\": ")
+         + (loop ? "true" : "false") + ", \"stuck\": [" + stuckList
+         + "], \"groups\": [" + groups + "], \"top\": [" + top
+         + "],\n    \"cases\": [\n      " + traced + "]");
   // Helpers are module items; emit them after the functions that call them.
   out << helpers.str();
   return out.str();
@@ -1985,6 +2412,47 @@ void RustMetaReduce::finalize()
                  << '\n';
   }
   output("constructors.tsv", constructors.str());
+  // The trace of the generated code (see `d_trace` in the header).
+  // `datatype_operators_only`: the program is reached only through the
+  // programs that the runtime calls for eo::dt_constructors and
+  // eo::dt_selectors.
+  const std::set<std::string> reached =
+      reachable({"$eo_dt_constructors", "$eo_dt_selectors"});
+  bool leftNested = false;
+  for (const auto& n : d_leftAssoc)
+  {
+    leftNested |= d_constructors.count(n) != 0;
+  }
+  std::map<std::string, std::string> leanOf(manifestRows.begin(),
+                                            manifestRows.end());
+  std::ostringstream trace;
+  trace << "{\n  \"version\": 1,\n  \"parts\": " << numParts
+        << ",\n  \"left_nested_lists\": " << (leftNested ? "true" : "false")
+        << ",\n  \"embedding_kinds\": {";
+  bool firstKind = true;
+  for (const auto& pk : d_prefixToMetaKind)
+  {
+    trace << (firstKind ? "" : ", ") << js(pk.first) << ": "
+          << js(metaKindToString(pk.second));
+    firstKind = false;
+  }
+  trace << "},\n  \"programs\": [";
+  for (size_t i = 0; i < d_trace.size(); ++i)
+  {
+    const std::string& n = d_trace[i].first;
+    trace << (i == 0 ? "\n" : ",\n") << "    {" << d_trace[i].second
+          << ", \"lean\": " << js(leanOf.at(n))
+          << ", \"datatype_operators_only\": "
+          << (reached.count(n) ? "false" : "true") << "}";
+  }
+  trace << "\n  ]\n}\n";
+  std::string tracePath =
+      getOutputPath("plugins/rust_meta/rust_meta_trace_gen.json");
+  std::ofstream traceOut(tracePath);
+  if (!traceOut || !(traceOut << trace.str()))
+  {
+    EO_FATAL() << "rust-meta: cannot write " << tracePath;
+  }
   for (const char* file : {"cache.rs",
                            "front.rs",
                            "native.rs",
