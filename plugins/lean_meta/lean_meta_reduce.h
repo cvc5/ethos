@@ -129,6 +129,23 @@ class LeanMetaReduce : public MetaReducePlugin
   /** Emit all remembered program definitions. */
   void finalizePrograms();
   /**
+   * Writes, for the program `v` with the cases `prog` as they were written,
+   * one function per case to d_caseDefs:
+   *
+   *   def <name>.case_<i> : T1 -> ... -> Option R
+   *     | <pattern> => if x = x2 then some (<result>) else none
+   *     | _ => none
+   *
+   * where the pattern is the case's, made linear, and the `if`s are the
+   * equalities a repeated parameter stood for. This is the case as a
+   * backend that tries a program's cases in order and treats a failed
+   * equality as "no match" computes it (rust-meta does), in the terms of
+   * this backend; the definitions written for the program itself say the
+   * same in another shape, since there a failed equality is a requirement
+   * of the result or a call of a continuation.
+   */
+  void printCaseDefs(const Expr& v, const Expr& prog);
+  /**
    * Write program definition to d_defs. For consistency this is also called
    * for define commands.
    * @param v The program variable.
@@ -266,6 +283,49 @@ class LeanMetaReduce : public MetaReducePlugin
   std::stringstream d_defs;
   /** Generated mutually recursive total Lean definitions. */
   std::stringstream d_defsTotal;
+  /**
+   * The cases of the programs as they are written, before their patterns
+   * are linearized: one function per case (see printCaseDefs).
+   */
+  std::stringstream d_caseDefs;
+  /**
+   * A constructor of a datatype of the embedding, as recorded by
+   * finalizeDecl for printEmbeddingTable: its EO name, its Lean name, the
+   * Lean name of its datatype and those of its fields. A user operator of
+   * the signature is recorded with `userOp` (the Lean constructor of
+   * UserOp); `unsupported` says why a constructor has no encoding as data.
+   */
+  struct EmbedCtor
+  {
+    std::string sname;
+    std::string cname;
+    std::string type;
+    std::vector<std::string> fields;
+    bool userOp = false;
+    std::string unsupported;
+  };
+  std::vector<EmbedCtor> d_embedCtors;
+  /** Records the constructor `e` for printEmbeddingTable. */
+  void recordEmbedCtor(const Expr& e,
+                       const std::string& sname,
+                       const std::string& cnamek,
+                       const std::string& cname,
+                       MetaKind tk);
+  /**
+   * The constructors of the embedding's datatypes, in the order they were
+   * declared, as JSON (lean_meta_embedding_gen.json, version 1):
+   *
+   *   {"version": 1, "constructors": [{"eo": "$emb_s.cons",
+   *     "lean": "cons", "type": "CState", "fields": ["CStateObj", "CState"],
+   *     "user_op": false, "unsupported": ""}, ...]}
+   *
+   * `type` and `fields` are Lean type names as this backend prints them.
+   * A consumer that stores the checker's values otherwise (rust-meta's
+   * runtime) relates its store to this Lean with it.
+   */
+  std::string printEmbeddingTable() const;
+  /** The programs as they were defined, in order, for printCaseDefs. */
+  std::vector<std::pair<Expr, Expr>> d_rawProgs;
   /** Whether any generated definitions have been seen. */
   bool d_hasDefs;
   /** Generated helper definitions for Eunoia-object membership. */

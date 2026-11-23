@@ -44,7 +44,9 @@ class RustMetaReduce : public MetaReducePlugin
   class Emitter;
   bool isBuiltinMetaSymbol(const std::string& name) const override;
   void finalizeDecl(const Expr& e) override;
-  std::set<std::string> reachable() const;
+  /** The programs reached from the roots, but for those in `without`. */
+  std::set<std::string> reachable(
+      const std::set<std::string>& without = {}) const;
   void selectCaches(const std::set<std::string>& names);
   /** Whether a constructor is a user symbol, not an embedding or meta one. */
   static bool isUserConstructor(const std::string& name);
@@ -62,6 +64,51 @@ class RustMetaReduce : public MetaReducePlugin
   /** A runtime template with each `@ctor:NAME@` replaced by that. */
   std::string expandConstructors(std::string text) const;
   std::string emitProgram(const std::string& name, const Program& p);
+  /**
+   * The trace of the generated code: for each program, in the order
+   * written, its name and its entry, as JSON fields. `finalize` writes it
+   * to rust_meta_trace_gen.json, beside the crate in the output directory,
+   * for consumers that relate the Rust to another rendering of the
+   * programs (a proof that the Rust computes what lean-meta's Lean does).
+   * It records what was generated, and nothing of what a consumer makes of
+   * it. Version 1:
+   *
+   * - top level: `parts` (the modules `generated::part<k>`),
+   *   `left_nested_lists` (a constructor of the signature nests to the
+   *   left), `embedding_kinds` (the meta kind of each `$emb_<prefix>.`),
+   *   `programs`.
+   * - a program: `name`, `id` (its Rust function), `lean` (lean-meta's
+   *   name for it), `cache` (`kind`: none, program with its `id`,
+   *   eo_type, smt_type), `datatype_operators_only`, `args` and `ret`
+   *   (the type as written and its meta kind) for a program with cases,
+   *   and `kind`:
+   *   - `define`: a constant;
+   *   - `state_nth`: compiled to the runtime's state_nth; `calls`;
+   *   - `assume_fold`: compiled to a fold; `guard_calls` (the two programs
+   *     whose conjunction on the element is the guard, or null), `push`;
+   *   - `cases`: `loop` (a tail call is the next round), `stuck` (the
+   *     arguments the body tests for the stuck term), `groups` (each with
+   *     `name`, the cases [`lo`, `hi`) and `members`, in the order
+   *     written), `top` (what the body tries), and `cases`: per case the
+   *     nodes of its `patterns`, of its `body` or of the arguments of the
+   *     next round (`again`), and its `helpers` (the functions its text
+   *     is cut into, in order).
+   * - a node of `expr`: `op` (param, literal, program_const, constant (a
+   *   constructor without arguments), construct, native, builtin, call,
+   *   funtype, apply, variable) and what it names:
+   *   the `kind` and `bool` of a literal, `ctor`, the native's `name` and
+   *   `nargs`, the builtin's `eval` and `program`, the callee `program`,
+   *   `guarded` (lean-meta writes the application with `__eo_mk_apply`),
+   *   the `rounds` of a function type; a conditional (`ite`: eo or native)
+   *   or a requirement is a function: `fn`, `args`, `next_var`. `v` is the
+   *   variable of the value, `sub` the nodes of the parts, `helpers` as
+   *   for a case.
+   * - a node of `pattern`: `value` (the variable matched), `pat` (param,
+   *   same with the `other` variable, funtype with `f r op l`, apply with
+   *   `f a`, ctor with `ctor` or native with `name`, and their `fields`,
+   *   value), and `sub`.
+   */
+  std::vector<std::pair<std::string, std::string>> d_trace;
   void output(const std::string& file, const std::string& text) const;
   static std::string ident(const std::string& name);
   static std::string quote(const std::string& text);

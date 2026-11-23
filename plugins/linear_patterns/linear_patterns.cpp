@@ -110,6 +110,14 @@ Expr LinearPattern::mkCasePattern(State& s, const Expr& prog, const Expr& pat)
   return s.mkRawExpr(Kind::APPLY, children);
 }
 
+Expr LinearPattern::linearizeCase(State& s,
+                                  const Expr& pat,
+                                  std::vector<Expr>& conds)
+{
+  std::map<Expr, size_t> params;
+  return linearizeRec(s, pat, params, conds);
+}
+
 std::pair<Expr, Expr> LinearPattern::linearizePattern(State& s, const Expr& pat)
 {
   std::map<Expr, size_t> params;
