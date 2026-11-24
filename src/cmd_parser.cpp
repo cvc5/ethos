@@ -658,8 +658,7 @@ bool CmdParser::parseNextCommand()
               Kind::CONST, name, d_state.mkFunctionType(types, ret));
           // The binder of the assertion, which like = is not builtin, thus we
           // must assume it is defined by the user as a binder.
-          bool isForall = d_state.getOptions().d_referenceDefineFun
-                          == ReferenceDefineFunMode::FORALL;
+          bool isForall = !d_state.getOptions().d_referenceDefineFunHo;
           std::string bname = isForall ? "forall" : "lambda";
           Expr binder = d_state.getVar(bname);
           if (binder.isNull()
@@ -1118,10 +1117,6 @@ bool CmdParser::parseNextCommand()
           if (str == "true" || str == "false")
           {
             success = d_state.getOptions().setOption(key, str == "true");
-          }
-          else
-          {
-            success = d_state.getOptions().setOption(key, str);
           }
         }
         if (!success)

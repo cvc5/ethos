@@ -46,27 +46,6 @@ int main( int argc, char* argv[] )
       {
         continue;
       }
-      // an option that takes a value, written --key=value
-      size_t eq = arg.find('=');
-      if (eq != std::string::npos)
-      {
-        std::string key = arg.substr(2, eq - 2);
-        std::string val = arg.substr(eq + 1);
-        if (opts.setOption(key, val))
-        {
-          continue;
-        }
-        if (key == "reference-define-fun")
-        {
-          EO_FATAL() << "Error: invalid value for --reference-define-fun: \""
-                     << val << "\", must be forall or ho";
-        }
-      }
-      else if (arg == "--reference-define-fun")
-      {
-        EO_FATAL() << "Error: --reference-define-fun requires a value, "
-                      "forall or ho";
-      }
     }
     bool isInclude = (arg.compare(0, 10, "--include=") == 0);
     if (isInclude || arg.compare(0, 12, "--reference=") == 0)
@@ -89,7 +68,7 @@ int main( int argc, char* argv[] )
       out << "     --no-print-dag: do not dagify the output of terms in error messages and trace messages." << std::endl;
       out << "--no-rule-sym-table: do not use a separate symbol table for proof rules and declared terms." << std::endl;
       out << "      --reference=X: includes the file specified by X as a reference file." << std::endl;
-      out << "--reference-define-fun=X: in reference files, assume a define-fun with arguments as the formula (forall (x) (= (f x) t)) if X is forall (default), or as the higher-order equality (= f (lambda (x) t)) if X is ho." << std::endl;
+      out << "--reference-define-fun-ho: in reference files, assume a define-fun with arguments as the higher-order equality (= f (lambda (x) t)) instead of (forall (x) (= (f x) t))." << std::endl;
       out << "--require-proof-of-false: require the last proof step at level zero to prove false." << std::endl;
       out << "      --show-config: displays the build information for this binary." << std::endl;
       out << "            --stats: enables detailed statistics." << std::endl;

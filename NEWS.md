@@ -3,7 +3,7 @@ This file contains a summary of important user-visible changes.
 ethos 0.2.6
 ===========
 
-- A `define-fun` with parameters in a reference file is now by default the reference assertion `(forall (x1 ... xn) (= (f x1 ... xn) t))`. The option `--reference-define-fun` now takes a value: `forall` (the default) or `ho`, which gives the previous higher-order equality `(= f (lambda (x1 ... xn) t))`. Reference files can no longer define symbols as Eunoia definitions (previously `--reference-define-fun`), which expanded them by a substitution that could capture the variables bound in their bodies.
+- A `define-fun` with parameters in a reference file is now by default the reference assertion `(forall (x1 ... xn) (= (f x1 ... xn) t))`. The new option `--reference-define-fun-ho` gives the previous higher-order equality `(= f (lambda (x1 ... xn) t))` instead. The option `--reference-define-fun` is removed: reference files can no longer define symbols as Eunoia definitions, which expanded them by a substitution that could capture the variables bound in their bodies.
 - An operator marked `:right-assoc` or `:left-assoc` applied to one argument is now a partial application, as documented, instead of the argument itself.
 - An `include` after a `reference` no longer disables the checks that assumptions are among the referenced assertions.
 - `(reset)` is no longer permitted in signature (`*.eo`) files. It no longer removes the builtin symbols, and now forgets the included files and the reference, so that both can be given again.

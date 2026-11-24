@@ -1,4 +1,4 @@
-(set-option :reference-define-fun ho)
+(set-option :reference-define-fun-ho true)
 (include "reference-definitions-signature.eo")
 (reference "reference-definitions.smt2")
 ; An equation with the right type but the wrong body must be rejected.
