@@ -334,10 +334,17 @@ impl Lit {
             Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::Numeral(rat_floor(r))),
             Lit::Numeral(_) => Some(first.clone()),
             Lit::Binary(b) => Some(Lit::Numeral(b.value().clone())),
-            // a string of length one gives its code point
+            // a string of length one gives its code point, or -1 for one
+            // that is no character, as logos's native_str_to_code does
+            // (the runtime holds none such: see `NUM_CODES`)
             Lit::Str(s) => {
                 if s.len() == 1 {
-                    Some(Lit::Numeral(Integer::from(s.code_points()[0])))
+                    let c = s.code_points()[0];
+                    Some(Lit::Numeral(if c < NUM_CODES {
+                        Integer::from(c)
+                    } else {
+                        Integer::one().neg()
+                    }))
                 } else {
                     None
                 }
@@ -683,6 +690,18 @@ fn integer_floor_log(base: &Integer, value: &Integer) -> Integer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `eo::to_z` of a one-character string: its code point, as before, on
+    /// every character; -1 past them, as logos says.
+    #[test]
+    fn to_z_of_a_character() {
+        for c in [0u32, 65, 0xffff, NUM_CODES - 1] {
+            let s = Lit::Str(EoString::from_code_points(vec![c]));
+            assert_eq!(Lit::evaluate_to_int(&s), Some(Lit::Numeral(Integer::from(c))));
+        }
+        let s = Lit::Str(EoString::from_code_points(vec![NUM_CODES]));
+        assert_eq!(Lit::evaluate_to_int(&s), Some(Lit::Numeral(Integer::one().neg())));
+    }
 
     /// The rational arithmetic from numerators and denominators agrees
     /// with the operations of `num.rs` it replaces.
