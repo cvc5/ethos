@@ -4,7 +4,7 @@ ethos 0.2.6
 ===========
 
 - Adds the option `--max-code-point=X` to set the maximum code point of string characters, up to `0x10FFFF` (the full Unicode range), and the builtin constant `eo::max_code_point` denoting it. The default remains `0x2FFFF`, as in SMT-LIB. This impacts the evaluation of `eo::to_str` and which escape sequences in string literals are valid; when the maximum has 6 hexadecimal digits, escape sequences `\u{d5 d4 d3 d2 d1 d0}` with 6 digits are accepted.
-
+- A `define-fun` with parameters in a reference file is now by default the reference assertion `(forall (x1 ... xn) (= (f x1 ... xn) t))`. The new option `--reference-define-fun-ho` gives the previous higher-order equality `(= f (lambda (x1 ... xn) t))` instead. The option `--reference-define-fun` is removed.
 - An operator marked `:right-assoc` or `:left-assoc` applied to one argument is now a partial application, as documented, instead of the argument itself.
 - An `include` after a `reference` no longer disables the checks that assumptions are among the referenced assertions.
 - `(reset)` is no longer permitted in signature (`*.eo`) files. It no longer removes the builtin symbols, and now forgets the included files and the reference, so that both can be given again.

@@ -1,3 +1,5 @@
+; The higher-order equality form of definitions.
+(set-option :reference-define-fun-ho true)
 (include "reference-definitions-signature.eo")
 (reference "reference-definitions.smt2")
 ; Match the explicit bound-variable terms used in generated proofs.

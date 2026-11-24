@@ -48,10 +48,10 @@ class Options
   /** Treat numerals as rational literals */
   bool d_normalizeNumeral;
   /**
-   * In reference files, parse SMT-LIB define-fun and define-const commands as
-   * Eunoia-style definitions instead of translating them to reference assertions.
+   * In reference files, assume a define-fun with arguments as the higher-order
+   * equality (= f (lambda (x) t)) instead of (forall (x) (= (f x) t)).
    */
-  bool d_referenceDefineFun;
+  bool d_referenceDefineFunHo;
   /**
    * The maximum code point of string characters. This impacts which escape
    * sequences in string literals are valid and the semantics of eo::to_str,

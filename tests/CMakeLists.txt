@@ -134,9 +134,8 @@ set(ethos_test_file_list
     implicit-then-var.eo
     is_eq.eo
     simple-reference.eo
-    reference-define-fun.eo
     reference-definitions.eo
-    reference-define-const-macro.eo
+    reference-definitions-forall.eo
     simple-quant-reference.eo
     simple-lra-reference.eo
     check-sat-assuming-reference.eo
@@ -260,6 +259,12 @@ ethos_fail_test(reference-reset-assertions-fail.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(reference-define-fun-equation-fail.eo
                 "was not part of the referenced assertions")
+ethos_fail_test(reference-define-fun-forall-fail.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(reference-define-fun-capture-fail.eo
+                "The assumption @captured was not part of the referenced assertions")
+ethos_fail_test(reference-define-fun-no-binder-fail.eo
+                "Expected symbol 'forall' to be defined as a binder")
 ethos_fail_test(reference-define-const-equation-fail.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(reference-push-pop.eo

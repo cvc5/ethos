@@ -1,0 +1,10 @@
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-const String Type)
+(declare-consts <string> String)
+(declare-const > (-> Int Int Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+; forall is not a binder, so a define-fun with arguments cannot be assumed as a
+; quantified formula.
+(declare-const forall (-> Bool Bool))
+(reference "reference-define-fun.smt2")
