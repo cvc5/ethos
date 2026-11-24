@@ -180,7 +180,7 @@ impl Lit {
             EvalOp::RatDiv => Lit::evaluate_rat_div(first, args),
             EvalOp::IsNeg => match first {
                 Lit::Numeral(i) => Some(Lit::Boolean(i.sgn() == -1)),
-                Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::Boolean(r.sgn() == -1)),
+                Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::Boolean(rat_sgn(r) == -1)),
                 _ => None,
             },
             EvalOp::Length => match first {
@@ -201,7 +201,7 @@ impl Lit {
             EvalOp::ToRat => match first {
                 Lit::Rational(_) => Some(first.clone()),
                 Lit::Decimal(r) => Some(Lit::Rational(r.clone())),
-                Lit::Numeral(i) => Some(Lit::Rational(Rational::from_integer(i))),
+                Lit::Numeral(i) => Some(Lit::Rational(rat_from_integer(i))),
                 _ => None,
             },
             EvalOp::ToBin => Lit::evaluate_to_bin(first, args),
@@ -234,7 +234,7 @@ impl Lit {
     fn evaluate_neg(first: &Lit, ka: LitKind) -> Option<Lit> {
         match first {
             Lit::Numeral(i) => Some(Lit::Numeral(i.neg())),
-            Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::rational(ka, r.neg())),
+            Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::rational(ka, rat_neg(r))),
             Lit::Hex(b) | Lit::Binary(b) => Some(Lit::bitvec(ka, b.neg())),
             _ => None,
         }
@@ -250,7 +250,7 @@ impl Lit {
         let exp = exp.to_u32();
         match first {
             Lit::Numeral(i) => Some(Lit::Numeral(i.pow(exp))),
-            Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::rational(ka, r.pow(exp))),
+            Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::rational(ka, rat_pow(r, exp))),
             _ => None,
         }
     }
@@ -264,7 +264,7 @@ impl Lit {
         };
         let value = match second {
             Lit::Numeral(i) => i.clone(),
-            Lit::Decimal(r) | Lit::Rational(r) => r.floor(),
+            Lit::Decimal(r) | Lit::Rational(r) => rat_floor(r),
             _ => return None,
         };
         Some(Lit::Numeral(integer_floor_log(base, &value)))
@@ -324,21 +324,28 @@ impl Lit {
         let Some(d) = second.as_rat() else {
             return None;
         };
-        if d.sgn() == 0 {
+        if rat_sgn(d) == 0 {
             return None;
         }
-        Some(Lit::Rational(n.div(d)))
+        Some(Lit::Rational(rat_div(n, d)))
     }
 
     fn evaluate_to_int(first: &Lit) -> Option<Lit> {
         match first {
-            Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::Numeral(r.floor())),
+            Lit::Decimal(r) | Lit::Rational(r) => Some(Lit::Numeral(rat_floor(r))),
             Lit::Numeral(_) => Some(first.clone()),
             Lit::Binary(b) => Some(Lit::Numeral(b.value().clone())),
-            // a string of length one gives its code point
+            // a string of length one gives its code point, or -1 for one
+            // that is no character, as logos's native_str_to_code does
+            // (the runtime holds none such: see `MAX_CODE_POINT`)
             Lit::Str(s) => {
                 if s.len() == 1 {
-                    Some(Lit::Numeral(Integer::from(s.code_points()[0])))
+                    let c = s.code_points()[0];
+                    Some(Lit::Numeral(if c <= MAX_CODE_POINT {
+                        Integer::from(c)
+                    } else {
+                        Integer::one().neg()
+                    }))
                 } else {
                     None
                 }
@@ -391,7 +398,7 @@ impl Lit {
         }
         if let Some(a) = first.as_rat() {
             if let Some(b) = second.as_rat() {
-                return Some(Lit::Boolean(a > b));
+                return Some(Lit::Boolean(matches!(rat_cmp(a, b), std::cmp::Ordering::Greater)));
             }
         }
         let Some(a) = first.as_bv() else {
@@ -473,8 +480,8 @@ impl Lit {
             res = match res {
                 Some(r) => match args[i].as_rat() {
                     Some(a) => match op {
-                        EvalOp::Add => Some(r.add(a)),
-                        EvalOp::Mul => Some(r.mul(a)),
+                        EvalOp::Add => Some(rat_add(&r, a)),
+                        EvalOp::Mul => Some(rat_mul(&r, a)),
                         _ => None,
                     },
                     None => None,
@@ -606,6 +613,77 @@ impl Lit {
     }
 }
 
+// Rational arithmetic, from a numerator and a denominator, as logos defines
+// it: `from_integers`, `numerator`, `denominator` and the integer
+// operations are the only rational operations the proofs trust. A
+// denominator is positive and the pair reduced (`from_integers`
+// normalizes), so the comparison of two rationals is that of the cross
+// products, and the floor the Euclidean quotient.
+
+/// The rational `n / d`, for `d` not zero (the `None` of `from_integers`
+/// is never reached).
+fn rat(n: &Integer, d: &Integer) -> Rational {
+    match Rational::from_integers(n, d) {
+        Some(q) => q,
+        None => Rational::from_integer(&Integer::zero()),
+    }
+}
+
+pub(crate) fn rat_from_integer(n: &Integer) -> Rational {
+    rat(n, &Integer::one())
+}
+
+pub(crate) fn rat_add(a: &Rational, b: &Rational) -> Rational {
+    rat(
+        &a.numerator().mul(&b.denominator()).add(&b.numerator().mul(&a.denominator())),
+        &a.denominator().mul(&b.denominator()),
+    )
+}
+
+pub(crate) fn rat_mul(a: &Rational, b: &Rational) -> Rational {
+    rat(&a.numerator().mul(&b.numerator()), &a.denominator().mul(&b.denominator()))
+}
+
+/// `a / b`, for `b` not zero.
+pub(crate) fn rat_div(a: &Rational, b: &Rational) -> Rational {
+    rat(&a.numerator().mul(&b.denominator()), &a.denominator().mul(&b.numerator()))
+}
+
+pub(crate) fn rat_neg(a: &Rational) -> Rational {
+    rat(&a.numerator().neg(), &a.denominator())
+}
+
+pub(crate) fn rat_pow(a: &Rational, exp: u32) -> Rational {
+    rat(&a.numerator().pow(exp), &a.denominator().pow(exp))
+}
+
+pub(crate) fn rat_sgn(a: &Rational) -> i32 {
+    a.numerator().sgn()
+}
+
+pub(crate) fn rat_floor(a: &Rational) -> Integer {
+    a.numerator().euclidean_qr(&a.denominator()).0
+}
+
+/// The order of two rationals: by their signs where they differ (no
+/// product needed), else by cross-multiplying.
+pub(crate) fn rat_cmp(a: &Rational, b: &Rational) -> std::cmp::Ordering {
+    let sa = rat_sgn(a);
+    let sb = rat_sgn(b);
+    if sa < sb {
+        return std::cmp::Ordering::Less;
+    }
+    if sa > sb {
+        return std::cmp::Ordering::Greater;
+    }
+    if sa == 0 {
+        return std::cmp::Ordering::Equal;
+    }
+    let x = a.numerator().mul(&b.denominator());
+    let y = b.numerator().mul(&a.denominator());
+    x.partial_cmp(&y).unwrap_or(std::cmp::Ordering::Equal)
+}
+
 /// The greatest `m >= 0` with `base^m <= value`, or 0 if `base <= 1` or
 /// `value <= 0`.
 fn integer_floor_log(base: &Integer, value: &Integer) -> Integer {
@@ -617,7 +695,8 @@ fn integer_floor_log(base: &Integer, value: &Integer) -> Integer {
     let mut remaining = value.clone();
     while *base <= remaining {
         result = result.add(&one);
-        remaining = remaining.floor_div_quotient(base);
+        // (`remaining` and `base` are positive: floor division is Euclidean)
+        remaining = remaining.euclidean_qr(base).0;
     }
     result
 }
@@ -625,6 +704,83 @@ fn integer_floor_log(base: &Integer, value: &Integer) -> Integer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `eo::to_z` of a one-character string: its code point, as before, on
+    /// every character; -1 past them, as logos says.
+    #[test]
+    fn to_z_of_a_character() {
+        for c in [0u32, 65, 0xffff, MAX_CODE_POINT] {
+            if c > MAX_CODE_POINT {
+                continue;
+            }
+            let s = Lit::Str(EoString::from_code_points(vec![c]));
+            assert_eq!(Lit::evaluate_to_int(&s), Some(Lit::Numeral(Integer::from(c))));
+        }
+        let s = Lit::Str(EoString::from_code_points(vec![MAX_CODE_POINT + 1]));
+        assert_eq!(Lit::evaluate_to_int(&s), Some(Lit::Numeral(Integer::one().neg())));
+    }
+
+    /// The rational arithmetic from numerators and denominators agrees
+    /// with the operations of `num.rs` it replaces.
+    #[test]
+    fn rational_forms_agree_with_the_rational_operations() {
+        let mut qs = Vec::new();
+        for n in -7i32..=7 {
+            for d in 1u32..=6 {
+                let n = if n < 0 {
+                    Integer::from((-n) as u32).neg()
+                } else {
+                    Integer::from(n as u32)
+                };
+                qs.push(Rational::from_integers(&n, &Integer::from(d)).unwrap());
+            }
+        }
+        let big = Integer::from(3u32).pow(50);
+        qs.push(Rational::from_integers(&big, &Integer::from(7u32)).unwrap());
+        qs.push(Rational::from_integers(&big.neg(), &Integer::from(11u32).pow(9)).unwrap());
+        for a in &qs {
+            assert_eq!(rat_neg(a), a.neg());
+            assert_eq!(rat_sgn(a), a.sgn());
+            assert_eq!(rat_floor(a), a.floor());
+            for k in 0..4u32 {
+                assert_eq!(rat_pow(a, k), a.pow(k));
+            }
+            for b in &qs {
+                assert_eq!(rat_add(a, b), a.add(b));
+                assert_eq!(rat_mul(a, b), a.mul(b));
+                assert_eq!(rat_cmp(a, b), a.partial_cmp(b).unwrap());
+                if b.sgn() != 0 {
+                    assert_eq!(rat_div(a, b), a.div(b));
+                }
+            }
+        }
+        for n in [Integer::zero(), Integer::one(), big.clone(), big.neg()] {
+            assert_eq!(rat_from_integer(&n), Rational::from_integer(&n));
+        }
+    }
+
+    /// `rat_cmp` decides by the signs where they differ: every combination
+    /// of signs, zero on either side, and `eo::gt` through it.
+    #[test]
+    fn rational_order_by_signs() {
+        let big = Integer::from(3u32).pow(60);
+        let mut qs = vec![Rational::from_integer(&Integer::zero())];
+        for (n, d) in [(Integer::one(), Integer::from(3u32)), (big.clone(), Integer::from(7u32)),
+                       (Integer::from(5u32), big.clone())] {
+            qs.push(Rational::from_integers(&n, &d).unwrap());
+            qs.push(Rational::from_integers(&n.neg(), &d).unwrap());
+        }
+        for a in &qs {
+            for b in &qs {
+                let order = a.partial_cmp(b).unwrap();
+                assert_eq!(rat_cmp(a, b), order);
+                assert_eq!(
+                    Lit::evaluate(EvalOp::Gt, &[Lit::Rational(a.clone()), Lit::Rational(b.clone())]),
+                    Some(Lit::Boolean(order == std::cmp::Ordering::Greater))
+                );
+            }
+        }
+    }
 
     fn num(s: &str) -> Lit {
         Lit::Numeral(Integer::parse(s, 10).unwrap())
