@@ -13,6 +13,13 @@
   (($eo_prog_nonlin x x) true)
   (($eo_prog_nonlin x y) false)))
 
+; A repeated variable whose occurrences are an operator's indices: compared
+; by handle equality, as no index is the stuck term (a term built with a
+; stuck index is the stuck term itself).
+(program $eo_prog_index_same ((x Int) (y Bool)) :signature (Bool) Bool (
+  (($eo_prog_index_same (test-index x x)) true)
+  (($eo_prog_index_same y) false)))
+
 ; Once a case matches, a failed requirement does not try the next case.
 (program $eo_prog_require_first ((x Bool)) :signature (Bool) Bool (
   (($eo_prog_require_first x) (eo::requires x true false))

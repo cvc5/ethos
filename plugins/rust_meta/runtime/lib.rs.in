@@ -534,6 +534,13 @@ impl Store {
                 self.construct_literal(e, args[0])
             }
             Embedding::Binary if args.len() == 2 => self.construct_binary(args[0], args[1]),
+            // A term with a stuck field is stuck, as an application of or
+            // to the stuck term is (`apply`): a user operator with a stuck
+            // index, or a variable with a stuck name or type. (logos builds
+            // these with __eo_mk_uop<n> and __eo_mk_var.)
+            _ if (c.is_user() || e == Embedding::Var) && self.any_stuck(args) => {
+                Ok(self.stuck())
+            }
             // All other constructors are data, including CState.Stuck.
             _ => self.intern(TermData::Node(c, args.to_vec())),
         }
