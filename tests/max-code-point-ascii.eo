@@ -1,0 +1,6 @@
+; Run with --max-code-point=127, i.e. 7-bit ASCII.
+(declare-const t1 (eo::requires eo::max_code_point 127 Bool))
+(declare-const t2 (eo::requires (eo::len "\u007f") 1 Bool))
+(declare-const t3 (eo::requires (eo::len "\u{80}") 6 Bool))
+(declare-const t4 (eo::requires (eo::to_str 127) "\u{7f}" Bool))
+(declare-const t5 (eo::requires (eo::is_str (eo::to_str 128)) false Bool))

@@ -134,9 +134,8 @@ set(ethos_test_file_list
     implicit-then-var.eo
     is_eq.eo
     simple-reference.eo
-    reference-define-fun.eo
     reference-definitions.eo
-    reference-define-const-macro.eo
+    reference-definitions-forall.eo
     simple-quant-reference.eo
     simple-lra-reference.eo
     check-sat-assuming-reference.eo
@@ -191,6 +190,7 @@ set(ethos_test_file_list
     list-non-singleton.eo
     list-non-singleton-left.eo
     code-point-oob.eo
+    max-code-point-default.eo
     homogeneous-list-ops.eo
     quant-sk-type.eo
     fwd-decl-nground.eo
@@ -221,6 +221,32 @@ macro(ethos_fail_test file regex)
   set_tests_properties(${file} PROPERTIES TIMEOUT 40)
 endmacro()
 
+# a test that is run with the given command line options
+macro(ethos_test_opts file)
+  add_test(
+    NAME ${file}
+    COMMAND $<TARGET_FILE:ethos> ${ARGN} ${CMAKE_CURRENT_LIST_DIR}/${file}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  )
+  set_tests_properties(${file} PROPERTIES TIMEOUT 40)
+endmacro()
+
+ethos_test_opts(max-code-point-unicode.eo --max-code-point=0x10FFFF)
+ethos_test_opts(max-code-point-ascii.eo --max-code-point=127)
+
+add_test(
+  NAME max-code-point-invalid-fail.eo
+  COMMAND
+    ${CMAKE_COMMAND}
+    "-DTEST_BINARY=$<TARGET_FILE:ethos>"
+    "-DTEST_ARGS=--max-code-point=0x110000"
+    "-DTEST_FILE=${CMAKE_CURRENT_LIST_DIR}/max-code-point-invalid-fail.eo"
+    "-DTEST_WORKDIR=${CMAKE_SOURCE_DIR}"
+    "-DEXPECT_REGEX=invalid value for --max-code-point"
+    -P ${CMAKE_CURRENT_LIST_DIR}/expect_error.cmake
+)
+set_tests_properties(max-code-point-invalid-fail.eo PROPERTIES TIMEOUT 40)
+
 foreach(file ${ethos_test_file_list})
   ethos_test(${file})
 endforeach()
@@ -233,6 +259,12 @@ ethos_fail_test(reference-reset-assertions-fail.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(reference-define-fun-equation-fail.eo
                 "was not part of the referenced assertions")
+ethos_fail_test(reference-define-fun-forall-fail.eo
+                "was not part of the referenced assertions")
+ethos_fail_test(reference-define-fun-capture-fail.eo
+                "The assumption @captured was not part of the referenced assertions")
+ethos_fail_test(reference-define-fun-no-binder-fail.eo
+                "Expected symbol 'forall' to be defined as a binder")
 ethos_fail_test(reference-define-const-equation-fail.eo
                 "was not part of the referenced assertions")
 ethos_fail_test(reference-push-pop.eo

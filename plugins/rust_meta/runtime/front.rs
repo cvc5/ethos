@@ -9,8 +9,8 @@
 mod names;
 
 use crate::{
-    BitVec, CHECKER_STACK_SIZE, CheckError, CheckResult, Constructor, EoString, Lit, NUM_CODES,
-    Store, Term, TermData, Verdict,
+    BitVec, CHECKER_STACK_SIZE, CheckError, CheckResult, Constructor, EoString, Lit,
+    MAX_CODE_POINT, Store, Term, TermData, Verdict,
 };
 use std::fmt::{self, Write};
 
@@ -114,10 +114,16 @@ fn add_char(c: char, out: &mut Vec<u32>) {
     }
 }
 
+/// The most hexadecimal digits of an escape sequence in braces: five, as in
+/// SMT-LIB, or six if that many are needed for [`MAX_CODE_POINT`].
+const MAX_ESCAPE_DIGITS: usize = if MAX_CODE_POINT > 0xF_FFFF { 6 } else { 5 };
+
 impl EoString {
     /// Converts text to a string. With `use_escapes`, the SMT-LIB escape
     /// sequences `폒d1d0` and `\u{d0}` to `\u{d4d3d2d1d0}` denote single
-    /// code points; malformed or out-of-range sequences are kept verbatim.
+    /// code points, as does `\u{d5d4d3d2d1d0}` if [`MAX_CODE_POINT`] has six
+    /// hexadecimal digits; malformed sequences, and those above
+    /// [`MAX_CODE_POINT`], are kept verbatim.
     pub fn parse(s: &str, use_escapes: bool) -> EoString {
         let chars: Vec<char> = s.chars().collect();
         let mut out = Vec::with_capacity(chars.len());
@@ -171,7 +177,7 @@ impl EoString {
                     if !has_brace && hex.len() == 4 {
                         is_end = true;
                         break;
-                    } else if has_brace && hex.len() > 5 {
+                    } else if has_brace && hex.len() > MAX_ESCAPE_DIGITS {
                         is_escape = false;
                         break;
                     }
@@ -182,7 +188,7 @@ impl EoString {
             }
             if is_escape {
                 match u32::from_str_radix(&hex, 16) {
-                    Ok(val) if val < NUM_CODES => out.push(val),
+                    Ok(val) if val <= MAX_CODE_POINT => out.push(val),
                     _ => is_escape = false,
                 }
             }

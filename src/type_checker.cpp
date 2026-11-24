@@ -206,6 +206,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS: ret = (nargs == 1); break;
+    case Kind::EVAL_MAX_CODE_POINT: ret = (nargs == 0); break;
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
@@ -1150,8 +1151,15 @@ Expr TypeChecker::prependNAryChildren(ExprValue* op,
 Expr TypeChecker::evaluateLiteralOpInternal(
     Kind k, const std::vector<ExprValue*>& args)
 {
-  Assert (!args.empty());
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
+  if (k == Kind::EVAL_MAX_CODE_POINT)
+  {
+    // The only operator without arguments. It is only constructed if its value
+    // is left symbolic (otherwise eo::max_code_point is bound to its value, see
+    // State::State), and hence never evaluates.
+    return d_null;
+  }
+  Assert (!args.empty());
   // check the arity first, since the cases below access the arguments
   // directly.
   if (!checkArity(k, args.size()))
@@ -1952,6 +1960,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_FIND:
     case Kind::EVAL_LIST_LENGTH:
     case Kind::EVAL_LIST_FIND:
+    case Kind::EVAL_MAX_CODE_POINT:
       return getLiteralTypeRule(Kind::NUMERAL, nullptr, out);
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_TO_RAT: return getLiteralTypeRule(Kind::RATIONAL, nullptr, out);

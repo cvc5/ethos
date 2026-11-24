@@ -43,6 +43,13 @@ pub use bitvec::BitVec;
 pub use cache::CacheStats;
 use cache::{Caches, ProgramId, TypeCacheKind};
 pub use eostring::{EoString, NUM_CODES};
+
+/// The maximum code point of a string character, which is what
+/// `eo::max_code_point` is and what bounds the characters of a string. It is
+/// the one `ethos-eoc` had when it generated this checker (its
+/// `--max-code-point`), by default the 0x2FFFF of SMT-LIB; [`NUM_CODES`] is
+/// the default as Pathos has it, which the checker does not read.
+pub const MAX_CODE_POINT: u32 = @MAX_CODE_POINT@;
 pub use front::with_checker_stack;
 pub use kind::{EvalOp, LitKind};
 pub use lit::Lit;

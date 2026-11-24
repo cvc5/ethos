@@ -69,6 +69,14 @@ class NativeLayer
   void use(const std::string& n);
   /** The part of the layer that comes out in scope, in the layer's order. */
   std::string defs(const std::string& scope) const;
+  /**
+   * Replace `from`, which must occur in it, by `to` in the text of the block
+   * defining n. This is for a value the layer carries a default of and a run
+   * may configure, e.g. the maximum code point.
+   */
+  void replace(const std::string& n,
+               const std::string& from,
+               const std::string& to);
 
  private:
   /** One block of the layer, as the line that opens it says it. */

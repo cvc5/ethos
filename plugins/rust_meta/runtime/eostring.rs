@@ -109,12 +109,23 @@ mod tests {
             EoString::parse("\\u0041b", true).code_points(),
             &[0x41, 0x62]
         );
-        assert_eq!(
-            EoString::parse("\\u{2ffff}", true).code_points(),
-            &[0x2ffff]
-        );
+        // in range unless the checker was generated for a smaller maximum, in
+        // which case it is kept verbatim
+        if crate::MAX_CODE_POINT >= 0x2ffff {
+            assert_eq!(
+                EoString::parse("\\u{2ffff}", true).code_points(),
+                &[0x2ffff]
+            );
+        } else {
+            assert_eq!(roundtrip("\\u{2ffff}"), "\\u{5c}u{2ffff}");
+        }
         // out of range: kept verbatim
-        assert_eq!(roundtrip("\\u{30000}"), "\\u{5c}u{30000}");
+        if crate::MAX_CODE_POINT < 0x30000 {
+            assert_eq!(roundtrip("\\u{30000}"), "\\u{5c}u{30000}");
+        } else {
+            assert_eq!(roundtrip("\\u{30000}"), "\\u{30000}");
+        }
+        assert_eq!(roundtrip("\\u{110000}"), "\\u{5c}u{110000}");
         // malformed
         assert_eq!(roundtrip("\\u{}"), "\\u{5c}u{}");
         assert_eq!(roundtrip("\\u12"), "\\u{5c}u12");

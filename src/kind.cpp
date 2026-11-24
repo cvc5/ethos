@@ -103,6 +103,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_CONCAT: o << "EVAL_CONCAT"; break;
     case Kind::EVAL_EXTRACT: o << "EVAL_EXTRACT"; break;
     case Kind::EVAL_FIND: o << "EVAL_FIND"; break;
+    case Kind::EVAL_MAX_CODE_POINT: o << "EVAL_MAX_CODE_POINT"; break;
     // conversions
     case Kind::EVAL_TO_INT: o << "EVAL_TO_INT"; break;
     case Kind::EVAL_TO_RAT: o << "EVAL_TO_RAT"; break;
@@ -204,6 +205,7 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_CONCAT: ss << "concat"; break;
           case Kind::EVAL_EXTRACT: ss << "extract"; break;
           case Kind::EVAL_FIND: ss << "find"; break;
+          case Kind::EVAL_MAX_CODE_POINT: ss << "max_code_point"; break;
           // conversions
           case Kind::EVAL_TO_INT: ss << "to_z"; break;
           case Kind::EVAL_TO_RAT: ss << "to_q"; break;
@@ -310,6 +312,7 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
     case Kind::EVAL_FIND:
+    case Kind::EVAL_MAX_CODE_POINT:
     // conversions
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_TO_RAT:

@@ -166,8 +166,11 @@ Kind RustMetaReduce::builtin(const std::string& name)
   for (int i = int(Kind::EVAL_IS_OK); i <= int(Kind::EVAL_DT_SELECTORS); ++i)
   {
     Kind k = static_cast<Kind>(i);
+    // eo::max_code_point has no arguments and is no operator of the runtime,
+    // see Emitter::expr.
     if (k == Kind::EVAL_TYPE_OF || k == Kind::EVAL_NIL
-        || k == Kind::EVAL_DT_CONSTRUCTORS || k == Kind::EVAL_DT_SELECTORS)
+        || k == Kind::EVAL_DT_CONSTRUCTORS || k == Kind::EVAL_DT_SELECTORS
+        || k == Kind::EVAL_MAX_CODE_POINT)
     {
       continue;
     }
@@ -1161,6 +1164,10 @@ class RustMetaReduce::Emitter
       {
         return "s.native_nat_zero()?";
       }
+      if (name == "z_max_code_point")
+      {
+        return "s.native_max_code_point()?";
+      }
       // a numeral or a string, as a value
       if (!name.empty() && name.find_first_not_of("-0123456789") == std::string::npos
           && name.find_first_of("0123456789") != std::string::npos)
@@ -1318,6 +1325,11 @@ class RustMetaReduce::Emitter
         node().set("bool", t.getValue()->asLiteral()->d_bool ? "true" : "false");
       }
       return val("s.literal(" + literal(t) + ")?");
+    }
+    if (k == Kind::EVAL_MAX_CODE_POINT)
+    {
+      // the numeral that is the maximum code point of the checker
+      return val("s.literal(Lit::Numeral(Integer::from(MAX_CODE_POINT)))?");
     }
     if (t.getNumChildren() == 0)
     {
@@ -2106,6 +2118,13 @@ void RustMetaReduce::finalize()
   lists = named(lists);
   // (the runtime's own tests call generated functions)
   lib = named(lib);
+  // the maximum code point, which this checker is generated for
+  lib = replace_all(
+      lib, "@MAX_CODE_POINT@", "0x" + [] {
+        std::ostringstream ss;
+        ss << std::uppercase << std::hex << String::maxCodePoint();
+        return ss.str();
+      }());
   bool translation = true;
   for (const char* n : {"$eo_to_smt",
                         "$eo_to_smt_type",

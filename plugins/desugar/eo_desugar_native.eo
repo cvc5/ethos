@@ -602,7 +602,7 @@ $EO_UOP_DECLS$
   (
   (($eo_to_str ($eot_numeral n1))
     ($native_ite
-      ($native_and ($native_zleq $native_z_zero n1) ($native_zlt n1 $native_z_max_code))
+      ($native_and ($native_zleq $native_z_zero n1) ($native_zleq n1 $native_z_max_code_point))
       ($eot_string ($native_apply_1 "str.from_code" n1))
       $eot_stuck))
   (($eo_to_str ($eot_string s1)) ($eot_string s1))

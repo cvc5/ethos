@@ -186,8 +186,13 @@
 (define-native-method const_id
   :smt-impl "(define-fun const_id ((x Nat)) String (str.++ \"@c.\" (str.from_int (nat.to_int x))))")
 
+; The maximum code point, which by default is the 0x2FFFF of SMT-LIB. It is
+; what eo::max_code_point prints as.
+(define-native-method z_max_code_point
+  :smt-impl "(define-fun z_max_code_point () Int 196607)")
+
 (define-native-method char_valid
-  :smt-impl "(define-fun char_valid ((x Int)) Bool (and (<= 0 x) (< x 196608)))")
+  :smt-impl "(define-fun char_valid ((x Int)) Bool (and (<= 0 x) (<= x z_max_code_point)))")
 
 (define-native-method string_valid
   :smt-impl "(define-fun string_valid ((x String)) Bool true)")

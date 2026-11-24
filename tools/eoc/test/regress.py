@@ -34,7 +34,7 @@ moves them, and rightly: a run that means to change the model is a run that
 means to change these. Say so with --update, and what the diff of expected.txt
 then shows is how much of the output that change reached.
 
-Two signatures are compiled, each for one rule, and what each wrote stands
+Three signatures are compiled, each for one rule, and what each wrote stands
 under a directory of its own so that the two do not write over one another; see
 INPUTS for what the second is there for. The whole-signature path is not
 covered: no signature in this tree is one the semantics the tool ships with
@@ -75,8 +75,14 @@ SEMANTICS = os.path.join(HERE, 'semantics.eos')
 # with nothing to keep and says nothing about what it does when there is. The
 # nil of str.++ is the empty sequence of the element type, which is not ground,
 # so a rule that names it is what asks the other branch of that question.
+#
+# The third names eo::max_code_point, which every stage keeps as a constant
+# rather than its value, so that each target refers to the maximum code point
+# its native layer says (z_max_code_point in plugins/desugar/natives.eos)
+# rather than to the value it has when the signature is compiled.
 INPUTS = ((os.path.join(ROOT, 'tests', 'Booleans-rules.eo'), 'and_intro'),
-          (os.path.join(HERE, 'nary-nil.eo'), 'str_concat_lprefix'))
+          (os.path.join(HERE, 'nary-nil.eo'), 'str_concat_lprefix'),
+          (os.path.join(HERE, 'max-code-point.eo'), 'str_code_point_inv'))
 
 # What a run does: the subcommand, the arguments it takes after the ones they
 # share, and whether it is compiled for one rule or for the whole signature.

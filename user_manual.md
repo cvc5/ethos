@@ -746,8 +746,10 @@ Also note in contrast to SMT-LIB version 2, negative arithmetic can be provided 
 
 String values use the standard escape sequences as specified in SMT-LIB version 2.6, namely `""` within a string literal denotes `"`.
 The only other escape sequences are of the form `\u{dn ...d1}` for `1<=n<=5` and `\u d4 d3 d2 d1` for hexadecimal digits `d1...d5` where `d5` is in the range `[0-2]`.
+More generally, an escape sequence is valid only if its value is at most the maximum code point, which is `196607` (`0x2FFFF`) by default and can be changed by the command line option `--max-code-point=X`; a sequence that is not valid denotes its characters verbatim, e.g. `"\u{30000}"` is a string of length 9 by default.
+If the maximum code point has 6 hexadecimal digits (i.e. is at least `0x100000`), then `\u{dn ...d1}` may also have `n=6`, e.g. `"\u{10FFFF}"` is a string of length one when `--max-code-point=0x10FFFF` is given.
 
-> __Note:__ Numeral, rational and decimal values are implemented by the arbitrary precision arithmetic library GMP. Binary and hexadecimal values are implemented as a layer on top of numeral values that tracks a bit width. String values are implemented as a vector of unsigned integers whose maximum value is specified by SMT-LIB version 2.6, namely the character set corresponds to Unicode values 0 to 196607.
+> __Note:__ Numeral, rational and decimal values are implemented by the arbitrary precision arithmetic library GMP. Binary and hexadecimal values are implemented as a layer on top of numeral values that tracks a bit width. String values are implemented as a vector of unsigned integers whose maximum value is the maximum code point. By default, this is specified by SMT-LIB version 2.6, namely the character set corresponds to Unicode values 0 to 196607. The maximum code point can be set to any value between `127` and `1114111` (`0x10FFFF`, i.e. the full Unicode range) by the command line option `--max-code-point=X`, and is denoted by the builtin numeral constant `eo::max_code_point`.
 
 > __Note:__ The user is not required to declare that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> Bool)` is a part of the builtin signature assumed by Ethos. Since it is builtin, `<boolean>` cannot be given a type rule: writing `declare-consts` for it is an error.
 
@@ -898,6 +900,11 @@ Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` 
 - `(eo::find t1 t2)`
   - If `t1` and `t2` are string values, this returns a numeral value corresponding to the first index (left to right) where `t2` occurs as a substring of `t1`, or the numeral value `-1` otherwise.
 
+### Constants
+
+- `eo::max_code_point`
+  - The numeral value of the maximum code point of string characters, which is `196607` (`0x2FFFF`) by default, as specified by SMT-LIB version 2.6. It is set by the command line option `--max-code-point=X`. This is useful, e.g., for defining the semantics of SMT-LIB operators such as `str.from_code` in a signature that does not depend on the chosen maximum.
+
 ### Conversion operators
 
 - `(eo::to_z t1)`
@@ -913,7 +920,7 @@ Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` 
   - If `t1` is a 32-bit numeral value and `t2` is a non-negative numeral value, return the binary value whose value is `t2` (modulo `2^t1`) and whose bitwidth is `t1`.
 - `(eo::to_str t1)`
   - If `t1` is a string value, return `t1`.
-  - If `t1` is a numeral value specifying a code point from Unicode planes `0-2` (i.e. a numeral between `0` and `196607`), return the string of length one whose character has code point `t1`.
+  - If `t1` is a numeral value specifying a code point (i.e. a numeral between `0` and `eo::max_code_point`, which is `196607` by default), return the string of length one whose character has code point `t1`.
 
 Ethos eagerly evaluates ground applications of computational operators.
 In other words, the term `(eo::add 1 1)` is syntactically equivalent in all contexts to `2`.
@@ -990,7 +997,7 @@ Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo::co
 (eo::to_str 65)             == "A"
 (eo::to_str 123)            == "{"
 (eo::to_str -1)             == (eo::to_str -1) ; since not a valid code point
-(eo::to_str 200000)         == (eo::to_str 200000) ; since not a valid code point
+(eo::to_str 200000)         == (eo::to_str 200000) ; since not a valid code point, by default
 (eo::to_str 1/2)            == (eo::to_str 1/2)
 (eo::to_str #b101)          == (eo::to_str #b101)
 ```
@@ -2090,9 +2097,12 @@ When Ethos encounters a command of the form `(reference <string>)`, the checker 
 
 In particular, when the command `(reference "file.smt2")` is read, Ethos will parse `file.smt2`.
 The declaration commands in this file will be treated as normal, that is, they will populate the symbol table of Ethos as they normally would if they were to appear in an `*.eo` input.
-By default, `define-fun` and `define-const` commands in reference files are interpreted as reference assertions equating the defined symbol with its body, wrapped in an object-language `lambda` for functions with parameters.
-This requires the signature to define `=` and, for functions with parameters, a `lambda` binder.
-If the option `reference-define-fun` is enabled, both commands are instead parsed as Eunoia definitions.
+The commands `define-fun` and `define-const` in reference files are interpreted as reference assertions that define the symbol.
+A definition without parameters, i.e. `(define-fun c () T t)` or `(define-const c T t)`, is the reference assertion `(= c t)`.
+A definition with parameters `(define-fun f ((x1 T1) ... (xn Tn)) T t)` is by default the quantified formula `(forall (x1 ... xn) (= (f x1 ... xn) t))`, and is instead the higher-order equality `(= f (lambda (x1 ... xn) t))` if the option `reference-define-fun-ho` is enabled.
+Here, `x1 ... xn` are bound (object-level) variables, i.e. `(eo::var "x1" T1) ... (eo::var "xn" Tn)`, and the body `t` is as written.
+This requires the signature to define `=` and, for definitions with parameters, `forall` (respectively `lambda`) as a binder.
+Note that defined symbols are not expanded in the remainder of the reference file, e.g. `(assert (f a))` is the reference assertion `(f a)`.
 The commands of the form `(assert F)` will add `F` to a set of formulas we will refer to as the _reference assertions_.
 The commands of the form `(check-sat-assuming (F1 ... Fn))` will likewise add `F1 ... Fn` to the reference assertions, since these formulas are part of the query that was checked.
 The commands `(reset-assertions)` and `(reset)` discard all reference assertions collected so far.
@@ -2169,6 +2179,7 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 - `--include=X`: includes the file specified by `X`.
 - `--no-print-dag`: do not dagify the output of terms in error messages and trace messages.
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
+- `--max-code-point=X`: sets the maximum code point of string characters to `X`, which is a decimal numeral or a hexadecimal numeral prefixed by `0x` between `127` and `1114111` (`0x10FFFF`). The default is `196607` (`0x2FFFF`), as specified by SMT-LIB version 2.6. This impacts which escape sequences in string literals are valid, the evaluation of `eo::to_str`, and the value of `eo::max_code_point`. Unlike most options, it cannot be set via `set-option`.
 - `--reference=X`: includes the file specified by `X` as a reference file.
 - `--require-proof-of-false`: require the last proof step to prove `false` at assumption level zero.
 - `--show-config`: displays the build information for the given binary.
@@ -2185,7 +2196,7 @@ They do not impact how signature files (*.eo) are parsed:
 - `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
 - `--no-parse-let`: do not treat `let` as a builtin symbol for specifying a macro.
-- `--reference-define-fun`: when parsing reference files, treat `define-fun` and `define-const` commands as Eunoia definitions instead of reference assertions.
+- `--reference-define-fun-ho`: in reference files, interpret a `define-fun` with parameters as the higher-order equality `(= f (lambda (x1 ... xn) t))` instead of the quantified formula `(forall (x1 ... xn) (= (f x1 ... xn) t))`.
 
 Most of the above options can also be set via `set-option` commands within proofs or Eunoia scripts.
 For example, the command `(set-option :normalize-num true)` tells Ethos to normalize numerals always.

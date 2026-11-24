@@ -583,9 +583,11 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> impls;
       std::vector<Expr> opaques;
       std::map<ExprValue*, AttrMap> pattrMap;
-      bool defineAsReferenceAssert =
-          tok != Token::DEFINE && d_isReference
-          && !d_state.getOptions().d_referenceDefineFun;
+      // In reference files, define-fun and define-const are always reference
+      // assertions. They are never macros, since expanding a macro would
+      // substitute its arguments into its body, which must avoid capturing the
+      // variables the body binds.
+      bool defineAsReferenceAssert = tok != Token::DEFINE && d_isReference;
       std::vector<Expr> vars;
       if (tok != Token::DEFINE_CONST)
       {
@@ -637,27 +639,54 @@ bool CmdParser::parseNextCommand()
               + std::string(tok == Token::DEFINE_CONST ? "define-const."
                                                        : "define-fun."));
         }
-        Expr rhs = expr;
-        Expr t = ret;
-        if (!vars.empty())
+        Expr body = expr;
+        Expr a;
+        if (vars.empty())
         {
-          // We assume that a symbol named "lambda" has been defined as a binder.
-          Expr lambda = d_state.getVar("lambda");
-          if (lambda.isNull())
-          {
-            d_lex.parseError("Expected symbol 'lambda' to be defined when parsing define-fun.");
-          }
-          Expr bvl = d_state.mkBinderList(lambda.getValue(), vars);
-          rhs = d_state.mkExpr(Kind::APPLY, {lambda, bvl, rhs});
+          // (define-fun c () T t) and (define-const c T t) are (= c t)
+          expr = d_state.mkSymbol(Kind::CONST, name, ret);
+          a = d_state.mkExpr(Kind::APPLY, {eq, expr, body});
+        }
+        else
+        {
           std::vector<Expr> types;
           for (Expr& e : vars)
           {
             types.push_back(d_eparser.typeCheck(e));
           }
-          t = d_state.mkFunctionType(types, t);
+          expr = d_state.mkSymbol(
+              Kind::CONST, name, d_state.mkFunctionType(types, ret));
+          // The binder of the assertion, which like = is not builtin, thus we
+          // must assume it is defined by the user as a binder.
+          bool isForall = !d_state.getOptions().d_referenceDefineFunHo;
+          std::string bname = isForall ? "forall" : "lambda";
+          Expr binder = d_state.getVar(bname);
+          if (binder.isNull()
+              || d_state.getAttributeKind(binder.getValue()) != Attr::BINDER)
+          {
+            d_lex.parseError("Expected symbol '" + bname
+                             + "' to be defined as a binder when parsing "
+                               "define-fun.");
+          }
+          // Note the variables are object-level variables (eo::var) that are
+          // bound by the binder, so that t is not substituted into.
+          Expr bvl = d_state.mkBinderList(binder.getValue(), vars);
+          if (isForall)
+          {
+            // (forall (x1 ... xn) (= (f x1 ... xn) t))
+            std::vector<Expr> app{expr};
+            app.insert(app.end(), vars.begin(), vars.end());
+            Expr fx = d_state.mkExpr(Kind::APPLY, app);
+            Expr feq = d_state.mkExpr(Kind::APPLY, {eq, fx, body});
+            a = d_state.mkExpr(Kind::APPLY, {binder, bvl, feq});
+          }
+          else
+          {
+            // (= f (lambda (x1 ... xn) t))
+            Expr lam = d_state.mkExpr(Kind::APPLY, {binder, bvl, body});
+            a = d_state.mkExpr(Kind::APPLY, {eq, expr, lam});
+          }
         }
-        expr = d_state.mkSymbol(Kind::CONST, name, t);
-        Expr a = d_state.mkExpr(Kind::APPLY, {eq, expr, rhs});
         Trace("define") << "Define-fun reference assert " << a << std::endl;
         d_state.addReferenceAssert(a);
       }
