@@ -904,7 +904,6 @@ Note that `(eo::var s T)`, the variable whose name is `s` and whose type is `T` 
 
 - `eo::max_code_point`
   - The numeral value of the maximum code point of string characters, which is `196607` (`0x2FFFF`) by default, as specified by SMT-LIB version 2.6. It is set by the command line option `--max-code-point=X`. This is useful, e.g., for defining the semantics of SMT-LIB operators such as `str.from_code` in a signature that does not depend on the chosen maximum.
-  - When a signature is compiled by `ethos-eoc` (i.e. with a `--plugin.*` option), `eo::max_code_point` is not replaced by its value. It is instead kept as a constant whose value is not known, which does not evaluate, nor does any term whose value depends on it, e.g. `(eo::add eo::max_code_point 1)`. Each target of the compiler then refers to the maximum code point its native layer defines (`z_max_code_point`), which is `196607` by default.
 
 ### Conversion operators
 

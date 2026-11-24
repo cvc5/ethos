@@ -28,7 +28,7 @@ da481cd71fa2deeab8ba39b507f3adcd8d0e220c7cc5c9973b2194c7cd3423be  Booleans-rules
 19cde055cb0490f638d56eb10041307c88add397d2afa591acc090af90144e9b  Booleans-rules/vc/final-booleans-rules-and_intro.smt2
 58ec252a4f89b6aef0388aac59cea27fe7b06237052b4c46798e0df0746a96cf  Booleans-rules/vcm-def-booleans-rules.eo
 e50408b791d15d47df02b27954bdeedb618a248f3095c524348c044fa343c920  Booleans-rules/vcmt-def-booleans-rules.eo
-50b6bba58919fd94e78a31d41d6a31ae186fca7951c939f642443b65ec91fa16  max-code-point/eo.eo
+eb04562a1ed1beb606ccde1cfd2bc1a005629dfdcea2264e7075ccb12ae58f38  max-code-point/eo.eo
 191a48f1516f1642eee49361cfa569f12e25a67e5349060408a0207926ffcd7e  max-code-point/lean-max-code-point-defs.eo
 263f0833e77dd9af8aacda4d2d109971faac5c9b8a83bca764542ce37428451b  max-code-point/lean-max-code-point-desugar.eo
 e5ea251cecb001d425ceda3de41d4c767dd7d7efdbef83681cdda81597d4803e  max-code-point/lean-max-code-point-final.eo

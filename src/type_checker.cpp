@@ -1154,15 +1154,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
   if (k == Kind::EVAL_MAX_CODE_POINT)
   {
-    // the only operator without arguments, which evaluates to the maximum code
-    // point unless its value is left symbolic.
-    if (!args.empty() || d_state.getOptions().d_symbolicMaxCodePoint)
-    {
-      return d_null;
-    }
-    Integer imax(String::maxCodePoint());
-    Literal lmax(imax);
-    return Expr(d_state.mkLiteralInternal(lmax));
+    // The only operator without arguments. It is only constructed if its value
+    // is left symbolic (otherwise eo::max_code_point is bound to its value, see
+    // State::State), and hence never evaluates.
+    return d_null;
   }
   Assert (!args.empty());
   // check the arity first, since the cases below access the arguments

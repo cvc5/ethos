@@ -45,6 +45,11 @@ LeanMetaReduce::LeanMetaReduce(State& s,
                 "--",
                 "SmtEval")
 {
+  // The layer carries the default maximum code point; this run's is the one
+  // its input was read with, see --max-code-point.
+  d_natives.replace("native_z_max_code_point",
+                    ":= " + std::to_string(String::defaultMaxCodePoint()),
+                    ":= " + std::to_string(String::maxCodePoint()));
   d_typeToMetaKind["$eo_Term"] = MetaKind::EUNOIA;
   d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
   d_typeToMetaKind["$eo_Rule"] = MetaKind::CHECKER_RULE;

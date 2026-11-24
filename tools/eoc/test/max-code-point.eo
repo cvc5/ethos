@@ -12,3 +12,11 @@
                ((eo::gt (eo::to_z s) eo::max_code_point) false))
     :conclusion (= s (eo::to_str (eo::to_z s)))
 )
+
+; The constant may stand wherever a value may, which every stage parses: in a
+; nullary rule's conclusion, in a pattern and in a type.
+(declare-rule max_code_point_refl () :conclusion (= eo::max_code_point eo::max_code_point))
+(program $is_max_code_point ((x Int)) :signature (Int) Bool
+  ((($is_max_code_point eo::max_code_point) true) (($is_max_code_point x) false)))
+(declare-const MaxCodePointSeq (-> Int Type))
+(declare-const max_code_point_seq (MaxCodePointSeq eo::max_code_point))

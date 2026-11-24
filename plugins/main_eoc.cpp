@@ -172,15 +172,18 @@ int main(int argc, char* argv[])
     }
     if (arg.compare(0, 17, "--max-code-point=") == 0)
     {
-      // The maximum code point, which a compiled signature does not depend on
-      // since eo::max_code_point is left symbolic by every plugin, see below.
-      // It decides only which escape sequences of the input's string literals
-      // are valid.
+      // The maximum code point. It decides which escape sequences of the
+      // input's string literals are valid and what ground literal operators
+      // such as eo::to_str evaluate to, so every stage of a pipeline is to be
+      // given the same one. eo::max_code_point itself is left symbolic by
+      // every plugin (see below), and the backends define it as this value.
       std::string val = arg.substr(17);
       if (!opts.setMaxCodePoint(val))
       {
         EO_FATAL() << "Error: invalid value for --max-code-point: \"" << val
-                   << "\"";
+                   << "\", must be between " << String::minMaxCodePoint()
+                   << " and " << String::maxMaxCodePoint() << " (0x"
+                   << std::hex << String::maxMaxCodePoint() << ")";
       }
       continue;
     }

@@ -40,6 +40,11 @@ SmtMetaReduce::SmtMetaReduce(State& s, bool sygus)
       d_smSygus(s)
 {
   d_prefixToMetaKind["eo"] = MetaKind::EUNOIA;
+  // The layer carries the default maximum code point; this run's is the one
+  // its input was read with, see --max-code-point.
+  d_natives.replace("z_max_code_point",
+                    "Int " + std::to_string(String::defaultMaxCodePoint()),
+                    "Int " + std::to_string(String::maxCodePoint()));
 
   if (optionSmtMetaSygusGrammar())
   {
@@ -129,6 +134,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   {
     // the numeral that is the maximum code point, which is what the native
     // layer says, see z_max_code_point in plugins/desugar/natives.eos
+    d_natives.use("z_max_code_point", d_scope);
     os << "(eo.Numeral z_max_code_point)";
   }
   else
