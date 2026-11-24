@@ -26,6 +26,18 @@
 
 namespace ethos {
 
+
+/**
+ * How a define-fun with arguments, e.g. (define-fun f ((x T)) U t), in a
+ * reference file is turned into a reference assertion.
+ */
+enum class ReferenceDefineFunMode
+{
+  /** The quantified formula (forall (x) (= (f x) t)). */
+  FORALL,
+  /** The higher-order equality (= f (lambda (x) t)). */
+  HO_EQUALITY
+};
 class Options
 {
  public:
@@ -34,6 +46,11 @@ class Options
    * @return true if the option was successfully set.
    */
   bool setOption(const std::string& key, bool val);
+  /**
+   * Set the option key, which takes a value that is not Boolean, to val.
+   * Returns false if key is not such an option or val is not one of its values.
+   */
+  bool setOption(const std::string& key, const std::string& val);
   bool d_printDag;
   /** 'let' is lexed as the SMT-LIB syntax for a dag term specified by a let */
   bool d_parseLet;
@@ -48,10 +65,10 @@ class Options
   /** Treat numerals as rational literals */
   bool d_normalizeNumeral;
   /**
-   * In reference files, parse SMT-LIB define-fun and define-const commands as
-   * Eunoia-style definitions instead of translating them to reference assertions.
+   * How a define-fun with arguments in a reference file is turned into a
+   * reference assertion, see ReferenceDefineFunMode.
    */
-  bool d_referenceDefineFun;
+  ReferenceDefineFunMode d_referenceDefineFun;
 };
 
 /**

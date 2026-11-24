@@ -29,7 +29,7 @@ Options::Options()
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
-  d_referenceDefineFun = false;
+  d_referenceDefineFun = ReferenceDefineFunMode::FORALL;
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -78,15 +78,37 @@ bool Options::setOption(const std::string& key, bool val)
   {
     d_normalizeHexadecimal = val;
   }
-  else if (key == "reference-define-fun")
-  {
-    d_referenceDefineFun = val;
-  }
   else
   {
     return false;
   }
   Trace("options") << "setOption(\"" << key << "\", " << val << ")"
+                   << std::endl;
+  return true;
+}
+
+bool Options::setOption(const std::string& key, const std::string& val)
+{
+  if (key == "reference-define-fun")
+  {
+    if (val == "forall")
+    {
+      d_referenceDefineFun = ReferenceDefineFunMode::FORALL;
+    }
+    else if (val == "ho")
+    {
+      d_referenceDefineFun = ReferenceDefineFunMode::HO_EQUALITY;
+    }
+    else
+    {
+      return false;
+    }
+  }
+  else
+  {
+    return false;
+  }
+  Trace("options") << "setOption(\"" << key << "\", \"" << val << "\")"
                    << std::endl;
   return true;
 }

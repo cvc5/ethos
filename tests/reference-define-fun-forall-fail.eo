@@ -1,0 +1,5 @@
+(include "reference-definitions-signature.eo")
+(reference "reference-definitions.smt2")
+(define @x () (eo::var "x" Int))
+; A quantified equation with the right type but the wrong body must be rejected.
+(assume @bad (forall (@list @x) (= (id @x) 0)))

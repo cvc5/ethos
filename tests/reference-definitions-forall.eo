@@ -1,0 +1,21 @@
+; The quantified form of definitions, which is the default.
+(include "reference-definitions-signature.eo")
+(reference "reference-definitions.smt2")
+; Match the explicit bound-variable terms used in generated proofs.
+(define @x () (eo::var "x" Int))
+(define @p () (eo::var "p" Bool))
+(define @xb () (eo::var "x" Bool))
+(assume @id (forall (@list @x) (= (id @x) @x)))
+(assume @choose (forall (@list @x @p) (= (choose @x @p) (ite @p @x 0))))
+; The body is not substituted into, so a binder in it that shadows an argument
+; needs no special handling.
+(assume @shadow (forall (@list @x) (= (shadow @x) (forall (@list @xb) @xb))))
+(assume @capture (forall (@list @x)
+  (= (capture @x) (forall (@list @p) (= (ite @p @x 0) @x)))))
+; Nullary functions and constants are equations in either form.
+(assume @zero (= zero 0))
+(assume @k (= k 0))
+(assume @alias (= alias k))
+; Uses of defined symbols remain symbolic.
+(assume @assert-id (= (id k) zero))
+(assume @assert-alias (= alias k))

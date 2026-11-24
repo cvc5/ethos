@@ -1,0 +1,9 @@
+(include "reference-definitions-signature.eo")
+(reference "reference-define-fun-capture.smt2")
+(define @x () (eo::var "x" Int))
+(define @y () (eo::var "y" Int))
+; The definition and the assertion as written are assumptions.
+(assume @def (forall (@list @y) (= (P @y) (forall (@list @x) (= @x @y)))))
+(assume @a (forall (@list @x) (P @x)))
+; The assertion with P expanded by a substitution that captures x is not.
+(assume @captured (forall (@list @x) (forall (@list @x) (= @x @x))))
