@@ -664,7 +664,20 @@ pub(crate) fn rat_floor(a: &Rational) -> Integer {
     a.numerator().euclidean_qr(&a.denominator()).0
 }
 
+/// The order of two rationals: by their signs where they differ (no
+/// product needed), else by cross-multiplying.
 pub(crate) fn rat_cmp(a: &Rational, b: &Rational) -> std::cmp::Ordering {
+    let sa = rat_sgn(a);
+    let sb = rat_sgn(b);
+    if sa < sb {
+        return std::cmp::Ordering::Less;
+    }
+    if sa > sb {
+        return std::cmp::Ordering::Greater;
+    }
+    if sa == 0 {
+        return std::cmp::Ordering::Equal;
+    }
     let x = a.numerator().mul(&b.denominator());
     let y = b.numerator().mul(&a.denominator());
     x.partial_cmp(&y).unwrap_or(std::cmp::Ordering::Equal)
@@ -739,6 +752,29 @@ mod tests {
         }
         for n in [Integer::zero(), Integer::one(), big.clone(), big.neg()] {
             assert_eq!(rat_from_integer(&n), Rational::from_integer(&n));
+        }
+    }
+
+    /// `rat_cmp` decides by the signs where they differ: every combination
+    /// of signs, zero on either side, and `eo::gt` through it.
+    #[test]
+    fn rational_order_by_signs() {
+        let big = Integer::from(3u32).pow(60);
+        let mut qs = vec![Rational::from_integer(&Integer::zero())];
+        for (n, d) in [(Integer::one(), Integer::from(3u32)), (big.clone(), Integer::from(7u32)),
+                       (Integer::from(5u32), big.clone())] {
+            qs.push(Rational::from_integers(&n, &d).unwrap());
+            qs.push(Rational::from_integers(&n.neg(), &d).unwrap());
+        }
+        for a in &qs {
+            for b in &qs {
+                let order = a.partial_cmp(b).unwrap();
+                assert_eq!(rat_cmp(a, b), order);
+                assert_eq!(
+                    Lit::evaluate(EvalOp::Gt, &[Lit::Rational(a.clone()), Lit::Rational(b.clone())]),
+                    Some(Lit::Boolean(order == std::cmp::Ordering::Greater))
+                );
+            }
         }
     }
 
