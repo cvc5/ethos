@@ -240,7 +240,7 @@ fn default_limits_check_deep_terms() {
     let yes = s.boolean(true).unwrap();
     let mut formula = s.boolean(false).unwrap();
     let or = n(&mut s, "or", &[]);
-    for _ in 0..15_000 {
+    for _ in 0..200_000 {
         let head = s.apply(or, yes).unwrap();
         formula = s.apply(head, formula).unwrap();
     }
@@ -258,7 +258,7 @@ fn default_limits_check_deep_terms() {
     // Going beyond the default still returns a recoverable resource error.
     // Start with uncached outer nodes so the earlier check cannot hide depth.
     let mut too_deep = formula;
-    for _ in 0..20_000 {
+    for _ in 0..400_000 {
         let head = s.apply(or, yes).unwrap();
         too_deep = s.apply(head, too_deep).unwrap();
     }
