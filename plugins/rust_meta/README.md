@@ -96,9 +96,11 @@ not be transferred between arenas.
 
 Bad shapes and resource exhaustion are `Result` errors. Calls, recursive
 depth and arena size are bounded by `Limits`; tail calls become loops,
-including command invocation. Checking runs on a 256 MiB scoped-thread stack,
-with a default depth limit of 16,384 generated calls, budgeting 16 KiB of that
-stack per call. Every case of a program is a function of its own, the cases
+including command invocation. Checking runs on a scoped-thread stack of 4 GiB
+(256 MiB on a 32-bit target), reserved rather than committed, with a default
+depth limit of 262,144 generated calls (16,384 on 32 bits), budgeting 16 KiB
+of that stack per call. Measured on terms nested a million deep, a call takes
+about 300 bytes in a release build and about 1.2 KiB in a debug one. Every case of a program is a function of its own, the cases
 are tried in nested groups of four, and a case's body goes on in a further
 function after twelve statements. A call of a program is therefore a short
 chain of small frames (the program, a group function for each level of
