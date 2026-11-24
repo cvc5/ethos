@@ -1,0 +1,10 @@
+; The default maximum code point is the SMT-LIB one, 0x2FFFF.
+(declare-const t1 (eo::requires eo::max_code_point 196607 Bool))
+(declare-const t2 (eo::requires (eo::len "\u{2ffff}") 1 Bool))
+(declare-const t3 (eo::requires (eo::to_z "\u{2ffff}") eo::max_code_point Bool))
+; out of range, so not an escape sequence
+(declare-const t4 (eo::requires (eo::len "\u{30000}") 9 Bool))
+; at most 5 digits are permitted in braces
+(declare-const t5 (eo::requires (eo::len "\u{000041}") 10 Bool))
+(declare-const t6 (eo::requires (eo::to_str 196607) "\u{2ffff}" Bool))
+(declare-const t7 (eo::requires (eo::is_str (eo::to_str 196608)) false Bool))

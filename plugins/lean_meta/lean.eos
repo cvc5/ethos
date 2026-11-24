@@ -45,9 +45,15 @@
   :keep
   :lean-impl "abbrev native_String := List native_Char")
 
+; The maximum code point, which by default is the 0x2FFFF of SMT-LIB. It is
+; what eo::max_code_point prints as, so it is kept whatever an input reaches.
+(define-native-method z_max_code_point
+  :keep
+  :lean-impl "def native_z_max_code_point : native_Int := 196607")
+
 (define-native-method char_valid
   :lean-impl "def native_char_valid (c : native_Char) : native_Bool :=
-  c < 196608")
+  decide ((c : native_Int) <= native_z_max_code_point)")
 
 (define-native-method string_valid
   :lean-impl "def native_string_valid (s : native_String) : native_Bool :=

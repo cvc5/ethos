@@ -5,7 +5,8 @@
 //! which the compiled checker does not use.
 
 use crate::bitvec::BitVec;
-use crate::eostring::{EoString, NUM_CODES};
+use crate::eostring::EoString;
+use crate::MAX_CODE_POINT;
 use crate::kind::{EvalOp, LitKind};
 use crate::table::mix;
 use crate::num::{Integer, Rational};
@@ -336,11 +337,11 @@ impl Lit {
             Lit::Binary(b) => Some(Lit::Numeral(b.value().clone())),
             // a string of length one gives its code point, or -1 for one
             // that is no character, as logos's native_str_to_code does
-            // (the runtime holds none such: see `NUM_CODES`)
+            // (the runtime holds none such: see `MAX_CODE_POINT`)
             Lit::Str(s) => {
                 if s.len() == 1 {
                     let c = s.code_points()[0];
-                    Some(Lit::Numeral(if c < NUM_CODES {
+                    Some(Lit::Numeral(if c <= MAX_CODE_POINT {
                         Integer::from(c)
                     } else {
                         Integer::one().neg()
@@ -375,7 +376,7 @@ impl Lit {
         match first {
             // a code point gives the string of that one character
             Lit::Numeral(i) => {
-                if i.fits_u32() && i.to_u32() < NUM_CODES {
+                if i.fits_u32() && i.to_u32() <= MAX_CODE_POINT {
                     Some(Lit::Str(EoString::from_code_points(vec![i.to_u32()])))
                 } else {
                     None
@@ -708,11 +709,14 @@ mod tests {
     /// every character; -1 past them, as logos says.
     #[test]
     fn to_z_of_a_character() {
-        for c in [0u32, 65, 0xffff, NUM_CODES - 1] {
+        for c in [0u32, 65, 0xffff, MAX_CODE_POINT] {
+            if c > MAX_CODE_POINT {
+                continue;
+            }
             let s = Lit::Str(EoString::from_code_points(vec![c]));
             assert_eq!(Lit::evaluate_to_int(&s), Some(Lit::Numeral(Integer::from(c))));
         }
-        let s = Lit::Str(EoString::from_code_points(vec![NUM_CODES]));
+        let s = Lit::Str(EoString::from_code_points(vec![MAX_CODE_POINT + 1]));
         assert_eq!(Lit::evaluate_to_int(&s), Some(Lit::Numeral(Integer::one().neg())));
     }
 

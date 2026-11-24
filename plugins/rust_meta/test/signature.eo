@@ -53,3 +53,10 @@
 (program $eo_prog_mutual_a ((x Bool) (y Bool :list)) :signature (Bool) Bool (
   (($eo_prog_mutual_a (and x y)) ($eo_prog_mutual_b x))
   (($eo_prog_mutual_a x) true)))
+
+; The maximum code point is the one the checker is generated for, which
+; bounds the code points eo::to_str takes.
+(program $eo_prog_max_code ((n Int)) :signature (Int) Int (
+  (($eo_prog_max_code n) eo::max_code_point)))
+(program $eo_prog_code_str ((n Int)) :signature (Int) Bool (
+  (($eo_prog_code_str n) (eo::is_str (eo::to_str n)))))

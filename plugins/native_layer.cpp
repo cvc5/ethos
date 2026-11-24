@@ -131,6 +131,25 @@ void NativeLayer::use(const std::string& n, const std::string& scope)
   }
 }
 
+void NativeLayer::replace(const std::string& n,
+                          const std::string& from,
+                          const std::string& to)
+{
+  std::map<std::string, size_t>::const_iterator b = d_of.find(n);
+  if (b == d_of.end())
+  {
+    EO_FATAL() << "NativeLayer: no block defines `" << n << "`";
+  }
+  std::string& text = d_defs[b->second].d_text;
+  size_t pos = text.find(from);
+  if (pos == std::string::npos)
+  {
+    EO_FATAL() << "NativeLayer: the block defining `" << n
+               << "` does not contain `" << from << "`";
+  }
+  text.replace(pos, from.size(), to);
+}
+
 std::string NativeLayer::defs(const std::string& scope) const
 {
   // The order of the layer is an order in which the backend can read it, so

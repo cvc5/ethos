@@ -302,6 +302,11 @@ class Pipeline:
         # What the head of that file said, read once; see defs_head.
         self._head: Optional[list[list[str]]] = None
         self.binary = self.build_dir / "ethos-eoc"
+        # The maximum code point, which every stage is given: each reads the
+        # string literals of its input with it, and the last writes it as the
+        # value of the constant eo::max_code_point is. None leaves it the
+        # default of SMT-LIB.
+        self.max_code_point: Optional[str] = None
         self.stage_out_dir = self.final_out_dir
         self.plugin_out_dir = self.build_dir / "out" / "plugins"
 
@@ -342,7 +347,9 @@ class Pipeline:
         )
 
     def ethos(self, args: Iterable[str], *, quiet: bool = False) -> None:
-        self.run([str(self.binary), *args], quiet=quiet)
+        mcp = ([f"--max-code-point={self.max_code_point}"]
+               if self.max_code_point is not None else [])
+        self.run([str(self.binary), *mcp, *args], quiet=quiet)
 
     def ensure_cvc5(self) -> Path:
         if self.cvc5 is None:
@@ -825,6 +832,9 @@ class Pipeline:
         Structural desugaring supplies the term embedding, typing metadata
         and command invocation. rust-meta replaces builtin implementations
         with the Rust runtime; it never emits an interpreter or a parser.
+
+        The maximum code point the checker is generated for (see
+        max_code_point) is a constant of its runtime, MAX_CODE_POINT.
         """
         if build_first:
             self.build()
@@ -1019,6 +1029,17 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         help="Directory for final published outputs. Defaults to $EOC_FINAL_OUT_DIR or tools/eoc/out.",
     )
     parser.add_argument("--jobs", type=int, default=4, help="Parallel build jobs.")
+    parser.add_argument(
+        "--max-code-point",
+        default=None,
+        help=(
+            "The maximum code point, i.e. the value of eo::max_code_point, in "
+            "decimal or as hexadecimal prefixed by 0x, from 127 to 0x10FFFF. "
+            "Every stage reads string literals with it and the generated "
+            "checker or semantics defines the constant as it. Defaults to "
+            "0x2FFFF, as in SMT-LIB."
+        ),
+    )
     parser.add_argument(
         "--cvc5",
         default=None,
@@ -1229,6 +1250,7 @@ def main(argv: list[str]) -> int:
         cvc5,
         solve_args,
     )
+    pipeline.max_code_point = getattr(args, "max_code_point", None)
     build_first = not getattr(args, "no_build", False)
     if not build_first and not pipeline.binary.is_file():
         parser.error(

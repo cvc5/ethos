@@ -52,6 +52,25 @@ class Options
    * equality (= f (lambda (x) t)) instead of (forall (x) (= (f x) t)).
    */
   bool d_referenceDefineFunHo;
+  /**
+   * The maximum code point of string characters. This impacts which escape
+   * sequences in string literals are valid and the semantics of eo::to_str,
+   * and is the value of eo::max_code_point.
+   */
+  uint32_t d_maxCodePoint;
+  /**
+   * If true, eo::max_code_point is not replaced by its value when parsed, and
+   * instead stands for a constant whose value is not known, which does not
+   * evaluate. This is used when compiling a signature, so that what is
+   * compiled refers to the maximum code point rather than its value here.
+   */
+  bool d_symbolicMaxCodePoint;
+  /**
+   * Set the maximum code point from its value given as a string, which is a
+   * decimal numeral or a hexadecimal numeral prefixed by 0x.
+   * @return true if the value was valid and set.
+   */
+  bool setMaxCodePoint(const std::string& val);
 };
 
 /**

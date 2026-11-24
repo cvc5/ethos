@@ -108,6 +108,17 @@ obligation without treating that approximation as the original type system.
 - **Native coverage.** Some operations are supplied by the backend language,
   some by a native layer, and some are deliberately opaque. There is no full
   check that every operation a run reaches has an implementation in its target.
+- **The maximum code point.** With a `--plugin.*` option, `eo::max_code_point`
+  is not bound to its value (see `Options::d_symbolicMaxCodePoint`) but is an
+  opaque ground constant, so it may appear wherever a value may (types,
+  patterns, conclusions) and literal operators such as `eo::add` do not
+  evaluate on it. Like any ground term it is syntactically distinct from every
+  numeral, so `(eo::is_eq eo::max_code_point 196607)` folds to `false` here,
+  where plain `ethos` gives `true`. Each backend defines the constant
+  (`z_max_code_point` in its native layer) as the value given by
+  `--max-code-point`, `196607` by default. Since that value also decides how
+  string literals are read and how ground `eo::to_str` evaluates, every stage
+  of a run must be given the same one; the driver's `--max-code-point` does so.
 - **Termination.** `:lean` carries Lean text, whose proof is checked downstream.
 - **Helper families.** Aggregate names are configuration, but the helper's
   argument/result shape is Python. [eos-todo.md](eos-todo.md) describes that

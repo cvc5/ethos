@@ -1,5 +1,5 @@
 execute_process(
-  COMMAND "${TEST_BINARY}" "${TEST_FILE}"
+  COMMAND "${TEST_BINARY}" ${TEST_ARGS} "${TEST_FILE}"
   WORKING_DIRECTORY "${TEST_WORKDIR}"
   RESULT_VARIABLE test_result
   OUTPUT_VARIABLE test_stdout

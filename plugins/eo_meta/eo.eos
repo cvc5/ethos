@@ -21,7 +21,7 @@
 (define-native-method z_zero  :eo-impl "0")
 (define-native-method z_one   :eo-impl "1")
 (define-native-method z_two   :eo-impl "2")
-(define-native-method z_max_code  :eo-impl "196608")
+(define-native-method z_max_code_point :eo-impl "eo::max_code_point")
 (define-native-method z_max_width :eo-impl "4294967296")
 
 (section "Booleans")

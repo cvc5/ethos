@@ -67,6 +67,10 @@ void ExprValue::computeFlags()
     std::vector<ExprValue*>& children = cur->d_children;
     if (children.empty())
     {
+      // Note that the maximum code point (EVAL_MAX_CODE_POINT) only stands as
+      // a term of its own if its value is left symbolic, see
+      // Options::d_symbolicMaxCodePoint. It is then an opaque ground constant,
+      // which may appear wherever a value may, e.g. in types and patterns.
       bool isEval = (ck == Kind::PROGRAM_CONST || ck == Kind::ANY);
       bool isNonGround = (ck == Kind::PARAM || ck == Kind::ANY);
       cur->setFlag(Flag::IS_EVAL, isEval);

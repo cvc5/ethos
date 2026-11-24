@@ -8,7 +8,8 @@
 //! another number is a mistake of the caller (`InvalidNative`).
 
 use crate::{
-    CheckError, CheckResult, EoString, Integer, Lit, NUM_CODES, Rational, Store, Term, TermData,
+    CheckError, CheckResult, EoString, Integer, Lit, MAX_CODE_POINT, Rational, Store, Term,
+    TermData,
 };
 use crate::lit::{rat_add, rat_cmp, rat_div, rat_floor, rat_from_integer, rat_mul, rat_neg, rat_sgn};
 
@@ -107,6 +108,10 @@ impl Store {
     /// The native natural number zero.
     pub(crate) fn native_nat_zero(&mut self) -> CheckResult<Term> {
         self.raw(Lit::Numeral(Integer::zero()))
+    }
+    /// The native maximum code point, see [`crate::MAX_CODE_POINT`].
+    pub(crate) fn native_max_code_point(&mut self) -> CheckResult<Term> {
+        self.raw(Lit::Numeral(Integer::from(MAX_CODE_POINT)))
     }
     /// Another native constant: generated code builds Booleans, `nat.zero`,
     /// numerals and string literals as values, so the runtime refuses any
@@ -386,7 +391,7 @@ impl Store {
         let mut valid = true;
         let mut i = 0;
         while i < codes.len() {
-            if codes[i] >= NUM_CODES {
+            if codes[i] > MAX_CODE_POINT {
                 valid = false;
             }
             i += 1;
