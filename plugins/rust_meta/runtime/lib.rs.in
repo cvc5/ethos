@@ -1151,12 +1151,12 @@ fn literal_cmp(a: &Lit, b: &Lit) -> CheckResult<std::cmp::Ordering> {
             _ => Err(CheckError::InvalidNative),
         },
         Lit::Numeral(a) => match b {
-            Lit::Numeral(b) => Ok(a.cmp(b)),
+            Lit::Numeral(b) => Ok(integer_cmp(a, b)),
             _ => Err(CheckError::InvalidNative),
         },
         Lit::Rational(a) => match b {
-            Lit::Rational(b) => Ok(match a.numerator().cmp(&b.numerator()) {
-                Ordering::Equal => a.denominator().cmp(&b.denominator()),
+            Lit::Rational(b) => Ok(match integer_cmp(&a.numerator(), &b.numerator()) {
+                Ordering::Equal => integer_cmp(&a.denominator(), &b.denominator()),
                 order => order,
             }),
             _ => Err(CheckError::InvalidNative),
@@ -1167,13 +1167,18 @@ fn literal_cmp(a: &Lit, b: &Lit) -> CheckResult<std::cmp::Ordering> {
         },
         Lit::Binary(a) => match b {
             Lit::Binary(b) => Ok(match a.size().cmp(&b.size()) {
-                Ordering::Equal => a.value().cmp(b.value()),
+                Ordering::Equal => integer_cmp(a.value(), b.value()),
                 order => order,
             }),
             _ => Err(CheckError::InvalidNative),
         },
         _ => Err(CheckError::InvalidNative),
     }
+}
+/// The order of two integers, by `partial_cmp` (total on integers), the
+/// comparison whose spec the proofs use.
+fn integer_cmp(a: &Integer, b: &Integer) -> std::cmp::Ordering {
+    a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
 }
 /// The order of two sequences of code points: by the first place where
 /// they differ, a proper prefix first.

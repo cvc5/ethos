@@ -10,6 +10,7 @@
 use crate::{
     CheckError, CheckResult, EoString, Integer, Lit, NUM_CODES, Rational, Store, Term, TermData,
 };
+use crate::lit::{rat_add, rat_cmp, rat_div, rat_floor, rat_from_integer, rat_mul, rat_neg, rat_sgn};
 
 /// A native operation with arguments. `Teq` is also `teq`, `NatToInt` also
 /// `Int.ofNat`, `IntToNat` also `Int.toNat`.
@@ -304,30 +305,30 @@ impl Store {
         let y = self.raw_rat(y)?;
         self.native_bool(match op {
             NativeOp::Qeq => x == y,
-            NativeOp::Qleq => x <= y,
-            _ => x < y,
+            NativeOp::Qleq => !matches!(rat_cmp(&x, &y), std::cmp::Ordering::Greater),
+            _ => matches!(rat_cmp(&x, &y), std::cmp::Ordering::Less),
         })
     }
     fn native_rat_binary(&mut self, op: NativeOp, x: Term, y: Term) -> CheckResult<Term> {
         let x = self.raw_rat(x)?;
         let y = self.raw_rat(y)?;
         self.raw(Lit::Rational(match op {
-            NativeOp::Qplus => x.add(&y),
-            NativeOp::Qmult => x.mul(&y),
+            NativeOp::Qplus => rat_add(&x, &y),
+            NativeOp::Qmult => rat_mul(&x, &y),
             // QdivTotal
             _ => {
-                if y.sgn() == 0 {
-                    Rational::from_integer(&Integer::zero())
+                if rat_sgn(&y) == 0 {
+                    rat_from_integer(&Integer::zero())
                 } else {
-                    x.div(&y)
+                    rat_div(&x, &y)
                 }
             }
         }))
     }
     fn native_rat_unary(&mut self, op: NativeOp, x: Term) -> CheckResult<Term> {
         let x = self.raw_rat(x)?;
-        self.raw(Lit::Rational(if op == NativeOp::Qneg || x.sgn() < 0 {
-            x.neg()
+        self.raw(Lit::Rational(if op == NativeOp::Qneg || rat_sgn(&x) < 0 {
+            rat_neg(&x)
         } else {
             x
         }))
@@ -342,11 +343,11 @@ impl Store {
     }
     fn native_to_int(&mut self, x: Term) -> CheckResult<Term> {
         let q = self.raw_rat(x)?;
-        self.raw(Lit::Numeral(q.floor()))
+        self.raw(Lit::Numeral(rat_floor(&q)))
     }
     fn native_to_real(&mut self, x: Term) -> CheckResult<Term> {
         let n = self.raw_int(x)?;
-        self.raw(Lit::Rational(Rational::from_integer(&n)))
+        self.raw(Lit::Rational(rat_from_integer(&n)))
     }
     /// Whether two terms have the same data. Every term is interned, so two
     /// handles of the store have the same data exactly when they are the
