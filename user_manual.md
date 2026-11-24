@@ -2090,9 +2090,12 @@ When Ethos encounters a command of the form `(reference <string>)`, the checker 
 
 In particular, when the command `(reference "file.smt2")` is read, Ethos will parse `file.smt2`.
 The declaration commands in this file will be treated as normal, that is, they will populate the symbol table of Ethos as they normally would if they were to appear in an `*.eo` input.
-By default, `define-fun` and `define-const` commands in reference files are interpreted as reference assertions equating the defined symbol with its body, wrapped in an object-language `lambda` for functions with parameters.
-This requires the signature to define `=` and, for functions with parameters, a `lambda` binder.
-If the option `reference-define-fun` is enabled, both commands are instead parsed as Eunoia definitions.
+The commands `define-fun` and `define-const` in reference files are interpreted as reference assertions that define the symbol.
+A definition without parameters, i.e. `(define-fun c () T t)` or `(define-const c T t)`, is the reference assertion `(= c t)`.
+A definition with parameters `(define-fun f ((x1 T1) ... (xn Tn)) T t)` is by default the quantified formula `(forall (x1 ... xn) (= (f x1 ... xn) t))`, and is instead the higher-order equality `(= f (lambda (x1 ... xn) t))` if the option `reference-define-fun-ho` is enabled.
+Here, `x1 ... xn` are bound (object-level) variables, i.e. `(eo::var "x1" T1) ... (eo::var "xn" Tn)`, and the body `t` is as written.
+This requires the signature to define `=` and, for definitions with parameters, `forall` (respectively `lambda`) as a binder.
+Note that defined symbols are not expanded in the remainder of the reference file, e.g. `(assert (f a))` is the reference assertion `(f a)`.
 The commands of the form `(assert F)` will add `F` to a set of formulas we will refer to as the _reference assertions_.
 The commands of the form `(check-sat-assuming (F1 ... Fn))` will likewise add `F1 ... Fn` to the reference assertions, since these formulas are part of the query that was checked.
 The commands `(reset-assertions)` and `(reset)` discard all reference assertions collected so far.
@@ -2185,7 +2188,7 @@ They do not impact how signature files (*.eo) are parsed:
 - `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
 - `--no-parse-let`: do not treat `let` as a builtin symbol for specifying a macro.
-- `--reference-define-fun`: when parsing reference files, treat `define-fun` and `define-const` commands as Eunoia definitions instead of reference assertions.
+- `--reference-define-fun-ho`: in reference files, interpret a `define-fun` with parameters as the higher-order equality `(= f (lambda (x1 ... xn) t))` instead of the quantified formula `(forall (x1 ... xn) (= (f x1 ... xn) t))`.
 
 Most of the above options can also be set via `set-option` commands within proofs or Eunoia scripts.
 For example, the command `(set-option :normalize-num true)` tells Ethos to normalize numerals always.

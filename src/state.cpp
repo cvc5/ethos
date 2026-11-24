@@ -29,7 +29,7 @@ Options::Options()
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
-  d_referenceDefineFun = false;
+  d_referenceDefineFunHo = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -78,9 +78,9 @@ bool Options::setOption(const std::string& key, bool val)
   {
     d_normalizeHexadecimal = val;
   }
-  else if (key == "reference-define-fun")
+  else if (key == "reference-define-fun-ho")
   {
-    d_referenceDefineFun = val;
+    d_referenceDefineFunHo = val;
   }
   else
   {
