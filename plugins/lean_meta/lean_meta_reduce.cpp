@@ -668,9 +668,28 @@ void LeanMetaReduce::printEmbTermInternal(
       }
       else
       {
-        // all other operators print as applications
-        os << "(";
-        cparen[key]++;
+        std::string hname;
+        size_t uarity = 0;
+        if (recTerm.isEvaluatable() && recTerm[0].getKind() == Kind::CONST
+            && getMetaKind(d_state, recTerm[0], hname) == MetaKind::EUNOIA
+            && hname != "$eo_pf" && isAtomicEo(recTerm[0], hname, uarity)
+            && uarity > 0)
+        {
+          // an operator with indices that may be stuck: built strictly, so
+          // that a stuck index gives the stuck term, as for applications
+          // above (not $eo_pf, which prints as Proof.pf, see
+          // printEmbAtomicTerm)
+          os << "(__eo_mk_uop" << uarity << " UserOp" << uarity << "."
+             << cleanSmtId(hname) << " ";
+          cparen[key]++;
+          cstart = 1;
+        }
+        else
+        {
+          // all other operators print as applications
+          os << "(";
+          cparen[key]++;
+        }
       }
     }
     else if (ck == Kind::FUNCTION_TYPE)
@@ -709,7 +728,8 @@ void LeanMetaReduce::printEmbTermInternal(
     }
     else if (ck == Kind::VARIABLE)
     {
-      os << "(Term.Var ";
+      // strict where a part may be stuck, as for applications above
+      os << (recTerm.isEvaluatable() ? "(__eo_mk_var " : "(Term.Var ");
       cparen[key]++;
     }
     else
@@ -1683,6 +1703,55 @@ std::string LeanMetaReduce::printTheoryOpDefs() const
   return defs.str();
 }
 
+std::string LeanMetaReduce::printStrictBuilders() const
+{
+  std::stringstream os;
+  os << "/- Building a term with a stuck part gives the stuck term, as"
+     << std::endl
+     << "__eo_mk_apply does for an application: an operator's indices, a"
+     << std::endl
+     << "variable's name and type. -/" << std::endl;
+  for (size_t n = 1; n <= s_maxIndexArity; n++)
+  {
+    if (d_embedTOpDt[n].str().empty())
+    {
+      continue;
+    }
+    std::string ty = "UserOp" + std::to_string(n);
+    os << "def __eo_mk_uop" << n << " : " << ty;
+    for (size_t i = 0; i < n; i++)
+    {
+      os << " -> Term";
+    }
+    os << " -> Term" << std::endl;
+    for (size_t i = 0; i < n; i++)
+    {
+      os << "  | _";
+      for (size_t j = 0; j < n; j++)
+      {
+        os << ", " << (i == j ? "Term.Stuck" : "_");
+      }
+      os << " => Term.Stuck" << std::endl;
+    }
+    os << "  | op";
+    for (size_t i = 0; i < n; i++)
+    {
+      os << ", x" << (i + 1);
+    }
+    os << " => Term.UOp" << n << " op";
+    for (size_t i = 0; i < n; i++)
+    {
+      os << " x" << (i + 1);
+    }
+    os << std::endl << std::endl;
+  }
+  os << "def __eo_mk_var : Term -> Term -> Term" << std::endl
+     << "  | Term.Stuck, _ => Term.Stuck" << std::endl
+     << "  | _, Term.Stuck => Term.Stuck" << std::endl
+     << "  | s, T => Term.Var s T" << std::endl;
+  return os.str();
+}
+
 std::string LeanMetaReduce::printUserOpCmps() const
 {
   // one per inductive printTheoryOpDefs writes, so the same arities
@@ -1803,6 +1872,7 @@ void LeanMetaReduce::finalizeChecker()
       emitResourceFile("plugins/lean_meta/lean_meta_checker.lean",
                        "plugins/lean_meta/lean_meta_checker_gen.lean",
                        {{"$NATIVE_DEFS$", d_natives.defs("Eo")},
+                        {"$LEAN_EO_MK_STRICT$", printStrictBuilders()},
                         {"$LEAN_DEFS$", d_defs.str()},
                         {"$LEAN_DEFS_TOTAL$", d_defsTotal.str()},
                         {"$LEAN_CHECKER_RULE_DEF$", d_ruleDt.str()},

@@ -184,6 +184,12 @@ class LeanMetaReduce : public MetaReducePlugin
    * constructor of Term in d_termCons, as the text of $LEAN_TERM_CMP$.
    */
   std::string printUserOpCmps() const;
+  /**
+   * The strict builders of a term with parts other than an application's:
+   * __eo_mk_uop<n> for an operator with n indices, and __eo_mk_var. Each
+   * gives the stuck term if a part is stuck, as __eo_mk_apply does.
+   */
+  std::string printStrictBuilders() const;
   std::string printTermCmp() const;
   /**
    * The comparison a term-order case calls for an argument of Lean type t:

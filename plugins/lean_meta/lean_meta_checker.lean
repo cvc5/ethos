@@ -29,6 +29,8 @@ abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
       x3
       Term.Stuck))
 
+$LEAN_EO_MK_STRICT$
+
 /- Proofs -/
 inductive Proof : Type where
   | pf : Term -> Proof

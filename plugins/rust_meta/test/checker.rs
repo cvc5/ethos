@@ -371,6 +371,26 @@ fn program_keys_include_the_environment() {
 }
 
 #[test]
+fn an_operator_with_a_stuck_index_is_stuck() {
+    let mut s = Store::default();
+    let yes = s.boolean(true).unwrap();
+    let no = s.boolean(false).unwrap();
+    let stuck = s.stuck();
+    let zero = s.numeral(Integer::zero()).unwrap();
+    let one = s.numeral(Integer::one()).unwrap();
+    // built strictly, as logos's __eo_mk_uop2 builds it
+    assert_eq!(n(&mut s, "test-index", &[stuck, zero]), stuck);
+    assert_eq!(n(&mut s, "test-index", &[zero, stuck]), stuck);
+    assert_eq!(n(&mut s, "test-index", &[stuck, stuck]), stuck);
+    let same = n(&mut s, "test-index", &[zero, zero]);
+    let differ = n(&mut s, "test-index", &[zero, one]);
+    assert_ne!(same, stuck);
+    // a repeated index is compared by handle equality
+    assert_eq!(generated::eo__24eo_5fprog_5findex_5fsame(&mut s, same), Ok(yes));
+    assert_eq!(generated::eo__24eo_5fprog_5findex_5fsame(&mut s, differ), Ok(no));
+}
+
+#[test]
 fn nonlinear_patterns_requirements_and_lazy_branches() {
     let mut s = Store::new(Limits {
         calls: 1000,
