@@ -1,0 +1,18 @@
+; regression: `as` annotating the return type of an overloaded symbol chooses
+; the overload, for applications and constants, regardless of the order in
+; which the overloads were declared.
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+(declare-const f (-> Int Int))
+(declare-const f (-> Int Bool))
+(define x () ((as f Int) 1) :type Int)
+(define y () ((as f Bool) 1) :type Bool)
+(declare-const c Int)
+(declare-const c Bool)
+(define z () (as c Int) :type Int)
+(define w () (as c Bool) :type Bool)
+; a non-overloaded define is beta-reduced
+(define g ((u Int)) u)
+(define v () ((as g Int) 1) :type Int)
+(assume @a (= v 1))

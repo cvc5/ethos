@@ -719,6 +719,12 @@ Conceptually, this means that `(_ set.empty (Set Int))` is a constant symbol (wi
 
 A similar treatment is given to ambiguous datatype constructors, which we describe later in [parametric datatypes](#par-datatypes).
 
+The syntax `as` may also be used on symbols that are not ambiguous, following SMT-LIB 2.6 qualified identifiers.
+In this case, `(as c T)` is `c` if `c` has type `T`, and `((as f T) t1 ... tn)` is `(f t1 ... tn)` if the latter has type `T`.
+Otherwise, the term is ill-typed.
+In contrast to ambiguous functions, the type `T` in this case must be ground, i.e. it may not contain parameters.
+For using `as` to choose between overloaded symbols, see [overloading](#overloading).
+
 <a name="literals"></a>
 
 ### Literal types
@@ -1408,6 +1414,11 @@ A term of the form `(eo::as t (-> T1 ... Tn T))` evaluates to term `s` only if `
 If multiple such terms `s` exist, then the most recent one is returned.
 Otherwise, the term `(eo::as t (-> T1 ... Tn T))` is unevaluated.
 For example, `(eo::as - (-> Int Int Int))` evaluates to the second declared symbol in the example above.
+
+The SMT-LIB syntax `as` can also be used to choose between overloaded symbols based on the return type.
+A term of the form `((as f T) t1 ... tn)` is `(s t1 ... tn)` where `s` is the most recently declared symbol named `f` such that `(s t1 ... tn)` has type `T`.
+Similarly, `(as c T)` is the most recently declared symbol named `c` that has type `T`.
+For example, given `(declare-const f (-> Int Int))` and `(declare-const f (-> Int Bool))`, the term `((as f Int) 1)` uses the first declaration.
 
 <a name="datatypes"></a>
 
