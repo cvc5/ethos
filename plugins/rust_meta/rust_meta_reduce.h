@@ -95,7 +95,8 @@ class RustMetaReduce : public MetaReducePlugin
    *     is cut into, in order).
    * - a node of `expr`: `op` (param, literal, program_const, constant (a
    *   constructor without arguments), construct, native, builtin, call,
-   *   funtype, apply, variable) and what it names:
+   *   funtype, apply, variable, max_code_point (`eo::max_code_point`, the
+   *   numeral `MAX_CODE_POINT`)) and what it names:
    *   the `kind` and `bool` of a literal, `ctor`, the native's `name` and
    *   `nargs`, the builtin's `eval` and `program`, the callee `program`,
    *   `guarded` (lean-meta writes the application with `__eo_mk_apply`),
