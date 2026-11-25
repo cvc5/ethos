@@ -1328,7 +1328,9 @@ class RustMetaReduce::Emitter
     }
     if (k == Kind::EVAL_MAX_CODE_POINT)
     {
-      // the numeral that is the maximum code point of the checker
+      // the numeral that is the maximum code point of the checker, which
+      // lean-meta writes as native_z_max_code_point
+      node().set("op", "\"max_code_point\"");
       return val("s.literal(Lit::Numeral(Integer::from(MAX_CODE_POINT)))?");
     }
     if (t.getNumChildren() == 0)
