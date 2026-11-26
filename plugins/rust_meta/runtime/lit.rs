@@ -574,6 +574,17 @@ impl Lit {
     }
 
     /// `(eo::extract s i1 i2)`: bits or characters `i1 ..= i2`.
+    /// Whether eo::extract's first argument is a string longer than
+    /// u32::MAX code points, whose indices `evaluate_extract` does not take.
+    pub fn extract_past_limit(args: &[Lit]) -> bool {
+        if args.is_empty() {
+            return false;
+        }
+        match &args[0] {
+            Lit::Str(st) => st.len() > u32::MAX as usize,
+            _ => false,
+        }
+    }
     fn evaluate_extract(s: &Lit, i1: &Integer, i2: &Integer) -> Option<Lit> {
         match s {
             Lit::Hex(b) | Lit::Binary(b) => {

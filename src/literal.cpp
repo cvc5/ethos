@@ -10,6 +10,7 @@
 
 #include "base/check.h"
 #include <iostream>
+#include <limits>
 
 namespace ethos {
 
@@ -473,11 +474,17 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
           case Kind::STRING:
           {
             Integer dsize(args[0]->d_str.size());
+            // past the indices taken below, whatever the indices are
+            if (!dsize.fitsUnsignedInt())
+            {
+              EO_FATAL() << "eo::extract of a string longer than "
+                         << std::numeric_limits<uint32_t>::max()
+                         << " characters";
+            }
             if (i1.sgn()<0 || i2.sgn()<0 || i1>dsize || dsize.sgn()==0)
             {
               return Literal(String(""));
             }
-            Assert (i1.fitsUnsignedInt() && dsize.fitsUnsignedInt());
             uint32_t v1 = i1.toUnsignedInt();
             uint32_t vs = dsize.toUnsignedInt();
             uint32_t v2 = i2>=dsize ? vs-1 : i2.toUnsignedInt();
