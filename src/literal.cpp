@@ -10,6 +10,7 @@
 
 #include "base/check.h"
 #include <iostream>
+#include <limits>
 
 namespace ethos {
 
@@ -292,6 +293,21 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
           if (k!=Kind::EVAL_CONCAT && !allSameBitWidth(args))
           {
             return Literal();
+          }
+          if (k==Kind::EVAL_CONCAT)
+          {
+            // a width is an unsigned, which the sum must fit in
+            uint64_t width = 0;
+            for (const Literal* a : args)
+            {
+              width += a->d_bv.getSize();
+            }
+            if (width > std::numeric_limits<uint32_t>::max())
+            {
+              EO_FATAL() << "eo::concat of binaries whose widths add up to "
+                         << width << ", more than "
+                         << std::numeric_limits<uint32_t>::max();
+            }
           }
           BitVector res = args[0]->d_bv;
           for (size_t i=1, nargs = args.size(); i<nargs; i++)
