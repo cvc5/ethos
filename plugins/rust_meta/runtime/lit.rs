@@ -102,26 +102,38 @@ impl Lit {
         }
     }
 
-    /// Whether eo::concat's arguments are binaries of one kind whose widths
-    /// add up past u32::MAX, the largest width a binary has.
+    /// Whether eo::concat's arguments are binaries, or strings, of one kind
+    /// whose widths, or lengths, add up past u32::MAX: the largest width a
+    /// binary has, and the longest string eo::extract takes.
     pub fn concat_past_limit(args: &[Lit]) -> bool {
         if args.is_empty() {
             return false;
         }
         let ka = args[0].kind();
-        let mut width: u64 = 0;
+        // at most 2 * u32::MAX, since it is tested after each addition
+        let mut total: u64 = 0;
         let mut i = 0;
         while i < args.len() {
             if args[i].kind() != ka {
                 return false;
             }
-            match args[i].as_bv() {
-                Some(b) => width += u64::from(b.size()),
-                None => return false,
+            let n = match &args[i] {
+                Lit::Hex(b) | Lit::Binary(b) => b.size(),
+                Lit::Str(st) => {
+                    if st.len() > u32::MAX as usize {
+                        return true;
+                    }
+                    st.len() as u32
+                }
+                _ => return false,
+            };
+            total += u64::from(n);
+            if total > u64::from(u32::MAX) {
+                return true;
             }
             i += 1;
         }
-        width > u64::from(u32::MAX)
+        false
     }
 
     fn as_bv(&self) -> Option<&BitVec> {

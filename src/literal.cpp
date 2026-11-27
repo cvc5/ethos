@@ -330,6 +330,18 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
         {
           if (k==Kind::EVAL_CONCAT)
           {
+            // as for binaries, and as eo::extract takes
+            uint64_t length = 0;
+            for (const Literal* a : args)
+            {
+              length += a->d_str.size();
+            }
+            if (length > std::numeric_limits<uint32_t>::max())
+            {
+              EO_FATAL() << "eo::concat of strings whose lengths add up to "
+                         << length << ", more than "
+                         << std::numeric_limits<uint32_t>::max();
+            }
             String res = args[0]->d_str;
             for (size_t i=1, nargs=args.size(); i<nargs; i++)
             {
