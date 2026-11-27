@@ -108,11 +108,11 @@ impl Lit {
         if args.is_empty() {
             return false;
         }
-        let kind = args[0].kind();
+        let ka = args[0].kind();
         let mut width: u64 = 0;
         let mut i = 0;
         while i < args.len() {
-            if args[i].kind() != kind {
+            if args[i].kind() != ka {
                 return false;
             }
             match args[i].as_bv() {
