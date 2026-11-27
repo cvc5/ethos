@@ -1084,6 +1084,13 @@ impl Store {
             Some(lits) => lits,
             None => return Ok(self.stuck()),
         };
+        // eo::concat of binaries whose widths, or strings whose lengths, add
+        // up past u32::MAX is past what the checker computes (Ethos stops
+        // there too): an error, not a wrapped width or an overflow, either of
+        // which would disagree with the signature's semantics.
+        if op == EvalOp::Concat && Lit::concat_past_limit(&lits) {
+            return Err(CheckError::Limit);
+        }
         match Lit::evaluate(op, &lits) {
             Some(literal) => self.literal(literal),
             None => Ok(self.stuck()),
