@@ -1084,6 +1084,12 @@ impl Store {
             Some(lits) => lits,
             None => return Ok(self.stuck()),
         };
+        // eo::extract of a string longer than u32::MAX code points is past
+        // what the checker computes (Ethos stops there too): an error, not a
+        // stuck term, which would disagree with the signature's semantics.
+        if op == EvalOp::Extract && Lit::extract_past_limit(&lits) {
+            return Err(CheckError::Limit);
+        }
         match Lit::evaluate(op, &lits) {
             Some(literal) => self.literal(literal),
             None => Ok(self.stuck()),
